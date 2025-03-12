@@ -1,0 +1,892 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (compare_operator),\n\"\n    a !~ '1';\n    a =~ '1';\n    a >< '1';\n    a >!< '1';\n    a == '1';\n    a != '1';\n    a > '1';\n    a < '1';\n    a >= '1';\n    a <= '1';\n    x() x 2;\n    \")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                5,
+                6,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    13,
+                    14,
+                ),
+            },
+        ),
+        kind: Operator(
+            BangTilde,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            5,
+                            6,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                5,
+                                6,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            10,
+                            13,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                13,
+                                14,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                19,
+                20,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    27,
+                    28,
+                ),
+            },
+        ),
+        kind: Operator(
+            EqualTilde,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            19,
+                            20,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                19,
+                                20,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            24,
+                            27,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                27,
+                                28,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                33,
+                34,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    41,
+                    42,
+                ),
+            },
+        ),
+        kind: Operator(
+            GreaterLess,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            33,
+                            34,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                33,
+                                34,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            38,
+                            41,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                41,
+                                42,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                47,
+                48,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    56,
+                    57,
+                ),
+            },
+        ),
+        kind: Operator(
+            GreaterBangLess,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            47,
+                            48,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                47,
+                                48,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            53,
+                            56,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                56,
+                                57,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                62,
+                63,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    70,
+                    71,
+                ),
+            },
+        ),
+        kind: Operator(
+            EqualEqual,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            62,
+                            63,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                62,
+                                63,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            67,
+                            70,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                70,
+                                71,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                76,
+                77,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    84,
+                    85,
+                ),
+            },
+        ),
+        kind: Operator(
+            BangEqual,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            76,
+                            77,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                76,
+                                77,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            81,
+                            84,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                84,
+                                85,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                90,
+                91,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    97,
+                    98,
+                ),
+            },
+        ),
+        kind: Operator(
+            Greater,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            90,
+                            91,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                90,
+                                91,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            94,
+                            97,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                97,
+                                98,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                103,
+                104,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    110,
+                    111,
+                ),
+            },
+        ),
+        kind: Operator(
+            Less,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            103,
+                            104,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                103,
+                                104,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            107,
+                            110,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                110,
+                                111,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                116,
+                117,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    124,
+                    125,
+                ),
+            },
+        ),
+        kind: Operator(
+            GreaterEqual,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            116,
+                            117,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                116,
+                                117,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            121,
+                            124,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                124,
+                                125,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                130,
+                131,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    138,
+                    139,
+                ),
+            },
+        ),
+        kind: Operator(
+            LessEqual,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            130,
+                            131,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                130,
+                                131,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
+                        ),
+                        position: (
+                            135,
+                            138,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                138,
+                                139,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "x",
+                ),
+            ),
+            position: (
+                144,
+                145,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    151,
+                    152,
+                ),
+            },
+        ),
+        kind: Operator(
+            X,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "x",
+                            ),
+                        ),
+                        position: (
+                            144,
+                            145,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: RightParen,
+                            position: (
+                                146,
+                                147,
+                            ),
+                        },
+                    ),
+                    kind: Call(
+                        Statement {
+                            start: Token {
+                                kind: LeftParen,
+                                position: (
+                                    145,
+                                    146,
+                                ),
+                            },
+                            end: Some(
+                                Token {
+                                    kind: RightParen,
+                                    position: (
+                                        146,
+                                        147,
+                                    ),
+                                },
+                            ),
+                            kind: Parameter(
+                                [],
+                            ),
+                        },
+                    ),
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Number(
+                                2,
+                            ),
+                        ),
+                        position: (
+                            150,
+                            151,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                151,
+                                152,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+]

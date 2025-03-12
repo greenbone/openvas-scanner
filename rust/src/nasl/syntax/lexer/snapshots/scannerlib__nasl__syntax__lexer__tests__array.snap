@@ -1,0 +1,56 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (array), \"a[1];\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    4,
+                    5,
+                ),
+            },
+        ),
+        kind: Array(
+            Some(
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Number(
+                                1,
+                            ),
+                        ),
+                        position: (
+                            2,
+                            3,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: RightBrace,
+                            position: (
+                                3,
+                                4,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ),
+        ),
+    },
+]

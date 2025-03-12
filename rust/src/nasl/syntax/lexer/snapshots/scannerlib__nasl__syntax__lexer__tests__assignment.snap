@@ -1,0 +1,79 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (assignment), \"(a = 1);\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: LeftParen,
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    7,
+                    8,
+                ),
+            },
+        ),
+        kind: Assign(
+            Equal,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        1,
+                        2,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            1,
+                            2,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        5,
+                        6,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: RightParen,
+                        position: (
+                            6,
+                            7,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+]

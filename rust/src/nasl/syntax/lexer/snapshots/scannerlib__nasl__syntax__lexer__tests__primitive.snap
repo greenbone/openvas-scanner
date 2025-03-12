@@ -1,0 +1,30 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (primitive), \"1;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Literal(
+                Number(
+                    1,
+                ),
+            ),
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    1,
+                    2,
+                ),
+            },
+        ),
+        kind: Primitive,
+    },
+]

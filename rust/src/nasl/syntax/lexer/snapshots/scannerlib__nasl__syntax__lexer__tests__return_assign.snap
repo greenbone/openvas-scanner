@@ -1,0 +1,71 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (return_assign), \"a++;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    3,
+                    4,
+                ),
+            },
+        ),
+        kind: Assign(
+            PlusPlus,
+            ReturnAssign,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        0,
+                        1,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            0,
+                            1,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: X,
+                    position: (
+                        18446744073709551615,
+                        18446744073709551615,
+                    ),
+                },
+                end: None,
+                kind: NoOp,
+            },
+        ),
+    },
+]

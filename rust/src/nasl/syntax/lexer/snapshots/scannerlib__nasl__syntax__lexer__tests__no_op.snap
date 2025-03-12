@@ -1,0 +1,26 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (no_op), \";\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Semicolon,
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    0,
+                    1,
+                ),
+            },
+        ),
+        kind: NoOp,
+    },
+]

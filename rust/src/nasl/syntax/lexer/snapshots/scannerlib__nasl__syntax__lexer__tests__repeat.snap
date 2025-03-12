@@ -1,0 +1,75 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (repeat), \"repeat a; until b;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                Repeat,
+            ),
+            position: (
+                0,
+                6,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    17,
+                    18,
+                ),
+            },
+        ),
+        kind: Repeat(
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        7,
+                        8,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            8,
+                            9,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "b",
+                        ),
+                    ),
+                    position: (
+                        16,
+                        17,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            17,
+                            18,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+        ),
+    },
+]

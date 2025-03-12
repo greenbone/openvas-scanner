@@ -1,0 +1,52 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (call), \"a();\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    3,
+                    4,
+                ),
+            },
+        ),
+        kind: Call(
+            Statement {
+                start: Token {
+                    kind: LeftParen,
+                    position: (
+                        1,
+                        2,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: RightParen,
+                        position: (
+                            2,
+                            3,
+                        ),
+                    },
+                ),
+                kind: Parameter(
+                    [],
+                ),
+            },
+        ),
+    },
+]

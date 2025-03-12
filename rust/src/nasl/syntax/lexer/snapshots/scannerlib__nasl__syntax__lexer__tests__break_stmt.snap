@@ -1,0 +1,28 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (break_stmt), \"break;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                Break,
+            ),
+            position: (
+                0,
+                5,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    5,
+                    6,
+                ),
+            },
+        ),
+        kind: Break,
+    },
+]

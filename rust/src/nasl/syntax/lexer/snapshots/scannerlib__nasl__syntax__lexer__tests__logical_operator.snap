@@ -1,0 +1,161 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (logical_operator), \"a && 1; a || 1;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    6,
+                    7,
+                ),
+            },
+        ),
+        kind: Operator(
+            AmpersandAmpersand,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            0,
+                            1,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                0,
+                                1,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Number(
+                                1,
+                            ),
+                        ),
+                        position: (
+                            5,
+                            6,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                6,
+                                7,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                8,
+                9,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    14,
+                    15,
+                ),
+            },
+        ),
+        kind: Operator(
+            PipePipe,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            8,
+                            9,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                8,
+                                9,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Number(
+                                1,
+                            ),
+                        ),
+                        position: (
+                            13,
+                            14,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                14,
+                                15,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+]

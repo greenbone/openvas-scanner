@@ -1,0 +1,52 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (return_stmt), \"return 0;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                Return,
+            ),
+            position: (
+                0,
+                6,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    8,
+                    9,
+                ),
+            },
+        ),
+        kind: Return(
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            0,
+                        ),
+                    ),
+                    position: (
+                        7,
+                        8,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            8,
+                            9,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+]

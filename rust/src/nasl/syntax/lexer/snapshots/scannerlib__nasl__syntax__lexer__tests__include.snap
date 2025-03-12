@@ -1,0 +1,52 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (include), \"include(\\\"test.inc\\\");\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                Include,
+            ),
+            position: (
+                0,
+                7,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    19,
+                    20,
+                ),
+            },
+        ),
+        kind: Include(
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        String(
+                            "test.inc",
+                        ),
+                    ),
+                    position: (
+                        8,
+                        18,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: RightParen,
+                        position: (
+                            18,
+                            19,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+]

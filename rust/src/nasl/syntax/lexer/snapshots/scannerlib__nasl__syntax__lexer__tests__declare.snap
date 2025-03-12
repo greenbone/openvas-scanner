@@ -1,0 +1,54 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (declare), \"local_var a;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                LocalVar,
+            ),
+            position: (
+                0,
+                9,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    11,
+                    12,
+                ),
+            },
+        ),
+        kind: Declare(
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            10,
+                            11,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                11,
+                                12,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+            ],
+        ),
+    },
+]

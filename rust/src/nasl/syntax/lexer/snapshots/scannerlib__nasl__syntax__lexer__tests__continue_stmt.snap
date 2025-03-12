@@ -1,0 +1,28 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (continue_stmt), \"continue;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                Continue,
+            ),
+            position: (
+                0,
+                8,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    8,
+                    9,
+                ),
+            },
+        ),
+        kind: Continue,
+    },
+]

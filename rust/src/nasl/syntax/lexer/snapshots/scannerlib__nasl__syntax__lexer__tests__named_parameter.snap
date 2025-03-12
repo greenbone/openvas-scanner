@@ -1,0 +1,54 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (named_parameter), \"a: b;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    4,
+                    5,
+                ),
+            },
+        ),
+        kind: NamedParameter(
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "b",
+                        ),
+                    ),
+                    position: (
+                        3,
+                        4,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            4,
+                            5,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+        ),
+    },
+]

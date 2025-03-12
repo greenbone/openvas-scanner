@@ -1,0 +1,130 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (function_declaration), \"function a(b) {c;}\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                Function,
+            ),
+            position: (
+                0,
+                8,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: RightCurlyBracket,
+                position: (
+                    17,
+                    18,
+                ),
+            },
+        ),
+        kind: FunctionDeclaration(
+            Token {
+                kind: Ident(
+                    Ident(
+                        "a",
+                    ),
+                ),
+                position: (
+                    9,
+                    10,
+                ),
+            },
+            Statement {
+                start: Token {
+                    kind: LeftParen,
+                    position: (
+                        10,
+                        11,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: RightParen,
+                        position: (
+                            12,
+                            13,
+                        ),
+                    },
+                ),
+                kind: Parameter(
+                    [
+                        Statement {
+                            start: Token {
+                                kind: Ident(
+                                    Ident(
+                                        "b",
+                                    ),
+                                ),
+                                position: (
+                                    11,
+                                    12,
+                                ),
+                            },
+                            end: Some(
+                                Token {
+                                    kind: RightParen,
+                                    position: (
+                                        12,
+                                        13,
+                                    ),
+                                },
+                            ),
+                            kind: Variable,
+                        },
+                    ],
+                ),
+            },
+            Statement {
+                start: Token {
+                    kind: LeftCurlyBracket,
+                    position: (
+                        14,
+                        15,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: RightCurlyBracket,
+                        position: (
+                            17,
+                            18,
+                        ),
+                    },
+                ),
+                kind: Block(
+                    [
+                        Statement {
+                            start: Token {
+                                kind: Ident(
+                                    Ident(
+                                        "c",
+                                    ),
+                                ),
+                                position: (
+                                    15,
+                                    16,
+                                ),
+                            },
+                            end: Some(
+                                Token {
+                                    kind: Semicolon,
+                                    position: (
+                                        16,
+                                        17,
+                                    ),
+                                },
+                            ),
+                            kind: Variable,
+                        },
+                    ],
+                ),
+            },
+        ),
+    },
+]

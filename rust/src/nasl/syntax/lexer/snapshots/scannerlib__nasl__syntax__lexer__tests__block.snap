@@ -1,0 +1,52 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (block), \"{ a; }\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: LeftCurlyBracket,
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: RightCurlyBracket,
+                position: (
+                    5,
+                    6,
+                ),
+            },
+        ),
+        kind: Block(
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            2,
+                            3,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                3,
+                                4,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+            ],
+        ),
+    },
+]

@@ -1,0 +1,84 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (div), \"a / 1;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                0,
+                1,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    5,
+                    6,
+                ),
+            },
+        ),
+        kind: Operator(
+            Slash,
+            [
+                Statement {
+                    start: Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            0,
+                            1,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            position: (
+                                0,
+                                1,
+                            ),
+                        },
+                    ),
+                    kind: Variable,
+                },
+                Statement {
+                    start: Token {
+                        kind: Literal(
+                            Number(
+                                1,
+                            ),
+                        ),
+                        position: (
+                            4,
+                            5,
+                        ),
+                    },
+                    end: Some(
+                        Token {
+                            kind: Semicolon,
+                            position: (
+                                5,
+                                6,
+                            ),
+                        },
+                    ),
+                    kind: Primitive,
+                },
+            ],
+        ),
+    },
+]

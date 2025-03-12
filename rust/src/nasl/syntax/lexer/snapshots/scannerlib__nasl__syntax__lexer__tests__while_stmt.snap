@@ -1,0 +1,75 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (while_stmt), \"while (a) b;\")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Keyword(
+                While,
+            ),
+            position: (
+                0,
+                5,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    11,
+                    12,
+                ),
+            },
+        ),
+        kind: While(
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        7,
+                        8,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: RightParen,
+                        position: (
+                            8,
+                            9,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "b",
+                        ),
+                    ),
+                    position: (
+                        10,
+                        11,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            11,
+                            12,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+        ),
+    },
+]

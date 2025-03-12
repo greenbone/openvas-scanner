@@ -1,0 +1,615 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "parse_ok(stringify! (operator_assignment),\n\"\n    a += 1;\n    a -= 1;\n    a /= 1;\n    a *= 1;\n    a %= 1;\n    a >>= 1;\n    a <<= 1;\n    a >>>= 1;\n    \")"
+snapshot_kind: text
+---
+[
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                5,
+                6,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    11,
+                    12,
+                ),
+            },
+        ),
+        kind: Assign(
+            PlusEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        5,
+                        6,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            5,
+                            6,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        10,
+                        11,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            11,
+                            12,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                17,
+                18,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    23,
+                    24,
+                ),
+            },
+        ),
+        kind: Assign(
+            MinusEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        17,
+                        18,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            17,
+                            18,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        22,
+                        23,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            23,
+                            24,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                29,
+                30,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    35,
+                    36,
+                ),
+            },
+        ),
+        kind: Assign(
+            SlashEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        29,
+                        30,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            29,
+                            30,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        34,
+                        35,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            35,
+                            36,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                41,
+                42,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    47,
+                    48,
+                ),
+            },
+        ),
+        kind: Assign(
+            StarEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        41,
+                        42,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            41,
+                            42,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        46,
+                        47,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            47,
+                            48,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                53,
+                54,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    59,
+                    60,
+                ),
+            },
+        ),
+        kind: Assign(
+            PercentEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        53,
+                        54,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            53,
+                            54,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        58,
+                        59,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            59,
+                            60,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                65,
+                66,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    72,
+                    73,
+                ),
+            },
+        ),
+        kind: Assign(
+            GreaterGreaterEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        65,
+                        66,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            65,
+                            66,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        71,
+                        72,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            72,
+                            73,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                78,
+                79,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    85,
+                    86,
+                ),
+            },
+        ),
+        kind: Assign(
+            LessLessEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        78,
+                        79,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            78,
+                            79,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        84,
+                        85,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            85,
+                            86,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+    Statement {
+        start: Token {
+            kind: Ident(
+                Ident(
+                    "a",
+                ),
+            ),
+            position: (
+                91,
+                92,
+            ),
+        },
+        end: Some(
+            Token {
+                kind: Semicolon,
+                position: (
+                    99,
+                    100,
+                ),
+            },
+        ),
+        kind: Assign(
+            GreaterGreaterGreaterEqual,
+            AssignReturn,
+            Statement {
+                start: Token {
+                    kind: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    position: (
+                        91,
+                        92,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        position: (
+                            91,
+                            92,
+                        ),
+                    },
+                ),
+                kind: Variable,
+            },
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        98,
+                        99,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Semicolon,
+                        position: (
+                            99,
+                            100,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+    },
+]
