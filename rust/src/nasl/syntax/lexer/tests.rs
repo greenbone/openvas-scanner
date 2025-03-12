@@ -13,18 +13,18 @@ fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
     }
 }
 
-fn parse_err(file_name: &str, code: &str) -> Vec<SyntaxError> {
-    let results = ParseInfo::new(code, Path::new(file_name));
-    match results.result {
-        Ok(result) => {
-            panic!(
-                "Properly parsed code that should result in error. Parsing result: {:?}",
-                result
-            );
-        }
-        Err(errors) => errors,
-    }
-}
+// fn parse_err(file_name: &str, code: &str) -> Vec<SyntaxError> {
+//     let results = ParseInfo::new(code, Path::new(file_name));
+//     match results.result {
+//         Ok(result) => {
+//             panic!(
+//                 "Properly parsed code that should result in error. Parsing result: {:?}",
+//                 result
+//             );
+//         }
+//         Err(errors) => errors,
+//     }
+// }
 
 macro_rules! test_ok {
     ($name: ident, $code: literal) => {
@@ -35,14 +35,14 @@ macro_rules! test_ok {
     };
 }
 
-macro_rules! test_err {
-    ($name: ident, $code: literal) => {
-        #[test]
-        fn $name() {
-            insta::assert_debug_snapshot!(parse_err(stringify!($name), $code));
-        }
-    };
-}
+// macro_rules! test_err {
+//     ($name: ident, $code: literal) => {
+//         #[test]
+//         fn $name() {
+//             insta::assert_debug_snapshot!(parse_err(stringify!($name), $code));
+//         }
+//     };
+// }
 
 use core::panic;
 
@@ -210,6 +210,9 @@ test_ok!(foreach, "foreach a(b) c;");
 test_ok!(block, "{ a; }");
 test_ok!(function_declaration, "function a(b) {c;}");
 test_ok!(no_op, ";");
+
+// test_err!(wrong_assignment, "a = ");
+// test_err!(wrong_keyword_assignment, "a = for;");
 
 #[test]
 fn position() {
