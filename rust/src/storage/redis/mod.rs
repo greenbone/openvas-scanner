@@ -34,13 +34,10 @@ use super::items::nvt::Oid;
 use super::items::result::ResultContextKeyAll;
 use super::items::result::ResultContextKeySingle;
 use super::items::result::ResultItem;
-use super::ContextStorage;
 use super::Dispatcher;
-use super::NotusStorage;
 use super::Remover;
 use super::Retriever;
 use super::ScanID;
-use super::SchedulerStorage;
 
 /// Cache implementation.
 ///
@@ -271,21 +268,6 @@ where
         cache.redis_add_advisory(None)?;
         Ok(())
     }
-}
-
-impl<S> SchedulerStorage for RedisStorage<S> where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt
-{
-}
-
-impl<S> ContextStorage for RedisStorage<S> where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
-{
-}
-
-impl<S> NotusStorage for RedisStorage<S> where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
-{
 }
 
 #[cfg(test)]

@@ -9,9 +9,19 @@ use rand::seq::SliceRandom;
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{FromNaslValue, WithErrorInfo};
-use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem, KbKey};
-use crate::storage::items::nvt::{FileName, Nvt, NvtField};
-use crate::storage::{self, ContextStorage, ScanID};
+use crate::storage::error::StorageError;
+use crate::storage::infisto::json::JsonStorage;
+use crate::storage::inmemory::InMemoryStorage;
+use crate::storage::items::kb::KbKey;
+use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
+use crate::storage::items::nvt::NvtField;
+use crate::storage::items::nvt::{Feed, FeedVersion, FileName, Nvt};
+use crate::storage::items::result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem};
+use crate::storage::redis::{
+    RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper,
+};
+use crate::storage::{self, ScanID};
+use crate::storage::{Dispatcher, Remover, Retriever};
 
 use super::error::ReturnBehavior;
 use super::hosts::resolve;
@@ -298,10 +308,11 @@ impl Default for Register {
     }
 }
 use std::collections::HashMap;
+use std::io::Write;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 type Named = HashMap<String, ContextType>;
 
@@ -396,6 +407,44 @@ impl Default for Target {
         }
     }
 }
+
+pub trait ContextStorage:
+    Sync
+    + Send
+    // kb
+    + Dispatcher<KbContextKey, Item = KbItem>
+    + Retriever<KbContextKey, Item = Vec<KbItem>>
+    + Retriever<GetKbContextKey, Item = Vec<(String, Vec<KbItem>)>>
+    + Remover<KbContextKey, Item = Vec<KbItem>>
+    // results
+    + Dispatcher<ScanID, Item = ResultItem>
+    + Retriever<ResultContextKeySingle, Item = ResultItem>
+    + Retriever<ResultContextKeyAll, Item = Vec<ResultItem>>
+    + Remover<ResultContextKeySingle, Item = ResultItem>
+    + Remover<ResultContextKeyAll, Item = Vec<ResultItem>>
+    // nvt
+    + Dispatcher<FileName, Item = Nvt>
+    + Dispatcher<FeedVersion, Item = String>
+    + Retriever<FeedVersion, Item = String>
+    + Retriever<Feed, Item = Vec<Nvt>>
+{
+    /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
+    /// KbKey, the value is appended to the existing list. This function is used to replace the
+    /// existing entry with the new one.
+    fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
+        self.remove(&key)?;
+        self.dispatch(key, item)
+    }
+
+}
+impl ContextStorage for InMemoryStorage {}
+impl<T: Write + Send> ContextStorage for JsonStorage<T> {}
+impl<T> ContextStorage for RedisStorage<T> where
+    T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
+{
+}
+impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
+
 /// Configurations
 ///
 /// This struct includes all objects that a nasl function requires.

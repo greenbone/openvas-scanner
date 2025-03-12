@@ -16,15 +16,6 @@ use std::{fmt::Display, sync::Arc};
 
 use error::StorageError;
 
-use items::{
-    kb::{GetKbContextKey, KbContextKey, KbItem},
-    notus_advisory::NotusCache,
-    nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
-    result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
-};
-
-use crate::models;
-
 /// The identifier of a Scan
 ///
 /// Either created when creating a new scan or given via models::Scan#scan_id.
@@ -140,47 +131,3 @@ where
         self.as_ref().remove(key)
     }
 }
-
-pub trait NotusStorage:
-    Dispatcher<(), Item = models::VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
-{
-}
-
-pub trait OspStorage: Retriever<Oid, Item = Nvt> + Retriever<Feed, Item = Vec<Nvt>> {}
-
-pub trait SchedulerStorage: Retriever<Oid, Item = Nvt> + Retriever<FileName, Item = Nvt> {}
-
-pub trait ContextStorage:
-    Sync
-    + Send
-    // kb
-    + Dispatcher<KbContextKey, Item = KbItem>
-    + Retriever<KbContextKey, Item = Vec<KbItem>>
-    + Retriever<GetKbContextKey, Item = Vec<(String, Vec<KbItem>)>>
-    + Remover<KbContextKey, Item = Vec<KbItem>>
-    // results
-    + Dispatcher<ScanID, Item = ResultItem>
-    + Retriever<ResultContextKeySingle, Item = ResultItem>
-    + Retriever<ResultContextKeyAll, Item = Vec<ResultItem>>
-    + Remover<ResultContextKeySingle, Item = ResultItem>
-    + Remover<ResultContextKeyAll, Item = Vec<ResultItem>>
-    // nvt
-    + Dispatcher<FileName, Item = Nvt>
-    + Dispatcher<FeedVersion, Item = String>
-    + Retriever<FeedVersion, Item = String>
-    + Retriever<Feed, Item = Vec<Nvt>>
-    + SchedulerStorage
-{
-    /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
-    /// KbKey, the value is appended to the existing list. This function is used to replace the
-    /// existing entry with the new one.
-    fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
-        self.remove(&key)?;
-        self.dispatch(key, item)
-    }
-
-}
-
-impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
-
-impl<T> SchedulerStorage for Arc<T> where T: SchedulerStorage {}

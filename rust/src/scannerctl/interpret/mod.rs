@@ -8,9 +8,8 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::storage::inmemory::InMemoryStorage;
-use scannerlib::storage::ContextStorage;
-use scannerlib::{feed, storage::items::nvt::Oid};
+use scannerlib::{feed, scheduling::SchedulerStorage, storage::items::nvt::Oid};
+use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
     nasl::{interpreter::ForkingInterpreter, utils::error::ReturnBehavior},
     storage::redis::{RedisCtx, RedisStorage, FEEDUPDATE_SELECTOR},
@@ -96,7 +95,7 @@ where
 impl<L, S> Run<L, S>
 where
     L: Loader,
-    S: ContextStorage,
+    S: ContextStorage + SchedulerStorage,
 {
     fn load(&self, script: &str) -> Result<String, CliErrorKind> {
         match load_non_utf8_path(&script) {

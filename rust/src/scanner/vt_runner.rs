@@ -7,13 +7,13 @@ use std::path::PathBuf;
 
 use crate::models::{Host, Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
-use crate::nasl::utils::context::Target;
+use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{KbContext, KbContextKey, KbItem, KbKey};
 use crate::storage::items::nvt::Nvt;
-use crate::storage::{ContextStorage, Retriever};
+use crate::storage::Retriever;
 use futures::StreamExt;
 use tracing::{error_span, trace, warn};
 

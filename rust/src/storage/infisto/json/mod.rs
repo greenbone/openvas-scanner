@@ -17,7 +17,7 @@ use crate::storage::{
         nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
         result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
     },
-    ContextStorage, Dispatcher, Remover, Retriever, ScanID, SchedulerStorage, StorageError,
+    Dispatcher, Remover, Retriever, ScanID, StorageError,
 };
 
 /// Wraps write calls of json elements to be as list.
@@ -198,9 +198,6 @@ impl<S: Write> Remover<ResultContextKeyAll> for JsonStorage<S> {
         unimplemented!()
     }
 }
-
-impl<W: Write> SchedulerStorage for JsonStorage<W> {}
-impl<W: Write + Send> ContextStorage for JsonStorage<W> {}
 
 #[cfg(test)]
 mod tests {

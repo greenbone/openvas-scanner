@@ -11,7 +11,22 @@ use scannerlib::models;
 use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::storage::items::notus_advisory::NotusCache;
-use scannerlib::storage::NotusStorage;
+use scannerlib::storage::redis::RedisAddAdvisory;
+use scannerlib::storage::redis::RedisAddNvt;
+use scannerlib::storage::redis::RedisGetNvt;
+use scannerlib::storage::redis::RedisStorage;
+use scannerlib::storage::redis::RedisWrapper;
+use scannerlib::storage::Dispatcher;
+
+pub trait NotusStorage:
+    Dispatcher<(), Item = models::VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
+{
+}
+
+impl<S> NotusStorage for RedisStorage<S> where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
+{
+}
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where

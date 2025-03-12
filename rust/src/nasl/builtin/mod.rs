@@ -35,9 +35,9 @@ pub use knowledge_base::KBError;
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
 use crate::storage::inmemory::InMemoryStorage;
-use crate::storage::{ContextStorage, ScanID};
+use crate::storage::ScanID;
 
-use super::utils::context::Target;
+use super::utils::context::{ContextStorage, Target};
 
 /// Creates a new Executor and adds all the functions to it.
 ///

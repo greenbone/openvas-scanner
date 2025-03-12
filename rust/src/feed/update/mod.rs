@@ -18,6 +18,7 @@ use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
 use crate::nasl::syntax::Lexer;
 use crate::nasl::syntax::Tokenizer;
+use crate::nasl::utils::context::ContextStorage;
 use crate::nasl::utils::context::Target;
 use crate::nasl::utils::Executor;
 use crate::nasl::ContextType;
@@ -26,7 +27,6 @@ use crate::feed::verify::check_signature;
 use crate::feed::verify::{HashSumFileItem, SignatureChecker};
 use crate::storage::items::nvt::FeedVersion;
 use crate::storage::items::nvt::FileName;
-use crate::storage::ContextStorage;
 use crate::storage::ScanID;
 
 use super::verify;

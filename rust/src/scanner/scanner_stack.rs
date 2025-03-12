@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 
-use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
+use crate::nasl::utils::context::ContextStorage;
+use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, SchedulerStorage, VTError};
 use crate::storage::inmemory::InMemoryStorage;
-use crate::storage::ContextStorage;
 
 pub trait Schedule: Iterator<Item = ConcurrentVTResult> + Sized {
     fn cache(self) -> Result<Vec<ConcurrentVT>, VTError> {
@@ -19,13 +19,13 @@ pub trait Schedule: Iterator<Item = ConcurrentVTResult> + Sized {
 impl<T> Schedule for T where T: Iterator<Item = ConcurrentVTResult> {}
 
 pub trait ScannerStack {
-    type Storage: ContextStorage + Clone + 'static;
+    type Storage: ContextStorage + SchedulerStorage + Clone + 'static;
     type Loader: Loader + Send + 'static;
 }
 
 impl<S, L> ScannerStack for (S, L)
 where
-    S: ContextStorage + Clone + 'static,
+    S: ContextStorage + SchedulerStorage + Clone + 'static,
     L: Loader + Send + 'static,
 {
     type Storage = S;

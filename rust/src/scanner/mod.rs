@@ -36,10 +36,11 @@ use crate::models::{
 };
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
+use crate::nasl::utils::context::ContextStorage;
 use crate::nasl::utils::Executor;
+use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
 use crate::storage::inmemory::InMemoryStorage;
-use crate::storage::ContextStorage;
 use crate::storage::Remover;
 use crate::storage::ScanID;
 use running_scan::{RunningScan, RunningScanHandle};
@@ -215,7 +216,7 @@ pub struct Scanner<S: ScannerStack> {
 
 impl<St, L> Scanner<(St, L)>
 where
-    St: ContextStorage + Sync + Send + Clone + 'static,
+    St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
     L: Loader + 'static,
 {
     pub fn new(storage: St, loader: L, executor: Executor) -> Self {
@@ -241,7 +242,7 @@ impl Scanner<DefaultScannerStack> {
 
 impl<S> Scanner<ScannerStackWithStorage<S>>
 where
-    S: ContextStorage + Send + Sync + Clone + 'static,
+    S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
 {
     /// Creates a new scanner with a Storage and the rest based on the DefaultScannerStack.
     ///

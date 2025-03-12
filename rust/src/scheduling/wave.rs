@@ -147,11 +147,11 @@ mod tests {
 
     use crate::storage::inmemory::InMemoryStorage;
 
-    use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, Stage};
+    use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, SchedulerStorage, Stage};
     use crate::storage::items::nvt::{FileName, Nvt, ACT};
 
     use super::WaveExecutionPlan;
-    use crate::storage::{Dispatcher, SchedulerStorage};
+    use crate::storage::Dispatcher;
 
     struct OidGenerator {
         latest_number: u64,

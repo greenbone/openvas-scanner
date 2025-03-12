@@ -10,20 +10,17 @@ use std::{
     path::PathBuf,
 };
 
-use crate::storage::{inmemory::InMemoryStorage, ScanID};
-use crate::{
-    nasl::{
-        prelude::*,
-        syntax::{Loader, NoOpLoader},
-    },
-    storage::ContextStorage,
+use crate::nasl::{
+    prelude::*,
+    syntax::{Loader, NoOpLoader},
 };
+use crate::storage::{inmemory::InMemoryStorage, ScanID};
 use futures::{Stream, StreamExt};
 
 use super::{
     builtin::ContextFactory,
     interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
-    utils::Executor,
+    utils::{context::ContextStorage, Executor},
 };
 
 // The following exists to trick the trait solver into
