@@ -9,8 +9,8 @@ use clap::{arg, value_parser, Arg, ArgAction, Command};
 use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
-use scannerlib::storage::items::nvt::Feed;
-use scannerlib::storage::OspStorage;
+use scannerlib::storage::items::nvt::{Feed, Nvt, Oid};
+use scannerlib::storage::Retriever;
 use serde::Deserialize;
 
 use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
@@ -272,6 +272,10 @@ struct ScanConfigPreferenceNvt {
     oid: String,
     name: String,
 }
+
+pub trait OspStorage: Retriever<Oid, Item = Nvt> + Retriever<Feed, Item = Vec<Nvt>> {}
+
+impl OspStorage for InMemoryStorage {}
 
 pub fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<Vec<VT>, Error>
 where

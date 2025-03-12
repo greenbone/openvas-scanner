@@ -5,14 +5,17 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, io::Write, sync::Arc};
 
 use crate::{
     models::{Parameter, Scan},
     storage::{
         error::StorageError,
+        infisto::json::JsonStorage,
+        inmemory::InMemoryStorage,
         items::nvt::{FileName, Nvt, Oid, ACT},
-        SchedulerStorage,
+        redis::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper},
+        Retriever,
     },
 };
 use thiserror::Error;
@@ -97,6 +100,16 @@ impl TryFrom<usize> for Stage {
         }
     }
 }
+
+pub trait SchedulerStorage: Retriever<Oid, Item = Nvt> + Retriever<FileName, Item = Nvt> {}
+
+impl SchedulerStorage for InMemoryStorage {}
+impl<T: Write + Send> SchedulerStorage for JsonStorage<T> {}
+impl<T> SchedulerStorage for RedisStorage<T> where
+    T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
+{
+}
+impl<T: SchedulerStorage> SchedulerStorage for Arc<T> {}
 
 /// Enhances the Retriever trait with execution_plan possibility.
 pub trait ExecutionPlaner {

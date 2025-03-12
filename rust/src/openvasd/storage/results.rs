@@ -7,6 +7,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use scannerlib::{
     models::{self, scanner::ScanResults, Scan, Status},
+    nasl::utils::context::ContextStorage,
+    scheduling::SchedulerStorage,
     storage::{
         error::StorageError,
         inmemory::InMemoryStorage,
@@ -15,7 +17,7 @@ use scannerlib::{
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
             result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
         },
-        ContextStorage, Dispatcher, Remover, Retriever, ScanID, SchedulerStorage,
+        Dispatcher, Remover, Retriever, ScanID,
     },
 };
 

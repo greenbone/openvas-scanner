@@ -16,7 +16,7 @@ use super::{
         nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
         result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
     },
-    ContextStorage, Dispatcher, OspStorage, Remover, Retriever, ScanID, SchedulerStorage,
+    Dispatcher, Remover, Retriever, ScanID,
 };
 
 pub mod kb;
@@ -244,12 +244,6 @@ impl Remover<ResultContextKeySingle> for InMemoryStorage {
         Ok(None)
     }
 }
-
-impl ContextStorage for InMemoryStorage {}
-
-impl SchedulerStorage for InMemoryStorage {}
-
-impl OspStorage for InMemoryStorage {}
 
 #[cfg(test)]
 mod tests {

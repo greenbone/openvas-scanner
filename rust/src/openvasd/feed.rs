@@ -9,7 +9,8 @@ use std::{
 
 use scannerlib::{
     feed::{self, HashSumNameLoader},
-    nasl::FSPluginLoader,
+    nasl::{utils::context::ContextStorage, FSPluginLoader},
+    scheduling::SchedulerStorage,
     storage::{
         error::StorageError,
         items::{
@@ -17,7 +18,7 @@ use scannerlib::{
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
             result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
         },
-        ContextStorage, Dispatcher, Remover, Retriever, ScanID, SchedulerStorage,
+        Dispatcher, Remover, Retriever, ScanID,
     },
 };
 

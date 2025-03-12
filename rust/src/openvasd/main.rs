@@ -12,13 +12,14 @@ use notus::NotusWrapper;
 use scannerlib::models::scanner::{
     ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner,
 };
+use scannerlib::nasl::utils::context::ContextStorage;
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::notus::{HashsumProductLoader, Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
 use scannerlib::scanner::ScannerStackWithStorage;
+use scannerlib::scheduling::SchedulerStorage;
 use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
-use scannerlib::storage::ContextStorage;
 use storage::results::ResultCatcher;
 use storage::{FromConfigAndFeeds, ResultHandler, Storage};
 use tls::tls_config;
@@ -94,7 +95,7 @@ fn make_openvasd_scanner<S>(
     storage: S,
 ) -> scannerlib::scanner::Scanner<ScannerStackWithStorage<S>>
 where
-    S: ContextStorage + Clone + 'static,
+    S: ContextStorage + SchedulerStorage + Clone + 'static,
 {
     scannerlib::scanner::Scanner::with_storage(storage, &config.feed.path)
 }
