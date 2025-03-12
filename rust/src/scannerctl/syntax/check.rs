@@ -17,7 +17,9 @@ fn read<P: AsRef<Path>>(path: P) -> Result<ParseInfo, CliErrorKind> {
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut errors = 0;
 
-    let print_stmt = |_: Statement| todo!();
+    let print_stmt = |stmt: Statement| {
+        println!("{}: {}", path.to_string_lossy(), stmt);
+    };
 
     let results = read(path).map_err(|kind| CliError {
         kind,
