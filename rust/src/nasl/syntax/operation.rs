@@ -78,8 +78,8 @@ impl Operation {
             | TokenKind::LeftBrace
             | TokenKind::LeftCurlyBracket
             | TokenKind::Comma => Some(Operation::Grouping(token.kind().clone())),
-            TokenKind::Identifier(Keyword::Undefined(_)) => Some(Operation::Variable),
-            TokenKind::Identifier(keyword) => Some(Operation::Keyword(keyword.clone())),
+            TokenKind::Keyword(Keyword::Undefined(_)) => Some(Operation::Variable),
+            TokenKind::Keyword(keyword) => Some(Operation::Keyword(keyword.clone())),
             _ => None,
         }
     }

@@ -58,7 +58,7 @@ impl Lexer {
         let (ekw, r#else, end) = {
             match self.peek() {
                 Some(token) => match token.kind() {
-                    TokenKind::Identifier(Keyword::Else) => {
+                    TokenKind::Keyword(Keyword::Else) => {
                         self.token();
                         let (end, stmt) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
 
@@ -143,7 +143,7 @@ impl Lexer {
         let id = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(id.kind(), TokenKind::Identifier(Keyword::Undefined(_))) {
+        if !matches!(id.kind(), TokenKind::Keyword(Keyword::Undefined(_))) {
             return Err(unexpected_token!(id));
         }
         let paren = self
@@ -341,7 +341,7 @@ impl Lexer {
         let (until, end) = {
             match self.token() {
                 Some(token) => match token.kind() {
-                    TokenKind::Identifier(Keyword::Until) => {
+                    TokenKind::Keyword(Keyword::Until) => {
                         let (end, stmt) = self.statement(0, &|cat| cat == &TokenKind::Semicolon)?;
                         match end {
                             End::Done(end) => Ok((stmt, end)),
@@ -365,7 +365,7 @@ impl Lexer {
         let variable: Token = {
             match self.token() {
                 Some(token) => match token.kind() {
-                    TokenKind::Identifier(Keyword::Undefined(_)) => Ok(token),
+                    TokenKind::Keyword(Keyword::Undefined(_)) => Ok(token),
                     _ => Err(unexpected_token!(token)),
                 },
                 None => Err(unexpected_end!("in foreach")),
@@ -533,11 +533,11 @@ mod test {
         };
         expected(
             parse_return_first("local_var a, b, c;"),
-            TokenKind::Identifier(Keyword::LocalVar),
+            TokenKind::Keyword(Keyword::LocalVar),
         );
         expected(
             parse_return_first("global_var a, b, c;"),
-            TokenKind::Identifier(Keyword::GlobalVar),
+            TokenKind::Keyword(Keyword::GlobalVar),
         );
     }
 
@@ -545,17 +545,17 @@ mod test {
     fn null() {
         let result = parse_return_first("NULL;");
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Identifier(Keyword::Null));
+        assert_eq!(result.as_token().kind(), &Keyword(Keyword::Null));
     }
 
     #[test]
     fn boolean() {
         let result = parse_return_first("TRUE;");
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Identifier(Keyword::True));
+        assert_eq!(result.as_token().kind(), &Keyword(Keyword::True));
         let result = parse_return_first("FALSE;");
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Identifier(Keyword::False));
+        assert_eq!(result.as_token().kind(), &Keyword(Keyword::False));
     }
 
     #[test]
@@ -647,11 +647,11 @@ mod test {
     fn fct_anon_args() {
         let result = parse_return_first("_FCT_ANON_ARGS[0];");
         assert!(matches!(result.kind(), &Array(Some(_))));
-        assert_eq!(result.as_token().kind(), &Identifier(Keyword::FCTAnonArgs));
+        assert_eq!(result.as_token().kind(), &Keyword(Keyword::FCTAnonArgs));
 
         let result = parse_return_first("_FCT_ANON_ARGS;");
         assert!(matches!(result.kind(), &Array(None)));
-        assert_eq!(result.as_token().kind(), &Identifier(Keyword::FCTAnonArgs));
+        assert_eq!(result.as_token().kind(), &Keyword(Keyword::FCTAnonArgs));
     }
 
     #[test]

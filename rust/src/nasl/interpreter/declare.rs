@@ -53,10 +53,10 @@ impl DeclareVariableExtension for Interpreter<'_> {
         let mut add = |key: &str| {
             let value = ContextType::Value(NaslValue::Null);
             match scope.kind() {
-                TokenKind::Identifier(crate::nasl::syntax::Keyword::GlobalVar) => {
+                TokenKind::Keyword(crate::nasl::syntax::Keyword::GlobalVar) => {
                     self.register.add_global(key, value)
                 }
-                TokenKind::Identifier(crate::nasl::syntax::Keyword::LocalVar) => {
+                TokenKind::Keyword(crate::nasl::syntax::Keyword::LocalVar) => {
                     self.register.add_local(key, value)
                 }
                 _ => unreachable!(
@@ -68,7 +68,7 @@ impl DeclareVariableExtension for Interpreter<'_> {
 
         for stmt in stmts {
             if let StatementKind::Variable = stmt.kind() {
-                if let TokenKind::Identifier(name) = stmt.as_token().kind() {
+                if let TokenKind::Keyword(name) = stmt.as_token().kind() {
                     add(&name.to_string());
                 }
             };

@@ -41,7 +41,7 @@ where
     fn script_oid(stmt: &Statement) -> Option<String> {
         match stmt.kind() {
             StatementKind::Call(param) => match stmt.start().kind() {
-                TokenKind::Identifier(Keyword::Undefined(s)) => match s as &str {
+                TokenKind::Keyword(Keyword::Undefined(s)) => match s as &str {
                     // maybe switch from children to patternmatching?
                     "script_oid" => param.children().first().map(|x| x.to_string()),
                     _ => None,

@@ -68,7 +68,7 @@ impl Interpreter<'_> {
     ) -> InterpretResult {
         // Get name of the iteration variable
         let iter_name = match variable.kind() {
-            TokenKind::Identifier(Keyword::Undefined(name)) => name,
+            TokenKind::Keyword(Keyword::Undefined(name)) => name,
             o => return Err(InterpretError::wrong_kind(o)),
         };
         // Iterate through the iterable Statement

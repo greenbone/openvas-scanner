@@ -5,7 +5,7 @@ snapshot_kind: text
 ---
 [
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Undefined(
                 "x",
             ),

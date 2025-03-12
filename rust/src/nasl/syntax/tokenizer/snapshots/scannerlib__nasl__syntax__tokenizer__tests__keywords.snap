@@ -5,7 +5,7 @@ snapshot_kind: text
 ---
 [
     Token {
-        kind: Identifier(
+        kind: Keyword(
             For,
         ),
         position: (
@@ -14,7 +14,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             ForEach,
         ),
         position: (
@@ -23,7 +23,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             If,
         ),
         position: (
@@ -32,7 +32,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Else,
         ),
         position: (
@@ -41,7 +41,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             While,
         ),
         position: (
@@ -50,7 +50,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Repeat,
         ),
         position: (
@@ -59,7 +59,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Until,
         ),
         position: (
@@ -68,7 +68,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             LocalVar,
         ),
         position: (
@@ -77,7 +77,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             GlobalVar,
         ),
         position: (
@@ -86,7 +86,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Null,
         ),
         position: (
@@ -95,7 +95,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Return,
         ),
         position: (
@@ -104,7 +104,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Include,
         ),
         position: (
@@ -113,7 +113,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Exit,
         ),
         position: (
@@ -122,7 +122,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Break,
         ),
         position: (
@@ -131,7 +131,7 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Identifier(
+        kind: Keyword(
             Continue,
         ),
         position: (

@@ -166,7 +166,7 @@ impl FunctionNameMatcher<'_> {
             StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
             StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
             StatementKind::Call(..) => {
-                if let crate::nasl::syntax::TokenKind::Identifier(
+                if let crate::nasl::syntax::TokenKind::Keyword(
                     crate::nasl::syntax::Keyword::Undefined(ref x),
                 ) = s.start().kind()
                 {
@@ -176,7 +176,7 @@ impl FunctionNameMatcher<'_> {
                 }
             }
             StatementKind::FunctionDeclaration(id, ..) => {
-                if let crate::nasl::syntax::TokenKind::Identifier(
+                if let crate::nasl::syntax::TokenKind::Keyword(
                     crate::nasl::syntax::Keyword::Undefined(ref x),
                 ) = id.kind()
                 {
@@ -330,12 +330,12 @@ impl CodeReplacer {
         wanted: &str,
     ) -> Option<(usize, &'a Statement)> {
         use crate::nasl::syntax::Keyword::Undefined;
-        use crate::nasl::syntax::TokenKind::Identifier;
+        use crate::nasl::syntax::TokenKind::Keyword;
         for (i, s) in stmts.iter().enumerate() {
             match s.kind() {
                 StatementKind::Variable | StatementKind::NamedParameter(_) => {
                     if let crate::nasl::syntax::Token {
-                        kind: Identifier(Undefined(name)),
+                        kind: Keyword(Undefined(name)),
                         ..
                     } = s.start()
                     {

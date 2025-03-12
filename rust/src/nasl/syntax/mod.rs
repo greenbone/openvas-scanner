@@ -100,11 +100,11 @@ mod tests {
             all_tokens,
             vec![
                 Token {
-                    kind: TokenKind::Identifier(Keyword::LocalVar),
+                    kind: TokenKind::Keyword(Keyword::LocalVar),
                     position: (0, 9)
                 },
                 Token {
-                    kind: TokenKind::Identifier(Keyword::Undefined("hello".to_owned())),
+                    kind: TokenKind::Keyword(Keyword::Undefined("hello".to_owned())),
                     position: (10, 15)
                 },
                 Token {

@@ -271,11 +271,11 @@ impl TryFrom<&Token> for NaslValue {
             TokenKind::String(s) => Ok(NaslValue::String(s.clone())),
             TokenKind::IPv4Address(s) => Ok(NaslValue::String(s.to_string())),
             TokenKind::Data(data) => Ok(NaslValue::Data(data.clone())),
-            TokenKind::Identifier(Keyword::Undefined(id)) => Ok(NaslValue::String(id.clone())),
+            TokenKind::Keyword(Keyword::Undefined(id)) => Ok(NaslValue::String(id.clone())),
             TokenKind::Number(num) => Ok(NaslValue::Number(*num)),
-            TokenKind::Identifier(Keyword::Null) => Ok(NaslValue::Null),
-            TokenKind::Identifier(Keyword::True) => Ok(NaslValue::Boolean(true)),
-            TokenKind::Identifier(Keyword::False) => Ok(NaslValue::Boolean(false)),
+            TokenKind::Keyword(Keyword::Null) => Ok(NaslValue::Null),
+            TokenKind::Keyword(Keyword::True) => Ok(NaslValue::Boolean(true)),
+            TokenKind::Keyword(Keyword::False) => Ok(NaslValue::Boolean(false)),
             o => Err(o.clone()),
         }
     }

@@ -475,13 +475,13 @@ impl Tokenizer {
         let lookup = self.substring(start, end);
         if lookup != "x" {
             let keyword = Keyword::new(&lookup);
-            TokenKind::Identifier(keyword)
+            TokenKind::Keyword(keyword)
         } else {
             self.cursor.skip_while(|c| c.is_whitespace());
             if self.cursor.peek().is_numeric() {
                 TokenKind::X
             } else {
-                TokenKind::Identifier(Keyword::Undefined(lookup.to_owned()))
+                TokenKind::Keyword(Keyword::Undefined(lookup.to_owned()))
             }
         }
     }

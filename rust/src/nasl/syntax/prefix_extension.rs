@@ -36,7 +36,7 @@ fn prefix_binding_power(token: &Token) -> Result<u8, SyntaxError> {
 
 impl Lexer {
     fn parse_variable(&mut self, token: Token) -> Result<(End, Statement), SyntaxError> {
-        if !matches!(token.kind(), TokenKind::Identifier(Keyword::Undefined(_))) {
+        if !matches!(token.kind(), TokenKind::Keyword(Keyword::Undefined(_))) {
             return Err(unexpected_token!(token));
         }
         use End::*;

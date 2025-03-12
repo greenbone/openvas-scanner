@@ -416,7 +416,7 @@ impl<'ctx> Interpreter<'ctx> {
 
     fn resolve_attack_category(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
         match statement.as_token().kind() {
-            TokenKind::Identifier(Keyword::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
+            TokenKind::Keyword(Keyword::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
             _ => unreachable!(
                 "AttackCategory must have ACT token but got {:?}, this is an bug within the lexer.",
                 statement.as_token()

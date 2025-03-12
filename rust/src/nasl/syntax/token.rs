@@ -258,8 +258,8 @@ pub enum TokenKind {
     Number(i64),
     /// We currently just support 127.0.0.1 notation
     IPv4Address(Ipv4Addr),
-    /// Identifier are literals that are not strings and don't start with a number
-    Identifier(Keyword),
+    /// Special keywords reserved within NASL.
+    Keyword(Keyword),
 }
 
 impl Display for TokenKind {
@@ -316,7 +316,7 @@ impl Display for TokenKind {
             TokenKind::String(x) => write!(f, "\"{x}\""),
             TokenKind::Number(x) => write!(f, "{x}"),
             TokenKind::IPv4Address(x) => write!(f, "{x}"),
-            TokenKind::Identifier(x) => write!(f, "{}", x),
+            TokenKind::Keyword(x) => write!(f, "{}", x),
             TokenKind::Data(x) => write!(f, "{x:?}"),
         }
     }
@@ -335,7 +335,7 @@ pub struct Token {
 impl Token {
     pub fn identifier(&self) -> Result<String, InterpretError> {
         match self.kind() {
-            TokenKind::Identifier(Keyword::Undefined(x)) => Ok(x.to_owned()),
+            TokenKind::Keyword(Keyword::Undefined(x)) => Ok(x.to_owned()),
             cat => Err(InterpretError::wrong_kind(cat)),
         }
     }
