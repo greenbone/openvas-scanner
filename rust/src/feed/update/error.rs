@@ -15,9 +15,9 @@ pub enum ErrorKind {
     /// An InterpretError occurred while interpreting
     #[error("Interpreter error: {0}")]
     InterpretError(#[from] InterpretError),
-    /// NASL script contains an SyntaxError
-    #[error("Syntax error: {0}")]
-    SyntaxError(#[from] SyntaxError),
+    /// NASL script contains SyntaxErrors
+    #[error("Encountered syntax errors in scripts.")]
+    SyntaxError(Vec<SyntaxError>),
     /// Storage is unable to handle operation
     #[error("Storage error: {0}")]
     StorageError(#[from] StorageError),

@@ -35,8 +35,9 @@ pub enum CliErrorKind {
     LoadError(LoadError),
     #[error("{0}")]
     StorageError(StorageError),
-    #[error("{0}")]
-    SyntaxError(SyntaxError),
+    // TODO fix this error message.
+    #[error("Encountered syntax errors.")]
+    SyntaxError(Vec<SyntaxError>),
     #[error("Missing arguments: {0:?}")]
     MissingArguments(Vec<String>),
     #[error("{0}")]
@@ -56,7 +57,8 @@ impl CliErrorKind {
                 Some(s) => Some(s.as_token()),
                 None => None,
             },
-            CliErrorKind::SyntaxError(e) => e.as_token(),
+            // TODO fix this or remove this method
+            CliErrorKind::SyntaxError(e) => e[0].as_token(),
             _ => None,
         }
     }
@@ -161,12 +163,6 @@ impl From<InterpretError> for CliErrorKind {
 impl From<StorageError> for CliErrorKind {
     fn from(value: StorageError) -> Self {
         Self::StorageError(value)
-    }
-}
-
-impl From<SyntaxError> for CliErrorKind {
-    fn from(value: SyntaxError) -> Self {
-        Self::SyntaxError(value)
     }
 }
 

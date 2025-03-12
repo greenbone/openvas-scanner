@@ -1,6 +1,6 @@
 ---
-source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed), \"if (description) { ; \")"
+source: src/nasl/syntax/error.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (missing_right_curly_bracket), \"{ a = 2;\")"
 snapshot_kind: text
 ---
 [
@@ -9,8 +9,8 @@ snapshot_kind: text
             Token {
                 kind: LeftCurlyBracket,
                 position: (
-                    17,
-                    18,
+                    0,
+                    1,
                 ),
             },
         ),

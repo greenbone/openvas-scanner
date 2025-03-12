@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::path::{Path, PathBuf};
+
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenKind};
 use crate::nasl::utils::error::FnError;
@@ -76,13 +78,14 @@ pub enum InterpretErrorKind {
     /// Regex parsing went wrong.
     #[error("Invalid regular expression: {0}")]
     InvalidRegex(String),
+    // TODO improve this error messages
     /// A SyntaxError while including another script
-    #[error("Error while including file {filename}{}: {err}", {err}.as_token() .map(|t| format!(", line: {}, col: {}", t.position.0, t.position.1)) .unwrap_or_default())]
+    #[error("Syntax errors while including file {filename}.")]
     IncludeSyntaxError {
         /// The name of the file trying to include
-        filename: String,
+        filename: PathBuf,
         /// The syntactical errors that occurred
-        err: SyntaxError,
+        errs: Vec<SyntaxError>,
     },
     /// SyntaxError
     #[error("{0}")]
@@ -149,11 +152,11 @@ impl InterpretError {
     }
 
     /// When a include file has syntactical errors
-    pub fn include_syntax_error(file: &str, se: SyntaxError) -> Self {
+    pub fn include_syntax_error(file: &str, errs: Vec<SyntaxError>) -> Self {
         Self::new(
             InterpretErrorKind::IncludeSyntaxError {
-                filename: file.to_owned(),
-                err: se,
+                filename: Path::new(file).to_owned(),
+                errs,
             },
             None,
         )

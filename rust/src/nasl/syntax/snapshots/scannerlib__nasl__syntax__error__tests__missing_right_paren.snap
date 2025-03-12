@@ -1,6 +1,6 @@
 ---
-source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed), \"if (description) display(1)\")"
+source: src/nasl/syntax/error.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (missing_right_paren), \"called(me;\")"
 snapshot_kind: text
 ---
 [
@@ -9,8 +9,8 @@ snapshot_kind: text
             Token {
                 kind: LeftParen,
                 position: (
-                    3,
-                    4,
+                    6,
+                    7,
                 ),
             },
         ),

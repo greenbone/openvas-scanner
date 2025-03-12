@@ -1,6 +1,35 @@
 ---
 source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed),\n\"local_var a, 1, c;\").into_iter().map(| stmt | stmt.to_string()).collect :: <\nVec < _ >> ().join(\"\\n\")"
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed), \"local_var a, 1, c;\")"
 snapshot_kind: text
 ---
-Missing semicolon: 1
+[
+    SyntaxError {
+        kind: MissingSemicolon(
+            Statement {
+                start: Token {
+                    kind: Literal(
+                        Number(
+                            1,
+                        ),
+                    ),
+                    position: (
+                        13,
+                        14,
+                    ),
+                },
+                end: Some(
+                    Token {
+                        kind: Comma,
+                        position: (
+                            14,
+                            15,
+                        ),
+                    },
+                ),
+                kind: Primitive,
+            },
+        ),
+        range: 0..0,
+    },
+]

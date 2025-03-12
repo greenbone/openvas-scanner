@@ -103,18 +103,11 @@ impl Grouping for Lexer {
 
 #[cfg(test)]
 mod test {
-    use super::super::{parse, StatementKind};
+    use crate::nasl::syntax::lexer::tests::parse_test_ok;
 
-    use StatementKind::*;
-
-    fn result(code: &str) -> StatementKind {
-        parse(code).unwrap()[0].kind().clone()
-    }
-
-    #[test]
-    fn variables() {
-        let stmt = result(
-            r"
+    parse_test_ok!(
+        variables,
+        r"
             {
                 a = b + 1;
                 b = a - --c;
@@ -122,8 +115,6 @@ mod test {
                    d = 23;
                 }
             }
-            ",
-        );
-        assert!(matches!(stmt, Block(..)));
-    }
+            "
+    );
 }

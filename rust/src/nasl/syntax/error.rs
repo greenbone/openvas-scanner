@@ -182,52 +182,23 @@ impl AsCodespanError for SyntaxError {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::syntax::{parse_only_first_error, ErrorKind, TokenKind};
+    use crate::nasl::syntax::lexer::tests::parse_test_err;
 
-    fn test_for_missing_semicolon(code: &str) {
-        let err = parse_only_first_error(code).unwrap_err();
-        match err.kind {
-            ErrorKind::MissingSemicolon(_) => {}
-            _ => panic!("Expected MissingSemicolon but got: {err:?}"),
-        }
-    }
+    parse_test_err!(missing_semicolon_assignment, "a = 12", "a = [1, 2, 4]");
+    parse_test_err!(missing_semicolon_call, "called(me)");
+    parse_test_err!(
+        missing_right_paren,
+        "called(me;",
+        "foreach a(x { a = 2;",
+        "for (i = 0; i < 10; i++ ;",
+        "while (TRUE ;"
+    );
 
-    fn test_for_unclosed_token(code: &str, kind: TokenKind) {
-        let err = parse_only_first_error(code).unwrap_err();
-        match err.kind {
-            ErrorKind::UnclosedToken(token) => {
-                assert_eq!(token.kind(), &kind);
-            }
-            _ => panic!("Expected UnclosedToken but got: {err:?} for {code}"),
-        }
-    }
-    #[test]
-    fn missing_semicolon_assignment() {
-        let code = "a = 12";
-        test_for_missing_semicolon(code);
-        let code = "a = [1, 2, 4]";
-        test_for_missing_semicolon(code);
-    }
-
-    #[test]
-    fn missing_semicolon_call() {
-        let code = "called(me)";
-        test_for_missing_semicolon(code);
-    }
-
-    #[test]
-    fn missing_right_paren() {
-        test_for_unclosed_token("called(me;", TokenKind::LeftParen);
-        test_for_unclosed_token("foreach a(x { a = 2;", TokenKind::LeftParen);
-        test_for_unclosed_token("for (i = 0; i < 10; i++ ;", TokenKind::LeftParen);
-        test_for_unclosed_token("while (TRUE ;", TokenKind::LeftParen);
-    }
-
-    #[test]
-    fn missing_right_curly_bracket() {
-        test_for_unclosed_token("if (a) { a = 2", TokenKind::LeftCurlyBracket);
-        test_for_unclosed_token("foreach a(x) { a = 2;", TokenKind::LeftCurlyBracket);
-        test_for_unclosed_token("{ a = 2;", TokenKind::LeftCurlyBracket);
-        test_for_unclosed_token("function a() { a = 2;", TokenKind::LeftCurlyBracket);
-    }
+    parse_test_err!(
+        missing_right_curly_bracket,
+        "if (a) { a = 2",
+        "foreach a(x) { a = 2;",
+        "{ a = 2;",
+        "function a() { a = 2;",
+    );
 }

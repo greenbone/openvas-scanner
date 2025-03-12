@@ -48,12 +48,6 @@ pub fn parse(code: &str) -> ParseResult {
     Ok(results)
 }
 
-// TODO remove
-// This is a helper method while the code structure isnt the way I want it to be
-pub fn parse_only_first_error(code: &str) -> Result<Vec<Statement>, SyntaxError> {
-    parse(code).map_err(|mut e| e.remove(0))
-}
-
 pub struct ParseInfo {
     pub result: ParseResult,
     files: SimpleFiles<String, String>,

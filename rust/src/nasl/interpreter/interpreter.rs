@@ -431,7 +431,7 @@ impl<'ctx> Interpreter<'ctx> {
 
                 let mut inter =
                     Interpreter::new(self.register.clone(), self.lexer.clone(), self.context);
-                for stmt in crate::nasl::syntax::parse_only_first_error(&code)
+                for stmt in crate::nasl::syntax::parse(&code)
                     .map_err(|e| InterpretError::include_syntax_error(&key, e))?
                 {
                     inter.resolve(&stmt).await?;

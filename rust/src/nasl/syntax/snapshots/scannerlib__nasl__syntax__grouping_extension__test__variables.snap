@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/grouping_extension.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (variables),\nr\"\n            {\n                a = b + 1;\n                b = a - --c;\n                {\n                   d = 23;\n                }\n            }\n            \").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+{ ... }

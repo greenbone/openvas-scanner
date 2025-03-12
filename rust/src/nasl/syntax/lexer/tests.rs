@@ -49,14 +49,10 @@ macro_rules! parse_test_err {
         #[test]
         fn $name() {
             $(
-                insta::assert_snapshot!(crate::nasl::syntax::lexer::tests::parse_err(
+                insta::assert_debug_snapshot!(crate::nasl::syntax::lexer::tests::parse_err(
                     stringify!($name),
                         $code
-                )
-                .into_iter()
-                .map(|stmt| stmt.to_string())
-                .collect::<Vec<_>>()
-                .join("\n"));
+                ));
             )*
         }
     };
