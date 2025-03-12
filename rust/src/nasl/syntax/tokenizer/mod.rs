@@ -21,8 +21,6 @@ impl AddAssign<usize> for CharIndex {
 struct Cursor {
     chars: Vec<char>,
     position: CharIndex,
-    line: usize,
-    col: usize,
 }
 
 impl Cursor {
@@ -30,8 +28,6 @@ impl Cursor {
         Self {
             chars: code.chars().collect(),
             position: CharIndex(0),
-            line: 1,
-            col: 1,
         }
     }
 
@@ -54,16 +50,6 @@ impl Cursor {
     fn advance(&mut self) -> Option<char> {
         let result = self.chars.get(self.position.0).copied();
         self.position.0 += 1;
-        match result {
-            Some('\n') => {
-                self.line += 1;
-                self.col = 1;
-            }
-            Some(_) => {
-                self.col += 1;
-            }
-            _ => {}
-        }
         result
     }
 
