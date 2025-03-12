@@ -146,63 +146,9 @@ impl Prefix for Lexer {
 
 #[cfg(test)]
 mod test {
+    use crate::nasl::syntax::lexer::tests::parse_test_ok;
 
-    use crate::nasl::syntax::{parse_return_first, token};
-
-    use super::super::{
-        token::{Token, TokenKind},
-        AssignOrder, Statement, StatementKind,
-    };
-
-    use StatementKind::*;
-    use TokenKind::*;
-
-    fn result(code: &str) -> Statement {
-        parse_return_first(code)
-    }
-
-    #[test]
-    fn operations() {
-        let expected = |stmt: Statement, kind1: TokenKind| match stmt.kind() {
-            StatementKind::Operator(kind2, _) => assert_eq!(kind2, &kind1),
-            kind => panic!("expected Operator, but got: {:?}", kind),
-        };
-
-        expected(result("-1;"), TokenKind::Minus);
-        expected(result("+1;"), TokenKind::Plus);
-        expected(result("~1;"), TokenKind::Tilde);
-        expected(result("!1;"), TokenKind::Bang);
-    }
-
-    #[test]
-    fn single_statement() {
-        let no = Token {
-            kind: Literal(token::Literal::Number(1)),
-            position: (0, 1),
-        };
-        let data = Token {
-            kind: Literal(token::Literal::Data(vec![97])),
-            position: (0, 3),
-        };
-        let one = result("1;");
-        assert_eq!(one.kind(), &Primitive);
-        assert_eq!(one.start(), &no);
-        let second = result("'a';");
-        assert_eq!(second.kind(), &Primitive);
-        assert_eq!(second.start(), &data);
-    }
-
-    #[test]
-    fn assignment_operator() {
-        let expected = |stmt: Statement, assign_operator: TokenKind| match stmt.kind() {
-            StatementKind::Assign(operator, AssignOrder::AssignReturn, _, _) => {
-                assert_eq!(operator, &assign_operator)
-            }
-            kind => panic!("expected Assign, but got: {:?}", kind),
-        };
-        expected(result("++a;"), TokenKind::PlusPlus);
-        expected(result("--a;"), TokenKind::MinusMinus);
-        expected(result("++a[0];"), TokenKind::PlusPlus);
-        expected(result("--a[0];"), TokenKind::MinusMinus);
-    }
+    parse_test_ok!(operations, "-1;", "+1;", "~1;", "!1;");
+    parse_test_ok!(single_statement, "1;", "'a';");
+    parse_test_ok!(assignment_operator, "++a;", "--a;", "++a[0];", "--a[0];");
 }

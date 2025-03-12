@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/keyword_extension.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (fct_anon_args),\n\"_FCT_ANON_ARGS;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec\n< _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+_FCT_ANON_ARGS

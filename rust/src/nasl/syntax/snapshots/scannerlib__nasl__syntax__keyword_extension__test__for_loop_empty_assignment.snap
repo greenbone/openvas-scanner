@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/keyword_extension.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (for_loop_empty_assignment),\n\"for (i = 0; i < 10; ) i = 10;\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+for (i = 0; i < 10; NoOp) { i = 10 }

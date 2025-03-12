@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/keyword_extension.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (foreach),\n\"foreach info(list) { display(info); }\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+foreach info(list) {{ ... }}

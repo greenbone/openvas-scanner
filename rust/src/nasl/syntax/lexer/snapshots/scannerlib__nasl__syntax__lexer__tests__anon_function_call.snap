@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/lexer/tests.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (anon_function_call),\n\"a(1, 2, 3);\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _\n>> ().join(\"\\n\")"
+snapshot_kind: text
+---
+a(1, 2, 3);

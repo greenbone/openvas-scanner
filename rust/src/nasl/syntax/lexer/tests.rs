@@ -13,49 +13,60 @@ pub fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
     }
 }
 
-// fn parse_err(file_name: &str, code: &str) -> Vec<SyntaxError> {
-//     let results = ParseInfo::new(code, Path::new(file_name));
-//     match results.result {
-//         Ok(result) => {
-//             panic!(
-//                 "Properly parsed code that should result in error. Parsing result: {:?}",
-//                 result
-//             );
-//         }
-//         Err(errors) => errors,
-//     }
-// }
+pub fn parse_err(file_name: &str, code: &str) -> Vec<SyntaxError> {
+    let results = ParseInfo::new(code, Path::new(file_name));
+    match results.result {
+        Ok(result) => {
+            panic!(
+                "Properly parsed code that should result in error. Parsing result: {:?}",
+                result
+            );
+        }
+        Err(errors) => errors,
+    }
+}
 
 macro_rules! parse_test_ok {
-    ($name: ident, $code: literal) => {
+    ($name: ident, $($code: literal$(,)?)*) => {
         #[test]
         fn $name() {
-            insta::assert_snapshot!(crate::nasl::syntax::lexer::tests::parse_ok(
-                stringify!($name),
-                $code
-            )
-            .into_iter()
-            .map(|stmt| stmt.to_string())
-            .collect::<Vec<_>>()
-            .join("\n"));
+            $(
+                insta::assert_snapshot!(crate::nasl::syntax::lexer::tests::parse_ok(
+                    stringify!($name),
+                        $code
+                )
+                .into_iter()
+                .map(|stmt| stmt.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"));
+            )*
         }
     };
 }
 
-pub(crate) use parse_test_ok;
+macro_rules! parse_test_err {
+    ($name: ident, $($code: literal$(,)?)*) => {
+        #[test]
+        fn $name() {
+            $(
+                insta::assert_snapshot!(crate::nasl::syntax::lexer::tests::parse_err(
+                    stringify!($name),
+                        $code
+                )
+                .into_iter()
+                .map(|stmt| stmt.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"));
+            )*
+        }
+    };
+}
 
-// macro_rules! test_err {
-//     ($name: ident, $code: literal) => {
-//         #[test]
-//         fn $name() {
-//             insta::assert_debug_snapshot!(parse_err(stringify!($name), $code));
-//         }
-//     };
-// }
+pub(crate) use {parse_test_err, parse_test_ok};
 
 use core::panic;
 
-use crate::nasl::syntax::{parse_return_first, token};
+use crate::nasl::syntax::token;
 
 use super::*;
 
@@ -117,7 +128,7 @@ fn resolve(s: &Statement) -> i64 {
 
 macro_rules! calculated_test {
     ($code:expr, $expected:expr) => {
-        let expr = parse_return_first($code);
+        let expr = parse_ok("", $code).remove(0);
         assert_eq!(resolve(&expr), $expected);
     };
 }
@@ -219,6 +230,14 @@ parse_test_ok!(foreach, "foreach a(b) c;");
 parse_test_ok!(block, "{ a; }");
 parse_test_ok!(function_declaration, "function a(b) {c;}");
 parse_test_ok!(no_op, ";");
+
+parse_test_ok!(variables, "a;");
+parse_test_ok!(arrays, "a[0];", "a = [1, 2, 3];", "a[0] = [1, 2, 4];");
+parse_test_ok!(anon_function_call, "a(1, 2, 3);");
+parse_test_ok!(
+    named_function_call,
+    "script_tag(name:\"cvss_base\", value:1 + 1 % 2);"
+);
 
 // test_err!(wrong_assignment, "a = ");
 // test_err!(wrong_keyword_assignment, "a = for;");

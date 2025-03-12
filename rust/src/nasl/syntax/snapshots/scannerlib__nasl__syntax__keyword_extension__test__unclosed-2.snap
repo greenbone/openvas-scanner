@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/keyword_extension.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed),\n\"local_var a, 1, c;\").into_iter().map(| stmt | stmt.to_string()).collect :: <\nVec < _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+Missing semicolon: 1

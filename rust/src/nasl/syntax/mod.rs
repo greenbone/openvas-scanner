@@ -15,7 +15,6 @@ mod statement;
 mod token;
 mod tokenizer;
 mod utils;
-mod variable_extension;
 
 use std::path::Path;
 
@@ -47,12 +46,6 @@ pub fn parse(code: &str) -> ParseResult {
     // TODO support multiple errors
     let results = results.map_err(|e| vec![e])?;
     Ok(results)
-}
-
-// TODO remove
-// This is a helper method while the code structure isnt the way I want it to be
-pub fn parse_return_first(code: &str) -> Statement {
-    parse(code).unwrap().remove(0)
 }
 
 // TODO remove

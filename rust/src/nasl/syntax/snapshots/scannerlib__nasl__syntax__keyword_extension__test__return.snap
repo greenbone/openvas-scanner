@@ -1,0 +1,10 @@
+---
+source: src/nasl/syntax/keyword_extension.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (r#return),\n\"return 1; return a; return a(b); return 23 + 5; return (4 * 5);\").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+snapshot_kind: text
+---
+return 1;
+return a;
+return a(b);;
+return 23 + 5;
+return 4 * 5;

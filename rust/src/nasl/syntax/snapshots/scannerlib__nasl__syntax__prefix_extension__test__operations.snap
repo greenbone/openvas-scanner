@@ -1,0 +1,6 @@
+---
+source: src/nasl/syntax/prefix_extension.rs
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (operations),\n\"-1;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _ >>\n().join(\"\\n\")"
+snapshot_kind: text
+---
+-1

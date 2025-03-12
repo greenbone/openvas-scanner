@@ -477,177 +477,55 @@ impl Keywords for Lexer {
 #[cfg(test)]
 mod test {
 
-    use crate::nasl::syntax::{lexer::tests::parse_test_ok, parse_return_first, token};
+    use crate::nasl::syntax::lexer::tests::{parse_test_err, parse_test_ok};
 
-    use super::super::{
-        parse,
-        token::{Keyword, TokenKind},
-        Statement,
-    };
+    parse_test_ok!(
+        if_else_statement,
+        "if (description) script_oid('1'); else display('hi');"
+    );
+    parse_test_ok!(
+        if_statement,
+        "if( version[1] ) report += '\nVersion: ' + version[1];"
+    );
+    parse_test_ok!(if_block, "if (description) { ; }");
 
-    use super::super::StatementKind::*;
-    use super::super::TokenKind::*;
+    parse_test_ok!(local_var, "local_var a, b, c;");
+    parse_test_ok!(global_var, "global_var a, b, c;");
 
-    parse_test_ok!(if_statement, "if (description) script_oid('1'); else display('hi'); if( version[1] ) report += '\nVersion: ' + version[1];");
+    parse_test_ok!(null, "NULL;");
+    parse_test_ok!(boolean_true, "TRUE;");
+    parse_test_ok!(boolean_false, "FALSE;");
+    parse_test_ok!(
+        exit,
+        "exit(1); exit(a); exit(a(b)); exit(23 + 5); exit((4 * 5));"
+    );
+    parse_test_ok!(
+        r#return,
+        "return 1; return a; return a(b); return 23 + 5; return (4 * 5);"
+    );
+    parse_test_ok!(for_loop, "for (i = 0; i < 10; i++) display('hi');");
+    parse_test_ok!(for_loop_empty_assignment, "for (i = 0; i < 10; ) i = 10;");
+    parse_test_ok!(while_loop, "while (TRUE) ;");
+    parse_test_ok!(repeat_loop, "repeat ; until 1 == 1;");
+    parse_test_ok!(
+        foreach,
+        "foreach info(list) { display(info); }",
+        "foreach info(make_list('a', 'b')) { display(info); }"
+    );
+    parse_test_ok!(include, "include('test.inc');");
+    parse_test_ok!(
+        function,
+        "function register_packages( ) { return 1; }",
+        "function register_packages( buf ) { return 1; }"
+    );
+    parse_test_ok!(fct_anon_args, "_FCT_ANON_ARGS[0];", "_FCT_ANON_ARGS;");
 
-    #[test]
-    fn if_block() {
-        let actual = &parse_return_first("if (description) { ; }");
-        match actual.kind() {
-            If(_, b, _, _) => match b.kind() {
-                Block(v) => {
-                    assert_eq!(v, &vec![]);
-                }
-                _ => unreachable!("{b} must be a block stmt."),
-            },
-            _ => unreachable!("{actual} must be an if stmt."),
-        }
-    }
-
-    #[test]
-    fn local_var() {
-        let expected = |actual: Statement, scope: TokenKind| match actual.kind() {
-            Declare(vars) => {
-                assert_eq!(actual.as_token().kind(), &scope);
-                assert_eq!(vars.len(), 3);
-            }
-            _ => unreachable!("{actual} must be an declare stmt."),
-        };
-        expected(
-            parse_return_first("local_var a, b, c;"),
-            TokenKind::Keyword(Keyword::LocalVar),
-        );
-        expected(
-            parse_return_first("global_var a, b, c;"),
-            TokenKind::Keyword(Keyword::GlobalVar),
-        );
-    }
-
-    #[test]
-    fn null() {
-        let result = parse_return_first("NULL;");
-        assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Literal(token::Literal::Null));
-    }
-
-    #[test]
-    fn boolean() {
-        let result = parse_return_first("TRUE;");
-        assert_eq!(result.kind(), &Primitive);
-        assert_eq!(
-            result.as_token().kind(),
-            &Literal(token::Literal::Boolean(true))
-        );
-        let result = parse_return_first("FALSE;");
-        assert_eq!(result.kind(), &Primitive);
-        assert_eq!(
-            result.as_token().kind(),
-            &Literal(token::Literal::Boolean(false))
-        );
-    }
-
-    #[test]
-    fn exit() {
-        let test_cases = [
-            "exit(1)",
-            "exit(a)",
-            "exit(a(b))",
-            "exit(23 + 5)",
-            "exit((4 * 5))",
-        ];
-        for call in test_cases {
-            let result = parse_return_first(&format!("{call};"));
-            assert!(matches!(result.kind(), &Exit(..),), "{}", call);
-        }
-    }
-
-    #[test]
-    fn r#return() {
-        let test_cases = [
-            "return 1",
-            "return a",
-            "return a(b)",
-            "return 23 + 5",
-            "return (4 * 5)",
-        ];
-        for call in test_cases {
-            let result = parse_return_first(&format!("{call};"));
-            assert!(matches!(result.kind(), &Return(..),), "{}", call);
-        }
-    }
-
-    #[test]
-    fn for_loop() {
-        let code = "for (i = 0; i < 10; i++) display('hi');";
-        assert!(matches!(parse_return_first(code).kind(), &For(..)));
-        let code = "for (i = 0; i < 10; ) i = 10;";
-        assert!(matches!(parse_return_first(code).kind(), &For(..)))
-    }
-
-    #[test]
-    fn while_loop() {
-        let code = "while (TRUE) ;";
-        assert!(matches!(parse_return_first(code).kind(), &While(..)))
-    }
-
-    #[test]
-    fn repeat_loop() {
-        let code = "repeat ; until 1 == 1;";
-        assert!(matches!(parse_return_first(code).kind(), &Repeat(..)))
-    }
-
-    #[test]
-    fn foreach() {
-        let test_cases = [
-            "foreach info(list) { display(info); }",
-            "foreach info( make_list('a', 'b')) { display(info); }",
-        ];
-        for call in test_cases {
-            assert!(
-                matches!(parse_return_first(&format!("{call};")).kind(), &ForEach(..),),
-                "{}",
-                call
-            );
-        }
-    }
-
-    #[test]
-    fn include() {
-        assert!(matches!(
-            parse_return_first("include('test.inc');").kind(),
-            &Include(..)
-        ))
-    }
-
-    #[test]
-    fn function() {
-        assert!(matches!(
-            parse_return_first("function register_packages( buf ) { return 1; }").kind(),
-            &FunctionDeclaration(..)
-        ));
-        assert!(matches!(
-            parse_return_first("function register_packages( ) { return 1; }").kind(),
-            &FunctionDeclaration(..)
-        ));
-    }
-
-    #[test]
-    fn fct_anon_args() {
-        let result = parse_return_first("_FCT_ANON_ARGS[0];");
-        assert!(matches!(result.kind(), &Array(Some(_))));
-        assert_eq!(result.as_token().kind(), &Keyword(Keyword::FCTAnonArgs));
-
-        let result = parse_return_first("_FCT_ANON_ARGS;");
-        assert!(matches!(result.kind(), &Array(None)));
-        assert_eq!(result.as_token().kind(), &Keyword(Keyword::FCTAnonArgs));
-    }
-
-    #[test]
-    fn unclosed() {
-        assert!(parse("local_var a, b, c").is_err());
-        assert!(parse("local_var a, 1, c;").is_err());
-        assert!(parse("local_var 1;").is_err());
-        assert!(parse("if (description) { ; ").is_err());
-        assert!(parse("if (description) display(1)").is_err());
-    }
+    parse_test_err!(
+        unclosed,
+        "local_var a, b, c",
+        "local_var a, 1, c;",
+        "local_var 1;",
+        "if (description) { ; ",
+        "if (description) display(1)",
+    );
 }
