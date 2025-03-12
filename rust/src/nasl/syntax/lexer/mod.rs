@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #[cfg(test)]
-mod tests;
+#[macro_use]
+pub mod tests;
 
 use std::ops::Not;
 

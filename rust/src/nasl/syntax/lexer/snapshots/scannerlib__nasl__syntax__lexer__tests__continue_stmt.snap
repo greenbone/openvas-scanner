@@ -1,28 +1,6 @@
 ---
 source: src/nasl/syntax/lexer/tests.rs
-expression: "parse_ok(stringify! (continue_stmt), \"continue;\")"
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (continue_stmt),\n\"continue;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _\n>> ().join(\"\\n\")"
 snapshot_kind: text
 ---
-[
-    Statement {
-        start: Token {
-            kind: Keyword(
-                Continue,
-            ),
-            position: (
-                0,
-                8,
-            ),
-        },
-        end: Some(
-            Token {
-                kind: Semicolon,
-                position: (
-                    8,
-                    9,
-                ),
-            },
-        ),
-        kind: Continue,
-    },
-]
+continue

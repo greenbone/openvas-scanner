@@ -1,28 +1,6 @@
 ---
 source: src/nasl/syntax/lexer/tests.rs
-expression: "parse_ok(stringify! (break_stmt), \"break;\")"
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (break_stmt),\n\"break;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _ >>\n().join(\"\\n\")"
 snapshot_kind: text
 ---
-[
-    Statement {
-        start: Token {
-            kind: Keyword(
-                Break,
-            ),
-            position: (
-                0,
-                5,
-            ),
-        },
-        end: Some(
-            Token {
-                kind: Semicolon,
-                position: (
-                    5,
-                    6,
-                ),
-            },
-        ),
-        kind: Break,
-    },
-]
+break

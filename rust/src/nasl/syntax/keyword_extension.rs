@@ -477,7 +477,7 @@ impl Keywords for Lexer {
 #[cfg(test)]
 mod test {
 
-    use crate::nasl::syntax::{parse_return_first, token};
+    use crate::nasl::syntax::{lexer::tests::parse_test_ok, parse_return_first, token};
 
     use super::super::{
         parse,
@@ -488,20 +488,7 @@ mod test {
     use super::super::StatementKind::*;
     use super::super::TokenKind::*;
 
-    #[test]
-    fn if_statement() {
-        let actual = parse_return_first("if (description) script_oid('1'); else display('hi');");
-        match actual.kind() {
-            If(_, _, Some(_), Some(_)) => {}
-            _ => unreachable!("{actual} must be if with else stmt."),
-        }
-
-        let actual = &parse_return_first("if( version[1] ) report += '\nVersion: ' + version[1];");
-        match actual.kind() {
-            If(_, _, None, None) => {}
-            _ => unreachable!("{actual} must be if without else stmt."),
-        }
-    }
+    parse_test_ok!(if_statement, "if (description) script_oid('1'); else display('hi'); if( version[1] ) report += '\nVersion: ' + version[1];");
 
     #[test]
     fn if_block() {

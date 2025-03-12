@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::nasl::syntax::{parse, ParseInfo, Statement};
 
-fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
+pub fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
     let results = ParseInfo::new(code, Path::new(file_name));
     match results.result {
         Ok(results) => results,
@@ -26,14 +26,23 @@ fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
 //     }
 // }
 
-macro_rules! test_ok {
+macro_rules! parse_test_ok {
     ($name: ident, $code: literal) => {
         #[test]
         fn $name() {
-            insta::assert_debug_snapshot!(parse_ok(stringify!($name), $code));
+            insta::assert_snapshot!(crate::nasl::syntax::lexer::tests::parse_ok(
+                stringify!($name),
+                $code
+            )
+            .into_iter()
+            .map(|stmt| stmt.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"));
         }
     };
 }
+
+pub(crate) use parse_test_ok;
 
 // macro_rules! test_err {
 //     ($name: ident, $code: literal) => {
@@ -145,7 +154,7 @@ fn bitwise_operations() {
     calculated_test!("1 ^ 1;", 0);
 }
 
-test_ok!(
+parse_test_ok!(
     operator_assignment,
     "
     a += 1;
@@ -159,7 +168,7 @@ test_ok!(
     "
 );
 
-test_ok!(
+parse_test_ok!(
     compare_operator,
     "
     a !~ '1';
@@ -176,40 +185,40 @@ test_ok!(
     "
 );
 
-test_ok!(logical_operator, "a && 1; a || 1;");
+parse_test_ok!(logical_operator, "a && 1; a || 1;");
 
-test_ok!(assignment, "(a = 1);");
+parse_test_ok!(assignment, "(a = 1);");
 
-test_ok!(variable_assignment_operator, "a++; a--; a[1]++; a[1]--;");
+parse_test_ok!(variable_assignment_operator, "a++; a--; a[1]++; a[1]--;");
 
-test_ok!(primitive, "1;");
-test_ok!(variable, "a;");
-test_ok!(array, "a[1];");
-test_ok!(call, "a();");
-test_ok!(exit, "exit(0);");
-test_ok!(return_stmt, "return 0;");
-test_ok!(break_stmt, "break;");
-test_ok!(continue_stmt, "continue;");
-test_ok!(include, "include(\"test.inc\");");
-test_ok!(declare, "local_var a;");
-test_ok!(parameter, "[a, b];");
-test_ok!(named_parameter, "a: b;");
-test_ok!(assign, "a = 1;");
-test_ok!(add, "a + 1;");
-test_ok!(sub, "a - 1;");
-test_ok!(mul, "a * 1;");
-test_ok!(div, "a / 1;");
-test_ok!(modulo, "a % 1;");
-test_ok!(return_assign, "a++;");
-test_ok!(assign_return, "--a;");
-test_ok!(if_stmt, "if (a) b; else c;");
-test_ok!(for_stmt, "for (i = 0; i < 10; i++) a;");
-test_ok!(while_stmt, "while (a) b;");
-test_ok!(repeat, "repeat a; until b;");
-test_ok!(foreach, "foreach a(b) c;");
-test_ok!(block, "{ a; }");
-test_ok!(function_declaration, "function a(b) {c;}");
-test_ok!(no_op, ";");
+parse_test_ok!(primitive, "1;");
+parse_test_ok!(variable, "a;");
+parse_test_ok!(array, "a[1];");
+parse_test_ok!(call, "a();");
+parse_test_ok!(exit, "exit(0);");
+parse_test_ok!(return_stmt, "return 0;");
+parse_test_ok!(break_stmt, "break;");
+parse_test_ok!(continue_stmt, "continue;");
+parse_test_ok!(include, "include(\"test.inc\");");
+parse_test_ok!(declare, "local_var a;");
+parse_test_ok!(parameter, "[a, b];");
+parse_test_ok!(named_parameter, "a: b;");
+parse_test_ok!(assign, "a = 1;");
+parse_test_ok!(add, "a + 1;");
+parse_test_ok!(sub, "a - 1;");
+parse_test_ok!(mul, "a * 1;");
+parse_test_ok!(div, "a / 1;");
+parse_test_ok!(modulo, "a % 1;");
+parse_test_ok!(return_assign, "a++;");
+parse_test_ok!(assign_return, "--a;");
+parse_test_ok!(if_stmt, "if (a) b; else c;");
+parse_test_ok!(for_stmt, "for (i = 0; i < 10; i++) a;");
+parse_test_ok!(while_stmt, "while (a) b;");
+parse_test_ok!(repeat, "repeat a; until b;");
+parse_test_ok!(foreach, "foreach a(b) c;");
+parse_test_ok!(block, "{ a; }");
+parse_test_ok!(function_declaration, "function a(b) {c;}");
+parse_test_ok!(no_op, ";");
 
 // test_err!(wrong_assignment, "a = ");
 // test_err!(wrong_keyword_assignment, "a = for;");

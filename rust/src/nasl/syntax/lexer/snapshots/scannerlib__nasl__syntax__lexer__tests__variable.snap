@@ -1,30 +1,6 @@
 ---
 source: src/nasl/syntax/lexer/tests.rs
-expression: "parse_ok(stringify! (variable), \"a;\")"
+expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (variable),\n\"a;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _ >>\n().join(\"\\n\")"
 snapshot_kind: text
 ---
-[
-    Statement {
-        start: Token {
-            kind: Ident(
-                Ident(
-                    "a",
-                ),
-            ),
-            position: (
-                0,
-                1,
-            ),
-        },
-        end: Some(
-            Token {
-                kind: Semicolon,
-                position: (
-                    1,
-                    2,
-                ),
-            },
-        ),
-        kind: Variable,
-    },
-]
+a
