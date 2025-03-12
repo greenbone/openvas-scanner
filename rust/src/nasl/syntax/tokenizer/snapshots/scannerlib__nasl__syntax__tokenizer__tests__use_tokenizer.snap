@@ -14,8 +14,8 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Keyword(
-            Undefined(
+        kind: Ident(
+            Ident(
                 "hello",
             ),
         ),

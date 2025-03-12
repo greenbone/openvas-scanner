@@ -6,7 +6,7 @@ use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 use crate::storage::types::Primitive;
 
-use super::{Keyword, Token, TokenKind, ACT};
+use super::{Ident, Keyword, Token, TokenKind, ACT};
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -271,7 +271,7 @@ impl TryFrom<&Token> for NaslValue {
             TokenKind::String(s) => Ok(NaslValue::String(s.clone())),
             TokenKind::IPv4Address(s) => Ok(NaslValue::String(s.to_string())),
             TokenKind::Data(data) => Ok(NaslValue::Data(data.clone())),
-            TokenKind::Keyword(Keyword::Undefined(id)) => Ok(NaslValue::String(id.clone())),
+            TokenKind::Ident(Ident(id)) => Ok(NaslValue::String(id.clone())),
             TokenKind::Number(num) => Ok(NaslValue::Number(*num)),
             TokenKind::Keyword(Keyword::Null) => Ok(NaslValue::Null),
             TokenKind::Keyword(Keyword::True) => Ok(NaslValue::Boolean(true)),

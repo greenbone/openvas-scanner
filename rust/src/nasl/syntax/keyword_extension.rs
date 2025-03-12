@@ -7,7 +7,7 @@ use super::{
     grouping_extension::Grouping,
     lexer::{End, Lexer},
     token::{Keyword, Token, TokenKind},
-    ErrorKind, Statement, StatementKind,
+    ErrorKind, Ident, Statement, StatementKind,
 };
 use crate::{
     unclosed_statement, unclosed_token, unexpected_end, unexpected_statement, unexpected_token,
@@ -143,7 +143,7 @@ impl Lexer {
         let id = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(id.kind(), TokenKind::Keyword(Keyword::Undefined(_))) {
+        if !matches!(id.kind(), TokenKind::Ident(_)) {
             return Err(unexpected_token!(id));
         }
         let paren = self
@@ -365,7 +365,7 @@ impl Lexer {
         let variable: Token = {
             match self.token() {
                 Some(token) => match token.kind() {
-                    TokenKind::Keyword(Keyword::Undefined(_)) => Ok(token),
+                    TokenKind::Ident(Ident(_)) => Ok(token),
                     _ => Err(unexpected_token!(token)),
                 },
                 None => Err(unexpected_end!("in foreach")),
@@ -474,7 +474,6 @@ impl Keywords for Lexer {
             Keyword::Break => self
                 .parse_break(token)
                 .map(|stmt| (End::Done(stmt.end().clone()), stmt)),
-            Keyword::Undefined(_) => Err(unexpected_token!(token)),
         }
     }
 }

@@ -5,8 +5,8 @@ snapshot_kind: text
 ---
 [
     Token {
-        kind: Keyword(
-            Undefined(
+        kind: Ident(
+            Ident(
                 "help_lo",
             ),
         ),
@@ -16,8 +16,8 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Keyword(
-            Undefined(
+        kind: Ident(
+            Ident(
                 "_hello",
             ),
         ),
@@ -27,8 +27,8 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Keyword(
-            Undefined(
+        kind: Ident(
+            Ident(
                 "_h4llo",
             ),
         ),
@@ -47,8 +47,8 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: Keyword(
-            Undefined(
+        kind: Ident(
+            Ident(
                 "_h4llo",
             ),
         ),

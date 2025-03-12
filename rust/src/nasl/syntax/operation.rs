@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Defines Operations used in Lexer to be transformed to Statements.
-use super::token::{Keyword, Token, TokenKind};
+use super::{
+    token::{Keyword, Token, TokenKind},
+    Ident,
+};
 
 /// Is defining different OPerations to control the infix, postfix or infix handling.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -78,8 +81,8 @@ impl Operation {
             | TokenKind::LeftBrace
             | TokenKind::LeftCurlyBracket
             | TokenKind::Comma => Some(Operation::Grouping(token.kind().clone())),
-            TokenKind::Keyword(Keyword::Undefined(_)) => Some(Operation::Variable),
             TokenKind::Keyword(keyword) => Some(Operation::Keyword(keyword.clone())),
+            TokenKind::Ident(Ident(_)) => Some(Operation::Variable),
             _ => None,
         }
     }

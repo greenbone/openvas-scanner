@@ -54,36 +54,29 @@ pub enum Keyword {
     ACT(ACT),
     /// exit
     Exit,
-    /// Undefined
-    Undefined(String),
 }
 
 macro_rules! make_keyword_matcher {
-    ($($matcher:ident : $define:expr),+) => {
+    ($(($matcher:ident, $define:expr, $define_pat:pat)),+) => {
 
 impl Keyword {
     /// Creates a new keyword based on a string identifier
-    pub fn new(keyword: &str) -> Self {
+    pub fn new(keyword: &str) -> Option<Self> {
         match keyword {
            $(
-           stringify!($matcher) => $define,
+           stringify!($matcher) => Some($define),
            )*
-            _ => Self::Undefined(keyword.to_owned())
+            _ => None,
         }
 
     }
 
     /// Returns the length of the identifier
     pub fn len(&self) -> usize {
-        $(
-        if self == &$define {
-            return stringify!($matcher).len();
-        }
-        )*
-        if let Keyword::Undefined(r) = self {
-            return r.len();
-        } else {
-            return 0;
+        match self {
+           $(
+               $define_pat => stringify!($matcher).len(),
+           )*
         }
     }
 
@@ -96,15 +89,10 @@ impl Keyword {
 impl Display for Keyword {
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        $(
-        if self == &$define {
-            return write!(f, stringify!($matcher));
-        }
-        )*
-        if let Keyword::Undefined(r) = self {
-            return write!(f, "{r}");
-        } else {
-            return Ok(());
+        match self {
+           $(
+               $define_pat => write!(f, "{}", stringify!($matcher)),
+           )*
         }
     }
 }
@@ -112,37 +100,41 @@ impl Display for Keyword {
 }
 
 make_keyword_matcher! {
-    function: Keyword::Function,
-    _FCT_ANON_ARGS: Keyword::FCTAnonArgs,
-    TRUE: Keyword::True,
-    FALSE: Keyword::False,
-    for: Keyword::For,
-    foreach: Keyword::ForEach,
-    if: Keyword::If,
-    else: Keyword::Else,
-    while: Keyword::While,
-    repeat: Keyword::Repeat,
-    until: Keyword::Until,
-    local_var: Keyword::LocalVar,
-    global_var: Keyword::GlobalVar,
-    NULL: Keyword::Null,
-    return: Keyword::Return,
-    include: Keyword::Include,
-    exit: Keyword::Exit,
-    ACT_ATTACK: Keyword::ACT(ACT::Attack),
-    ACT_DENIAL: Keyword::ACT(ACT::Denial),
-    ACT_DESTRUCTIVE_ATTACK: Keyword::ACT(ACT::DestructiveAttack),
-    ACT_END: Keyword::ACT(ACT::End),
-    ACT_FLOOD: Keyword::ACT(ACT::Flood),
-    ACT_GATHER_INFO: Keyword::ACT(ACT::GatherInfo),
-    ACT_INIT: Keyword::ACT(ACT::Init),
-    ACT_KILL_HOST: Keyword::ACT(ACT::KillHost),
-    ACT_MIXED_ATTACK: Keyword::ACT(ACT::MixedAttack),
-    ACT_SCANNER: Keyword::ACT(ACT::Scanner),
-    ACT_SETTINGS: Keyword::ACT(ACT::Settings),
-    continue: Keyword::Continue,
-    break: Keyword::Break
+    (function, Keyword::Function, Keyword::Function),
+    (_FCT_ANON_ARGS, Keyword::FCTAnonArgs, Keyword::FCTAnonArgs),
+    (TRUE, Keyword::True, Keyword::True),
+    (FALSE, Keyword::False, Keyword::False),
+    (for, Keyword::For, Keyword::For),
+    (foreach, Keyword::ForEach, Keyword::ForEach),
+    (if, Keyword::If, Keyword::If),
+    (else, Keyword::Else, Keyword::Else),
+    (while, Keyword::While, Keyword::While),
+    (repeat, Keyword::Repeat, Keyword::Repeat),
+    (until, Keyword::Until, Keyword::Until),
+    (local_var, Keyword::LocalVar, Keyword::LocalVar),
+    (global_var, Keyword::GlobalVar, Keyword::GlobalVar),
+    (NULL, Keyword::Null, Keyword::Null),
+    (return, Keyword::Return, Keyword::Return),
+    (include, Keyword::Include, Keyword::Include),
+    (exit, Keyword::Exit, Keyword::Exit),
+    (ACT_ATTACK, Keyword::ACT(ACT::Attack), Keyword::ACT(ACT::Attack)),
+    (ACT_DENIAL, Keyword::ACT(ACT::Denial), Keyword::ACT(ACT::Denial)),
+    (ACT_DESTRUCTIVE_ATTACK, Keyword::ACT(ACT::DestructiveAttack), Keyword::ACT(ACT::DestructiveAttack)),
+    (ACT_END, Keyword::ACT(ACT::End), Keyword::ACT(ACT::End)),
+    (ACT_FLOOD, Keyword::ACT(ACT::Flood), Keyword::ACT(ACT::Flood)),
+    (ACT_GATHER_INFO, Keyword::ACT(ACT::GatherInfo), Keyword::ACT(ACT::GatherInfo)),
+    (ACT_INIT, Keyword::ACT(ACT::Init), Keyword::ACT(ACT::Init)),
+    (ACT_KILL_HOST, Keyword::ACT(ACT::KillHost), Keyword::ACT(ACT::KillHost)),
+    (ACT_MIXED_ATTACK, Keyword::ACT(ACT::MixedAttack), Keyword::ACT(ACT::MixedAttack)),
+    (ACT_SCANNER, Keyword::ACT(ACT::Scanner), Keyword::ACT(ACT::Scanner)),
+    (ACT_SETTINGS, Keyword::ACT(ACT::Settings), Keyword::ACT(ACT::Settings)),
+    (continue, Keyword::Continue, Keyword::Continue),
+    (break, Keyword::Break, Keyword::Break)
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize, Deserialize))]
+pub struct Ident(pub String);
 
 /// Is used to identify a Token
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -260,6 +252,8 @@ pub enum TokenKind {
     IPv4Address(Ipv4Addr),
     /// Special keywords reserved within NASL.
     Keyword(Keyword),
+    /// An identifier for a variable or function.
+    Ident(Ident),
 }
 
 impl Display for TokenKind {
@@ -317,6 +311,7 @@ impl Display for TokenKind {
             TokenKind::Number(x) => write!(f, "{x}"),
             TokenKind::IPv4Address(x) => write!(f, "{x}"),
             TokenKind::Keyword(x) => write!(f, "{}", x),
+            TokenKind::Ident(ident) => write!(f, "{}", ident.0),
             TokenKind::Data(x) => write!(f, "{x:?}"),
         }
     }
@@ -335,8 +330,8 @@ pub struct Token {
 impl Token {
     pub fn identifier(&self) -> Result<String, InterpretError> {
         match self.kind() {
-            TokenKind::Keyword(Keyword::Undefined(x)) => Ok(x.to_owned()),
-            cat => Err(InterpretError::wrong_kind(cat)),
+            TokenKind::Ident(ident) => Ok(ident.0.clone()),
+            kind => Err(InterpretError::wrong_kind(kind)),
         }
     }
 

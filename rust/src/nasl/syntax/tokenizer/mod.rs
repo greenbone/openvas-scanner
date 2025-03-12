@@ -4,7 +4,7 @@ mod tests;
 
 use std::ops::AddAssign;
 
-use super::{Keyword, Token, TokenKind};
+use super::{Ident, Keyword, Token, TokenKind};
 pub use error::{TokenizerError, TokenizerErrorKind};
 #[cfg(test)]
 use serde::{Deserialize, Serialize};
@@ -247,7 +247,7 @@ impl Tokenizer {
             '"' => self.tokenize_string()?,
             '\'' => self.tokenize_data()?,
             c if c.is_ascii_digit() => self.tokenize_number(start, c)?,
-            c if c.is_alphabetic() || c == '_' => self.tokenize_identifier(start),
+            c if c.is_alphabetic() || c == '_' => self.tokenize_identifier_or_keyword(start),
             c if c.is_whitespace() => return Ok(None),
             _ => return Err(self.error(TokenizerErrorKind::InvalidCharacter)),
         };
@@ -467,21 +467,23 @@ impl Tokenizer {
         }
     }
 
-    // Checks if an identifier is a Keyword or not
-    fn tokenize_identifier(&mut self, start: CharIndex) -> TokenKind {
+    fn tokenize_identifier_or_keyword(&mut self, start: CharIndex) -> TokenKind {
         self.cursor
             .skip_while(|c| c.is_alphabetic() || c == '_' || c.is_numeric());
         let end = self.cursor.position();
         let lookup = self.substring(start, end);
         if lookup != "x" {
-            let keyword = Keyword::new(&lookup);
-            TokenKind::Keyword(keyword)
+            if let Some(keyword) = Keyword::new(&lookup) {
+                TokenKind::Keyword(keyword)
+            } else {
+                TokenKind::Ident(Ident(lookup))
+            }
         } else {
             self.cursor.skip_while(|c| c.is_whitespace());
             if self.cursor.peek().is_numeric() {
                 TokenKind::X
             } else {
-                TokenKind::Keyword(Keyword::Undefined(lookup.to_owned()))
+                TokenKind::Ident(Ident(lookup))
             }
         }
     }

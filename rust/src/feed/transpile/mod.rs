@@ -6,7 +6,7 @@
 
 mod error;
 
-use crate::nasl::syntax::{Statement, StatementKind};
+use crate::nasl::syntax::{Ident, Statement, StatementKind, TokenKind};
 
 use crate::feed::{verify, NaslFileFinder};
 
@@ -166,20 +166,14 @@ impl FunctionNameMatcher<'_> {
             StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
             StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
             StatementKind::Call(..) => {
-                if let crate::nasl::syntax::TokenKind::Keyword(
-                    crate::nasl::syntax::Keyword::Undefined(ref x),
-                ) = s.start().kind()
-                {
+                if let TokenKind::Ident(Ident(ref x)) = s.start().kind() {
                     self.name.map(|y| x == y).unwrap_or(true)
                 } else {
                     false
                 }
             }
             StatementKind::FunctionDeclaration(id, ..) => {
-                if let crate::nasl::syntax::TokenKind::Keyword(
-                    crate::nasl::syntax::Keyword::Undefined(ref x),
-                ) = id.kind()
-                {
+                if let TokenKind::Ident(Ident(ref x)) = id.kind() {
                     self.name.map(|y| x == y).unwrap_or(true)
                 } else {
                     false
@@ -329,13 +323,11 @@ impl CodeReplacer {
         stmts: &'a [Statement],
         wanted: &str,
     ) -> Option<(usize, &'a Statement)> {
-        use crate::nasl::syntax::Keyword::Undefined;
-        use crate::nasl::syntax::TokenKind::Keyword;
         for (i, s) in stmts.iter().enumerate() {
             match s.kind() {
                 StatementKind::Variable | StatementKind::NamedParameter(_) => {
                     if let crate::nasl::syntax::Token {
-                        kind: Keyword(Undefined(name)),
+                        kind: TokenKind::Ident(Ident(name)),
                         ..
                     } = s.start()
                     {

@@ -26,6 +26,7 @@ pub use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;
 pub use statement::*;
+pub use token::Ident;
 pub use token::Keyword;
 pub use token::Token;
 pub use token::TokenKind;

@@ -6,8 +6,8 @@
 
 use std::fs::File;
 
-use crate::nasl::syntax::{AsBufReader, Loader};
-use crate::nasl::syntax::{Keyword, Statement, StatementKind, TokenKind};
+use crate::nasl::syntax::{AsBufReader, Ident, Loader};
+use crate::nasl::syntax::{Statement, StatementKind, TokenKind};
 
 use crate::feed::{
     update,
@@ -41,7 +41,7 @@ where
     fn script_oid(stmt: &Statement) -> Option<String> {
         match stmt.kind() {
             StatementKind::Call(param) => match stmt.start().kind() {
-                TokenKind::Keyword(Keyword::Undefined(s)) => match s as &str {
+                TokenKind::Ident(Ident(s)) => match s as &str {
                     // maybe switch from children to patternmatching?
                     "script_oid" => param.children().first().map(|x| x.to_string()),
                     _ => None,

@@ -68,8 +68,10 @@ impl DeclareVariableExtension for Interpreter<'_> {
 
         for stmt in stmts {
             if let StatementKind::Variable = stmt.kind() {
-                if let TokenKind::Keyword(name) = stmt.as_token().kind() {
-                    add(&name.to_string());
+                if let TokenKind::Ident(ident) = stmt.as_token().kind() {
+                    add(&ident.0);
+                } else {
+                    unreachable!()
                 }
             };
         }
