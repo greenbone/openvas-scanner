@@ -5,16 +5,12 @@
 use core::fmt;
 use std::ops::Range;
 
-#[cfg(test)]
-use serde::{Deserialize, Serialize};
-
 use crate::unexpected_statement;
 
 use super::{SyntaxError, Token, TokenKind};
 
 /// Specifies the order of assignment
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum AssignOrder {
     /// Assign first than return
     AssignReturn,
@@ -24,7 +20,6 @@ pub enum AssignOrder {
 
 /// Is a executable step.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum StatementKind {
     /// Either a Number, String, Boolean or Null
     Primitive,
@@ -94,7 +89,6 @@ pub enum StatementKind {
 /// start returns a token of the beginning of that statement while end contains
 /// the end of the statement. So as an example of the statement:
 /// 'my_function(1);' start will point to 'my_function' and end to ';'.
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub struct Statement {
     start: Token,
     end: Option<Token>,

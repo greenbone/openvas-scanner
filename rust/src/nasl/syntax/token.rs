@@ -5,14 +5,10 @@
 //! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use std::{fmt::Display, net::Ipv4Addr};
 
-#[cfg(test)]
-use serde::{Deserialize, Serialize};
-
 use crate::{nasl::interpreter::InterpretError, storage::item::ACT};
 
 /// A reserved NASL keyword.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum Keyword {
     /// function declaration
     Function,
@@ -124,11 +120,9 @@ make_keyword_matcher! {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub struct Ident(pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum Literal {
     /// A String (")
     ///
@@ -163,7 +157,6 @@ impl Literal {
 
 /// Is used to identify a Token
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum TokenKind {
     /// `(`
     LeftParen,
@@ -332,9 +325,8 @@ impl Display for TokenKind {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the TokenType as well as the position.
-#[cfg_attr(test, derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Token {
     /// The kind of a token
     pub kind: TokenKind,

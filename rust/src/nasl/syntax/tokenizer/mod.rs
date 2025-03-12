@@ -8,8 +8,6 @@ use crate::nasl::syntax::token::Literal;
 
 use super::{Ident, Keyword, Token, TokenKind};
 pub use error::{TokenizerError, TokenizerErrorKind};
-#[cfg(test)]
-use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Default, Clone, Debug, PartialEq, Eq)]
 pub struct CharIndex(pub usize);
@@ -87,7 +85,6 @@ impl Cursor {
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize, Deserialize))]
 pub enum NumberBase {
     /// Base 2: contains 01 is defined by 0b e.g.: `0b010101`
     Binary,

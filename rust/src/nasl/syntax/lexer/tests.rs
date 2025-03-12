@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::nasl::syntax::{parse, ParseInfo, Statement, SyntaxError};
+use crate::nasl::syntax::{parse, ParseInfo, Statement};
 
 fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
     let results = ParseInfo::new(code, Path::new(file_name));
