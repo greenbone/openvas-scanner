@@ -456,10 +456,6 @@ impl Keywords for Lexer {
             Keyword::FCTAnonArgs => self
                 .parse_fct_anon_args(token)
                 .map(|stmt| (End::Continue, stmt)),
-            Keyword::Null | Keyword::True | Keyword::False => Ok((
-                End::Continue,
-                Statement::with_start_token(token, StatementKind::Primitive),
-            )),
             Keyword::ACT(_) => Ok((
                 End::Continue,
                 Statement::with_start_token(token, StatementKind::AttackCategory),
@@ -481,7 +477,7 @@ impl Keywords for Lexer {
 #[cfg(test)]
 mod test {
 
-    use crate::nasl::syntax::parse_return_first;
+    use crate::nasl::syntax::{parse_return_first, token};
 
     use super::super::{
         parse,
@@ -544,17 +540,23 @@ mod test {
     fn null() {
         let result = parse_return_first("NULL;");
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Keyword(Keyword::Null));
+        assert_eq!(result.as_token().kind(), &Literal(token::Literal::Null));
     }
 
     #[test]
     fn boolean() {
         let result = parse_return_first("TRUE;");
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Keyword(Keyword::True));
+        assert_eq!(
+            result.as_token().kind(),
+            &Literal(token::Literal::Boolean(true))
+        );
         let result = parse_return_first("FALSE;");
         assert_eq!(result.kind(), &Primitive);
-        assert_eq!(result.as_token().kind(), &Keyword(Keyword::False));
+        assert_eq!(
+            result.as_token().kind(),
+            &Literal(token::Literal::Boolean(false))
+        );
     }
 
     #[test]

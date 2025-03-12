@@ -18,10 +18,6 @@ pub enum Keyword {
     Function,
     /// _FCT_ANON_ARGS
     FCTAnonArgs,
-    /// TRUE
-    True,
-    /// FALSE
-    False,
     /// for
     For,
     /// foreach
@@ -40,8 +36,6 @@ pub enum Keyword {
     LocalVar,
     /// global_var
     GlobalVar,
-    /// NULL
-    Null,
     /// return
     Return,
     /// continue
@@ -102,8 +96,6 @@ impl Display for Keyword {
 make_keyword_matcher! {
     (function, Keyword::Function, Keyword::Function),
     (_FCT_ANON_ARGS, Keyword::FCTAnonArgs, Keyword::FCTAnonArgs),
-    (TRUE, Keyword::True, Keyword::True),
-    (FALSE, Keyword::False, Keyword::False),
     (for, Keyword::For, Keyword::For),
     (foreach, Keyword::ForEach, Keyword::ForEach),
     (if, Keyword::If, Keyword::If),
@@ -113,7 +105,6 @@ make_keyword_matcher! {
     (until, Keyword::Until, Keyword::Until),
     (local_var, Keyword::LocalVar, Keyword::LocalVar),
     (global_var, Keyword::GlobalVar, Keyword::GlobalVar),
-    (NULL, Keyword::Null, Keyword::Null),
     (return, Keyword::Return, Keyword::Return),
     (include, Keyword::Include, Keyword::Include),
     (exit, Keyword::Exit, Keyword::Exit),
@@ -151,8 +142,23 @@ pub enum Literal {
     Data(Vec<u8>),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(i64),
-    /// We currently just support 127.0.0.1 notation
+    /// An IP address. We currently just support 127.0.0.1 notation
     IPv4Address(Ipv4Addr),
+    /// A boolean.
+    Boolean(bool),
+    /// Null
+    Null,
+}
+
+impl Literal {
+    pub fn from_keyword(lookup: &str) -> Option<Self> {
+        match lookup {
+            "NULL" => Some(Self::Null),
+            "FALSE" => Some(Self::Boolean(false)),
+            "TRUE" => Some(Self::Boolean(true)),
+            _ => None,
+        }
+    }
 }
 
 /// Is used to identify a Token
@@ -320,6 +326,8 @@ impl Display for TokenKind {
             TokenKind::Literal(Literal::String(s)) => write!(f, "\"{s}\""),
             TokenKind::Literal(Literal::Data(data)) => write!(f, "{data:?}"),
             TokenKind::Literal(Literal::IPv4Address(ip)) => write!(f, "{ip}"),
+            TokenKind::Literal(Literal::Boolean(b)) => write!(f, "{}", b),
+            TokenKind::Literal(Literal::Null) => write!(f, "Null"),
         }
     }
 }
@@ -335,9 +343,18 @@ pub struct Token {
 }
 
 impl Token {
+    // TODO get rid of this
     pub fn identifier(&self) -> Result<String, InterpretError> {
         match self.kind() {
             TokenKind::Ident(ident) => Ok(ident.0.clone()),
+            kind => Err(InterpretError::wrong_kind(kind)),
+        }
+    }
+
+    // TODO get rid of this
+    pub fn literal(&self) -> Result<&Literal, InterpretError> {
+        match self.kind() {
+            TokenKind::Literal(lit) => Ok(lit),
             kind => Err(InterpretError::wrong_kind(kind)),
         }
     }

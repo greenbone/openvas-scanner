@@ -1,0 +1,38 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (keyword_literals), \"TRUE FALSE NULL\")"
+snapshot_kind: text
+---
+[
+    Token {
+        kind: Literal(
+            Boolean(
+                true,
+            ),
+        ),
+        position: (
+            0,
+            4,
+        ),
+    },
+    Token {
+        kind: Literal(
+            Boolean(
+                false,
+            ),
+        ),
+        position: (
+            5,
+            10,
+        ),
+    },
+    Token {
+        kind: Literal(
+            Null,
+        ),
+        position: (
+            11,
+            15,
+        ),
+    },
+]

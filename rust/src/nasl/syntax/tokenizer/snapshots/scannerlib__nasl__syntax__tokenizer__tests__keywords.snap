@@ -1,6 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
-expression: "tokenize_ok(stringify! (keywords),\n\"for foreach if else while repeat until local_var global_var NULL return include exit break continue\")"
+expression: "tokenize_ok(stringify! (keywords),\n\"for foreach if else while repeat until local_var global_var return include exit break continue\")"
 snapshot_kind: text
 ---
 [
@@ -87,20 +87,11 @@ snapshot_kind: text
     },
     Token {
         kind: Keyword(
-            Null,
-        ),
-        position: (
-            60,
-            64,
-        ),
-    },
-    Token {
-        kind: Keyword(
             Return,
         ),
         position: (
-            65,
-            71,
+            60,
+            66,
         ),
     },
     Token {
@@ -108,8 +99,8 @@ snapshot_kind: text
             Include,
         ),
         position: (
-            72,
-            79,
+            67,
+            74,
         ),
     },
     Token {
@@ -117,8 +108,8 @@ snapshot_kind: text
             Exit,
         ),
         position: (
-            80,
-            84,
+            75,
+            79,
         ),
     },
     Token {
@@ -126,8 +117,8 @@ snapshot_kind: text
             Break,
         ),
         position: (
+            80,
             85,
-            90,
         ),
     },
     Token {
@@ -135,8 +126,8 @@ snapshot_kind: text
             Continue,
         ),
         position: (
-            91,
-            99,
+            86,
+            94,
         ),
     },
 ]

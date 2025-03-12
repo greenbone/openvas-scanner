@@ -348,8 +348,7 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     fn resolve_primitive(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-        NaslValue::try_from(statement.as_token())
-            .map_err(|token| InterpretError::wrong_kind(&token))
+        Ok(statement.as_token().literal()?.into())
     }
 
     fn resolve_variable(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {

@@ -249,7 +249,7 @@ impl Tokenizer {
             '"' => self.tokenize_string()?,
             '\'' => self.tokenize_data()?,
             c if c.is_ascii_digit() => self.tokenize_number(start, c)?,
-            c if c.is_alphabetic() || c == '_' => self.tokenize_identifier_or_keyword(start),
+            c if c.is_alphabetic() || c == '_' => self.tokenize_identifiers(start),
             c if c.is_whitespace() => return Ok(None),
             _ => return Err(self.error(TokenizerErrorKind::InvalidCharacter)),
         };
@@ -471,7 +471,7 @@ impl Tokenizer {
         }
     }
 
-    fn tokenize_identifier_or_keyword(&mut self, start: CharIndex) -> TokenKind {
+    fn tokenize_identifiers(&mut self, start: CharIndex) -> TokenKind {
         self.cursor
             .skip_while(|c| c.is_alphabetic() || c == '_' || c.is_numeric());
         let end = self.cursor.position();
@@ -479,6 +479,8 @@ impl Tokenizer {
         if lookup != "x" {
             if let Some(keyword) = Keyword::new(&lookup) {
                 TokenKind::Keyword(keyword)
+            } else if let Some(literal) = Literal::from_keyword(&lookup) {
+                TokenKind::Literal(literal)
             } else {
                 TokenKind::Ident(Ident(lookup))
             }

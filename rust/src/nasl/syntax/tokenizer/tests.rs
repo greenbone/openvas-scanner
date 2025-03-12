@@ -90,7 +90,8 @@ test_ok!(single_line_comments, "# this is a comment\n;");
 
 test_ok!(identifier, "help_lo _hello _h4llo 4_h4llo");
 
-test_ok!(keywords, "for foreach if else while repeat until local_var global_var NULL return include exit break continue");
+test_ok!(keywords, "for foreach if else while repeat until local_var global_var return include exit break continue");
+test_ok!(keyword_literals, "TRUE FALSE NULL");
 
 test_ok!(string_quoting, r"'webapps\\\\appliance\\\\'");
 
