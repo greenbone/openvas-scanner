@@ -164,12 +164,6 @@ impl InterpretError {
     }
 }
 
-impl From<TokenKind> for InterpretError {
-    fn from(cat: TokenKind) -> Self {
-        Self::new(InterpretErrorKind::WrongCategory(cat), None)
-    }
-}
-
 impl From<SyntaxError> for InterpretError {
     fn from(err: SyntaxError) -> Self {
         Self::new(InterpretErrorKind::SyntaxError(err), None)

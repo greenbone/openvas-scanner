@@ -348,12 +348,13 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     fn resolve_primitive(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-        TryFrom::try_from(statement.as_token()).map_err(|e: TokenKind| e.into())
+        NaslValue::try_from(statement.as_token())
+            .map_err(|token| InterpretError::wrong_kind(&token))
     }
 
     fn resolve_variable(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-        let name: NaslValue = TryFrom::try_from(statement.as_token())?;
-        match self.register.named(&name.to_string()) {
+        let name = statement.as_token().identifier()?;
+        match self.register.named(&name) {
             Some(ContextType::Value(result)) => Ok(result.clone()),
             None => Ok(NaslValue::Null),
             Some(ContextType::Function(_, _)) => {
