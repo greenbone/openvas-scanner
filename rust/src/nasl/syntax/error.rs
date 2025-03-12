@@ -84,22 +84,6 @@ impl SyntaxError {
     }
 }
 
-/// Creates an SyntaxError.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use scannerlib::nasl::syntax::{ErrorKind, Token, TokenKind};
-/// use scannerlib::syntax_error;
-/// syntax_error!(
-///     ErrorKind::UnexpectedToken(Token {
-///         kind: TokenKind::UnknownSymbol,
-///         line_column: (42, 42),
-///         position: (42, 42),
-///     })
-/// );
-/// ```
 #[macro_export]
 macro_rules! syntax_error {
     ($kind:expr) => {{
@@ -112,20 +96,6 @@ macro_rules! syntax_error {
     }};
 }
 
-/// Creates an unexpected Token error.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use scannerlib::nasl::syntax::{Token, TokenKind};
-/// use scannerlib::unexpected_token;
-/// unexpected_token!(Token {
-///     kind: TokenKind::UnknownSymbol,
-///     line_column: (42, 42),
-///     position: (42, 42),
-/// });
-/// ```
 #[macro_export]
 macro_rules! unexpected_token {
     ($token:expr) => {{
@@ -135,16 +105,6 @@ macro_rules! unexpected_token {
     }};
 }
 
-/// Creates an unexpected statement error.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use scannerlib::nasl::syntax::{Statement, StatementKind};
-/// use scannerlib::unexpected_statement;
-/// unexpected_statement!(Statement::without_token(StatementKind::EoF));
-/// ```
 #[macro_export]
 macro_rules! unexpected_statement {
     ($statement:expr) => {{
@@ -154,16 +114,6 @@ macro_rules! unexpected_statement {
     }};
 }
 
-/// Creates an unexpected statement error.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use scannerlib::nasl::syntax::{Statement, StatementKind};
-/// use scannerlib::unclosed_statement;
-/// unclosed_statement!(Statement::without_token(StatementKind::EoF));
-/// ```
 #[macro_export]
 macro_rules! unclosed_statement {
     ($statement:expr) => {{
@@ -174,20 +124,6 @@ macro_rules! unclosed_statement {
     }};
 }
 
-/// Creates an unclosed Token error.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use scannerlib::nasl::syntax::{Token, TokenKind};
-/// use scannerlib::unclosed_token;
-/// unclosed_token!(Token {
-///     kind: TokenKind::UnknownSymbol,
-///     position: (42, 42),
-///     line_column: (42, 42),
-/// });
-/// ```
 #[macro_export]
 macro_rules! unclosed_token {
     ($token:expr) => {{
@@ -198,15 +134,6 @@ macro_rules! unclosed_token {
     }};
 }
 
-/// Creates an unexpected end error.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use scannerlib::unexpected_end;
-/// unexpected_end!("within an example.");
-/// ```
 #[macro_export]
 macro_rules! unexpected_end {
     ($reason:expr) => {{

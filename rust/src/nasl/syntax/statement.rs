@@ -262,7 +262,8 @@ impl Statement {
     /// }
     /// "#;
     /// let results: usize = scannerlib::nasl::syntax::parse(code)
-    ///     .filter_map(|s| s.ok())
+    ///     .unwrap()
+    ///     .into_iter()
     ///     .map(|s| s.find(&|s| matches!(s.kind(), scannerlib::nasl::syntax::StatementKind::Call(..))).len())
     ///     .sum();
     ///
