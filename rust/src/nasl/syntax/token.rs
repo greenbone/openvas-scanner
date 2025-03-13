@@ -246,6 +246,8 @@ pub enum TokenKind {
     Keyword(Keyword),
     /// An identifier for a variable or function.
     Ident(Ident),
+    /// End of file
+    Eof,
 }
 
 impl Display for TokenKind {
@@ -307,6 +309,7 @@ impl Display for TokenKind {
             TokenKind::Literal(Literal::IPv4Address(ip)) => write!(f, "{ip}"),
             TokenKind::Literal(Literal::Boolean(b)) => write!(f, "{}", b),
             TokenKind::Literal(Literal::Null) => write!(f, "Null"),
+            TokenKind::Eof => write!(f, ""),
         }
     }
 }
@@ -343,6 +346,14 @@ impl Token {
             kind: TokenKind::X,
             position: (usize::MAX, usize::MAX),
         }
+    }
+
+    pub fn start(&self) -> usize {
+        self.position.0
+    }
+
+    pub fn end(&self) -> usize {
+        self.position.1
     }
 }
 

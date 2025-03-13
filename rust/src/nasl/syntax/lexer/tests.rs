@@ -5,7 +5,7 @@ use crate::nasl::{
 
 pub fn parse_ok(file_name: &str, code: &str) -> Vec<Declaration> {
     let results = Code::from_string_fake_filename(code, file_name).parse();
-    results.emit_errors().unwrap().stmts()
+    results.emit_errors().unwrap().decls()
 }
 
 pub fn parse_err(file_name: &str, code: &str) -> String {

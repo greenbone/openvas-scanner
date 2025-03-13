@@ -11,6 +11,7 @@ mod lexer;
 mod loader;
 mod naslvalue;
 mod operation;
+pub mod parser;
 mod prefix_extension;
 mod token;
 mod tokenizer;

@@ -36,7 +36,7 @@ fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     match results.emit_errors() {
         Some(decls) => {
             if verbose {
-                for decl in decls.stmts().iter() {
+                for decl in decls.decls().iter() {
                     print_decl(decl);
                 }
             }

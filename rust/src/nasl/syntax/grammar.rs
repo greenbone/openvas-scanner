@@ -27,7 +27,7 @@ impl Ast {
         Self { stmts, position: 0 }
     }
 
-    pub fn stmts(self) -> Vec<Declaration> {
+    pub fn decls(self) -> Vec<Declaration> {
         self.stmts
     }
 

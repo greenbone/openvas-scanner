@@ -68,7 +68,7 @@ impl ParseResult {
     }
 
     pub fn unwrap_decls(self) -> Vec<Declaration> {
-        self.result.unwrap().stmts()
+        self.result.unwrap().decls()
     }
 
     pub fn file(&self) -> &SourceFile {
@@ -116,6 +116,10 @@ impl Code {
             Some(path) => ParseResult::new(&self.code, &path),
             None => ParseResult::new_without_file(&self.code),
         }
+    }
+
+    pub fn code(&self) -> &str {
+        &self.code
     }
 }
 
