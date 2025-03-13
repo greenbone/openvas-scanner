@@ -58,12 +58,8 @@ pub async fn feed_version(
     let context = Context::new(k, target, dispatcher, &fr, loader, &functions);
     // TODO do not unwrap here, handle errors
     let mut interpreter = Interpreter::new(register, code.parse().emit_errors().unwrap(), &context);
-    for stmt in Code::load(loader, feed_info_filename)?
-        .parse()
-        .result()
-        .map_err(|errs| ErrorKind::SyntaxError(errs))?
-    {
-        interpreter.resolve(&stmt).await?;
+    while let Some(result) = interpreter.execute_next_statement().await {
+        let _ = result?;
     }
 
     let feed_version = interpreter

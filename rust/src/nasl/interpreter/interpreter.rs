@@ -254,7 +254,7 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    pub async fn resolve(&mut self, statement: &Statement) -> InterpretResult {
+    pub(super) async fn resolve(&mut self, statement: &Statement) -> InterpretResult {
         use StatementKind::*;
         match statement.kind() {
             Include(inc) => Box::pin(self.include(inc)).await,
