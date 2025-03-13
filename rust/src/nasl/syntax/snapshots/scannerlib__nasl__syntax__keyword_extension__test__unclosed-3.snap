@@ -3,33 +3,8 @@ source: src/nasl/syntax/keyword_extension.rs
 expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed), \"local_var 1;\")"
 snapshot_kind: text
 ---
-[
-    SyntaxError {
-        kind: MissingSemicolon(
-            Statement {
-                start: Token {
-                    kind: Literal(
-                        Number(
-                            1,
-                        ),
-                    ),
-                    position: (
-                        10,
-                        11,
-                    ),
-                },
-                end: Some(
-                    Token {
-                        kind: Semicolon,
-                        position: (
-                            11,
-                            12,
-                        ),
-                    },
-                ),
-                kind: Primitive,
-            },
-        ),
-        range: 0..0,
-    },
-]
+error: Missing semicolon: 1
+  ┌─ unclosed:1:1
+  │
+1 │ local_var 1;
+  │ ^ Missing semicolon: 1

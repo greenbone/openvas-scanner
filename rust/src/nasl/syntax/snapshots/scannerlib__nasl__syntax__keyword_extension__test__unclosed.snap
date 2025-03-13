@@ -3,9 +3,8 @@ source: src/nasl/syntax/keyword_extension.rs
 expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed), \"local_var a, b, c\")"
 snapshot_kind: text
 ---
-[
-    SyntaxError {
-        kind: EoF,
-        range: 0..0,
-    },
-]
+error: Unexpected end of file.
+  ┌─ unclosed:1:1
+  │
+1 │ local_var a, b, c
+  │ ^ Unexpected end of file.

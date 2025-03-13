@@ -3,17 +3,8 @@ source: src/nasl/syntax/error.rs
 expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (missing_right_curly_bracket), \"{ a = 2;\")"
 snapshot_kind: text
 ---
-[
-    SyntaxError {
-        kind: UnclosedToken(
-            Token {
-                kind: LeftCurlyBracket,
-                position: (
-                    0,
-                    1,
-                ),
-            },
-        ),
-        range: 0..0,
-    },
-]
+error: Unclosed token: '{'
+  ┌─ missing_right_curly_bracket:1:1
+  │
+1 │ { a = 2;
+  │ ^ Unclosed token: '{'

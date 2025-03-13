@@ -5,17 +5,9 @@ pub fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
     results.emit_errors().unwrap().stmts()
 }
 
-pub fn parse_err(file_name: &str, code: &str) -> Vec<SyntaxError> {
+pub fn parse_err(file_name: &str, code: &str) -> String {
     let results = Code::from_string_fake_filename(code, file_name).parse();
-    match results.result() {
-        Ok(result) => {
-            panic!(
-                "Properly parsed code that should result in error. Parsing result: {:?}",
-                result
-            );
-        }
-        Err(errors) => errors,
-    }
+    results.unwrap_errors_str()
 }
 
 macro_rules! parse_test_ok {
@@ -41,7 +33,7 @@ macro_rules! parse_test_err {
         #[test]
         fn $name() {
             $(
-                insta::assert_debug_snapshot!(crate::nasl::syntax::lexer::tests::parse_err(
+                insta::assert_snapshot!(crate::nasl::syntax::lexer::tests::parse_err(
                     stringify!($name),
                         $code
                 ));
@@ -51,8 +43,6 @@ macro_rules! parse_test_err {
 }
 
 pub(crate) use {parse_test_err, parse_test_ok};
-
-use core::panic;
 
 use crate::nasl::syntax::token;
 

@@ -3,6 +3,7 @@ use std::ops::Range;
 use codespan_reporting::diagnostic::Diagnostic;
 use codespan_reporting::diagnostic::Label;
 use codespan_reporting::term;
+use codespan_reporting::term::termcolor::Buffer;
 use codespan_reporting::term::termcolor::ColorChoice;
 use codespan_reporting::term::termcolor::StandardStream;
 
@@ -24,4 +25,21 @@ pub fn emit_errors<T: AsCodespanError>(file: &SourceFile, errs: impl Iterator<It
             ]);
         term::emit(&mut writer.lock(), &config, file, &diagnostic).unwrap();
     }
+}
+
+pub fn emit_errors_str<T: AsCodespanError>(
+    file: &SourceFile,
+    errs: impl Iterator<Item = T>,
+) -> String {
+    let mut writer = Buffer::no_color();
+    let config = codespan_reporting::term::Config::default();
+    for err in errs {
+        let diagnostic = Diagnostic::error()
+            .with_message(&err.message())
+            .with_labels(vec![
+                Label::primary((), err.range()).with_message(&err.message())
+            ]);
+        term::emit(&mut writer, &config, file, &diagnostic).unwrap();
+    }
+    String::from_utf8(writer.into_inner()).unwrap()
 }

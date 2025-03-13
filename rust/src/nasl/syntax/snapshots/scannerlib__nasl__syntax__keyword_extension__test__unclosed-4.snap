@@ -3,17 +3,8 @@ source: src/nasl/syntax/keyword_extension.rs
 expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_err(stringify! (unclosed), \"if (description) { ; \")"
 snapshot_kind: text
 ---
-[
-    SyntaxError {
-        kind: UnclosedToken(
-            Token {
-                kind: LeftCurlyBracket,
-                position: (
-                    17,
-                    18,
-                ),
-            },
-        ),
-        range: 0..0,
-    },
-]
+error: Unclosed token: '{'
+  ┌─ unclosed:1:1
+  │
+1 │ if (description) { ; 
+  │ ^ Unclosed token: '{'

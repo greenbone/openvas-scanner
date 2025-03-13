@@ -61,6 +61,12 @@ impl ParseResult {
         }
     }
 
+    #[cfg(test)]
+    pub fn unwrap_errors_str(self) -> String {
+        let errs = self.result.unwrap_err();
+        super::error::emit_errors_str(&self.file, errs.into_iter())
+    }
+
     pub fn unwrap_stmts(self) -> Vec<Statement> {
         self.result.unwrap().stmts()
     }
@@ -150,6 +156,11 @@ mod tokenize {
                     None
                 }
             }
+        }
+
+        pub fn unwrap_errors_str(self) -> String {
+            let errs = self.result.unwrap_err();
+            error::emit_errors_str(&self.file, errs.into_iter())
         }
     }
 }

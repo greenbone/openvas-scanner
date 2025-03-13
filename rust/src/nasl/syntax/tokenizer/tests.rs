@@ -7,17 +7,9 @@ pub fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
     results.emit_errors().unwrap()
 }
 
-pub fn tokenize_err(file_name: &str, code: &str) -> Vec<TokenizerError> {
+pub fn tokenize_err(file_name: &str, code: &str) -> String {
     let results = Code::from_string_fake_filename(code, file_name).tokenize();
-    match results.result() {
-        Ok(result) => {
-            panic!(
-                "Properly tokenized code that should result in error. Parsing result: {:?}",
-                result
-            );
-        }
-        Err(errors) => errors,
-    }
+    results.unwrap_errors_str()
 }
 
 macro_rules! test_ok {
@@ -33,7 +25,7 @@ macro_rules! test_err {
     ($name: ident, $code: literal) => {
         #[test]
         fn $name() {
-            insta::assert_debug_snapshot!(tokenize_err(stringify!($name), $code));
+            insta::assert_snapshot!(tokenize_err(stringify!($name), $code));
         }
     };
 }
