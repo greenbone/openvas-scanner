@@ -114,15 +114,7 @@ async fn script(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         .cloned()
         .expect("script is set to required");
     let target = args.get_one::<String>("target").cloned();
-    Some(
-        interpret::run(
-            &Db::InMemory,
-            feed.clone(),
-            &script.to_string(),
-            target.clone(),
-        )
-        .await,
-    )
+    Some(interpret::run(&Db::InMemory, feed, &script.to_string(), target.clone()).await)
 }
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(crate::add_verbose(

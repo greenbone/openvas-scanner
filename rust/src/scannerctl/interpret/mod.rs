@@ -4,7 +4,7 @@
 
 use std::{
     fs::{self},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use futures::StreamExt;
@@ -214,7 +214,14 @@ pub async fn run(
                 .run(script)
                 .await
         }
-        (Db::InMemory, None) => builder.build().run(script).await,
+        (Db::InMemory, None) => {
+            let path = Path::new(&script).parent().unwrap().to_owned();
+            builder
+                .loader(FSPluginLoader::new(path))
+                .build()
+                .run(script)
+                .await
+        }
         (Db::Redis(url), Some(path)) => {
             let storage = create_redis_storage(url);
             let loader = FSPluginLoader::new(path);
