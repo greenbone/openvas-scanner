@@ -132,6 +132,7 @@ pub(super) mod tests {
     };
     use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
     use crate::storage::inmemory::InMemoryStorage;
+    use crate::storage::items::kb;
     use crate::storage::items::kb::KbContextKey;
     use crate::storage::items::kb::KbItem;
     use crate::storage::items::kb::KbKey;
@@ -443,7 +444,10 @@ exit({rc});
                             ScanID("sid".to_string()),
                             crate::storage::Target("test.host".to_string()),
                         ),
-                        KbKey::Port(p.to_string(), port.parse().unwrap()),
+                        match p {
+                            Protocol::UDP => KbKey::Port(kb::Port::Udp(port.to_string())),
+                            Protocol::TCP => KbKey::Port(kb::Port::Tcp(port.to_string())),
+                        },
                     ),
                     KbItem::Number(enabled),
                 )

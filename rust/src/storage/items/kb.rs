@@ -8,70 +8,150 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, net::IpAddr};
 
 use crate::storage::{ScanID, Target};
 
-#[derive(Eq, Debug, Clone)]
+#[derive(Debug, Clone)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-/// List of keys for the KnowledgeBase
+/// List defined KbKeys. For all kb keys that are not defined by
+/// a NASL user should use a variant from the enum, that is not
+/// custom.
 pub enum KbKey {
-    // SSL/TLS
-    SslCert,
-    SslKey,
-    SslPassword,
-    SslCa,
+    /// Contains SSL/TLS Kb keys
+    Ssl(Ssl),
 
-    // Ports
-    PortTcp(String),
-    PortUdp(String),
-    Port(String, String),
-    PortsTcp,
+    /// Contains Port related Kb keys
+    Port(Port),
 
-    // Transport
-    Transport(String),
-    TransportSsl,
+    /// Contains Transport related Kb keys
+    Transport(Transport),
 
-    // Internals
-    Results,
-    ScanId,
-    Vhosts,
+    /// Contains Kb Keys for internal communication
+    Internals(Internals),
 
-    // Host
-    HostTcp,
-    HostUdp,
+    /// Contains Host related Kb keys
+    Host(Host),
 
-    // Services
-    ServiceWrapped,
-    ServiceUnknown,
-    ServiceThreeDigits,
-    Services(String),
+    /// Contains Service related Kb keys
+    Service(Service),
 
-    // FindService
-    FindServiceCnxTime1000(String),
-    FindServiceCnxTime(String),
-    FindServiceRwTime1000(String),
-    FindServiceRwTime(String),
-    FindServiceTcpGetHttp(String),
-    FindServiceTcpSpontaneous(String),
+    /// Contains FindService related Kb keys
+    FindService(FindService),
+
+    /// Known TCP ports
     KnownTcp(String),
 
-    // Connect
     /// Number of timeouts for a given IP address and port. After a failed attempt
     /// this number is increased by 1 and logged.
     ConnectTimeout(IpAddr, String),
 
-    // Secrets
-    SecretKdcHostname,
-    SecretKdcPort,
-    SecretKdcProtocol,
+    /// Kdc Secrets
+    Kdc(Kdc),
 
     // Constants
     TimeoutRetry,
 
-    // Custom
     /// This is used for a completely custom key
     Custom(String),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum Ssl {
+    Cert,
+    Key,
+    Password,
+    Ca,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum Port {
+    Tcp(String),
+    Udp(String),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum Transport {
+    Tcp(String),
+    Ssl,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum Internals {
+    Results,
+    ScanId,
+    Vhosts,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum Host {
+    Tcp,
+    Udp,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum Service {
+    Wrapped,
+    Unknown,
+    ThreeDigits,
+    Custom(String),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum FindService {
+    CnxTime1000(String),
+    CnxTime(String),
+    RwTime1000(String),
+    RwTime(String),
+    TcpGetHttp(String),
+    TcpSpontaneous(String),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum Kdc {
+    Hostname,
+    Port,
+    Protocol,
 }
 
 impl Default for KbKey {
@@ -83,46 +163,54 @@ impl Default for KbKey {
 impl Display for KbKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            KbKey::SslCert => write!(f, "SSL/cert"),
-            KbKey::SslKey => write!(f, "SSL/key"),
-            KbKey::SslPassword => write!(f, "SSL/password"),
-            KbKey::SslCa => write!(f, "SSL/ca"),
+            KbKey::Ssl(Ssl::Cert) => write!(f, "SSL/cert"),
+            KbKey::Ssl(Ssl::Key) => write!(f, "SSL/key"),
+            KbKey::Ssl(Ssl::Password) => write!(f, "SSL/password"),
+            KbKey::Ssl(Ssl::Ca) => write!(f, "SSL/ca"),
 
-            KbKey::PortTcp(port) => write!(f, "Ports/tcp/{port}"),
-            KbKey::PortUdp(port) => write!(f, "Ports/udp/{port}"),
-            KbKey::Port(protocol, port) => write!(f, "Ports/{protocol}/{port}"),
-            KbKey::PortsTcp => write!(f, "Ports/tcp/*"),
+            KbKey::Port(Port::Tcp(port)) => write!(f, "Ports/tcp/{port}"),
+            KbKey::Port(Port::Udp(port)) => write!(f, "Ports/udp/{port}"),
 
-            KbKey::Transport(transport) => write!(f, "Transport/TCP/{transport}"),
-            KbKey::TransportSsl => write!(f, "Transport/SSL"),
+            KbKey::Transport(Transport::Tcp(transport)) => write!(f, "Transport/TCP/{transport}"),
+            KbKey::Transport(Transport::Ssl) => write!(f, "Transport/SSL"),
 
-            KbKey::Results => write!(f, "internal/results"),
-            KbKey::ScanId => write!(f, "internal/scanid"),
-            KbKey::Vhosts => write!(f, "internal/vhosts"),
+            KbKey::Internals(Internals::Results) => write!(f, "internal/results"),
+            KbKey::Internals(Internals::ScanId) => write!(f, "internal/scanid"),
+            KbKey::Internals(Internals::Vhosts) => write!(f, "internal/vhosts"),
 
-            KbKey::HostTcp => write!(f, "Host/scanned"),
-            KbKey::HostUdp => write!(f, "Host/udp_scanned"),
+            KbKey::Host(Host::Tcp) => write!(f, "Host/scanned"),
+            KbKey::Host(Host::Udp) => write!(f, "Host/udp_scanned"),
 
-            KbKey::ServiceWrapped => write!(f, "Service/wrapped"),
-            KbKey::ServiceUnknown => write!(f, "Service/unknown"),
-            KbKey::ServiceThreeDigits => write!(f, "Service/three_digits"),
-            KbKey::Services(service) => write!(f, "Services/{service}"),
+            KbKey::Service(Service::Wrapped) => write!(f, "Service/wrapped"),
+            KbKey::Service(Service::Unknown) => write!(f, "Service/unknown"),
+            KbKey::Service(Service::ThreeDigits) => write!(f, "Service/three_digits"),
+            KbKey::Service(Service::Custom(service)) => write!(f, "Services/{service}"),
 
-            KbKey::FindServiceCnxTime1000(port) => write!(f, "FindService/CnxTime1000/{}", port),
-            KbKey::FindServiceCnxTime(port) => write!(f, "FindService/CnxTime/{}", port),
-            KbKey::FindServiceRwTime1000(port) => write!(f, "FindService/RwTime1000/{}", port),
-            KbKey::FindServiceRwTime(port) => write!(f, "FindService/RwTime/{}", port),
-            KbKey::FindServiceTcpGetHttp(port) => write!(f, "FindService/tcp/{}/get_http", port),
-            KbKey::FindServiceTcpSpontaneous(port) => {
+            KbKey::FindService(FindService::CnxTime(port)) => {
+                write!(f, "FindService/CnxTime1000/{}", port)
+            }
+            KbKey::FindService(FindService::CnxTime1000(port)) => {
+                write!(f, "FindService/CnxTime/{}", port)
+            }
+            KbKey::FindService(FindService::RwTime1000(port)) => {
+                write!(f, "FindService/RwTime1000/{}", port)
+            }
+            KbKey::FindService(FindService::RwTime(port)) => {
+                write!(f, "FindService/RwTime/{}", port)
+            }
+            KbKey::FindService(FindService::TcpGetHttp(port)) => {
+                write!(f, "FindService/tcp/{}/get_http", port)
+            }
+            KbKey::FindService(FindService::TcpSpontaneous(port)) => {
                 write!(f, "FindService/tcp/{}/spontaneous", port)
             }
             KbKey::KnownTcp(port) => write!(f, "Known/tcp/{}", port),
 
             KbKey::ConnectTimeout(ip, port) => write!(f, "ConnectTimeout/{}/{}", ip, port),
 
-            KbKey::SecretKdcHostname => write!(f, "Secret/kdc_hostname"),
-            KbKey::SecretKdcPort => write!(f, "Secret/kdc_port"),
-            KbKey::SecretKdcProtocol => write!(f, "Secret/kdc_use_tcp"),
+            KbKey::Kdc(Kdc::Hostname) => write!(f, "Secret/kdc_hostname"),
+            KbKey::Kdc(Kdc::Port) => write!(f, "Secret/kdc_port"),
+            KbKey::Kdc(Kdc::Protocol) => write!(f, "Secret/kdc_use_tcp"),
 
             KbKey::TimeoutRetry => write!(f, "timeout_retry"),
 
@@ -150,6 +238,8 @@ impl PartialEq for KbKey {
         self.to_string() == other.to_string()
     }
 }
+
+impl Eq for KbKey {}
 
 impl Hash for KbKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
