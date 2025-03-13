@@ -4,7 +4,7 @@
 
 #![doc = include_str!("README.md")]
 mod oid;
-mod transpile;
+// mod transpile;
 mod update;
 mod verify;
 
@@ -23,6 +23,3 @@ pub use verify::HashSumNameLoader;
 pub use verify::Hasher;
 pub use verify::NaslFileFinder;
 pub use verify::SignatureChecker;
-
-pub use transpile::FeedReplacer;
-pub use transpile::ReplaceCommand;

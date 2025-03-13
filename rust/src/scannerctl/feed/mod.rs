@@ -21,7 +21,7 @@ use scannerlib::{
     },
 };
 
-use scannerlib::feed::{FeedReplacer, ReplaceCommand};
+// use scannerlib::feed::{FeedReplacer, ReplaceCommand};
 use scannerlib::storage::{item::PerItemDispatcher, StorageError};
 
 use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
@@ -156,7 +156,7 @@ fn get_vts_path(key: &str, args: &clap::ArgMatches) -> PathBuf {
 }
 
 pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
-    let (args, verbose) = crate::get_args_set_logging(root, "feed")?;
+    let (args, _) = crate::get_args_set_logging(root, "feed")?;
     match args.subcommand() {
         Some(("update", args)) => update(args).await,
         Some(("transform", args)) => {
@@ -173,59 +173,8 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             })
         }
 
-        Some(("transpile", args)) => {
-            let path = get_vts_path("path", args);
-            let rules = match args.get_one::<PathBuf>("rules").cloned() {
-                Some(x) => x,
-                None => unreachable!("rules is set to required"),
-            };
-
-            #[derive(serde::Deserialize, serde::Serialize)]
-            struct Wrapper {
-                cmds: Vec<ReplaceCommand>,
-            }
-
-            let rules = std::fs::read_to_string(rules).unwrap();
-            let rules: Wrapper = toml::from_str(&rules).unwrap();
-            let rules = rules.cmds;
-            let base = path.to_str().unwrap_or_default();
-            for r in FeedReplacer::new(base, &rules) {
-                let name = r.unwrap();
-                if let Some((name, content)) = name {
-                    use std::io::Write;
-                    let f = std::fs::OpenOptions::new()
-                        .write(true)
-                        .truncate(true)
-                        .open(&name)
-                        .map_err(|e| {
-                            let kind = CliErrorKind::Corrupt(format!("unable to open {name}: {e}"));
-                            CliError {
-                                filename: name.clone(),
-                                kind,
-                            }
-                        });
-                    match f.and_then(|mut f| {
-                        f.write_all(content.as_bytes()).map_err(|e| {
-                            let kind =
-                                CliErrorKind::Corrupt(format!("unable to write {name}: {e}"));
-                            CliError {
-                                filename: name.clone(),
-                                kind,
-                            }
-                        })
-                    }) {
-                        Ok(_) => {}
-                        Err(e) => {
-                            return Some(Err(e));
-                        }
-                    }
-
-                    if verbose > 0 {
-                        eprintln!("changed {name}");
-                    }
-                }
-            }
-            Some(Ok(()))
+        Some(("transpile", _)) => {
+            panic!()
         }
         _ => unreachable!("subcommand_required prevents None"),
     }
