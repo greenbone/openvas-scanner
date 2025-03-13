@@ -69,4 +69,5 @@ RUN setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
 # allow nmap to send e.g. UDP or TCP SYN probes without root permissions
 ENV NMAP_PRIVILEGED=1
 RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
+# TODO: set service account and group
 CMD /usr/local/bin/openvasd

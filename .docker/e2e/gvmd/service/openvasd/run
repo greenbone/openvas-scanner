@@ -1,0 +1,4 @@
+#!/bin/sh
+
+exec 2>&1
+/usr/local/bin/openvasd -c /etc/openvasd/openvasd.toml

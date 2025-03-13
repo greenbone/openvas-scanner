@@ -141,7 +141,7 @@ pub async fn update(args: &clap::ArgMatches) -> Option<Result<(), CliError>> {
         (true, false) => Some(update_notus(&redis, signature_check, args).await),
         (false, false) => {
             let r1 = update_vts(&redis, signature_check, args).await;
-            let r2 = update_vts(&redis, signature_check, args).await;
+            let r2 = update_notus(&redis, signature_check, args).await;
             Some(r1.and(r2))
         }
     }

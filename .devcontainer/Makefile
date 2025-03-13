@@ -18,6 +18,8 @@ export DOCKER_CLI_HINTS=false
 
 .PHONY: build
 
+EXEC=$(CONTAINERR) exec -it openvas-dev /bin/bash -c
+
 command-exists = $(CONTAINERR) exec -it openvas-dev command -v $(1) >/dev/null 2>&1 && echo "exists" || echo "not exists"
 # @if [ "$$(basename $$SHELL)" = "fish" ]; then \
 get-shell = $(basename $(notdir $(SHELL)))
@@ -47,23 +49,28 @@ enforce-running:
 	$(MAKE) is-running || $(MAKE) start || $(MAKE) create && $(MAKE) start 
 
 install-fish: enforce-running
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo apt update"
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo apt install -y fish"
+	$(EXEC) "sudo apt update"
+	$(EXEC) "sudo apt install -y fish"
 	# doesn't work because of attached tty on create there is no reinit of the shell
-	#$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo chsh -s /usr/bin/fish user"
+	$(EXEC) "sudo chsh -s /usr/bin/fish user"
 
 install-pyright: enforce-running
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "pipx install pyright"
+	$(EXEC) "pipx install pyright"
 
 
 install-rg-fzf: enforce-running
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo apt update"
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo apt install -y ripgrep fzf"
+	$(EXEC) "sudo apt update"
+	$(EXEC) "sudo apt install -y ripgrep fzf"
 
 install-nvim: install-rg-fzf
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "sudo apt install -y ninja-build gettext cmake unzip curl build-essential nodejs"
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "github-clone neovim/neovim"
-	$(CONTAINERR) exec -it openvas-dev /bin/bash -c "cd /workspaces/neovim/neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo && sudo make install"
+	$(EXEC) "sudo apt install -y ninja-build gettext cmake unzip curl build-essential nodejs"
+	$(EXEC) "github-clone neovim/neovim"
+	$(EXEC) "cd /workspaces/neovim/neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo && sudo make install"
+
+install-helix: install-rg-fzf
+	$(EXEC) "github-clone helix-editor/helix"
+	$(EXEC) "cd /workspaces/helix-editor/helix && cargo install --path helix-term --locked"	
+
 
 
 enter: enforce-running

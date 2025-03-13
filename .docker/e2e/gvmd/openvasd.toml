@@ -1,0 +1,86 @@
+# Openvasd contains several modes to control the behavior of it.
+# Service enables nasl and notus feed observations all endpoints.
+mode = "service"
+# Notus disables /scan endpoints and just observes the notus feed.
+# mode = "service_notus"
+
+[feed]
+# Path to the openvas feed. This is required for the /vts endpoint.
+path = "/var/lib/openvas/plugins"
+# Disables or enables the signature check
+signature_check = false
+
+[feed.check_interval]
+# How often the feed should be checked for updates
+secs = 3600
+nanos = 0
+
+[notus]
+# Path to the notus feed. This is required for the /notus endpoint
+products_path = "/var/lib/notus/products/"
+# path to the notus advisories feed. This is required for the /vts endpoint
+advisories_path = "/var/lib/notus/advisories/"
+
+[endpoints]
+# Enables GET /scans endpoint
+enable_get_scans = true
+# If set it requires `x-api-key` header to use the endpoint
+# key = "mtls_is_preferred"
+
+[tls]
+# The server certificate
+certs = "/etc/openvasd/tls/server.pem"
+# Server key
+key = "/var/lib/openvasd/tls/server.rsa"
+# dir that contains client certificates. If there are none than every client is
+# allowed to connect otherwise just the clients that have the configured
+# client certificates.
+client_certs = "/etc/openvasd/tls/client"
+
+[scanner]
+type = "openvas"
+
+[scanner.ospd]
+socket = "/var/run/ospd/ospd.sock"
+
+[scanner.ospd.read_timeout]
+secs = 1
+nanos = 0
+
+[ospd.result_check_interval]
+secs = 1
+nanos = 0
+
+[listener]
+address = "127.0.0.1:443"
+
+[log]
+# level of the log messages: TRACE > DEBUG > INFO > WARN > ERROR
+level = "INFO"
+
+[storage]
+type = "redis"
+
+[storage.redis]
+# url = "redis://localhost:6379"
+url = "unix:///run/redis/redis.sock"
+
+[storage.fs]
+# Sets the storage root directory if the storage.type is set to `fs`.
+path = "/var/lib/openvasd/storage"
+# Sets the key used to encrypt the storage data. It is recommended to set it via the `STORAGE_KEY` environment variable.
+#key = "changeme"
+
+[scheduler]
+# Sets the maximum number scans that can be queued at once. If not set, there is no limit.
+# max_queued_scans = 10
+# Sets the maximum number of scans that can run in parallel. If the maximum number is reached,
+# queued scans remain in the queue.  If not set, there is no limit.
+# max_running_scans = 10
+# Minimum memory that must be available in order to start a scan. If not set, there is no limit.
+# min_free_mem = 2147483648 # 2GiB
+
+[scheduler.check_interval]
+# Iteration interval for the scheduler
+secs = 0
+nanos = 500000000

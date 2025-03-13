@@ -1,0 +1,4 @@
+#!/bin/sh
+
+exec 2>&1
+exec su -s /bin/sh redis -c "redis-server /etc/redis/redis.conf"

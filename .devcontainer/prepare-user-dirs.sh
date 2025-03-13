@@ -4,6 +4,9 @@
 # afterwards it creates set of directories, assigns ownership to a newly created user and group, and configures sudo permissions for the user.
 # This is done to allow cmake --build build --target install to work without permission issues.
 
+
+
+#TODO: seperate dirs into text files and combine them.
 dirs="
 /workspaces
 /run/gvm
