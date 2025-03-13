@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::{Path, PathBuf};
-
+use crate::nasl::code::SourceFile;
+use crate::nasl::error::emit_errors;
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::{Statement, SyntaxError, TokenKind};
 use crate::nasl::utils::error::FnError;
@@ -80,13 +80,8 @@ pub enum InterpretErrorKind {
     InvalidRegex(String),
     // TODO improve this error messages
     /// A SyntaxError while including another script
-    #[error("Syntax errors while including file {filename}.")]
-    IncludeSyntaxError {
-        /// The name of the file trying to include
-        filename: PathBuf,
-        /// The syntactical errors that occurred
-        errs: Vec<SyntaxError>,
-    },
+    #[error("{0}")]
+    IncludeSyntaxError(IncludeSyntaxError),
     /// SyntaxError
     #[error("{0}")]
     SyntaxError(SyntaxError),
@@ -104,6 +99,22 @@ pub enum InterpretErrorKind {
     /// the original statement which caused the fork.
     #[error("Invalid fork. The interpreter forked in a position which was not reached by the created forks.")]
     InvalidFork,
+}
+
+#[derive(Debug)]
+// TODO
+pub struct IncludeSyntaxError {
+    file: SourceFile,
+    errs: Vec<SyntaxError>,
+}
+
+// TODO Get rid of this once we have a proper implementation of spans
+// for InterpreterError as well.
+impl std::fmt::Display for IncludeSyntaxError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        emit_errors(&self.file, self.errs.iter().cloned());
+        write!(f, "Syntax error while including file.")
+    }
 }
 
 impl InterpretError {
@@ -152,15 +163,13 @@ impl InterpretError {
     }
 
     /// When a include file has syntactical errors
-    pub fn include_syntax_error(file: &str, errs: Vec<SyntaxError>) -> Self {
+    pub fn include_syntax_error(file: SourceFile, errs: Vec<SyntaxError>) -> Self {
         Self::new(
-            InterpretErrorKind::IncludeSyntaxError {
-                filename: Path::new(file).to_owned(),
-                errs,
-            },
+            InterpretErrorKind::IncludeSyntaxError(IncludeSyntaxError { file, errs }),
             None,
         )
     }
+
     /// When a given regex is not parseable
     pub fn unparse_regex(rx: &str) -> Self {
         Self::new(InterpretErrorKind::InvalidRegex(rx.to_owned()), None)

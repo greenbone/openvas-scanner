@@ -3,21 +3,12 @@ use std::{
     vec,
 };
 
-use codespan_reporting::files::SimpleFiles;
+use codespan_reporting::files::SimpleFile;
 
 use super::{
     syntax::{Lexer, LoadError, Statement, SyntaxError, Tokenizer},
     Loader,
 };
-
-pub fn read_single_files(file_name: &Path, code: &str) -> (SimpleFiles<String, String>, usize) {
-    let mut files = SimpleFiles::new();
-    let file_id = files.add(
-        file_name.as_os_str().to_string_lossy().to_string(),
-        code.to_owned(),
-    );
-    (files, file_id)
-}
 
 #[derive(Clone, Debug)]
 pub struct Ast {
@@ -63,21 +54,18 @@ fn parse(code: &str) -> Result<Ast, Vec<SyntaxError>> {
     results.map_err(|e| vec![e]).map(|stmts| Ast::new(stmts))
 }
 
+pub type SourceFile = SimpleFile<String, String>;
+
 pub struct ParseResult {
     result: Result<Ast, Vec<SyntaxError>>,
-    files: SimpleFiles<String, String>,
-    file_id: usize,
+    file: SourceFile,
 }
 
 impl ParseResult {
     pub fn new(code: &str, path: &Path) -> Self {
-        let (files, file_id) = read_single_files(path, code);
+        let file = SimpleFile::new(path.to_string_lossy().into(), code.to_owned());
         let result = parse(code);
-        Self {
-            files,
-            file_id,
-            result,
-        }
+        Self { file, result }
     }
 
     pub fn new_without_file(code: &str) -> Self {
@@ -99,7 +87,7 @@ impl ParseResult {
         match self.result {
             Ok(result) => Some(result),
             Err(errors) => {
-                super::error::emit_errors(&self.files, self.file_id, errors.into_iter());
+                super::error::emit_errors(&self.file, errors.into_iter());
                 None
             }
         }
@@ -107,6 +95,10 @@ impl ParseResult {
 
     pub fn unwrap_stmts(self) -> Vec<Statement> {
         self.result.unwrap().stmts
+    }
+
+    pub fn file(&self) -> &SourceFile {
+        &self.file
     }
 }
 
@@ -160,27 +152,22 @@ pub use tokenize::TokenizeResult;
 mod tokenize {
     use std::path::Path;
 
-    use codespan_reporting::files::SimpleFiles;
+    use codespan_reporting::files::SimpleFile;
 
     use crate::nasl::syntax::{Token, Tokenizer, TokenizerError};
 
-    use super::{super::error, read_single_files};
+    use super::{super::error, SourceFile};
 
     pub struct TokenizeResult {
         result: Result<Vec<Token>, Vec<TokenizerError>>,
-        files: SimpleFiles<String, String>,
-        file_id: usize,
+        file: SourceFile,
     }
 
     impl TokenizeResult {
         pub fn new(code: &str, path: &Path) -> Self {
-            let (files, file_id) = read_single_files(path, code);
+            let file = SimpleFile::new(path.to_string_lossy().into(), code.to_owned());
             let result = Tokenizer::tokenize(code);
-            Self {
-                files,
-                file_id,
-                result,
-            }
+            Self { file, result }
         }
 
         pub fn result(self) -> Result<Vec<Token>, Vec<TokenizerError>> {
@@ -191,7 +178,7 @@ mod tokenize {
             match self.result {
                 Ok(result) => Some(result),
                 Err(errors) => {
-                    error::emit_errors(&self.files, self.file_id, errors.into_iter());
+                    error::emit_errors(&self.file, errors.into_iter());
                     None
                 }
             }

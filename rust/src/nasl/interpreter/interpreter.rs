@@ -432,10 +432,11 @@ impl<'ctx> Interpreter<'ctx> {
                 let mut inter =
                     Interpreter::new(self.register.clone(), self.ast.clone(), self.context);
                 let loader = self.context.loader();
-                let stmts = Code::load(loader, &key)?
-                    .parse()
+                let stmts = Code::load(loader, &key)?.parse();
+                let file = stmts.file().clone();
+                let stmts = stmts
                     .result()
-                    .map_err(|e| InterpretError::include_syntax_error(&key, e))?;
+                    .map_err(|e| InterpretError::include_syntax_error(file, e))?;
                 for stmt in stmts {
                     inter.resolve(&stmt).await?;
                 }
