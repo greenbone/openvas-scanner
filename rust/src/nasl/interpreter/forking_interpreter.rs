@@ -1,6 +1,6 @@
 use futures::{stream, Stream};
 
-use crate::nasl::{code::Ast, Context, Register};
+use crate::nasl::{syntax::Ast, Context, Register};
 
 use super::{interpreter::InterpretResult, interpreter::Interpreter};
 

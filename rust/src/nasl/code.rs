@@ -6,41 +6,9 @@ use std::{
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    syntax::{Lexer, LoadError, Statement, SyntaxError, Tokenizer},
+    syntax::{Ast, Lexer, LoadError, Statement, SyntaxError, Tokenizer},
     Loader,
 };
-
-#[derive(Clone, Debug)]
-pub struct Ast {
-    stmts: Vec<Statement>,
-    position: usize,
-}
-
-impl IntoIterator for Ast {
-    type Item = Statement;
-
-    type IntoIter = vec::IntoIter<Statement>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.stmts.into_iter()
-    }
-}
-
-impl Ast {
-    fn new(stmts: Vec<Statement>) -> Self {
-        Self { stmts, position: 0 }
-    }
-
-    pub fn stmts(self) -> Vec<Statement> {
-        self.stmts
-    }
-
-    pub fn next(&mut self) -> Option<Statement> {
-        let stmt = self.stmts.get(self.position);
-        self.position += 1;
-        stmt.cloned()
-    }
-}
 
 fn parse(code: &str) -> Result<Ast, Vec<SyntaxError>> {
     let tokens = Tokenizer::tokenize(code).map_err(|e| {
@@ -94,7 +62,7 @@ impl ParseResult {
     }
 
     pub fn unwrap_stmts(self) -> Vec<Statement> {
-        self.result.unwrap().stmts
+        self.result.unwrap().stmts()
     }
 
     pub fn file(&self) -> &SourceFile {

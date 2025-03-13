@@ -4,6 +4,7 @@
 
 #![doc = include_str!("README.md")]
 mod error;
+mod grammar;
 mod grouping_extension;
 mod keyword_extension;
 mod lexer;
@@ -17,6 +18,7 @@ mod tokenizer;
 
 pub use crate::storage::item::ACT;
 pub use error::{ErrorKind, SyntaxError};
+pub use grammar::Ast;
 pub(super) use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;
