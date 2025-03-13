@@ -12,7 +12,7 @@ use crate::nasl::{FromNaslValue, WithErrorInfo};
 use crate::storage::error::StorageError;
 use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
-use crate::storage::items::kb::KbKey;
+use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
 use crate::storage::items::nvt::NvtField;
 use crate::storage::items::nvt::{Feed, FeedVersion, FileName, Nvt};
@@ -660,13 +660,13 @@ impl<'a> Context<'a> {
     /// Sets the state of a port
     pub fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
         self.set_single_kb_item(
-            KbKey::PortTcp(port.to_string()),
+            KbKey::Port(kb::Port::Tcp(port.to_string())),
             KbItem::Number(transport as i64),
         )
     }
 
     pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
-        self.get_single_kb_item_inner(&KbKey::PortTcp(port.to_string()))
+        self.get_single_kb_item_inner(&KbKey::Port(kb::Port::Tcp(port.to_string())))
             .map(|x| match x {
                 KbItem::Number(n) => Some(n),
                 _ => None,
@@ -681,7 +681,7 @@ impl<'a> Context<'a> {
         let mut open21 = false;
         let mut open80 = false;
         let ports: Vec<u16> = self
-            .get_kb_items_with_keys(&KbKey::PortTcp("*".to_string()))?
+            .get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))?
             .iter()
             .filter_map(|x| {
                 x.0.split('/').last().and_then(|x| {

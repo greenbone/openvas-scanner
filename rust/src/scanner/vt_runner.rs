@@ -11,7 +11,7 @@ use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
-use crate::storage::items::kb::{KbContext, KbContextKey, KbItem, KbKey};
+use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
 use crate::storage::items::nvt::Nvt;
 use crate::storage::Retriever;
 use futures::StreamExt;
@@ -156,7 +156,10 @@ where
         }
 
         let check_port = |pt: Protocol, port: &str| {
-            let kbk = KbKey::Port(pt.to_string(), port.to_string());
+            let kbk = match pt {
+                Protocol::UDP => KbKey::Port(kb::Port::Udp(port.to_string())),
+                Protocol::TCP => KbKey::Port(kb::Port::Tcp(port.to_string())),
+            };
             self.check_key(
                 &KbContextKey(key.clone(), kbk),
                 || Some(ScriptResultKind::MissingPort(pt, port.to_string())),

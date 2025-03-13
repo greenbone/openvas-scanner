@@ -10,7 +10,10 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::{nasl::prelude::*, storage::items::kb::KbKey};
+use crate::{
+    nasl::prelude::*,
+    storage::items::kb::{self, KbKey},
+};
 use dns_lookup::lookup_host;
 use rustls::ClientConnection;
 use thiserror::Error;
@@ -305,7 +308,7 @@ impl NaslSockets {
     /// - Secret/kdc_use_tcp
     #[nasl_function]
     fn open_sock_kdc(&mut self, context: &Context) -> Result<NaslValue, FnError> {
-        let hostname: String = context.get_single_kb_item(&KbKey::SecretKdcHostname)?;
+        let hostname: String = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))?;
 
         let ip = lookup_host(&hostname)
             .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
@@ -313,9 +316,11 @@ impl NaslSockets {
             .next()
             .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
-        let port = context.get_single_kb_item::<Port>(&KbKey::SecretKdcPort)?.0;
+        let port = context
+            .get_single_kb_item::<Port>(&KbKey::Kdc(kb::Kdc::Port))?
+            .0;
 
-        let use_tcp: bool = context.get_single_kb_item(&KbKey::SecretKdcProtocol)?;
+        let use_tcp: bool = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Protocol))?;
 
         let socket = if use_tcp {
             let tcp = TcpConnection::connect(
@@ -473,10 +478,10 @@ impl NaslSockets {
     /// Reads the information necessary for a TLS connection from the KB and
     /// return a TlsConfig on success.
     fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
-        let cert_path = context.get_single_kb_item(&KbKey::SslCert)?;
-        let key_path = context.get_single_kb_item(&KbKey::SslKey)?;
-        let password = context.get_single_kb_item(&KbKey::SslPassword)?;
-        let cafile_path = context.get_single_kb_item(&KbKey::SslCa)?;
+        let cert_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))?;
+        let key_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))?;
+        let password = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))?;
+        let cafile_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))?;
 
         Ok(TlsConfig {
             cert_path,

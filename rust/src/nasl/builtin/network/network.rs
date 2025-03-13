@@ -12,7 +12,7 @@ use super::{
 };
 use crate::function_set;
 use crate::nasl::utils::{Context, FnError};
-use crate::storage::items::kb::{KbItem, KbKey};
+use crate::storage::items::kb::{self, KbItem, KbKey};
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
@@ -135,12 +135,12 @@ fn islocalnet(context: &Context) -> Result<bool, SocketError> {
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
 fn scanner_add_port(context: &Context, port: Port, proto: Option<&str>) -> Result<(), FnError> {
-    let protocol = proto.unwrap_or("tcp");
+    let kb_key = match proto {
+        Some("udp") => KbKey::Port(kb::Port::Udp(port.0.to_string())),
+        _ => KbKey::Port(kb::Port::Tcp(port.0.to_string())),
+    };
 
-    context.set_single_kb_item(
-        KbKey::Port(protocol.to_string(), port.0.to_string()),
-        KbItem::Number(1),
-    )?;
+    context.set_single_kb_item(kb_key, KbItem::Number(1))?;
 
     Ok(())
 }
