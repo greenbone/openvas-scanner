@@ -13,7 +13,7 @@ use super::{
     operation::Operation,
     prefix_extension::Prefix,
     token::{Token, TokenKind},
-    AssignOrder, Statement, StatementKind,
+    AssignOrder, Declaration, Statement, StatementKind,
 };
 
 use crate::{max_recursion, unexpected_statement, unexpected_token};
@@ -348,7 +348,7 @@ impl Lexer {
 }
 
 impl Iterator for Lexer {
-    type Item = Result<Statement, SyntaxError>;
+    type Item = Result<Declaration, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.statement(0, &|cat| cat == &TokenKind::Semicolon);
@@ -363,10 +363,10 @@ impl Iterator for Lexer {
                     return None;
                 }
                 if matches!(stmt.kind(), &StatementKind::NoOp) {
-                    return Some(Ok(stmt));
+                    return Some(Ok(Declaration::Statement(stmt)));
                 }
                 match end {
-                    End::Done(_) => Some(Ok(stmt)),
+                    End::Done(_) => Some(Ok(Declaration::Statement(stmt))),
                     // This verifies if a statement was not finished yet; this can happen on assignments
                     // and missing semicolons.
                     End::Continue => Some(Err(unexpected_statement!(stmt))),

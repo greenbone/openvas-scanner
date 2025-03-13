@@ -1,6 +1,9 @@
-use crate::nasl::{syntax::Statement, Code};
+use crate::nasl::{
+    syntax::{grammar::Declaration, Statement},
+    Code,
+};
 
-pub fn parse_ok(file_name: &str, code: &str) -> Vec<Statement> {
+pub fn parse_ok(file_name: &str, code: &str) -> Vec<Declaration> {
     let results = Code::from_string_fake_filename(code, file_name).parse();
     results.emit_errors().unwrap().stmts()
 }
@@ -106,7 +109,9 @@ fn resolve(s: &Statement) -> i64 {
 
 macro_rules! calculated_test {
     ($code:expr, $expected:expr) => {
-        let expr = parse_ok("", $code).remove(0);
+        let expr = match parse_ok("", $code).remove(0) {
+            Declaration::Statement(stmt) => stmt,
+        };
         assert_eq!(resolve(&expr), $expected);
     };
 }

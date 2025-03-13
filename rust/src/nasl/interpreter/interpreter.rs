@@ -6,7 +6,7 @@ use crate::nasl::{
         InterpretError,
     },
     prelude::NaslValue,
-    syntax::{Ast, Keyword, Statement, StatementKind, Token, TokenKind},
+    syntax::{Ast, Declaration, Keyword, Statement, StatementKind, Token, TokenKind},
     Code, Context, ContextType, Register,
 };
 
@@ -237,11 +237,18 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
+    pub async fn execute_all(&mut self) -> Result<(), InterpretError> {
+        while let Some(result) = self.execute_next_statement().await {
+            result?;
+        }
+        Ok(())
+    }
+
     pub async fn execute_next_statement(&mut self) -> Option<InterpretResult> {
         self.initialize_fork_data();
         match self.ast.next() {
-            Some(stmt) => {
-                let result = self.resolve(&stmt).await;
+            Some(decl) => {
+                let result = self.resolve_decl(&decl).await;
                 if matches!(result, Ok(NaslValue::Exit(_))) {
                     self.state = InterpreterState::Finished;
                 }
@@ -251,6 +258,12 @@ impl<'ctx> Interpreter<'ctx> {
                 self.state = InterpreterState::Finished;
                 None
             }
+        }
+    }
+
+    async fn resolve_decl(&mut self, decl: &Declaration) -> InterpretResult {
+        match decl {
+            Declaration::Statement(ref statement) => self.resolve(statement).await,
         }
     }
 
@@ -428,17 +441,14 @@ impl<'ctx> Interpreter<'ctx> {
     async fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name).await? {
             NaslValue::String(key) => {
-                let mut inter =
-                    Interpreter::new(self.register.clone(), self.ast.clone(), self.context);
                 let loader = self.context.loader();
-                let stmts = Code::load(loader, &key)?.parse();
-                let file = stmts.file().clone();
-                let stmts = stmts
+                let code = Code::load(loader, &key)?.parse();
+                let file = code.file().clone();
+                let ast = code
                     .result()
                     .map_err(|e| InterpretError::include_syntax_error(file, e))?;
-                for stmt in stmts {
-                    inter.resolve(&stmt).await?;
-                }
+                let mut inter = Interpreter::new(self.register.clone(), ast, self.context);
+                inter.execute_all().await?;
                 self.register = inter.register;
                 Ok(NaslValue::Null)
             }

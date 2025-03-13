@@ -18,7 +18,7 @@ mod tokenizer;
 pub use crate::storage::item::ACT;
 pub use error::{ErrorKind, SyntaxError};
 pub use grammar::Ast;
-pub use grammar::{AssignOrder, Statement, StatementKind};
+pub use grammar::{AssignOrder, Declaration, Statement, StatementKind};
 pub(super) use lexer::Lexer;
 pub use loader::*;
 pub use naslvalue::*;

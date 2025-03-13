@@ -1,6 +1,6 @@
 use core::fmt;
-use std::ops::Range;
 use std::vec;
+use std::{fmt::Display, ops::Range};
 
 use crate::unexpected_statement;
 
@@ -8,14 +8,14 @@ use super::{SyntaxError, Token, TokenKind};
 
 #[derive(Clone, Debug)]
 pub struct Ast {
-    stmts: Vec<Statement>,
+    stmts: Vec<Declaration>,
     position: usize,
 }
 
 impl IntoIterator for Ast {
-    type Item = Statement;
+    type Item = Declaration;
 
-    type IntoIter = vec::IntoIter<Statement>;
+    type IntoIter = vec::IntoIter<Declaration>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.stmts.into_iter()
@@ -23,18 +23,31 @@ impl IntoIterator for Ast {
 }
 
 impl Ast {
-    pub fn new(stmts: Vec<Statement>) -> Self {
+    pub fn new(stmts: Vec<Declaration>) -> Self {
         Self { stmts, position: 0 }
     }
 
-    pub fn stmts(self) -> Vec<Statement> {
+    pub fn stmts(self) -> Vec<Declaration> {
         self.stmts
     }
 
-    pub fn next(&mut self) -> Option<Statement> {
+    pub fn next(&mut self) -> Option<Declaration> {
         let stmt = self.stmts.get(self.position);
         self.position += 1;
         stmt.cloned()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Declaration {
+    Statement(Statement),
+}
+
+impl Display for Declaration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Declaration::Statement(statement) => write!(f, "{}", statement),
+        }
     }
 }
 
@@ -413,7 +426,7 @@ impl Statement {
     }
 }
 
-impl std::fmt::Display for Statement {
+impl Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let as_str_list = |v: &[Statement]| {
             v.iter()

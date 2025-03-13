@@ -6,7 +6,7 @@
 
 use std::fs::File;
 
-use crate::nasl::syntax::{AsBufReader, Ident, Loader};
+use crate::nasl::syntax::{AsBufReader, Declaration, Ident, Loader};
 use crate::nasl::syntax::{Statement, StatementKind, TokenKind};
 
 use crate::feed::{
@@ -56,16 +56,20 @@ where
     /// Returns the OID string or update::Error::MissingExit.
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
         // TODO: This makes no sense.
-        for stmt in Code::load(&self.loader, &key)?
+        for decl in Code::load(&self.loader, &key)?
             .parse()
             .result()
-            .map_err(|_| update::ErrorKind::MissingExit(key.clone()))?
+            .map_err(|errs| update::ErrorKind::SyntaxError(errs))?
         {
-            if let StatementKind::If(_, stmts, _, _) = stmt.kind() {
-                if let StatementKind::Block(x) = stmts.kind() {
-                    for stmt in x {
-                        if let Some(oid) = Self::script_oid(stmt) {
-                            return Ok(oid);
+            match decl {
+                Declaration::Statement(stmt) => {
+                    if let StatementKind::If(_, stmts, _, _) = stmt.kind() {
+                        if let StatementKind::Block(x) = stmts.kind() {
+                            for stmt in x {
+                                if let Some(oid) = Self::script_oid(stmt) {
+                                    return Ok(oid);
+                                }
+                            }
                         }
                     }
                 }

@@ -6,7 +6,7 @@ use std::{
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    syntax::{Ast, Lexer, LoadError, Statement, SyntaxError, Tokenizer},
+    syntax::{Ast, Declaration, Lexer, LoadError, SyntaxError, Tokenizer},
     Loader,
 };
 
@@ -67,7 +67,7 @@ impl ParseResult {
         super::error::emit_errors_str(&self.file, errs.into_iter())
     }
 
-    pub fn unwrap_stmts(self) -> Vec<Statement> {
+    pub fn unwrap_decls(self) -> Vec<Declaration> {
         self.result.unwrap().stmts()
     }
 
