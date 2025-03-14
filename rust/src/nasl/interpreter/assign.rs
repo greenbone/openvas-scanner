@@ -223,7 +223,7 @@ impl Interpreter<'_, '_> {
                     // get rid of minus sign
                     let left = i64::from(left) as u32;
                     let right = i64::from(right) as u32;
-                    NaslValue::Number((left << right) as i64)
+                    NaslValue::Number((left >> right) as i64)
                 })
             }
             TokenCategory::PercentEqual => self.store_return(&key, lookup, &val, |left, right| {
@@ -256,12 +256,21 @@ mod tests {
         t.ok("a *= 2;", 22);
         t.ok("a >>= 2;", 5);
         t.ok("a <<= 2;", 20);
-        t.ok("a >>>= 2;", 80);
-        t.ok("a %= 2;", 0);
-        t.ok("a++;", 0);
-        t.ok("++a;", 2);
-        t.ok("a--;", 2);
-        t.ok("--a;", 0);
+        t.ok("a >>>= 2;", 5);
+        t.ok("a %= 2;", 1);
+        t.ok("a++;", 1);
+        t.ok("++a;", 3);
+        t.ok("a--;", 3);
+        t.ok("--a;", 1);
+    }
+
+    #[test]
+    fn unsigned_shift_operator() {
+        let mut t = TestBuilder::default();
+        t.ok("a = -5;", -5);
+        t.ok("a >>= 2;", -2);
+        t.ok("a = -5;", -5);
+        t.ok("a >>>= 2;", 1073741822);
     }
 
     #[test]
