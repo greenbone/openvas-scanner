@@ -1,9 +1,6 @@
 use std::vec;
 
-use crate::nasl::syntax::{
-    token::{self, Literal},
-    Token,
-};
+use crate::nasl::syntax::token::{self, Literal};
 
 #[derive(Clone, Debug)]
 pub struct Ast {
@@ -45,7 +42,6 @@ pub enum AssignmentOperator {
     SlashEqual,
     StarEqual,
     GreaterGreaterGreater,
-    GreaterBangLess,
     PercentEqual,
     LessLessEqual,
     GreaterGreaterEqual,

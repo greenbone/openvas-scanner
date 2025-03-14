@@ -1,0 +1,237 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (compare_operator),\n\"\n    a !~ '1';\n    a =~ '1';\n    a >< '1';\n    a >!< '1';\n    a == '1';\n    a != '1';\n    a > '1';\n    a < '1';\n    a >= '1';\n    a <= '1';\n    \")"
+snapshot_kind: text
+---
+[
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: BangTilde,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: EqualTilde,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: GreaterLess,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: GreaterBangLess,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: EqualEqual,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: BangEqual,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: Greater,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: Less,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: GreaterEqual,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    left: Ident(
+                        Ident {
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                    operator: LessEqual,
+                    right: Literal(
+                        Data(
+                            [
+                                49,
+                            ],
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+]

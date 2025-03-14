@@ -232,7 +232,6 @@ make_operator! {
         TokenKind::StarEqual => AssignmentOperator::StarEqual,
         TokenKind::GreaterGreaterGreater => AssignmentOperator::GreaterGreaterGreater,
         TokenKind::GreaterGreaterEqual => AssignmentOperator::GreaterGreaterEqual,
-        TokenKind::GreaterBangLess => AssignmentOperator::GreaterBangLess,
         TokenKind::PercentEqual => AssignmentOperator::PercentEqual,
         TokenKind::LessLessEqual => AssignmentOperator::LessLessEqual,
         TokenKind::GreaterGreaterGreaterEqual => AssignmentOperator::GreaterGreaterGreaterEqual,

@@ -140,3 +140,20 @@ parse_test_ok!(
     !a;
     "
 );
+
+parse_test_ok!(
+    compare_operator,
+    Program,
+    "
+    a !~ '1';
+    a =~ '1';
+    a >< '1';
+    a >!< '1';
+    a == '1';
+    a != '1';
+    a > '1';
+    a < '1';
+    a >= '1';
+    a <= '1';
+    "
+);
