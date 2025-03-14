@@ -1,6 +1,7 @@
 use std::vec;
 
-use crate::nasl::syntax::token::{self, Literal};
+use super::{ParseErrorKind, ParseResult, Parser};
+use crate::nasl::syntax::token::{self, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
 pub struct Ast {
@@ -32,20 +33,6 @@ impl Ast {
         self.position += 1;
         stmt.cloned()
     }
-}
-
-#[derive(Clone, Debug)]
-pub enum AssignmentOperator {
-    Equal,
-    MinusEqual,
-    PlusEqual,
-    SlashEqual,
-    StarEqual,
-    GreaterGreaterGreater,
-    PercentEqual,
-    LessLessEqual,
-    GreaterGreaterEqual,
-    GreaterGreaterGreaterEqual,
 }
 
 #[derive(Clone, Debug)]
@@ -85,38 +72,100 @@ pub struct Grouping {
 }
 
 #[derive(Clone, Debug)]
-pub enum UnaryOperator {
-    Minus,
-    Bang,
-    Plus,
-    Tilde,
-}
-
-#[derive(Clone, Debug)]
 pub struct Unary {
     pub operator: UnaryOperator,
     pub right: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
-pub enum BinaryOperator {
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    BangEqual,
-    EqualEqual,
-    BangTilde,
-    EqualTilde,
-    Greater,
-    GreaterGreater,
-    GreaterLess,
-    GreaterEqual,
-    Less,
-    LessLess,
-    LessEqual,
-    GreaterGreaterGreater,
-    GreaterBangLess,
+macro_rules! make_operator {
+    ($ty: ident, $err: expr, ($($pat: ident$(,)?),*)) => {
+        #[derive(Debug, Clone)]
+        pub enum $ty {
+            $(
+                $pat,
+            )*
+        }
+
+        impl $ty {
+            fn convert(kind: &TokenKind) -> Option<Self> {
+                match kind {
+                    $(
+                        TokenKind::$pat => Some(Self::$pat),
+                    )*
+                    _ => None,
+                }
+            }
+        }
+
+        impl super::Matches for $ty {
+            fn matches(kind: &TokenKind) -> bool {
+                Self::convert(kind).is_some()
+            }
+        }
+
+        impl super::Parse for $ty {
+            type Output = $ty;
+
+            fn parse(parser: &mut Parser) -> ParseResult<Self::Output> {
+                parser.consume_pat(Self::convert, $err)
+            }
+        }
+
+    }
+}
+
+make_operator! {
+    UnaryOperator,
+    ParseErrorKind::ExpectedUnaryOperator,
+    (
+        Minus,
+        Bang,
+        Plus,
+        Tilde,
+    )
+}
+
+make_operator! {
+    AssignmentOperator,
+    ParseErrorKind::ExpectedAssignmentOperator,
+    (
+        Equal,
+        MinusEqual,
+        PlusEqual,
+        SlashEqual,
+        StarEqual,
+        GreaterGreaterGreater,
+        PercentEqual,
+        LessLessEqual,
+        GreaterGreaterEqual,
+        GreaterGreaterGreaterEqual,
+    )
+}
+
+make_operator! {
+    BinaryOperator,
+    ParseErrorKind::ExpectedBinaryOperator,
+    (
+        Plus,
+        Minus,
+        Star,
+        Slash,
+        BangEqual,
+        EqualEqual,
+        BangTilde,
+        EqualTilde,
+        Greater,
+        GreaterGreater,
+        GreaterLess,
+        GreaterEqual,
+        Less,
+        LessLess,
+        LessEqual,
+        GreaterGreaterGreater,
+        GreaterBangLess,
+        AmpersandAmpersand,
+        PipePipe,
+    )
 }
 
 #[derive(Clone, Debug)]
