@@ -8,7 +8,7 @@ use std::{fmt::Debug, ops::Range};
 use error::{ParseError, ParseErrorKind};
 
 use super::{Keyword, Token, TokenKind};
-use grammar::{Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary};
+use grammar::{Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary, VariableDecl};
 
 #[derive(Default, Clone, Copy)]
 struct TokenIndex(usize);
@@ -100,6 +100,10 @@ impl Parser {
         &self.tokens[self.position.0]
     }
 
+    fn peek_ahead(&self, ahead: usize) -> &Token {
+        &self.tokens[self.position.0 + ahead]
+    }
+
     fn previous(&mut self) -> Token {
         self.tokens[self.position.0 - 1].clone()
     }
@@ -109,12 +113,25 @@ impl Parser {
         self.previous().clone()
     }
 
-    fn consume(&mut self, expected: TokenKind, e: ParseErrorKind) -> Result<(), ParseErrorKind> {
+    fn consume(&mut self, expected: TokenKind) -> Result<(), ParseErrorKind> {
         if self.peek().kind != expected {
-            Err(e)
+            Err(ParseErrorKind::TokenExpected(expected))
         } else {
             self.advance();
             Ok(())
+        }
+    }
+
+    fn consume_pat<T>(
+        &mut self,
+        predicate: impl Fn(&TokenKind) -> Option<T>,
+        e: ParseErrorKind,
+    ) -> Result<T, ParseErrorKind> {
+        if let Some(t) = predicate(self.peek().kind()) {
+            self.advance();
+            Ok(t)
+        } else {
+            Err(e)
         }
     }
 
@@ -131,9 +148,26 @@ impl Parse for Declaration {
     type Output = Declaration;
 
     fn parse(parser: &mut Parser) -> ParseResult<Declaration> {
+        if let TokenKind::Ident(_) = parser.peek().kind() {
+            if let TokenKind::Equal = parser.peek_ahead(1).kind() {
+                return Ok(Declaration::VariableDecl(VariableDecl::parse(parser)?));
+            }
+        }
         let expr = Expr::parse(parser)?;
-        let _ = parser.consume(TokenKind::Semicolon, ParseErrorKind::SemicolonExpected)?;
+        let _ = parser.consume(TokenKind::Semicolon)?;
         ParseResult::Ok(Declaration::Stmt(Stmt::ExprStmt(expr)))
+    }
+}
+
+impl Parse for VariableDecl {
+    type Output = VariableDecl;
+
+    fn parse(parser: &mut Parser) -> ParseResult<VariableDecl> {
+        let ident = Ident::parse(parser)?;
+        parser.consume(TokenKind::Equal)?;
+        let expr = Expr::parse(parser)?;
+        parser.consume(TokenKind::Semicolon)?;
+        Ok(VariableDecl { ident, expr })
     }
 }
 
@@ -275,10 +309,29 @@ impl Parse for Primary {
         } else if parser.matches(TokenKind::LeftParen) {
             let expr = Box::new(Expr::parse(parser)?);
             let grouping = Expr::Grouping(Grouping { expr });
-            parser.consume(TokenKind::RightParen, ParseErrorKind::ClosingParenExpected)?;
+            parser.consume(TokenKind::RightParen)?;
             Ok(grouping)
         } else {
             Err(ParseErrorKind::ExpressionExpected)
         }
+    }
+}
+
+impl Parse for Ident {
+    type Output = Ident;
+
+    fn parse(parser: &mut Parser) -> ParseResult<Self::Output> {
+        parser.consume_pat(
+            |kind| {
+                if let TokenKind::Ident(ident) = kind {
+                    Some(Ident {
+                        ident: ident.clone(),
+                    })
+                } else {
+                    None
+                }
+            },
+            ParseErrorKind::IdentExpected,
+        )
     }
 }

@@ -38,7 +38,10 @@ impl Ast {
 }
 
 #[derive(Clone, Debug)]
-pub struct VariableDecl;
+pub struct VariableDecl {
+    pub ident: Ident,
+    pub expr: Expr,
+}
 
 #[derive(Clone, Debug)]
 pub struct FunctionDecl;

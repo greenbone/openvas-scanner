@@ -19,25 +19,21 @@ impl ParseErrorKind {
 
 #[derive(Debug)]
 pub enum ParseErrorKind {
-    ClosingParenExpected,
-    SemicolonExpected,
+    TokenExpected(TokenKind),
     ExpressionExpected,
     EofExpected,
-    EqualsExpected,
     UnexpectedKeyword(Keyword),
-    UnexpectedToken(TokenKind),
+    IdentExpected,
 }
 
 impl Display for ParseErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseErrorKind::ClosingParenExpected => write!(f, "Expected closing parenthesis"),
-            ParseErrorKind::SemicolonExpected => write!(f, "Expected semicolon"),
             ParseErrorKind::ExpressionExpected => write!(f, "Expected expression"),
             ParseErrorKind::EofExpected => write!(f, "Expected end of file"),
-            ParseErrorKind::EqualsExpected => write!(f, "Expected '='"),
             ParseErrorKind::UnexpectedKeyword(kw) => write!(f, "Unexpected keyword {kw:?}"),
-            ParseErrorKind::UnexpectedToken(kind) => write!(f, "Unexpected token {kind:?}"),
+            ParseErrorKind::IdentExpected => write!(f, "Expected identifier."),
+            ParseErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{}'", token_kind),
         }
     }
 }

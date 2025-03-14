@@ -61,3 +61,4 @@ parse_test_ok!(number_declaration, Declaration, "5;");
 parse_test_err!(number_declaration_missing_semicolon, Declaration, "5");
 parse_test_ok!(number_expr, Expr, "5");
 parse_test_ok!(add_1, Expr, "5 + 3");
+parse_test_ok!(var_assignment, Declaration, "x = 3;");
