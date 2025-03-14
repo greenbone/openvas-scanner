@@ -11,6 +11,7 @@ snapshot_kind: text
                     "a",
                 ),
             },
+            operator: Equal,
             expr: Literal(
                 Number(
                     1,
@@ -25,6 +26,7 @@ snapshot_kind: text
                     "b",
                 ),
             },
+            operator: Equal,
             expr: Literal(
                 Number(
                     2,
@@ -39,6 +41,7 @@ snapshot_kind: text
                     "c",
                 ),
             },
+            operator: Equal,
             expr: Literal(
                 Number(
                     3,

@@ -117,3 +117,17 @@ parse_test_err!(
      a = b = 3;
      a = b = 3;"
 );
+parse_test_ok!(
+    operator_assignment,
+    Program,
+    "
+    a += 1;
+    a -= 1;
+    a /= 1;
+    a *= 1;
+    a %= 1;
+    a >>= 1;
+    a <<= 1;
+    a >>>= 1;
+    "
+);

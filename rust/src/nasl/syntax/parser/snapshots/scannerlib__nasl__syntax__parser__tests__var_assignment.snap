@@ -10,6 +10,7 @@ VariableDecl(
                 "x",
             ),
         },
+        operator: Equal,
         expr: Literal(
             Number(
                 3,

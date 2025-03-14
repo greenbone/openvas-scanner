@@ -1,0 +1,127 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (operator_assignment),\n\"\n    a += 1;\n    a -= 1;\n    a /= 1;\n    a *= 1;\n    a %= 1;\n    a >>= 1;\n    a <<= 1;\n    a >>>= 1;\n    \")"
+snapshot_kind: text
+---
+[
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: PlusEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: MinusEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: SlashEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: StarEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: PercentEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: GreaterGreaterEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: LessLessEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            operator: GreaterGreaterGreaterEqual,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+]

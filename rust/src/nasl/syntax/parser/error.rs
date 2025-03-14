@@ -24,6 +24,7 @@ pub enum ParseErrorKind {
     EofExpected,
     UnexpectedKeyword(Keyword),
     IdentExpected,
+    ExpectedAssignmentOperator,
 }
 
 impl Display for ParseErrorKind {
@@ -34,6 +35,9 @@ impl Display for ParseErrorKind {
             ParseErrorKind::UnexpectedKeyword(kw) => write!(f, "Unexpected keyword {kw:?}"),
             ParseErrorKind::IdentExpected => write!(f, "Expected identifier."),
             ParseErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{}'", token_kind),
+            ParseErrorKind::ExpectedAssignmentOperator => {
+                write!(f, "Expected assignment operator (=, +=, -=, ...)")
+            }
         }
     }
 }

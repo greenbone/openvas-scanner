@@ -38,8 +38,24 @@ impl Ast {
 }
 
 #[derive(Clone, Debug)]
+pub enum AssignmentOperator {
+    Equal,
+    MinusEqual,
+    PlusEqual,
+    SlashEqual,
+    StarEqual,
+    GreaterGreaterGreater,
+    GreaterBangLess,
+    PercentEqual,
+    LessLessEqual,
+    GreaterGreaterEqual,
+    GreaterGreaterGreaterEqual,
+}
+
+#[derive(Clone, Debug)]
 pub struct VariableDecl {
     pub ident: Ident,
+    pub operator: AssignmentOperator,
     pub expr: Expr,
 }
 

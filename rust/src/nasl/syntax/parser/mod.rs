@@ -8,7 +8,9 @@ use std::{fmt::Debug, ops::Range};
 use error::{ParseError, ParseErrorKind};
 
 use super::{Keyword, Token, TokenKind};
-use grammar::{Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary, VariableDecl};
+use grammar::{
+    AssignmentOperator, Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary, VariableDecl,
+};
 
 #[derive(Default, Clone, Copy)]
 struct TokenIndex(usize);
@@ -18,6 +20,18 @@ type ParseResult<T> = Result<T, ParseErrorKind>;
 pub trait Parse: Sized {
     type Output: Debug;
     fn parse(parser: &mut Parser) -> ParseResult<Self::Output>;
+}
+
+pub trait Matches: Sized {
+    fn matches(kind: &TokenKind) -> bool;
+
+    fn peek(parser: &Parser) -> bool {
+        Self::peek_ahead(parser, 0)
+    }
+
+    fn peek_ahead(parser: &Parser, ahead: usize) -> bool {
+        Self::matches(parser.peek_ahead(ahead).kind())
+    }
 }
 
 #[derive(Clone)]
@@ -149,7 +163,7 @@ impl Parse for Declaration {
 
     fn parse(parser: &mut Parser) -> ParseResult<Declaration> {
         if let TokenKind::Ident(_) = parser.peek().kind() {
-            if let TokenKind::Equal = parser.peek_ahead(1).kind() {
+            if AssignmentOperator::peek_ahead(parser, 1) {
                 return Ok(Declaration::VariableDecl(VariableDecl::parse(parser)?));
             }
         }
@@ -164,11 +178,64 @@ impl Parse for VariableDecl {
 
     fn parse(parser: &mut Parser) -> ParseResult<VariableDecl> {
         let ident = Ident::parse(parser)?;
-        parser.consume(TokenKind::Equal)?;
+        let operator = AssignmentOperator::parse(parser)?;
         let expr = Expr::parse(parser)?;
         parser.consume(TokenKind::Semicolon)?;
-        Ok(VariableDecl { ident, expr })
+        Ok(VariableDecl {
+            ident,
+            expr,
+            operator,
+        })
     }
+}
+
+macro_rules! make_operator {
+    ($ty: ty, $err: expr, ($($pat: pat => $expr: expr $(,)?),*)) => {
+
+        impl $ty {
+            fn convert(kind: &TokenKind) -> Option<Self> {
+                match kind {
+                    $(
+                        $pat => Some($expr),
+                    )*
+                    _ => None,
+                }
+            }
+        }
+
+        impl Matches for $ty {
+            fn matches(kind: &TokenKind) -> bool {
+                Self::convert(kind).is_some()
+            }
+        }
+
+        impl Parse for $ty {
+            type Output = $ty;
+
+            fn parse(parser: &mut Parser) -> ParseResult<Self::Output> {
+                parser.consume_pat(Self::convert, $err)
+            }
+        }
+
+    }
+}
+
+make_operator! {
+    AssignmentOperator,
+    ParseErrorKind::ExpectedAssignmentOperator,
+    (
+        TokenKind::Equal => AssignmentOperator::Equal,
+        TokenKind::MinusEqual => AssignmentOperator::MinusEqual,
+        TokenKind::PlusEqual => AssignmentOperator::PlusEqual,
+        TokenKind::SlashEqual => AssignmentOperator::SlashEqual,
+        TokenKind::StarEqual => AssignmentOperator::StarEqual,
+        TokenKind::GreaterGreaterGreater => AssignmentOperator::GreaterGreaterGreater,
+        TokenKind::GreaterGreaterEqual => AssignmentOperator::GreaterGreaterEqual,
+        TokenKind::GreaterBangLess => AssignmentOperator::GreaterBangLess,
+        TokenKind::PercentEqual => AssignmentOperator::PercentEqual,
+        TokenKind::LessLessEqual => AssignmentOperator::LessLessEqual,
+        TokenKind::GreaterGreaterGreaterEqual => AssignmentOperator::GreaterGreaterGreaterEqual,
+    )
 }
 
 impl Parse for Expr {
@@ -238,10 +305,7 @@ impl BinaryOperator for Comparison {
             TokenKind::LessLess,
             TokenKind::LessEqual,
             TokenKind::GreaterGreaterGreater,
-            TokenKind::GreaterGreaterEqual,
-            TokenKind::LessLessEqual,
             TokenKind::GreaterBangLess,
-            TokenKind::GreaterGreaterGreaterEqual,
         ]
         .into_iter()
     }
@@ -269,7 +333,7 @@ impl BinaryOperator for Factor {
     type Subtype = Unary;
 
     fn token_kinds() -> impl Iterator<Item = TokenKind> {
-        [TokenKind::Star, TokenKind::Slash].into_iter()
+        [TokenKind::Star, TokenKind::Slash, TokenKind::Percent].into_iter()
     }
 }
 
