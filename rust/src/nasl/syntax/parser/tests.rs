@@ -131,3 +131,12 @@ parse_test_ok!(
     a >>>= 1;
     "
 );
+
+parse_test_ok!(
+    unary_operators,
+    Program,
+    "
+    -a;
+    !a;
+    "
+);

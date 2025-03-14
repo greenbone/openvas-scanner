@@ -89,8 +89,16 @@ pub struct Grouping {
 }
 
 #[derive(Clone, Debug)]
+pub enum UnaryOperator {
+    Minus,
+    Bang,
+    Plus,
+    Tilde,
+}
+
+#[derive(Clone, Debug)]
 pub struct Unary {
-    pub operator: Token,
+    pub operator: UnaryOperator,
     pub right: Box<Expr>,
 }
 

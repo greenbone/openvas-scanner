@@ -9,7 +9,8 @@ use error::{ParseError, ParseErrorKind};
 
 use super::{Keyword, Token, TokenKind};
 use grammar::{
-    AssignmentOperator, Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary, VariableDecl,
+    AssignmentOperator, Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary,
+    UnaryOperator, VariableDecl,
 };
 
 #[derive(Default, Clone, Copy)]
@@ -238,6 +239,17 @@ make_operator! {
     )
 }
 
+make_operator! {
+    UnaryOperator,
+    ParseErrorKind::ExpectedUnaryOperator,
+    (
+        TokenKind::Minus => UnaryOperator::Minus,
+        TokenKind::Bang => UnaryOperator::Bang,
+        TokenKind::Plus => UnaryOperator::Plus,
+        TokenKind::Tilde => UnaryOperator::Tilde,
+    )
+}
+
 impl Parse for Expr {
     type Output = Expr;
 
@@ -341,8 +353,8 @@ impl Parse for Unary {
     type Output = Expr;
 
     fn parse(parser: &mut Parser) -> ParseResult<Expr> {
-        if parser.matches(TokenKind::Bang) || parser.matches(TokenKind::Minus) {
-            let operator = parser.previous();
+        if UnaryOperator::peek(parser) {
+            let operator = UnaryOperator::parse(parser)?;
             let right = Unary::parse(parser)?;
             Ok(Expr::Unary(Unary {
                 operator,
