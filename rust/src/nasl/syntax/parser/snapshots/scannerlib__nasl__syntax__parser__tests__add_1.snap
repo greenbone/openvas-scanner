@@ -1,0 +1,26 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Expr >\n(stringify! (add_1), \"5 + 3\")"
+snapshot_kind: text
+---
+Binary(
+    Binary {
+        left: Literal(
+            Number(
+                5,
+            ),
+        ),
+        operator: Token {
+            kind: Plus,
+            position: (
+                2,
+                3,
+            ),
+        },
+        right: Literal(
+            Number(
+                3,
+            ),
+        ),
+    },
+)

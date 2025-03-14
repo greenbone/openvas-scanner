@@ -1,5 +1,10 @@
 use std::vec;
 
+use crate::nasl::syntax::{
+    token::{self, Literal},
+    Token,
+};
+
 #[derive(Clone, Debug)]
 pub struct Ast {
     stmts: Vec<Declaration>,
@@ -47,15 +52,37 @@ pub enum Declaration {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    ExprStmt(ExprStmt),
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprStmt {
-    pub expr: Expr,
+    ExprStmt(Expr),
 }
 
 #[derive(Clone, Debug)]
 pub enum Expr {
-    Expr,
+    Grouping(Grouping),
+    Unary(Unary),
+    Binary(Binary),
+    Literal(Literal),
+    Ident(Ident),
+}
+
+#[derive(Clone, Debug)]
+pub struct Grouping {
+    pub expr: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Unary {
+    pub operator: Token,
+    pub right: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Binary {
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Ident {
+    pub ident: token::Ident,
 }

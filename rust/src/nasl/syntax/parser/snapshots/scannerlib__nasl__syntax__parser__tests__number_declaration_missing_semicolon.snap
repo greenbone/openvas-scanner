@@ -1,0 +1,10 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_err :: < Declaration >\n(stringify! (number_declaration_missing_semicolon), \"5\")"
+snapshot_kind: text
+---
+error: Expected semicolon
+  ┌─ number_declaration_missing_semicolon:1:1
+  │
+1 │ 5
+  │ ^ Expected semicolon
