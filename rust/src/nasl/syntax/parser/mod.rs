@@ -55,7 +55,7 @@ impl Parser {
         while !self.is_at_end() {
             let result = self.parse::<Declaration>();
             match result {
-                Ok(stmt) => decls.push(stmt),
+                Ok(decl) => decls.push(decl),
                 Err(err) => {
                     errs.push(err);
                     self.synchronize();

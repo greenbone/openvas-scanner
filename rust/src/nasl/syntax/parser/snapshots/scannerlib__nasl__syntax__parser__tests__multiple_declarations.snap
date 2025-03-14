@@ -1,0 +1,49 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (multiple_declarations),\n\"a = 1;\n     b = 2;\n     c = 3;\")"
+snapshot_kind: text
+---
+[
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "a",
+                ),
+            },
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "b",
+                ),
+            },
+            expr: Literal(
+                Number(
+                    2,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident {
+                ident: Ident(
+                    "c",
+                ),
+            },
+            expr: Literal(
+                Number(
+                    3,
+                ),
+            ),
+        },
+    ),
+]

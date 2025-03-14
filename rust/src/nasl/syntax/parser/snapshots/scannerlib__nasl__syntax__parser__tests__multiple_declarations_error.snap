@@ -1,0 +1,16 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (multiple_declarations_error),\n\"a = 1;\n     a = b = 3;\n     a = b = 3;\")"
+snapshot_kind: text
+---
+error: Expected ';'
+  ┌─ multiple_declarations_error:2:6
+  │
+2 │      a = b = 3;
+  │      ^^^^^ Expected ';'
+
+error: Expected ';'
+  ┌─ multiple_declarations_error:3:6
+  │
+3 │      a = b = 3;
+  │      ^^^^^ Expected ';'
