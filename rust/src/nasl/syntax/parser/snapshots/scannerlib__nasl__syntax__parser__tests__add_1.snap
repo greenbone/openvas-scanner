@@ -10,13 +10,7 @@ Binary(
                 5,
             ),
         ),
-        operator: Token {
-            kind: Plus,
-            position: (
-                2,
-                3,
-            ),
-        },
+        operator: Plus,
         right: Literal(
             Number(
                 3,

@@ -103,9 +103,30 @@ pub struct Unary {
 }
 
 #[derive(Clone, Debug)]
+pub enum BinaryOperator {
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    BangEqual,
+    EqualEqual,
+    BangTilde,
+    EqualTilde,
+    Greater,
+    GreaterGreater,
+    GreaterLess,
+    GreaterEqual,
+    Less,
+    LessLess,
+    LessEqual,
+    GreaterGreaterGreater,
+    GreaterBangLess,
+}
+
+#[derive(Clone, Debug)]
 pub struct Binary {
     pub left: Box<Expr>,
-    pub operator: Token,
+    pub operator: BinaryOperator,
     pub right: Box<Expr>,
 }
 

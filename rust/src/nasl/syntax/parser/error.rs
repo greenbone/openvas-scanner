@@ -26,6 +26,7 @@ pub enum ParseErrorKind {
     IdentExpected,
     ExpectedAssignmentOperator,
     ExpectedUnaryOperator,
+    ExpectedBinaryOperator,
 }
 
 impl Display for ParseErrorKind {
@@ -41,6 +42,9 @@ impl Display for ParseErrorKind {
             }
             ParseErrorKind::ExpectedUnaryOperator => {
                 write!(f, "Expected unary operator (!, -)")
+            }
+            ParseErrorKind::ExpectedBinaryOperator => {
+                write!(f, "Expected binary operator (+, -, *, /, ...)")
             }
         }
     }

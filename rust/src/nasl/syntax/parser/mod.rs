@@ -250,6 +250,30 @@ make_operator! {
     )
 }
 
+make_operator! {
+    grammar::BinaryOperator,
+    ParseErrorKind::ExpectedBinaryOperator,
+    (
+        TokenKind::Plus => grammar::BinaryOperator::Plus,
+        TokenKind::Minus => grammar::BinaryOperator::Minus,
+        TokenKind::Star => grammar::BinaryOperator::Star,
+        TokenKind::Slash => grammar::BinaryOperator::Slash,
+        TokenKind::BangEqual => grammar::BinaryOperator::BangEqual,
+        TokenKind::EqualEqual => grammar::BinaryOperator::EqualEqual,
+        TokenKind::BangTilde => grammar::BinaryOperator::BangTilde,
+        TokenKind::EqualTilde => grammar::BinaryOperator::EqualTilde,
+        TokenKind::Greater => grammar::BinaryOperator::Greater,
+        TokenKind::GreaterGreater => grammar::BinaryOperator::GreaterGreater,
+        TokenKind::GreaterLess => grammar::BinaryOperator::GreaterLess,
+        TokenKind::GreaterEqual => grammar::BinaryOperator::GreaterEqual,
+        TokenKind::Less => grammar::BinaryOperator::Less,
+        TokenKind::LessLess => grammar::BinaryOperator::LessLess,
+        TokenKind::LessEqual => grammar::BinaryOperator::LessEqual,
+        TokenKind::GreaterGreaterGreater => grammar::BinaryOperator::GreaterGreaterGreater,
+        TokenKind::GreaterBangLess => grammar::BinaryOperator::GreaterBangLess,
+    )
+}
+
 impl Parse for Expr {
     type Output = Expr;
 
@@ -273,12 +297,12 @@ where
 
     fn parse(parser: &mut Parser) -> ParseResult<Expr> {
         let mut left = T::Subtype::parse(parser)?;
-        while T::token_kinds().any(|kind| parser.matches(kind)) {
-            let operator = parser.previous();
+        while T::token_kinds().any(|kind| parser.peek().kind() == &kind) {
+            let operator = grammar::BinaryOperator::parse(parser)?;
             let right = T::Subtype::parse(parser)?;
             left = Expr::Binary(Binary {
                 left: Box::new(left),
-                operator: operator,
+                operator,
                 right: Box::new(right),
             });
         }
