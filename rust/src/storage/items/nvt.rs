@@ -198,15 +198,62 @@ make_str_lookup_enum! {
     }
 }
 
-make_str_lookup_enum! {
-    PreferenceType: "Allowed types for preferences" => {
-       checkbox => CheckBox,
-       entry => Entry,
-       file => File,
-       password => Password,
-       radio => Radio,
-       sshlogin => SshLogin,
-       integer => Integer
+#[doc = "Allowed types for preferences"]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "lowercase")
+)]
+pub enum PreferenceType {
+    #[doc = "checkbox"]
+    CheckBox,
+    #[doc = "entry"]
+    Entry,
+    #[doc = "file"]
+    File,
+    #[doc = "password"]
+    Password,
+    #[doc = "radio"]
+    Radio,
+    #[doc = "sshlogin"]
+    SshLogin,
+    #[doc = "integer"]
+    Integer,
+}
+
+impl FromStr for PreferenceType {
+    type Err = StorageError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use PreferenceType::*;
+        match s {
+            "checkbox" => Ok(CheckBox),
+            "entry" => Ok(Entry),
+            "file" => Ok(File),
+            "password" => Ok(Password),
+            "radio" => Ok(Radio),
+            "sshlogin" => Ok(SshLogin),
+            "integer" => Ok(Integer),
+            _ => Err(StorageError::UnexpectedData(
+                format!("{:?}: {}", stringify!(PreferenceType),
+                        s.to_owned()              
+                ))),
+        }
+    }
+}
+
+impl AsRef<str> for PreferenceType {
+    fn as_ref(&self) -> &str {
+        use PreferenceType::*;
+        match self {
+            CheckBox => "checkbox",
+            Entry => "entry",
+            File => "file",
+            Password => "password",
+            Radio => "radio",
+            SshLogin => "sshlogin",
+            Integer => "integer",
+        }
     }
 }
 
