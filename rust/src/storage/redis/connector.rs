@@ -15,14 +15,14 @@ use redis::*;
 use crate::models;
 use crate::models::Vulnerability;
 
+use crate::storage::StorageError;
+use crate::storage::items::nvt::ACT;
 use crate::storage::items::nvt::Nvt;
 use crate::storage::items::nvt::NvtKey;
 use crate::storage::items::nvt::NvtPreference;
 use crate::storage::items::nvt::NvtRef;
 use crate::storage::items::nvt::TagKey;
 use crate::storage::items::nvt::TagValue;
-use crate::storage::items::nvt::ACT;
-use crate::storage::StorageError;
 
 enum KbNvtPos {
     Filename,
@@ -60,7 +60,7 @@ impl TryFrom<NvtKey> for KbNvtPos {
             _ => {
                 return Err(StorageError::UnexpectedData(format!(
                     "{value:?} is not a redis position and must be handled differently"
-                )))
+                )));
             }
         })
     }
@@ -578,7 +578,7 @@ impl RedisCtx {
                     return Ok(RedisCtx {
                         kb: Some(kb),
                         db: x,
-                    })
+                    });
                 }
                 Err(DbError::NoAvailDbErr) => {}
                 Err(x) => return Err(x),

@@ -7,7 +7,7 @@ mod tests {
     use std::{collections::HashMap, string::String};
 
     use crate::nasl::test_utils::TestBuilder;
-    use crate::nasl::{syntax::LoadError, Loader};
+    use crate::nasl::{Loader, syntax::LoadError};
 
     use crate::nasl::{nasl_std_functions, prelude::*};
     use crate::storage::inmemory::InMemoryStorage;

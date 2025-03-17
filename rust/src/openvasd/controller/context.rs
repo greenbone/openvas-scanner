@@ -172,15 +172,18 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
 
 impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
     fn configure_authentication_methods(&mut self) {
-        let tls_config = match self.tls_config.take() { Some(tls_config) => {
-            if tls_config.has_clients && self.api_key.is_some() {
-                tracing::warn!("Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored.");
-                self.api_key = None;
+        let tls_config = match self.tls_config.take() {
+            Some(tls_config) => {
+                if tls_config.has_clients && self.api_key.is_some() {
+                    tracing::warn!(
+                        "Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored."
+                    );
+                    self.api_key = None;
+                }
+                Some(tls_config)
             }
-            Some(tls_config)
-        } _ => {
-            None
-        }};
+            _ => None,
+        };
         self.tls_config = tls_config;
         match (self.tls_config.is_some(), self.api_key.is_some()) {
             (true, true) => unreachable!(),

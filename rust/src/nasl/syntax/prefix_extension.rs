@@ -4,13 +4,14 @@
 
 //! Handles the prefix statement within Lexer
 use super::{
+    Statement,
     error::SyntaxError,
     grouping_extension::Grouping,
     keyword_extension::Keywords,
     lexer::{End, Lexer},
     operation::Operation,
     token::{Category, Token},
-    Statement, {AssignOrder, StatementKind},
+    {AssignOrder, StatementKind},
 };
 
 use crate::{nasl::syntax::IdentifierType, unclosed_token, unexpected_end, unexpected_token};
@@ -155,9 +156,8 @@ impl Prefix for Lexer<'_> {
 mod test {
 
     use super::super::{
-        parse,
+        AssignOrder, Statement, StatementKind, parse,
         token::{Category, Token},
-        AssignOrder, Statement, StatementKind,
     };
 
     use Category::*;

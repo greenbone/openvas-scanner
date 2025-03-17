@@ -5,10 +5,10 @@
 use std::fmt::Display;
 
 use async_trait::async_trait;
-use chacha20::cipher::{KeyIvInit, StreamCipher};
 use chacha20::ChaCha20;
-use generic_array::typenum::U32;
+use chacha20::cipher::{KeyIvInit, StreamCipher};
 use generic_array::GenericArray;
+use generic_array::typenum::U32;
 use pbkdf2::pbkdf2_hmac;
 use rand::{self, RngCore};
 use sha2::Sha256;
@@ -142,7 +142,7 @@ impl TryFrom<&str> for Encrypted {
     type Error = ParseError;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        use base64::{engine::general_purpose, Engine as _};
+        use base64::{Engine as _, engine::general_purpose};
         let mut parts = s.split_whitespace();
         let decode = |s: &str, e: ParseError| {
             general_purpose::STANDARD

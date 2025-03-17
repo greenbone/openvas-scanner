@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::syntax::{LoadError, Loader};
+use crate::storage::Retriever;
 use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::items::nvt::{
-    FileName, Nvt, NvtPreference, NvtRef, PreferenceType::Password, TagKey, ACT::Denial,
+    ACT::Denial, FileName, Nvt, NvtPreference, NvtRef, PreferenceType::Password, TagKey,
 };
-use crate::storage::Retriever;
 
 #[derive(Default)]
 pub struct NoOpLoader {}

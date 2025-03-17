@@ -8,12 +8,12 @@
 
 use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
-use super::{context::Context, ClientIdentifier};
+use super::{ClientIdentifier, context::Context};
 
 use http::StatusCode;
 use hyper::{Method, Request};
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
-use scannerlib::models::{scanner::*, Action, Phase, Scan, ScanAction};
+use scannerlib::models::{Action, Phase, Scan, ScanAction, scanner::*};
 use scannerlib::notus::NotusError;
 
 use crate::{
@@ -197,36 +197,34 @@ where
             }
             let cid: Option<ClientHash> = {
                 match &*cid {
-                    ClientIdentifier::Disabled => {
-                        match ctx.api_key.as_ref() { Some(key) => {
-                            match req.headers().get("x-api-key") {
-                                Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
-                                Some(v) => {
-                                    tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
-                                    None
-                                }
-                                None => None,
+                    ClientIdentifier::Disabled => match ctx.api_key.as_ref() {
+                        Some(key) => match req.headers().get("x-api-key") {
+                            Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
+                            Some(v) => {
+                                tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
+                                None
                             }
-                        } _ => {
-                            Some("disabled".into())
-                        }}
-                    }
+                            None => None,
+                        },
+                        _ => Some("disabled".into()),
+                    },
                     ClientIdentifier::Known(cid) => Some(cid.clone()),
                     ClientIdentifier::Unknown => {
-                        match ctx.api_key.as_ref() { Some(key) => {
-                            match req.headers().get("x-api-key") {
+                        match ctx.api_key.as_ref() {
+                            Some(key) => match req.headers().get("x-api-key") {
                                 Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
                                 Some(v) => {
                                     tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
                                     None
                                 }
                                 None => None,
+                            },
+                            _ => {
+                                // We don't allow no api key and no client certs when we have a server
+                                // certificate to prevent accidental misconfiguration.
+                                None
                             }
-                        } _ => {
-                            // We don't allow no api key and no client certs when we have a server
-                            // certificate to prevent accidental misconfiguration.
-                            None
-                        }}
+                        }
                     }
                 }
             };
@@ -472,7 +470,7 @@ pub mod client {
     use http::StatusCode;
     use http_body_util::{BodyExt, Empty, Full};
     use hyper::{
-        body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
+        HeaderMap, Method, Request, body::Bytes, header::HeaderValue, service::HttpService,
     };
     use scannerlib::models::scanner::{self, Scanner};
     use scannerlib::models::{self, Action, Scan, ScanAction, Status};
@@ -486,7 +484,7 @@ pub mod client {
     use crate::storage::results::ResultCatcher;
     use crate::{
         controller::{ClientIdentifier, Context},
-        storage::{file::Storage, NVTStorer},
+        storage::{NVTStorer, file::Storage},
     };
 
     use super::KnownPaths;

@@ -9,8 +9,8 @@ use thiserror::Error;
 
 use crate::function_set;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::error::FnError;
 use crate::nasl::utils::Context;
+use crate::nasl::utils::error::FnError;
 use crate::storage::items::kb::KbKey;
 use nasl_function_proc_macro::nasl_function;
 

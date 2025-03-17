@@ -34,8 +34,8 @@ pub use knowledge_base::KBError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
-use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::ScanID;
+use crate::storage::inmemory::InMemoryStorage;
 
 use super::utils::context::{ContextStorage, Target};
 

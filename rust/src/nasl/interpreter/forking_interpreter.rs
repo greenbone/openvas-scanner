@@ -1,8 +1,8 @@
-use futures::{stream, Stream};
+use futures::{Stream, stream};
 
 use crate::nasl::{
-    syntax::{Lexer, Tokenizer},
     Context, Register,
+    syntax::{Lexer, Tokenizer},
 };
 
 use super::{interpreter::InterpretResult, interpreter::Interpreter};

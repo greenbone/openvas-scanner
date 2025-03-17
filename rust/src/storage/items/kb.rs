@@ -425,7 +425,7 @@ impl Display for KbContextKey {
         write!(
             f,
             "Scan: {}, Target: {}, KbKey: {}",
-            self.0 .0, self.0 .1, self.1
+            self.0.0, self.0.1, self.1
         )
     }
 }

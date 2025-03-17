@@ -8,8 +8,8 @@
 use std::{path::PathBuf, time::Duration};
 
 use crate::models::{
-    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
     Scan,
+    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
 };
 use async_trait::async_trait;
 

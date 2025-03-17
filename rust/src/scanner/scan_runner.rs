@@ -4,7 +4,7 @@
 
 use crate::models::{Host, HostInfo, Scan};
 use crate::nasl::utils::Executor;
-use futures::{stream, Stream};
+use futures::{Stream, stream};
 
 use crate::scanner::ScannerStack;
 use crate::scheduling::{ConcurrentVT, VTError};
@@ -91,22 +91,23 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         // If this is changed, make sure to uphold the scheduling requirements in the
         // new implementation.
         stream::unfold(data, move |mut data| async move {
-            match data.next() { Some((stage, vt, param, host, scan_id)) => {
-                let result = VTRunner::<Stack>::run(
-                    self.storage,
-                    self.loader,
-                    self.executor,
-                    &host,
-                    &vt,
-                    stage,
-                    param.as_ref(),
-                    scan_id,
-                )
-                .await;
-                Some((result, data))
-            } _ => {
-                None
-            }}
+            match data.next() {
+                Some((stage, vt, param, host, scan_id)) => {
+                    let result = VTRunner::<Stack>::run(
+                        self.storage,
+                        self.loader,
+                        self.executor,
+                        &host,
+                        &vt,
+                        stage,
+                        param.as_ref(),
+                        scan_id,
+                    )
+                    .await;
+                    Some((result, data))
+                }
+                _ => None,
+            }
         })
     }
 }
@@ -122,15 +123,18 @@ pub(super) mod tests {
     use crate::nasl::interpreter::ForkingInterpreter;
     use crate::nasl::nasl_std_functions;
     use crate::nasl::syntax::NaslValue;
-    use crate::nasl::utils::context::Target as ContextTarget;
     use crate::nasl::utils::Context;
     use crate::nasl::utils::Executor;
     use crate::nasl::utils::Register;
+    use crate::nasl::utils::context::Target as ContextTarget;
     use crate::scanner::{
         error::{ExecuteError, ScriptResult},
         scan_runner::ScanRunner,
     };
     use crate::scheduling::{ExecutionPlaner, WaveExecutionPlan};
+    use crate::storage::Dispatcher;
+    use crate::storage::Retriever;
+    use crate::storage::ScanID;
     use crate::storage::inmemory::InMemoryStorage;
     use crate::storage::items::kb;
     use crate::storage::items::kb::KbContextKey;
@@ -138,9 +142,6 @@ pub(super) mod tests {
     use crate::storage::items::kb::KbKey;
     use crate::storage::items::nvt::FileName;
     use crate::storage::items::nvt::Nvt;
-    use crate::storage::Dispatcher;
-    use crate::storage::Retriever;
-    use crate::storage::ScanID;
     use futures::StreamExt;
 
     pub fn only_success() -> [(String, Nvt); 3] {

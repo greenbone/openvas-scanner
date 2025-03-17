@@ -23,9 +23,9 @@ use crate::storage::redis::{
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
 
+use super::FnError;
 use super::error::ReturnBehavior;
 use super::hosts::resolve;
-use super::FnError;
 use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -217,7 +217,9 @@ impl Register {
     /// Adds a named parameter to a specified context
     pub fn add_to_index(&mut self, idx: usize, name: &str, value: ContextType) {
         if idx >= self.blocks.len() {
-            panic!("The given index should be retrieved by named_value. Therefore this should not happen.");
+            panic!(
+                "The given index should be retrieved by named_value. Therefore this should not happen."
+            );
         } else {
             let ctx = &mut self.blocks[idx];
             ctx.add_named(name, value);
@@ -563,16 +565,19 @@ impl<'a> Context<'a> {
 
     pub fn set_nvt_field(&self, field: NvtField) {
         let mut nvt = self.nvt.lock().unwrap();
-        match nvt.as_mut() { Some(nvt) => {
-            nvt.set_from_field(field);
-        } _ => {
-            let mut new = Nvt {
-                filename: self.filename().to_string_lossy().to_string(),
-                ..Default::default()
-            };
-            new.set_from_field(field);
-            *nvt = Some(new);
-        }}
+        match nvt.as_mut() {
+            Some(nvt) => {
+                nvt.set_from_field(field);
+            }
+            _ => {
+                let mut new = Nvt {
+                    filename: self.filename().to_string_lossy().to_string(),
+                    ..Default::default()
+                };
+                new.set_from_field(field);
+                *nvt = Some(new);
+            }
+        }
     }
 
     pub fn dispatch_nvt(&self, nvt: Nvt) {

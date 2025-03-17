@@ -7,7 +7,7 @@ use crate::nasl::syntax::{LoadError, SyntaxError};
 use crate::storage::error::StorageError;
 use thiserror::Error;
 
-use crate::feed::{verify, VerifyError};
+use crate::feed::{VerifyError, verify};
 
 #[derive(Debug, Error)]
 /// Errors within feed handling

@@ -5,16 +5,16 @@
 // FnError::GeneralError
 use crate::nasl::prelude::*;
 use aes::{
-    cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit},
     Aes128, Aes192, Aes256,
+    cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit},
 };
 use aes_gcm::{
-    aead::{Aead, Payload},
     AesGcm,
+    aead::{Aead, Payload},
 };
 use digest::typenum::{U12, U16};
 
-use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt, CryptographicError};
+use super::{Crypt, CryptographicError, get_aad, get_data, get_iv, get_key, get_len};
 
 fn gcm<D>(register: &Register, crypt: Crypt, auth: bool) -> Result<NaslValue, FnError>
 where

@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! Contains helper for encryption.
+use chacha20::ChaCha20;
 use chacha20::cipher::generic_array::GenericArray;
 use chacha20::cipher::typenum::{U12, U32};
 use chacha20::cipher::{KeyIvInit, StreamCipher};
-use chacha20::ChaCha20;
 use pbkdf2::pbkdf2_hmac;
 use rand::RngCore;
 use sha2::Sha256;

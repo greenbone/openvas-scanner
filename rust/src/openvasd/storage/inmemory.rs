@@ -7,7 +7,7 @@ use std::sync::RwLock;
 use super::*;
 use scannerlib::{
     models, notus,
-    storage::{items::nvt::Feed, Retriever},
+    storage::{Retriever, items::nvt::Feed},
 };
 use tokio::task::JoinSet;
 
@@ -173,12 +173,15 @@ where
         tokio::task::spawn_blocking(move || {
             let mut scans = scans.write().unwrap();
             let id = sp.scan_id.clone();
-            match scans.get_mut(&id) { Some(prgs) => {
-                prgs.scan = sp;
-            } _ => {
-                let progress = Self::new_progress(crypter.as_ref(), sp)?;
-                scans.insert(id.clone(), progress);
-            }}
+            match scans.get_mut(&id) {
+                Some(prgs) => {
+                    prgs.scan = sp;
+                }
+                _ => {
+                    let progress = Self::new_progress(crypter.as_ref(), sp)?;
+                    scans.insert(id.clone(), progress);
+                }
+            }
             Ok(())
         })
         .await

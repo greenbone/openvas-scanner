@@ -302,7 +302,9 @@ impl<'de> Deserialize<'de> for Target {
                                         continue;
                                     }
                                 }
-                                return Err(de::Error::custom(format!("{at} is not a valid number. It must be a number of 1, 2, 4, 8 or 16.")));
+                                return Err(de::Error::custom(format!(
+                                    "{at} is not a valid number. It must be a number of 1, 2, 4, 8 or 16."
+                                )));
                             }
                         }
                         "alive_test_methods" => {
@@ -659,11 +661,7 @@ impl From<Vec<models::VT>> for VtSelection {
                             text: Some(x.value),
                         })
                         .collect::<Vec<_>>();
-                    if v.is_empty() {
-                        None
-                    } else {
-                        Some(v)
-                    }
+                    if v.is_empty() { None } else { Some(v) }
                 };
                 VtSingle {
                     id: x.oid,

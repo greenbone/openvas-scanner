@@ -5,11 +5,11 @@
 use std::{net::IpAddr, process::Command};
 
 use super::socket::SocketError;
-use super::{mtu, NaslValue, Port};
 use super::{
-    network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
     DEFAULT_PORT,
+    network_utils::{get_netmask_by_local_ip, get_source_ip, ipstr2ipaddr, islocalhost},
 };
+use super::{NaslValue, Port, mtu};
 use crate::function_set;
 use crate::nasl::utils::{Context, FnError};
 use crate::storage::items::kb::{self, KbItem, KbKey};

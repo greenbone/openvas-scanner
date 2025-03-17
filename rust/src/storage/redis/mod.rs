@@ -11,14 +11,18 @@ mod dberror;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 
-pub use connector::NameSpaceSelector;
 use connector::CACHE_KEY;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
 pub use connector::NOTUSUPDATE_SELECTOR;
+pub use connector::NameSpaceSelector;
 pub use connector::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper};
 pub use dberror::{DbError, RedisStorageResult};
 
+use super::Dispatcher;
+use super::Remover;
+use super::Retriever;
+use super::ScanID;
 use super::error::StorageError;
 use super::inmemory::kb::InMemoryKbStorage;
 use super::items::kb::GetKbContextKey;
@@ -34,10 +38,6 @@ use super::items::nvt::Oid;
 use super::items::result::ResultContextKeyAll;
 use super::items::result::ResultContextKeySingle;
 use super::items::result::ResultItem;
-use super::Dispatcher;
-use super::Remover;
-use super::Retriever;
-use super::ScanID;
 
 /// Cache implementation.
 ///
@@ -273,15 +273,15 @@ where
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use std::sync::mpsc::{self, Sender, TryRecvError};
     use std::sync::Mutex;
+    use std::sync::mpsc::{self, Sender, TryRecvError};
 
+    use crate::storage::Dispatcher;
     use crate::storage::inmemory::kb::InMemoryKbStorage;
     use crate::storage::items::nvt::{
-        FeedVersion, FileName, Nvt, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue, ACT,
+        ACT, FeedVersion, FileName, Nvt, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue,
     };
     use crate::storage::redis::RedisStorage;
-    use crate::storage::Dispatcher;
 
     use super::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorageResult, RedisWrapper};
 

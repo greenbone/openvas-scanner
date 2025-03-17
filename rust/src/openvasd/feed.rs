@@ -9,16 +9,16 @@ use std::{
 
 use scannerlib::{
     feed::{self, HashSumNameLoader},
-    nasl::{utils::context::ContextStorage, FSPluginLoader},
+    nasl::{FSPluginLoader, utils::context::ContextStorage},
     scheduling::SchedulerStorage,
     storage::{
+        Dispatcher, Remover, Retriever, ScanID,
         error::StorageError,
         items::{
             kb::{GetKbContextKey, KbContextKey, KbItem},
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
             result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
         },
-        Dispatcher, Remover, Retriever, ScanID,
     },
 };
 

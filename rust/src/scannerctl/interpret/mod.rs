@@ -11,17 +11,17 @@ use futures::StreamExt;
 use scannerlib::{feed, scheduling::SchedulerStorage, storage::items::nvt::Oid};
 use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
-    nasl::{interpreter::ForkingInterpreter, utils::error::ReturnBehavior},
-    storage::redis::{RedisCtx, RedisStorage, FEEDUPDATE_SELECTOR},
-};
-use scannerlib::{
     nasl::{
+        Loader, NoOpLoader,
         interpreter::InterpretErrorKind,
         prelude::*,
-        syntax::{load_non_utf8_path, LoadError},
-        Loader, NoOpLoader,
+        syntax::{LoadError, load_non_utf8_path},
     },
     storage::items::nvt::Nvt,
+};
+use scannerlib::{
+    nasl::{interpreter::ForkingInterpreter, utils::error::ReturnBehavior},
+    storage::redis::{FEEDUPDATE_SELECTOR, RedisCtx, RedisStorage},
 };
 
 use crate::{CliError, CliErrorKind, Db};
@@ -105,11 +105,10 @@ where
                     .context_builder
                     .storage
                     .retrieve(&Oid(script.to_string()))?
-                { Some(vt) => {
-                    Ok(self.context_builder.loader.load(&vt.filename)?)
-                } _ => {
-                    Err(LoadError::NotFound(script.to_string()).into())
-                }}
+                {
+                    Some(vt) => Ok(self.context_builder.loader.load(&vt.filename)?),
+                    _ => Err(LoadError::NotFound(script.to_string()).into()),
+                }
             }
             Err(e) => Err(e.into()),
         }

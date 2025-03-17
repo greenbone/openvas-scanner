@@ -19,12 +19,11 @@ use rustls::ClientConnection;
 use thiserror::Error;
 
 use super::{
-    get_retry,
+    OpenvasEncaps, Port, get_retry,
     network_utils::{convert_timeout, ipstr2ipaddr},
     tcp::TcpConnection,
     tls::create_tls_client,
     udp::UdpConnection,
-    OpenvasEncaps, Port,
 };
 
 #[derive(Debug, Error)]
@@ -389,7 +388,7 @@ impl NaslSockets {
             Some(OpenvasEncaps::Ip) => None,
             // Unsupported transport layer
             None | Some(OpenvasEncaps::Max) => {
-                return Err(SocketError::UnsupportedTransportLayerUnknown(transport))
+                return Err(SocketError::UnsupportedTransportLayerUnknown(transport));
             }
             // TLS/SSL
             Some(tls_version) => match tls_version {
@@ -401,17 +400,18 @@ impl NaslSockets {
         };
         let tls_bool = tls.is_some();
         match TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
-                .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
-        { Ok(connection) => {
-            if tls_bool {
-                let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
-            } else {
-                let _ = context.set_port_transport(port, OpenvasEncaps::Ip as usize);
+            .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
+        {
+            Ok(connection) => {
+                if tls_bool {
+                    let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
+                } else {
+                    let _ = context.set_port_transport(port, OpenvasEncaps::Ip as usize);
+                }
+                Ok(Some(connection))
             }
-            Ok(Some(connection))
-        } _ => {
-            Ok(None)
-        }}
+            _ => Ok(None),
+        }
     }
 
     /// Open a TCP socket to the target host.
@@ -538,16 +538,20 @@ impl NaslSockets {
                 // TODO: set timeout to global recv timeout when available
                 let timeout = Duration::from_secs(10);
                 self.wait_before_next_probe();
-                match TcpConnection::connect_priv(addr, sport, dport.0, timeout) { Ok(tcp) => {
-                    self.add(NaslSocket::Tcp(Box::new(tcp)))
-                } _ => {
-                    continue;
-                }}
-            } else { match UdpConnection::new_priv(addr, sport, dport.0) { Ok(udp) => {
-                self.add(NaslSocket::Udp(udp))
-            } _ => {
-                continue;
-            }}};
+                match TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
+                    Ok(tcp) => self.add(NaslSocket::Tcp(Box::new(tcp))),
+                    _ => {
+                        continue;
+                    }
+                }
+            } else {
+                match UdpConnection::new_priv(addr, sport, dport.0) {
+                    Ok(udp) => self.add(NaslSocket::Udp(udp)),
+                    _ => {
+                        continue;
+                    }
+                }
+            };
             return Ok(NaslValue::Number(fd as i64));
         }
         Err(SocketError::UnableToOpenPrivSocket(addr).into())

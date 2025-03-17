@@ -9,6 +9,7 @@ use kb::InMemoryKbStorage;
 use crate::models;
 
 use super::{
+    Dispatcher, Remover, Retriever, ScanID,
     error::StorageError,
     items::{
         kb::{GetKbContextKey, KbContextKey, KbItem},
@@ -16,7 +17,6 @@ use super::{
         nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
         result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
     },
-    Dispatcher, Remover, Retriever, ScanID,
 };
 
 pub mod kb;
@@ -197,11 +197,14 @@ impl Dispatcher<ScanID> for InMemoryStorage {
     type Item = ResultItem;
     fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
         let mut results = self.results.write()?;
-        match results.get_mut(&key) { Some(scan_results) => {
-            scan_results.push(item);
-        } _ => {
-            results.insert(key, vec![item]);
-        }}
+        match results.get_mut(&key) {
+            Some(scan_results) => {
+                scan_results.push(item);
+            }
+            _ => {
+                results.insert(key, vec![item]);
+            }
+        }
         Ok(())
     }
 }
@@ -248,13 +251,13 @@ impl Remover<ResultContextKeySingle> for InMemoryStorage {
 #[cfg(test)]
 mod tests {
     use crate::storage::{
+        Dispatcher, Retriever,
         error::StorageError,
         inmemory::InMemoryStorage,
         items::{
             kb::{KbContextKey, KbItem},
             nvt::{FileName, Nvt},
         },
-        Dispatcher, Retriever,
     };
 
     #[test]
