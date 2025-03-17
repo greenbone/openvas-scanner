@@ -31,18 +31,18 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::models::{
-    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
     Scan,
+    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
 };
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
-use crate::nasl::utils::context::ContextStorage;
 use crate::nasl::utils::Executor;
+use crate::nasl::utils::context::ContextStorage;
 use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
-use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::Remover;
 use crate::storage::ScanID;
+use crate::storage::inmemory::InMemoryStorage;
 use running_scan::{RunningScan, RunningScanHandle};
 use scanner_stack::DefaultScannerStack;
 

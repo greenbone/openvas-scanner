@@ -14,13 +14,13 @@ use crate::nasl::{
     prelude::*,
     syntax::{Loader, NoOpLoader},
 };
-use crate::storage::{inmemory::InMemoryStorage, ScanID};
+use crate::storage::{ScanID, inmemory::InMemoryStorage};
 use futures::{Stream, StreamExt};
 
 use super::{
     builtin::ContextFactory,
     interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
-    utils::{context::ContextStorage, Executor},
+    utils::{Executor, context::ContextStorage},
 };
 
 // The following exists to trick the trait solver into
@@ -318,12 +318,13 @@ where
     }
 
     pub async fn async_verify(mut self) {
-        if let Err(err) = self.verify().await {
-            // Drop first so we don't call the destructor, which would panic.
-            std::mem::forget(self);
-            panic!("{}", err)
-        } else {
-            std::mem::forget(self)
+        match self.verify().await {
+            Err(err) => {
+                // Drop first so we don't call the destructor, which would panic.
+                std::mem::forget(self);
+                panic!("{}", err)
+            }
+            _ => std::mem::forget(self),
         }
     }
 
@@ -407,8 +408,13 @@ impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
-        } else if let Err(err) = futures::executor::block_on(self.verify()) {
-            panic!("{}", err)
+        } else {
+            match futures::executor::block_on(self.verify()) {
+                Err(err) => {
+                    panic!("{}", err)
+                }
+                _ => {}
+            }
         }
     }
 }

@@ -6,10 +6,10 @@ use std::collections::HashMap;
 
 use super::interpreter::{InterpretResult, Interpreter};
 use crate::nasl::{
+    ContextType, NaslValue,
     interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
     syntax::{Statement, StatementKind},
     utils::lookup_keys::FC_ANON_ARGS,
-    ContextType, NaslValue,
 };
 
 enum ArgumentKind {
@@ -112,10 +112,9 @@ impl Interpreter<'_, '_> {
         let fn_name = statement.as_token().identifier()?;
         let arguments = self.create_arguments_map(arguments).await?;
         self.register.create_root_child(arguments);
-        let val = if let Some(result) = self.execute_builtin_fn(statement, &fn_name).await {
-            result
-        } else {
-            self.execute_user_defined_fn(&fn_name).await
+        let val = match self.execute_builtin_fn(statement, &fn_name).await {
+            Some(result) => result,
+            _ => self.execute_user_defined_fn(&fn_name).await,
         }?;
         self.register.drop_last();
         let val = replace_empty_or_identity_fork(val);

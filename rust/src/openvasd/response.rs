@@ -6,7 +6,7 @@ use std::{
     convert::Infallible,
     error::Error,
     pin::Pin,
-    sync::{mpsc::Receiver, Arc},
+    sync::{Arc, mpsc::Receiver},
     task::Poll,
     thread,
 };

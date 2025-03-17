@@ -29,10 +29,10 @@
 use rustls::pki_types::{
     CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer,
 };
-use rustls::server::danger::ClientCertVerifier;
 use rustls::server::WebPkiClientVerifier;
+use rustls::server::danger::ClientCertVerifier;
 use rustls::{RootCertStore, ServerConfig};
-use rustls_pemfile_old::{read_one, Item};
+use rustls_pemfile_old::{Item, read_one};
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};

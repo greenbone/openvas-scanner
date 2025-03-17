@@ -12,7 +12,7 @@ use crate::nasl::prelude::*;
 #[cfg(feature = "nasl-c-lib")]
 #[nasl_function]
 fn aes_gmac(register: &Register) -> Result<NaslValue, FnError> {
-    use super::{get_data, get_iv, get_key, CryptographicError};
+    use super::{CryptographicError, get_data, get_iv, get_key};
     use nasl_c_lib::cryptographic::mac::aes_gmac;
 
     let key = get_key(register)?;

@@ -22,12 +22,12 @@ use hex::encode;
 use sha2::{Digest, Sha256};
 
 use openpgp::{
+    Cert, KeyHandle,
+    parse::Parse,
     parse::stream::{
         DetachedVerifierBuilder, GoodChecksum, MessageLayer, MessageStructure, VerificationHelper,
     },
-    parse::Parse,
     policy::StandardPolicy,
-    Cert, KeyHandle,
 };
 use sequoia_ipc::keybox::{Keybox, KeyboxRecord};
 use sequoia_openpgp as openpgp;
@@ -55,7 +55,9 @@ pub enum Error {
     #[error("Bad signature: {0}")]
     /// Bad Signature
     BadSignature(String),
-    #[error("Signature check is enabled but there is no keyring. Set the GNUPGHOME environment variable")]
+    #[error(
+        "Signature check is enabled but there is no keyring. Set the GNUPGHOME environment variable"
+    )]
     /// Missing keyring
     MissingKeyring,
 }

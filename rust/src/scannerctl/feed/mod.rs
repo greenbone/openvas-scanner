@@ -5,7 +5,7 @@
 pub mod update;
 use std::{io, path::PathBuf};
 
-use clap::{arg, value_parser, ArgAction, Command};
+use clap::{ArgAction, Command, arg, value_parser};
 // re-export to work around name conflict
 
 use scannerlib::{
@@ -13,13 +13,13 @@ use scannerlib::{
     storage::{
         error::StorageError,
         infisto::json::{ArrayWrapper, JsonStorage},
-        redis::{RedisStorage, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR},
+        redis::{FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, RedisStorage},
     },
 };
 
 use scannerlib::feed::{FeedReplacer, ReplaceCommand};
 
-use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
+use crate::{CliError, CliErrorKind, get_path_from_openvas, notusupdate, read_openvas_config};
 
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(

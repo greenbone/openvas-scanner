@@ -15,8 +15,8 @@ use std::{
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{self, scanner::ScanResults, Scan, Status, VulnerabilityData},
-    storage::{error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt, Dispatcher},
+    models::{self, Scan, Status, VulnerabilityData, scanner::ScanResults},
+    storage::{Dispatcher, error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt},
 };
 
 use crate::{config::Config, controller::ClientHash, crypt};
@@ -90,7 +90,7 @@ impl From<StorageError> for Error {
 #[async_trait]
 pub trait ScanIDClientMapper {
     async fn add_scan_client_id(&self, scan_id: String, client_id: ClientHash)
-        -> Result<(), Error>;
+    -> Result<(), Error>;
     async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;

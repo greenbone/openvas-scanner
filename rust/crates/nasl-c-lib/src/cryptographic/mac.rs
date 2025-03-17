@@ -4,7 +4,7 @@
 
 use super::gcrypt_get_error_string;
 
-extern "C" {
+unsafe extern "C" {
     pub fn nasl_aes_mac_gcm(
         data: *const ::std::os::raw::c_uchar,
         data_len: usize,
@@ -15,7 +15,7 @@ extern "C" {
         out: *mut *mut ::std::os::raw::c_uchar,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn nasl_get_aes_mac_gcm_len() -> ::std::os::raw::c_uint;
 }
 

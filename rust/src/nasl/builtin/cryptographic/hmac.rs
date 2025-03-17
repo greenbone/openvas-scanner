@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use digest::{
+    HashMarker, InvalidLength,
     block_buffer::Eager,
     core_api::{BufferKindUser, CoreProxy, FixedOutputCore, UpdateCore},
     crypto_common::BlockSizeUser,
     typenum::{IsLess, Le, NonZero, U256},
-    HashMarker, InvalidLength,
 };
 use hex::encode;
 use hmac::{Hmac, Mac};
@@ -37,7 +37,7 @@ where
             return Err(FnError::wrong_unnamed_argument(
                 "valid size key",
                 "invalid size key",
-            ))
+            ));
         }
     };
     hmac.update(data.as_bytes());

@@ -10,10 +10,10 @@ use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
+use crate::storage::Retriever;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
 use crate::storage::items::nvt::Nvt;
-use crate::storage::Retriever;
 use futures::StreamExt;
 use tracing::{error_span, trace, warn};
 
@@ -21,8 +21,8 @@ use crate::nasl::prelude::*;
 
 use super::ExecuteError;
 use super::{
-    error::{ScriptResult, ScriptResultKind},
     ScannerStack,
+    error::{ScriptResult, ScriptResultKind},
 };
 
 /// Runs a single VT to completion on a single host.

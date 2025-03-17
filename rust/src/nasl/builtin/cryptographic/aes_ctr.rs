@@ -3,17 +3,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use aes::{
+    Aes128, Aes192, Aes256,
     cipher::{
         BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyIvInit, StreamCipher,
         StreamCipherSeek,
     },
-    Aes128, Aes192, Aes256,
 };
 use digest::typenum::U16;
 
 use crate::nasl::prelude::*;
 
-use super::{get_data, get_iv, get_key, get_len, Crypt};
+use super::{Crypt, get_data, get_iv, get_key, get_len};
 
 fn ctr<D>(register: &Register, crypt: Crypt) -> Result<NaslValue, FnError>
 where

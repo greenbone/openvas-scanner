@@ -7,10 +7,10 @@ use std::{os::fd::AsRawFd, time::Duration};
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::{debug, info};
 
-use super::super::error::{Result, SshErrorKind};
 use super::super::Output;
+use super::super::error::{Result, SshErrorKind};
 use super::SessionId;
-use super::{channel::Channel, Socket};
+use super::{Socket, channel::Channel};
 use crate::nasl::utils::error::WithErrorInfo;
 
 /// Structure to hold an SSH Session
@@ -211,22 +211,24 @@ impl SshSession {
     fn get_authmethods(&mut self) -> Result<AuthMethods> {
         let authmethods = match self.userauth_none(None)? {
             AuthStatus::Success => {
-                info!("SSH authentication succeeded using the none method - should not happen; very old server?");
+                info!(
+                    "SSH authentication succeeded using the none method - should not happen; very old server?"
+                );
                 AuthMethods::NONE
             }
-            _ => {
-                match self.userauth_list(None) {
-                    Ok(list) => list,
-                    Err(_) => {
-                        debug!("SSH server did not return a list of authentication methods - trying all");
-                        AuthMethods::HOST_BASED
-                            | AuthMethods::INTERACTIVE
-                            | AuthMethods::NONE
-                            | AuthMethods::PASSWORD
-                            | AuthMethods::PUBLIC_KEY
-                    }
+            _ => match self.userauth_list(None) {
+                Ok(list) => list,
+                Err(_) => {
+                    debug!(
+                        "SSH server did not return a list of authentication methods - trying all"
+                    );
+                    AuthMethods::HOST_BASED
+                        | AuthMethods::INTERACTIVE
+                        | AuthMethods::NONE
+                        | AuthMethods::PASSWORD
+                        | AuthMethods::PUBLIC_KEY
                 }
-            }
+            },
         };
         self.authmethods = Some(authmethods);
         Ok(authmethods)

@@ -10,13 +10,13 @@ use scannerlib::feed;
 use scannerlib::models;
 use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
+use scannerlib::storage::Dispatcher;
 use scannerlib::storage::items::notus_advisory::NotusCache;
 use scannerlib::storage::redis::RedisAddAdvisory;
 use scannerlib::storage::redis::RedisAddNvt;
 use scannerlib::storage::redis::RedisGetNvt;
 use scannerlib::storage::redis::RedisStorage;
 use scannerlib::storage::redis::RedisWrapper;
-use scannerlib::storage::Dispatcher;
 
 pub trait NotusStorage:
     Dispatcher<(), Item = models::VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
@@ -41,7 +41,7 @@ where
                 kind: CliErrorKind::LoadError(LoadError::Dirty(
                     "Problem loading advisory".to_string(),
                 )),
-            })
+            });
         }
     };
 

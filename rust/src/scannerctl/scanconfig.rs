@@ -5,15 +5,15 @@
 use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg, value_parser};
 use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
+use scannerlib::storage::Retriever;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
 use scannerlib::storage::items::nvt::{Feed, Nvt, Oid};
-use scannerlib::storage::Retriever;
 use serde::Deserialize;
 
-use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind};
+use crate::{CliError, CliErrorKind, get_path_from_openvas, read_openvas_config};
 use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
 
@@ -385,8 +385,8 @@ where
 mod tests {
 
     use scannerlib::storage::{
-        items::nvt::{FileName, Nvt},
         Dispatcher,
+        items::nvt::{FileName, Nvt},
     };
 
     use super::*;

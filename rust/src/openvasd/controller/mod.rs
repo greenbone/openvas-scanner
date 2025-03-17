@@ -84,53 +84,56 @@ where
     }
     tokio::spawn(crate::controller::feed::fetch(Arc::clone(&controller)));
 
-    if let Some(tls_config) = tls_config {
-        use hyper::server::conn::http2::Builder;
-        tracing::info!("listening on https://{}", addr);
+    match tls_config {
+        Some(tls_config) => {
+            use hyper::server::conn::http2::Builder;
+            tracing::info!("listening on https://{}", addr);
 
-        let config = Arc::new(tls_config.config);
-        let tls_acceptor = tokio_rustls::TlsAcceptor::from(config);
+            let config = Arc::new(tls_config.config);
+            let tls_acceptor = tokio_rustls::TlsAcceptor::from(config);
 
-        loop {
-            let (tcp_stream, _remote_addr) = incoming.accept().await?;
+            loop {
+                let (tcp_stream, _remote_addr) = incoming.accept().await?;
 
-            let tls_acceptor = tls_acceptor.clone();
-            let identifier = tls_config.client_identifier.clone();
-            let ctx = controller.clone();
-            tokio::spawn(async move {
-                let tls_stream = match tls_acceptor.accept(tcp_stream).await {
-                    Ok(tls_stream) => tls_stream,
-                    Err(err) => {
-                        tracing::debug!("failed to perform tls handshake: {err:#}");
-                        return;
+                let tls_acceptor = tls_acceptor.clone();
+                let identifier = tls_config.client_identifier.clone();
+                let ctx = controller.clone();
+                tokio::spawn(async move {
+                    let tls_stream = match tls_acceptor.accept(tcp_stream).await {
+                        Ok(tls_stream) => tls_stream,
+                        Err(err) => {
+                            tracing::debug!("failed to perform tls handshake: {err:#}");
+                            return;
+                        }
+                    };
+                    let cci = retrieve_and_reset(identifier);
+                    let service = entry::EntryPoint::new(ctx, Arc::new(cci));
+                    if let Err(err) = Builder::new(TokioExecutor::new())
+                        .serve_connection(TokioIo::new(tls_stream), service)
+                        .await
+                    {
+                        tracing::debug!("failed to serve connection: {err:#}");
                     }
-                };
-                let cci = retrieve_and_reset(identifier);
-                let service = entry::EntryPoint::new(ctx, Arc::new(cci));
-                if let Err(err) = Builder::new(TokioExecutor::new())
-                    .serve_connection(TokioIo::new(tls_stream), service)
-                    .await
-                {
-                    tracing::debug!("failed to serve connection: {err:#}");
-                }
-            });
+                });
+            }
         }
-    } else {
-        use hyper::server::conn::http1::Builder;
-        tracing::info!("listening on http://{}", addr);
-        loop {
-            let (tcp_stream, _remote_addr) = incoming.accept().await?;
-            let ctx = controller.clone();
-            tokio::spawn(async move {
-                let cci = ClientIdentifier::Disabled;
-                let service = entry::EntryPoint::new(ctx, Arc::new(cci));
-                if let Err(err) = Builder::new()
-                    .serve_connection(TokioIo::new(tcp_stream), service)
-                    .await
-                {
-                    tracing::debug!("failed to serve connection: {err:#}");
-                }
-            });
+        _ => {
+            use hyper::server::conn::http1::Builder;
+            tracing::info!("listening on http://{}", addr);
+            loop {
+                let (tcp_stream, _remote_addr) = incoming.accept().await?;
+                let ctx = controller.clone();
+                tokio::spawn(async move {
+                    let cci = ClientIdentifier::Disabled;
+                    let service = entry::EntryPoint::new(ctx, Arc::new(cci));
+                    if let Err(err) = Builder::new()
+                        .serve_connection(TokioIo::new(tcp_stream), service)
+                        .await
+                    {
+                        tracing::debug!("failed to serve connection: {err:#}");
+                    }
+                });
+            }
         }
     }
 }

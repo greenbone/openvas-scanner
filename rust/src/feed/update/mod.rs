@@ -7,10 +7,11 @@ mod error;
 pub use error::Error;
 pub use error::ErrorKind;
 
-use futures::{stream, Stream, StreamExt};
+use futures::{Stream, StreamExt, stream};
 use std::fs::File;
 use tracing::trace;
 
+use crate::nasl::ContextType;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::interpreter::Interpreter;
 use crate::nasl::nasl_std_functions;
@@ -18,16 +19,15 @@ use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
 use crate::nasl::syntax::Lexer;
 use crate::nasl::syntax::Tokenizer;
+use crate::nasl::utils::Executor;
 use crate::nasl::utils::context::ContextStorage;
 use crate::nasl::utils::context::Target;
-use crate::nasl::utils::Executor;
-use crate::nasl::ContextType;
 
 use crate::feed::verify::check_signature;
 use crate::feed::verify::{HashSumFileItem, SignatureChecker};
+use crate::storage::ScanID;
 use crate::storage::items::nvt::FeedVersion;
 use crate::storage::items::nvt::FileName;
-use crate::storage::ScanID;
 
 use super::verify;
 

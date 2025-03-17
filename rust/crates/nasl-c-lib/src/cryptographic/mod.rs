@@ -6,7 +6,7 @@ use std::ffi::CStr;
 
 pub mod mac;
 
-extern "C" {
+unsafe extern "C" {
     pub fn gcrypt_strerror(err: ::std::os::raw::c_int) -> *const ::std::os::raw::c_char;
 }
 

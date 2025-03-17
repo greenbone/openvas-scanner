@@ -8,8 +8,8 @@ pub mod rpm;
 pub mod slack;
 pub mod windows;
 
-use lazy_regex::{lazy_regex, Lazy, Regex};
-use std::cmp::{max, Ordering};
+use lazy_regex::{Lazy, Regex, lazy_regex};
+use std::cmp::{Ordering, max};
 
 static RE: Lazy<Regex> = lazy_regex!(r"(\d+|.)");
 

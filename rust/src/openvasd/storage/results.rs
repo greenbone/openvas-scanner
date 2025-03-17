@@ -6,10 +6,11 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{self, scanner::ScanResults, Scan, Status},
+    models::{self, Scan, Status, scanner::ScanResults},
     nasl::utils::context::ContextStorage,
     scheduling::SchedulerStorage,
     storage::{
+        Dispatcher, Remover, Retriever, ScanID,
         error::StorageError,
         inmemory::InMemoryStorage,
         items::{
@@ -17,7 +18,6 @@ use scannerlib::{
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
             result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
         },
-        Dispatcher, Remover, Retriever, ScanID,
     },
 };
 
@@ -324,7 +324,7 @@ where
     fn remove(&self, key: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
         let ret = self
             .0
-            .remove_result::<StorageError>(&key.0 .0, Some(key.1))?;
+            .remove_result::<StorageError>(&key.0.0, Some(key.1))?;
         if ret.is_empty() {
             Ok(None)
         } else {

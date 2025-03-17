@@ -10,14 +10,13 @@ use std::{
 };
 
 use crate::storage::{
-    self,
+    self, Dispatcher, Remover, Retriever, ScanID, StorageError,
     inmemory::kb::InMemoryKbStorage,
     items::{
         kb::{GetKbContextKey, KbContextKey, KbItem},
         nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
         result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
     },
-    Dispatcher, Remover, Retriever, ScanID, StorageError,
 };
 
 /// Wraps write calls of json elements to be as list.
@@ -204,9 +203,9 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::storage::items::nvt::{
-        NvtPreference, NvtRef, PreferenceType,
+        ACT, NvtPreference, NvtRef, PreferenceType,
         TagKey::{self, *},
-        TagValue, ACT,
+        TagValue,
     };
 
     use super::*;

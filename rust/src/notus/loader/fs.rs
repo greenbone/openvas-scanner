@@ -13,7 +13,7 @@ use crate::models::Product;
 
 use crate::feed::SignatureChecker;
 use crate::{
-    feed::{check_signature, VerifyError},
+    feed::{VerifyError, check_signature},
     notus::error::{Error, LoadProductErrorKind},
 };
 

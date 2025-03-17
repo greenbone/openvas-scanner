@@ -24,7 +24,7 @@ pub use sessions::SshSessions as Ssh;
 
 use std::time::Duration;
 
-use ::russh::{cipher, Preferred};
+use ::russh::{Preferred, cipher};
 use russh_keys::key;
 
 use crate::nasl::prelude::*;

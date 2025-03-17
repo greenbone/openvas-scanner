@@ -148,7 +148,7 @@ mod tests {
     use crate::storage::inmemory::InMemoryStorage;
 
     use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, SchedulerStorage, Stage};
-    use crate::storage::items::nvt::{FileName, Nvt, ACT};
+    use crate::storage::items::nvt::{ACT, FileName, Nvt};
 
     use super::WaveExecutionPlan;
     use crate::storage::Dispatcher;

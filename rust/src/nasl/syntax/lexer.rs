@@ -6,11 +6,11 @@
 use std::ops::Not;
 
 use super::{
+    AssignOrder, Statement, StatementKind,
     error::SyntaxError,
     operation::Operation,
     prefix_extension::Prefix,
     token::{Category, Token, Tokenizer},
-    AssignOrder, Statement, StatementKind,
 };
 
 use crate::{max_recursion, unexpected_statement, unexpected_token};
@@ -563,7 +563,7 @@ mod infix {
 
 #[cfg(test)]
 mod postfix {
-    use super::super::{parse, token::Category, AssignOrder, Statement, StatementKind};
+    use super::super::{AssignOrder, Statement, StatementKind, parse, token::Category};
 
     use Category::*;
 
