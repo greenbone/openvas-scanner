@@ -198,7 +198,7 @@ make_str_lookup_enum! {
     }
 }
 
-#[doc = "Allowed types for preferences"]
+/// Allowed types for preferences
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 #[cfg_attr(
     feature = "serde_support",
