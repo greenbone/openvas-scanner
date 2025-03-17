@@ -1,7 +1,7 @@
 use crate::types::*;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{token::Async, Ident, ItemFn, Signature};
+use syn::{Ident, ItemFn, Signature, token::Async};
 
 impl<'a> ArgsStruct<'a> {
     fn positional(&self) -> impl Iterator<Item = (&Arg<'a>, &PositionalArg)> + '_ {

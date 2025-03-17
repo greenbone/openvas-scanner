@@ -5,7 +5,7 @@ use crate::types::*;
 use crate::utils::{get_subty_if_name_is, ty_is_context, ty_is_register, ty_name_is};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{parenthesized, parse::Parse, spanned::Spanned, FnArg, Ident, ItemFn, Token, Type};
+use syn::{FnArg, Ident, ItemFn, Token, Type, parenthesized, parse::Parse, spanned::Spanned};
 
 mod attrs {
     syn::custom_keyword!(named);
@@ -181,7 +181,7 @@ fn get_arg_info(arg: &FnArg) -> Result<(&Ident, &Type, &Type, bool, bool)> {
                     return Err(Error {
                         span: typed.pat.span(),
                         kind: ErrorKind::OnlyNormalArgumentsAllowed,
-                    })
+                    });
                 }
             };
             let ty = &typed.ty;
