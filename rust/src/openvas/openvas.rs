@@ -35,7 +35,7 @@ pub struct Scanner {
     sudo: bool,
     redis_socket: String,
     resource_checker: Option<Checker>,
-    default_scanner_preferences: Vec<models::ScanPreferenceInformation>
+    default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
 }
 
 impl From<OpenvasError> for ScanError {
@@ -97,7 +97,7 @@ impl Scanner {
         memory: f32,
         sudo: bool,
         url: String,
-        default_scanner_preferences: Vec<models::ScanPreferenceInformation>
+        default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
     ) -> Self {
         Self {
             running: Default::default(),
@@ -105,7 +105,6 @@ impl Scanner {
             redis_socket: url,
             resource_checker: Some(Checker::new_relative_memory(memory, None)),
             default_scanner_preferences,
-
         }
     }
 
@@ -114,7 +113,7 @@ impl Scanner {
         cpu: Option<f32>,
         sudo: bool,
         url: String,
-        default_scanner_preferences: Vec<models::ScanPreferenceInformation>
+        default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
     ) -> Self {
         Self {
             running: Default::default(),
@@ -181,7 +180,11 @@ impl ScanStarter for Scanner {
         let mut redis_help = self.create_redis_connector(None)?;
 
         // Prepare preferences and store them in redis
-        let mut pref_handler = PreferenceHandler::new(scan.clone(), &mut redis_help, self.default_scanner_preferences.clone());
+        let mut pref_handler = PreferenceHandler::new(
+            scan.clone(),
+            &mut redis_help,
+            self.default_scanner_preferences.clone(),
+        );
         match pref_handler.prepare_preferences_for_openvas().await {
             Ok(_) => (),
             Err(e) => {

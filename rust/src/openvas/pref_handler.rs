@@ -5,7 +5,8 @@
 use std::collections::HashMap;
 
 use crate::models::{
-    AliveTestMethods, CredentialType, Scan, Service, VT, ports_to_openvas_port_list,PreferenceValue, ScanPreferenceInformation
+    AliveTestMethods, CredentialType, PreferenceValue, Scan, ScanPreferenceInformation, Service,
+    VT, ports_to_openvas_port_list,
 };
 use crate::storage::redis::RedisStorageResult;
 
@@ -35,7 +36,7 @@ pub struct PreferenceHandler<'a, H> {
     scan_config: Scan,
     redis_connector: &'a mut H,
     nvt_params: HashMap<String, String>,
-    scan_params_defaults: Vec<ScanPreferenceInformation>
+    scan_params_defaults: Vec<ScanPreferenceInformation>,
 }
 
 impl<'a, H> PreferenceHandler<'a, H>
@@ -45,13 +46,13 @@ where
     pub fn new(
         scan_config: Scan,
         redis_connector: &'a mut H,
-        scan_params_defaults: Vec<ScanPreferenceInformation>
+        scan_params_defaults: Vec<ScanPreferenceInformation>,
     ) -> Self {
         Self {
             scan_config,
             redis_connector,
             nvt_params: HashMap::new(),
-            scan_params_defaults
+            scan_params_defaults,
         }
     }
 
@@ -368,7 +369,7 @@ where
                 if let Some(p) = p {
                     match p.default {
                         PreferenceValue::Bool(_) => format!("{}|||{}", x.id, bool_to_str(&x.value)),
-                        _ => format!("{}|||{}", x.id, x.value)
+                        _ => format!("{}|||{}", x.id, x.value),
                     }
                 } else {
                     format!("{}|||{}", x.id, x.value)
