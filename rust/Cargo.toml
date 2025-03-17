@@ -97,7 +97,6 @@ blowfish = "0.9.1"
 rc4 = "0.1.0"
 
 [workspace]
-resolver = "2"
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
 
 [dev-dependencies]
