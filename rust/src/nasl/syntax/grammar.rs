@@ -279,35 +279,6 @@ impl Statement {
         Range { start, end }
     }
 
-    /// Finds all statements in itself or itself that matches the wanted function
-    ///
-    /// Example:
-    /// ```
-    /// let code = r#"
-    /// function test(a, b) {
-    ///     return funker(a + b);
-    /// }
-    /// a = funker(1);
-    /// while (funker(1) == 1) {
-    ///    if (funker(2) == 2) {
-    ///        return funker(2);
-    ///    } else {
-    ///       for ( i = funker(3); i < funker(5) + funker(5); i + funker(1))
-    ///         exit(funker(10));
-    ///    }
-    /// }
-    /// "#;
-    /// let results: usize = scannerlib::nasl::Code::from_string(code)
-    ///     .parse()
-    ///     .unwrap_stmts()
-    ///     .into_iter()
-    ///     .map(|s| s.find(&|s| matches!(s.kind(), scannerlib::nasl::syntax::StatementKind::Call(..))).len())
-    ///     .sum();
-    ///
-    /// assert_eq!(results, 10);
-    ///
-    /// ```
-    ///
     pub fn find<'a, 'b, F>(&'a self, wanted: &'b F) -> Vec<&'a Statement>
     where
         F: Fn(&'a Statement) -> bool,
