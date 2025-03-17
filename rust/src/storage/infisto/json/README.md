@@ -60,7 +60,7 @@ Transforms a NVT to the json structure:
   "preferences": [
     {
       "id": 0,
-      "class": "check_box",
+      "class": "checkbox",
       "name": "0",
       "default": "0"
     }
