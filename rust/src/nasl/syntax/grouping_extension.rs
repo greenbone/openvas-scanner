@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use super::{
+    AssignOrder, Statement, StatementKind,
     error::SyntaxError,
     lexer::{End, Lexer},
     token::{Token, TokenKind},
-    AssignOrder, Statement, StatementKind,
 };
 
 use crate::{unclosed_token, unexpected_token};

@@ -5,13 +5,17 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, io::Write, sync::Arc};
 
 use crate::{
     models::{Parameter, Scan},
     storage::{
-        item::{NVTField, Nvt},
-        Field, Retrieve, Retriever, StorageError,
+        Retriever,
+        error::StorageError,
+        infisto::json::JsonStorage,
+        inmemory::InMemoryStorage,
+        items::nvt::{ACT, FileName, Nvt, Oid},
+        redis::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper},
     },
 };
 use thiserror::Error;
@@ -64,18 +68,10 @@ impl Display for Stage {
 impl From<&Nvt> for Stage {
     fn from(value: &Nvt) -> Self {
         match value.category {
-            crate::nasl::syntax::ACT::Init
-            | crate::nasl::syntax::ACT::Scanner
-            | crate::nasl::syntax::ACT::Settings
-            | crate::nasl::syntax::ACT::GatherInfo => Self::Discovery,
-            crate::nasl::syntax::ACT::Attack | crate::nasl::syntax::ACT::MixedAttack => {
-                Self::NonEvasive
-            }
-            crate::nasl::syntax::ACT::DestructiveAttack
-            | crate::nasl::syntax::ACT::Denial
-            | crate::nasl::syntax::ACT::KillHost
-            | crate::nasl::syntax::ACT::Flood => Self::Exhausting,
-            crate::nasl::syntax::ACT::End => Self::End,
+            ACT::Init | ACT::Scanner | ACT::Settings | ACT::GatherInfo => Self::Discovery,
+            ACT::Attack | ACT::MixedAttack => Self::NonEvasive,
+            ACT::DestructiveAttack | ACT::Denial | ACT::KillHost | ACT::Flood => Self::Exhausting,
+            ACT::End => Self::End,
         }
     }
 }
@@ -104,6 +100,16 @@ impl TryFrom<usize> for Stage {
         }
     }
 }
+
+pub trait SchedulerStorage: Retriever<Oid, Item = Nvt> + Retriever<FileName, Item = Nvt> {}
+
+impl SchedulerStorage for InMemoryStorage {}
+impl<T: Write + Send> SchedulerStorage for JsonStorage<T> {}
+impl<T> SchedulerStorage for RedisStorage<T> where
+    T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
+{
+}
+impl<T: SchedulerStorage> SchedulerStorage for Arc<T> {}
 
 /// Enhances the Retriever trait with execution_plan possibility.
 pub trait ExecutionPlaner {
@@ -206,7 +212,7 @@ where
 
 impl<T> ExecutionPlaner for T
 where
-    T: Retriever + ?Sized,
+    T: SchedulerStorage + ?Sized,
 {
     fn execution_plan<E>(
         &self,
@@ -215,63 +221,35 @@ where
     where
         E: ExecutionPlan,
     {
-        let oids: Vec<Field> = scan
-            .clone()
-            .vts
-            .into_iter()
-            .map(|x| NVTField::Oid(x.oid).into())
-            .collect::<Vec<_>>();
         let mut results = core::array::from_fn(|_| E::default());
         let mut vts = Vec::new();
         let mut unknown_dependencies = Vec::new();
         let mut known_dependencies = HashMap::new();
-        for (i, x) in self
-            .retrieve_by_fields(oids, Retrieve::NVT(None))?
-            .filter_map(|(_, f)| match f {
-                Field::NVT(NVTField::Nvt(x)) => Some(x),
-                _ => None,
-            })
-            .enumerate()
-        {
-            let params: Option<Vec<Parameter>> = scan.vts.get(i).map(|x| x.parameters.clone());
-            unknown_dependencies.extend(
-                x.dependencies
-                    .iter()
-                    .map(|x| Field::NVT(NVTField::FileName(x.to_string()))),
-            );
-            vts.push((x.clone(), params));
+
+        // Collect all VT information
+        for vt in &scan.vts {
+            if let Some(nvt) = self.retrieve(&Oid(vt.oid.clone()))? {
+                unknown_dependencies.extend(nvt.dependencies.clone());
+                vts.push((nvt, Some(vt.parameters.clone())));
+            } else {
+                tracing::warn!(?vt.oid, "not found");
+            }
         }
 
-        while !unknown_dependencies.is_empty() {
-            let new_unresolved_dependencies = {
-                let mut ret = Vec::new();
-                for x in self
-                    .retrieve_by_fields(unknown_dependencies, Retrieve::NVT(None))?
-                    .filter_map(|(_, f)| match f {
-                        Field::NVT(NVTField::Nvt(x)) => Some(x),
-                        _ => None,
-                    })
-                {
-                    let stage = Stage::from(&x);
-                    tracing::trace!(?stage, oid = x.oid, "adding script_dependency");
-                    ret.extend(
-                        x.dependencies
-                            .iter()
-                            .filter(|x| !known_dependencies.contains_key(*x))
-                            .map(|x| Field::NVT(NVTField::FileName(x.to_string()))),
-                    );
-                    known_dependencies.insert(x.filename.clone(), x.clone());
-                }
-                ret
-            };
-            tracing::trace!(?new_unresolved_dependencies, "unresolved");
-            unknown_dependencies = new_unresolved_dependencies;
+        while let Some(vt_name) = unknown_dependencies.pop() {
+            if known_dependencies.contains_key(&vt_name) {
+                continue;
+            }
+            if let Some(nvt) = self.retrieve(&FileName(vt_name))? {
+                unknown_dependencies.extend(nvt.dependencies.clone());
+                known_dependencies.insert(nvt.filename.clone(), nvt);
+            }
         }
 
-        for (x, p) in vts.into_iter() {
-            let stage = Stage::from(&x);
-            tracing::trace!(?stage, oid = x.oid, "adding");
-            results[usize::from(stage)].append_vt((x, p), &known_dependencies)?;
+        for (nvt, param) in vts.into_iter() {
+            let stage = Stage::from(&nvt);
+            tracing::trace!(?stage, oid = nvt.oid, "adding");
+            results[usize::from(stage)].append_vt((nvt, param), &known_dependencies)?;
         }
 
         Ok(ExecutionPlanData::new(results))
@@ -286,10 +264,10 @@ mod tests {
     use crate::scheduling::ExecutionPlaner;
     use crate::scheduling::Stage;
     use crate::scheduling::WaveExecutionPlan;
-    use crate::storage::item::Nvt;
-    use crate::storage::ContextKey;
-    use crate::storage::DefaultDispatcher;
     use crate::storage::Dispatcher;
+    use crate::storage::inmemory::InMemoryStorage;
+    use crate::storage::items::nvt::FileName;
+    use crate::storage::items::nvt::Nvt;
 
     #[test]
     #[tracing_test::traced_test]
@@ -313,10 +291,10 @@ mod tests {
                 ..Default::default()
             },
         ];
-        let retrieve = DefaultDispatcher::new();
-        feed.clone().into_iter().for_each(|x| {
-            retrieve
-                .dispatch(&ContextKey::default(), x.into())
+        let storage = InMemoryStorage::new();
+        feed.clone().into_iter().for_each(|nvt| {
+            storage
+                .dispatch(FileName(nvt.filename.clone()), nvt)
                 .expect("should store");
         });
 
@@ -327,7 +305,7 @@ mod tests {
             }],
             ..Default::default()
         };
-        let results = retrieve
+        let results = storage
             .execution_plan::<WaveExecutionPlan>(&scan)
             .expect("no error expected");
         assert_eq!(

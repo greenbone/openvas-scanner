@@ -4,7 +4,7 @@
 
 //pub mod alivetest;
 
-use clap::{arg, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg};
 // re-export to work around name conflict
 
 use scannerlib::alive_test::Scanner;

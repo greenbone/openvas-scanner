@@ -2,15 +2,18 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::{Host, Parameter, Protocol, ScanId};
+use std::path::PathBuf;
+
+use crate::models::{Host, Parameter, Protocol, ScanID};
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::context::Target;
+use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
-use crate::storage::item::Nvt;
-use crate::storage::{types::Primitive, Retriever, Storage};
-use crate::storage::{ContextKey, Field, Retrieve, StorageError};
+use crate::storage::Retriever;
+use crate::storage::error::StorageError;
+use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
+use crate::storage::items::nvt::Nvt;
 use futures::StreamExt;
 use tracing::{error_span, trace, warn};
 
@@ -18,8 +21,8 @@ use crate::nasl::prelude::*;
 
 use super::ExecuteError;
 use super::{
-    error::{ScriptResult, ScriptResultKind},
     ScannerStack,
+    error::{ScriptResult, ScriptResultKind},
 };
 
 /// Runs a single VT to completion on a single host.
@@ -32,10 +35,13 @@ pub struct VTRunner<'a, S: ScannerStack> {
     vt: &'a Nvt,
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
-    scan_id: &'a ScanId,
+    scan_id: ScanID,
 }
 
-impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
+impl<'a, Stack: ScannerStack> VTRunner<'a, Stack>
+where
+    Stack::Storage: ContextStorage,
+{
     #[allow(clippy::too_many_arguments)]
     pub async fn run(
         storage: &'a Stack::Storage,
@@ -45,7 +51,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         vt: &'a Nvt,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
-        scan_id: &'a ScanId,
+        scan_id: ScanID,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
             storage,
@@ -80,32 +86,21 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
 
     fn check_key<A, B, C>(
         &self,
-        key: &ContextKey,
-        kb_key: &str,
+        key: &KbContextKey,
         result_none: A,
         result_some: B,
         result_err: C,
     ) -> Result<(), ScriptResultKind>
     where
         A: Fn() -> Option<ScriptResultKind>,
-        B: Fn(Primitive) -> Option<ScriptResultKind>,
+        B: Fn(Vec<KbItem>) -> Option<ScriptResultKind>,
         C: Fn(StorageError) -> Option<ScriptResultKind>,
     {
-        let _span = error_span!("kb_item", %key, kb_key).entered();
-        let result = match self.storage.retrieve(key, Retrieve::KB(kb_key.to_string())) {
-            Ok(mut x) => {
-                let x = x.next();
+        let _span = error_span!("kb_item", %key).entered();
+        let result = match self.storage.retrieve(key) {
+            Ok(x) => {
                 if let Some(x) = x {
-                    match x {
-                        Field::KB(kb) => {
-                            trace!(value=?kb.value, "found");
-                            result_some(kb.value)
-                        }
-                        x => {
-                            trace!(field=?x, "found but it is not a KB item");
-                            result_none()
-                        }
-                    }
+                    result_some(x)
                 } else {
                     trace!("not found");
                     result_none()
@@ -126,8 +121,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         let key = self.generate_key();
         let check_required_key = |k: &str| {
             self.check_key(
-                &key,
-                k,
+                &KbContextKey(key.clone(), k.into()),
                 || Some(ScriptResultKind::MissingRequiredKey(k.into())),
                 |_| None,
                 |_| Some(ScriptResultKind::MissingRequiredKey(k.into())),
@@ -139,8 +133,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
 
         let check_mandatory_key = |k: &str| {
             self.check_key(
-                &key,
-                k,
+                &KbContextKey(key.clone(), k.into()),
                 || Some(ScriptResultKind::MissingMandatoryKey(k.into())),
                 |_| None,
                 |_| Some(ScriptResultKind::MissingMandatoryKey(k.into())),
@@ -152,8 +145,7 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
 
         let check_exclude_key = |k: &str| {
             self.check_key(
-                &key,
-                k,
+                &KbContextKey(key.clone(), k.into()),
                 || None,
                 |_| Some(ScriptResultKind::ContainsExcludedKey(k.into())),
                 |_| None,
@@ -164,13 +156,15 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         }
 
         let check_port = |pt: Protocol, port: &str| {
-            let kbk = generate_port_kb_key(pt, port);
+            let kbk = match pt {
+                Protocol::UDP => KbKey::Port(kb::Port::Udp(port.to_string())),
+                Protocol::TCP => KbKey::Port(kb::Port::Tcp(port.to_string())),
+            };
             self.check_key(
-                &key,
-                &kbk,
+                &KbContextKey(key.clone(), kbk),
                 || Some(ScriptResultKind::MissingPort(pt, port.to_string())),
-                |v| {
-                    if v.into() {
+                |mut v| {
+                    if !v.is_empty() && v.pop().unwrap().into() {
                         None
                     } else {
                         Some(ScriptResultKind::MissingPort(pt, port.to_string()))
@@ -190,11 +184,19 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
     }
 
     // TODO: probably better to enhance ContextKey::Scan to contain target and scan_id?
-    fn generate_key(&self) -> ContextKey {
-        ContextKey::Scan(self.scan_id.clone(), Some(self.target.clone()))
+    fn generate_key(&self) -> KbContext {
+        (
+            crate::storage::ScanID(self.scan_id.clone()),
+            crate::storage::Target(self.target.clone()),
+        )
     }
 
-    async fn get_result_kind(&self, code: Code, register: Register) -> ScriptResultKind {
+    async fn get_result_kind(
+        &self,
+        filename: PathBuf,
+        code: Code,
+        register: Register,
+    ) -> ScriptResultKind {
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
@@ -202,10 +204,10 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
         target.set_target(self.target.clone());
 
         let context = Context::new(
-            self.generate_key(),
+            crate::storage::ScanID(self.scan_id.clone()),
             target,
-            self.storage.as_dispatcher(),
-            self.storage.as_retriever(),
+            filename,
+            self.storage,
             self.loader,
             self.executor,
         );
@@ -231,7 +233,9 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = self.get_result_kind(code, register).await;
+        let kind = self
+            .get_result_kind(self.vt.filename.clone().into(), code, register)
+            .await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),
@@ -241,8 +245,4 @@ impl<'a, Stack: ScannerStack> VTRunner<'a, Stack> {
             target: self.target.clone(),
         })
     }
-}
-
-pub(crate) fn generate_port_kb_key(protocol: crate::models::Protocol, port: &str) -> String {
-    format!("Ports/{protocol}/{port}")
 }

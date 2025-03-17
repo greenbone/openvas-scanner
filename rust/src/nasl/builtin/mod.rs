@@ -26,15 +26,18 @@ mod sys;
 #[cfg(test)]
 mod tests;
 
+use std::path::PathBuf;
+
 pub use error::BuiltinError;
 pub use host::HostError;
 pub use knowledge_base::KBError;
 
 use crate::nasl::syntax::{Loader, NoOpLoader};
 use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
-use crate::storage::{ContextKey, DefaultDispatcher, Storage};
+use crate::storage::ScanID;
+use crate::storage::inmemory::InMemoryStorage;
 
-use super::utils::context::Target;
+use super::utils::context::{ContextStorage, Target};
 
 /// Creates a new Executor and adds all the functions to it.
 ///
@@ -110,12 +113,12 @@ pub struct ContextFactory<Loader, Storage> {
     pub functions: Executor,
 }
 
-impl Default for ContextFactory<NoOpLoader, DefaultDispatcher> {
+impl Default for ContextFactory<NoOpLoader, InMemoryStorage> {
     fn default() -> Self {
         Self {
             loader: NoOpLoader::default(),
             functions: nasl_std_functions(),
-            storage: DefaultDispatcher::default(),
+            storage: InMemoryStorage::default(),
         }
     }
 }
@@ -123,7 +126,7 @@ impl Default for ContextFactory<NoOpLoader, DefaultDispatcher> {
 impl<L, S> ContextFactory<L, S>
 where
     L: Loader,
-    S: Storage,
+    S: ContextStorage,
 {
     /// Creates a new ContextFactory with nasl_std_functions
     ///
@@ -143,18 +146,14 @@ where
     }
 
     /// Creates a new Context with the shared loader, logger and function register
-    pub fn build(&self, key: ContextKey) -> Context {
+    pub fn build(&self, scan_id: ScanID, target_string: &str, filename: PathBuf) -> Context {
         let mut target = Target::default();
-        target.set_target(match &key {
-            ContextKey::Scan(_, Some(target)) => target.clone(),
-            ContextKey::Scan(_, None) => String::default(),
-            ContextKey::FileName(target) => target.clone(),
-        });
+        target.set_target(target_string.to_string());
         Context::new(
-            key,
+            scan_id,
             target,
-            self.storage.as_dispatcher(),
-            self.storage.as_retriever(),
+            filename,
+            &self.storage,
             &self.loader,
             &self.functions,
         )

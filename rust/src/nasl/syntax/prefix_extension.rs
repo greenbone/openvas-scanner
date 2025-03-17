@@ -4,13 +4,14 @@
 
 //! Handles the prefix statement within Lexer
 use super::{
+    Statement,
     error::SyntaxError,
     grouping_extension::Grouping,
     keyword_extension::Keywords,
     lexer::{End, Lexer},
     operation::Operation,
     token::{Token, TokenKind},
-    Statement, {AssignOrder, StatementKind},
+    {AssignOrder, StatementKind},
 };
 
 use crate::{nasl::syntax::Ident, unclosed_token, unexpected_end, unexpected_token};

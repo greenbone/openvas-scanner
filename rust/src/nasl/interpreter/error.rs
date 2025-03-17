@@ -97,7 +97,9 @@ pub enum InterpretErrorKind {
     /// A script tried to fork in a way that caused
     /// forks to run into different branches of
     /// the original statement which caused the fork.
-    #[error("Invalid fork. The interpreter forked in a position which was not reached by the created forks.")]
+    #[error(
+        "Invalid fork. The interpreter forked in a position which was not reached by the created forks."
+    )]
     InvalidFork,
 }
 

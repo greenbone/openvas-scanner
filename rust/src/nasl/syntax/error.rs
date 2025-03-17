@@ -10,10 +10,10 @@ use thiserror::Error;
 
 use crate::nasl::{
     error::AsCodespanError,
-    syntax::{token::Token, Statement},
+    syntax::{Statement, token::Token},
 };
 
-use super::{tokenizer::TokenizerErrorKind, TokenizerError};
+use super::{TokenizerError, tokenizer::TokenizerErrorKind};
 
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 /// A list specifying general categories of Syntax error.

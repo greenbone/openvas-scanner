@@ -32,7 +32,9 @@ pub enum Error {
     #[error("The directory {0} is not readable: {1}")]
     UnreadableProductsDir(String, io::Error),
     /// There are no corresponding notus files for the given Operating System
-    #[error( "the File {0} was not found, that is either due to a typo or missing notus product for the corresponding OS")]
+    #[error(
+        "the File {0} was not found, that is either due to a typo or missing notus product for the corresponding OS"
+    )]
     UnknownProduct(String),
     /// General error while loading notus product
     #[error("Unable to load product from {0}: {1}")]
@@ -41,7 +43,9 @@ pub enum Error {
     #[error("unable to parse Notus file {0}. The corresponding parse error was: {1}")]
     JSONParseError(String, serde_json::Error),
     /// The version of the notus product file is not supported
-    #[error( "the version of the parsed product file {0} is {1}. This version is currently not supported, the version {2} is required")]
+    #[error(
+        "the version of the parsed product file {0} is {1}. This version is currently not supported, the version {2} is required"
+    )]
     UnsupportedVersion(String, String, String),
     /// Unable to parse a given package
     #[error("Unable to parse the given package {0}")]

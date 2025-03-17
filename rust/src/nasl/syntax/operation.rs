@@ -4,8 +4,8 @@
 
 //! Defines Operations used in Lexer to be transformed to Statements.
 use super::{
-    token::{Keyword, Token, TokenKind},
     Ident,
+    token::{Keyword, Token, TokenKind},
 };
 
 /// Is defining different OPerations to control the infix, postfix or infix handling.

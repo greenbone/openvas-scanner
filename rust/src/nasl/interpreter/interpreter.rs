@@ -1,13 +1,13 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
+    Code, Context, ContextType, Register,
     interpreter::{
-        declare::{DeclareFunctionExtension, DeclareVariableExtension},
         InterpretError,
+        declare::{DeclareFunctionExtension, DeclareVariableExtension},
     },
     prelude::NaslValue,
     syntax::{Ast, Declaration, Keyword, Statement, StatementKind, Token, TokenKind},
-    Code, Context, ContextType, Register,
 };
 
 use super::InterpretErrorKind;
@@ -263,7 +263,7 @@ impl<'ctx> Interpreter<'ctx> {
 
     async fn resolve_decl(&mut self, decl: &Declaration) -> InterpretResult {
         match decl {
-            Declaration::Statement(ref statement) => self.resolve(statement).await,
+            Declaration::Statement(statement) => self.resolve(statement).await,
         }
     }
 

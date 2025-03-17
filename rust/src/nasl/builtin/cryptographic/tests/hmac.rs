@@ -46,10 +46,16 @@ fn hmac_sha256() {
 
 #[test]
 fn hmac_sha384() {
-    check_code_result(r#"HMAC_SHA384(key: "my_shared?key", data: "so much wow");"#, "fce1f12094a52a4654c4a0f7086a470e74096fa200187a79f770384e33dd9f1a224b7bd86f6ced2dd1be6d922f8418b2");
+    check_code_result(
+        r#"HMAC_SHA384(key: "my_shared?key", data: "so much wow");"#,
+        "fce1f12094a52a4654c4a0f7086a470e74096fa200187a79f770384e33dd9f1a224b7bd86f6ced2dd1be6d922f8418b2",
+    );
 }
 
 #[test]
 fn hmac_sha512() {
-    check_code_result(r#"HMAC_SHA512(key: "my_shared?key", data: "so much wow");"#, "7e251167d67f7f29fc978048d338f6ebe0d8bb5213f5ccacca50359b3435df19e60fa709241b98b0ed9e1aeb994df6f900c5fa87201c3fc971b0120968c96cb3");
+    check_code_result(
+        r#"HMAC_SHA512(key: "my_shared?key", data: "so much wow");"#,
+        "7e251167d67f7f29fc978048d338f6ebe0d8bb5213f5ccacca50359b3435df19e60fa709241b98b0ed9e1aeb994df6f900c5fa87201c3fc971b0120968c96cb3",
+    );
 }

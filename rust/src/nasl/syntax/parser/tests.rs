@@ -1,12 +1,11 @@
 use codespan_reporting::files::SimpleFile;
 
 use crate::nasl::{
-    error,
-    syntax::{parser::grammar::Expr, Tokenizer},
-    Code,
+    Code, error,
+    syntax::{Tokenizer, parser::grammar::Expr},
 };
 
-use super::{error::ParseError, grammar::Declaration, Parse, Parser};
+use super::{Parse, Parser, error::ParseError, grammar::Declaration};
 
 // TODO incorporate into `Code` eventually.
 fn parse<T: Parse>(file_name: &str, code: &str) -> Result<<T as Parse>::Output, ParseError> {

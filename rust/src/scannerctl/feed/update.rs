@@ -4,17 +4,16 @@
 
 use std::path::PathBuf;
 
-use scannerlib::storage::Dispatcher;
 use scannerlib::{
     feed,
-    nasl::{syntax::LoadError, FSPluginLoader},
+    nasl::{FSPluginLoader, syntax::LoadError, utils::context::ContextStorage},
 };
 
 use crate::{CliError, CliErrorKind};
 
 pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher,
+    S: ContextStorage,
 {
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path
@@ -25,7 +24,7 @@ where
 
     if signature_check {
         match updater.verify_signature() {
-            Ok(_) => tracing::info!("Signature check succsessful"),
+            Ok(_) => tracing::info!("Signature check successful"),
             Err(feed::VerifyError::MissingKeyring) => {
                 tracing::warn!("Signature check enabled but missing keyring");
                 return Err(feed::VerifyError::MissingKeyring.into());

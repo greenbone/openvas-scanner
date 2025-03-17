@@ -16,7 +16,6 @@ mod prefix_extension;
 mod token;
 mod tokenizer;
 
-pub use crate::storage::item::ACT;
 pub use error::{ErrorKind, SyntaxError};
 pub use grammar::Ast;
 pub use grammar::{AssignOrder, Declaration, Statement, StatementKind};

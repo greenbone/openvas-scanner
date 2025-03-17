@@ -7,10 +7,10 @@ mod tests {
     use std::{collections::HashMap, string::String};
 
     use crate::nasl::test_utils::TestBuilder;
-    use crate::nasl::{syntax::LoadError, Loader};
+    use crate::nasl::{Loader, syntax::LoadError};
 
     use crate::nasl::{nasl_std_functions, prelude::*};
-    use crate::storage::DefaultDispatcher;
+    use crate::storage::inmemory::InMemoryStorage;
 
     struct FakeInclude {
         plugins: HashMap<String, String>,
@@ -49,7 +49,7 @@ mod tests {
         let context = ContextFactory {
             loader,
             functions: nasl_std_functions(),
-            storage: DefaultDispatcher::default(),
+            storage: InMemoryStorage::default(),
         };
         let mut t = t.with_context(context);
         t.run_all(code);

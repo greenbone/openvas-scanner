@@ -16,9 +16,9 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use pcap::{Active, Capture, Inactive, PacketCodec, PacketStream};
 use pnet::packet::{
-    icmp::{IcmpCode, IcmpTypes, MutableIcmpPacket, *},
-    ipv4::{checksum, Ipv4Packet, MutableIpv4Packet},
     Packet,
+    icmp::{IcmpCode, IcmpTypes, MutableIcmpPacket, *},
+    ipv4::{Ipv4Packet, MutableIpv4Packet, checksum},
 };
 
 use socket2::{Domain, Protocol, Socket};

@@ -7,7 +7,7 @@ use cmac::{Cmac, Mac};
 
 use crate::nasl::prelude::*;
 
-use super::{get_data, get_key, CryptographicError};
+use super::{CryptographicError, get_data, get_key};
 
 /// NASL function to calculate CMAC wit AES128.
 ///

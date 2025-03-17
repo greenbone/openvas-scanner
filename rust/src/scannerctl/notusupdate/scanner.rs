@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg, value_parser};
 use scannerlib::notus::{FSProductLoader, Notus};
 
 use crate::CliError;

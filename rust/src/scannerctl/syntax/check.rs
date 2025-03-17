@@ -5,8 +5,8 @@
 use std::path::{Path, PathBuf};
 
 use scannerlib::nasl::{
-    syntax::{load_non_utf8_path, Declaration, LoadError},
     Code, Loader,
+    syntax::{Declaration, LoadError, load_non_utf8_path},
 };
 use walkdir::WalkDir;
 

@@ -8,12 +8,12 @@
 
 use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
-use super::{context::Context, ClientIdentifier};
+use super::{ClientIdentifier, context::Context};
 
 use http::StatusCode;
 use hyper::{Method, Request};
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
-use scannerlib::models::{scanner::*, Action, Phase, Scan, ScanAction};
+use scannerlib::models::{Action, Phase, Scan, ScanAction, scanner::*};
 use scannerlib::notus::NotusError;
 
 use crate::{
@@ -197,35 +197,33 @@ where
             }
             let cid: Option<ClientHash> = {
                 match &*cid {
-                    ClientIdentifier::Disabled => {
-                        if let Some(key) = ctx.api_key.as_ref() {
-                            match req.headers().get("x-api-key") {
-                                Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
-                                Some(v) => {
-                                    tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
-                                    None
-                                }
-                                None => None,
+                    ClientIdentifier::Disabled => match ctx.api_key.as_ref() {
+                        Some(key) => match req.headers().get("x-api-key") {
+                            Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
+                            Some(v) => {
+                                tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
+                                None
                             }
-                        } else {
-                            Some("disabled".into())
-                        }
-                    }
+                            None => None,
+                        },
+                        _ => Some("disabled".into()),
+                    },
                     ClientIdentifier::Known(cid) => Some(cid.clone()),
                     ClientIdentifier::Unknown => {
-                        if let Some(key) = ctx.api_key.as_ref() {
-                            match req.headers().get("x-api-key") {
+                        match ctx.api_key.as_ref() {
+                            Some(key) => match req.headers().get("x-api-key") {
                                 Some(v) if v == key => ctx.api_key.as_ref().map(|x| x.into()),
                                 Some(v) => {
                                     tracing::debug!("{} {} invalid key: {:?}", req.method(), kp, v);
                                     None
                                 }
                                 None => None,
+                            },
+                            _ => {
+                                // We don't allow no api key and no client certs when we have a server
+                                // certificate to prevent accidental misconfiguration.
+                                None
                             }
-                        } else {
-                            // We don't allow no api key and no client certs when we have a server
-                            // certificate to prevent accidental misconfiguration.
-                            None
                         }
                     }
                 }
@@ -469,12 +467,15 @@ where
 pub mod client {
     use std::sync::Arc;
 
+    use async_trait::async_trait;
     use http::StatusCode;
     use http_body_util::{BodyExt, Empty, Full};
     use hyper::{
-        body::Bytes, header::HeaderValue, service::HttpService, HeaderMap, Method, Request,
+        HeaderMap, Method, Request, body::Bytes, header::HeaderValue, service::HttpService,
     };
-    use scannerlib::models::scanner::{self, Scanner};
+    use scannerlib::models::scanner::{
+        self, Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, Scanner,
+    };
     use scannerlib::models::{self, Action, Scan, ScanAction, Status};
     use scannerlib::nasl::FSPluginLoader;
     use scannerlib::storage::infisto::{
@@ -483,12 +484,167 @@ pub mod client {
     use serde::Deserialize;
 
     use crate::storage::inmemory;
+    use crate::storage::results::ResultCatcher;
     use crate::{
         controller::{ClientIdentifier, Context},
-        storage::{file::Storage, NVTStorer, UserNASLStorageForKBandVT},
+        storage::{NVTStorer, file::Storage},
     };
 
     use super::KnownPaths;
+
+    type StartScan = Arc<Box<dyn Fn(Scan) -> Result<(), Error> + Send + Sync + 'static>>;
+    type CanStartScan = Arc<Box<dyn Fn(&Scan) -> bool + Send + Sync + 'static>>;
+    type StopScan = Arc<Box<dyn Fn(&str) -> Result<(), Error> + Send + Sync + 'static>>;
+    type DeleteScan = Arc<Box<dyn Fn(&str) -> Result<(), Error> + Send + Sync + 'static>>;
+    type FetchResults =
+        Arc<Box<dyn Fn(&str) -> Result<ScanResults, Error> + Send + Sync + 'static>>;
+
+    /// A fake implementation of the ScannerStack trait.
+    ///
+    /// This is useful for testing the Scanner implementation.
+    pub struct LambdaScannerBuilder {
+        start_scan: StartScan,
+        can_start_scan: CanStartScan,
+        stop_scan: StopScan,
+        delete_scan: DeleteScan,
+        fetch_results: FetchResults,
+    }
+
+    impl Default for LambdaScannerBuilder {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl LambdaScannerBuilder {
+        pub fn new() -> Self {
+            Self {
+                start_scan: Arc::new(Box::new(|_| Ok(()))),
+                can_start_scan: Arc::new(Box::new(|_| true)),
+                stop_scan: Arc::new(Box::new(|_| Ok(()))),
+                delete_scan: Arc::new(Box::new(|_| Ok(()))),
+                fetch_results: Arc::new(Box::new(|_| Ok(ScanResults::default()))),
+            }
+        }
+
+        pub fn with_start_scan<F>(mut self, f: F) -> Self
+        where
+            F: Fn(Scan) -> Result<(), Error> + Send + Sync + 'static,
+        {
+            self.start_scan = Arc::new(Box::new(f));
+            self
+        }
+
+        pub fn with_can_start_scan<F>(mut self, f: F) -> Self
+        where
+            F: Fn(&Scan) -> bool + Send + Sync + 'static,
+        {
+            self.can_start_scan = Arc::new(Box::new(f));
+            self
+        }
+
+        pub fn with_stop_scan<F>(mut self, f: F) -> Self
+        where
+            F: Fn(&str) -> Result<(), Error> + Send + Sync + 'static,
+        {
+            self.stop_scan = Arc::new(Box::new(f));
+            self
+        }
+
+        pub fn with_delete_scan<F>(mut self, f: F) -> Self
+        where
+            F: Fn(&str) -> Result<(), Error> + Send + Sync + 'static,
+        {
+            self.delete_scan = Arc::new(Box::new(f));
+            self
+        }
+
+        pub fn with_fetch_results<F>(mut self, f: F) -> Self
+        where
+            F: Fn(&str) -> Result<super::ScanResults, Error> + Send + Sync + 'static,
+        {
+            self.fetch_results = Arc::new(Box::new(f));
+            self
+        }
+
+        pub fn build(self) -> LambdaScanner {
+            LambdaScanner {
+                start_scan: self.start_scan,
+                can_start_scan: self.can_start_scan,
+                stop_scan: self.stop_scan,
+                delete_scan: self.delete_scan,
+                fetch_results: self.fetch_results,
+            }
+        }
+    }
+
+    pub struct LambdaScanner {
+        start_scan: StartScan,
+        can_start_scan: CanStartScan,
+        stop_scan: StopScan,
+        delete_scan: DeleteScan,
+        fetch_results: FetchResults,
+    }
+
+    #[async_trait]
+    impl ScanStarter for LambdaScanner {
+        async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
+            let start_scan = self.start_scan.clone();
+            tokio::task::spawn_blocking(move || (start_scan)(scan))
+                .await
+                .unwrap()
+        }
+
+        async fn can_start_scan(&self, scan: &Scan) -> bool {
+            let can_start_scan = self.can_start_scan.clone();
+            let scan = scan.clone();
+            tokio::task::spawn_blocking(move || (can_start_scan)(&scan))
+                .await
+                .unwrap()
+        }
+    }
+
+    #[async_trait]
+    impl ScanStopper for LambdaScanner {
+        async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
+        where
+            I: AsRef<str> + Send + 'static,
+        {
+            let stop_scan = self.stop_scan.clone();
+            let id = id.as_ref().to_string();
+            tokio::task::spawn_blocking(move || (stop_scan)(&id))
+                .await
+                .unwrap()
+        }
+    }
+
+    #[async_trait]
+    impl ScanDeleter for LambdaScanner {
+        async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
+        where
+            I: AsRef<str> + Send + 'static,
+        {
+            let delete_scan = self.delete_scan.clone();
+            let id = id.as_ref().to_string();
+            tokio::task::spawn_blocking(move || (delete_scan)(&id))
+                .await
+                .unwrap()
+        }
+    }
+
+    #[async_trait]
+    impl ScanResultFetcher for LambdaScanner {
+        async fn fetch_results<I>(&self, id: I) -> Result<super::ScanResults, Error>
+        where
+            I: AsRef<str> + Send + 'static,
+        {
+            let fetch_results = self.fetch_results.clone();
+            let id = id.as_ref().to_string();
+            tokio::task::spawn_blocking(move || (fetch_results)(&id))
+                .await
+                .unwrap()
+        }
+    }
 
     type HttpResult = Result<crate::response::Result, scanner::Error>;
     type TypeResult<T> = Result<T, scanner::Error>;
@@ -500,19 +656,15 @@ pub mod client {
 
     pub async fn in_memory_example_feed() -> Client<
         scannerlib::scanner::Scanner<(
-            Arc<
-                UserNASLStorageForKBandVT<
-                    crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>,
-                >,
-            >,
+            Arc<ResultCatcher<crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
             FSPluginLoader,
         )>,
-        Arc<UserNASLStorageForKBandVT<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
+        Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage = crate::storage::inmemory::Storage::default();
 
-        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(ResultCatcher::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
@@ -526,10 +678,10 @@ pub mod client {
         prefix: &str,
     ) -> Client<
         scannerlib::scanner::Scanner<(
-            Arc<UserNASLStorageForKBandVT<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
+            Arc<ResultCatcher<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
             FSPluginLoader,
         )>,
-        Arc<UserNASLStorageForKBandVT<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
+        Arc<ResultCatcher<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
     > {
         use crate::file::tests::{example_feeds, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
@@ -538,7 +690,7 @@ pub mod client {
         let feeds = example_feeds().await;
         let storage = crate::storage::file::encrypted(&storage_dir, key, feeds).unwrap();
 
-        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(ResultCatcher::new(storage));
 
         storage
             .synchronize_feeds(example_feeds().await)
@@ -549,19 +701,18 @@ pub mod client {
         Client::authenticated(scanner, storage)
     }
 
-    pub async fn fails_to_fetch_results() -> Client<
-        scannerlib::scanner::fake::LambdaScanner,
-        Arc<UserNASLStorageForKBandVT<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
-    > {
+    pub async fn fails_to_fetch_results()
+    -> Client<LambdaScanner, Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>>
+    {
         use crate::file::tests::example_feeds;
         let storage = crate::storage::inmemory::Storage::default();
-        let storage = Arc::new(UserNASLStorageForKBandVT::new(storage));
+        let storage = Arc::new(ResultCatcher::new(storage));
         storage
             .synchronize_feeds(example_feeds().await)
             .await
             .unwrap();
 
-        let scanner = scannerlib::scanner::fake::LambdaScannerBuilder::new()
+        let scanner = LambdaScannerBuilder::new()
             .with_fetch_results(|_| Err(scanner::Error::Unexpected("no results".to_string())))
             .build();
         Client::authenticated(scanner, storage)
@@ -571,15 +722,15 @@ pub mod client {
         prefix: &str,
     ) -> Client<
         scannerlib::scanner::Scanner<(
-            Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
+            Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
             FSPluginLoader,
         )>,
-        Arc<UserNASLStorageForKBandVT<Storage<CachedIndexFileStorer>>>,
+        Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
     > {
         use crate::file::tests::{example_feed_file_storage, nasl_root};
         let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
         let store = example_feed_file_storage(&storage_dir).await;
-        let store = Arc::new(UserNASLStorageForKBandVT::new(store));
+        let store = Arc::new(ResultCatcher::new(store));
         let nasl_feed_path = nasl_root().await;
         let scanner = scannerlib::scanner::Scanner::with_storage(store.clone(), &nasl_feed_path);
         Client::authenticated(scanner, store)

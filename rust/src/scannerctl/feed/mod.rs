@@ -3,28 +3,23 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 pub mod update;
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::{io, path::PathBuf};
 
-use clap::{arg, value_parser, ArgAction, Command};
+use clap::{ArgAction, Command, arg, value_parser};
 // re-export to work around name conflict
 
 use scannerlib::{
     nasl::syntax::LoadError,
     storage::{
-        json::{ArrayWrapper, ItemDispatcher},
-        redis::{
-            CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
-        },
+        error::StorageError,
+        infisto::json::{ArrayWrapper, JsonStorage},
+        redis::{FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, RedisStorage},
     },
 };
 
 // use scannerlib::feed::{FeedReplacer, ReplaceCommand};
-use scannerlib::storage::{item::PerItemDispatcher, StorageError};
 
-use crate::{get_path_from_openvas, notusupdate, read_openvas_config, CliError, CliErrorKind};
+use crate::{CliError, CliErrorKind, get_path_from_openvas, notusupdate, read_openvas_config};
 
 pub fn extend_args(cmd: Command) -> Command {
     cmd.subcommand(
@@ -58,27 +53,19 @@ pub fn extend_args(cmd: Command) -> Command {
         ))
 }
 
-fn get_dispatcher(
-    redis: &str,
-    path: &Path,
-    selector: &[NameSpaceSelector],
-) -> Result<PerItemDispatcher<CacheDispatcher<RedisCtx>>, CliError> {
-    CacheDispatcher::as_dispatcher(redis, selector)
-        .map_err(StorageError::from)
-        .map_err(|e| CliError {
-            kind: e.into(),
-            filename: format!("{path:?}"),
-        })
-}
-
 pub async fn update_vts(
     redis: &str,
     signature_check: bool,
     args: &clap::ArgMatches,
 ) -> Result<(), CliError> {
     let path = get_vts_path("vts-path", args);
-    let dispatcher = get_dispatcher(redis, &path, FEEDUPDATE_SELECTOR)?;
-    update::run(dispatcher, path, signature_check).await
+    let redis_storage = RedisStorage::init(redis, FEEDUPDATE_SELECTOR)
+        .map_err(StorageError::from)
+        .map_err(|e| CliError {
+            filename: format!("{path:?}"),
+            kind: e.into(),
+        })?;
+    update::run(redis_storage, path, signature_check).await
 }
 
 pub async fn update_notus(
@@ -98,7 +85,12 @@ pub async fn update_notus(
         }
     };
 
-    let dispatcher = get_dispatcher(redis, &path, NOTUSUPDATE_SELECTOR)?;
+    let dispatcher = RedisStorage::init(redis, NOTUSUPDATE_SELECTOR)
+        .map_err(StorageError::from)
+        .map_err(|e| CliError {
+            filename: format!("{path:?}"),
+            kind: e.into(),
+        })?;
     notusupdate::update::run(dispatcher, path, signature_check)
 }
 
@@ -163,7 +155,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
             let path = get_vts_path("path", args);
 
             let mut o = ArrayWrapper::new(io::stdout());
-            let dispatcher = ItemDispatcher::as_dispatcher(&mut o);
+            let dispatcher = JsonStorage::new(&mut o);
             Some(match update::run(dispatcher, path, false).await {
                 Ok(_) => o.end().map_err(StorageError::from).map_err(|se| CliError {
                     filename: "".to_string(),

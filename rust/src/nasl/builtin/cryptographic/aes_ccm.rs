@@ -5,15 +5,15 @@
 use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser};
 use aes::{Aes128, Aes192, Aes256};
 use ccm::{
-    aead::{Aead, Error as aError, Payload},
-    consts::{U10, U11, U12, U13, U14, U16, U4, U6, U7, U8, U9},
     Ccm, KeyInit, NonceSize, TagSize,
+    aead::{Aead, Error as aError, Payload},
+    consts::{U4, U6, U7, U8, U9, U10, U11, U12, U13, U14, U16},
 };
 use digest::generic_array::ArrayLength;
 
 use crate::nasl::prelude::*;
 
-use super::{get_aad, get_data, get_iv, get_key, get_len, Crypt, CryptographicError};
+use super::{Crypt, CryptographicError, get_aad, get_data, get_iv, get_key, get_len};
 
 /// Core function to en- and decrypt data. Throws error in case of failure.
 fn ccm_crypt<D, M, N>(

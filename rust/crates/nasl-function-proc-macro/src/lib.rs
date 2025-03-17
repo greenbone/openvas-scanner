@@ -75,7 +75,7 @@ mod utils;
 
 use error::Result;
 use proc_macro2::TokenStream;
-use syn::{parse_macro_input, ItemFn};
+use syn::{ItemFn, parse_macro_input};
 use types::{ArgsStruct, Attrs};
 
 #[proc_macro_attribute]

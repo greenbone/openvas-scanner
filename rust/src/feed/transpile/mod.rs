@@ -167,14 +167,24 @@ impl FunctionNameMatcher<'_> {
             StatementKind::Exit(..) => self.name.map(|x| x == "exit").unwrap_or(true),
             StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
             StatementKind::Call(..) => {
-                if let TokenKind::Ident(Ident(ref x)) = s.start().kind() {
+==== BASE ====
+                if let crate::nasl::syntax::TokenCategory::Identifier(
+                    crate::nasl::syntax::IdentifierType::Undefined(ref x),
+                ) = s.start().category()
+                {
+==== BASE ====
                     self.name.map(|y| x == y).unwrap_or(true)
                 } else {
                     false
                 }
             }
             StatementKind::FunctionDeclaration(id, ..) => {
-                if let TokenKind::Ident(Ident(ref x)) = id.kind() {
+==== BASE ====
+                if let crate::nasl::syntax::TokenCategory::Identifier(
+                    crate::nasl::syntax::IdentifierType::Undefined(ref x),
+                ) = id.category()
+                {
+==== BASE ====
                     self.name.map(|y| x == y).unwrap_or(true)
                 } else {
                     false

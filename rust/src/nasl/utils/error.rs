@@ -6,8 +6,7 @@ use thiserror::Error;
 
 use crate::nasl::builtin::BuiltinError;
 use crate::nasl::prelude::NaslValue;
-
-use crate::storage::StorageError;
+use crate::storage::error::StorageError;
 
 #[derive(Debug, Error)]
 #[error("{kind}")]

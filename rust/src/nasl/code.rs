@@ -6,8 +6,8 @@ use std::{
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    syntax::{Ast, Declaration, Lexer, LoadError, SyntaxError, Tokenizer},
     Loader,
+    syntax::{Ast, Declaration, Lexer, LoadError, SyntaxError, Tokenizer},
 };
 
 fn parse(code: &str) -> Result<Ast, Vec<SyntaxError>> {

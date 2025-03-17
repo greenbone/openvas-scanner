@@ -1,6 +1,6 @@
-use futures::{stream, Stream};
+use futures::{Stream, stream};
 
-use crate::nasl::{syntax::Ast, Context, Register};
+use crate::nasl::{Context, Register, syntax::Ast};
 
 use super::{interpreter::InterpretResult, interpreter::Interpreter};
 
@@ -33,7 +33,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         }))
     }
 
-    pub fn iter_blocking(self) -> impl Iterator<Item = InterpretResult> {
+    pub fn iter_blocking(self) -> impl Iterator<Item = InterpretResult> + use<> {
         use futures::StreamExt;
 
         futures::executor::block_on(async { self.stream().collect::<Vec<_>>().await.into_iter() })

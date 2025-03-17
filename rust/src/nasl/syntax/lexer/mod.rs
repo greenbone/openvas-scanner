@@ -9,11 +9,11 @@ pub mod tests;
 use std::ops::Not;
 
 use super::{
+    AssignOrder, Declaration, Statement, StatementKind,
     error::SyntaxError,
     operation::Operation,
     prefix_extension::Prefix,
     token::{Token, TokenKind},
-    AssignOrder, Declaration, Statement, StatementKind,
 };
 
 use crate::{max_recursion, unexpected_statement, unexpected_token};

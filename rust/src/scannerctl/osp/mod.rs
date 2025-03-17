@@ -5,15 +5,14 @@
 use std::io::BufRead;
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use clap::{arg, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, arg, value_parser};
 use scannerlib::models::{self, Parameter, Scan, VT};
-use scannerlib::storage::{self, DefaultDispatcher, StorageError};
+use scannerlib::storage::Retriever;
+use scannerlib::storage::inmemory::InMemoryStorage;
+use scannerlib::storage::items::nvt::{Feed, Nvt};
 use start_scan::{StartScan, VtSelection};
 
 use crate::{CliError, CliErrorKind};
-use scannerlib::storage::item::{NVTField, NVTKey};
-use scannerlib::storage::Field;
-use scannerlib::storage::Retrieve;
 mod start_scan;
 
 pub fn extend_args(cmd: Command) -> Command {
@@ -44,21 +43,21 @@ pub async fn may_transform_start_scan<R, S>(
 ) -> Option<Result<String, CliErrorKind>>
 where
     R: BufRead,
-    S: storage::Retriever,
+    S: Retriever<Feed, Item = Vec<Nvt>>,
 {
     match quick_xml::de::from_reader(reader) {
         Ok(x) if print_back => Some(Ok(format!("{x}"))),
         Ok(x) if feed.is_some() => Some(transform_start_scan(feed.unwrap(), x).await),
-        Ok(_) => Some(Err(CliErrorKind::MissingArguments(
-            vec!["path".to_string()],
-        ))),
+        Ok(_) => Some(Err(CliErrorKind::MissingArguments(vec![
+            "path".to_string(),
+        ]))),
         Err(_) => None,
     }
 }
 
 async fn transform_vts<S>(feed: S, vts: VtSelection) -> Result<Vec<models::VT>, CliErrorKind>
 where
-    S: storage::Retriever,
+    S: Retriever<Feed, Item = Vec<Nvt>>,
 {
     let mut result: Vec<_> = vts
         .vt_single
@@ -87,26 +86,23 @@ where
 
     // we iterate here to return an error when storage is behaving in an unexpected fashion
     for family in gvts {
-        let fvts: Vec<VT> = match feed.retry_retrieve_by_field(
-            Field::NVT(NVTField::Family(family.to_string())),
-            Retrieve::NVT(Some(NVTKey::Oid)),
-            5,
-        ) {
-            Ok(x) => x
-                .flat_map(|(_, f)| match &f {
-                    Field::NVT(NVTField::Oid(oid)) => Some(VT {
-                        oid: oid.clone(),
+        // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
+        // feed, the result will be an empty vector.
+        let vts = feed.retry_retrieve(&Feed, 5)?.unwrap();
+        let fvts: Vec<VT> = vts
+            .into_iter()
+            .filter_map(|x| {
+                if x.family == family {
+                    Some(VT {
+                        oid: x.oid.clone(),
                         ..Default::default()
-                    }),
-                    _ => None,
-                })
-                .collect(),
-            Err(StorageError::NotFound(_)) => {
-                tracing::debug!(family, "not found");
-                Vec::new()
-            }
-            Err(e) => return Err(e.into()),
-        };
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
         result.extend(fvts);
     }
     result.sort();
@@ -115,7 +111,7 @@ where
 
 async fn transform_start_scan<S>(feed: S, sc: StartScan) -> Result<String, CliErrorKind>
 where
-    S: storage::Retriever,
+    S: Retriever<Feed, Item = Vec<Nvt>>,
 {
     // currently we ignore the previous order as the scanner will reorder
     // when scheduling internally anyway.
@@ -138,7 +134,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
     let feed = match args.get_one::<PathBuf>("path") {
         Some(feed) => {
             tracing::info!("loading feed. This may take a while.");
-            let storage = Arc::new(DefaultDispatcher::new());
+            let storage = Arc::new(InMemoryStorage::new());
             crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false)
                 .await
                 .unwrap();
@@ -185,8 +181,7 @@ pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
 mod tests {
     use std::io::Cursor;
 
-    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field};
-    use storage::Dispatcher;
+    use scannerlib::storage::{Dispatcher, inmemory::InMemoryStorage, items::nvt::FileName};
 
     use super::*;
 
@@ -229,14 +224,15 @@ mod tests {
 </start_scan>
     "#;
         let reader = BufReader::new(Cursor::new(input));
-        let d = DefaultDispatcher::new();
+        let d = InMemoryStorage::new();
         let dispatch = |k: &str, f: &str| {
-            let key = ContextKey::FileName(format!("{k}.nasl"));
-            d.dispatch(&key, Field::NVT(NVTField::Family(f.into())))
-                .unwrap();
-
-            d.dispatch(&key, Field::NVT(NVTField::Oid(k.into())))
-                .unwrap();
+            let key = FileName(format!("{k}.nasl"));
+            let nvt = Nvt {
+                oid: k.into(),
+                family: f.into(),
+                ..Default::default()
+            };
+            d.dispatch(key, nvt).unwrap();
         };
         dispatch("0", "A");
         dispatch("1", "A");
@@ -289,7 +285,7 @@ mod tests {
 </start_scan>
     "#;
         let reader = BufReader::new(Cursor::new(input));
-        let output = may_transform_start_scan::<_, DefaultDispatcher>(true, None, reader)
+        let output = may_transform_start_scan::<_, InMemoryStorage>(true, None, reader)
             .await
             .unwrap()
             .unwrap();

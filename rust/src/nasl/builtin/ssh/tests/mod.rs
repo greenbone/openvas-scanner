@@ -15,12 +15,12 @@ use server::AuthConfig;
 use server::TestServer;
 
 use crate::check_err_matches;
+use crate::nasl::NoOpLoader;
+use crate::nasl::builtin::ssh::SshError;
 use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::builtin::ssh::sessions::MIN_SESSION_ID;
-use crate::nasl::builtin::ssh::SshError;
 use crate::nasl::test_prelude::*;
-use crate::nasl::NoOpLoader;
-use crate::storage::DefaultDispatcher;
+use crate::storage::inmemory::InMemoryStorage;
 
 use once_cell::sync::Lazy;
 
@@ -39,7 +39,7 @@ fn default_config() -> ServerConfig {
 }
 
 async fn run_test(
-    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) + Send + Sync + 'static,
+    f: impl Fn(&mut TestBuilder<NoOpLoader, InMemoryStorage>) + Send + Sync + 'static,
     config: ServerConfig,
 ) {
     // Acquire the global lock to prevent multiple
@@ -62,7 +62,7 @@ async fn run_test(
 
 #[tokio::main]
 async fn run_client(
-    f: impl Fn(&mut TestBuilder<NoOpLoader, DefaultDispatcher>) + Send + Sync + 'static,
+    f: impl Fn(&mut TestBuilder<NoOpLoader, InMemoryStorage>) + Send + Sync + 'static,
 ) {
     std::thread::sleep(Duration::from_millis(100));
     let mut t = TestBuilder::default();

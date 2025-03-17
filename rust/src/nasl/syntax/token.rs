@@ -5,7 +5,7 @@
 //! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use std::{fmt::Display, net::Ipv4Addr};
 
-use crate::{nasl::interpreter::InterpretError, storage::item::ACT};
+use crate::{nasl::interpreter::InterpretError, storage::items::nvt::ACT};
 
 /// A reserved NASL keyword.
 #[derive(Clone, Debug, PartialEq, Eq)]

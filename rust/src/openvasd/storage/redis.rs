@@ -7,13 +7,15 @@ use std::{path::PathBuf, sync::Arc};
 use async_trait::async_trait;
 use scannerlib::models::{self, Scan, Status, VulnerabilityData};
 use scannerlib::nasl::FSPluginLoader;
-use scannerlib::storage::item::Nvt;
+use scannerlib::storage::Dispatcher;
+use scannerlib::storage::error::StorageError;
+use scannerlib::storage::inmemory::InMemoryStorage;
+use scannerlib::storage::items::notus_advisory::NotusCache;
+use scannerlib::storage::items::nvt::Nvt;
 use scannerlib::storage::redis::{
-    self, CacheDispatcher, RedisCtx, RedisGetNvt, RedisWrapper, FEEDUPDATE_SELECTOR,
-    NOTUSUPDATE_SELECTOR,
+    self, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, RedisCtx, RedisGetNvt, RedisStorage,
+    RedisWrapper,
 };
-use scannerlib::storage::{item::PerItemDispatcher, Dispatcher, Field};
-use scannerlib::storage::{ContextKey, DefaultDispatcher, StorageError};
 use scannerlib::{
     feed,
     notus::{AdvisoryLoader, HashsumAdvisoryLoader},
@@ -51,9 +53,7 @@ impl<T> Storage<T> {
             let loader = FSPluginLoader::new(notus_feed_path);
             let advisories_files = HashsumAdvisoryLoader::new(loader.clone())?;
 
-            let redis_cache: CacheDispatcher<RedisCtx> =
-                CacheDispatcher::init(&url, NOTUSUPDATE_SELECTOR)?;
-            let store = PerItemDispatcher::new(redis_cache);
+            let store = RedisStorage::init(&url, NOTUSUPDATE_SELECTOR)?;
             for filename in advisories_files.get_advisories()?.iter() {
                 let advisories = advisories_files.load_advisory(filename)?;
 
@@ -63,13 +63,10 @@ impl<T> Storage<T> {
                         family: advisories.family.clone(),
                         filename: filename.to_owned(),
                     };
-                    store.dispatch(
-                        &Default::default(),
-                        Field::NotusAdvisory(Box::new(Some(data))),
-                    )?;
+                    store.dispatch((), data)?;
                 }
             }
-            store.dispatch(&Default::default(), Field::NotusAdvisory(Box::new(None)))?;
+            store.dispatch(NotusCache, ())?;
             tracing::debug!("finished notus feed update");
             Ok(())
         })
@@ -87,9 +84,7 @@ impl<T> Storage<T> {
         let loader = FSPluginLoader::new(nasl_feed_path);
         let verifier = feed::HashSumNameLoader::sha256(&loader)?;
 
-        let redis_cache: CacheDispatcher<RedisCtx> =
-            redis::CacheDispatcher::init(&url, FEEDUPDATE_SELECTOR)?;
-        let store = PerItemDispatcher::new(redis_cache);
+        let store = redis::RedisStorage::init(&url, FEEDUPDATE_SELECTOR)?;
         let fu = feed::Update::init(oversion, 5, &loader, &store, verifier);
         if !fu.feed_is_outdated(current_feed).await.unwrap() {
             return Ok(());
@@ -152,18 +147,6 @@ where
         to: Option<usize>,
     ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error> {
         self.underlying.get_results(id, from, to).await
-    }
-}
-
-impl From<redis::DbError> for super::Error {
-    fn from(value: redis::DbError) -> Self {
-        super::Error::Storage(Box::new(value))
-    }
-}
-
-impl From<StorageError> for super::Error {
-    fn from(value: StorageError) -> Self {
-        super::Error::Storage(Box::new(value))
     }
 }
 
@@ -233,9 +216,7 @@ where
         .unwrap()?;
         Ok(nr)
     }
-    async fn vts<'a>(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = scannerlib::storage::item::Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
         let url = self.url.to_string();
         let noids = tokio::task::spawn_blocking(move || {
             let mut notus_redis = RedisCtx::open(&url, NOTUSUPDATE_SELECTOR)?;
@@ -359,22 +340,18 @@ impl<S> super::ResultHandler for Storage<S>
 where
     S: super::ResultHandler,
 {
-    fn underlying_storage(&self) -> &Arc<DefaultDispatcher> {
+    fn underlying_storage(&self) -> &Arc<InMemoryStorage> {
         self.underlying.underlying_storage()
     }
 
-    fn handle_result<E>(&self, key: &ContextKey, result: models::Result) -> Result<(), E>
+    fn handle_result<E>(&self, key: &str, result: models::Result) -> Result<(), E>
     where
         E: From<StorageError>,
     {
         self.underlying.handle_result(key, result)
     }
 
-    fn remove_result<E>(
-        &self,
-        key: &ContextKey,
-        idx: Option<usize>,
-    ) -> Result<Vec<models::Result>, E>
+    fn remove_result<E>(&self, key: &str, idx: Option<usize>) -> Result<Vec<models::Result>, E>
     where
         E: From<StorageError>,
     {

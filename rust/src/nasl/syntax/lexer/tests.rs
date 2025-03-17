@@ -1,6 +1,6 @@
 use crate::nasl::{
-    syntax::{grammar::Declaration, Statement},
     Code,
+    syntax::{Statement, grammar::Declaration},
 };
 
 pub fn parse_ok(file_name: &str, code: &str) -> Vec<Declaration> {

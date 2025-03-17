@@ -21,7 +21,7 @@ pub fn emit_errors<T: AsCodespanError>(file: &SourceFile, errs: impl Iterator<It
         let diagnostic = Diagnostic::error()
             .with_message(&err.message())
             .with_labels(vec![
-                Label::primary((), err.range()).with_message(&err.message())
+                Label::primary((), err.range()).with_message(&err.message()),
             ]);
         term::emit(&mut writer.lock(), &config, file, &diagnostic).unwrap();
     }
@@ -37,7 +37,7 @@ pub fn emit_errors_str<T: AsCodespanError>(
         let diagnostic = Diagnostic::error()
             .with_message(&err.message())
             .with_labels(vec![
-                Label::primary((), err.range()).with_message(&err.message())
+                Label::primary((), err.range()).with_message(&err.message()),
             ]);
         term::emit(&mut writer, &config, file, &diagnostic).unwrap();
     }
