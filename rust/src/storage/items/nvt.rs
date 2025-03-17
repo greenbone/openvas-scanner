@@ -234,10 +234,11 @@ impl FromStr for PreferenceType {
             "radio" => Ok(Radio),
             "sshlogin" => Ok(SshLogin),
             "integer" => Ok(Integer),
-            _ => Err(StorageError::UnexpectedData(
-                format!("{:?}: {}", stringify!(PreferenceType),
-                        s.to_owned()              
-                ))),
+            _ => Err(StorageError::UnexpectedData(format!(
+                "{:?}: {}",
+                stringify!(PreferenceType),
+                s.to_owned()
+            ))),
         }
     }
 }
