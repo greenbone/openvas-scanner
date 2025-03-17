@@ -173,12 +173,12 @@ where
         tokio::task::spawn_blocking(move || {
             let mut scans = scans.write().unwrap();
             let id = sp.scan_id.clone();
-            if let Some(prgs) = scans.get_mut(&id) {
+            match scans.get_mut(&id) { Some(prgs) => {
                 prgs.scan = sp;
-            } else {
+            } _ => {
                 let progress = Self::new_progress(crypter.as_ref(), sp)?;
                 scans.insert(id.clone(), progress);
-            }
+            }}
             Ok(())
         })
         .await

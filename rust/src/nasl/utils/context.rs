@@ -563,16 +563,16 @@ impl<'a> Context<'a> {
 
     pub fn set_nvt_field(&self, field: NvtField) {
         let mut nvt = self.nvt.lock().unwrap();
-        if let Some(nvt) = nvt.as_mut() {
+        match nvt.as_mut() { Some(nvt) => {
             nvt.set_from_field(field);
-        } else {
+        } _ => {
             let mut new = Nvt {
                 filename: self.filename().to_string_lossy().to_string(),
                 ..Default::default()
             };
             new.set_from_field(field);
             *nvt = Some(new);
-        }
+        }}
     }
 
     pub fn dispatch_nvt(&self, nvt: Nvt) {

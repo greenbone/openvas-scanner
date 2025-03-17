@@ -101,15 +101,15 @@ where
         match load_non_utf8_path(&script) {
             Ok(x) => Ok(x),
             Err(LoadError::NotFound(_)) => {
-                if let Some(vt) = self
+                match self
                     .context_builder
                     .storage
                     .retrieve(&Oid(script.to_string()))?
-                {
+                { Some(vt) => {
                     Ok(self.context_builder.loader.load(&vt.filename)?)
-                } else {
+                } _ => {
                     Err(LoadError::NotFound(script.to_string()).into())
-                }
+                }}
             }
             Err(e) => Err(e.into()),
         }

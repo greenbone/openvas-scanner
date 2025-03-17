@@ -170,15 +170,15 @@ where
 
     pub async fn delete_scan_by_id(&self, id: &str) -> Result<(), Error> {
         let mut queued = self.queued.write().await;
-        if let Some(idx) = queued.iter().position(|x| x == id) {
+        match queued.iter().position(|x| x == id) { Some(idx) => {
             queued.swap_remove(idx);
-        } else {
+        } _ => {
             let mut running = self.running.write().await;
             if let Some(idx) = running.iter().position(|x| x == id) {
                 self.scanner.stop_scan(id.to_string()).await?;
                 running.swap_remove(idx);
             }
-        }
+        }}
 
         self.db.remove_scan(id).await?;
         // TODO change from I to &str so that we don't have to clone everywhere
@@ -204,7 +204,7 @@ where
 
         tracing::trace!(%amount_to_start, "handling scans");
         for _ in 0..amount_to_start {
-            if let Some(scan_id) = queued.pop() {
+            match queued.pop() { Some(scan_id) => {
                 let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
                 if !self.scanner.can_start_scan(&scan).await {
                     tracing::debug!(?status, %scan_id, "unable to start scan");
@@ -236,9 +236,9 @@ where
                         }
                     };
                 }
-            } else {
+            } _ => {
                 break;
-            }
+            }}
         }
         Ok(())
     }

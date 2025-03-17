@@ -167,7 +167,7 @@ impl FunctionNameMatcher<'_> {
             StatementKind::Include(..) => self.name.map(|x| x == "include").unwrap_or(true),
             StatementKind::Call(..) => {
                 if let crate::nasl::syntax::TokenCategory::Identifier(
-                    crate::nasl::syntax::IdentifierType::Undefined(ref x),
+                    crate::nasl::syntax::IdentifierType::Undefined(x),
                 ) = s.start().category()
                 {
                     self.name.map(|y| x == y).unwrap_or(true)
@@ -177,7 +177,7 @@ impl FunctionNameMatcher<'_> {
             }
             StatementKind::FunctionDeclaration(id, ..) => {
                 if let crate::nasl::syntax::TokenCategory::Identifier(
-                    crate::nasl::syntax::IdentifierType::Undefined(ref x),
+                    crate::nasl::syntax::IdentifierType::Undefined(x),
                 ) = id.category()
                 {
                     self.name.map(|y| x == y).unwrap_or(true)

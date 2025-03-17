@@ -21,12 +21,12 @@ struct TcpDataStream {
 
 impl Read for TcpDataStream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        if let Some(tls) = &mut self.tls {
+        match &mut self.tls { Some(tls) => {
             let mut stream = Stream::new(tls, &mut self.sock);
             stream.read(buf)
-        } else {
+        } _ => {
             self.sock.read(buf)
-        }
+        }}
     }
 }
 
@@ -53,22 +53,22 @@ impl BufRead for TcpConnection {
 impl Write for TcpConnection {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let stream = self.stream.get_mut();
-        if let Some(tls) = &mut stream.tls {
+        match &mut stream.tls { Some(tls) => {
             let mut stream = Stream::new(tls, &mut stream.sock);
             stream.write(buf)
-        } else {
+        } _ => {
             stream.sock.write(buf)
-        }
+        }}
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
         let stream = self.stream.get_mut();
-        if let Some(tls) = &mut stream.tls {
+        match &mut stream.tls { Some(tls) => {
             let mut stream = Stream::new(tls, &mut stream.sock);
             stream.flush()
-        } else {
+        } _ => {
             stream.sock.flush()
-        }
+        }}
     }
 }
 

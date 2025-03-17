@@ -197,11 +197,11 @@ impl Dispatcher<ScanID> for InMemoryStorage {
     type Item = ResultItem;
     fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
         let mut results = self.results.write()?;
-        if let Some(scan_results) = results.get_mut(&key) {
+        match results.get_mut(&key) { Some(scan_results) => {
             scan_results.push(item);
-        } else {
+        } _ => {
             results.insert(key, vec![item]);
-        }
+        }}
         Ok(())
     }
 }
