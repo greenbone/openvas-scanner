@@ -701,8 +701,8 @@ pub mod client {
         Client::authenticated(scanner, storage)
     }
 
-    pub async fn fails_to_fetch_results(
-    ) -> Client<LambdaScanner, Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>>
+    pub async fn fails_to_fetch_results()
+    -> Client<LambdaScanner, Arc<ResultCatcher<inmemory::Storage<crate::crypt::ChaCha20Crypt>>>>
     {
         use crate::file::tests::example_feeds;
         let storage = crate::storage::inmemory::Storage::default();

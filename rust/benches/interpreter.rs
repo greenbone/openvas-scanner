@@ -1,7 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use futures::StreamExt;
 use scannerlib::{
-    nasl::{interpreter::ForkingInterpreter, ContextFactory, Register},
+    nasl::{ContextFactory, Register, interpreter::ForkingInterpreter},
     storage::ContextKey,
 };
 
