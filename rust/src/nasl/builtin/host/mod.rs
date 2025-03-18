@@ -45,7 +45,7 @@ fn get_host_names(context: &Context) -> Result<NaslValue, FnError> {
     if !hns.is_empty() {
         let hns = hns
             .into_iter()
-            .map(|(h, _s)| NaslValue::String(h))
+            .map(|vhost| NaslValue::String(vhost.hostname().to_string()))
             .collect::<Vec<_>>();
         return Ok(NaslValue::Array(hns));
     };
@@ -91,7 +91,7 @@ pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValu
     let vh = context.target_vhosts();
     let v = if !vh.is_empty() {
         vh.iter()
-            .map(|(v, _s)| NaslValue::String(v.to_string()))
+            .map(|vhost| NaslValue::String(vhost.hostname().to_string()))
             .collect::<Vec<_>>()
     } else {
         vec![]
@@ -122,8 +122,8 @@ pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValu
 pub fn get_host_name_source(context: &Context, hostname: Hostname) -> String {
     let vh = context.target_vhosts();
     if !vh.is_empty() {
-        if let Some((_, source)) = vh.into_iter().find(|(v, _)| v == &hostname.0) {
-            return source;
+        if let Some(vhost) = vh.into_iter().find(|vhost| vhost.hostname() == &hostname.0) {
+            return vhost.source().to_string();
         };
     }
     context.target().to_string()
