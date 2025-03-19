@@ -7,9 +7,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: BangTilde,
@@ -28,9 +30,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: EqualTilde,
@@ -49,9 +53,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: GreaterLess,
@@ -70,9 +76,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: GreaterBangLess,
@@ -91,9 +99,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: EqualEqual,
@@ -112,9 +122,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: BangEqual,
@@ -133,9 +145,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: Greater,
@@ -154,9 +168,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: Less,
@@ -175,9 +191,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: GreaterEqual,
@@ -196,9 +214,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: Ident(
+                    lhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                     op: LessEqual,

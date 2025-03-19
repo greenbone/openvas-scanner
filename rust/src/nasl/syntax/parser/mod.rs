@@ -11,8 +11,8 @@ use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, Stmt, Unary, UnaryOperator,
-    UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
+    ArrayAccess, AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, PlaceExpr,
+    Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -34,7 +34,7 @@ pub trait Matches: Sized {
 }
 
 pub trait PeekParse: Sized {
-    fn peek_parse(parser: &mut Parser) -> Option<Self>;
+    fn peek_parse(parser: &Parser) -> Option<Self>;
 }
 
 pub struct Parser {
@@ -173,8 +173,8 @@ impl Parse for Expr {
 }
 
 fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
-    let mut lhs = if Ident::peek(parser) {
-        Expr::Ident(Ident::parse(parser)?)
+    let mut lhs = if PlaceExpr::peek(parser) {
+        Expr::PlaceExpr(PlaceExpr::parse(parser)?)
     } else if Literal::peek(parser) {
         Expr::Literal(Literal::parse(parser)?)
     } else if parser.cursor.peek().kind() == &TokenKind::LeftParen {
@@ -196,7 +196,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
     loop {
         if matches!(
             *parser.cursor.peek().kind(),
-            TokenKind::RightParen | TokenKind::Semicolon | TokenKind::Eof
+            TokenKind::RightBrace | TokenKind::RightParen | TokenKind::Semicolon | TokenKind::Eof
         ) {
             break;
         }
@@ -228,6 +228,26 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         });
     }
     Ok(lhs)
+}
+
+impl Parse for PlaceExpr {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        let ident = Ident::parse(parser)?;
+        if parser.cursor.peek().kind() == &TokenKind::LeftBrace {
+            parser.consume(TokenKind::LeftBrace)?;
+            let index_expr = Box::new(Expr::parse(parser)?);
+            parser.consume(TokenKind::RightBrace)?;
+            Ok(PlaceExpr::ArrayAccess(ArrayAccess { index_expr, ident }))
+        } else {
+            Ok(PlaceExpr::Ident(ident))
+        }
+    }
+}
+
+impl Matches for PlaceExpr {
+    fn matches(kind: &TokenKind) -> bool {
+        Ident::matches(kind)
+    }
 }
 
 macro_rules! impl_trivial_parse {

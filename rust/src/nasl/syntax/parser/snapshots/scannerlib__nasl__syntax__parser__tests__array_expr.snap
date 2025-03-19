@@ -1,0 +1,154 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (array_expr),\n\"\n    a[1];\n    a[5 + 3];\n    a[5 + (3 * 4)];\n    a[1] * b[2];\n    a[b[1]];\n\")"
+---
+[
+    Stmt(
+        ExprStmt(
+            PlaceExpr(
+                ArrayAccess(
+                    ArrayAccess {
+                        index_expr: Literal(
+                            Number(
+                                1,
+                            ),
+                        ),
+                        ident: Ident(
+                            "a",
+                        ),
+                    },
+                ),
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            PlaceExpr(
+                ArrayAccess(
+                    ArrayAccess {
+                        index_expr: Binary(
+                            Binary {
+                                lhs: Literal(
+                                    Number(
+                                        5,
+                                    ),
+                                ),
+                                op: Plus,
+                                rhs: Literal(
+                                    Number(
+                                        3,
+                                    ),
+                                ),
+                            },
+                        ),
+                        ident: Ident(
+                            "a",
+                        ),
+                    },
+                ),
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            PlaceExpr(
+                ArrayAccess(
+                    ArrayAccess {
+                        index_expr: Binary(
+                            Binary {
+                                lhs: Literal(
+                                    Number(
+                                        5,
+                                    ),
+                                ),
+                                op: Plus,
+                                rhs: Binary(
+                                    Binary {
+                                        lhs: Literal(
+                                            Number(
+                                                3,
+                                            ),
+                                        ),
+                                        op: Star,
+                                        rhs: Literal(
+                                            Number(
+                                                4,
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        ident: Ident(
+                            "a",
+                        ),
+                    },
+                ),
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            Binary(
+                Binary {
+                    lhs: PlaceExpr(
+                        ArrayAccess(
+                            ArrayAccess {
+                                index_expr: Literal(
+                                    Number(
+                                        1,
+                                    ),
+                                ),
+                                ident: Ident(
+                                    "a",
+                                ),
+                            },
+                        ),
+                    ),
+                    op: Star,
+                    rhs: PlaceExpr(
+                        ArrayAccess(
+                            ArrayAccess {
+                                index_expr: Literal(
+                                    Number(
+                                        2,
+                                    ),
+                                ),
+                                ident: Ident(
+                                    "b",
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+    Stmt(
+        ExprStmt(
+            PlaceExpr(
+                ArrayAccess(
+                    ArrayAccess {
+                        index_expr: PlaceExpr(
+                            ArrayAccess(
+                                ArrayAccess {
+                                    index_expr: Literal(
+                                        Number(
+                                            1,
+                                        ),
+                                    ),
+                                    ident: Ident(
+                                        "b",
+                                    ),
+                                },
+                            ),
+                        ),
+                        ident: Ident(
+                            "a",
+                        ),
+                    },
+                ),
+            ),
+        ),
+    ),
+]

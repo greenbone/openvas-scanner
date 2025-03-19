@@ -181,3 +181,15 @@ parse_test_err!(wrong_tokens, Program, "\"foo");
 
 parse_test_ok!(parentheses, Expr, "(3 + 4) * 5");
 parse_test_ok!(multiple_parentheses, Expr, "(((a)))");
+
+parse_test_ok!(
+    array_expr,
+    Program,
+    "
+    a[1];
+    a[5 + 3];
+    a[5 + (3 * 4)];
+    a[1] * b[2];
+    a[b[1]];
+"
+);

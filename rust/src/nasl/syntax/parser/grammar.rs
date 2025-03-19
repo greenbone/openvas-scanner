@@ -60,9 +60,21 @@ pub enum Stmt {
 #[derive(Clone, Debug)]
 pub enum Expr {
     Literal(Literal),
-    Ident(Ident),
+    PlaceExpr(PlaceExpr),
     Binary(Binary),
     Unary(Unary),
+}
+
+#[derive(Clone, Debug)]
+pub enum PlaceExpr {
+    Ident(Ident),
+    ArrayAccess(ArrayAccess),
+}
+
+#[derive(Clone, Debug)]
+pub struct ArrayAccess {
+    pub index_expr: Box<Expr>,
+    pub ident: Ident,
 }
 
 #[derive(Clone, Debug)]
@@ -117,7 +129,7 @@ macro_rules! make_operator {
         }
 
         impl super::PeekParse for $ty {
-            fn peek_parse(parser: &mut Parser) -> Option<Self> {
+            fn peek_parse(parser: &Parser) -> Option<Self> {
                 Self::convert(&parser.cursor.peek().kind)
             }
         }

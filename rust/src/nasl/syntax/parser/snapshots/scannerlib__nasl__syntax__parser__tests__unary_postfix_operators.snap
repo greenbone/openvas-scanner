@@ -10,9 +10,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                     op: Postfix(
                         PlusPlus,
                     ),
-                    rhs: Ident(
+                    rhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                 },
@@ -26,9 +28,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                     op: Postfix(
                         MinusMinus,
                     ),
-                    rhs: Ident(
+                    rhs: PlaceExpr(
                         Ident(
-                            "a",
+                            Ident(
+                                "a",
+                            ),
                         ),
                     ),
                 },
@@ -47,9 +51,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             op: Postfix(
                                 MinusMinus,
                             ),
-                            rhs: Ident(
+                            rhs: PlaceExpr(
                                 Ident(
-                                    "a",
+                                    Ident(
+                                        "a",
+                                    ),
                                 ),
                             ),
                         },
@@ -70,9 +76,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             op: Postfix(
                                 PlusPlus,
                             ),
-                            rhs: Ident(
+                            rhs: PlaceExpr(
                                 Ident(
-                                    "a",
+                                    Ident(
+                                        "a",
+                                    ),
                                 ),
                             ),
                         },
@@ -93,9 +101,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             op: Postfix(
                                 PlusPlus,
                             ),
-                            rhs: Ident(
+                            rhs: PlaceExpr(
                                 Ident(
-                                    "a",
+                                    Ident(
+                                        "a",
+                                    ),
                                 ),
                             ),
                         },
