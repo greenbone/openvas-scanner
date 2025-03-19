@@ -15,6 +15,8 @@ use crate::{
     storage::items::kb::{self, KbKey},
 };
 use dns_lookup::lookup_host;
+use lazy_regex::{Lazy, lazy_regex};
+use regex::Regex;
 use rustls::ClientConnection;
 use thiserror::Error;
 
@@ -25,6 +27,9 @@ use super::{
     tls::create_tls_client,
     udp::UdpConnection,
 };
+
+static FTP_PASV: Lazy<Regex> =
+    lazy_regex!(r"227 Entering Passive Mode \(\d+,\d+,\d+,\d+,(\d+),(\d+)\)");
 
 #[derive(Debug, Error)]
 pub enum SocketError {
@@ -662,6 +667,45 @@ impl NaslSockets {
             NaslSocket::Udp(_) => Err(SocketError::SupportedOnlyOnTcp("ftp_log_in".into())),
         }
     }
+
+    /// This function sets the FTP server into passive mode and returns the port
+    /// the server is listening on.
+    /// Args:
+    /// - socket: an open socket.
+    #[nasl_function(named(socket))]
+    fn ftp_get_pasv_port(&mut self, socket: usize) -> Result<u16, SocketError> {
+        let conn = self.get_open_socket_mut(socket)?;
+        let conn = match conn {
+            NaslSocket::Tcp(conn) => conn,
+            NaslSocket::Udp(_) => {
+                return Err(SocketError::SupportedOnlyOnTcp("ftp_get_pasv_port".into()));
+            }
+        };
+
+        conn.write_all(b"PASV\r\n")?;
+
+        let mut data = String::new();
+        // should be `227 Entering Passive Mode (h1, h2, h3, h4, p1, p2)`
+        conn.read_line(&mut data)?;
+
+        let captures = FTP_PASV.captures(&data).ok_or_else(|| {
+            SocketError::Diagnostic(format!("Unexpected response from FTP server: {}", data))
+        })?;
+
+        let get_port = |idx: usize| {
+            captures
+                .get(idx)
+                .unwrap()
+                .as_str()
+                .parse::<u16>()
+                .map_err(|e| {
+                    SocketError::Diagnostic(format!("{e}, invalid port within response: {data}"))
+                })
+        };
+        let p1 = get_port(1)?;
+        let p2 = get_port(2)?;
+        Ok((p1 << 8) | p2)
+    }
 }
 
 function_set! {
@@ -678,5 +722,6 @@ function_set! {
         (NaslSockets::recv_line, "recv_line"),
         (NaslSockets::get_source_port, "get_source_port"),
         (NaslSockets::ftp_log_in, "ftp_log_in"),
+        (NaslSockets::ftp_get_pasv_port, "ftp_get_pasv_port"),
     )
 }
