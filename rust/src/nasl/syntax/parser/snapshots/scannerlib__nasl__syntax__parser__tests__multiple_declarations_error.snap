@@ -8,14 +8,8 @@ error: Expected ';'
 2 │      a = b = 3;
   │      ^^^^^ Expected ';'
 
-error: Expected expression
-  ┌─ multiple_declarations_error:2:15
-  │
-2 │      a = b = 3;
-  │               ^ Expected expression
-
-error: Expected expression
-  ┌─ multiple_declarations_error:3:15
+error: Expected ';'
+  ┌─ multiple_declarations_error:3:6
   │
 3 │      a = b = 3;
-  │               ^ Expected expression
+  │      ^^^^^ Expected ';'

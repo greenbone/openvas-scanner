@@ -233,14 +233,21 @@ parse_test_ok!(
     "###
 );
 
-// parse_test_ok!(anon_function_call, Program, "a(1, 2, 3);");
-// 
-// parse_test_ok!(
-//     named_function_call,
-//     Program,
-//     "script_tag(name:\"cvss_base\", value:1 + 1 % 2);"
-// );
-//
+parse_test_ok!(anon_function_call, Program, "a(1, 2, 3);");
+parse_test_err!(function_call_unclosed, Program, "a(1, 2, 3");
+parse_test_ok!(
+    named_function_call,
+    Program,
+    "script_tag(name:\"cvss_base\", value:1 + 1 % 2);"
+);
+parse_test_ok!(
+    mixed_function_call,
+    Program,
+    "script_tag(\"foo\", name:\"cvss_base\", value:1 + 1 % 2);"
+);
+parse_test_ok!(nested_function_call, Program, "foo(bar(3), 4);",);
+parse_test_err!(missing_commas_function_call, Program, "foo(1 2 3);");
+
 // parse_test_ok!(
 //     arrays,
 //     Program,

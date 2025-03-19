@@ -69,12 +69,41 @@ pub enum Atom {
     Literal(Literal),
     Ident(Ident),
     ArrayAccess(ArrayAccess),
+    FnCall(FnCall),
 }
 
 #[derive(Clone, Debug)]
 pub struct ArrayAccess {
     pub index_expr: Box<Expr>,
     pub ident: Ident,
+}
+
+#[derive(Clone, Debug)]
+pub struct FnCall {
+    pub fn_name: Ident,
+    pub args: CommaSeparated<FnArg>,
+}
+
+#[derive(Clone, Debug)]
+pub enum FnArg {
+    Anonymous(AnonymousFnArg),
+    Named(NamedFnArg),
+}
+
+#[derive(Clone, Debug)]
+pub struct CommaSeparated<Item> {
+    pub items: Vec<Item>,
+}
+
+#[derive(Clone, Debug)]
+pub struct AnonymousFnArg {
+    pub expr: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct NamedFnArg {
+    pub ident: Ident,
+    pub expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]
