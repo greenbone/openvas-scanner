@@ -147,6 +147,18 @@ parse_test_ok!(
 );
 
 parse_test_ok!(
+    unary_postfix_operators,
+    Program,
+    "
+    a++;
+    a--;
+    a-- --;
+    a++ ++;
+    ++a++;
+    "
+);
+
+parse_test_ok!(
     compare_operator,
     Program,
     "

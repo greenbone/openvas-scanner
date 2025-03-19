@@ -11,8 +11,7 @@ use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, Stmt, Unary, UnaryOperator,
-    UnaryPrefixOperator, VariableDecl,
+    AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -195,6 +194,18 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             break;
         }
 
+        if let Some(op) = UnaryPostfixOperator::peek_parse(parser) {
+            let l_bp = op.left_binding_power();
+            if l_bp < min_bp {
+                break;
+            }
+            UnaryPostfixOperator::parse(parser).unwrap();
+            lhs = Expr::Unary(Unary {
+                op: UnaryOperator::Postfix(op),
+                rhs: Box::new(lhs),
+            });
+            continue
+        }
         let op = BinaryOperator::peek_parse(parser)
             .ok_or_else(|| ParseErrorKind::TokenExpected(TokenKind::Semicolon))?;
         let (l_bp, r_bp) = op.binding_power();
