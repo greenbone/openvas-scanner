@@ -9,6 +9,8 @@ use std::fmt::Debug;
 use cursor::Cursor;
 use error::{ParseError, ParseErrorKind};
 
+use crate::nasl::error::Span;
+
 use super::{Keyword, Token, TokenKind, Tokenizer};
 use grammar::{
     AssignmentOperator, Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary,
@@ -49,8 +51,8 @@ impl Parser {
         let pos_before = self.cursor.current_token_start();
         let result = T::parse(self);
         let pos_after = self.cursor.current_token_end();
-        let range = pos_before.0..pos_after.0;
-        result.map_err(|err| err.to_error(range))
+        let span = Span::new(pos_before, pos_after);
+        result.map_err(|err| err.to_error(span))
     }
 
     fn check_tokenizer_errors(&mut self, errs: &mut Vec<ParseError>) -> bool {

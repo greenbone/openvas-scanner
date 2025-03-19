@@ -1,19 +1,19 @@
-use std::{fmt::Display, ops::Range};
+use std::fmt::Display;
 
 use crate::nasl::{
-    error::AsCodespanError,
+    error::{AsCodespanError, Span},
     syntax::{Keyword, TokenKind, TokenizerError, tokenizer::TokenizerErrorKind},
 };
 
 #[derive(Debug)]
 pub struct ParseError {
     pub kind: ParseErrorKind,
-    pub range: Range<usize>,
+    pub span: Span,
 }
 
 impl ParseErrorKind {
-    pub fn to_error(self, range: Range<usize>) -> ParseError {
-        ParseError { range, kind: self }
+    pub fn to_error(self, span: Span) -> ParseError {
+        ParseError { span, kind: self }
     }
 }
 
@@ -58,14 +58,14 @@ impl From<TokenizerError> for ParseError {
     fn from(e: TokenizerError) -> Self {
         Self {
             kind: ParseErrorKind::Tokenizer(e.kind),
-            range: e.range,
+            span: e.span,
         }
     }
 }
 
 impl AsCodespanError for ParseError {
-    fn range(&self) -> Range<usize> {
-        self.range.clone()
+    fn span(&self) -> Span {
+        self.span.clone()
     }
 
     fn message(&self) -> String {

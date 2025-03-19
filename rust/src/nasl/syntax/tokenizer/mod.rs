@@ -2,9 +2,9 @@ mod error;
 #[cfg(test)]
 mod tests;
 
-use std::ops::AddAssign;
+use std::ops::{Add, AddAssign, Sub};
 
-use crate::nasl::syntax::token::Literal;
+use crate::nasl::{error::Span, syntax::token::Literal};
 
 use super::{Ident, Keyword, Token, TokenKind};
 pub use error::{TokenizerError, TokenizerErrorKind};
@@ -15,6 +15,22 @@ pub struct CharIndex(pub usize);
 impl AddAssign<usize> for CharIndex {
     fn add_assign(&mut self, rhs: usize) {
         self.0 += rhs
+    }
+}
+
+impl Add<usize> for CharIndex {
+    type Output = CharIndex;
+
+    fn add(self, rhs: usize) -> Self {
+        CharIndex(self.0 + rhs)
+    }
+}
+
+impl Sub<usize> for CharIndex {
+    type Output = CharIndex;
+
+    fn sub(self, rhs: usize) -> Self {
+        CharIndex(self.0 - rhs)
     }
 }
 
@@ -275,7 +291,7 @@ impl Tokenizer {
     pub fn error(&self, kind: TokenizerErrorKind) -> TokenizerError {
         TokenizerError {
             kind,
-            range: self.begin_match_position.0 - 1..self.cursor.position().0,
+            span: Span::new(self.begin_match_position - 1, self.cursor.position()),
         }
     }
 

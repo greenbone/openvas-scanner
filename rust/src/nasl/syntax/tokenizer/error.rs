@@ -1,13 +1,11 @@
-use std::ops::Range;
-
 use thiserror::Error;
 
-use crate::nasl::error::AsCodespanError;
+use crate::nasl::error::{AsCodespanError, Span};
 
 #[derive(Clone, Debug)]
 pub struct TokenizerError {
     pub kind: TokenizerErrorKind,
-    pub range: Range<usize>,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
@@ -25,8 +23,8 @@ pub enum TokenizerErrorKind {
 }
 
 impl AsCodespanError for TokenizerError {
-    fn range(&self) -> Range<usize> {
-        self.range.clone()
+    fn span(&self) -> Span {
+        self.span.clone()
     }
 
     fn message(&self) -> String {

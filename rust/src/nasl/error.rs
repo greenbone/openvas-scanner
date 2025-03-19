@@ -8,9 +8,28 @@ use codespan_reporting::term::termcolor::ColorChoice;
 use codespan_reporting::term::termcolor::StandardStream;
 
 use super::code::SourceFile;
+use super::syntax::CharIndex;
+
+#[derive(Clone, Debug)]
+pub struct Span {
+    start: CharIndex,
+    end: CharIndex,
+}
+
+impl Span {
+    pub(crate) fn new(start: CharIndex, end: CharIndex) -> Self {
+        Self { start, end }
+    }
+}
+
+impl Into<Range<usize>> for Span {
+    fn into(self) -> Range<usize> {
+        self.start.0..self.end.0
+    }
+}
 
 pub trait AsCodespanError {
-    fn range(&self) -> Range<usize>;
+    fn span(&self) -> Span;
     fn message(&self) -> String;
 }
 
@@ -21,7 +40,7 @@ pub fn emit_errors<T: AsCodespanError>(file: &SourceFile, errs: impl Iterator<It
         let diagnostic = Diagnostic::error()
             .with_message(&err.message())
             .with_labels(vec![
-                Label::primary((), err.range()).with_message(&err.message()),
+                Label::primary((), err.span()).with_message(&err.message()),
             ]);
         term::emit(&mut writer.lock(), &config, file, &diagnostic).unwrap();
     }
@@ -37,7 +56,7 @@ pub fn emit_errors_str<T: AsCodespanError>(
         let diagnostic = Diagnostic::error()
             .with_message(&err.message())
             .with_labels(vec![
-                Label::primary((), err.range()).with_message(&err.message()),
+                Label::primary((), err.span()).with_message(&err.message()),
             ]);
         term::emit(&mut writer, &config, file, &diagnostic).unwrap();
     }

@@ -26,5 +26,6 @@ pub use token::Ident;
 pub use token::Keyword;
 pub use token::Token;
 pub use token::TokenKind;
+pub use tokenizer::CharIndex;
 pub use tokenizer::Tokenizer;
 pub use tokenizer::TokenizerError;

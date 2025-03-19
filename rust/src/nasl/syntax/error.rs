@@ -4,12 +4,12 @@
 
 //! Defines TokenError and its companion macros.
 
-use std::{io, ops::Range};
+use std::io;
 
 use thiserror::Error;
 
 use crate::nasl::{
-    error::AsCodespanError,
+    error::{AsCodespanError, Span},
     syntax::{Statement, token::Token},
 };
 
@@ -52,18 +52,18 @@ impl From<TokenizerError> for SyntaxError {
     fn from(value: TokenizerError) -> Self {
         Self {
             kind: ErrorKind::Tokenizer(value.kind),
-            range: value.range,
+            span: value.span,
         }
     }
 }
 
 /// Is used to express errors while parsing.
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Debug, Error)]
 #[error("{kind}")]
 pub struct SyntaxError {
     /// A human readable reason why this error is returned
     pub kind: ErrorKind,
-    pub range: Range<usize>,
+    pub span: Span,
 }
 
 // TODO Remove this
@@ -87,11 +87,13 @@ impl SyntaxError {
 #[macro_export]
 macro_rules! syntax_error {
     ($kind:expr) => {{
+        use $crate::nasl::error::Span;
+        use $crate::nasl::syntax::CharIndex;
         use $crate::nasl::syntax::SyntaxError;
         // TODO
         SyntaxError {
             kind: $kind,
-            range: 0..0,
+            span: Span::new(CharIndex(0), CharIndex(0)),
         }
     }};
 }
@@ -171,8 +173,8 @@ impl SyntaxError {
 }
 
 impl AsCodespanError for SyntaxError {
-    fn range(&self) -> std::ops::Range<usize> {
-        self.range.clone()
+    fn span(&self) -> Span {
+        self.span.clone()
     }
 
     fn message(&self) -> String {
