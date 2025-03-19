@@ -25,11 +25,11 @@ pub trait Matches: Sized {
     fn matches(kind: &TokenKind) -> bool;
 
     fn peek(parser: &Parser) -> bool {
-        Self::matches(parser.cursor.peek().kind())
+        Self::matches(parser.peek())
     }
 
     fn peek_next(parser: &Parser) -> bool {
-        Self::matches(parser.cursor.peek_next().kind())
+        Self::matches(parser.peek_next())
     }
 }
 
@@ -99,7 +99,7 @@ impl Parser {
             if token.kind == TokenKind::Semicolon {
                 return;
             }
-            match self.cursor.peek().kind {
+            match self.peek() {
                 TokenKind::Keyword(Keyword::LocalVar) => {
                     return;
                 }
@@ -112,8 +112,12 @@ impl Parser {
         self.cursor.advance()
     }
 
+    fn consume_if_matches(&mut self, expected: TokenKind) -> bool {
+        self.consume(expected).is_ok()
+    }
+
     fn consume(&mut self, expected: TokenKind) -> Result<()> {
-        if self.cursor.peek().kind != expected {
+        if self.peek() != &expected {
             Err(ParseErrorKind::TokenExpected(expected))
         } else {
             self.advance();
@@ -126,7 +130,7 @@ impl Parser {
         predicate: impl Fn(&TokenKind) -> Option<T>,
         e: ParseErrorKind,
     ) -> Result<T> {
-        if let Some(t) = predicate(self.cursor.peek().kind()) {
+        if let Some(t) = predicate(self.peek()) {
             self.advance();
             Ok(t)
         } else {
@@ -134,8 +138,16 @@ impl Parser {
         }
     }
 
+    fn peek(&self) -> &TokenKind {
+        self.cursor.peek().kind()
+    }
+
+    fn peek_next(&self) -> &TokenKind {
+        self.cursor.peek_next().kind()
+    }
+
     fn is_at_end(&self) -> bool {
-        &self.cursor.peek().kind == &TokenKind::Eof
+        self.peek() == &TokenKind::Eof
     }
 }
 
@@ -177,8 +189,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         Expr::PlaceExpr(PlaceExpr::parse(parser)?)
     } else if Literal::peek(parser) {
         Expr::Literal(Literal::parse(parser)?)
-    } else if parser.cursor.peek().kind() == &TokenKind::LeftParen {
-        parser.consume(TokenKind::LeftParen).unwrap();
+    } else if parser.consume_if_matches(TokenKind::LeftParen) {
         let lhs = pratt_parse_expr(parser, 0)?;
         parser.consume(TokenKind::RightParen)?;
         lhs
@@ -195,7 +206,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
 
     loop {
         if matches!(
-            *parser.cursor.peek().kind(),
+            *parser.peek(),
             TokenKind::RightBracket | TokenKind::RightParen | TokenKind::Semicolon | TokenKind::Eof
         ) {
             break;
@@ -233,8 +244,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
 impl Parse for PlaceExpr {
     fn parse(parser: &mut Parser) -> Result<Self> {
         let ident = Ident::parse(parser)?;
-        if parser.cursor.peek().kind() == &TokenKind::LeftBracket {
-            parser.consume(TokenKind::LeftBracket)?;
+        if parser.consume_if_matches(TokenKind::LeftBracket) {
             let index_expr = Box::new(Expr::parse(parser)?);
             parser.consume(TokenKind::RightBracket)?;
             Ok(PlaceExpr::ArrayAccess(ArrayAccess { index_expr, ident }))
