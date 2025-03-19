@@ -17,11 +17,11 @@ use grammar::{
     UnaryOperator, VariableDecl,
 };
 
-type ParseResult<T> = Result<T, ParseErrorKind>;
+type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
 
 pub trait Parse: Sized {
     type Output: Debug;
-    fn parse(parser: &mut Parser) -> ParseResult<Self::Output>;
+    fn parse(parser: &mut Parser) -> Result<Self::Output>;
 }
 
 pub trait Matches: Sized {
@@ -135,7 +135,7 @@ impl Parser {
         self.cursor.advance()
     }
 
-    fn consume(&mut self, expected: TokenKind) -> Result<(), ParseErrorKind> {
+    fn consume(&mut self, expected: TokenKind) -> Result<()> {
         if self.peek().kind != expected {
             Err(ParseErrorKind::TokenExpected(expected))
         } else {
@@ -148,7 +148,7 @@ impl Parser {
         &mut self,
         predicate: impl Fn(&TokenKind) -> Option<T>,
         e: ParseErrorKind,
-    ) -> Result<T, ParseErrorKind> {
+    ) -> Result<T> {
         if let Some(t) = predicate(self.peek().kind()) {
             self.advance();
             Ok(t)
@@ -165,7 +165,7 @@ impl Parser {
 impl Parse for Declaration {
     type Output = Declaration;
 
-    fn parse(parser: &mut Parser) -> ParseResult<Declaration> {
+    fn parse(parser: &mut Parser) -> Result<Declaration> {
         if let TokenKind::Ident(_) = parser.peek().kind() {
             if AssignmentOperator::peek_next(parser) {
                 return Ok(Declaration::VariableDecl(VariableDecl::parse(parser)?));
@@ -173,14 +173,14 @@ impl Parse for Declaration {
         }
         let expr = Expr::parse(parser)?;
         let _ = parser.consume(TokenKind::Semicolon)?;
-        ParseResult::Ok(Declaration::Stmt(Stmt::ExprStmt(expr)))
+        Result::Ok(Declaration::Stmt(Stmt::ExprStmt(expr)))
     }
 }
 
 impl Parse for VariableDecl {
     type Output = VariableDecl;
 
-    fn parse(parser: &mut Parser) -> ParseResult<VariableDecl> {
+    fn parse(parser: &mut Parser) -> Result<VariableDecl> {
         let ident = Ident::parse(parser)?;
         let operator = AssignmentOperator::parse(parser)?;
         let expr = Expr::parse(parser)?;
@@ -196,8 +196,8 @@ impl Parse for VariableDecl {
 impl Parse for Expr {
     type Output = Expr;
 
-    fn parse(parser: &mut Parser) -> ParseResult<Expr> {
-        ParseResult::Ok(Equality::parse(parser)?)
+    fn parse(parser: &mut Parser) -> Result<Expr> {
+        Result::Ok(Equality::parse(parser)?)
     }
 }
 
@@ -214,7 +214,7 @@ where
 {
     type Output = Expr;
 
-    fn parse(parser: &mut Parser) -> ParseResult<Expr> {
+    fn parse(parser: &mut Parser) -> Result<Expr> {
         let mut left = T::Subtype::parse(parser)?;
         while T::token_kinds().any(|kind| parser.peek().kind() == &kind) {
             let operator = grammar::BinaryOperator::parse(parser)?;
@@ -295,7 +295,7 @@ impl BinaryOperator for Factor {
 impl Parse for Unary {
     type Output = Expr;
 
-    fn parse(parser: &mut Parser) -> ParseResult<Expr> {
+    fn parse(parser: &mut Parser) -> Result<Expr> {
         if UnaryOperator::peek(parser) {
             let operator = UnaryOperator::parse(parser)?;
             let right = Unary::parse(parser)?;
@@ -314,7 +314,7 @@ struct Primary;
 impl Parse for Primary {
     type Output = Expr;
 
-    fn parse(parser: &mut Parser) -> ParseResult<Expr> {
+    fn parse(parser: &mut Parser) -> Result<Expr> {
         if let TokenKind::Ident(ident) = &parser.peek().kind {
             let res = Ok(Expr::Ident(Ident {
                 ident: ident.clone(),
@@ -339,7 +339,7 @@ impl Parse for Primary {
 impl Parse for Ident {
     type Output = Ident;
 
-    fn parse(parser: &mut Parser) -> ParseResult<Self::Output> {
+    fn parse(parser: &mut Parser) -> Result<Self::Output> {
         parser.consume_pat(
             |kind| {
                 if let TokenKind::Ident(ident) = kind {

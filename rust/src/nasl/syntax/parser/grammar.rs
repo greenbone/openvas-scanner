@@ -1,6 +1,6 @@
 use std::vec;
 
-use super::{ParseErrorKind, ParseResult, Parser};
+use super::{ParseErrorKind, Parser};
 use crate::nasl::syntax::token::{self, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
@@ -106,7 +106,7 @@ macro_rules! make_operator {
         impl super::Parse for $ty {
             type Output = $ty;
 
-            fn parse(parser: &mut Parser) -> ParseResult<Self::Output> {
+            fn parse(parser: &mut Parser) -> Result<Self::Output, ParseErrorKind> {
                 parser.consume_pat(Self::convert, $err)
             }
         }
