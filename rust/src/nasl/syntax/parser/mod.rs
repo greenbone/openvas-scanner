@@ -1,20 +1,19 @@
+mod cursor;
 pub mod error;
 pub mod grammar;
 #[cfg(test)]
 mod tests;
 
-use std::{fmt::Debug, ops::Range};
+use std::fmt::Debug;
 
+use cursor::Cursor;
 use error::{ParseError, ParseErrorKind};
 
-use super::{Keyword, Token, TokenKind};
+use super::{Keyword, Token, TokenKind, Tokenizer};
 use grammar::{
     AssignmentOperator, Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary,
     UnaryOperator, VariableDecl,
 };
-
-#[derive(Default, Clone, Copy)]
-struct TokenIndex(usize);
 
 type ParseResult<T> = Result<T, ParseErrorKind>;
 
@@ -27,41 +26,43 @@ pub trait Matches: Sized {
     fn matches(kind: &TokenKind) -> bool;
 
     fn peek(parser: &Parser) -> bool {
-        Self::peek_ahead(parser, 0)
+        Self::matches(parser.peek().kind())
     }
 
-    fn peek_ahead(parser: &Parser, ahead: usize) -> bool {
-        Self::matches(parser.peek_ahead(ahead).kind())
+    fn peek_next(parser: &Parser) -> bool {
+        Self::matches(parser.peek_next().kind())
     }
 }
 
-#[derive(Clone)]
 pub struct Parser {
-    tokens: Vec<Token>,
-    position: TokenIndex,
+    cursor: Cursor,
 }
 
 impl Parser {
-    pub fn new(mut tokens: Vec<Token>) -> Self {
-        // TODO move this to the tokenizer eventually
-        let position = tokens.last().map(|token| token.position.1).unwrap_or(0);
-        tokens.push(Token {
-            position: (position, position + 1),
-            kind: TokenKind::Eof,
-        });
-
+    pub fn new(tokenizer: Tokenizer) -> Self {
         Self {
-            tokens,
-            position: TokenIndex::default(),
+            cursor: Cursor::new(tokenizer).unwrap(),
         }
     }
 
     pub fn parse<T: Parse>(&mut self) -> Result<<T as Parse>::Output, ParseError> {
-        let pos_before = self.position;
+        let pos_before = self.cursor.current_token_start();
         let result = T::parse(self);
-        let pos_after = self.position;
-        let range = self.get_token_range(pos_before, pos_after);
+        let pos_after = self.cursor.current_token_end();
+        let range = pos_before.0..pos_after.0;
         result.map_err(|err| err.to_error(range))
+    }
+
+    fn check_tokenizer_errors(&mut self, errs: &mut Vec<ParseError>) -> bool {
+        if self.cursor.has_errors() {
+            for e in self.cursor.drain_errors() {
+                errs.push(e.into());
+            }
+            self.synchronize();
+            true
+        } else {
+            false
+        }
     }
 
     pub fn parse_program(&mut self) -> Result<Ast, Vec<ParseError>> {
@@ -69,14 +70,19 @@ impl Parser {
         let mut errs = vec![];
         while !self.is_at_end() {
             let result = self.parse::<Declaration>();
-            match result {
-                Ok(decl) => decls.push(decl),
-                Err(err) => {
-                    errs.push(err);
-                    self.synchronize();
+            // Check if any tokenization errors occured, those have priority
+            // and make the actual result obtained from parsing void
+            if !self.check_tokenizer_errors(&mut errs) {
+                match result {
+                    Ok(decl) => decls.push(decl),
+                    Err(err) => {
+                        errs.push(err);
+                        self.synchronize();
+                    }
                 }
             }
         }
+        self.check_tokenizer_errors(&mut errs);
         if errs.is_empty() {
             Ok(Ast::new(decls))
         } else {
@@ -112,20 +118,19 @@ impl Parser {
     }
 
     fn peek(&self) -> &Token {
-        &self.tokens[self.position.0]
+        self.cursor.peek()
     }
 
-    fn peek_ahead(&self, ahead: usize) -> &Token {
-        &self.tokens[self.position.0 + ahead]
+    fn peek_next(&self) -> &Token {
+        self.cursor.peek_next()
     }
 
-    fn previous(&mut self) -> Token {
-        self.tokens[self.position.0 - 1].clone()
+    fn previous(&mut self) -> &Token {
+        self.cursor.previous()
     }
 
     fn advance(&mut self) -> Token {
-        self.position.0 += 1;
-        self.previous().clone()
+        self.cursor.advance()
     }
 
     fn consume(&mut self, expected: TokenKind) -> Result<(), ParseErrorKind> {
@@ -150,10 +155,6 @@ impl Parser {
         }
     }
 
-    fn get_token_range(&self, pos_before: TokenIndex, pos_after: TokenIndex) -> Range<usize> {
-        self.tokens[pos_before.0].start()..self.tokens[pos_after.0 - 1].end()
-    }
-
     fn is_at_end(&self) -> bool {
         &self.peek().kind == &TokenKind::Eof
     }
@@ -164,7 +165,7 @@ impl Parse for Declaration {
 
     fn parse(parser: &mut Parser) -> ParseResult<Declaration> {
         if let TokenKind::Ident(_) = parser.peek().kind() {
-            if AssignmentOperator::peek_ahead(parser, 1) {
+            if AssignmentOperator::peek_next(parser) {
                 return Ok(Declaration::VariableDecl(VariableDecl::parse(parser)?));
             }
         }

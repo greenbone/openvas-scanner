@@ -18,6 +18,7 @@ impl AddAssign<usize> for CharIndex {
     }
 }
 
+#[derive(Clone)]
 struct Cursor {
     chars: Vec<char>,
     position: CharIndex,
@@ -153,42 +154,56 @@ macro_rules! two_symbol_token {
 }
 
 /// Tokenizer uses a cursor to create tokens
+// TODO remove clone?
+#[derive(Clone)]
 pub struct Tokenizer {
     cursor: Cursor,
     begin_match_position: CharIndex,
-    errors: Vec<TokenizerError>,
+}
+
+//  TODO remove this eventually
+impl Iterator for Tokenizer {
+    type Item = Result<Token, TokenizerError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.advance()).filter(|token| {
+            !matches!(
+                token,
+                Ok(Token {
+                    kind: TokenKind::Eof,
+                    ..
+                }),
+            )
+        })
+    }
 }
 
 impl Tokenizer {
     /// Creates a new Tokenizer
-    pub fn tokenize(code: &str) -> Result<Vec<Token>, Vec<TokenizerError>> {
-        let mut tokenizer = Tokenizer {
-            errors: vec![],
+    pub fn tokenize(code: &str) -> Self {
+        let tokenizer = Tokenizer {
             cursor: Cursor::new(code),
             begin_match_position: CharIndex::default(),
         };
-        tokenizer.tokenize_internal().map_err(|_| tokenizer.errors)
+        tokenizer
     }
 
-    fn tokenize_internal(&mut self) -> Result<Vec<Token>, ()> {
-        let mut tokens = vec![];
+    pub fn advance(&mut self) -> Result<Token, TokenizerError> {
         while !self.cursor.is_at_eof() {
             let token = self.scan_token();
             match token {
-                Ok(Some(token)) => tokens.push(token),
+                Ok(Some(token)) => return Ok(token),
                 Ok(None) => {
                     // Encountered whitespace or a comment, ignore it.
                 }
-                Err(err) => {
-                    self.errors.push(err);
-                }
+                Err(err) => return Err(err),
             }
         }
-        if self.errors.is_empty() {
-            Ok(tokens)
-        } else {
-            Err(())
-        }
+        let position = self.cursor.position();
+        Ok(Token {
+            position: (position.0, position.0 + 1),
+            kind: TokenKind::Eof,
+        })
     }
 
     fn consume(&mut self, expected: char, f: TokenizerErrorKind) -> Result<(), TokenizerErrorKind> {

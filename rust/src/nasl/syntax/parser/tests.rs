@@ -12,15 +12,15 @@ fn parse<T: Parse>(file_name: &str, code: &str) -> Result<<T as Parse>::Output, 
     let code = Code::from_string_fake_filename(code, file_name)
         .code()
         .to_string();
-    let tokens = Tokenizer::tokenize(&code).unwrap();
-    Parser::new(tokens).parse::<T>()
+    let tokenizer = Tokenizer::tokenize(&code);
+    Parser::new(tokenizer).parse::<T>()
 }
 
 fn parse_program_ok(file_name: &str, code: &str) -> Vec<Declaration> {
     let code = Code::from_string_fake_filename(code, file_name)
         .code()
         .to_string();
-    let tokens = Tokenizer::tokenize(&code).unwrap();
+    let tokens = Tokenizer::tokenize(&code);
     Parser::new(tokens).parse_program().unwrap().decls()
 }
 
@@ -28,7 +28,7 @@ fn parse_program_err(file_name: &str, code: &str) -> String {
     let code = Code::from_string_fake_filename(code, file_name)
         .code()
         .to_string();
-    let tokens = Tokenizer::tokenize(&code).unwrap();
+    let tokens = Tokenizer::tokenize(&code);
     error::emit_errors_str(
         &SimpleFile::new(file_name.to_string(), code.to_string()),
         Parser::new(tokens).parse_program().unwrap_err().into_iter(),
@@ -156,3 +156,7 @@ parse_test_ok!(
     a <= '1';
     "
 );
+
+parse_test_ok!(empty_program, Program, "");
+
+parse_test_err!(wrong_tokens, Program, "\"foo");

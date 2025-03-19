@@ -2,7 +2,7 @@ use std::{fmt::Display, ops::Range};
 
 use crate::nasl::{
     error::AsCodespanError,
-    syntax::{Keyword, TokenKind},
+    syntax::{Keyword, TokenKind, TokenizerError, tokenizer::TokenizerErrorKind},
 };
 
 #[derive(Debug)]
@@ -27,6 +27,7 @@ pub enum ParseErrorKind {
     ExpectedAssignmentOperator,
     ExpectedUnaryOperator,
     ExpectedBinaryOperator,
+    Tokenizer(TokenizerErrorKind),
 }
 
 impl Display for ParseErrorKind {
@@ -46,6 +47,18 @@ impl Display for ParseErrorKind {
             ParseErrorKind::ExpectedBinaryOperator => {
                 write!(f, "Expected binary operator (+, -, *, /, ...)")
             }
+            ParseErrorKind::Tokenizer(e) => {
+                write!(f, "Error during tokenization: {e}")
+            }
+        }
+    }
+}
+
+impl From<TokenizerError> for ParseError {
+    fn from(e: TokenizerError) -> Self {
+        Self {
+            kind: ParseErrorKind::Tokenizer(e.kind),
+            range: e.range,
         }
     }
 }

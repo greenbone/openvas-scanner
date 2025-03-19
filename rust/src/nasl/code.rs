@@ -4,15 +4,28 @@ use std::{
 };
 
 use codespan_reporting::files::SimpleFile;
+use itertools::{Either, Itertools};
 
 use super::{
     Loader,
-    syntax::{Ast, Declaration, Lexer, LoadError, SyntaxError, Tokenizer},
+    syntax::{Ast, Declaration, Lexer, LoadError, SyntaxError, Token, Tokenizer, TokenizerError},
 };
 
+fn split_tokens_and_errors(tokenizer: Tokenizer) -> Result<Vec<Token>, Vec<TokenizerError>> {
+    let (tokens, errors): (Vec<_>, Vec<_>) = tokenizer.partition_map(|a| match a {
+        Ok(a) => Either::Left(a),
+        Err(a) => Either::Right(a),
+    });
+    if !errors.is_empty() {
+        Err(errors)
+    } else {
+        Ok(tokens)
+    }
+}
+
 fn parse(code: &str) -> Result<Ast, Vec<SyntaxError>> {
-    let tokens = Tokenizer::tokenize(code).map_err(|e| {
-        e.into_iter()
+    let tokens = split_tokens_and_errors(Tokenizer::tokenize(code)).map_err(|errs| {
+        errs.into_iter()
             .map(|e| SyntaxError::from(e))
             .collect::<Vec<_>>()
     })?;
@@ -134,7 +147,7 @@ mod tokenize {
 
     use crate::nasl::syntax::{Token, Tokenizer, TokenizerError};
 
-    use super::{super::error, SourceFile};
+    use super::{super::error, SourceFile, split_tokens_and_errors};
 
     pub struct TokenizeResult {
         result: Result<Vec<Token>, Vec<TokenizerError>>,
@@ -144,7 +157,7 @@ mod tokenize {
     impl TokenizeResult {
         pub fn new(code: &str, path: &Path) -> Self {
             let file = SimpleFile::new(path.to_string_lossy().into(), code.to_owned());
-            let result = Tokenizer::tokenize(code);
+            let result = split_tokens_and_errors(Tokenizer::tokenize(code));
             Self { file, result }
         }
 
