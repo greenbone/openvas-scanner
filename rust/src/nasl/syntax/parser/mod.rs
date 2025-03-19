@@ -11,7 +11,8 @@ use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl
+    AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, Stmt, Unary, UnaryOperator,
+    UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -176,6 +177,11 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         Expr::Ident(Ident::parse(parser)?)
     } else if Literal::peek(parser) {
         Expr::Literal(Literal::parse(parser)?)
+    } else if parser.cursor.peek().kind() == &TokenKind::LeftParen {
+        parser.consume(TokenKind::LeftParen).unwrap();
+        let lhs = pratt_parse_expr(parser, 0)?;
+        parser.consume(TokenKind::RightParen)?;
+        lhs
     } else if UnaryPrefixOperator::peek(parser) {
         let op = UnaryPrefixOperator::parse(parser)?;
         let r_bp = op.right_binding_power();
@@ -188,9 +194,10 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
     };
 
     loop {
-        if parser.is_at_end() {
-            break;
-        } else if parser.cursor.peek().kind() == &TokenKind::Semicolon {
+        if matches!(
+            *parser.cursor.peek().kind(),
+            TokenKind::RightParen | TokenKind::Semicolon | TokenKind::Eof
+        ) {
             break;
         }
 
@@ -204,7 +211,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                 op: UnaryOperator::Postfix(op),
                 rhs: Box::new(lhs),
             });
-            continue
+            continue;
         }
         let op = BinaryOperator::peek_parse(parser)
             .ok_or_else(|| ParseErrorKind::TokenExpected(TokenKind::Semicolon))?;

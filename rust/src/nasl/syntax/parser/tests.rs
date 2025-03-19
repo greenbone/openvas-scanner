@@ -178,3 +178,6 @@ parse_test_ok!(
 parse_test_ok!(empty_program, Program, "");
 
 parse_test_err!(wrong_tokens, Program, "\"foo");
+
+parse_test_ok!(parentheses, Expr, "(3 + 4) * 5");
+parse_test_ok!(multiple_parentheses, Expr, "(((a)))");
