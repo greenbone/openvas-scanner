@@ -6,23 +6,29 @@ Binary(
     Binary {
         lhs: Binary(
             Binary {
-                lhs: Literal(
-                    Number(
-                        3,
+                lhs: Atom(
+                    Literal(
+                        Number(
+                            3,
+                        ),
                     ),
                 ),
                 op: Plus,
-                rhs: Literal(
-                    Number(
-                        4,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            4,
+                        ),
                     ),
                 ),
             },
         ),
         op: Star,
-        rhs: Literal(
-            Number(
-                5,
+        rhs: Atom(
+            Literal(
+                Number(
+                    5,
+                ),
             ),
         ),
     },

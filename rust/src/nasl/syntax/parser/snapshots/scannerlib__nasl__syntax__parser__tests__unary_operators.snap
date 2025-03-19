@@ -10,7 +10,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                     op: Prefix(
                         Minus,
                     ),
-                    rhs: PlaceExpr(
+                    rhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -28,7 +28,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                     op: Prefix(
                         Bang,
                     ),
-                    rhs: PlaceExpr(
+                    rhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -56,7 +56,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                                     op: Prefix(
                                         Minus,
                                     ),
-                                    rhs: PlaceExpr(
+                                    rhs: Atom(
                                         Ident(
                                             Ident(
                                                 "a",
@@ -88,7 +88,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                                     op: Prefix(
                                         Bang,
                                     ),
-                                    rhs: PlaceExpr(
+                                    rhs: Atom(
                                         Ident(
                                             Ident(
                                                 "a",
@@ -120,7 +120,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                                     op: Prefix(
                                         Bang,
                                     ),
-                                    rhs: PlaceExpr(
+                                    rhs: Atom(
                                         Ident(
                                             Ident(
                                                 "a",

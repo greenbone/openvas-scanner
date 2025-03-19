@@ -5,12 +5,14 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
 [
     Stmt(
         ExprStmt(
-            PlaceExpr(
+            Atom(
                 ArrayAccess(
                     ArrayAccess {
-                        index_expr: Literal(
-                            Number(
-                                1,
+                        index_expr: Atom(
+                            Literal(
+                                Number(
+                                    1,
+                                ),
                             ),
                         ),
                         ident: Ident(
@@ -23,20 +25,24 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
     ),
     Stmt(
         ExprStmt(
-            PlaceExpr(
+            Atom(
                 ArrayAccess(
                     ArrayAccess {
                         index_expr: Binary(
                             Binary {
-                                lhs: Literal(
-                                    Number(
-                                        5,
+                                lhs: Atom(
+                                    Literal(
+                                        Number(
+                                            5,
+                                        ),
                                     ),
                                 ),
                                 op: Plus,
-                                rhs: Literal(
-                                    Number(
-                                        3,
+                                rhs: Atom(
+                                    Literal(
+                                        Number(
+                                            3,
+                                        ),
                                     ),
                                 ),
                             },
@@ -51,28 +57,34 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
     ),
     Stmt(
         ExprStmt(
-            PlaceExpr(
+            Atom(
                 ArrayAccess(
                     ArrayAccess {
                         index_expr: Binary(
                             Binary {
-                                lhs: Literal(
-                                    Number(
-                                        5,
+                                lhs: Atom(
+                                    Literal(
+                                        Number(
+                                            5,
+                                        ),
                                     ),
                                 ),
                                 op: Plus,
                                 rhs: Binary(
                                     Binary {
-                                        lhs: Literal(
-                                            Number(
-                                                3,
+                                        lhs: Atom(
+                                            Literal(
+                                                Number(
+                                                    3,
+                                                ),
                                             ),
                                         ),
                                         op: Star,
-                                        rhs: Literal(
-                                            Number(
-                                                4,
+                                        rhs: Atom(
+                                            Literal(
+                                                Number(
+                                                    4,
+                                                ),
                                             ),
                                         ),
                                     },
@@ -91,12 +103,14 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         ArrayAccess(
                             ArrayAccess {
-                                index_expr: Literal(
-                                    Number(
-                                        1,
+                                index_expr: Atom(
+                                    Literal(
+                                        Number(
+                                            1,
+                                        ),
                                     ),
                                 ),
                                 ident: Ident(
@@ -106,12 +120,14 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: Star,
-                    rhs: PlaceExpr(
+                    rhs: Atom(
                         ArrayAccess(
                             ArrayAccess {
-                                index_expr: Literal(
-                                    Number(
-                                        2,
+                                index_expr: Atom(
+                                    Literal(
+                                        Number(
+                                            2,
+                                        ),
                                     ),
                                 ),
                                 ident: Ident(
@@ -126,15 +142,17 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
     ),
     Stmt(
         ExprStmt(
-            PlaceExpr(
+            Atom(
                 ArrayAccess(
                     ArrayAccess {
-                        index_expr: PlaceExpr(
+                        index_expr: Atom(
                             ArrayAccess(
                                 ArrayAccess {
-                                    index_expr: Literal(
-                                        Number(
-                                            1,
+                                    index_expr: Atom(
+                                        Literal(
+                                            Number(
+                                                1,
+                                            ),
                                         ),
                                     ),
                                     ident: Ident(

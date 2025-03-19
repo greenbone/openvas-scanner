@@ -9,9 +9,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: PlusEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },
@@ -22,9 +24,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: MinusEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },
@@ -35,9 +39,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: SlashEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },
@@ -48,9 +54,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: StarEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },
@@ -61,9 +69,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: PercentEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },
@@ -74,9 +84,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: GreaterGreaterEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },
@@ -87,9 +99,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: LessLessEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },
@@ -100,9 +114,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 "a",
             ),
             operator: GreaterGreaterGreaterEqual,
-            expr: Literal(
-                Number(
-                    1,
+            expr: Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         },

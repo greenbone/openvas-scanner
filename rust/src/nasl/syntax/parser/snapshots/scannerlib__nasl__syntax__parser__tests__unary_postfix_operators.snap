@@ -10,7 +10,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                     op: Postfix(
                         PlusPlus,
                     ),
-                    rhs: PlaceExpr(
+                    rhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -28,7 +28,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                     op: Postfix(
                         MinusMinus,
                     ),
-                    rhs: PlaceExpr(
+                    rhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -51,7 +51,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             op: Postfix(
                                 MinusMinus,
                             ),
-                            rhs: PlaceExpr(
+                            rhs: Atom(
                                 Ident(
                                     Ident(
                                         "a",
@@ -76,7 +76,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             op: Postfix(
                                 PlusPlus,
                             ),
-                            rhs: PlaceExpr(
+                            rhs: Atom(
                                 Ident(
                                     Ident(
                                         "a",
@@ -101,7 +101,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             op: Postfix(
                                 PlusPlus,
                             ),
-                            rhs: PlaceExpr(
+                            rhs: Atom(
                                 Ident(
                                     Ident(
                                         "a",

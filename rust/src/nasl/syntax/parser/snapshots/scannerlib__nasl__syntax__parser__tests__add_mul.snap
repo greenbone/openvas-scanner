@@ -4,23 +4,29 @@ expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Expr >\
 ---
 Binary(
     Binary {
-        lhs: Literal(
-            Number(
-                5,
+        lhs: Atom(
+            Literal(
+                Number(
+                    5,
+                ),
             ),
         ),
         op: Plus,
         rhs: Binary(
             Binary {
-                lhs: Literal(
-                    Number(
-                        3,
+                lhs: Atom(
+                    Literal(
+                        Number(
+                            3,
+                        ),
                     ),
                 ),
                 op: Star,
-                rhs: Literal(
-                    Number(
-                        4,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            4,
+                        ),
                     ),
                 ),
             },

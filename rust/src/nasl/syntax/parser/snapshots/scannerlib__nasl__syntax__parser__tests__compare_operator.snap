@@ -7,7 +7,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -15,11 +15,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: BangTilde,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -30,7 +32,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -38,11 +40,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: EqualTilde,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -53,7 +57,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -61,11 +65,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: GreaterLess,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -76,7 +82,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -84,11 +90,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: GreaterBangLess,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -99,7 +107,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -107,11 +115,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: EqualEqual,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -122,7 +132,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -130,11 +140,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: BangEqual,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -145,7 +157,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -153,11 +165,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: Greater,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -168,7 +182,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -176,11 +190,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: Less,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -191,7 +207,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -199,11 +215,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: GreaterEqual,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -214,7 +232,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "a",
@@ -222,11 +240,13 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: LessEqual,
-                    rhs: Literal(
-                        Data(
-                            [
-                                49,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    49,
+                                ],
+                            ),
                         ),
                     ),
                 },

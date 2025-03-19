@@ -59,14 +59,14 @@ pub enum Stmt {
 
 #[derive(Clone, Debug)]
 pub enum Expr {
-    Literal(Literal),
-    PlaceExpr(PlaceExpr),
+    Atom(Atom),
     Binary(Binary),
     Unary(Unary),
 }
 
 #[derive(Clone, Debug)]
-pub enum PlaceExpr {
+pub enum Atom {
+    Literal(Literal),
     Ident(Ident),
     ArrayAccess(ArrayAccess),
 }

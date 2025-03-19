@@ -11,7 +11,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             operator: Equal,
             expr: Binary(
                 Binary {
-                    lhs: PlaceExpr(
+                    lhs: Atom(
                         Ident(
                             Ident(
                                 "gms_path",
@@ -19,28 +19,30 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ),
                     ),
                     op: Plus,
-                    rhs: Literal(
-                        Data(
-                            [
-                                119,
-                                101,
-                                98,
-                                97,
-                                112,
-                                112,
-                                115,
-                                92,
-                                97,
-                                112,
-                                112,
-                                108,
-                                105,
-                                97,
-                                110,
-                                99,
-                                101,
-                                92,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    119,
+                                    101,
+                                    98,
+                                    97,
+                                    112,
+                                    112,
+                                    115,
+                                    92,
+                                    97,
+                                    112,
+                                    112,
+                                    108,
+                                    105,
+                                    97,
+                                    110,
+                                    99,
+                                    101,
+                                    92,
+                                ],
+                            ),
                         ),
                     ),
                 },
@@ -57,31 +59,33 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 Binary {
                     lhs: Binary(
                         Binary {
-                            lhs: Literal(
-                                Data(
-                                    [
-                                        60,
-                                        37,
-                                        32,
-                                        111,
-                                        117,
-                                        116,
-                                        46,
-                                        112,
-                                        114,
-                                        105,
-                                        110,
-                                        116,
-                                        108,
-                                        110,
-                                        40,
-                                        32,
-                                        34,
-                                    ],
+                            lhs: Atom(
+                                Literal(
+                                    Data(
+                                        [
+                                            60,
+                                            37,
+                                            32,
+                                            111,
+                                            117,
+                                            116,
+                                            46,
+                                            112,
+                                            114,
+                                            105,
+                                            110,
+                                            116,
+                                            108,
+                                            110,
+                                            40,
+                                            32,
+                                            34,
+                                        ],
+                                    ),
                                 ),
                             ),
                             op: Plus,
-                            rhs: PlaceExpr(
+                            rhs: Atom(
                                 Ident(
                                     Ident(
                                         "jsp_print",
@@ -91,17 +95,19 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         },
                     ),
                     op: Plus,
-                    rhs: Literal(
-                        Data(
-                            [
-                                34,
-                                32,
-                                41,
-                                59,
-                                32,
-                                37,
-                                62,
-                            ],
+                    rhs: Atom(
+                        Literal(
+                            Data(
+                                [
+                                    34,
+                                    32,
+                                    41,
+                                    59,
+                                    32,
+                                    37,
+                                    62,
+                                ],
+                            ),
                         ),
                     ),
                 },

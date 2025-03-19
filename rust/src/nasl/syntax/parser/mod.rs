@@ -11,8 +11,8 @@ use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    ArrayAccess, AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, PlaceExpr,
-    Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
+    ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator, Declaration, Expr, Stmt,
+    Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -185,10 +185,8 @@ impl Parse for Expr {
 }
 
 fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
-    let mut lhs = if PlaceExpr::peek(parser) {
-        Expr::PlaceExpr(PlaceExpr::parse(parser)?)
-    } else if Literal::peek(parser) {
-        Expr::Literal(Literal::parse(parser)?)
+    let mut lhs = if Atom::peek(parser) {
+        Expr::Atom(Atom::parse(parser)?)
     } else if parser.consume_if_matches(TokenKind::LeftParen) {
         let lhs = pratt_parse_expr(parser, 0)?;
         parser.consume(TokenKind::RightParen)?;
@@ -241,22 +239,27 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
     Ok(lhs)
 }
 
-impl Parse for PlaceExpr {
+impl Parse for Atom {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        let ident = Ident::parse(parser)?;
-        if parser.consume_if_matches(TokenKind::LeftBracket) {
-            let index_expr = Box::new(Expr::parse(parser)?);
-            parser.consume(TokenKind::RightBracket)?;
-            Ok(PlaceExpr::ArrayAccess(ArrayAccess { index_expr, ident }))
+        if Literal::peek(parser) {
+            let literal = Literal::parse(parser).unwrap();
+            Ok(Atom::Literal(literal))
         } else {
-            Ok(PlaceExpr::Ident(ident))
+            let ident = Ident::parse(parser)?;
+            if parser.consume_if_matches(TokenKind::LeftBracket) {
+                let index_expr = Box::new(Expr::parse(parser)?);
+                parser.consume(TokenKind::RightBracket)?;
+                Ok(Atom::ArrayAccess(ArrayAccess { index_expr, ident }))
+            } else {
+                Ok(Atom::Ident(ident))
+            }
         }
     }
 }
 
-impl Matches for PlaceExpr {
+impl Matches for Atom {
     fn matches(kind: &TokenKind) -> bool {
-        Ident::matches(kind)
+        Ident::matches(kind) || Literal::matches(kind)
     }
 }
 

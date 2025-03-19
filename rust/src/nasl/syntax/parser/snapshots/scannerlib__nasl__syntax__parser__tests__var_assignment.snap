@@ -8,9 +8,11 @@ VariableDecl(
             "x",
         ),
         operator: Equal,
-        expr: Literal(
-            Number(
-                3,
+        expr: Atom(
+            Literal(
+                Number(
+                    3,
+                ),
             ),
         ),
     },

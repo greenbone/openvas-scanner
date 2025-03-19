@@ -5,9 +5,11 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
 [
     Stmt(
         ExprStmt(
-            Literal(
-                Number(
-                    1,
+            Atom(
+                Literal(
+                    Number(
+                        1,
+                    ),
                 ),
             ),
         ),

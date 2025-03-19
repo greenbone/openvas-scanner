@@ -5,12 +5,14 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
 [
     Stmt(
         ExprStmt(
-            PlaceExpr(
+            Atom(
                 ArrayAccess(
                     ArrayAccess {
-                        index_expr: Literal(
-                            Number(
-                                1,
+                        index_expr: Atom(
+                            Literal(
+                                Number(
+                                    1,
+                                ),
                             ),
                         ),
                         ident: Ident(
