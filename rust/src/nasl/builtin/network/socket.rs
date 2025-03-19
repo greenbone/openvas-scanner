@@ -15,7 +15,7 @@ use crate::{
     storage::items::kb::{self, KbKey},
 };
 use dns_lookup::lookup_host;
-use lazy_regex::{lazy_regex, Lazy};
+use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
 use rustls::ClientConnection;
 use thiserror::Error;
@@ -29,7 +29,7 @@ use super::{
 };
 
 static FTP_PASV: Lazy<Regex> =
-    lazy_regex!(r"227 Entering Passive Mode \((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)");
+    lazy_regex!(r"227 Entering Passive Mode \(\d+,\d+,\d+,\d+,(\d+),(\d+)\)");
 
 #[derive(Debug, Error)]
 pub enum SocketError {
@@ -673,12 +673,12 @@ impl NaslSockets {
     /// Args:
     /// - socket: an open socket.
     #[nasl_function(named(socket))]
-    fn ftp_get_pasv_port(&mut self, socket: usize) -> Result<NaslValue, SocketError> {
+    fn ftp_get_pasv_port(&mut self, socket: usize) -> Result<u16, SocketError> {
         let conn = self.get_open_socket_mut(socket)?;
         let conn = match conn {
             NaslSocket::Tcp(conn) => conn,
             NaslSocket::Udp(_) => {
-                return Err(SocketError::SupportedOnlyOnTcp("ftp_get_pasv_port".into()))
+                return Err(SocketError::SupportedOnlyOnTcp("ftp_get_pasv_port".into()));
             }
         };
 
@@ -688,39 +688,23 @@ impl NaslSockets {
         // should be `227 Entering Passive Mode (h1, h2, h3, h4, p1, p2)`
         conn.read_line(&mut data)?;
 
-        let port = match FTP_PASV.captures(&data) {
-            None => {
-                return Err(SocketError::Diagnostic(format!(
-                    "Unexpected response from FTP server: {}",
-                    data
-                )))
-            }
-            Some(captures) => {
-                let p1 = captures
-                    .get(5)
-                    .unwrap()
-                    .as_str()
-                    .parse::<u16>()
-                    .map_err(|e| {
-                        SocketError::Diagnostic(format!(
-                            "{e}, invalid port within response: {data}"
-                        ))
-                    })?;
-                let p2 = captures
-                    .get(6)
-                    .unwrap()
-                    .as_str()
-                    .parse::<u16>()
-                    .map_err(|e| {
-                        SocketError::Diagnostic(format!(
-                            "{e}, invalid port within response: {data}"
-                        ))
-                    })?;
-                (p1 << 8) | p2
-            }
-        };
+        let captures = FTP_PASV.captures(&data).ok_or_else(|| {
+            SocketError::Diagnostic(format!("Unexpected response from FTP server: {}", data))
+        })?;
 
-        Ok(NaslValue::Number(port as i64))
+        let get_port = |idx: usize| {
+            captures
+                .get(idx)
+                .unwrap()
+                .as_str()
+                .parse::<u16>()
+                .map_err(|e| {
+                    SocketError::Diagnostic(format!("{e}, invalid port within response: {data}"))
+                })
+        };
+        let p1 = get_port(1)?;
+        let p2 = get_port(2)?;
+        Ok((p1 << 8) | p2)
     }
 }
 
