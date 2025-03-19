@@ -75,8 +75,8 @@ impl Operation {
             | TokenKind::MinusMinus => Some(Operation::Assign(token.kind().clone())),
             TokenKind::Literal(_) => Some(Operation::Primitive),
             TokenKind::LeftParen
+            | TokenKind::LeftBracket
             | TokenKind::LeftBrace
-            | TokenKind::LeftCurlyBracket
             | TokenKind::Comma => Some(Operation::Grouping(token.kind().clone())),
             TokenKind::Keyword(keyword) => Some(Operation::Keyword(keyword.clone())),
             TokenKind::Ident(Ident(_)) => Some(Operation::Variable),

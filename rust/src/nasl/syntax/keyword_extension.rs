@@ -166,7 +166,7 @@ impl Lexer {
         let block = self
             .token()
             .ok_or_else(|| unexpected_end!("parse_function"))?;
-        if !matches!(block.kind(), TokenKind::LeftCurlyBracket) {
+        if !matches!(block.kind(), TokenKind::LeftBrace) {
             return Err(unexpected_token!(block));
         }
         let block = self.parse_block(block)?;
@@ -394,9 +394,9 @@ impl Lexer {
     fn parse_fct_anon_args(&mut self, keyword: Token) -> Result<Statement, SyntaxError> {
         match self.peek() {
             Some(token) => match token.kind() {
-                TokenKind::LeftBrace => {
+                TokenKind::LeftBracket => {
                     self.token();
-                    let (end, lookup) = self.statement(0, &|c| c == &TokenKind::RightBrace)?;
+                    let (end, lookup) = self.statement(0, &|c| c == &TokenKind::RightBracket)?;
                     let lookup = lookup.as_returnable_or_err()?;
                     match end {
                         End::Done(end) => Ok(Statement::with_start_end_token(

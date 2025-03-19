@@ -241,10 +241,10 @@ impl Tokenizer {
         let kind = match char {
             '(' => LeftParen,
             ')' => RightParen,
-            '[' => LeftBrace,
-            ']' => RightBrace,
-            '{' => LeftCurlyBracket,
-            '}' => RightCurlyBracket,
+            '[' => LeftBracket,
+            ']' => RightBracket,
+            '{' => LeftBrace,
+            '}' => RightBrace,
             ',' => Comma,
             '.' => Dot,
             '#' => {

@@ -149,13 +149,13 @@ pub enum TokenKind {
     /// `)`
     RightParen,
     /// `[`
-    LeftBrace,
+    LeftBracket,
     /// `]`
-    RightBrace,
+    RightBracket,
     /// `{`
-    LeftCurlyBracket,
+    LeftBrace,
     /// `}`
-    RightCurlyBracket,
+    RightBrace,
     /// `,`
     Comma,
     /// `.`
@@ -255,10 +255,10 @@ impl Display for TokenKind {
         match self {
             TokenKind::LeftParen => write!(f, "("),
             TokenKind::RightParen => write!(f, ")"),
-            TokenKind::LeftBrace => write!(f, "["),
-            TokenKind::RightBrace => write!(f, "]"),
-            TokenKind::LeftCurlyBracket => write!(f, "{{"),
-            TokenKind::RightCurlyBracket => write!(f, "}}"),
+            TokenKind::LeftBracket => write!(f, "["),
+            TokenKind::RightBracket => write!(f, "]"),
+            TokenKind::LeftBrace => write!(f, "{{"),
+            TokenKind::RightBrace => write!(f, "}}"),
             TokenKind::Comma => write!(f, ","),
             TokenKind::Dot => write!(f, "."),
             TokenKind::Percent => write!(f, "%"),

@@ -52,7 +52,7 @@ impl Grouping for Lexer {
     fn parse_block(&mut self, kw: Token) -> Result<Statement, SyntaxError> {
         let mut results = vec![];
         while let Some(token) = self.peek() {
-            if token.kind() == &TokenKind::RightCurlyBracket {
+            if token.kind() == &TokenKind::RightBrace {
                 let _ = self.token();
 
                 self.depth = 0;
@@ -81,9 +81,9 @@ impl Grouping for Lexer {
         }
         match token.kind() {
             TokenKind::LeftParen => self.parse_paren(token).map(as_con),
-            TokenKind::LeftCurlyBracket => self.parse_block(token).map(as_done),
-            TokenKind::LeftBrace => {
-                let (end, right) = self.parse_comma_group(TokenKind::RightBrace)?;
+            TokenKind::LeftBrace => self.parse_block(token).map(as_done),
+            TokenKind::LeftBracket => {
+                let (end, right) = self.parse_comma_group(TokenKind::RightBracket)?;
                 match end {
                     End::Done(end) => Ok((
                         End::Continue,

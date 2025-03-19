@@ -59,9 +59,10 @@ impl Lexer {
                             Continue => Err(unclosed_token!(nt)),
                         }
                     }
-                    TokenKind::LeftBrace => {
+                    TokenKind::LeftBracket => {
                         self.token();
-                        let (end, lookup) = self.statement(0, &|c| c == &TokenKind::RightBrace)?;
+                        let (end, lookup) =
+                            self.statement(0, &|c| c == &TokenKind::RightBracket)?;
                         let lookup = lookup.as_returnable_or_err()?;
                         match end {
                             Done(end) => Ok((StatementKind::Array(Some(Box::new(lookup))), end)),

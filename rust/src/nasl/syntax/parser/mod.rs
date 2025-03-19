@@ -196,7 +196,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
     loop {
         if matches!(
             *parser.cursor.peek().kind(),
-            TokenKind::RightBrace | TokenKind::RightParen | TokenKind::Semicolon | TokenKind::Eof
+            TokenKind::RightBracket | TokenKind::RightParen | TokenKind::Semicolon | TokenKind::Eof
         ) {
             break;
         }
@@ -233,10 +233,10 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
 impl Parse for PlaceExpr {
     fn parse(parser: &mut Parser) -> Result<Self> {
         let ident = Ident::parse(parser)?;
-        if parser.cursor.peek().kind() == &TokenKind::LeftBrace {
-            parser.consume(TokenKind::LeftBrace)?;
+        if parser.cursor.peek().kind() == &TokenKind::LeftBracket {
+            parser.consume(TokenKind::LeftBracket)?;
             let index_expr = Box::new(Expr::parse(parser)?);
-            parser.consume(TokenKind::RightBrace)?;
+            parser.consume(TokenKind::RightBracket)?;
             Ok(PlaceExpr::ArrayAccess(ArrayAccess { index_expr, ident }))
         } else {
             Ok(PlaceExpr::Ident(ident))

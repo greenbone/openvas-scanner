@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (one_char_tokens),\n\"( ) [ ] { } . - + % ; / * : ~ & | ^\")"
-snapshot_kind: text
 ---
 [
     Token {
@@ -19,28 +18,28 @@ snapshot_kind: text
         ),
     },
     Token {
-        kind: LeftBrace,
+        kind: LeftBracket,
         position: (
             4,
             5,
         ),
     },
     Token {
-        kind: RightBrace,
+        kind: RightBracket,
         position: (
             6,
             7,
         ),
     },
     Token {
-        kind: LeftCurlyBracket,
+        kind: LeftBrace,
         position: (
             8,
             9,
         ),
     },
     Token {
-        kind: RightCurlyBracket,
+        kind: RightBrace,
         position: (
             10,
             11,
