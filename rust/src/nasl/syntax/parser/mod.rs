@@ -12,7 +12,7 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, Stmt, Unary, UnaryOperator,
-    VariableDecl,
+    UnaryPrefixOperator, VariableDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -177,11 +177,11 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         Expr::Ident(Ident::parse(parser)?)
     } else if Literal::peek(parser) {
         Expr::Literal(Literal::parse(parser)?)
-    } else if UnaryOperator::peek(parser) {
-        let op = UnaryOperator::parse(parser)?;
+    } else if UnaryPrefixOperator::peek(parser) {
+        let op = UnaryPrefixOperator::parse(parser)?;
         let r_bp = op.right_binding_power();
         Expr::Unary(Unary {
-            op,
+            op: UnaryOperator::Prefix(op),
             rhs: Box::new(pratt_parse_expr(parser, r_bp)?),
         })
     } else {

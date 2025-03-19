@@ -7,7 +7,9 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Unary(
                 Unary {
-                    op: Minus,
+                    op: Prefix(
+                        Minus,
+                    ),
                     rhs: Ident(
                         Ident(
                             "a",
@@ -21,7 +23,9 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Unary(
                 Unary {
-                    op: Bang,
+                    op: Prefix(
+                        Bang,
+                    ),
                     rhs: Ident(
                         Ident(
                             "a",
@@ -35,13 +39,19 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Unary(
                 Unary {
-                    op: Minus,
+                    op: Prefix(
+                        Minus,
+                    ),
                     rhs: Unary(
                         Unary {
-                            op: Minus,
+                            op: Prefix(
+                                Minus,
+                            ),
                             rhs: Unary(
                                 Unary {
-                                    op: Minus,
+                                    op: Prefix(
+                                        Minus,
+                                    ),
                                     rhs: Ident(
                                         Ident(
                                             "a",
@@ -59,13 +69,19 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Unary(
                 Unary {
-                    op: Minus,
+                    op: Prefix(
+                        Minus,
+                    ),
                     rhs: Unary(
                         Unary {
-                            op: Minus,
+                            op: Prefix(
+                                Minus,
+                            ),
                             rhs: Unary(
                                 Unary {
-                                    op: Bang,
+                                    op: Prefix(
+                                        Bang,
+                                    ),
                                     rhs: Ident(
                                         Ident(
                                             "a",
@@ -83,13 +99,19 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
         ExprStmt(
             Unary(
                 Unary {
-                    op: Bang,
+                    op: Prefix(
+                        Bang,
+                    ),
                     rhs: Unary(
                         Unary {
-                            op: Bang,
+                            op: Prefix(
+                                Bang,
+                            ),
                             rhs: Unary(
                                 Unary {
-                                    op: Bang,
+                                    op: Prefix(
+                                        Bang,
+                                    ),
                                     rhs: Ident(
                                         Ident(
                                             "a",

@@ -72,6 +72,12 @@ pub struct Unary {
 }
 
 #[derive(Clone, Debug)]
+pub enum UnaryOperator {
+    Postfix(UnaryPostfixOperator),
+    Prefix(UnaryPrefixOperator),
+}
+
+#[derive(Clone, Debug)]
 pub struct Binary {
     pub lhs: Box<Expr>,
     pub op: BinaryOperator,
@@ -120,13 +126,24 @@ macro_rules! make_operator {
 }
 
 make_operator! {
-    UnaryOperator,
+    UnaryPrefixOperator,
     ParseErrorKind::ExpectedUnaryOperator,
     (
         Minus,
         Bang,
         Plus,
         Tilde,
+        PlusPlus,
+        MinusMinus,
+    )
+}
+
+make_operator! {
+    UnaryPostfixOperator,
+    ParseErrorKind::ExpectedUnaryOperator,
+    (
+        PlusPlus,
+        MinusMinus,
     )
 }
 
@@ -197,11 +214,21 @@ impl BinaryOperator {
     }
 }
 
-impl UnaryOperator {
+impl UnaryPrefixOperator {
     pub fn right_binding_power(&self) -> usize {
-        use UnaryOperator::*;
+        use UnaryPrefixOperator::*;
         match self {
-            Plus | Minus | Tilde | Bang => 21,
+            Plus | Minus | Tilde | Bang | PlusPlus | MinusMinus => 21,
+        }
+    }
+}
+
+impl UnaryPostfixOperator {
+    pub fn left_binding_power(&self) -> usize {
+        use UnaryPostfixOperator::*;
+        match self {
+            PlusPlus => 21,
+            MinusMinus => 21,
         }
     }
 }
