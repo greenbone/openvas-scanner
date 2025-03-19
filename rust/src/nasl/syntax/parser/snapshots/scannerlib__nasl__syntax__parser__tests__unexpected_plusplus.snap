@@ -1,0 +1,33 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (unexpected_plusplus),\nr###\"\n    cookie_jar[this_cookie]++;\n    \"###)"
+---
+[
+    Stmt(
+        ExprStmt(
+            Unary(
+                Unary {
+                    op: Postfix(
+                        PlusPlus,
+                    ),
+                    rhs: PlaceExpr(
+                        ArrayAccess(
+                            ArrayAccess {
+                                index_expr: PlaceExpr(
+                                    Ident(
+                                        Ident(
+                                            "this_cookie",
+                                        ),
+                                    ),
+                                ),
+                                ident: Ident(
+                                    "cookie_jar",
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ),
+        ),
+    ),
+]

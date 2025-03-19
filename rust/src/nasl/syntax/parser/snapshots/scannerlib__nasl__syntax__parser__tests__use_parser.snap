@@ -1,0 +1,32 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (use_parser), \"a = 23;b = 1;\")"
+---
+[
+    VariableDecl(
+        VariableDecl {
+            ident: Ident(
+                "a",
+            ),
+            operator: Equal,
+            expr: Literal(
+                Number(
+                    23,
+                ),
+            ),
+        },
+    ),
+    VariableDecl(
+        VariableDecl {
+            ident: Ident(
+                "b",
+            ),
+            operator: Equal,
+            expr: Literal(
+                Number(
+                    1,
+                ),
+            ),
+        },
+    ),
+]
