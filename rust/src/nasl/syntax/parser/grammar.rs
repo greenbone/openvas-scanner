@@ -1,7 +1,7 @@
 use std::vec;
 
 use super::{ParseErrorKind, Parser};
-use crate::nasl::syntax::token::{self, Literal, TokenKind};
+use crate::nasl::syntax::token::{Ident, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
 pub struct Ast {
@@ -36,6 +36,13 @@ impl Ast {
 }
 
 #[derive(Clone, Debug)]
+pub enum Declaration {
+    Stmt(Stmt),
+    VariableDecl(VariableDecl),
+    FunctionDecl(FunctionDecl),
+}
+
+#[derive(Clone, Debug)]
 pub struct VariableDecl {
     pub ident: Ident,
     pub operator: AssignmentOperator,
@@ -46,35 +53,29 @@ pub struct VariableDecl {
 pub struct FunctionDecl;
 
 #[derive(Clone, Debug)]
-pub enum Declaration {
-    Stmt(Stmt),
-    VariableDecl(VariableDecl),
-    FunctionDecl(FunctionDecl),
-}
-
-#[derive(Clone, Debug)]
 pub enum Stmt {
     ExprStmt(Expr),
 }
 
 #[derive(Clone, Debug)]
 pub enum Expr {
-    Grouping(Grouping),
-    Unary(Unary),
-    Binary(Binary),
     Literal(Literal),
     Ident(Ident),
-}
-
-#[derive(Clone, Debug)]
-pub struct Grouping {
-    pub expr: Box<Expr>,
+    Binary(Binary),
+    Unary(Unary),
 }
 
 #[derive(Clone, Debug)]
 pub struct Unary {
-    pub operator: UnaryOperator,
-    pub right: Box<Expr>,
+    pub op: UnaryOperator,
+    pub rhs: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Binary {
+    pub lhs: Box<Expr>,
+    pub op: BinaryOperator,
+    pub rhs: Box<Expr>,
 }
 
 macro_rules! make_operator {
@@ -104,10 +105,14 @@ macro_rules! make_operator {
         }
 
         impl super::Parse for $ty {
-            type Output = $ty;
-
-            fn parse(parser: &mut Parser) -> Result<Self::Output, ParseErrorKind> {
+            fn parse(parser: &mut Parser) -> Result<$ty, ParseErrorKind> {
                 parser.consume_pat(Self::convert, $err)
+            }
+        }
+
+        impl super::PeekParse for $ty {
+            fn peek_parse(parser: &mut Parser) -> Option<Self> {
+                Self::convert(&parser.cursor.peek().kind)
             }
         }
 
@@ -150,6 +155,7 @@ make_operator! {
         Minus,
         Star,
         Slash,
+        Percent,
         BangEqual,
         EqualEqual,
         BangTilde,
@@ -163,19 +169,39 @@ make_operator! {
         LessEqual,
         GreaterGreaterGreater,
         GreaterBangLess,
+        Ampersand,
         AmpersandAmpersand,
+        Caret,
+        Pipe,
         PipePipe,
+        StarStar,
     )
 }
 
-#[derive(Clone, Debug)]
-pub struct Binary {
-    pub left: Box<Expr>,
-    pub operator: BinaryOperator,
-    pub right: Box<Expr>,
+impl BinaryOperator {
+    pub fn binding_power(&self) -> (usize, usize) {
+        use BinaryOperator::*;
+        match self {
+            StarStar => (22, 23),
+            Star | Slash | Percent => (20, 21),
+            Plus | Minus => (18, 19),
+            LessLess | GreaterGreater | GreaterGreaterGreater => (16, 17),
+            Ampersand => (14, 15),
+            Caret => (12, 13),
+            Pipe => (10, 11),
+            Less | LessEqual | Greater | GreaterEqual | EqualEqual | BangEqual | GreaterLess
+            | GreaterBangLess | EqualTilde | BangTilde => (8, 9),
+            AmpersandAmpersand => (6, 7),
+            PipePipe => (4, 5),
+        }
+    }
 }
 
-#[derive(Clone, Debug)]
-pub struct Ident {
-    pub ident: token::Ident,
+impl UnaryOperator {
+    pub fn right_binding_power(&self) -> usize {
+        use UnaryOperator::*;
+        match self {
+            Plus | Minus | Tilde | Bang => 21,
+        }
+    }
 }

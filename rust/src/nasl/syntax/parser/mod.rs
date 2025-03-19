@@ -4,36 +4,37 @@ pub mod grammar;
 #[cfg(test)]
 mod tests;
 
-use std::fmt::Debug;
-
 use cursor::Cursor;
 use error::{ParseError, ParseErrorKind};
 
 use crate::nasl::error::Span;
 
-use super::{Keyword, Token, TokenKind, Tokenizer};
+use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    AssignmentOperator, Ast, Binary, Declaration, Expr, Grouping, Ident, Stmt, Unary,
-    UnaryOperator, VariableDecl,
+    AssignmentOperator, Ast, Binary, BinaryOperator, Declaration, Expr, Stmt, Unary, UnaryOperator,
+    VariableDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
 
 pub trait Parse: Sized {
-    type Output: Debug;
-    fn parse(parser: &mut Parser) -> Result<Self::Output>;
+    fn parse(parser: &mut Parser) -> Result<Self>;
 }
 
 pub trait Matches: Sized {
     fn matches(kind: &TokenKind) -> bool;
 
     fn peek(parser: &Parser) -> bool {
-        Self::matches(parser.peek().kind())
+        Self::matches(parser.cursor.peek().kind())
     }
 
     fn peek_next(parser: &Parser) -> bool {
-        Self::matches(parser.peek_next().kind())
+        Self::matches(parser.cursor.peek_next().kind())
     }
+}
+
+pub trait PeekParse: Sized {
+    fn peek_parse(parser: &mut Parser) -> Option<Self>;
 }
 
 pub struct Parser {
@@ -47,7 +48,7 @@ impl Parser {
         }
     }
 
-    pub fn parse<T: Parse>(&mut self) -> Result<<T as Parse>::Output, ParseError> {
+    pub fn parse<T: Parse>(&mut self) -> Result<T, ParseError> {
         let pos_before = self.cursor.current_token_start();
         let result = T::parse(self);
         let pos_after = self.cursor.current_token_end();
@@ -98,7 +99,7 @@ impl Parser {
             if token.kind == TokenKind::Semicolon {
                 return;
             }
-            match self.peek().kind {
+            match self.cursor.peek().kind {
                 TokenKind::Keyword(Keyword::LocalVar) => {
                     return;
                 }
@@ -107,36 +108,12 @@ impl Parser {
         }
     }
 
-    fn matches(&mut self, token_kind: TokenKind) -> bool {
-        let matches = self.check(token_kind);
-        if matches {
-            self.advance();
-        }
-        matches
-    }
-
-    fn check(&mut self, token_kind: TokenKind) -> bool {
-        &self.peek().kind == &token_kind
-    }
-
-    fn peek(&self) -> &Token {
-        self.cursor.peek()
-    }
-
-    fn peek_next(&self) -> &Token {
-        self.cursor.peek_next()
-    }
-
-    fn previous(&mut self) -> &Token {
-        self.cursor.previous()
-    }
-
     fn advance(&mut self) -> Token {
         self.cursor.advance()
     }
 
     fn consume(&mut self, expected: TokenKind) -> Result<()> {
-        if self.peek().kind != expected {
+        if self.cursor.peek().kind != expected {
             Err(ParseErrorKind::TokenExpected(expected))
         } else {
             self.advance();
@@ -149,7 +126,7 @@ impl Parser {
         predicate: impl Fn(&TokenKind) -> Option<T>,
         e: ParseErrorKind,
     ) -> Result<T> {
-        if let Some(t) = predicate(self.peek().kind()) {
+        if let Some(t) = predicate(self.cursor.peek().kind()) {
             self.advance();
             Ok(t)
         } else {
@@ -158,15 +135,13 @@ impl Parser {
     }
 
     fn is_at_end(&self) -> bool {
-        &self.peek().kind == &TokenKind::Eof
+        &self.cursor.peek().kind == &TokenKind::Eof
     }
 }
 
 impl Parse for Declaration {
-    type Output = Declaration;
-
     fn parse(parser: &mut Parser) -> Result<Declaration> {
-        if let TokenKind::Ident(_) = parser.peek().kind() {
+        if Ident::peek(parser) {
             if AssignmentOperator::peek_next(parser) {
                 return Ok(Declaration::VariableDecl(VariableDecl::parse(parser)?));
             }
@@ -178,8 +153,6 @@ impl Parse for Declaration {
 }
 
 impl Parse for VariableDecl {
-    type Output = VariableDecl;
-
     fn parse(parser: &mut Parser) -> Result<VariableDecl> {
         let ident = Ident::parse(parser)?;
         let operator = AssignmentOperator::parse(parser)?;
@@ -194,163 +167,75 @@ impl Parse for VariableDecl {
 }
 
 impl Parse for Expr {
-    type Output = Expr;
-
     fn parse(parser: &mut Parser) -> Result<Expr> {
-        Result::Ok(Equality::parse(parser)?)
+        pratt_parse_expr(parser, 0)
     }
 }
 
-trait BinaryOperator {
-    type Subtype;
+fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
+    let mut lhs = if Ident::peek(parser) {
+        Expr::Ident(Ident::parse(parser)?)
+    } else if Literal::peek(parser) {
+        Expr::Literal(Literal::parse(parser)?)
+    } else if UnaryOperator::peek(parser) {
+        let op = UnaryOperator::parse(parser)?;
+        let r_bp = op.right_binding_power();
+        Expr::Unary(Unary {
+            op,
+            rhs: Box::new(pratt_parse_expr(parser, r_bp)?),
+        })
+    } else {
+        return Err(ParseErrorKind::ExpressionExpected);
+    };
 
-    fn token_kinds() -> impl Iterator<Item = TokenKind>;
-}
-
-impl<T> Parse for T
-where
-    T: BinaryOperator,
-    <T as BinaryOperator>::Subtype: Parse<Output = Expr>,
-{
-    type Output = Expr;
-
-    fn parse(parser: &mut Parser) -> Result<Expr> {
-        let mut left = T::Subtype::parse(parser)?;
-        while T::token_kinds().any(|kind| parser.peek().kind() == &kind) {
-            let operator = grammar::BinaryOperator::parse(parser)?;
-            let right = T::Subtype::parse(parser)?;
-            left = Expr::Binary(Binary {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            });
+    loop {
+        if parser.is_at_end() {
+            break;
+        } else if parser.cursor.peek().kind() == &TokenKind::Semicolon {
+            break;
         }
-        Ok(left)
-    }
-}
 
-struct Equality;
-
-impl BinaryOperator for Equality {
-    type Subtype = Comparison;
-
-    fn token_kinds() -> impl Iterator<Item = TokenKind> {
-        [
-            TokenKind::BangEqual,
-            TokenKind::EqualEqual,
-            TokenKind::BangTilde,
-            TokenKind::EqualTilde,
-        ]
-        .into_iter()
-    }
-}
-
-struct Comparison;
-
-impl BinaryOperator for Comparison {
-    type Subtype = Term;
-
-    fn token_kinds() -> impl Iterator<Item = TokenKind> {
-        [
-            TokenKind::Greater,
-            TokenKind::GreaterGreater,
-            TokenKind::GreaterLess,
-            TokenKind::GreaterEqual,
-            TokenKind::Less,
-            TokenKind::LessLess,
-            TokenKind::LessEqual,
-            TokenKind::GreaterGreaterGreater,
-            TokenKind::GreaterBangLess,
-        ]
-        .into_iter()
-    }
-}
-
-struct Term;
-
-impl BinaryOperator for Term {
-    type Subtype = Factor;
-
-    fn token_kinds() -> impl Iterator<Item = TokenKind> {
-        [
-            TokenKind::Plus,
-            TokenKind::Minus,
-            TokenKind::Slash,
-            TokenKind::Star,
-        ]
-        .into_iter()
-    }
-}
-
-struct Factor;
-
-impl BinaryOperator for Factor {
-    type Subtype = Unary;
-
-    fn token_kinds() -> impl Iterator<Item = TokenKind> {
-        [TokenKind::Star, TokenKind::Slash, TokenKind::Percent].into_iter()
-    }
-}
-
-impl Parse for Unary {
-    type Output = Expr;
-
-    fn parse(parser: &mut Parser) -> Result<Expr> {
-        if UnaryOperator::peek(parser) {
-            let operator = UnaryOperator::parse(parser)?;
-            let right = Unary::parse(parser)?;
-            Ok(Expr::Unary(Unary {
-                operator,
-                right: Box::new(right),
-            }))
-        } else {
-            Primary::parse(parser)
+        let op = BinaryOperator::peek_parse(parser)
+            .ok_or_else(|| ParseErrorKind::TokenExpected(TokenKind::Semicolon))?;
+        let (l_bp, r_bp) = op.binding_power();
+        if l_bp < min_bp {
+            break;
         }
+        let _ = BinaryOperator::parse(parser).unwrap();
+        let rhs = pratt_parse_expr(parser, r_bp)?;
+        lhs = Expr::Binary(Binary {
+            lhs: Box::new(lhs),
+            op,
+            rhs: Box::new(rhs),
+        });
     }
+    Ok(lhs)
 }
 
-struct Primary;
-
-impl Parse for Primary {
-    type Output = Expr;
-
-    fn parse(parser: &mut Parser) -> Result<Expr> {
-        if let TokenKind::Ident(ident) = &parser.peek().kind {
-            let res = Ok(Expr::Ident(Ident {
-                ident: ident.clone(),
-            }));
-            parser.advance();
-            res
-        } else if let TokenKind::Literal(lit) = &parser.peek().kind {
-            let res = Ok(Expr::Literal(lit.clone()));
-            parser.advance();
-            res
-        } else if parser.matches(TokenKind::LeftParen) {
-            let expr = Box::new(Expr::parse(parser)?);
-            let grouping = Expr::Grouping(Grouping { expr });
-            parser.consume(TokenKind::RightParen)?;
-            Ok(grouping)
-        } else {
-            Err(ParseErrorKind::ExpressionExpected)
+macro_rules! impl_trivial_parse {
+    ($ty: ty, $kind: ident, $err: expr) => {
+        impl Parse for $ty {
+            fn parse(parser: &mut Parser) -> Result<Self> {
+                parser.consume_pat(
+                    |kind| {
+                        if let TokenKind::$kind(x) = kind {
+                            Some(x.clone())
+                        } else {
+                            None
+                        }
+                    },
+                    $err,
+                )
+            }
         }
-    }
+
+        impl Matches for $ty {
+            fn matches(kind: &TokenKind) -> bool {
+                matches!(kind, TokenKind::$kind(_))
+            }
+        }
+    };
 }
 
-impl Parse for Ident {
-    type Output = Ident;
-
-    fn parse(parser: &mut Parser) -> Result<Self::Output> {
-        parser.consume_pat(
-            |kind| {
-                if let TokenKind::Ident(ident) = kind {
-                    Some(Ident {
-                        ident: ident.clone(),
-                    })
-                } else {
-                    None
-                }
-            },
-            ParseErrorKind::IdentExpected,
-        )
-    }
-}
+impl_trivial_parse!(Ident, Ident, ParseErrorKind::IdentExpected);
+impl_trivial_parse!(Literal, Literal, ParseErrorKind::LiteralExpected);

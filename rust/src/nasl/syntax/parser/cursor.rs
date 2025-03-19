@@ -42,10 +42,6 @@ impl Cursor {
         &self.current
     }
 
-    pub fn previous(&self) -> &Token {
-        self.previous.as_ref().unwrap()
-    }
-
     pub fn advance(&mut self) -> Token {
         // TODO: If necessary, this can be sped up by
         // mem swapping.
@@ -60,7 +56,12 @@ impl Cursor {
     }
 
     pub(crate) fn current_token_end(&self) -> CharIndex {
-        CharIndex(self.previous().position.1)
+        CharIndex(
+            self.previous
+                .clone()
+                .map(|prev| prev.position.1)
+                .unwrap_or(0),
+        )
     }
 
     pub(crate) fn has_errors(&self) -> bool {
