@@ -94,6 +94,7 @@ fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
         None,
         cmd::check_sudo(),
         redis_url,
+        crate::preference::PREFERENCES.to_vec(),
     )
 }
 

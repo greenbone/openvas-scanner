@@ -333,7 +333,7 @@ A list of references:
 A list of preferences.
 
 - `id` - string, the id of a preference,
-- `class` - either: `check_box`, `entry`, `file`, `password`, `radio`, `ssh_login`
+- `class` - either: `checkbox`, `entry`, `file`, `password`, `radio`, `sshlogin`
 - `name` - string, the name of the preference,
 - `default` - string, default value of the preference
 

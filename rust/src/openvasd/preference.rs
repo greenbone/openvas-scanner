@@ -177,7 +177,7 @@ pub const PREFERENCES: [ScanPreferenceInformation; 22] = [
     ScanPreferenceInformation {
         id: "test_alive_hosts_only",
         name: "Test Alive Hosts Only",
-        default: PreferenceValue::Bool(false),
+        default: PreferenceValue::Bool(true),
         description: "If this option is set to 'true', openvas will scan the target list \
         for alive hosts in a separate process while only testing those hosts \
         which are identified as alive. This boosts the scan speed of target \

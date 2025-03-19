@@ -5,7 +5,8 @@
 use std::collections::HashMap;
 
 use crate::models::{
-    AliveTestMethods, CredentialType, Scan, Service, VT, ports_to_openvas_port_list,
+    AliveTestMethods, CredentialType, PreferenceValue, Scan, ScanPreferenceInformation, Service,
+    VT, ports_to_openvas_port_list,
 };
 use crate::storage::redis::RedisStorageResult;
 
@@ -35,17 +36,23 @@ pub struct PreferenceHandler<'a, H> {
     scan_config: Scan,
     redis_connector: &'a mut H,
     nvt_params: HashMap<String, String>,
+    scan_params_defaults: Vec<ScanPreferenceInformation>,
 }
 
 impl<'a, H> PreferenceHandler<'a, H>
 where
     H: VtHelper + KbAccess,
 {
-    pub fn new(scan_config: Scan, redis_connector: &'a mut H) -> Self {
+    pub fn new(
+        scan_config: Scan,
+        redis_connector: &'a mut H,
+        scan_params_defaults: Vec<ScanPreferenceInformation>,
+    ) -> Self {
         Self {
             scan_config,
             redis_connector,
             nvt_params: HashMap::new(),
+            scan_params_defaults,
         }
     }
 
@@ -357,7 +364,17 @@ where
             .scan_preferences
             .clone()
             .iter()
-            .map(|x| format!("{}|||{}", x.id, x.value))
+            .map(|x| {
+                let p = self.scan_params_defaults.iter().find(|p| p.id == x.id);
+                if let Some(p) = p {
+                    match p.default {
+                        PreferenceValue::Bool(_) => format!("{}|||{}", x.id, bool_to_str(&x.value)),
+                        _ => format!("{}|||{}", x.id, x.value),
+                    }
+                } else {
+                    format!("{}|||{}", x.id, x.value)
+                }
+            })
             .collect::<Vec<String>>();
 
         if options.is_empty() {
@@ -637,7 +654,7 @@ mod tests {
             data: HashMap::new(),
         };
 
-        let mut prefh = PreferenceHandler::new(scan, &mut rc);
+        let mut prefh = PreferenceHandler::new(scan, &mut rc, Vec::default());
         assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
         // Prepare and test Scan ID
         assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
