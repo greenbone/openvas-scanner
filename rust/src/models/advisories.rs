@@ -42,6 +42,9 @@ pub struct Advisory {
     pub advisory_id: String,
     /// Advisory xref
     pub advisory_xref: String,
+    /// Advisory contains a CVE that is listed in the catalog of Known Exploited CVEs from CISA
+    #[cfg_attr(feature = "serde_support", serde(default))]
+    pub cisa_kev: bool,
     /// List of cves
     #[cfg_attr(feature = "serde_support", serde(default))]
     pub cves: Vec<String>,
@@ -174,7 +177,18 @@ impl From<VulnerabilityData> for Vulnerability {
             },
         };
 
-        let refs = HashMap::new();
+        let mut refs = HashMap::new();
+        let mut url = data.adv.xrefs.clone();
+        url.push(data.adv.advisory_xref.clone());
+        if data.adv.cisa_kev {
+            refs.insert(
+                "CISA".to_string(),
+                vec!["Known Exploited Vulnerability (KEV) catalog".to_string()],
+            );
+            url.push("https://www.cisa.gov/known-exploited-vulnerabilities-catalog".to_string());
+        }
+        refs.insert("URL".to_string(), url);
+
         Self {
             vt_params: Vec::new(),
             creation_date: data.adv.creation_date,
