@@ -44,9 +44,7 @@ everything needed for scanning. Currently it uses the openvas-scanner as scan en
 
 ## Docker, [Greenbone Community Containers](https://greenbone.github.io/docs/latest/22.4/container/)
 
-If you want to use the docker files provided in this repository you can pull them 
-from [here](https://hub.docker.com/r/greenbone/openvas-scanner). You can also locally 
-build them using:
+If you want to use the docker files provided in this repository you can pull them from the [Greenbone registry](registry.community.greenbone.net/community/openvas-scanner:stable). You can also locally build them using:
 ```
 docker build -t <image-name> -f .docker/prod.Dockerfile .
 ```
