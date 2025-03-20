@@ -55,6 +55,7 @@ pub struct FunctionDecl;
 #[derive(Clone, Debug)]
 pub enum Stmt {
     ExprStmt(Expr),
+    NoOp,
 }
 
 #[derive(Clone, Debug)]

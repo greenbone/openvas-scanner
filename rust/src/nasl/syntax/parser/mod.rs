@@ -173,9 +173,19 @@ impl Parse for Declaration {
                 return Ok(Declaration::VariableDecl(VariableDecl::parse(parser)?));
             }
         }
-        let expr = Expr::parse(parser)?;
-        let _ = parser.consume(TokenKind::Semicolon)?;
-        Result::Ok(Declaration::Stmt(Stmt::ExprStmt(expr)))
+        Ok(Declaration::Stmt(Stmt::parse(parser)?))
+    }
+}
+
+impl Parse for Stmt {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        if parser.consume_if_matches(TokenKind::Semicolon) {
+            Ok(Stmt::NoOp)
+        } else {
+            let expr = Expr::parse(parser)?;
+            let _ = parser.consume(TokenKind::Semicolon)?;
+            Ok(Stmt::ExprStmt(expr))
+        }
     }
 }
 
