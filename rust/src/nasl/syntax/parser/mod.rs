@@ -11,9 +11,9 @@ use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    AnonymousFnArg, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    CommaSeparated, Declaration, Expr, FnArg, FnCall, NamedFnArg, Stmt, Unary, UnaryOperator,
-    UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
+    AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
+    CommaSeparated, Declaration, Expr, FnArg, FnCall, NamedFnArg, Paren, Stmt, Unary,
+    UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -36,6 +36,11 @@ pub trait Matches: Sized {
 
 pub trait PeekParse: Sized {
     fn peek_parse(parser: &Parser) -> Option<Self>;
+}
+
+trait Delimiter: Default {
+    fn start() -> TokenKind;
+    fn end() -> TokenKind;
 }
 
 pub struct Parser {
@@ -258,15 +263,17 @@ impl Parse for Atom {
         if Literal::peek(parser) {
             let literal = Literal::parse(parser).unwrap();
             Ok(Atom::Literal(literal))
+        } else if parser.matches(TokenKind::LeftBracket) {
+            let array = Array::parse(parser)?;
+            Ok(Atom::Array(array))
         } else {
             let ident = Ident::parse(parser)?;
             if parser.consume_if_matches(TokenKind::LeftBracket) {
                 let index_expr = Box::new(Expr::parse(parser)?);
                 parser.consume(TokenKind::RightBracket)?;
                 Ok(Atom::ArrayAccess(ArrayAccess { index_expr, ident }))
-            } else if parser.consume_if_matches(TokenKind::LeftParen) {
-                let args = CommaSeparated::<FnArg>::parse(parser)?;
-                parser.consume(TokenKind::RightParen)?;
+            } else if parser.matches(TokenKind::LeftParen) {
+                let args = CommaSeparated::<FnArg, Paren>::parse(parser)?;
                 Ok(Atom::FnCall(FnCall {
                     fn_name: ident,
                     args,
@@ -280,28 +287,29 @@ impl Parse for Atom {
 
 impl Matches for Atom {
     fn matches(kind: &TokenKind) -> bool {
-        Ident::matches(kind) || Literal::matches(kind)
+        Ident::matches(kind) || Literal::matches(kind) || kind == &TokenKind::LeftBracket
     }
 }
 
-impl<Item: Parse> Parse for CommaSeparated<Item> {
+impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
     fn parse(parser: &mut Parser) -> Result<Self> {
         let mut items = vec![];
+        parser.consume(Delim::start())?;
         loop {
-            if parser.matches(TokenKind::RightParen) {
+            if parser.consume_if_matches(Delim::end()) {
                 break;
             }
             // If we can't parse the remaining content as an item, report
             // a missing parentheses
             items.push(
-                Item::parse(parser)
-                    .map_err(|_| ParseErrorKind::TokenExpected(TokenKind::RightParen))?,
+                Item::parse(parser).map_err(|_| ParseErrorKind::TokenExpected(Delim::end()))?,
             );
             if !parser.consume_if_matches(TokenKind::Comma) {
+                parser.consume(Delim::end())?;
                 break;
             }
         }
-        Ok(CommaSeparated { items })
+        Ok(CommaSeparated::new(items))
     }
 }
 
@@ -316,6 +324,13 @@ impl Parse for FnArg {
             let expr = Box::new(Expr::parse(parser)?);
             Ok(FnArg::Anonymous(AnonymousFnArg { expr }))
         }
+    }
+}
+
+impl Parse for Array {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        let items = CommaSeparated::parse(parser)?;
+        Ok(Array { items })
     }
 }
 

@@ -249,13 +249,10 @@ parse_test_ok!(
 parse_test_ok!(nested_function_call, Program, "foo(bar(3), 4);",);
 parse_test_err!(missing_commas_function_call, Program, "foo(1 2 3);");
 
-// parse_test_ok!(
-//     arrays,
-//     Program,
-//     "a[0];",
-//     "a = [1, 2, 3];",
-//     "a[0] = [1, 2, 4];"
-// );
+parse_test_ok!(array_literal, Program, "a = [1, 2, 3];",);
+
+parse_test_err!(array_literal_unclosed, Program, "a = [1, 2, 3;",);
+
 // parse_test_ok!(assignment, Program, "(a = 1);");
 //
 // parse_test_ok!(block, Program, "{ a; }");

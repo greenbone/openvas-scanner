@@ -68,8 +68,14 @@ pub enum Expr {
 pub enum Atom {
     Literal(Literal),
     Ident(Ident),
+    Array(Array),
     ArrayAccess(ArrayAccess),
     FnCall(FnCall),
+}
+
+#[derive(Clone, Debug)]
+pub struct Array {
+    pub items: CommaSeparated<Expr, Bracket>,
 }
 
 #[derive(Clone, Debug)]
@@ -81,7 +87,7 @@ pub struct ArrayAccess {
 #[derive(Clone, Debug)]
 pub struct FnCall {
     pub fn_name: Ident,
-    pub args: CommaSeparated<FnArg>,
+    pub args: CommaSeparated<FnArg, Paren>,
 }
 
 #[derive(Clone, Debug)]
@@ -91,8 +97,18 @@ pub enum FnArg {
 }
 
 #[derive(Clone, Debug)]
-pub struct CommaSeparated<Item> {
+pub struct CommaSeparated<Item, Delim: Default> {
     pub items: Vec<Item>,
+    pub delimiter: Delim,
+}
+
+impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
+    pub fn new(items: Vec<Item>) -> Self {
+        Self {
+            items,
+            delimiter: Delim::default(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -273,3 +289,23 @@ impl UnaryPostfixOperator {
         }
     }
 }
+
+macro_rules! make_delimiter {
+    ($ty: ident, $start: ident, $end: ident) => {
+        #[derive(Clone, Debug, Default)]
+        pub struct $ty;
+
+        impl super::Delimiter for $ty {
+            fn start() -> TokenKind {
+                TokenKind::$start
+            }
+
+            fn end() -> TokenKind {
+                TokenKind::$end
+            }
+        }
+    };
+}
+
+make_delimiter!(Paren, LeftParen, RightParen);
+make_delimiter!(Bracket, LeftBracket, RightBracket);

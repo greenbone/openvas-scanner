@@ -1,0 +1,46 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (array_literal), \"a = [1, 2, 3];\")"
+---
+[
+    VariableDecl(
+        VariableDecl {
+            ident: Ident(
+                "a",
+            ),
+            operator: Equal,
+            expr: Atom(
+                Array(
+                    Array {
+                        items: CommaSeparated {
+                            items: [
+                                Atom(
+                                    Literal(
+                                        Number(
+                                            1,
+                                        ),
+                                    ),
+                                ),
+                                Atom(
+                                    Literal(
+                                        Number(
+                                            2,
+                                        ),
+                                    ),
+                                ),
+                                Atom(
+                                    Literal(
+                                        Number(
+                                            3,
+                                        ),
+                                    ),
+                                ),
+                            ],
+                            delimiter: Bracket,
+                        },
+                    },
+                ),
+            ),
+        },
+    ),
+]
