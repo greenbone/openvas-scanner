@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::{Product, ProductsAdivisories};
+use crate::models::{Product, ProductsAdvisories};
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 
 use crate::feed::check_signature;
@@ -116,7 +116,7 @@ impl AdvisoryLoader for HashsumAdvisoryLoader {
         Ok(ret)
     }
 
-    fn load_advisory(&self, os: &str) -> Result<ProductsAdivisories, Error> {
+    fn load_advisory(&self, os: &str) -> Result<ProductsAdvisories, Error> {
         let mut loader =
             HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
         let file_item = loader
