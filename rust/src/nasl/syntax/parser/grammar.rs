@@ -55,7 +55,13 @@ pub struct FunctionDecl;
 #[derive(Clone, Debug)]
 pub enum Stmt {
     ExprStmt(Expr),
+    Block(Block),
     NoOp,
+}
+
+#[derive(Clone, Debug)]
+pub struct Block {
+    pub stmts: Vec<Stmt>,
 }
 
 #[derive(Clone, Debug)]

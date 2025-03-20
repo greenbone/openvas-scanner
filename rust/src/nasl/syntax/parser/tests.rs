@@ -255,9 +255,13 @@ parse_test_err!(array_literal_unclosed, Program, "a = [1, 2, 3;",);
 
 parse_test_ok!(no_op, Program, ";");
 
+parse_test_ok!(block, Program, "{ a; }");
+parse_test_ok!(block_empty, Program, "{ }");
+parse_test_ok!(block_multiple_stmts, Program, "{ a; b; c; }");
+parse_test_ok!(nested_blocks, Program, "{ a; { b; c; } }");
+
 // parse_test_ok!(assignment, Program, "(a = 1);");
 //
-// parse_test_ok!(block, Program, "{ a; }");
 // parse_test_ok!(function_declaration, Program, "function a(b) {c;}");
 // parse_test_ok!(return_stmt, Program, "return 0;");
 // parse_test_ok!(break_stmt, Program, "break;");

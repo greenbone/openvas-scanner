@@ -12,7 +12,7 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    CommaSeparated, Declaration, Expr, FnArg, FnCall, NamedFnArg, Paren, Stmt, Unary,
+    Block, CommaSeparated, Declaration, Expr, FnArg, FnCall, NamedFnArg, Paren, Stmt, Unary,
     UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
 };
 
@@ -181,11 +181,27 @@ impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Self> {
         if parser.consume_if_matches(TokenKind::Semicolon) {
             Ok(Stmt::NoOp)
+        } else if parser.matches(TokenKind::LeftBrace) {
+            Ok(Stmt::Block(Block::parse(parser)?))
         } else {
             let expr = Expr::parse(parser)?;
-            let _ = parser.consume(TokenKind::Semicolon)?;
+            parser.consume(TokenKind::Semicolon)?;
             Ok(Stmt::ExprStmt(expr))
         }
+    }
+}
+
+impl Parse for Block {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::LeftBrace)?;
+        let mut stmts = vec![];
+        loop {
+            if parser.consume_if_matches(TokenKind::RightBrace) {
+                break;
+            }
+            stmts.push(Stmt::parse(parser)?);
+        }
+        Ok(Block { stmts })
     }
 }
 
