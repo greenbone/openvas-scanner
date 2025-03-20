@@ -447,7 +447,6 @@ where
                             Some(nvt) => Ok(ctx.response.ok(&nvt)),
                             None => Ok(ctx.response.not_found("nvt", &oid)),
                         },
-                        // TODO: try to return slices instead of Vec
                         None if meta => Ok(ctx.response.ok(&ctx.scheduler.vts().await?)),
                         None => Ok(ctx.response.ok(&ctx.scheduler.oids().await?)),
                     }

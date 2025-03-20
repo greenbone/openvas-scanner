@@ -271,7 +271,6 @@ where
         let noids = noids.await.unwrap()?;
         let foids = foids.await.unwrap()?;
         let results = noids.chain(foids);
-        // FIXME: moep that is probably slower
         Ok(results.collect())
     }
 
