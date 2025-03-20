@@ -43,7 +43,6 @@ pub struct OIDs;
 /// Is a in-memory dispatcher that behaves like a Storage.
 #[derive(Default, Debug)]
 pub struct InMemoryStorage {
-    // TODO: vts and oids can lead to a deadlock, as they might both be used by the same function.
     vts: RwLock<Vts>,
     oid_lookup: RwLock<HashMap<VTKey, String>>,
     feed_version: RwLock<String>,
@@ -66,10 +65,17 @@ impl InMemoryStorage {
     pub fn set_vts(&self, vts: HashMap<String, Nvt>) -> Result<(), StorageError> {
         let mut vts_internal = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
-
+        let mut new_oid_lookup = HashMap::with_capacity(oid_lookup.len());
+        
         for (filename, nvt) in &vts {
-            oid_lookup.insert(Self::to_nasl_key(&nvt.oid), filename.clone());
+            new_oid_lookup.insert(Self::to_nasl_key(&nvt.oid), filename.clone());
         }
+        for ((ft, k), v) in oid_lookup.clone().into_iter() {
+            if ft == FeedType::Products || ft == FeedType::Advisories {
+                new_oid_lookup.insert((ft, k), v);
+            }
+        }
+        *oid_lookup = new_oid_lookup;
 
         *vts_internal = vts
             .into_iter()
@@ -86,26 +92,20 @@ impl InMemoryStorage {
     fn cache_notus_advisory(&self, adv: models::VulnerabilityData) -> Result<(), StorageError> {
         let item: Nvt = adv.into();
 
-        // TODO: here we can warn about duplicates
         let mut oid_lookup = self.oid_lookup.write()?;
         oid_lookup.insert(
             Self::to_notus_advisory_key(&item.oid),
             item.filename.clone(),
         );
-        drop(oid_lookup);
+        drop(oid_lookup); // this drop is necessary because it holds a lock on &self
         let mut vts = self.vts.write()?;
         vts.insert(Self::to_notus_advisory_key(&item.filename), item);
 
-        // let mut data = self.advisories.write()?;
-        // data.push(adv);
         Ok(())
     }
 
     fn all_vts(&self) -> Result<Vec<Nvt>, StorageError> {
-        let vts = self.vts.read()?;
-        let vts = vts.values().cloned();
-        // let notus = self.advisories.read()?.clone().into_iter().map(Nvt::from);
-        Ok(vts.collect())
+        Ok(self.vts.read()?.values().cloned().collect())
     }
 
     /// Removes all stored nasl_vts
@@ -202,7 +202,7 @@ impl Retriever<FileName> for InMemoryStorage {
     type Item = Nvt;
     fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
         let vts = self.vts.read()?;
-        // Duplicate Notus Nasl prevention, when notus available return that otherwise NASL
+        // Notus is favored when available. This is done to prevent duplicate definitions.
         Ok(
             if let Some(notus_result) = vts.get(&Self::to_notus_advisory_key(&key.0)) {
                 Some(notus_result.clone())
@@ -217,8 +217,6 @@ impl Retriever<Oid> for InMemoryStorage {
     type Item = Nvt;
     fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
         let oid_lookup = self.oid_lookup.read()?;
-        // is it really better to use the filename as a key identifier?
-        // I think in the most cases we would lookup oids?
         let lookup = |key| match oid_lookup.get(key) {
             None => Ok(None),
             Some(file_name) => {
