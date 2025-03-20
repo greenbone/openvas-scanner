@@ -248,6 +248,7 @@ parse_test_ok!(
 );
 parse_test_ok!(nested_function_call, Program, "foo(bar(3), 4);",);
 parse_test_err!(missing_commas_function_call, Program, "foo(1 2 3);");
+parse_test_ok!(empty_function_call, Program, "a();");
 
 parse_test_ok!(array_literal, Program, "a = [1, 2, 3];",);
 parse_test_err!(array_literal_unclosed, Program, "a = [1, 2, 3;",);
@@ -268,7 +269,6 @@ parse_test_ok!(no_op, Program, ";");
 // parse_test_ok!(while_stmt, Program, "while (a) b;");
 // parse_test_ok!(repeat, Program, "repeat a; until b;");
 // parse_test_ok!(foreach, Program, "foreach a(b) c;");
-// parse_test_ok!(call, Program, "a();");
 // parse_test_ok!(
 //     change_to_peek,
 //     Program,
