@@ -57,11 +57,17 @@ pub enum Stmt {
     ExprStmt(Expr),
     Block(Block),
     NoOp,
+    Include(Include),
 }
 
 #[derive(Clone, Debug)]
 pub struct Block {
     pub stmts: Vec<Stmt>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Include {
+    pub path: Literal,
 }
 
 #[derive(Clone, Debug)]

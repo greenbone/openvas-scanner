@@ -12,8 +12,8 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    Block, CommaSeparated, Declaration, Expr, FnArg, FnCall, NamedFnArg, Paren, Stmt, Unary,
-    UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
+    Block, CommaSeparated, Declaration, Expr, FnArg, FnCall, Include, NamedFnArg, Paren, Stmt,
+    Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -183,6 +183,10 @@ impl Parse for Stmt {
             Ok(Stmt::NoOp)
         } else if parser.matches(TokenKind::LeftBrace) {
             Ok(Stmt::Block(Block::parse(parser)?))
+        } else if parser.matches(TokenKind::Keyword(Keyword::Include)) {
+            let include = Stmt::Include(Include::parse(parser)?);
+            parser.consume(TokenKind::Semicolon)?;
+            Ok(include)
         } else {
             let expr = Expr::parse(parser)?;
             parser.consume(TokenKind::Semicolon)?;
@@ -202,6 +206,16 @@ impl Parse for Block {
             stmts.push(Stmt::parse(parser)?);
         }
         Ok(Block { stmts })
+    }
+}
+
+impl Parse for Include {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::Include))?;
+        parser.consume(TokenKind::LeftParen)?;
+        let path = Literal::parse(parser)?;
+        parser.consume(TokenKind::RightParen)?;
+        Ok(Include { path })
     }
 }
 

@@ -259,6 +259,7 @@ parse_test_ok!(block, Program, "{ a; }");
 parse_test_ok!(block_empty, Program, "{ }");
 parse_test_ok!(block_multiple_stmts, Program, "{ a; b; c; }");
 parse_test_ok!(nested_blocks, Program, "{ a; { b; c; } }");
+parse_test_ok!(include, Program, "include(\"test.inc\");");
 
 // parse_test_ok!(assignment, Program, "(a = 1);");
 //
@@ -266,7 +267,6 @@ parse_test_ok!(nested_blocks, Program, "{ a; { b; c; } }");
 // parse_test_ok!(return_stmt, Program, "return 0;");
 // parse_test_ok!(break_stmt, Program, "break;");
 // parse_test_ok!(continue_stmt, Program, "continue;");
-// parse_test_ok!(include, Program, "include(\"test.inc\");");
 // parse_test_ok!(declare, Program, "local_var a;");
 // parse_test_ok!(parameter, Program, "[a, b];");
 // parse_test_ok!(named_parameter, Program, "a: b;");
