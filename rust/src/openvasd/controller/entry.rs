@@ -265,7 +265,7 @@ where
                 }
                 (&Method::GET, Health(HealthOpts::Ready)) => {
                     let oids = ctx.scheduler.oids().await?;
-                    if oids.len() == 0 {
+                    if oids.is_empty() {
                         Ok(ctx.response.empty(StatusCode::SERVICE_UNAVAILABLE))
                     } else {
                         Ok(ctx.response.empty(StatusCode::OK))

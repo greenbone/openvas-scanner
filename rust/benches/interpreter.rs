@@ -12,7 +12,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                 let register = Register::root_initial(&variables);
                 let context_factory = ContextFactory::default();
                 let context = context_factory.build(ScanID("test.nasl".to_string()), "", "".into());
-                let parser = ForkingInterpreter::new(&code, register, &context);
+                let parser = ForkingInterpreter::new(code, register, &context);
                 let _: Vec<_> = black_box(parser.stream().collect().await);
             });
         })

@@ -112,6 +112,5 @@ if(description)
             category: Denial,
             family: "Denial of Service".into()
         }
-        .into()
     );
 }
