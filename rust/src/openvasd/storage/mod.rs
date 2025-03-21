@@ -15,8 +15,8 @@ use std::{
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{self, scanner::ScanResults, FeedType, Scan, Status, VulnerabilityData},
-    storage::{error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt, Dispatcher},
+    models::{self, FeedType, Scan, Status, VulnerabilityData, scanner::ScanResults},
+    storage::{Dispatcher, error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt},
 };
 
 use crate::{config::Config, controller::ClientHash, crypt};
