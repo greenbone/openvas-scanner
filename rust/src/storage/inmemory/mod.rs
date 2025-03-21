@@ -66,7 +66,7 @@ impl InMemoryStorage {
         let mut vts_internal = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
         let mut new_oid_lookup = HashMap::with_capacity(oid_lookup.len());
-        
+
         for (filename, nvt) in &vts {
             new_oid_lookup.insert(Self::to_nasl_key(&nvt.oid), filename.clone());
         }
@@ -164,7 +164,7 @@ impl Dispatcher<FileName> for InMemoryStorage {
     type Item = Nvt;
     /// Dispatch a single NVT into the storage with a given Key
     fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
-                let mut vts = self.vts.write()?;
+        let mut vts = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
         oid_lookup.insert(Self::to_nasl_key(&item.oid), key.0.clone());
         vts.insert(Self::to_nasl_key(&key.0), item);
@@ -242,7 +242,7 @@ impl Retriever<OIDs> for InMemoryStorage {
         let vts = vts.keys().map(|(_, oid)| oid.to_string()).collect_vec();
         Ok(Some(vts))
     }
-} 
+}
 
 impl Remover<Feed> for InMemoryStorage {
     type Item = ();

@@ -7,7 +7,7 @@ use std::sync::RwLock;
 use super::*;
 use scannerlib::{
     models, notus,
-    storage::{inmemory::OIDs, items::nvt::Feed, Retriever},
+    storage::{Retriever, inmemory::OIDs, items::nvt::Feed},
 };
 use tokio::task::JoinSet;
 
