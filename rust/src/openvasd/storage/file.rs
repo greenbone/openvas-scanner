@@ -383,11 +383,11 @@ where
         self.underlying.synchronize_feeds(hash).await
     }
 
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+    async fn oids(&self) -> Result<Vec<String>, Error> {
         self.underlying.oids().await
     }
 
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, Error> {
         self.underlying.vts().await
     }
 
@@ -396,7 +396,11 @@ where
     }
 
     async fn current_feed_version(&self) -> Result<String, Error> {
-        todo!()
+        self.underlying.current_feed_version().await
+    }
+
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
+        self.underlying.vt_by_oid(oid).await
     }
 }
 
@@ -591,11 +595,11 @@ pub(crate) mod tests {
         let file_storage = example_feed_file_storage("/tmp/openvasd/oids").await;
         let feeds = file_storage.feed_hash().await;
         file_storage.synchronize_feeds(feeds.clone()).await.unwrap();
-        let amount_file_oids = file_storage.oids().await.unwrap().count();
+        let amount_file_oids = file_storage.oids().await.unwrap().len();
 
         let memory_storage = inmemory::Storage::new(ChaCha20Crypt::default(), feeds.clone());
         memory_storage.synchronize_feeds(feeds).await.unwrap();
-        let amount_memory_oids = memory_storage.oids().await.unwrap().count();
+        let amount_memory_oids = memory_storage.oids().await.unwrap().len();
         assert_eq!(amount_memory_oids, 9);
         assert_eq!(amount_memory_oids, amount_file_oids);
     }

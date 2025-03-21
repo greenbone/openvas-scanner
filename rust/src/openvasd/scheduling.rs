@@ -451,11 +451,11 @@ where
         result
     }
 
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, StorageError> {
+    async fn oids(&self) -> Result<Vec<String>, StorageError> {
         self.db.oids().await
     }
 
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, StorageError> {
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, StorageError> {
         self.db.vts().await
     }
 

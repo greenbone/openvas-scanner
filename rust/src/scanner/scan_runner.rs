@@ -338,7 +338,7 @@ exit({rc});
         let result = storage
             .retrieve(&FileName(id.to_string()))
             .expect("nvt for id");
-        return result;
+        result
     }
 
     fn prepare_vt_storage(scripts: &[(String, Nvt)]) -> InMemoryStorage {
