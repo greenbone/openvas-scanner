@@ -25,18 +25,15 @@ pub fn ty_is_register(ty: &Type) -> bool {
 pub fn get_subty_if_name_is<'a>(ty: &'a Type, name: &str) -> Option<&'a Type> {
     get_last_segment(ty)
         .filter(|segment| segment.ident == name)
-        .and_then(|segment| {
-            if let PathArguments::AngleBracketed(args) = &segment.arguments {
-                get_one(args.args.iter()).and_then(|genneric| {
-                    if let GenericArgument::Type(ty) = genneric {
-                        Some(ty)
-                    } else {
-                        None
-                    }
-                })
-            } else {
-                None
-            }
+        .and_then(|segment| match &segment.arguments {
+            PathArguments::AngleBracketed(args) => get_one(args.args.iter()).and_then(|genneric| {
+                if let GenericArgument::Type(ty) = genneric {
+                    Some(ty)
+                } else {
+                    None
+                }
+            }),
+            _ => None,
         })
 }
 

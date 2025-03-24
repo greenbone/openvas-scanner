@@ -16,7 +16,6 @@ mod statement;
 mod token;
 mod variable_extension;
 
-pub use crate::storage::item::ACT;
 pub use error::{ErrorKind, SyntaxError};
 pub use lexer::Lexer;
 pub use loader::*;

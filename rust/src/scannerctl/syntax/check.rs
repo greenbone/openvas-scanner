@@ -4,9 +4,9 @@
 
 use std::path::Path;
 
-use scannerlib::nasl::syntax::load_non_utf8_path;
-use scannerlib::nasl::syntax::{parse, Statement, SyntaxError};
 use scannerlib::nasl::WithErrorInfo;
+use scannerlib::nasl::syntax::load_non_utf8_path;
+use scannerlib::nasl::syntax::{Statement, SyntaxError, parse};
 use walkdir::WalkDir;
 
 use crate::{CliError, CliErrorKind, Filename};

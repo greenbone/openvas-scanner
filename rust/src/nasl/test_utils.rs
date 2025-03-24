@@ -7,22 +7,20 @@
 use std::{
     fmt::{self, Display, Formatter},
     panic::Location,
+    path::PathBuf,
 };
 
-use crate::storage::ContextKey;
-use crate::{
-    nasl::{
-        prelude::*,
-        syntax::{Loader, NoOpLoader},
-    },
-    storage::{DefaultDispatcher, Storage},
+use crate::nasl::{
+    prelude::*,
+    syntax::{Loader, NoOpLoader},
 };
+use crate::storage::{ScanID, inmemory::InMemoryStorage};
 use futures::{Stream, StreamExt};
 
 use super::{
     builtin::ContextFactory,
     interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
-    utils::Executor,
+    utils::{Executor, context::ContextStorage},
 };
 
 // The following exists to trick the trait solver into
@@ -117,31 +115,35 @@ enum TestResult {
 /// If the `TestBuilder` is dropped, it will automatically verify that
 /// the given code fulfill the requirements (such as producing the right
 /// values or the right errors).
-pub struct TestBuilder<L: Loader, S: Storage> {
+pub struct TestBuilder<L: Loader, S: ContextStorage> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
     context: ContextFactory<L, S>,
-    context_key: ContextKey,
+    scan_id: ScanID,
+    filename: PathBuf,
+    target: String,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
 }
 
-pub type DefaultTestBuilder = TestBuilder<NoOpLoader, DefaultDispatcher>;
+pub type DefaultTestBuilder = TestBuilder<NoOpLoader, InMemoryStorage>;
 
-impl Default for TestBuilder<NoOpLoader, DefaultDispatcher> {
+impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
     fn default() -> Self {
         Self {
             lines: vec![],
             results: vec![],
             context: ContextFactory::default(),
-            context_key: ContextKey::default(),
+            scan_id: Default::default(),
+            filename: Default::default(),
+            target: Default::default(),
             variables: vec![],
             should_verify: true,
         }
     }
 }
 
-impl TestBuilder<NoOpLoader, DefaultDispatcher> {
+impl TestBuilder<NoOpLoader, InMemoryStorage> {
     /// Construct a `TestBuilder`, immediately run the
     /// given code on it and return it.
     pub fn from_code(code: impl AsRef<str>) -> Self {
@@ -154,7 +156,7 @@ impl TestBuilder<NoOpLoader, DefaultDispatcher> {
 impl<L, S> TestBuilder<L, S>
 where
     L: Loader,
-    S: Storage,
+    S: ContextStorage,
 {
     #[track_caller]
     fn add_line(&mut self, line: impl Into<String>, val: TestResult) -> &mut Self {
@@ -276,7 +278,8 @@ where
 
     /// Get the currently set `Context`.
     pub fn context(&self) -> Context {
-        self.context.build(self.context_key.clone())
+        self.context
+            .build(self.scan_id.clone(), &self.target, self.filename.clone())
     }
 
     /// Check that no errors were returned by any
@@ -315,12 +318,13 @@ where
     }
 
     pub async fn async_verify(mut self) {
-        if let Err(err) = self.verify().await {
-            // Drop first so we don't call the destructor, which would panic.
-            std::mem::forget(self);
-            panic!("{}", err)
-        } else {
-            std::mem::forget(self)
+        match self.verify().await {
+            Err(err) => {
+                // Drop first so we don't call the destructor, which would panic.
+                std::mem::forget(self);
+                panic!("{}", err)
+            }
+            _ => std::mem::forget(self),
         }
     }
 
@@ -366,7 +370,7 @@ where
     }
 
     /// Return a new `TestBuilder` with the given `Context`.
-    pub fn with_context<L2: Loader, S2: Storage>(
+    pub fn with_context<L2: Loader, S2: ContextStorage>(
         self,
         context: ContextFactory<L2, S2>,
     ) -> TestBuilder<L2, S2> {
@@ -376,13 +380,15 @@ where
             should_verify: self.should_verify,
             variables: self.variables.clone(),
             context,
-            context_key: self.context_key.clone(),
+            scan_id: self.scan_id.clone(),
+            target: self.target.clone(),
+            filename: self.filename.clone(),
         }
     }
 
-    /// Return a new `TestBuilder` with the given `ContextKey`.
-    pub fn with_context_key(mut self, key: ContextKey) -> Self {
-        self.context_key = key;
+    /// Return a new `TestBuilder` with the given `filename`.
+    pub fn with_filename(mut self, filename: PathBuf) -> Self {
+        self.filename = filename;
         self
     }
 
@@ -398,12 +404,17 @@ where
     }
 }
 
-impl<L: Loader, S: Storage> Drop for TestBuilder<L, S> {
+impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
-        } else if let Err(err) = futures::executor::block_on(self.verify()) {
-            panic!("{}", err)
+        } else {
+            match futures::executor::block_on(self.verify()) {
+                Err(err) => {
+                    panic!("{}", err)
+                }
+                _ => {}
+            }
         }
     }
 }

@@ -1,13 +1,13 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
+    Context, ContextType, Register,
     interpreter::{
-        declare::{DeclareFunctionExtension, DeclareVariableExtension},
         InterpretError,
+        declare::{DeclareFunctionExtension, DeclareVariableExtension},
     },
     prelude::NaslValue,
     syntax::{IdentifierType, Lexer, Statement, StatementKind, SyntaxError, Token, TokenCategory},
-    Context, ContextType, Register,
 };
 
 use super::InterpretErrorKind;

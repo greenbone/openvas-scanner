@@ -1,23 +1,21 @@
-// SPDX-FileCopyrightText: 2023 Greenbone AG
+// SPDX-FileCopyrightText: 2025 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-//! Defines an item in storage. Currently support Kb items, Nvts in the cache, and notus advisories in the cache
+//! Defines an NVT item in storage.
+
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Display,
     str::FromStr,
-    sync::{Arc, Mutex},
 };
 
-use crate::models::{self, Vulnerability, VulnerabilityData};
-
-use crate::storage::{
-    time::AsUnixTimeStamp, types, ContextKey, Dispatcher, Field, Kb, NotusAdvisory, Remover,
-    Retriever, StorageError,
+use crate::{
+    models::{Vulnerability, VulnerabilityData},
+    storage::{error::StorageError, time::AsUnixTimeStamp},
 };
 
-use super::{FieldKeyResult, Retrieve};
+use super::kb::KbItem;
 
 /// Attack Category either set by script_category
 ///
@@ -43,7 +41,6 @@ use super::{FieldKeyResult, Retrieve};
 /// - End
 ///
 /// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 #[cfg_attr(
     feature = "serde_support",
@@ -201,15 +198,63 @@ make_str_lookup_enum! {
     }
 }
 
-make_str_lookup_enum! {
-    PreferenceType: "Allowed types for preferences" => {
-       checkbox => CheckBox,
-       entry => Entry,
-       file => File,
-       password => Password,
-       radio => Radio,
-       sshlogin => SshLogin,
-       integer => Integer
+/// Allowed types for preferences
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "lowercase")
+)]
+pub enum PreferenceType {
+    #[doc = "checkbox"]
+    CheckBox,
+    #[doc = "entry"]
+    Entry,
+    #[doc = "file"]
+    File,
+    #[doc = "password"]
+    Password,
+    #[doc = "radio"]
+    Radio,
+    #[doc = "sshlogin"]
+    SshLogin,
+    #[doc = "integer"]
+    Integer,
+}
+
+impl FromStr for PreferenceType {
+    type Err = StorageError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use PreferenceType::*;
+        match s {
+            "checkbox" => Ok(CheckBox),
+            "entry" => Ok(Entry),
+            "file" => Ok(File),
+            "password" => Ok(Password),
+            "radio" => Ok(Radio),
+            "sshlogin" => Ok(SshLogin),
+            "integer" => Ok(Integer),
+            _ => Err(StorageError::UnexpectedData(format!(
+                "{:?}: {}",
+                stringify!(PreferenceType),
+                s.to_owned()
+            ))),
+        }
+    }
+}
+
+impl AsRef<str> for PreferenceType {
+    fn as_ref(&self) -> &str {
+        use PreferenceType::*;
+        match self {
+            CheckBox => "checkbox",
+            Entry => "entry",
+            File => "file",
+            Password => "password",
+            Radio => "radio",
+            SshLogin => "sshlogin",
+            Integer => "integer",
+        }
     }
 }
 
@@ -226,16 +271,16 @@ macro_rules! make_nvt_fields {
         ///
         /// These functions are described in the description crate within builtin crate.
         #[derive(Clone, Debug, PartialEq, Eq)]
-        pub enum NVTField {
+        pub enum NvtField {
             $(
              #[doc = $doc]
              $name $( ($( $value$(<$st>)? ),*) )?
              ),*
         }
 
-        /// Key are the keys to get the field defines in NVTField
+        /// Key are the keys to get the field defines in NvtField
         #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-        pub enum NVTKey {
+        pub enum NvtKey {
            $(
              #[doc = $doc]
              $name
@@ -250,9 +295,7 @@ make_nvt_fields! {
     "The filename of the NASL Plugin
 
 The filename is set on a description run and is not read from the NASL script." => FileName(String),
-    "The version of the NASL feed
 
-The version is read from plugins_version.inc." => Version(String),
     "Name of a plugin" => Name(String),
     "Tags of a plugin" => Tag(TagKey, TagValue),
         "Dependencies of other scripts that must be run upfront" => Dependencies(Vec<String>),
@@ -285,11 +328,23 @@ Those ports must be found and open. Otherwise it will be skipped."### =>
 Category will be used to identify the type of the NASL plugin."### =>
     Category(ACT),
     r###"Family"### =>
-    Family(String),
-   "Get complete NVTs" => Nvt(Nvt),
-    r###"For deprecated functions"### =>
-    NoOp
+    Family(String)
 }
+
+#[derive(Clone)]
+pub struct Oid(pub String);
+
+#[derive(Clone)]
+pub struct FileName(pub String);
+
+pub type NvtContextKeyField = (String, NvtKey, NvtField);
+
+#[derive(Clone)]
+pub struct FeedVersion;
+
+pub struct Feed;
+
+pub type FeedFilter = Vec<NvtField>;
 
 /// Preferences that can be set by a user when running a script.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -428,7 +483,7 @@ impl From<QodType> for i64 {
 }
 
 /// TagValue is a type containing value types of script_tag
-pub type TagValue = types::Primitive;
+pub type TagValue = KbItem;
 
 impl TagValue {
     /// Parse the given Value based on the key to TagValue
@@ -501,6 +556,8 @@ pub struct Nvt {
     pub family: String,
 }
 
+pub type NvtIdentifier = String;
+
 impl Display for Nvt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "VT {} ({})", self.oid, self.filename)
@@ -509,167 +566,49 @@ impl Display for Nvt {
 
 impl Nvt {
     /// Returns Err with the feed_version if it is a version Ok otherwise
-    pub fn set_from_field(&mut self, field: NVTField) -> Result<(), String> {
+    pub fn set_from_field(&mut self, field: NvtField) {
         match field {
-            NVTField::Oid(oid) => self.oid = oid,
-            NVTField::FileName(s) => self.filename = s,
-            NVTField::Version(s) => {
-                return Err(s);
-            }
-            NVTField::Name(s) => self.name = s,
-            NVTField::Tag(key, name) => {
+            NvtField::Oid(oid) => self.oid = oid,
+            NvtField::FileName(s) => self.filename = s,
+
+            NvtField::Name(s) => self.name = s,
+            NvtField::Tag(key, name) => {
                 self.tag.insert(key, name);
             }
-            NVTField::Dependencies(s) => self.dependencies.extend(s),
-            NVTField::RequiredKeys(s) => self.required_keys.extend(s),
-            NVTField::MandatoryKeys(s) => self.mandatory_keys.extend(s),
-            NVTField::ExcludedKeys(s) => self.excluded_keys.extend(s),
-            NVTField::RequiredPorts(s) => self.required_ports.extend(s),
-            NVTField::RequiredUdpPorts(s) => self.required_udp_ports.extend(s),
-            NVTField::Preference(s) => self.preferences.push(s),
-            NVTField::Reference(s) => self.references.extend(s),
-            NVTField::Category(s) => self.category = s,
-            NVTField::Family(s) => self.family = s,
-            NVTField::NoOp => {}
-            NVTField::Nvt(x) => *self = x,
+            NvtField::Dependencies(s) => self.dependencies.extend(s),
+            NvtField::RequiredKeys(s) => self.required_keys.extend(s),
+            NvtField::MandatoryKeys(s) => self.mandatory_keys.extend(s),
+            NvtField::ExcludedKeys(s) => self.excluded_keys.extend(s),
+            NvtField::RequiredPorts(s) => self.required_ports.extend(s),
+            NvtField::RequiredUdpPorts(s) => self.required_udp_ports.extend(s),
+            NvtField::Preference(s) => self.preferences.push(s),
+            NvtField::Reference(s) => self.references.extend(s),
+            NvtField::Category(s) => self.category = s,
+            NvtField::Family(s) => self.family = s,
         };
-        Ok(())
     }
     /// Verifies if a nvt is matching a field
-    pub fn matches_field(&self, field: &Field) -> bool {
+    pub fn matches_field(&self, field: &NvtField) -> bool {
         match field {
-            Field::NVT(nvt_field) => match nvt_field {
-                NVTField::Oid(x) => &self.oid == x,
-                NVTField::FileName(x) => &self.filename == x,
-                NVTField::Name(x) => &self.name == x,
-                NVTField::Tag(a, _) => self.tag.contains_key(a),
-                NVTField::Dependencies(x) => &self.dependencies == x,
-                NVTField::RequiredKeys(x) => &self.required_keys == x,
-                NVTField::MandatoryKeys(x) => &self.mandatory_keys == x,
-                NVTField::ExcludedKeys(x) => &self.excluded_keys == x,
-                NVTField::RequiredPorts(x) => &self.required_ports == x,
-                NVTField::RequiredUdpPorts(x) => &self.required_udp_ports == x,
-                NVTField::Preference(x) => self.preferences.contains(x),
-                NVTField::Reference(x) => &self.references == x,
-                NVTField::Category(x) => &self.category == x,
-                NVTField::Family(x) => &self.family == x,
-                NVTField::Nvt(x) => self == x,
-                NVTField::NoOp | NVTField::Version(_) => false,
-            },
-            Field::KB(_) | Field::NotusAdvisory(_) | Field::Result(_) => false,
+            NvtField::Oid(x) => &self.oid == x,
+            NvtField::FileName(x) => &self.filename == x,
+            NvtField::Name(x) => &self.name == x,
+            NvtField::Tag(a, _) => self.tag.contains_key(a),
+            NvtField::Dependencies(x) => &self.dependencies == x,
+            NvtField::RequiredKeys(x) => &self.required_keys == x,
+            NvtField::MandatoryKeys(x) => &self.mandatory_keys == x,
+            NvtField::ExcludedKeys(x) => &self.excluded_keys == x,
+            NvtField::RequiredPorts(x) => &self.required_ports == x,
+            NvtField::RequiredUdpPorts(x) => &self.required_udp_ports == x,
+            NvtField::Preference(x) => self.preferences.contains(x),
+            NvtField::Reference(x) => &self.references == x,
+            NvtField::Category(x) => &self.category == x,
+            NvtField::Family(x) => &self.family == x,
         }
     }
     /// Verifies if a nvt is matching a field
-    pub fn matches_any_field(&self, field: &[Field]) -> bool {
+    pub fn matches_any_field(&self, field: &[NvtField]) -> bool {
         field.iter().any(|x| self.matches_field(x))
-    }
-
-    /// Transform Self to NVTFields based on a given NVTKey.
-    ///
-    /// This helper is useful when a caller doesn't want to have the whole VT but just parts from
-    /// it.
-    pub(crate) fn key_as_field(&self, x: NVTKey) -> Vec<NVTField> {
-        match x {
-            NVTKey::Oid => {
-                if self.oid.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::Oid(self.oid.clone())]
-                }
-            }
-            NVTKey::FileName => {
-                if self.filename.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::FileName(self.filename.clone())]
-                }
-            }
-            NVTKey::Version => vec![],
-            NVTKey::Name => {
-                if self.name.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::Name(self.name.clone())]
-                }
-            }
-            NVTKey::Tag => {
-                if self.tag.is_empty() {
-                    vec![]
-                } else {
-                    todo!("doing it last because it is the reason that we have to return a vec")
-                }
-            }
-            NVTKey::Dependencies => {
-                if self.dependencies.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::Dependencies(self.dependencies.clone())]
-                }
-            }
-            NVTKey::RequiredKeys => {
-                if self.required_keys.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::RequiredKeys(self.required_keys.clone())]
-                }
-            }
-            NVTKey::MandatoryKeys => {
-                if self.mandatory_keys.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::MandatoryKeys(self.mandatory_keys.clone())]
-                }
-            }
-            NVTKey::ExcludedKeys => {
-                if self.excluded_keys.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::ExcludedKeys(self.excluded_keys.clone())]
-                }
-            }
-            NVTKey::RequiredPorts => {
-                if self.required_ports.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::RequiredPorts(self.required_ports.clone())]
-                }
-            }
-            NVTKey::RequiredUdpPorts => {
-                if self.required_udp_ports.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::RequiredUdpPorts(self.required_udp_ports.clone())]
-                }
-            }
-            NVTKey::Preference => {
-                if self.preferences.is_empty() {
-                    vec![]
-                } else {
-                    self.preferences
-                        .clone()
-                        .into_iter()
-                        .map(NVTField::Preference)
-                        .collect()
-                }
-            }
-            NVTKey::Reference => {
-                if self.references.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::Reference(self.references.clone())]
-                }
-            }
-            NVTKey::Category => vec![NVTField::Category(self.category)],
-            NVTKey::Family => {
-                if self.family.is_empty() {
-                    vec![]
-                } else {
-                    vec![NVTField::Family(self.family.clone())]
-                }
-            }
-            NVTKey::Nvt => vec![NVTField::Nvt(self.clone())],
-            NVTKey::NoOp => vec![],
-        }
     }
 }
 
@@ -762,23 +701,22 @@ impl From<(&str, Vulnerability)> for Nvt {
     }
 }
 
-impl From<NVTField> for Nvt {
-    fn from(value: NVTField) -> Self {
+impl From<NvtField> for Nvt {
+    fn from(value: NvtField) -> Self {
         match value {
-            NVTField::Oid(oid) => Self {
+            NvtField::Oid(oid) => Self {
                 oid,
                 ..Default::default()
             },
-            NVTField::FileName(filename) => Self {
+            NvtField::FileName(filename) => Self {
                 filename,
                 ..Default::default()
             },
-            NVTField::Version(_) => Default::default(),
-            NVTField::Name(name) => Self {
+            NvtField::Name(name) => Self {
                 name,
                 ..Default::default()
             },
-            NVTField::Tag(key, value) => Self {
+            NvtField::Tag(key, value) => Self {
                 tag: {
                     let mut result = BTreeMap::new();
                     result.insert(key, value);
@@ -786,250 +724,46 @@ impl From<NVTField> for Nvt {
                 },
                 ..Default::default()
             },
-            NVTField::Dependencies(dependencies) => Self {
+            NvtField::Dependencies(dependencies) => Self {
                 dependencies,
                 ..Default::default()
             },
-            NVTField::RequiredKeys(required_keys) => Self {
+            NvtField::RequiredKeys(required_keys) => Self {
                 required_keys,
                 ..Default::default()
             },
-            NVTField::MandatoryKeys(mandatory_keys) => Self {
+            NvtField::MandatoryKeys(mandatory_keys) => Self {
                 mandatory_keys,
                 ..Default::default()
             },
-            NVTField::ExcludedKeys(excluded_keys) => Self {
+            NvtField::ExcludedKeys(excluded_keys) => Self {
                 excluded_keys,
                 ..Default::default()
             },
-            NVTField::RequiredPorts(required_ports) => Self {
+            NvtField::RequiredPorts(required_ports) => Self {
                 required_ports,
                 ..Default::default()
             },
-            NVTField::RequiredUdpPorts(required_udp_ports) => Self {
+            NvtField::RequiredUdpPorts(required_udp_ports) => Self {
                 required_udp_ports,
                 ..Default::default()
             },
-            NVTField::Preference(preferences) => Self {
+            NvtField::Preference(preferences) => Self {
                 preferences: vec![preferences],
                 ..Default::default()
             },
-            NVTField::Reference(references) => Self {
+            NvtField::Reference(references) => Self {
                 references,
                 ..Default::default()
             },
-            NVTField::Category(category) => Self {
+            NvtField::Category(category) => Self {
                 category,
                 ..Default::default()
             },
-            NVTField::Family(family) => Self {
+            NvtField::Family(family) => Self {
                 family,
                 ..Default::default()
             },
-            NVTField::Nvt(nvt) => nvt,
-            NVTField::NoOp => Nvt::default(),
         }
-    }
-}
-/// Is a specialized Dispatcher for NVT information within the description block.
-pub trait ItemDispatcher {
-    /// Dispatches the feed version as well as NVT.
-    ///
-    /// The NVT is collected when a description run is finished.
-    fn dispatch_nvt(&self, nvt: Nvt) -> Result<(), StorageError>;
-    /// Dispatches the feed_version.
-    ///
-    /// Feed version is usually read once.
-    fn dispatch_feed_version(&self, version: String) -> Result<(), StorageError>;
-    /// Dispatches a knowledge base item.
-    ///
-    /// Usually the ItemDispatcher is used on description = 1 runs were no KB item should occur. But
-    /// to have the possibility to have shared run this interface should allow to handle it
-    /// accordingly.
-    /// The default is set to return `Ok(())` without doing something to net enforce every
-    /// ItemDispatcher to implement it.
-    fn dispatch_kb(&self, _: &ContextKey, _: Kb) -> Result<(), StorageError> {
-        Ok(())
-    }
-    /// Stores an advisory
-    fn dispatch_advisory(&self, _: &str, _: Option<NotusAdvisory>) -> Result<(), StorageError>;
-}
-
-/// Collects the information while being in a description run and calls the dispatch method
-/// on exit.
-pub struct PerItemDispatcher<S>
-where
-    S: ItemDispatcher,
-{
-    nvt: Arc<Mutex<Option<Nvt>>>,
-    dispatcher: S,
-}
-
-impl<S> PerItemDispatcher<S>
-where
-    S: ItemDispatcher,
-{
-    /// Creates a new ItemDispatcher without a feed_version and nvt.
-    pub fn new(dispatcher: S) -> Self {
-        Self {
-            nvt: Arc::new(Mutex::new(None)),
-            dispatcher,
-        }
-    }
-
-    fn store_nvt_field(&self, f: NVTField) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.nvt)
-            .lock()
-            .map_err(|x| StorageError::Dirty(format!("{x}")))?;
-        let mut nvt = data.clone().unwrap_or_default();
-
-        match f {
-            NVTField::Oid(oid) => nvt.oid = oid,
-            NVTField::FileName(s) => nvt.filename = s,
-            NVTField::Version(s) => {
-                return self.dispatcher.dispatch_feed_version(s);
-            }
-            NVTField::Name(s) => nvt.name = s,
-            NVTField::Tag(key, name) => {
-                nvt.tag.insert(key, name);
-            }
-            NVTField::Dependencies(s) => nvt.dependencies.extend(s),
-            NVTField::RequiredKeys(s) => nvt.required_keys.extend(s),
-            NVTField::MandatoryKeys(s) => nvt.mandatory_keys.extend(s),
-            NVTField::ExcludedKeys(s) => nvt.excluded_keys.extend(s),
-            NVTField::RequiredPorts(s) => nvt.required_ports.extend(s),
-            NVTField::RequiredUdpPorts(s) => nvt.required_udp_ports.extend(s),
-            NVTField::Preference(s) => nvt.preferences.push(s),
-            NVTField::Reference(s) => nvt.references.extend(s),
-            NVTField::Category(s) => nvt.category = s,
-            NVTField::Family(s) => nvt.family = s,
-            NVTField::NoOp => {}
-            NVTField::Nvt(x) => nvt = x,
-        };
-        *data = Some(nvt);
-        Ok(())
-    }
-}
-
-impl<S> Dispatcher for PerItemDispatcher<S>
-where
-    S: ItemDispatcher + Send + Sync,
-{
-    fn dispatch(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
-        match scope {
-            Field::NVT(nvt) => self.store_nvt_field(nvt),
-            Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
-            Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), *adv),
-            Field::Result(result) => self.dispatch(key, Field::Result(result)),
-        }
-    }
-
-    fn dispatch_replace(&self, key: &ContextKey, scope: Field) -> Result<(), StorageError> {
-        match scope {
-            Field::NVT(nvt) => self.store_nvt_field(nvt),
-            Field::KB(kb) => self.dispatcher.dispatch_kb(key, kb),
-            Field::NotusAdvisory(adv) => self.dispatcher.dispatch_advisory(key.as_ref(), *adv),
-            Field::Result(result) => self.dispatch(key, Field::Result(result)),
-        }
-    }
-
-    fn on_exit(&self, _: &ContextKey) -> Result<(), StorageError> {
-        let mut data = Arc::as_ref(&self.nvt)
-            .lock()
-            .map_err(|x| StorageError::Dirty(format!("{x}")))?;
-        self.dispatcher
-            .dispatch_nvt(data.clone().unwrap_or_default())?;
-        *data = None;
-        Ok(())
-    }
-}
-
-impl<S> Retriever for PerItemDispatcher<S>
-where
-    S: ItemDispatcher + Retriever,
-{
-    fn retrieve(
-        &self,
-        key: &ContextKey,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = Field>>, StorageError> {
-        self.dispatcher.retrieve(key, scope)
-    }
-
-    fn retrieve_by_field(
-        &self,
-        field: Field,
-        scope: Retrieve,
-    ) -> Result<Box<dyn Iterator<Item = (ContextKey, Field)>>, StorageError> {
-        self.dispatcher.retrieve_by_field(field, scope)
-    }
-
-    fn retrieve_by_fields(&self, field: Vec<Field>, scope: Retrieve) -> FieldKeyResult {
-        self.dispatcher.retrieve_by_fields(field, scope)
-    }
-}
-
-impl<S> Remover for PerItemDispatcher<S>
-where
-    S: ItemDispatcher + Remover,
-{
-    fn remove_kb(
-        &self,
-        key: &ContextKey,
-        kb_key: Option<String>,
-    ) -> Result<Option<Vec<Kb>>, StorageError> {
-        self.dispatcher.remove_kb(key, kb_key)
-    }
-
-    fn remove_result(
-        &self,
-        key: &ContextKey,
-        result_id: Option<usize>,
-    ) -> Result<Option<Vec<models::Result>>, StorageError> {
-        self.dispatcher.remove_result(key, result_id)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    macro_rules! assert_tag_key {
-        ($($matcher:ident => $key:ident),+) => {
-            $(
-            #[test]
-            fn $matcher() {
-                use super::TagKey::*;
-                use super::*;
-                assert_eq!(TagKey::from_str(stringify!($matcher)), Ok($key));
-                assert_eq!(TagKey::from_str(stringify!($matcher)).unwrap().as_ref(), stringify!($matcher));
-            }
-            )*
-
-        };
-    }
-
-    assert_tag_key! {
-        affected => Affected,
-        creation_date => CreationDate,
-        //creation_time => CreationTime,
-        cvss_base => CvssBase,
-        cvss_base_vector => CvssBaseVector,
-        deprecated => Deprecated,
-        //detection => Detection,
-        impact => Impact,
-        insight => Insight,
-        last_modification => LastModification,
-        //modification_time => ModificationTime,
-        qod => Qod,
-        qod_type => QodType,
-        //severities => Severities,
-        severity_date => SeverityDate,
-        severity_origin => SeverityOrigin,
-        severity_vector => SeverityVector,
-        solution => Solution,
-        solution_method => SolutionMethod,
-        solution_type => SolutionType,
-        summary => Summary,
-        vuldetect => Vuldetect
     }
 }

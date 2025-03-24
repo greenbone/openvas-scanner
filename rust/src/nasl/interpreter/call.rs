@@ -6,10 +6,10 @@ use std::collections::HashMap;
 
 use super::interpreter::{InterpretResult, Interpreter};
 use crate::nasl::{
+    ContextType, NaslValue,
     interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
     syntax::{Statement, StatementKind},
     utils::lookup_keys::FC_ANON_ARGS,
-    ContextType, NaslValue,
 };
 
 enum ArgumentKind {
@@ -112,10 +112,9 @@ impl Interpreter<'_, '_> {
         let fn_name = statement.as_token().identifier()?;
         let arguments = self.create_arguments_map(arguments).await?;
         self.register.create_root_child(arguments);
-        let val = if let Some(result) = self.execute_builtin_fn(statement, &fn_name).await {
-            result
-        } else {
-            self.execute_user_defined_fn(&fn_name).await
+        let val = match self.execute_builtin_fn(statement, &fn_name).await {
+            Some(result) => result,
+            _ => self.execute_user_defined_fn(&fn_name).await,
         }?;
         self.register.drop_last();
         let val = replace_empty_or_identity_fork(val);
@@ -159,24 +158,28 @@ mod tests {
     fn multiple_forks() {
         let mut t = TestBuilder::default();
         t.run_all(
+            // r#"
+            // set_kb_item(name: "port", value: 1);
+            // set_kb_item(name: "port", value: 2);
+            // set_kb_item(name: "host", value: "a");
+            // set_kb_item(name: "host", value: "b");
+            // get_kb_item("port");
+            // get_kb_item("host");
+            // "#,
             r#"
-set_kb_item(name: "port", value: 1);
-set_kb_item(name: "port", value: 2);
-set_kb_item(name: "host", value: "a");
-set_kb_item(name: "host", value: "b");
-get_kb_item("port");
-get_kb_item("host");
-"#,
+            set_kb_item(name: "port", value: 1);
+            set_kb_item(name: "port", value: 2);
+            set_kb_item(name: "host", value: "a");
+            set_kb_item(name: "host", value: "b");
+            get_kb_item("port");
+            get_kb_item("host");
+            "#,
         );
 
-        assert_eq!(t.results().len(), 10);
-        let results: Vec<_> = t
-            .results()
-            .into_iter()
-            .skip(4)
-            // .filter_map(|x| x.ok())
-            .map(|x| x.unwrap())
-            .collect();
+        let results = t.results();
+        assert_eq!(results.len(), 10);
+
+        let results: Vec<_> = results.into_iter().skip(4).filter_map(|x| x.ok()).collect();
 
         assert_eq!(
             results,

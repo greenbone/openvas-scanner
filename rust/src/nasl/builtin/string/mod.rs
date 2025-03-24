@@ -8,11 +8,11 @@
 mod tests;
 
 use crate::nasl::{
-    utils::{
-        function::{bytes_to_str, CheckedPositionals, Maybe, StringOrData},
-        FnError,
-    },
     ArgumentError,
+    utils::{
+        FnError,
+        function::{CheckedPositionals, Maybe, StringOrData, bytes_to_str},
+    },
 };
 use core::fmt::Write;
 use glob::{MatchOptions, Pattern};

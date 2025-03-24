@@ -6,11 +6,11 @@
 
 /// Is an extension to add as_timestamp method for various types
 pub trait AsUnixTimeStamp {
-    /// Returns a i64 unix time stamp when parseable otherwise None
+    /// Returns a i64 unix time stamp when parsable otherwise None
     fn as_timestamp(&self) -> Option<i64>;
 }
 
-use time::{format_description, OffsetDateTime};
+use time::{OffsetDateTime, format_description};
 
 // the function panics because the support formats are hardcoded and therefore the user cannot change anything
 fn parse_or_panic(input: &str) -> Vec<time::format_description::FormatItem> {
@@ -23,9 +23,9 @@ fn parse_or_panic(input: &str) -> Vec<time::format_description::FormatItem> {
 // for more information see:
 // https://time-rs.github.io/book/api/format-description.html
 const SUPPORTED_FORMATS: &[&str] = &[
-"[year]-[month]-[day] [hour]:[minute]:[second] [offset_hour][offset_minute]",
-"[weekday repr:short] [month repr:short] [day] [hour]:[minute]:[second] [year] [offset_hour][offset_minute]",
-"[weekday repr:short], [day] [month repr:short] [year] [hour]:[minute]:[second] [offset_hour][offset_minute]",
+    "[year]-[month]-[day] [hour]:[minute]:[second] [offset_hour][offset_minute]",
+    "[weekday repr:short] [month repr:short] [day] [hour]:[minute]:[second] [year] [offset_hour][offset_minute]",
+    "[weekday repr:short], [day] [month repr:short] [year] [hour]:[minute]:[second] [offset_hour][offset_minute]",
 ];
 
 impl AsUnixTimeStamp for String {

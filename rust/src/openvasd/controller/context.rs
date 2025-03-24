@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
-use scannerlib::storage::DefaultDispatcher;
-use scannerlib::{feed, nasl::FSPluginLoader};
+use scannerlib::{feed, nasl::FSPluginLoader, storage::inmemory::InMemoryStorage};
 use std::sync::{Arc, RwLock};
 
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
@@ -66,7 +65,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
         self.feed_config = Some(config);
         if let Some(fp) = self.feed_config.as_ref() {
             let loader = FSPluginLoader::new(fp.path.clone());
-            let dispatcher: DefaultDispatcher = DefaultDispatcher::default();
+            let dispatcher: InMemoryStorage = InMemoryStorage::default();
             let version = feed::version(&loader, &dispatcher)
                 .await
                 .unwrap_or_else(|_| String::from("UNDEFINED"));
@@ -173,14 +172,17 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
 
 impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
     fn configure_authentication_methods(&mut self) {
-        let tls_config = if let Some(tls_config) = self.tls_config.take() {
-            if tls_config.has_clients && self.api_key.is_some() {
-                tracing::warn!("Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored.");
-                self.api_key = None;
+        let tls_config = match self.tls_config.take() {
+            Some(tls_config) => {
+                if tls_config.has_clients && self.api_key.is_some() {
+                    tracing::warn!(
+                        "Client certificates and api key are configured. To disable the possibility to bypass client verification the API key is ignored."
+                    );
+                    self.api_key = None;
+                }
+                Some(tls_config)
             }
-            Some(tls_config)
-        } else {
-            None
+            _ => None,
         };
         self.tls_config = tls_config;
         match (self.tls_config.is_some(), self.api_key.is_some()) {

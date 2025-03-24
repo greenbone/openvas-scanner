@@ -4,8 +4,8 @@
 
 use std::io::{self, Cursor};
 
-use crate::models::{scanner, PortRange, Protocol, Scan};
-use quick_xml::events::{attributes::Attribute, BytesEnd, BytesStart, BytesText, Event};
+use crate::models::{PortRange, Protocol, Scan, scanner};
+use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event, attributes::Attribute};
 
 use super::response::Status;
 
@@ -188,12 +188,7 @@ fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::new("scanner_params")))?;
     for p in &scan.scan_preferences {
         writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
-        let value = match p.value.as_ref() {
-            "yes" => "1",
-            "no" => "0",
-            v => v,
-        };
-        writer.write_event(Event::Text(BytesText::new(value)))?;
+        writer.write_event(Event::Text(BytesText::new(&p.value)))?;
         writer.write_event(Event::End(BytesEnd::new(&p.id)))?;
     }
 

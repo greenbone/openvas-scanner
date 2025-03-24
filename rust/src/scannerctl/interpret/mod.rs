@@ -9,22 +9,19 @@ use std::{
 
 use futures::StreamExt;
 use scannerlib::nasl::{interpreter::ForkingInterpreter, utils::error::ReturnBehavior};
-use scannerlib::nasl::{
-    interpreter::InterpretErrorKind,
-    prelude::*,
-    syntax::{load_non_utf8_path, LoadError},
-    Loader, NoOpLoader,
-};
-use scannerlib::storage::{ContextKey, DefaultDispatcher};
+use scannerlib::storage::items::nvt::Nvt;
 use scannerlib::{
     feed,
-    storage::{
-        item::{NVTField, Nvt},
-        Dispatcher,
-        Field::NVT,
-        Retrieve, Storage,
+    nasl::{
+        ContextFactory, FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder,
+        WithErrorInfo,
+        interpreter::InterpretErrorKind,
+        syntax::{LoadError, load_non_utf8_path},
     },
+    scheduling::SchedulerStorage,
+    storage::items::nvt::Oid,
 };
+use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 
@@ -41,10 +38,10 @@ struct RunBuilder<L, S> {
     scan_id: String,
 }
 
-impl Default for RunBuilder<NoOpLoader, DefaultDispatcher> {
+impl Default for RunBuilder<NoOpLoader, InMemoryStorage> {
     fn default() -> Self {
         Self {
-            storage: DefaultDispatcher::default(),
+            storage: InMemoryStorage::default(),
             loader: NoOpLoader::default(),
             target: String::default(),
             scan_id: "scannerctl".to_string(),
@@ -54,7 +51,7 @@ impl Default for RunBuilder<NoOpLoader, DefaultDispatcher> {
 
 impl<L, S> RunBuilder<L, S>
 where
-    S: Storage,
+    S: ContextStorage,
     L: Loader,
 {
     pub fn storage<S2>(self, s: S2) -> RunBuilder<L, S2> {
@@ -97,26 +94,19 @@ where
 impl<L, S> Run<L, S>
 where
     L: Loader,
-    S: Storage,
+    S: ContextStorage + SchedulerStorage,
 {
     fn load(&self, script: &Path) -> Result<String, CliErrorKind> {
-        match load_non_utf8_path(&script) {
+        match load_non_utf8_path(script) {
             Ok(x) => Ok(x),
             Err(LoadError::NotFound(_)) => {
-                let iter = self.context_builder.storage.retrieve_by_field(
-                    NVT(NVTField::Oid(script.to_string_lossy().to_string())),
-                    // TODO: maybe NvtField::FileName would be better?
-                    Retrieve::NVT(None),
-                )?;
-                let results: Option<String> = iter
-                    .filter_map(|(k, _)| match k {
-                        ContextKey::Scan(..) => None,
-                        ContextKey::FileName(f) => Some(f.to_string()),
-                    })
-                    .next();
-                match results {
-                    Some(f) => Ok(self.context_builder.loader.load(&f)?),
-                    None => Err(LoadError::NotFound(script.to_string_lossy().to_string()).into()),
+                match self
+                    .context_builder
+                    .storage
+                    .retrieve(&Oid(script.to_string_lossy().to_string()))?
+                {
+                    Some(vt) => Ok(self.context_builder.loader.load(&vt.filename)?),
+                    _ => Err(LoadError::NotFound(script.to_string_lossy().to_string()).into()),
                 }
             }
             Err(e) => Err(e.into()),
@@ -124,13 +114,11 @@ where
     }
 
     async fn run(&self, script: &Path) -> Result<(), CliErrorKind> {
-        let target = match self.target.is_empty() {
-            true => None,
-            false => Some(self.target.clone()),
-        };
-        let context = self
-            .context_builder
-            .build(ContextKey::Scan(self.scan_id.clone(), target));
+        let context = self.context_builder.build(
+            scannerlib::storage::ScanID(self.scan_id.clone()),
+            &self.target,
+            script.into(),
+        );
         let register = RegisterBuilder::build();
         let code = self.load(script)?;
         let mut results = ForkingInterpreter::new(&code, register, &context).stream();
@@ -165,7 +153,7 @@ where
 
 async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
 where
-    S: Dispatcher,
+    S: ContextStorage,
 {
     // update feed with storage
 
@@ -177,7 +165,7 @@ where
     Ok(())
 }
 
-fn load_feed_by_json(store: &DefaultDispatcher, path: &PathBuf) -> Result<(), CliError> {
+fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliError> {
     tracing::info!(path=?path, "loading feed via json. This may take a while.");
     let buf = fs::read_to_string(path).map_err(|e| {
         CliErrorKind::LoadError(LoadError::Dirty(format!("{e}"))).with(Filename(path))
@@ -204,7 +192,7 @@ pub async fn run(
     let result = match (db, feed) {
         (Db::InMemory, None) => builder.build().run(script).await,
         (Db::InMemory, Some(path)) => {
-            let storage = DefaultDispatcher::new();
+            let storage = InMemoryStorage::new();
             let guessed_feed_json = path.join("feed.json");
             let loader = FSPluginLoader::new(path.clone());
             if guessed_feed_json.exists() {

@@ -9,7 +9,7 @@ use std::{
 
 use scannerlib::notus::{FSProductLoader, Notus};
 
-use crate::{utils::ArgOrStdin, CliError};
+use crate::{CliError, utils::ArgOrStdin};
 
 #[derive(Debug)]
 struct PackageList(Vec<String>);

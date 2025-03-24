@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::ACT;
-use crate::storage::item::{Nvt, NvtPreference, PreferenceType};
+use crate::storage::items::nvt::{ACT, Nvt, NvtPreference, PreferenceType};
 use crate::storage::redis::{DbError, RedisCtx, RedisGetNvt, RedisStorageResult, RedisWrapper};
 use std::collections::BTreeMap;
 use std::{

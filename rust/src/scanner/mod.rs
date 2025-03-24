@@ -31,177 +31,20 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::models::{
-    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
     Scan,
+    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
 };
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 use crate::nasl::utils::Executor;
+use crate::nasl::utils::context::ContextStorage;
+use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
-use crate::storage::Storage;
-use crate::storage::{ContextKey, DefaultDispatcher};
+use crate::storage::Remover;
+use crate::storage::ScanID;
+use crate::storage::inmemory::InMemoryStorage;
 use running_scan::{RunningScan, RunningScanHandle};
 use scanner_stack::DefaultScannerStack;
-
-// This is a fake implementation of the ScannerStack trait and is only used for testing purposes.
-#[cfg(debug_assertions)]
-pub mod fake {
-    use super::*;
-
-    type StartScan = Arc<Box<dyn Fn(Scan) -> Result<(), Error> + Send + Sync + 'static>>;
-    type CanStartScan = Arc<Box<dyn Fn(&Scan) -> bool + Send + Sync + 'static>>;
-    type StopScan = Arc<Box<dyn Fn(&str) -> Result<(), Error> + Send + Sync + 'static>>;
-    type DeleteScan = Arc<Box<dyn Fn(&str) -> Result<(), Error> + Send + Sync + 'static>>;
-    type FetchResults =
-        Arc<Box<dyn Fn(&str) -> Result<ScanResults, Error> + Send + Sync + 'static>>;
-
-    /// A fake implementation of the ScannerStack trait.
-    ///
-    /// This is useful for testing the Scanner implementation.
-    pub struct LambdaScannerBuilder {
-        start_scan: StartScan,
-        can_start_scan: CanStartScan,
-        stop_scan: StopScan,
-        delete_scan: DeleteScan,
-        fetch_results: FetchResults,
-    }
-
-    impl Default for LambdaScannerBuilder {
-        fn default() -> Self {
-            Self::new()
-        }
-    }
-
-    impl LambdaScannerBuilder {
-        pub fn new() -> Self {
-            Self {
-                start_scan: Arc::new(Box::new(|_| Ok(()))),
-                can_start_scan: Arc::new(Box::new(|_| true)),
-                stop_scan: Arc::new(Box::new(|_| Ok(()))),
-                delete_scan: Arc::new(Box::new(|_| Ok(()))),
-                fetch_results: Arc::new(Box::new(|_| Ok(ScanResults::default()))),
-            }
-        }
-
-        pub fn with_start_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(Scan) -> Result<(), Error> + Send + Sync + 'static,
-        {
-            self.start_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_can_start_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(&Scan) -> bool + Send + Sync + 'static,
-        {
-            self.can_start_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_stop_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(&str) -> Result<(), Error> + Send + Sync + 'static,
-        {
-            self.stop_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_delete_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(&str) -> Result<(), Error> + Send + Sync + 'static,
-        {
-            self.delete_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_fetch_results<F>(mut self, f: F) -> Self
-        where
-            F: Fn(&str) -> Result<super::ScanResults, Error> + Send + Sync + 'static,
-        {
-            self.fetch_results = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn build(self) -> LambdaScanner {
-            LambdaScanner {
-                start_scan: self.start_scan,
-                can_start_scan: self.can_start_scan,
-                stop_scan: self.stop_scan,
-                delete_scan: self.delete_scan,
-                fetch_results: self.fetch_results,
-            }
-        }
-    }
-
-    pub struct LambdaScanner {
-        start_scan: StartScan,
-        can_start_scan: CanStartScan,
-        stop_scan: StopScan,
-        delete_scan: DeleteScan,
-        fetch_results: FetchResults,
-    }
-
-    #[async_trait]
-    impl ScanStarter for LambdaScanner {
-        async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
-            let start_scan = self.start_scan.clone();
-            tokio::task::spawn_blocking(move || (start_scan)(scan))
-                .await
-                .unwrap()
-        }
-
-        async fn can_start_scan(&self, scan: &Scan) -> bool {
-            let can_start_scan = self.can_start_scan.clone();
-            let scan = scan.clone();
-            tokio::task::spawn_blocking(move || (can_start_scan)(&scan))
-                .await
-                .unwrap()
-        }
-    }
-
-    #[async_trait]
-    impl ScanStopper for LambdaScanner {
-        async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
-        where
-            I: AsRef<str> + Send + 'static,
-        {
-            let stop_scan = self.stop_scan.clone();
-            let id = id.as_ref().to_string();
-            tokio::task::spawn_blocking(move || (stop_scan)(&id))
-                .await
-                .unwrap()
-        }
-    }
-
-    #[async_trait]
-    impl ScanDeleter for LambdaScanner {
-        async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
-        where
-            I: AsRef<str> + Send + 'static,
-        {
-            let delete_scan = self.delete_scan.clone();
-            let id = id.as_ref().to_string();
-            tokio::task::spawn_blocking(move || (delete_scan)(&id))
-                .await
-                .unwrap()
-        }
-    }
-
-    #[async_trait]
-    impl ScanResultFetcher for LambdaScanner {
-        async fn fetch_results<I>(&self, id: I) -> Result<super::ScanResults, Error>
-        where
-            I: AsRef<str> + Send + 'static,
-        {
-            let fetch_results = self.fetch_results.clone();
-            let id = id.as_ref().to_string();
-            tokio::task::spawn_blocking(move || (fetch_results)(&id))
-                .await
-                .unwrap()
-        }
-    }
-}
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
@@ -213,8 +56,8 @@ pub struct Scanner<S: ScannerStack> {
 
 impl<St, L> Scanner<(St, L)>
 where
-    St: Storage + Send + 'static,
-    L: Loader + Send + 'static,
+    St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
+    L: Loader + 'static,
 {
     pub fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
@@ -230,7 +73,7 @@ impl Scanner<DefaultScannerStack> {
     /// Create a new scanner with the default stack.
     /// Requires the root path for the loader.
     pub fn with_default_stack(root: &Path) -> Self {
-        let storage = DefaultDispatcher::new();
+        let storage = Arc::new(InMemoryStorage::new());
         let loader = FSPluginLoader::new(root);
         let executor = nasl_std_functions();
         Self::new(storage, loader, executor)
@@ -239,7 +82,7 @@ impl Scanner<DefaultScannerStack> {
 
 impl<S> Scanner<ScannerStackWithStorage<S>>
 where
-    S: Storage + Send + 'static,
+    S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
 {
     /// Creates a new scanner with a Storage and the rest based on the DefaultScannerStack.
     ///
@@ -294,11 +137,11 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
     where
         I: AsRef<str> + Send + 'static,
     {
-        let ck = ContextKey::Scan(id.as_ref().to_string(), None);
+        let scan_id = ScanID(id.as_ref().to_string());
         self.stop_scan(id).await?;
         self.storage
-            .remove_scan(&ck)
-            .map_err(|_| Error::ScanNotFound(ck.as_ref().to_string()))?;
+            .remove(&scan_id)
+            .map_err(|_| Error::ScanNotFound(scan_id.0))?;
         Ok(())
     }
 }

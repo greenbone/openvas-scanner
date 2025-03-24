@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod test {
-    use super::super::{parse, AssignOrder, Statement, StatementKind, TokenCategory};
+    use super::super::{AssignOrder, Statement, StatementKind, TokenCategory, parse};
 
     use StatementKind::*;
 

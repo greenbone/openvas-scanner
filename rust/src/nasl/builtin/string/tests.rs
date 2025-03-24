@@ -16,7 +16,10 @@ mod tests {
         );
         check_code_result("hexstr(6);", Null);
         check_code_result("hexstr();", Null);
-        check_code_result("hexstr(raw_string(10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121));", "0ad066a5d29f3f2a2a1c7c17dd082a79");
+        check_code_result(
+            "hexstr(raw_string(10, 208, 102, 165, 210, 159, 63, 42, 42, 28, 124, 23, 221, 8, 42, 121));",
+            "0ad066a5d29f3f2a2a1c7c17dd082a79",
+        );
     }
 
     #[test]

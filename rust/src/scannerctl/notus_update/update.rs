@@ -10,10 +10,26 @@ use crate::{CliError, CliErrorKind};
 
 use scannerlib::feed;
 use scannerlib::models;
-use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
 use scannerlib::nasl::WithErrorInfo;
+use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
-use scannerlib::storage::{ContextKey, Dispatcher, Field};
+use scannerlib::storage::Dispatcher;
+use scannerlib::storage::items::notus_advisory::NotusCache;
+use scannerlib::storage::redis::RedisAddAdvisory;
+use scannerlib::storage::redis::RedisAddNvt;
+use scannerlib::storage::redis::RedisGetNvt;
+use scannerlib::storage::redis::RedisStorage;
+use scannerlib::storage::redis::RedisWrapper;
+
+pub trait NotusStorage:
+    Dispatcher<(), Item = models::VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
+{
+}
+
+impl<S> NotusStorage for RedisStorage<S> where
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
+{
+}
 
 pub fn signature_error(e: impl std::fmt::Display) -> CliError {
     CliErrorKind::LoadError(LoadError::Dirty(e.to_string()))
@@ -22,7 +38,7 @@ pub fn signature_error(e: impl std::fmt::Display) -> CliError {
 
 pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher,
+    S: NotusStorage,
 {
     let loader = FSPluginLoader::new(path);
     let advisories_files = match HashsumAdvisoryLoader::new(loader.clone()) {
@@ -31,7 +47,7 @@ where
             return Err(CliErrorKind::LoadError(LoadError::Dirty(
                 "Problem loading advisory".to_string(),
             ))
-            .into())
+            .into());
         }
     };
 
@@ -59,19 +75,16 @@ where
 
         for adv in advisories.advisories {
             let _ = storage.dispatch(
-                &ContextKey::FileName(filename.to_owned()),
-                Field::NotusAdvisory(Box::new(Some(models::VulnerabilityData {
+                (),
+                models::VulnerabilityData {
                     adv,
                     family: advisories.family.clone(),
                     filename: filename.to_owned(),
-                }))),
+                },
             );
         }
     }
-    let _ = storage.dispatch(
-        &ContextKey::FileName("notuscache".to_string()),
-        Field::NotusAdvisory(Box::new(None)),
-    );
+    let _ = storage.dispatch(NotusCache, ());
 
     Ok(())
 }

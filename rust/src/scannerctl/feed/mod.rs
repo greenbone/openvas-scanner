@@ -4,31 +4,26 @@
 
 mod transpile;
 pub mod update;
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::{io, path::PathBuf};
 
 // re-export to work around name conflict
 
 use clap::Subcommand;
 use scannerlib::{
-    nasl::{syntax::LoadError, WithErrorInfo},
+    nasl::syntax::LoadError,
     storage::{
-        json::{ArrayWrapper, ItemDispatcher},
+        error::StorageError,
+        infisto::json::{ArrayWrapper, JsonStorage},
         redis::{
-            CacheDispatcher, NameSpaceSelector, RedisCtx, FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR,
+            FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, NameSpaceSelector, RedisCtx, RedisStorage,
         },
     },
 };
 
-use scannerlib::storage::{item::PerItemDispatcher, StorageError};
 use tracing::warn;
 use transpile::TranspileArgs;
 
-use crate::{
-    get_path_from_openvas, notus_update, read_openvas_config, CliError, CliErrorKind, Filename,
-};
+use crate::{CliError, CliErrorKind, get_path_from_openvas, notus_update, read_openvas_config};
 
 /// Handle feed related tasks
 #[derive(clap::Parser)]
@@ -75,14 +70,11 @@ pub struct TransformArgs {
     path: PathBuf,
 }
 
-fn get_dispatcher(
+fn make_redis_storage(
     redis: &str,
-    path: &Path,
     selector: &[NameSpaceSelector],
-) -> Result<PerItemDispatcher<CacheDispatcher<RedisCtx>>, CliError> {
-    CacheDispatcher::as_dispatcher(redis, selector)
-        .map_err(StorageError::from)
-        .map_err(|e| CliErrorKind::from(e).with(Filename(Path::new(&format!("{path:?}")))))
+) -> Result<RedisStorage<RedisCtx>, CliErrorKind> {
+    Ok(RedisStorage::init(redis, selector).map_err(StorageError::from)?)
 }
 
 pub async fn update_vts(
@@ -94,8 +86,8 @@ pub async fn update_vts(
         warn!("--vts-path not specified, trying to obtain VT path from openvas config");
         get_vts_path_from_openvas_config()
     });
-    let dispatcher = get_dispatcher(redis, &path, FEEDUPDATE_SELECTOR)?;
-    update::run(dispatcher, &path, signature_check).await
+    let redis_storage = make_redis_storage(redis, FEEDUPDATE_SELECTOR)?;
+    update::run(redis_storage, &path, signature_check).await
 }
 
 pub async fn update_notus(
@@ -112,9 +104,8 @@ pub async fn update_notus(
             .into());
         }
     };
-
-    let dispatcher = get_dispatcher(redis, &path, NOTUSUPDATE_SELECTOR)?;
-    notus_update::update::run(dispatcher, path, signature_check)
+    let redis_storage = make_redis_storage(redis, NOTUSUPDATE_SELECTOR)?;
+    notus_update::update::run(redis_storage, path, signature_check)
 }
 
 fn get_vts_path_from_openvas_config() -> PathBuf {
@@ -160,7 +151,7 @@ pub async fn update(args: UpdateArgs) -> Result<(), CliError> {
 
 async fn transform(args: TransformArgs) -> Result<(), CliError> {
     let mut o = ArrayWrapper::new(io::stdout());
-    let dispatcher = ItemDispatcher::as_dispatcher(&mut o);
+    let dispatcher = JsonStorage::new(&mut o);
     update::run(dispatcher, &args.path, false).await?;
     o.end()
         .map_err(StorageError::from)

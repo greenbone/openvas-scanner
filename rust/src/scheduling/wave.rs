@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::storage::item::Nvt;
 use std::collections::{HashMap, VecDeque};
+
+use crate::storage::items::nvt::Nvt;
 
 use super::{ExecutionPlan, RuntimeVT, VTError};
 
@@ -144,16 +145,13 @@ impl Iterator for WaveExecutionPlan {
 mod tests {
     use crate::models::{Scan, VT};
 
-    use crate::nasl::syntax::ACT;
-    use crate::storage::item::Nvt;
+    use crate::storage::inmemory::InMemoryStorage;
 
-    use crate::scheduling::{ConcurrentVTResult, Stage};
-    use crate::storage::{ContextKey, DefaultDispatcher};
+    use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, SchedulerStorage, Stage};
+    use crate::storage::items::nvt::{ACT, FileName, Nvt};
 
     use super::WaveExecutionPlan;
-    use crate::scheduling::ExecutionPlaner;
     use crate::storage::Dispatcher;
-    use crate::storage::Retriever;
 
     struct OidGenerator {
         latest_number: u64,
@@ -301,10 +299,10 @@ mod tests {
         F2: Fn(Vec<Nvt>) -> Vec<Nvt>,
     {
         let nvts = vt_gen();
-        let retrieve = DefaultDispatcher::new();
+        let storage = InMemoryStorage::new();
         nvts.clone().into_iter().for_each(|x| {
-            retrieve
-                .dispatch(&ContextKey::default(), x.into())
+            storage
+                .dispatch(FileName(x.filename.clone()), x)
                 .expect("should store");
         });
         let scan_vts = pick(nvts)
@@ -319,7 +317,8 @@ mod tests {
             vts: scan_vts,
             ..Default::default()
         };
-        let results = (&retrieve as &dyn Retriever).execution_plan::<WaveExecutionPlan>(&scan);
+        let results =
+            (&storage as &dyn SchedulerStorage).execution_plan::<WaveExecutionPlan>(&scan);
 
         results.map(|x| x.collect())
     }

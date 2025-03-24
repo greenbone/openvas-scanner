@@ -23,12 +23,12 @@ use feed::FeedArgs;
 use notus_update::scanner::NotusUpdateArgs;
 use osp::OspArgs;
 use scan_config::ScanConfigArgs;
-use scannerlib::storage::StorageError;
+use scannerlib::storage::error::StorageError;
 use std::{path::PathBuf, process};
 use syntax::SyntaxArgs;
 use tracing::Level;
 
-use clap::{arg, Parser, Subcommand};
+use clap::{Parser, Subcommand, arg};
 
 #[derive(Debug, Clone)]
 enum Db {

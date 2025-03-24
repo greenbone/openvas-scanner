@@ -4,15 +4,15 @@
 
 use std::path::Path;
 
-use scannerlib::storage::Dispatcher;
+use scannerlib::nasl::utils::context::ContextStorage;
 use scannerlib::{feed, nasl::FSPluginLoader};
 
-use crate::notus_update::update::signature_error;
 use crate::CliError;
+use crate::notus_update::update::signature_error;
 
 pub async fn run<S>(storage: S, path: &Path, signature_check: bool) -> Result<(), CliError>
 where
-    S: Sync + Send + Dispatcher,
+    S: ContextStorage,
 {
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path
@@ -23,7 +23,7 @@ where
 
     if signature_check {
         match updater.verify_signature() {
-            Ok(_) => tracing::info!("Signature check succsessful"),
+            Ok(_) => tracing::info!("Signature check successful"),
             Err(feed::VerifyError::MissingKeyring) => {
                 tracing::warn!("Signature check enabled but missing keyring");
                 return Err(feed::VerifyError::MissingKeyring.into());

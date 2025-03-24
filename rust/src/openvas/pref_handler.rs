@@ -5,7 +5,8 @@
 use std::collections::HashMap;
 
 use crate::models::{
-    ports_to_openvas_port_list, AliveTestMethods, CredentialType, Scan, Service, VT,
+    AliveTestMethods, CredentialType, PreferenceValue, Scan, ScanPreferenceInformation, Service,
+    VT, ports_to_openvas_port_list,
 };
 use crate::storage::redis::RedisStorageResult;
 
@@ -35,17 +36,23 @@ pub struct PreferenceHandler<'a, H> {
     scan_config: Scan,
     redis_connector: &'a mut H,
     nvt_params: HashMap<String, String>,
+    scan_params_defaults: Vec<ScanPreferenceInformation>,
 }
 
 impl<'a, H> PreferenceHandler<'a, H>
 where
     H: VtHelper + KbAccess,
 {
-    pub fn new(scan_config: Scan, redis_connector: &'a mut H) -> Self {
+    pub fn new(
+        scan_config: Scan,
+        redis_connector: &'a mut H,
+        scan_params_defaults: Vec<ScanPreferenceInformation>,
+    ) -> Self {
         Self {
             scan_config,
             redis_connector,
             nvt_params: HashMap::new(),
+            scan_params_defaults,
         }
     }
 
@@ -357,7 +364,17 @@ where
             .scan_preferences
             .clone()
             .iter()
-            .map(|x| format!("{}|||{}", x.id, x.value))
+            .map(|x| {
+                let p = self.scan_params_defaults.iter().find(|p| p.id == x.id);
+                if let Some(p) = p {
+                    match p.default {
+                        PreferenceValue::Bool(_) => format!("{}|||{}", x.id, bool_to_str(&x.value)),
+                        _ => format!("{}|||{}", x.id, x.value),
+                    }
+                } else {
+                    format!("{}|||{}", x.id, x.value)
+                }
+            })
             .collect::<Vec<String>>();
 
         if options.is_empty() {
@@ -637,20 +654,24 @@ mod tests {
             data: HashMap::new(),
         };
 
-        let mut prefh = PreferenceHandler::new(scan, &mut rc);
+        let mut prefh = PreferenceHandler::new(scan, &mut rc, Vec::default());
         assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
         // Prepare and test Scan ID
         assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/scanid", "123-456"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/scanid", "123-456")
+        );
         assert!(prefh.redis_connector.item_exists("internal/123-456", "new"));
 
         // Prepare and test Target
         assert!(prefh.prepare_target_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "TARGET|||127.0.0.1,10.0.0.1"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "TARGET|||127.0.0.1,10.0.0.1")
+        );
 
         // Prepare and test Ports
         assert!(prefh.prepare_ports_for_openvas().await.is_ok());
@@ -689,39 +710,53 @@ mod tests {
 
         // Prepare and test Plugins
         assert!(prefh.prepare_plugins_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "plugin_set|||123"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "plugin_set|||123")
+        );
 
         // Prepare and test Main KB Index
         assert!(prefh.prepare_main_kbindex_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "ov_maindbid|||3"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "ov_maindbid|||3")
+        );
 
         // Prepare and test Host Options
         assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "exclude_hosts|||127.0.0.1"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "exclude_hosts|||127.0.0.1")
+        );
 
         // Prepare and test Scan Params
         assert!(prefh.prepare_scan_params_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "testParam1|||1"));
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "testParam2|||abc"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "testParam1|||1")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "testParam2|||abc")
+        );
 
         // Prepare and test Reverse Lookup Options
         assert!(prefh.prepare_reverse_lookup_opt_for_openvas().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "reverse_lookup_only|||no"));
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "reverse_lookup_unify|||no"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "reverse_lookup_only|||no")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "reverse_lookup_unify|||no")
+        );
 
         // Prepare Alive Test Options
         // To test this options we have to call prepare_nvt_preferences first
@@ -757,17 +792,23 @@ mod tests {
         ));
 
         // Test NVT Preferences
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||yes"));
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "123:2:entry:test2|||abc"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||yes")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "123:2:entry:test2|||abc")
+        );
 
         // Prepare Boreas Alive Test
         assert!(prefh.prepare_boreas_alive_test().await.is_ok());
-        assert!(prefh
-            .redis_connector
-            .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||18"));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "ALIVE_TEST|||18")
+        );
     }
 }

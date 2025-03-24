@@ -13,8 +13,8 @@ use pcap::{Capture, Device};
 
 use super::super::host::get_host_ip;
 
-use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 use super::RawIpError;
+use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 
 use tracing::info;
 
@@ -355,7 +355,7 @@ fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslV
             return Err(FnError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            ))
+            ));
         }
     };
 
@@ -376,7 +376,7 @@ fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslV
         Err(_) => {
             return Err(FnError::missing_argument(
                 "Not possible to parse the src IP address.",
-            ))
+            ));
         }
     };
 
@@ -385,7 +385,7 @@ fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslV
         Err(_) => {
             return Err(FnError::missing_argument(
                 "Not possible to parse the dst IP address.",
-            ))
+            ));
         }
     };
 
@@ -473,7 +473,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
             return Err(FnError::wrong_unnamed_argument(
                 "Boolean",
                 "Invalid pcap_active value",
-            ))
+            ));
         }
     };
 
@@ -484,7 +484,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
             return Err(FnError::wrong_unnamed_argument(
                 "String",
                 "Invalid pcap_filter value",
-            ))
+            ));
         }
     };
 
@@ -495,7 +495,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
             return Err(FnError::wrong_unnamed_argument(
                 "Integer",
                 "Invalid timeout value",
-            ))
+            ));
         }
     };
 

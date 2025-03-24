@@ -34,7 +34,7 @@ where
     pub fn init(
         loader: L,
         verifier: V,
-    ) -> impl Iterator<Item = Result<(String, String), update::Error>> {
+    ) -> impl Iterator<Item = Result<(String, String), update::Error>> + use<L, V> {
         Self { loader, verifier }
     }
 

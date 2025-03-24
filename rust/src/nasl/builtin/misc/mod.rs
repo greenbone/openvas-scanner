@@ -23,7 +23,7 @@ use thiserror::Error;
 
 use crate::nasl::{prelude::*, utils::function::Maybe};
 use flate2::{
-    read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder, Compression,
+    Compression, read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder,
 };
 
 #[derive(Debug, Error)]

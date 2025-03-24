@@ -7,13 +7,13 @@ use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
 use scannerlib::nasl::WithErrorInfo;
-use scannerlib::storage::{ContextKey, DefaultDispatcher, Retriever, StorageError};
+use scannerlib::storage::Retriever;
+use scannerlib::storage::error::StorageError;
+use scannerlib::storage::inmemory::InMemoryStorage;
+use scannerlib::storage::items::nvt::{Feed, Nvt, Oid};
 use serde::Deserialize;
 
-use crate::{get_path_from_openvas, read_openvas_config, CliError, CliErrorKind, Filename};
-use scannerlib::storage::item::{NVTField, NVTKey};
-use scannerlib::storage::Field;
-use scannerlib::storage::Retrieve;
+use crate::{CliError, CliErrorKind, Filename, get_path_from_openvas, read_openvas_config};
 use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
 
@@ -64,7 +64,7 @@ async fn execute(
         let reader = BufReader::new(file);
         Ok::<BufReader<std::fs::File>, CliError>(reader)
     };
-    let storage = Arc::new(DefaultDispatcher::new());
+    let storage = Arc::new(InMemoryStorage::new());
     let mut scan = if stdin {
         tracing::debug!("reading scan config from stdin");
         serde_json::from_reader(std::io::stdin())
@@ -264,7 +264,11 @@ struct ScanConfigPreferenceNvt {
     name: String,
 }
 
-pub fn parse_vts<R>(sc: R, retriever: &dyn Retriever, vts: &[VT]) -> Result<Vec<VT>, Error>
+pub trait OspStorage: Retriever<Oid, Item = Nvt> + Retriever<Feed, Item = Vec<Nvt>> {}
+
+impl OspStorage for InMemoryStorage {}
+
+pub fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<Vec<VT>, Error>
 where
     R: BufRead,
 {
@@ -313,45 +317,53 @@ where
                     vec![]
                 }
             } else if s.nvt_type == 1 {
-                // lookup oids via family
-                // TODO: if it's empty we should return all not None
-                match retriever.retrieve_by_field(
-                    Field::NVT(NVTField::Family(s.family_or_nvt.clone())),
-                    Retrieve::NVT(Some(NVTKey::Oid)),
-                ) {
-                    Ok(nvt) => {
-                        let result: Vec<_> = nvt
-                            .flat_map(|(_, f)| match &f {
-                                Field::NVT(NVTField::Oid(oid)) if is_not_already_present(oid) => {
-                                    Some(oid_to_vt(oid))
-                                }
-                                _ => None,
-                            })
-                            .collect();
-
-                        tracing::debug!(
-                            "found {} nvt entries for family {}",
-                            result.len(),
-                            s.family_or_nvt
-                        );
-                        result
+                // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
+                // feed, the result will be an empty vector.
+                match retriever.retrieve(&Feed) {
+                    Ok(Some(vts)) => {
+                        if s.family_or_nvt.is_empty() {
+                            let oids: Vec<_> = vts
+                                .iter()
+                                .filter(|x| is_not_already_present(&x.oid))
+                                .map(|x| oid_to_vt(&x.oid))
+                                .collect();
+                            tracing::debug!("found {} nvt entries", oids.len(),);
+                            oids
+                        } else {
+                            let fvts: Vec<_> = vts
+                                .clone()
+                                .into_iter()
+                                .filter(|x| {
+                                    x.family == s.family_or_nvt && is_not_already_present(&x.oid)
+                                })
+                                .map(|x| oid_to_vt(&x.oid))
+                                .collect();
+                            tracing::debug!(
+                                "found {} nvt entries for family {}",
+                                fvts.len(),
+                                s.family_or_nvt
+                            );
+                            fvts
+                        }
                     }
+                    Ok(None) => vec![],
                     Err(e) => vec![Err(e.into())],
                 }
             } else {
-                match retriever.retrieve(&ContextKey::default(), Retrieve::NVT(Some(NVTKey::Oid))) {
-                    Ok(fields) => {
-                        let oids: Vec<_> = fields
-                            .flat_map(|f| match &f {
-                                Field::NVT(NVTField::Oid(oid)) if is_not_already_present(oid) => {
-                                    Some(oid_to_vt(oid))
-                                }
-                                _ => None,
-                            })
+                // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
+                // feed, the result will be an empty vector.
+                match retriever.retrieve(&Feed) {
+                    Ok(Some(vts)) => {
+                        let oids: Vec<_> = vts
+                            .iter()
+                            .filter(|x| x.oid == s.family_or_nvt)
+                            .map(|x| oid_to_vt(&x.oid))
                             .collect();
-
                         tracing::debug!("found {} nvt entries", oids.len(),);
                         oids
+                    }
+                    Ok(None) => {
+                        unreachable!();
                     }
                     Err(e) => vec![Err(e.into())],
                 }
@@ -362,7 +374,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use scannerlib::storage::{item::NVTField, ContextKey, DefaultDispatcher, Field, Storage};
+
+    use scannerlib::storage::{
+        Dispatcher,
+        items::nvt::{FileName, Nvt},
+    };
 
     use super::*;
 
@@ -466,20 +482,18 @@ mod tests {
         let result = quick_xml::de::from_str::<ScanConfig>(sc).unwrap();
         assert_eq!(result.nvt_selectors.nvt_selector.len(), 2);
         assert_eq!(result.preferences.preference.len(), 3);
-        let shop: DefaultDispatcher = DefaultDispatcher::default();
+        let shop: InMemoryStorage = InMemoryStorage::default();
         let add_product_detection = |oid: &str| {
-            shop.as_dispatcher()
-                .dispatch(
-                    &ContextKey::FileName(oid.to_string()),
-                    Field::NVT(NVTField::Oid(oid.to_owned().to_string())),
-                )
-                .unwrap();
-            shop.as_dispatcher()
-                .dispatch(
-                    &ContextKey::FileName(oid.to_string()),
-                    Field::NVT(NVTField::Family("Product detection".to_string())),
-                )
-                .unwrap();
+            shop.dispatch(
+                FileName(oid.to_string()),
+                Nvt {
+                    oid: oid.to_string(),
+                    filename: oid.to_string(),
+                    family: "Product detection".to_string(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
         };
         add_product_detection("1");
         add_product_detection("2");

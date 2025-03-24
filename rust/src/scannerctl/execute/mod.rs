@@ -5,17 +5,19 @@
 use std::fs::File;
 use std::io::stdin;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use clap::Subcommand;
 use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
-use scannerlib::nasl::{nasl_std_functions, FSPluginLoader};
+use scannerlib::nasl::{FSPluginLoader, nasl_std_functions};
 use scannerlib::scanner::ScanRunner;
 use scannerlib::scheduling::{ExecutionPlaner, WaveExecutionPlan};
+use scannerlib::storage::inmemory::InMemoryStorage;
 use tracing::{info, warn, warn_span};
 
 use crate::utils::ArgOrStdin;
-use crate::{interpret, CliError, CliErrorKind, Db};
+use crate::{CliError, CliErrorKind, Db, interpret};
 
 #[derive(clap::Parser)]
 pub struct ExecuteArgs {
@@ -69,7 +71,7 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
             serde_json::from_reader(stdin()).map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?
         }
     };
-    let storage = scannerlib::storage::DefaultDispatcher::new();
+    let storage = Arc::new(InMemoryStorage::new());
     info!("loading feed. This may take a while.");
 
     let loader = FSPluginLoader::new(args.path);

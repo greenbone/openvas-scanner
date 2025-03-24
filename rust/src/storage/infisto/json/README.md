@@ -60,7 +60,7 @@ Transforms a NVT to the json structure:
   "preferences": [
     {
       "id": 0,
-      "class": "check_box",
+      "class": "checkbox",
       "name": "0",
       "default": "0"
     }
@@ -72,11 +72,11 @@ Transforms a NVT to the json structure:
 
 ### Element
 
-To create a single json element per dispatch you can use the ItemDispatcher with a writer of your choice:
+To create a single json element per dispatch you can use the JsonStorage with a writer of your choice:
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let dispatcher = scannerlib::storage::json::ItemDispatcher::as_dispatcher(&mut buf);
+let dispatcher = scannerlib::storage::infisto::json::JsonStorage::new(&mut buf);
 ```
 
 ### Array
@@ -85,8 +85,8 @@ To create an array for elements per dispatch call:
 
 ```
 let mut buf = Vec::with_capacity(1208);
-let mut ja = scannerlib::storage::json::ArrayWrapper::new(&mut buf);
-let dispatcher = scannerlib::storage::json::ItemDispatcher::as_dispatcher(&mut ja);
+let mut ja = scannerlib::storage::infisto::json::ArrayWrapper::new(&mut buf);
+let dispatcher = scannerlib::storage::infisto::json::JsonStorage::new(&mut ja);
 // do your work
 ja.end();
 ```

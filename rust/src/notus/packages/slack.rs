@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use super::{Package, PackageVersion};
-use lazy_regex::{lazy_regex, Lazy, Regex};
+use lazy_regex::{Lazy, Regex, lazy_regex};
 use std::cmp::Ordering;
 
 static RE: Lazy<Regex> = lazy_regex!(r"(..*)-(..*)-(..*)-(\d)(?:_slack(..*))?");

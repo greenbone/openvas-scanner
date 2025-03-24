@@ -10,13 +10,13 @@ use super::{
     result_collector::ResultHelper,
 };
 use crate::models::{
+    HostInfoBuilder, Phase, Status,
     scanner::{
         Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
     },
-    HostInfoBuilder, Phase, Status,
 };
 use crate::{
-    models::{self, resources::check::Checker, Scan},
+    models::{self, Scan, resources::check::Checker},
     storage::redis::{NameSpaceSelector, RedisCtx},
 };
 use async_trait::async_trait;
@@ -35,6 +35,7 @@ pub struct Scanner {
     sudo: bool,
     redis_socket: String,
     resource_checker: Option<Checker>,
+    default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
 }
 
 impl From<OpenvasError> for ScanError {
@@ -92,21 +93,34 @@ impl From<OpenvasPhase> for Phase {
 }
 
 impl Scanner {
-    pub fn with_relative_memory(memory: f32, sudo: bool, url: String) -> Self {
+    pub fn with_relative_memory(
+        memory: f32,
+        sudo: bool,
+        url: String,
+        default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
+    ) -> Self {
         Self {
             running: Default::default(),
             sudo,
             redis_socket: url,
             resource_checker: Some(Checker::new_relative_memory(memory, None)),
+            default_scanner_preferences,
         }
     }
 
-    pub fn new(memory: Option<u64>, cpu: Option<f32>, sudo: bool, url: String) -> Self {
+    pub fn new(
+        memory: Option<u64>,
+        cpu: Option<f32>,
+        sudo: bool,
+        url: String,
+        default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
+    ) -> Self {
         Self {
             running: Default::default(),
             sudo,
             redis_socket: url,
             resource_checker: Some(Checker::new(memory, cpu)),
+            default_scanner_preferences,
         }
     }
 
@@ -155,6 +169,7 @@ impl Default for Scanner {
             sudo: cmd::check_sudo(),
             redis_socket: cmd::get_redis_socket(),
             resource_checker: None,
+            default_scanner_preferences: Vec::new(),
         }
     }
 }
@@ -165,7 +180,11 @@ impl ScanStarter for Scanner {
         let mut redis_help = self.create_redis_connector(None)?;
 
         // Prepare preferences and store them in redis
-        let mut pref_handler = PreferenceHandler::new(scan.clone(), &mut redis_help);
+        let mut pref_handler = PreferenceHandler::new(
+            scan.clone(),
+            &mut redis_help,
+            self.default_scanner_preferences.clone(),
+        );
         match pref_handler.prepare_preferences_for_openvas().await {
             Ok(_) => (),
             Err(e) => {
@@ -261,7 +280,7 @@ impl ScanDeleter for Scanner {
                 return Err(ScanError::Unexpected(format!(
                     "Not allowed to delete a running scan {}",
                     scan_id
-                )))
+                )));
             }
             _ => match self.remove_running(scan_id) {
                 Some(_) => {

@@ -10,18 +10,20 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::nasl::prelude::*;
+use crate::{
+    nasl::prelude::*,
+    storage::items::kb::{self, KbKey},
+};
 use dns_lookup::lookup_host;
 use rustls::ClientConnection;
 use thiserror::Error;
 
 use super::{
-    get_retry,
+    OpenvasEncaps, Port, get_retry,
     network_utils::{convert_timeout, ipstr2ipaddr},
     tcp::TcpConnection,
     tls::create_tls_client,
     udp::UdpConnection,
-    OpenvasEncaps, Port,
 };
 
 #[derive(Debug, Error)]
@@ -305,7 +307,7 @@ impl NaslSockets {
     /// - Secret/kdc_use_tcp
     #[nasl_function]
     fn open_sock_kdc(&mut self, context: &Context) -> Result<NaslValue, FnError> {
-        let hostname: String = context.get_single_kb_item("Secret/kdc_hostname")?;
+        let hostname: String = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))?;
 
         let ip = lookup_host(&hostname)
             .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
@@ -313,9 +315,11 @@ impl NaslSockets {
             .next()
             .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
-        let port = context.get_single_kb_item::<Port>("Secret/kdc_port")?.0;
+        let port = context
+            .get_single_kb_item::<Port>(&KbKey::Kdc(kb::Kdc::Port))?
+            .0;
 
-        let use_tcp: bool = context.get_single_kb_item("Secret/kdc_use_tcp")?;
+        let use_tcp: bool = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Protocol))?;
 
         let socket = if use_tcp {
             let tcp = TcpConnection::connect(
@@ -361,8 +365,18 @@ impl NaslSockets {
         transport: i64,
     ) -> Result<Option<NaslSocket>, SocketError> {
         if transport < 0 {
-            // TODO: Get port transport and open connection depending on it
-            todo!()
+            let transport = context
+                .get_port_transport(port)
+                .map_err(|e| {
+                    SocketError::Diagnostic(format!(
+                        "Unable to get transport for port {}: {}",
+                        port, e
+                    ))
+                })?
+                .unwrap_or_default();
+            return Self::open_sock_tcp_vhost(
+                context, addr, timeout, bufsz, port, vhost, transport,
+            );
         }
         let tls = match OpenvasEncaps::from_i64(transport) {
             // Auto Detection
@@ -374,7 +388,7 @@ impl NaslSockets {
             Some(OpenvasEncaps::Ip) => None,
             // Unsupported transport layer
             None | Some(OpenvasEncaps::Max) => {
-                return Err(SocketError::UnsupportedTransportLayerUnknown(transport))
+                return Err(SocketError::UnsupportedTransportLayerUnknown(transport));
             }
             // TLS/SSL
             Some(tls_version) => match tls_version {
@@ -384,11 +398,20 @@ impl NaslSockets {
                 _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport)),
             },
         };
-        Ok(
-            TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
-                .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
-                .ok(),
-        )
+        let tls_bool = tls.is_some();
+        match TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
+            .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
+        {
+            Ok(connection) => {
+                if tls_bool {
+                    let _ = context.set_port_transport(port, OpenvasEncaps::Tls12 as usize);
+                } else {
+                    let _ = context.set_port_transport(port, OpenvasEncaps::Ip as usize);
+                }
+                Ok(Some(connection))
+            }
+            _ => Ok(None),
+        }
     }
 
     /// Open a TCP socket to the target host.
@@ -418,7 +441,6 @@ impl NaslSockets {
         // TODO: Extract information from custom priority string
         // priority: Option<&str>,
     ) -> Result<NaslValue, FnError> {
-        // Get port
         let transport = transport.unwrap_or(-1);
 
         let addr = ipstr2ipaddr(context.target())?;
@@ -455,10 +477,10 @@ impl NaslSockets {
     /// Reads the information necessary for a TLS connection from the KB and
     /// return a TlsConfig on success.
     fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
-        let cert_path = context.get_single_kb_item("SSL/cert")?;
-        let key_path = context.get_single_kb_item("SSL/key")?;
-        let password = context.get_single_kb_item("SSL/password")?;
-        let cafile_path = context.get_single_kb_item("SSL/CA")?;
+        let cert_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))?;
+        let key_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))?;
+        let password = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))?;
+        let cafile_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))?;
 
         Ok(TlsConfig {
             cert_path,
@@ -516,15 +538,19 @@ impl NaslSockets {
                 // TODO: set timeout to global recv timeout when available
                 let timeout = Duration::from_secs(10);
                 self.wait_before_next_probe();
-                if let Ok(tcp) = TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
-                    self.add(NaslSocket::Tcp(Box::new(tcp)))
-                } else {
-                    continue;
+                match TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
+                    Ok(tcp) => self.add(NaslSocket::Tcp(Box::new(tcp))),
+                    _ => {
+                        continue;
+                    }
                 }
-            } else if let Ok(udp) = UdpConnection::new_priv(addr, sport, dport.0) {
-                self.add(NaslSocket::Udp(udp))
             } else {
-                continue;
+                match UdpConnection::new_priv(addr, sport, dport.0) {
+                    Ok(udp) => self.add(NaslSocket::Udp(udp)),
+                    _ => {
+                        continue;
+                    }
+                }
             };
             return Ok(NaslValue::Number(fd as i64));
         }
