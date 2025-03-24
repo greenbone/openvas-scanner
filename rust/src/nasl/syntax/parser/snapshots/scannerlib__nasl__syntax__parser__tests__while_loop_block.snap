@@ -1,27 +1,32 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (function_declaration_with_decls),\n\"function a(b) {c = 3;}\")"
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (while_loop_block), \"while (a) { b; d = 3; }\")"
 ---
 [
-    FnDecl(
-        FnDecl {
-            fn_name: Ident(
-                "a",
-            ),
-            args: CommaSeparated {
-                items: [
+    While(
+        While {
+            condition: Atom(
+                Ident(
                     Ident(
-                        "b",
+                        "a",
                     ),
-                ],
-                delimiter: Paren,
-            },
+                ),
+            ),
             block: Block {
                 items: [
+                    ExprStmt(
+                        Atom(
+                            Ident(
+                                Ident(
+                                    "b",
+                                ),
+                            ),
+                        ),
+                    ),
                     VarDecl(
                         VarDecl {
                             ident: Ident(
-                                "c",
+                                "d",
                             ),
                             operator: Equal,
                             expr: Atom(

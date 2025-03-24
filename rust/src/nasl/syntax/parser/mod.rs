@@ -12,8 +12,8 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, InnerFnStmt, NamedFnArg, Paren,
-    Return, Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl,
+    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Paren, Return, Stmt,
+    Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, While,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -41,6 +41,20 @@ pub trait PeekParse: Sized {
 trait Delimiter: Default {
     fn start() -> TokenKind;
     fn end() -> TokenKind;
+}
+
+pub enum OptionalBlock<T> {
+    Single(T),
+    Block(Block<T>),
+}
+
+impl<T> From<OptionalBlock<T>> for Block<T> {
+    fn from(value: OptionalBlock<T>) -> Self {
+        match value {
+            OptionalBlock::Single(item) => Block { items: vec![item] },
+            OptionalBlock::Block(block) => block,
+        }
+    }
 }
 
 pub struct Parser {
@@ -172,14 +186,22 @@ impl Parse for Stmt {
             Ok(Stmt::VarDecl(VarDecl::parse(parser)?))
         } else if parser.matches(TokenKind::Keyword(Keyword::Function)) {
             Ok(Stmt::FnDecl(FnDecl::parse(parser)?))
-        } else if parser.consume_if_matches(TokenKind::Semicolon) {
-            Ok(Stmt::NoOp)
+        } else if parser.matches(TokenKind::Keyword(Keyword::While)) {
+            Ok(Stmt::While(While::parse(parser)?))
         } else if parser.matches(TokenKind::LeftBrace) {
             Ok(Stmt::Block(Block::parse(parser)?))
+        } else if parser.matches(TokenKind::Keyword(Keyword::Return)) {
+            Ok(Stmt::Return(Return::parse(parser)?))
         } else if parser.matches(TokenKind::Keyword(Keyword::Include)) {
-            let include = Stmt::Include(Include::parse(parser)?);
+            Ok(Stmt::Include(Include::parse(parser)?))
+        } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
             parser.consume(TokenKind::Semicolon)?;
-            Ok(include)
+            Ok(Stmt::Break)
+        } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Continue)) {
+            parser.consume(TokenKind::Semicolon)?;
+            Ok(Stmt::Continue)
+        } else if parser.consume_if_matches(TokenKind::Semicolon) {
+            Ok(Stmt::NoOp)
         } else {
             let expr = Expr::parse(parser)?;
             parser.consume(TokenKind::Semicolon)?;
@@ -198,7 +220,19 @@ impl<T: Parse> Parse for Block<T> {
             }
             stmts.push(T::parse(parser)?);
         }
-        Ok(Block { stmts })
+        Ok(Block { items: stmts })
+    }
+}
+
+impl<T: Parse> Parse for OptionalBlock<T> {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        if parser.matches(TokenKind::LeftBrace) {
+            Ok(OptionalBlock::Block(Block::parse(parser)?))
+        } else {
+            // Parse omitted {}: Only a single T is allowed
+            let item = T::parse(parser)?;
+            Ok(OptionalBlock::Single(item))
+        }
     }
 }
 
@@ -208,6 +242,7 @@ impl Parse for Include {
         parser.consume(TokenKind::LeftParen)?;
         let path = Literal::parse(parser)?;
         parser.consume(TokenKind::RightParen)?;
+        parser.consume(TokenKind::Semicolon)?;
         Ok(Include { path })
     }
 }
@@ -240,22 +275,23 @@ impl Parse for FnDecl {
     }
 }
 
-impl Parse for InnerFnStmt {
-    fn parse(parser: &mut Parser) -> Result<Self> {
-        if parser.matches(TokenKind::Keyword(Keyword::Return)) {
-            Ok(InnerFnStmt::Return(Return::parse(parser)?))
-        } else {
-            Ok(InnerFnStmt::Stmt(Stmt::parse(parser)?))
-        }
-    }
-}
-
 impl Parse for Return {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::Return))?;
         let expr = Expr::parse(parser)?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(Return { expr })
+    }
+}
+
+impl Parse for While {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::While))?;
+        parser.consume(TokenKind::LeftParen)?;
+        let condition = Expr::parse(parser)?;
+        parser.consume(TokenKind::RightParen)?;
+        let block = OptionalBlock::parse(parser)?.into();
+        Ok(While { condition, block })
     }
 }
 

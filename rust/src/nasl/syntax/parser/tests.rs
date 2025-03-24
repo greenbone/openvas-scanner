@@ -269,15 +269,17 @@ parse_test_ok!(
 );
 
 parse_test_ok!(return_stmt, Program, "function a(b) { return 0; }");
-parse_test_err!(return_stmt_outside_fn, Program, "return 0;");
+
+parse_test_ok!(while_loop_single_stmt, Program, "while (a) b = 3;");
+parse_test_ok!(while_loop_block, Program, "while (a) { b; d = 3; }");
+
+parse_test_ok!(break_while, Program, "while (a) { b = 2; break; }");
+parse_test_ok!(continue_while, Program, "while (a) { b = 2; continue; }");
 
 // parse_test_ok!(array_assignment, Program, "a[1] = 3;");
-// parse_test_ok!(break_stmt, Program, "break;");
-// parse_test_ok!(continue_stmt, Program, "continue;");
 // parse_test_ok!(declare, Program, "local_var a;");
 // parse_test_ok!(parameter, Program, "[a, b];");
 // parse_test_ok!(named_parameter, Program, "a: b;");
-// parse_test_ok!(while_stmt, Program, "while (a) b;");
 // parse_test_ok!(repeat, Program, "repeat a; until b;");
 // parse_test_ok!(foreach, Program, "foreach a(b) c;");
 // parse_test_ok!(
@@ -460,4 +462,8 @@ parse_test_err!(return_stmt_outside_fn, Program, "return 0;");
 // TODO?
 // test_err!(wrong_assignment, "a = ");
 // test_err!(wrong_keyword_assignment, "a = for;");
-//
+
+// TODO!
+// parse_test_err!(break_stmt_outside_loop, Program, "break;");
+// parse_test_err!(continue_stmt_outside_loop, Program, "continue;");
+// parse_test_err!(return_stmt_outside_fn, Program, "return 0;");

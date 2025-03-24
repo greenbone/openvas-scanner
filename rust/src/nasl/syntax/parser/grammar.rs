@@ -56,8 +56,12 @@ pub enum Stmt {
     FnDecl(FnDecl),
     ExprStmt(Expr),
     Block(Block<Stmt>),
-    NoOp,
+    While(While),
     Include(Include),
+    Return(Return),
+    Break,
+    Continue,
+    NoOp,
 }
 
 #[derive(Clone, Debug)]
@@ -71,13 +75,7 @@ pub struct VarDecl {
 pub struct FnDecl {
     pub fn_name: Ident,
     pub args: CommaSeparated<Ident, Paren>,
-    pub block: Block<InnerFnStmt>,
-}
-
-#[derive(Clone, Debug)]
-pub enum InnerFnStmt {
-    Stmt(Stmt),
-    Return(Return),
+    pub block: Block<Stmt>,
 }
 
 #[derive(Clone, Debug)]
@@ -87,7 +85,13 @@ pub struct Return {
 
 #[derive(Clone, Debug)]
 pub struct Block<T> {
-    pub stmts: Vec<T>,
+    pub items: Vec<T>,
+}
+
+#[derive(Clone, Debug)]
+pub struct While {
+    pub condition: Expr,
+    pub block: Block<Stmt>,
 }
 
 #[derive(Clone, Debug)]
