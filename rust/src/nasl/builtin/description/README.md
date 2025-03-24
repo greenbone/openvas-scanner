@@ -4,7 +4,7 @@ It is part of the std which is proven in the tests.
 
 To use this module you have to initiate `Description` and look for the function:
 
-```
+```rust
 let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
     .push_register(nasl_builtin_description::Description)
     .build();

@@ -6,7 +6,7 @@ Is a library to store data on to disk and fetch elements from that rather than l
 
 Caches the last files idx files into memory.
 
-```
+```rust
 use scannerlib::storage::infisto::IndexedByteStorage;
 let base = "/tmp/openvasd/storage";
 let name = "readme_cached";
@@ -24,7 +24,7 @@ store.remove(name).unwrap();
 
 Encryptes the given data with chacha20 before storing it.
 
-```
+```rust
 use scannerlib::storage::infisto::IndexedByteStorage;
 let base = "/tmp/openvasd/storage";
 let name = "readme_crypt";
@@ -44,7 +44,7 @@ store.remove(name).unwrap();
 
 Instead of loading all elements at once it allows to fetch single elements when required.
  
-```
+```rust
 use scannerlib::storage::infisto::IndexedByteStorage;
 let base = "/tmp/openvasd/storage";
 let name = "readme_iter";

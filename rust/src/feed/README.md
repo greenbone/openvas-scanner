@@ -21,7 +21,7 @@ Also, implements a `signature verifier` for checking the signature of the sha256
 
 ### Example
 
-```rs,no_run
+```rust,no_run
 use scannerlib::nasl::FSPluginLoader;
 // needs to be path that contains a sha256sums file otherwise
 // it will throw an exception.
