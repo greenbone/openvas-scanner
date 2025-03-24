@@ -268,7 +268,10 @@ parse_test_ok!(
     "function a(b) {c = 3;}"
 );
 
-// parse_test_ok!(return_stmt, Program, "return 0;");
+parse_test_ok!(return_stmt, Program, "function a(b) { return 0; }");
+parse_test_err!(return_stmt_outside_fn, Program, "return 0;");
+
+// parse_test_ok!(array_assignment, Program, "a[1] = 3;");
 // parse_test_ok!(break_stmt, Program, "break;");
 // parse_test_ok!(continue_stmt, Program, "continue;");
 // parse_test_ok!(declare, Program, "local_var a;");

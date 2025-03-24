@@ -12,8 +12,8 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Paren, Stmt, Unary,
-    UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl,
+    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, InnerFnStmt, NamedFnArg, Paren,
+    Return, Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -188,7 +188,7 @@ impl Parse for Stmt {
     }
 }
 
-impl Parse for Block {
+impl<T: Parse> Parse for Block<T> {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::LeftBrace)?;
         let mut stmts = vec![];
@@ -196,7 +196,7 @@ impl Parse for Block {
             if parser.consume_if_matches(TokenKind::RightBrace) {
                 break;
             }
-            stmts.push(Stmt::parse(parser)?);
+            stmts.push(T::parse(parser)?);
         }
         Ok(Block { stmts })
     }
@@ -237,6 +237,25 @@ impl Parse for FnDecl {
             args,
             block,
         })
+    }
+}
+
+impl Parse for InnerFnStmt {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        if parser.matches(TokenKind::Keyword(Keyword::Return)) {
+            Ok(InnerFnStmt::Return(Return::parse(parser)?))
+        } else {
+            Ok(InnerFnStmt::Stmt(Stmt::parse(parser)?))
+        }
+    }
+}
+
+impl Parse for Return {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::Return))?;
+        let expr = Expr::parse(parser)?;
+        parser.consume(TokenKind::Semicolon)?;
+        Ok(Return { expr })
     }
 }
 

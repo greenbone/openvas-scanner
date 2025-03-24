@@ -55,7 +55,7 @@ pub enum Stmt {
     VarDecl(VarDecl),
     FnDecl(FnDecl),
     ExprStmt(Expr),
-    Block(Block),
+    Block(Block<Stmt>),
     NoOp,
     Include(Include),
 }
@@ -71,12 +71,23 @@ pub struct VarDecl {
 pub struct FnDecl {
     pub fn_name: Ident,
     pub args: CommaSeparated<Ident, Paren>,
-    pub block: Block,
+    pub block: Block<InnerFnStmt>,
 }
 
 #[derive(Clone, Debug)]
-pub struct Block {
-    pub stmts: Vec<Stmt>,
+pub enum InnerFnStmt {
+    Stmt(Stmt),
+    Return(Return),
+}
+
+#[derive(Clone, Debug)]
+pub struct Return {
+    pub expr: Expr,
+}
+
+#[derive(Clone, Debug)]
+pub struct Block<T> {
+    pub stmts: Vec<T>,
 }
 
 #[derive(Clone, Debug)]
