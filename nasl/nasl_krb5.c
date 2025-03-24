@@ -76,9 +76,6 @@ static OKrb5Credential
 build_krb5_credential (lex_ctxt *lexic)
 {
   OKrb5Credential credential = {0};
-  OKrb5ErrorCode code;
-
-  char *kdc = NULL;
 
   SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.config_path, "config_path",
                              "KRB5_CONFIG");
@@ -99,24 +96,6 @@ build_krb5_credential (lex_ctxt *lexic)
   // SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.target.service, "service",
   // "KRB5_TARGET_SERVICE");
 
-  if ((code = o_krb5_find_kdc (&credential, &kdc)))
-    {
-      if (code != O_KRB5_REALM_NOT_FOUND && code != O_KRB5_CONF_NOT_FOUND)
-        {
-          NASL_PRINT_KRB_ERROR (lexic, credential, code);
-        }
-      else
-        {
-          if ((code = o_krb5_add_realm (&credential, credential.kdc.data)))
-            {
-              NASL_PRINT_KRB_ERROR (lexic, credential, code);
-            }
-        }
-    }
-  else
-    {
-      free (kdc);
-    }
   if (credential.target.service.len == 0)
     {
       okrb5_set_slice_from_str (credential.target.service, "cifs");
@@ -150,22 +129,9 @@ build_krb5_credential (lex_ctxt *lexic)
 tree_cell *
 nasl_okrb5_find_kdc (lex_ctxt *lexic)
 {
-  tree_cell *retc;
-  char *kdc = NULL;
-  OKrb5Credential credential;
-
-  credential = build_krb5_credential (lexic);
-
-  if ((last_okrb5_result = o_krb5_find_kdc (&credential, &kdc)))
-    {
-      NASL_PRINT_KRB_ERROR (lexic, credential, last_okrb5_result);
-      return FAKE_CELL;
-    }
-
-  retc = alloc_typed_cell (CONST_DATA);
-  retc->x.str_val = kdc;
-  retc->size = strlen (kdc);
-  return retc;
+  (void ) lexic;
+  // TODO: remove
+  return FAKE_CELL;
 }
 
 tree_cell *
@@ -186,11 +152,8 @@ nasl_okrb5_add_realm (lex_ctxt *lexic)
     }
 
   credential = build_krb5_credential (lexic);
+  // TODO: remove
 
-  if ((last_okrb5_result = o_krb5_add_realm (&credential, kdc)))
-    {
-      NASL_PRINT_KRB_ERROR (lexic, credential, last_okrb5_result);
-    }
 
 exit:
   retc = alloc_typed_cell (CONST_INT);

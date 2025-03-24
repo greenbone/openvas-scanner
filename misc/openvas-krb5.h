@@ -65,17 +65,6 @@ typedef struct
   struct OKrb5Target target;
 } OKrb5Credential;
 
-// Finds the kdc defined for the given realm.
-//
-// It returns the found kdc into `kdc` when `kdc` is not NULL.
-// If kdc is not NULL it requires that the value pointer is NULL otherwise an
-// error code is returned.
-OKrb5ErrorCode
-o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc);
-// Adds realm with the given kdc into krb5.conf if the krc5.conf is not found it
-// will create a new one
-OKrb5ErrorCode
-o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc);
 
 #define okrb5_slice_from_str(str)                               \
   (struct OKrb5Slice)                                           \
