@@ -1,14 +1,12 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Declaration >\n(stringify! (number_declaration), \"5;\")"
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Stmt >\n(stringify! (number_declaration), \"5;\")"
 ---
-Stmt(
-    ExprStmt(
-        Atom(
-            Literal(
-                Number(
-                    5,
-                ),
+ExprStmt(
+    Atom(
+        Literal(
+            Number(
+                5,
             ),
         ),
     ),

@@ -3,107 +3,140 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (array_expr),\n\"\n    a[1];\n    a[5 + 3];\n    a[5 + (3 * 4)];\n    a[1] * b[2];\n    a[b[1]];\n\")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Atom(
-                ArrayAccess(
-                    ArrayAccess {
-                        index_expr: Atom(
-                            Literal(
-                                Number(
-                                    1,
-                                ),
+    ExprStmt(
+        Atom(
+            ArrayAccess(
+                ArrayAccess {
+                    index_expr: Atom(
+                        Literal(
+                            Number(
+                                1,
                             ),
                         ),
-                        ident: Ident(
-                            "a",
-                        ),
-                    },
-                ),
+                    ),
+                    ident: Ident(
+                        "a",
+                    ),
+                },
             ),
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Atom(
-                ArrayAccess(
-                    ArrayAccess {
-                        index_expr: Binary(
-                            Binary {
-                                lhs: Atom(
-                                    Literal(
-                                        Number(
-                                            5,
-                                        ),
+    ExprStmt(
+        Atom(
+            ArrayAccess(
+                ArrayAccess {
+                    index_expr: Binary(
+                        Binary {
+                            lhs: Atom(
+                                Literal(
+                                    Number(
+                                        5,
                                     ),
                                 ),
-                                op: Plus,
-                                rhs: Atom(
-                                    Literal(
-                                        Number(
-                                            3,
-                                        ),
+                            ),
+                            op: Plus,
+                            rhs: Atom(
+                                Literal(
+                                    Number(
+                                        3,
                                     ),
                                 ),
-                            },
-                        ),
-                        ident: Ident(
-                            "a",
-                        ),
-                    },
-                ),
+                            ),
+                        },
+                    ),
+                    ident: Ident(
+                        "a",
+                    ),
+                },
             ),
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Atom(
-                ArrayAccess(
-                    ArrayAccess {
-                        index_expr: Binary(
-                            Binary {
-                                lhs: Atom(
-                                    Literal(
-                                        Number(
-                                            5,
-                                        ),
+    ExprStmt(
+        Atom(
+            ArrayAccess(
+                ArrayAccess {
+                    index_expr: Binary(
+                        Binary {
+                            lhs: Atom(
+                                Literal(
+                                    Number(
+                                        5,
                                     ),
                                 ),
-                                op: Plus,
-                                rhs: Binary(
-                                    Binary {
-                                        lhs: Atom(
-                                            Literal(
-                                                Number(
-                                                    3,
-                                                ),
+                            ),
+                            op: Plus,
+                            rhs: Binary(
+                                Binary {
+                                    lhs: Atom(
+                                        Literal(
+                                            Number(
+                                                3,
                                             ),
                                         ),
-                                        op: Star,
-                                        rhs: Atom(
-                                            Literal(
-                                                Number(
-                                                    4,
-                                                ),
+                                    ),
+                                    op: Star,
+                                    rhs: Atom(
+                                        Literal(
+                                            Number(
+                                                4,
                                             ),
                                         ),
-                                    },
-                                ),
-                            },
-                        ),
-                        ident: Ident(
-                            "a",
-                        ),
-                    },
-                ),
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    ident: Ident(
+                        "a",
+                    ),
+                },
             ),
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    ArrayAccess(
+                        ArrayAccess {
+                            index_expr: Atom(
+                                Literal(
+                                    Number(
+                                        1,
+                                    ),
+                                ),
+                            ),
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
+                    ),
+                ),
+                op: Star,
+                rhs: Atom(
+                    ArrayAccess(
+                        ArrayAccess {
+                            index_expr: Atom(
+                                Literal(
+                                    Number(
+                                        2,
+                                    ),
+                                ),
+                            ),
+                            ident: Ident(
+                                "b",
+                            ),
+                        },
+                    ),
+                ),
+            },
+        ),
+    ),
+    ExprStmt(
+        Atom(
+            ArrayAccess(
+                ArrayAccess {
+                    index_expr: Atom(
                         ArrayAccess(
                             ArrayAccess {
                                 index_expr: Atom(
@@ -114,58 +147,15 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                                     ),
                                 ),
                                 ident: Ident(
-                                    "a",
-                                ),
-                            },
-                        ),
-                    ),
-                    op: Star,
-                    rhs: Atom(
-                        ArrayAccess(
-                            ArrayAccess {
-                                index_expr: Atom(
-                                    Literal(
-                                        Number(
-                                            2,
-                                        ),
-                                    ),
-                                ),
-                                ident: Ident(
                                     "b",
                                 ),
                             },
                         ),
                     ),
+                    ident: Ident(
+                        "a",
+                    ),
                 },
-            ),
-        ),
-    ),
-    Stmt(
-        ExprStmt(
-            Atom(
-                ArrayAccess(
-                    ArrayAccess {
-                        index_expr: Atom(
-                            ArrayAccess(
-                                ArrayAccess {
-                                    index_expr: Atom(
-                                        Literal(
-                                            Number(
-                                                1,
-                                            ),
-                                        ),
-                                    ),
-                                    ident: Ident(
-                                        "b",
-                                    ),
-                                },
-                            ),
-                        ),
-                        ident: Ident(
-                            "a",
-                        ),
-                    },
-                ),
             ),
         ),
     ),

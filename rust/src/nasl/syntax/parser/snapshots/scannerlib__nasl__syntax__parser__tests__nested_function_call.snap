@@ -3,61 +3,59 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (nested_function_call), \"foo(bar(3), 4);\")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Atom(
-                FnCall(
-                    FnCall {
-                        fn_name: Ident(
-                            "foo",
-                        ),
-                        args: CommaSeparated {
-                            items: [
-                                Anonymous(
-                                    AnonymousFnArg {
-                                        expr: Atom(
-                                            FnCall(
-                                                FnCall {
-                                                    fn_name: Ident(
-                                                        "bar",
-                                                    ),
-                                                    args: CommaSeparated {
-                                                        items: [
-                                                            Anonymous(
-                                                                AnonymousFnArg {
-                                                                    expr: Atom(
-                                                                        Literal(
-                                                                            Number(
-                                                                                3,
-                                                                            ),
+    ExprStmt(
+        Atom(
+            FnCall(
+                FnCall {
+                    fn_name: Ident(
+                        "foo",
+                    ),
+                    args: CommaSeparated {
+                        items: [
+                            Anonymous(
+                                AnonymousFnArg {
+                                    expr: Atom(
+                                        FnCall(
+                                            FnCall {
+                                                fn_name: Ident(
+                                                    "bar",
+                                                ),
+                                                args: CommaSeparated {
+                                                    items: [
+                                                        Anonymous(
+                                                            AnonymousFnArg {
+                                                                expr: Atom(
+                                                                    Literal(
+                                                                        Number(
+                                                                            3,
                                                                         ),
                                                                     ),
-                                                                },
-                                                            ),
-                                                        ],
-                                                        delimiter: Paren,
-                                                    },
+                                                                ),
+                                                            },
+                                                        ),
+                                                    ],
+                                                    delimiter: Paren,
                                                 },
+                                            },
+                                        ),
+                                    ),
+                                },
+                            ),
+                            Anonymous(
+                                AnonymousFnArg {
+                                    expr: Atom(
+                                        Literal(
+                                            Number(
+                                                4,
                                             ),
                                         ),
-                                    },
-                                ),
-                                Anonymous(
-                                    AnonymousFnArg {
-                                        expr: Atom(
-                                            Literal(
-                                                Number(
-                                                    4,
-                                                ),
-                                            ),
-                                        ),
-                                    },
-                                ),
-                            ],
-                            delimiter: Paren,
-                        },
+                                    ),
+                                },
+                            ),
+                        ],
+                        delimiter: Paren,
                     },
-                ),
+                },
             ),
         ),
     ),

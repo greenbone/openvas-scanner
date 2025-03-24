@@ -7,7 +7,7 @@ use crate::nasl::{
     syntax::{Tokenizer, parser::grammar::Expr},
 };
 
-use super::{Parse, Parser, error::ParseError, grammar::Declaration};
+use super::{Parse, Parser, error::ParseError, grammar::Stmt};
 
 // TODO incorporate into `Code` eventually.
 fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, ParseError> {
@@ -18,12 +18,12 @@ fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, ParseError> {
     Parser::new(tokenizer).parse::<T>()
 }
 
-fn parse_program_ok(file_name: &str, code: &str) -> Vec<Declaration> {
+fn parse_program_ok(file_name: &str, code: &str) -> Vec<Stmt> {
     let code = Code::from_string_fake_filename(code, file_name)
         .code()
         .to_string();
     let tokens = Tokenizer::tokenize(&code);
-    Parser::new(tokens).parse_program().unwrap().decls()
+    Parser::new(tokens).parse_program().unwrap().stmts()
 }
 
 fn parse_program_err(file_name: &str, code: &str) -> String {
@@ -99,13 +99,13 @@ macro_rules! parse_test_err {
     };
 }
 
-parse_test_ok!(number_declaration, Declaration, "5;");
-parse_test_err!(number_declaration_missing_semicolon, Declaration, "5");
+parse_test_ok!(number_declaration, Stmt, "5;");
+parse_test_err!(number_declaration_missing_semicolon, Stmt, "5");
 parse_test_ok!(number_expr, Expr, "5");
 parse_test_ok!(add_1, Expr, "5 + 3");
 parse_test_ok!(add_mul, Expr, "5 + 3 * 4");
 parse_test_ok!(left_associativity, Expr, "3 - 3 - 3");
-parse_test_ok!(var_assignment, Declaration, "x = 3;");
+parse_test_ok!(var_assignment, Stmt, "x = 3;");
 parse_test_ok!(
     multiple_declarations,
     Program,

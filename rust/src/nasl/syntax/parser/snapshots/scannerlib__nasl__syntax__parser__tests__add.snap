@@ -3,27 +3,25 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (add), \"a + 1;\")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: Plus,
-                    rhs: Atom(
-                        Literal(
-                            Number(
-                                1,
-                            ),
+                ),
+                op: Plus,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            1,
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
 ]

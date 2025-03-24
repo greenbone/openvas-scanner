@@ -12,8 +12,8 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    Block, CommaSeparated, Declaration, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Paren,
-    Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl,
+    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Paren, Stmt, Unary,
+    UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -75,15 +75,15 @@ impl Parser {
     }
 
     pub fn parse_program(&mut self) -> Result<Ast, Vec<ParseError>> {
-        let mut decls = vec![];
+        let mut stmts = vec![];
         let mut errs = vec![];
         while !self.is_at_end() {
-            let result = self.parse::<Declaration>();
+            let result = self.parse::<Stmt>();
             // Check if any tokenization errors occured, those have priority
             // and make the actual result obtained from parsing void
             if !self.check_tokenizer_errors(&mut errs) {
                 match result {
-                    Ok(decl) => decls.push(decl),
+                    Ok(decl) => stmts.push(decl),
                     Err(err) => {
                         errs.push(err);
                         self.synchronize();
@@ -93,7 +93,7 @@ impl Parser {
         }
         self.check_tokenizer_errors(&mut errs);
         if errs.is_empty() {
-            Ok(Ast::new(decls))
+            Ok(Ast::new(stmts))
         } else {
             Err(errs)
         }
@@ -166,22 +166,13 @@ impl Parser {
     }
 }
 
-impl Parse for Declaration {
-    fn parse(parser: &mut Parser) -> Result<Declaration> {
-        if Ident::peek(parser) {
-            if AssignmentOperator::peek_next(parser) {
-                return Ok(Declaration::VarDecl(VarDecl::parse(parser)?));
-            }
-        } else if parser.matches(TokenKind::Keyword(Keyword::Function)) {
-            return Ok(Declaration::FnDecl(FnDecl::parse(parser)?));
-        }
-        Ok(Declaration::Stmt(Stmt::parse(parser)?))
-    }
-}
-
 impl Parse for Stmt {
-    fn parse(parser: &mut Parser) -> Result<Self> {
-        if parser.consume_if_matches(TokenKind::Semicolon) {
+    fn parse(parser: &mut Parser) -> Result<Stmt> {
+        if Ident::peek(parser) && AssignmentOperator::peek_next(parser) {
+            Ok(Stmt::VarDecl(VarDecl::parse(parser)?))
+        } else if parser.matches(TokenKind::Keyword(Keyword::Function)) {
+            Ok(Stmt::FnDecl(FnDecl::parse(parser)?))
+        } else if parser.consume_if_matches(TokenKind::Semicolon) {
             Ok(Stmt::NoOp)
         } else if parser.matches(TokenKind::LeftBrace) {
             Ok(Stmt::Block(Block::parse(parser)?))
@@ -200,14 +191,14 @@ impl Parse for Stmt {
 impl Parse for Block {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::LeftBrace)?;
-        let mut decls = vec![];
+        let mut stmts = vec![];
         loop {
             if parser.consume_if_matches(TokenKind::RightBrace) {
                 break;
             }
-            decls.push(Declaration::parse(parser)?);
+            stmts.push(Stmt::parse(parser)?);
         }
-        Ok(Block { decls })
+        Ok(Block { stmts })
     }
 }
 

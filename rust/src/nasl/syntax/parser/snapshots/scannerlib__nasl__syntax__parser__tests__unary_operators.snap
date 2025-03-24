@@ -3,136 +3,126 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (unary_operators),\n\"\n    -a;\n    !a;\n    - - -a;\n    - - !a;\n    ! ! !a;\n    \")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Prefix(
-                        Minus,
-                    ),
-                    rhs: Atom(
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Prefix(
+                    Minus,
+                ),
+                rhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Prefix(
-                        Bang,
-                    ),
-                    rhs: Atom(
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Prefix(
+                    Bang,
+                ),
+                rhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Prefix(
-                        Minus,
-                    ),
-                    rhs: Unary(
-                        Unary {
-                            op: Prefix(
-                                Minus,
-                            ),
-                            rhs: Unary(
-                                Unary {
-                                    op: Prefix(
-                                        Minus,
-                                    ),
-                                    rhs: Atom(
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Prefix(
+                    Minus,
+                ),
+                rhs: Unary(
+                    Unary {
+                        op: Prefix(
+                            Minus,
+                        ),
+                        rhs: Unary(
+                            Unary {
+                                op: Prefix(
+                                    Minus,
+                                ),
+                                rhs: Atom(
+                                    Ident(
                                         Ident(
-                                            Ident(
-                                                "a",
-                                            ),
+                                            "a",
                                         ),
                                     ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            ),
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Prefix(
-                        Minus,
-                    ),
-                    rhs: Unary(
-                        Unary {
-                            op: Prefix(
-                                Minus,
-                            ),
-                            rhs: Unary(
-                                Unary {
-                                    op: Prefix(
-                                        Bang,
-                                    ),
-                                    rhs: Atom(
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Prefix(
+                    Minus,
+                ),
+                rhs: Unary(
+                    Unary {
+                        op: Prefix(
+                            Minus,
+                        ),
+                        rhs: Unary(
+                            Unary {
+                                op: Prefix(
+                                    Bang,
+                                ),
+                                rhs: Atom(
+                                    Ident(
                                         Ident(
-                                            Ident(
-                                                "a",
-                                            ),
+                                            "a",
                                         ),
                                     ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            ),
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Prefix(
-                        Bang,
-                    ),
-                    rhs: Unary(
-                        Unary {
-                            op: Prefix(
-                                Bang,
-                            ),
-                            rhs: Unary(
-                                Unary {
-                                    op: Prefix(
-                                        Bang,
-                                    ),
-                                    rhs: Atom(
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Prefix(
+                    Bang,
+                ),
+                rhs: Unary(
+                    Unary {
+                        op: Prefix(
+                            Bang,
+                        ),
+                        rhs: Unary(
+                            Unary {
+                                op: Prefix(
+                                    Bang,
+                                ),
+                                rhs: Atom(
+                                    Ident(
                                         Ident(
-                                            Ident(
-                                                "a",
-                                            ),
+                                            "a",
                                         ),
                                     ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            ),
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
         ),
     ),
 ]

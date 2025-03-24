@@ -3,94 +3,86 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (variable_assignment_operator),\n\"a++; a--; a[1]++; a[1]--;\")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Postfix(
-                        PlusPlus,
-                    ),
-                    rhs: Atom(
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Postfix(
+                    PlusPlus,
+                ),
+                rhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Postfix(
-                        MinusMinus,
-                    ),
-                    rhs: Atom(
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Postfix(
+                    MinusMinus,
+                ),
+                rhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Postfix(
-                        PlusPlus,
-                    ),
-                    rhs: Atom(
-                        ArrayAccess(
-                            ArrayAccess {
-                                index_expr: Atom(
-                                    Literal(
-                                        Number(
-                                            1,
-                                        ),
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Postfix(
+                    PlusPlus,
+                ),
+                rhs: Atom(
+                    ArrayAccess(
+                        ArrayAccess {
+                            index_expr: Atom(
+                                Literal(
+                                    Number(
+                                        1,
                                     ),
                                 ),
-                                ident: Ident(
-                                    "a",
-                                ),
-                            },
-                        ),
+                            ),
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Unary(
-                Unary {
-                    op: Postfix(
-                        MinusMinus,
-                    ),
-                    rhs: Atom(
-                        ArrayAccess(
-                            ArrayAccess {
-                                index_expr: Atom(
-                                    Literal(
-                                        Number(
-                                            1,
-                                        ),
+    ExprStmt(
+        Unary(
+            Unary {
+                op: Postfix(
+                    MinusMinus,
+                ),
+                rhs: Atom(
+                    ArrayAccess(
+                        ArrayAccess {
+                            index_expr: Atom(
+                                Literal(
+                                    Number(
+                                        1,
                                     ),
                                 ),
-                                ident: Ident(
-                                    "a",
-                                ),
-                            },
-                        ),
+                            ),
+                            ident: Ident(
+                                "a",
+                            ),
+                        },
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
 ]

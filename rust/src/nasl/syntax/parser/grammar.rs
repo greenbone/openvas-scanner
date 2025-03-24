@@ -5,14 +5,14 @@ use crate::nasl::syntax::token::{Ident, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
 pub struct Ast {
-    stmts: Vec<Declaration>,
+    stmts: Vec<Stmt>,
     position: usize,
 }
 
 impl IntoIterator for Ast {
-    type Item = Declaration;
+    type Item = Stmt;
 
-    type IntoIter = vec::IntoIter<Declaration>;
+    type IntoIter = vec::IntoIter<Stmt>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.stmts.into_iter()
@@ -20,15 +20,15 @@ impl IntoIterator for Ast {
 }
 
 impl Ast {
-    pub fn new(stmts: Vec<Declaration>) -> Self {
+    pub fn new(stmts: Vec<Stmt>) -> Self {
         Self { stmts, position: 0 }
     }
 
-    pub fn decls(self) -> Vec<Declaration> {
+    pub fn stmts(self) -> Vec<Stmt> {
         self.stmts
     }
 
-    pub fn next(&mut self) -> Option<Declaration> {
+    pub fn next(&mut self) -> Option<Stmt> {
         let stmt = self.stmts.get(self.position);
         self.position += 1;
         stmt.cloned()
@@ -51,10 +51,13 @@ impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
 }
 
 #[derive(Clone, Debug)]
-pub enum Declaration {
-    Stmt(Stmt),
+pub enum Stmt {
     VarDecl(VarDecl),
     FnDecl(FnDecl),
+    ExprStmt(Expr),
+    Block(Block),
+    NoOp,
+    Include(Include),
 }
 
 #[derive(Clone, Debug)]
@@ -72,16 +75,8 @@ pub struct FnDecl {
 }
 
 #[derive(Clone, Debug)]
-pub enum Stmt {
-    ExprStmt(Expr),
-    Block(Block),
-    NoOp,
-    Include(Include),
-}
-
-#[derive(Clone, Debug)]
 pub struct Block {
-    pub decls: Vec<Declaration>,
+    pub stmts: Vec<Stmt>,
 }
 
 #[derive(Clone, Debug)]

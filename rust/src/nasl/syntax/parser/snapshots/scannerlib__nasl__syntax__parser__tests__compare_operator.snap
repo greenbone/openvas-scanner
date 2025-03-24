@@ -3,254 +3,234 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (compare_operator),\n\"\n    a !~ '1';\n    a =~ '1';\n    a >< '1';\n    a >!< '1';\n    a == '1';\n    a != '1';\n    a > '1';\n    a < '1';\n    a >= '1';\n    a <= '1';\n    \")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: BangTilde,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: BangTilde,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: EqualTilde,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: EqualTilde,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: GreaterLess,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: GreaterLess,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: GreaterBangLess,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: GreaterBangLess,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: EqualEqual,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: EqualEqual,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: BangEqual,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: BangEqual,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: Greater,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: Greater,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: Less,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: Less,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: GreaterEqual,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: GreaterEqual,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: LessEqual,
-                    rhs: Atom(
-                        Literal(
-                            Data(
-                                [
-                                    49,
-                                ],
-                            ),
+                ),
+                op: LessEqual,
+                rhs: Atom(
+                    Literal(
+                        Data(
+                            [
+                                49,
+                            ],
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
 ]

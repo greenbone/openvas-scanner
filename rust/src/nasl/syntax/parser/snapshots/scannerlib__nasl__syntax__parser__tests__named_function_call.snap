@@ -3,73 +3,71 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (named_function_call),\n\"script_tag(name:\\\"cvss_base\\\", value:1 + 1 % 2);\")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Atom(
-                FnCall(
-                    FnCall {
-                        fn_name: Ident(
-                            "script_tag",
-                        ),
-                        args: CommaSeparated {
-                            items: [
-                                Named(
-                                    NamedFnArg {
-                                        ident: Ident(
-                                            "name",
-                                        ),
-                                        expr: Atom(
-                                            Literal(
-                                                String(
-                                                    "cvss_base",
-                                                ),
+    ExprStmt(
+        Atom(
+            FnCall(
+                FnCall {
+                    fn_name: Ident(
+                        "script_tag",
+                    ),
+                    args: CommaSeparated {
+                        items: [
+                            Named(
+                                NamedFnArg {
+                                    ident: Ident(
+                                        "name",
+                                    ),
+                                    expr: Atom(
+                                        Literal(
+                                            String(
+                                                "cvss_base",
                                             ),
                                         ),
-                                    },
-                                ),
-                                Named(
-                                    NamedFnArg {
-                                        ident: Ident(
-                                            "value",
-                                        ),
-                                        expr: Binary(
-                                            Binary {
-                                                lhs: Atom(
-                                                    Literal(
-                                                        Number(
-                                                            1,
-                                                        ),
+                                    ),
+                                },
+                            ),
+                            Named(
+                                NamedFnArg {
+                                    ident: Ident(
+                                        "value",
+                                    ),
+                                    expr: Binary(
+                                        Binary {
+                                            lhs: Atom(
+                                                Literal(
+                                                    Number(
+                                                        1,
                                                     ),
                                                 ),
-                                                op: Plus,
-                                                rhs: Binary(
-                                                    Binary {
-                                                        lhs: Atom(
-                                                            Literal(
-                                                                Number(
-                                                                    1,
-                                                                ),
+                                            ),
+                                            op: Plus,
+                                            rhs: Binary(
+                                                Binary {
+                                                    lhs: Atom(
+                                                        Literal(
+                                                            Number(
+                                                                1,
                                                             ),
                                                         ),
-                                                        op: Percent,
-                                                        rhs: Atom(
-                                                            Literal(
-                                                                Number(
-                                                                    2,
-                                                                ),
+                                                    ),
+                                                    op: Percent,
+                                                    rhs: Atom(
+                                                        Literal(
+                                                            Number(
+                                                                2,
                                                             ),
                                                         ),
-                                                    },
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                ),
-                            ],
-                            delimiter: Paren,
-                        },
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                        ],
+                        delimiter: Paren,
                     },
-                ),
+                },
             ),
         ),
     ),

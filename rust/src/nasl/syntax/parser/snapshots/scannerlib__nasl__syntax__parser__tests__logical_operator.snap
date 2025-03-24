@@ -3,50 +3,46 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (logical_operator), \"a && 1; a || 1;\")"
 ---
 [
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: AmpersandAmpersand,
-                    rhs: Atom(
-                        Literal(
-                            Number(
-                                1,
-                            ),
+                ),
+                op: AmpersandAmpersand,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            1,
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
-    Stmt(
-        ExprStmt(
-            Binary(
-                Binary {
-                    lhs: Atom(
+    ExprStmt(
+        Binary(
+            Binary {
+                lhs: Atom(
+                    Ident(
                         Ident(
-                            Ident(
-                                "a",
-                            ),
+                            "a",
                         ),
                     ),
-                    op: PipePipe,
-                    rhs: Atom(
-                        Literal(
-                            Number(
-                                1,
-                            ),
+                ),
+                op: PipePipe,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            1,
                         ),
                     ),
-                },
-            ),
+                ),
+            },
         ),
     ),
 ]

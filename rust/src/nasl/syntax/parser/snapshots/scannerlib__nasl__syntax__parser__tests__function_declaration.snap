@@ -17,14 +17,12 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 delimiter: Paren,
             },
             block: Block {
-                decls: [
-                    Stmt(
-                        ExprStmt(
-                            Atom(
+                stmts: [
+                    ExprStmt(
+                        Atom(
+                            Ident(
                                 Ident(
-                                    Ident(
-                                        "c",
-                                    ),
+                                    "c",
                                 ),
                             ),
                         ),
