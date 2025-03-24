@@ -6,30 +6,36 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
     Stmt(
         Block(
             Block {
-                stmts: [
-                    ExprStmt(
-                        Atom(
-                            Ident(
+                decls: [
+                    Stmt(
+                        ExprStmt(
+                            Atom(
                                 Ident(
-                                    "a",
+                                    Ident(
+                                        "a",
+                                    ),
                                 ),
                             ),
                         ),
                     ),
-                    ExprStmt(
-                        Atom(
-                            Ident(
+                    Stmt(
+                        ExprStmt(
+                            Atom(
                                 Ident(
-                                    "b",
+                                    Ident(
+                                        "b",
+                                    ),
                                 ),
                             ),
                         ),
                     ),
-                    ExprStmt(
-                        Atom(
-                            Ident(
+                    Stmt(
+                        ExprStmt(
+                            Atom(
                                 Ident(
-                                    "c",
+                                    Ident(
+                                        "c",
+                                    ),
                                 ),
                             ),
                         ),

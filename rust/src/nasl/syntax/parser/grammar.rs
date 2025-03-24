@@ -36,21 +36,40 @@ impl Ast {
 }
 
 #[derive(Clone, Debug)]
-pub enum Declaration {
-    Stmt(Stmt),
-    VariableDecl(VariableDecl),
-    FunctionDecl(FunctionDecl),
+pub struct CommaSeparated<Item, Delim: Default> {
+    pub items: Vec<Item>,
+    pub delimiter: Delim,
+}
+
+impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
+    pub fn new(items: Vec<Item>) -> Self {
+        Self {
+            items,
+            delimiter: Delim::default(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
-pub struct VariableDecl {
+pub enum Declaration {
+    Stmt(Stmt),
+    VarDecl(VarDecl),
+    FnDecl(FnDecl),
+}
+
+#[derive(Clone, Debug)]
+pub struct VarDecl {
     pub ident: Ident,
     pub operator: AssignmentOperator,
     pub expr: Expr,
 }
 
 #[derive(Clone, Debug)]
-pub struct FunctionDecl;
+pub struct FnDecl {
+    pub fn_name: Ident,
+    pub args: CommaSeparated<Ident, Paren>,
+    pub block: Block,
+}
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
@@ -62,7 +81,7 @@ pub enum Stmt {
 
 #[derive(Clone, Debug)]
 pub struct Block {
-    pub stmts: Vec<Stmt>,
+    pub decls: Vec<Declaration>,
 }
 
 #[derive(Clone, Debug)]
@@ -107,21 +126,6 @@ pub struct FnCall {
 pub enum FnArg {
     Anonymous(AnonymousFnArg),
     Named(NamedFnArg),
-}
-
-#[derive(Clone, Debug)]
-pub struct CommaSeparated<Item, Delim: Default> {
-    pub items: Vec<Item>,
-    pub delimiter: Delim,
-}
-
-impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
-    pub fn new(items: Vec<Item>) -> Self {
-        Self {
-            items,
-            delimiter: Delim::default(),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

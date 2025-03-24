@@ -12,8 +12,8 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    Block, CommaSeparated, Declaration, Expr, FnArg, FnCall, Include, NamedFnArg, Paren, Stmt,
-    Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VariableDecl,
+    Block, CommaSeparated, Declaration, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Paren,
+    Stmt, Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -170,8 +170,10 @@ impl Parse for Declaration {
     fn parse(parser: &mut Parser) -> Result<Declaration> {
         if Ident::peek(parser) {
             if AssignmentOperator::peek_next(parser) {
-                return Ok(Declaration::VariableDecl(VariableDecl::parse(parser)?));
+                return Ok(Declaration::VarDecl(VarDecl::parse(parser)?));
             }
+        } else if parser.matches(TokenKind::Keyword(Keyword::Function)) {
+            return Ok(Declaration::FnDecl(FnDecl::parse(parser)?));
         }
         Ok(Declaration::Stmt(Stmt::parse(parser)?))
     }
@@ -198,14 +200,14 @@ impl Parse for Stmt {
 impl Parse for Block {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::LeftBrace)?;
-        let mut stmts = vec![];
+        let mut decls = vec![];
         loop {
             if parser.consume_if_matches(TokenKind::RightBrace) {
                 break;
             }
-            stmts.push(Stmt::parse(parser)?);
+            decls.push(Declaration::parse(parser)?);
         }
-        Ok(Block { stmts })
+        Ok(Block { decls })
     }
 }
 
@@ -219,16 +221,30 @@ impl Parse for Include {
     }
 }
 
-impl Parse for VariableDecl {
-    fn parse(parser: &mut Parser) -> Result<VariableDecl> {
+impl Parse for VarDecl {
+    fn parse(parser: &mut Parser) -> Result<VarDecl> {
         let ident = Ident::parse(parser)?;
         let operator = AssignmentOperator::parse(parser)?;
         let expr = Expr::parse(parser)?;
         parser.consume(TokenKind::Semicolon)?;
-        Ok(VariableDecl {
+        Ok(VarDecl {
             ident,
             expr,
             operator,
+        })
+    }
+}
+
+impl Parse for FnDecl {
+    fn parse(parser: &mut Parser) -> Result<FnDecl> {
+        parser.consume(TokenKind::Keyword(Keyword::Function))?;
+        let fn_name = Ident::parse(parser)?;
+        let args = CommaSeparated::parse(parser)?;
+        let block = Block::parse(parser)?;
+        Ok(FnDecl {
+            fn_name,
+            args,
+            block,
         })
     }
 }

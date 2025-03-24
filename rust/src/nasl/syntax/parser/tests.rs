@@ -261,9 +261,13 @@ parse_test_ok!(block_multiple_stmts, Program, "{ a; b; c; }");
 parse_test_ok!(nested_blocks, Program, "{ a; { b; c; } }");
 parse_test_ok!(include, Program, "include(\"test.inc\");");
 
-// parse_test_ok!(assignment, Program, "(a = 1);");
-//
-// parse_test_ok!(function_declaration, Program, "function a(b) {c;}");
+parse_test_ok!(function_declaration, Program, "function a(b) {c;}");
+parse_test_ok!(
+    function_declaration_with_decls,
+    Program,
+    "function a(b) {c = 3;}"
+);
+
 // parse_test_ok!(return_stmt, Program, "return 0;");
 // parse_test_ok!(break_stmt, Program, "break;");
 // parse_test_ok!(continue_stmt, Program, "continue;");
@@ -449,6 +453,7 @@ parse_test_ok!(include, Program, "include(\"test.inc\");");
 //     "###
 // );
 
+// parse_test_ok!(assignment, Program, "(a = 1);");
 // TODO?
 // test_err!(wrong_assignment, "a = ");
 // test_err!(wrong_keyword_assignment, "a = for;");

@@ -3,8 +3,8 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (multiple_declarations),\n\"a = 1;\n     b = 2;\n     c = 3;\")"
 ---
 [
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -18,8 +18,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "b",
             ),
@@ -33,8 +33,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "c",
             ),

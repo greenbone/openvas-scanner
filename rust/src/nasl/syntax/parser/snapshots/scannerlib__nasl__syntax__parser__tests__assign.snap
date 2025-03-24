@@ -3,8 +3,8 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (assign), \"a = 1;\")"
 ---
 [
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),

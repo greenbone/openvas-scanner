@@ -3,8 +3,8 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (operator_assignment),\n\"\n    a += 1;\n    a -= 1;\n    a /= 1;\n    a *= 1;\n    a %= 1;\n    a >>= 1;\n    a <<= 1;\n    a >>>= 1;\n    \")"
 ---
 [
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -18,8 +18,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -33,8 +33,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -48,8 +48,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -63,8 +63,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -78,8 +78,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -93,8 +93,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),
@@ -108,8 +108,8 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VariableDecl(
-        VariableDecl {
+    VarDecl(
+        VarDecl {
             ident: Ident(
                 "a",
             ),

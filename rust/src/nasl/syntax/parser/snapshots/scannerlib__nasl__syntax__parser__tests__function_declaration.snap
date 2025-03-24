@@ -1,0 +1,36 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (function_declaration), \"function a(b) {c;}\")"
+---
+[
+    FnDecl(
+        FnDecl {
+            fn_name: Ident(
+                "a",
+            ),
+            args: CommaSeparated {
+                items: [
+                    Ident(
+                        "b",
+                    ),
+                ],
+                delimiter: Paren,
+            },
+            block: Block {
+                decls: [
+                    Stmt(
+                        ExprStmt(
+                            Atom(
+                                Ident(
+                                    Ident(
+                                        "c",
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+            },
+        },
+    ),
+]
