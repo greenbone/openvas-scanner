@@ -265,7 +265,7 @@ where
                 }
                 (&Method::GET, Health(HealthOpts::Ready)) => {
                     let oids = ctx.scheduler.oids().await?;
-                    if oids.count() == 0 {
+                    if oids.is_empty() {
                         Ok(ctx.response.empty(StatusCode::SERVICE_UNAVAILABLE))
                     } else {
                         Ok(ctx.response.empty(StatusCode::OK))
@@ -447,14 +447,8 @@ where
                             Some(nvt) => Ok(ctx.response.ok(&nvt)),
                             None => Ok(ctx.response.not_found("nvt", &oid)),
                         },
-                        None if meta => Ok(ctx
-                            .response
-                            .ok_json_stream(ctx.scheduler.vts().await?)
-                            .await),
-                        None => Ok(ctx
-                            .response
-                            .ok_json_stream(ctx.scheduler.oids().await?)
-                            .await),
+                        None if meta => Ok(ctx.response.ok(&ctx.scheduler.vts().await?)),
+                        None => Ok(ctx.response.ok(&ctx.scheduler.oids().await?)),
                     }
                 }
                 _ => Ok(ctx.response.not_found("path", req.uri().path())),

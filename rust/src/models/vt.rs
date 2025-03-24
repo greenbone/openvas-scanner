@@ -17,3 +17,14 @@ pub struct VT {
     /// The list of parameters for the VT
     pub parameters: Vec<Parameter>,
 }
+
+/// Describes the type of the feed
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash)]
+pub enum FeedType {
+    /// Notus products
+    Products,
+    /// Notus advisories
+    Advisories,
+    /// NASL scripts
+    NASL,
+}
