@@ -1,3 +1,4 @@
+use core::iter::IntoIterator;
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
@@ -40,6 +41,18 @@ pub struct PortRange {
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub end: Option<usize>,
+}
+
+impl IntoIterator for PortRange {
+    type Item = u16;
+
+    type IntoIter = std::ops::Range<u16>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let start = self.start as u16;
+        let end = self.end.map(|end| end as u16).unwrap_or(u16::MAX);
+        (start..end).into_iter()
+    }
 }
 
 impl Display for PortRange {

@@ -6,6 +6,7 @@
 
 use rand::seq::SliceRandom;
 
+use crate::models::PortRange;
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
@@ -580,6 +581,14 @@ impl<'a> Context<'a> {
 
     pub fn add_hostname(&self, hostname: String, source: String) {
         self.target.add_hostname(hostname, source);
+    }
+
+    pub fn port_range(&self) -> PortRange {
+        // TODO Get this from the scan prefs
+        PortRange {
+            start: 0,
+            end: None,
+        }
     }
 
     /// Get the storage
