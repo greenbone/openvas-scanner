@@ -236,23 +236,32 @@ fn first_unsorted_index(iter: impl Iterator<Item = usize>) -> Option<usize> {
     None
 }
 
-fn verify_args(args: &[Arg<'_>]) -> Result<()> {
+fn verify_args(function: &ItemFn, args: &[Arg<'_>]) -> Result<()> {
     let index = first_unsorted_index(args.iter().map(|arg| arg.kind.order()));
     if let Some(index) = index {
-        Err(Error {
+        return Err(Error {
             span: args[index].ident.span(),
             kind: ErrorKind::WrongArgumentOrder,
-        })
-    } else {
-        Ok(())
+        });
     }
+    if function.sig.asyncness.is_none() {
+        for arg in args.iter() {
+            if arg.kind.requires_async() {
+                return Err(Error {
+                    span: arg.ident.span(),
+                    kind: ErrorKind::AsyncArgumentInSyncFn,
+                });
+            }
+        }
+    }
+    Ok(())
 }
 
 impl<'a> ArgsStruct<'a> {
     pub fn try_parse(function: &'a ItemFn, attrs: &'a Attrs) -> Result<Self> {
         let (args, receiver_type) = parse_function_args(function, attrs)?;
         attrs.verify_attrs(&args)?;
-        verify_args(&args)?;
+        verify_args(function, &args)?;
         Ok(Self {
             function,
             args,
