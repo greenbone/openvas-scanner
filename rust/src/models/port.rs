@@ -51,7 +51,7 @@ impl IntoIterator for PortRange {
     fn into_iter(self) -> Self::IntoIter {
         let start = self.start as u16;
         let end = self.end.map(|end| end as u16).unwrap_or(u16::MAX);
-        (start..end).into_iter()
+        start..end
     }
 }
 

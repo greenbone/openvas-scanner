@@ -122,7 +122,7 @@ pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValu
 pub fn get_host_name_source(context: &Context, hostname: Hostname) -> String {
     let vh = context.target_vhosts();
     if !vh.is_empty() {
-        if let Some(vhost) = vh.into_iter().find(|vhost| vhost.hostname() == &hostname.0) {
+        if let Some(vhost) = vh.into_iter().find(|vhost| vhost.hostname() == hostname.0) {
             return vhost.source().to_string();
         };
     }
