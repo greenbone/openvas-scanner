@@ -417,7 +417,7 @@ fn dump_protocol(pkt: &Ipv4Packet) -> String {
 
 /// Receive a list of IP packets and print them in a readable format in the screen.
 #[nasl_function]
-fn dump_ip_packet(positional: CheckedPositionals<Ipv4Packet>) -> Result<NaslValue, FnError> {
+fn dump_ip_packet(positional: CheckedPositionals<Ipv4Packet>) {
     for pkt in positional.into_iter() {
         println!("\tip_hl={}", pkt.get_header_length());
         println!("\tip_v={}", pkt.get_version());
@@ -432,7 +432,6 @@ fn dump_ip_packet(positional: CheckedPositionals<Ipv4Packet>) -> Result<NaslValu
         println!("\tip_dst={}", pkt.get_destination());
         display_packet(pkt.packet());
     }
-    Ok(NaslValue::Null)
 }
 
 /// Add an option to a specified IP datagram.
@@ -498,7 +497,7 @@ fn insert_ip_options(
     )?;
 
     let mut new_pkt = MutableIpv4Packet::new(&mut new_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     let checksum = checksum(&new_pkt.to_immutable());
     new_pkt.set_checksum(checksum);
     new_pkt.set_header_length((hl / 4) as u8);
@@ -597,9 +596,9 @@ fn forge_tcp_packet(
     let mut tcp_buf_aux = vec![0u8; tcp_buf.len()];
     ip_buf.append(&mut tcp_buf_aux);
     let mut pkt = MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     let mut tcp_seg = MutableTcpPacket::new(&mut tcp_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // Calculate checksum for TCP segment now, because it depends on the dst and src addresses
     let chksum = match th_sum {
         Some(x) if x != 0 => (x).to_be(),
@@ -615,11 +614,8 @@ fn forge_tcp_packet(
     pkt.set_total_length((l as u16).to_le());
     pkt.set_payload(&tcp_buf);
 
-    match update_ip_len {
-        Some(l) if !(l) => {
-            pkt.set_total_length(original_ip_len as u16);
-        }
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_total_length(original_ip_len as u16);
     };
     let chksum = checksum(&pkt.to_immutable());
     pkt.set_checksum(chksum);
@@ -830,7 +826,7 @@ fn set_elements_tcp<'a>(
         safe_copy_from_slice(&mut new_buf[..], 0, 8, ori_tcp_buf, 0, 8)?;
 
         ori_tcp = MutableTcpPacket::new(new_buf)
-            .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+            .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
         ori_tcp.set_payload(&data);
     } else {
         // Copy the original udp buffer into the new buffer
@@ -847,7 +843,7 @@ fn set_elements_tcp<'a>(
             ori_tcp_buf.len(),
         )?;
         ori_tcp = MutableTcpPacket::new(new_buf)
-            .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+            .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     }
 
     if let Some(sport) = th_sport {
@@ -951,19 +947,12 @@ fn set_tcp_elements(
     )?;
 
     // Set the checksum for the tcp segment
-    let chksum = match th_sum {
-        Some(checksum) if checksum != 0 => (checksum).to_be(),
-        _ => pnet::packet::tcp::ipv4_checksum(
-            &ori_tcp.to_immutable(),
-            &tcp.get_source(),
-            &tcp.get_destination(),
-        ),
-    };
+    let chksum = ori_tcp.calculate_checksum(th_sum, &tcp.to_immutable());
     ori_tcp.set_checksum(chksum);
 
     let mut ip_buf = ip.packet().to_vec();
     let mut pkt = MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // pnet will panic if the total length set in the ip datagram
     // field does not much with the total length. Therefore, the total
     // length is set to the right one before setting the payload.
@@ -973,9 +962,8 @@ fn set_tcp_elements(
     let fin_tcp_buf = ori_tcp.packet();
     pkt.set_total_length((iph_len + fin_tcp_buf.len()) as u16);
     pkt.set_payload(fin_tcp_buf);
-    match update_ip_len {
-        Some(false) | None => pkt.set_total_length(original_ip_len),
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_total_length(original_ip_len);
     };
 
     let chksum = checksum(&pkt.to_immutable());
@@ -990,7 +978,7 @@ fn insert_tcp_options<'a>(
     tcp_opts: CheckedPositionals<i64>,
 ) -> Result<Vec<u8>, FnError> {
     let tcp = TcpPacket::new(ori_tcp_buf).ok_or_else(|| {
-        error("No possible to create a TCP packet from IP buffer payload".to_string())
+        error("Not possible to create a TCP packet from IP buffer payload".to_string())
     })?;
     let orig_payload = PacketPayload::from(tcp.payload().to_vec());
     // Get the new data or use the existing one.
@@ -1001,7 +989,7 @@ fn insert_tcp_options<'a>(
     let mut opts_iter = tcp_opts.iter();
     loop {
         match opts_iter.next() {
-            Some(o) if *o == 2 => {
+            Some(2) => {
                 if let Some(val) = opts_iter.next() {
                     let v = *val as u16;
                     opts.push(TcpOption::mss(v));
@@ -1013,7 +1001,7 @@ fn insert_tcp_options<'a>(
                     .into());
                 }
             }
-            Some(o) if *o == 3 => {
+            Some(3) => {
                 if let Some(val) = opts_iter.next() {
                     let v = *val as u8;
                     opts.push(TcpOption::wscale(v));
@@ -1026,11 +1014,11 @@ fn insert_tcp_options<'a>(
                 }
             }
 
-            Some(o) if *o == 4 => {
+            Some(4) => {
                 opts.push(TcpOption::sack_perm());
                 opts_len += 2;
             }
-            Some(o) if *o == 8 => {
+            Some(8) => {
                 if let Some(val1) = opts_iter.next() {
                     if let Some(val2) = opts_iter.next() {
                         let v1 = *val1 as u32;
@@ -1116,7 +1104,7 @@ fn insert_tcp_v4_options(
 
     let mut tcp_buf = insert_tcp_options(&ori_tcp_buf, data, tcp_opts)?;
     let mut tcp_seg = MutableTcpPacket::new(&mut tcp_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // Set the checksum for the tcp segment
     let chksum = match th_sum {
         Some(x) if x != 0 => (x).to_be(),
@@ -1133,7 +1121,7 @@ fn insert_tcp_v4_options(
     ip_buf.append(&mut buf_extension);
 
     let mut pkt = MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // pnet will panic if the total length set in the ip datagram
     // field does not much with the total length. Therefore, the total
     // length is set to the right one before setting the payload.
@@ -1142,9 +1130,8 @@ fn insert_tcp_v4_options(
     let original_ip_len = pkt.get_total_length();
     pkt.set_total_length((iph_len + tcp_buf.len()) as u16);
     pkt.set_payload(&tcp_buf);
-    match update_ip_len {
-        Some(false) | None => pkt.set_total_length(original_ip_len),
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_total_length(original_ip_len);
     };
 
     let chksum = checksum(&pkt.to_immutable());
@@ -1210,13 +1197,11 @@ fn print_tcp_packet(tcp: &TcpPacket) {
 
 /// Receive a list of IPv4 datagrams and print their TCP part in a readable format in the screen.
 #[nasl_function]
-fn dump_tcp_packet(positional: CheckedPositionals<TcpPacket>) -> Result<NaslValue, FnError> {
+fn dump_tcp_packet(positional: CheckedPositionals<TcpPacket>) {
     for tcp_seg in positional.iter() {
         print_tcp_packet(tcp_seg);
         display_packet(tcp_seg.packet());
     }
-
-    Ok(NaslValue::Null)
 }
 
 /// Fills an IP datagram with UDP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:
@@ -1276,9 +1261,8 @@ fn forge_udp_packet(
     // setting the real length before setting the payload to avoid pnet to crash.
     pkt.set_total_length((original_ip_len + total_length) as u16);
     pkt.set_payload(&buf);
-    match update_ip_len {
-        Some(false) | None => pkt.set_total_length(original_ip_len as u16),
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_total_length(original_ip_len as u16);
     };
     let chksum = checksum(&pkt.to_immutable());
     pkt.set_checksum(chksum);
@@ -1305,7 +1289,7 @@ fn set_elements_udp<'a>(
         safe_copy_from_slice(&mut new_buf[..], 0, 8, ori_udp_buf, 0, 8)?;
 
         ori_udp = MutableUdpPacket::new(new_buf)
-            .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+            .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
         ori_udp.set_payload(&data);
     } else {
         // Copy the original udp buffer into the new buffer
@@ -1322,7 +1306,7 @@ fn set_elements_udp<'a>(
             ori_udp_buf.len(),
         )?;
         ori_udp = MutableUdpPacket::new(new_buf)
-            .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+            .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     }
 
     if let Some(uh_sport) = uh_sport {
@@ -1381,7 +1365,7 @@ fn set_udp_elements(
 
     let mut ip_buf = ip.packet().to_vec();
     let mut pkt = MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     let fin_udp_buf = ori_udp.packet();
     pkt.set_total_length((iph_len + fin_udp_buf.len()) as u16);
     pkt.set_payload(fin_udp_buf);
@@ -1404,11 +1388,10 @@ fn dump_udp(pkt: &UdpPacket, data: &[u8]) {
 
 /// Receive a list of IPv4 or IPv6 packets and print their UDP part in a readable format in the screen.
 #[nasl_function]
-fn dump_udp_packet(positional: CheckedPositionals<UdpPacket>) -> Result<NaslValue, FnError> {
+fn dump_udp_packet(positional: CheckedPositionals<UdpPacket>) {
     for udp_datagram in positional.iter() {
         dump_udp(udp_datagram, udp_datagram.packet());
     }
-    Ok(NaslValue::Null)
 }
 
 enum UdpElement {
@@ -1517,16 +1500,13 @@ fn forge_icmp_packet(
     icmp_pkt.set_icmp_code(packet::icmp::IcmpCode::new(icmp_code.unwrap_or(0u8)));
 
     if let Some(x) = icmp_id {
-        //buf[4..6].copy_from_slice(&x.to_le_bytes()[0..2]);
         safe_copy_from_slice(&mut buf, 4, 6, &x.to_le_bytes()[..], 0, 2)?;
     }
 
     if let Some(x) = icmp_seq {
-        //buf[6..8].copy_from_slice(&x.to_le_bytes()[0..2]);
         safe_copy_from_slice(&mut buf, 6, 8, &x.to_le_bytes()[..], 0, 2)?;
     }
     if !data.is_empty() {
-        //buf[8..].copy_from_slice(&data[0..]);
         safe_copy_from_slice(
             &mut buf,
             MIN_ICMP_HEADER_LENGTH,
@@ -1547,14 +1527,11 @@ fn forge_icmp_packet(
     ip_buf.append(&mut buf);
     let l = ip_buf.len();
     let mut pkt = MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     pkt.set_total_length(l as u16);
 
-    match update_ip_len {
-        Some(l) if !(l) => {
-            pkt.set_total_length(original_ip_len as u16);
-        }
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_total_length(original_ip_len as u16);
     };
 
     let chksum = checksum(&pkt.to_immutable());
@@ -1670,7 +1647,7 @@ fn print_icmp_packet(pkt: &IcmpPacket) {
 fn dump_icmp_packet(positional: CheckedPositionals<Ipv4Packet>) -> Result<NaslValue, FnError> {
     for icmp_pkt in positional.iter() {
         let pkt = IcmpPacket::new(icmp_pkt.payload())
-            .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+            .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
         print_icmp_packet(&pkt);
     }
     Ok(NaslValue::Null)
@@ -1798,11 +1775,8 @@ fn forge_igmp_packet(
     let mut pkt =
         MutableIpv4Packet::new(&mut ip_buf).ok_or(PacketForgeryError::CreateIpv4Packet)?;
     pkt.set_total_length(l as u16);
-    match update_ip_len {
-        Some(l) if !(l) => {
-            pkt.set_total_length(original_ip_len as u16);
-        }
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_total_length(original_ip_len as u16);
     };
     let chksum = checksum(&pkt.to_immutable());
     pkt.set_checksum(chksum);
@@ -1822,17 +1796,17 @@ fn new_raw_socket() -> Result<Socket, FnError> {
 }
 
 fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
-    match Socket::new(
+    Socket::new(
         Domain::IPV6,                      // 10
         socket2::Type::RAW,                // 3
         Some(Protocol::from(IPPROTO_RAW)), // 255
-    ) {
-        Ok(s) => Ok(s),
-        Err(e) => Err(error(format!(
+    )
+    .map_err(|e| {
+        error(format!(
             "new_raw_ipv6_socket: Not possible to create a raw socket: {}",
             e
-        ))),
-    }
+        ))
+    })
 }
 
 /// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
@@ -1888,7 +1862,7 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
 
     let mut ip_buf = [0u8; 40];
     let mut ip = MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     ip.set_header_length(DEFAULT_IPV4_HEADER_LENGTH_32BIT_INCREMENTS);
     ip.set_fragment_offset(0); // No offeset
     ip.set_next_level_protocol(IpNextHeaderProtocols::Tcp);
@@ -1909,7 +1883,7 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
 
     let mut tcp_buf = [0u8; 20];
     let mut tcp = MutableTcpPacket::new(&mut tcp_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     tcp.set_flags(0x02); //TH_SYN
     tcp.set_sequence(random_impl()? as u32);
     tcp.set_acknowledgement(0);
@@ -2097,7 +2071,7 @@ fn nasl_send_capture(
         Ok(packet) => {
             // Remove all from lower layer
             let frame = EthernetPacket::new(packet.data)
-                .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+                .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
             Ok(NaslValue::Data(frame.payload().to_vec()))
         }
         Err(_) => Ok(NaslValue::Null),
@@ -2146,7 +2120,7 @@ fn forge_ip_v6_packet(
     let total_length = FIX_IPV6_HEADER_LENGTH + data.len();
     let mut buf = vec![0; total_length];
     let mut pkt = packet::ipv6::MutableIpv6Packet::new(&mut buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
 
     pkt.set_payload_length(data.len() as u16);
 
@@ -2268,7 +2242,7 @@ fn set_ip_v6_elements(
 ) -> Result<NaslValue, FnError> {
     let mut buf = ip6.to_vec();
     let mut pkt = packet::ipv6::MutableIpv6Packet::new(&mut buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
 
     pkt.set_payload_length(ip6_plen.unwrap_or_default());
     pkt.set_hop_limit(ip6_hlim.unwrap_or_default());
@@ -2354,9 +2328,7 @@ fn insert_ip_v6_options(
         opt_buf.len(),
     )?;
 
-    let mut new_pkt = MutableIpv6Packet::new(&mut new_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
-
+    let mut new_pkt = MutableIpv6Packet::new(&mut new_buf).unwrap();
     new_pkt.set_payload_length((hl / 4) as u16);
     Ok(NaslValue::Data(new_pkt.packet().to_vec()))
 }
@@ -2383,7 +2355,7 @@ fn display_ipv6_next_header_protocol(pkt: &Ipv6Packet) {
 }
 /// Receive a list of IP v6 packets and print them in a readable format in the screen.
 #[nasl_function]
-fn dump_ip_v6_packet(positional: CheckedPositionals<Ipv6Packet>) -> Result<NaslValue, FnError> {
+fn dump_ip_v6_packet(positional: CheckedPositionals<Ipv6Packet>) {
     for pkt in positional.into_iter() {
         println!("------\n");
         println!("\tip6_v  : {:?}", pkt.get_version());
@@ -2396,7 +2368,6 @@ fn dump_ip_v6_packet(positional: CheckedPositionals<Ipv6Packet>) -> Result<NaslV
         println!("\tip6_dst : {:?}", pkt.get_destination().to_string());
         display_packet(pkt.packet());
     }
-    Ok(NaslValue::Null)
 }
 
 // TCP over IPv6
@@ -2445,9 +2416,9 @@ fn forge_tcp_v6_packet(
     ip_buf.append(&mut tcp_buf_aux);
 
     let mut pkt = packet::ipv6::MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     let mut tcp_seg = MutableTcpPacket::new(&mut tcp_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
 
     // Calculate checksum for TCP segment now, because it depends on the dst and src addresses
     let chksum = match th_sum {
@@ -2543,16 +2514,15 @@ fn set_tcp_v6_elements(
 
     let mut ip_buf = ip.packet().to_vec();
     let mut pkt = MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // pnet will panic if the total length set in the ip datagram field does not much with the total length.
     // Therefore, the total length is set to the right one before setting the payload.
     // By default it was always updated, but if desired, the original length is set again after setting the payload.
     let fin_tcp_buf = ori_tcp.packet();
     pkt.set_payload_length(fin_tcp_buf.len() as u16);
     pkt.set_payload(fin_tcp_buf);
-    match update_ip_len {
-        Some(false) | None => pkt.set_payload_length(payload_len as u16),
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_payload_length(payload_len as u16);
     };
 
     Ok(NaslValue::Data(pkt.packet().to_vec()))
@@ -2580,7 +2550,7 @@ fn insert_tcp_v6_options(
 
     let mut tcp_buf = insert_tcp_options(&ori_tcp_buf, data, tcp_opts)?;
     let mut tcp_seg = MutableTcpPacket::new(&mut tcp_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // Set the checksum for the tcp segment
     let chksum = match th_sum {
         Some(x) if x != 0 => (x).to_be(),
@@ -2596,15 +2566,14 @@ fn insert_tcp_v6_options(
     let mut buf_extension = vec![0u8; tcp_buf.len() - ori_tcp_buf.len()];
     ip_buf.append(&mut buf_extension);
     let mut pkt = MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // pnet will panic if the total length set in the ip datagram field does not much with the total length.
     // Therefore, the total length is set to the right one before setting the payload.
     // By default it was always updated, but if desired, the original length is set again after setting the payload.
     pkt.set_payload_length(tcp_buf.len() as u16);
     pkt.set_payload(&tcp_buf);
-    match update_ip_len {
-        Some(false) | None => pkt.set_payload_length(payload_len),
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_payload_length(payload_len);
     };
 
     Ok(NaslValue::Data(pkt.packet().to_vec()))
@@ -2612,12 +2581,11 @@ fn insert_tcp_v6_options(
 
 /// Receive a list of IPv6 datagrams and print their TCP part in a readable format in the screen.
 #[nasl_function]
-fn dump_tcp_v6_packet(positional: CheckedPositionals<TcpPacket>) -> Result<NaslValue, FnError> {
+fn dump_tcp_v6_packet(positional: CheckedPositionals<TcpPacket>) {
     for tcp_seg in positional.iter() {
         print_tcp_packet(tcp_seg);
         display_packet(tcp_seg.packet());
     }
-    Ok(NaslValue::Null)
 }
 
 // UDP over IPv6
@@ -2680,9 +2648,8 @@ fn forge_udp_v6_packet(
 
     pkt.set_payload_length(buf.len() as u16);
     pkt.set_payload(&buf);
-    match update_ip6_len {
-        Some(false) | None => pkt.set_payload_length(original_ip_len as u16),
-        _ => (),
+    if !update_ip6_len.unwrap_or(false) {
+        pkt.set_payload_length(original_ip_len as u16);
     };
 
     Ok(NaslValue::Data(ip_buf))
@@ -2730,7 +2697,7 @@ fn set_udp_v6_elements(
 
     let mut ip_buf = ip.packet().to_vec();
     let mut pkt = MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     let fin_udp_buf = ori_udp.packet();
     pkt.set_payload(fin_udp_buf);
     pkt.set_payload_length(fin_udp_buf.len() as u16);
@@ -2784,7 +2751,7 @@ fn forge_icmp_v6_packet(
     let mut ip_buf = ip6.to_vec();
     let original_ip_len = ip_buf.len();
     let pkt = MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
 
     let data: Vec<u8> = data.unwrap_or_default().into();
     let icmp_code = Icmpv6Code::new(icmp_code.unwrap_or(0u8));
@@ -2794,60 +2761,48 @@ fn forge_icmp_v6_packet(
     let mut icmp_buf: Vec<u8>;
 
     let icmp_type = packet::icmpv6::Icmpv6Type::new(icmp_type);
+    let icmp_pkt_size = match icmp_type {
+        Icmpv6Types::EchoRequest => MutableEchoRequestPacket::minimum_packet_size(),
+        Icmpv6Types::RouterSolicit => MutableRouterSolicitPacket::minimum_packet_size(),
+        Icmpv6Types::RouterAdvert => MutableRouterAdvertPacket::minimum_packet_size(),
+        Icmpv6Types::NeighborSolicit => MutableNeighborAdvertPacket::minimum_packet_size(),
+        Icmpv6Types::NeighborAdvert => MutableNeighborAdvertPacket::minimum_packet_size(),
+        _ => MIN_ICMP_HEADER_LENGTH,
+    };
+    total_length = icmp_pkt_size + data.len();
+    let mut icmp_buf = vec![0; total_length];
     match icmp_type {
         Icmpv6Types::EchoRequest => {
-            icmp_pkt_size = MutableEchoRequestPacket::minimum_packet_size();
-            total_length = icmp_pkt_size + data.len();
-            icmp_buf = vec![0; total_length];
-            let mut icmp_pkt =
-                packet::icmpv6::MutableIcmpv6Packet::new(&mut icmp_buf).ok_or_else(|| {
-                    error(
-                        "EchoRequest: No possible to create an icmp packet from buffer".to_string(),
-                    )
-                })?;
+            let mut icmp_pkt = packet::icmpv6::MutableIcmpv6Packet::new(&mut icmp_buf).unwrap();
 
             icmp_pkt.set_icmpv6_type(icmp_type);
             icmp_pkt.set_icmpv6_code(icmp_code);
 
             if !data.is_empty() {
-                //buf[8..].copy_from_slice(&data[0..]);
                 safe_copy_from_slice(&mut icmp_buf, 8, total_length, &data[..], 0, data.len())?;
             }
 
             if let Some(x) = icmp_id {
-                //buf[4..6].copy_from_slice(&x.to_le_bytes()[0..2]);
                 safe_copy_from_slice(&mut icmp_buf, 4, 6, &x.to_le_bytes()[..], 0, 2)?;
             }
 
             if let Some(x) = icmp_seq {
-                //buf[6..8].copy_from_slice(&x.to_le_bytes()[0..2]);
                 safe_copy_from_slice(&mut icmp_buf, 6, 8, &x.to_le_bytes()[..], 0, 2)?;
             }
         }
         Icmpv6Types::RouterSolicit => {
-            icmp_pkt_size = MutableRouterSolicitPacket::minimum_packet_size();
-            total_length = icmp_pkt_size + data.len();
-            icmp_buf = vec![0; total_length];
-            let mut icmp_pkt = packet::icmpv6::ndp::MutableRouterSolicitPacket::new(&mut icmp_buf)
-                .ok_or_else(|| {
-                    error("RouterSolicit: No possible to create a packet from buffer".to_string())
-                })?;
+            let mut icmp_pkt =
+                packet::icmpv6::ndp::MutableRouterSolicitPacket::new(&mut icmp_buf).unwrap();
 
             icmp_pkt.set_icmpv6_type(icmp_type);
             icmp_pkt.set_icmpv6_code(icmp_code);
 
             if !data.is_empty() {
-                //buf[8..].copy_from_slice(&data[0..]);
                 safe_copy_from_slice(&mut icmp_buf, 8, total_length, &data[..], 0, data.len())?;
             }
         }
         Icmpv6Types::RouterAdvert => {
-            icmp_pkt_size = MutableRouterAdvertPacket::minimum_packet_size();
-            total_length = icmp_pkt_size + data.len();
-            icmp_buf = vec![0; total_length];
-            let mut icmp_pkt = MutableRouterAdvertPacket::new(&mut icmp_buf).ok_or_else(|| {
-                error("RouterAdvert: No possible to create a packet from buffer".to_string())
-            })?;
+            let mut icmp_pkt = MutableRouterAdvertPacket::new(&mut icmp_buf).unwrap();
 
             icmp_pkt.set_icmpv6_type(icmp_type);
             icmp_pkt.set_icmpv6_code(icmp_code);
@@ -2865,7 +2820,6 @@ fn forge_icmp_v6_packet(
             icmp_pkt.set_hop_limit(pkt.get_hop_limit());
 
             if !data.is_empty() {
-                //buf[8..].copy_from_slice(&data[0..]);
                 safe_copy_from_slice(
                     &mut icmp_buf,
                     icmp_pkt_size,
@@ -2877,20 +2831,13 @@ fn forge_icmp_v6_packet(
             }
         }
         Icmpv6Types::NeighborSolicit => {
-            icmp_pkt_size = MutableNeighborSolicitPacket::minimum_packet_size();
-            total_length = icmp_pkt_size + data.len();
-            icmp_buf = vec![0; total_length];
-            let mut icmp_pkt =
-                MutableNeighborSolicitPacket::new(&mut icmp_buf).ok_or_else(|| {
-                    error("NeighborSolicit: No possible to create a packet from buffer".to_string())
-                })?;
+            let mut icmp_pkt = MutableNeighborSolicitPacket::new(&mut icmp_buf).unwrap();
 
             icmp_pkt.set_icmpv6_type(icmp_type);
             icmp_pkt.set_icmpv6_code(icmp_code);
             icmp_pkt.set_target_addr(pkt.get_destination());
 
             if !data.is_empty() {
-                //buf[8..].copy_from_slice(&data[0..]);
                 safe_copy_from_slice(
                     &mut icmp_buf,
                     icmp_pkt_size,
@@ -2902,13 +2849,7 @@ fn forge_icmp_v6_packet(
             }
         }
         Icmpv6Types::NeighborAdvert => {
-            icmp_pkt_size = MutableNeighborAdvertPacket::minimum_packet_size();
-            total_length = icmp_pkt_size + data.len();
-            icmp_buf = vec![0; total_length];
-            let mut icmp_pkt =
-                MutableNeighborAdvertPacket::new(&mut icmp_buf).ok_or_else(|| {
-                    error("NeighborAdvert: No possible to create a packet from buffer".to_string())
-                })?;
+            let mut icmp_pkt = MutableNeighborAdvertPacket::new(&mut icmp_buf).unwrap();
 
             icmp_pkt.set_icmpv6_type(icmp_type);
             icmp_pkt.set_icmpv6_code(icmp_code);
@@ -2927,31 +2868,22 @@ fn forge_icmp_v6_packet(
             }
         }
         _ => {
-            icmp_pkt_size = MIN_ICMP_HEADER_LENGTH;
-            total_length = icmp_pkt_size + data.len();
-            icmp_buf = vec![0; total_length];
-            let mut icmp_pkt =
-                packet::icmpv6::MutableIcmpv6Packet::new(&mut icmp_buf).ok_or_else(|| {
-                    error("No possible to create a icmp packet from buffer".to_string())
-                })?;
+            let mut icmp_pkt = packet::icmpv6::MutableIcmpv6Packet::new(&mut icmp_buf).unwrap();
 
             icmp_pkt.set_icmpv6_type(icmp_type);
             icmp_pkt.set_icmpv6_code(icmp_code);
 
             if let Some(x) = icmp_id {
-                //buf[4..6].copy_from_slice(&x.to_le_bytes()[0..2]);
                 safe_copy_from_slice(&mut icmp_buf, 4, 6, &x.to_le_bytes()[..], 0, 2)?;
             }
 
             if let Some(x) = icmp_seq {
-                //buf[6..8].copy_from_slice(&x.to_le_bytes()[0..2]);
                 safe_copy_from_slice(&mut icmp_buf, 6, 8, &x.to_le_bytes()[..], 0, 2)?;
             }
         }
     }
 
     if !data.is_empty() {
-        //buf[8..].copy_from_slice(&data[0..]);
         safe_copy_from_slice(
             &mut icmp_buf,
             icmp_pkt_size,
@@ -2963,7 +2895,7 @@ fn forge_icmp_v6_packet(
     }
 
     let mut icmp_pkt = packet::icmpv6::MutableIcmpv6Packet::new(&mut icmp_buf)
-        .ok_or_else(|| error("No possible to create a icmp packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a icmp packet from buffer".to_string()))?;
 
     let chksum = match icmp_cksum {
         Some(x) if x != 0 => x.to_be() as u16,
@@ -2980,14 +2912,11 @@ fn forge_icmp_v6_packet(
     ip_buf.append(&mut icmp_buf_aux);
 
     let mut pkt = packet::ipv6::MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     pkt.set_payload_length(l as u16);
     pkt.set_payload(&icmp_buf);
-    match update_ip_len {
-        Some(l) if !l => {
-            pkt.set_payload_length(original_ip_len as u16);
-        }
-        _ => (),
+    if !update_ip_len.unwrap_or(true) {
+        pkt.set_payload_length(original_ip_len as u16);
     };
 
     Ok(NaslValue::Data(ip_buf))
@@ -3111,7 +3040,7 @@ fn print_icmpv6_packet(icmp: &Icmpv6Packet) {
 fn dump_icmp_v6_packet(positional: CheckedPositionals<Icmpv6Packet>) -> Result<NaslValue, FnError> {
     for icmp_pkt in positional.iter() {
         let pkt = Icmpv6Packet::new(icmp_pkt.payload())
-            .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+            .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
         print_icmpv6_packet(&pkt);
     }
     Ok(NaslValue::Null)
@@ -3177,7 +3106,7 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
 
     let mut ip_buf = [0u8; FIX_IPV6_HEADER_LENGTH];
     let mut ip = MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
 
     ip.set_flow_label(0);
     ip.set_traffic_class(0);
