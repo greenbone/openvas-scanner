@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::nasl::prelude::*;
 
-use super::network::socket::{make_tcp_socket, SocketError};
+use super::network::socket::{SocketError, make_tcp_socket};
 
 const TIMEOUT_MILLIS: u64 = 10000;
 
@@ -72,7 +72,7 @@ fn find_service(data: String) -> Service {
 #[nasl_function]
 async fn plugin_run_find_service(context: &Context<'_>) -> () {
     for port in context.port_range() {
-        match scan_port(context.target_ip(), port).await {
+        match scan_port(context.target().ip_addr(), port).await {
             Ok(_) => {}
             Err(e) => {}
         }
