@@ -4,7 +4,8 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use std::sync::RwLock;
+use itertools::Itertools;
+use tokio::sync::RwLock;
 use rand::seq::SliceRandom;
 
 use crate::models::PortRange;
@@ -741,14 +742,14 @@ impl<'a> Context<'a> {
         Ok(ret)
     }
 
-    pub fn read_sockets(&self) -> std::sync::RwLockReadGuard<'_, NaslSockets> {
+    pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
         // TODO do not unwrap?
-        self.sockets.read().unwrap()
+        self.sockets.read().await
     }
 
-    pub fn write_sockets(&self) -> std::sync::RwLockWriteGuard<'_, NaslSockets> {
+    pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
         // TODO do not unwrap?
-        self.sockets.write().unwrap()
+        self.sockets.write().await
     }
 }
 
