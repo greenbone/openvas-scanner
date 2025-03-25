@@ -79,6 +79,8 @@ const MIN_IPV4_HEADER_LENGTH: usize = 20;
 const FIX_IPV6_HEADER_LENGTH: usize = 40;
 /// Total length for TCP Packet
 const TOTAL_TCP_HEADER_LENGTH: u16 = 40;
+/// Minimum header length for TCP Packet Header
+const MIN_TCP_HEADER_LENGTH: usize = 20;
 /// Minimum header length for UDP Packet Header
 const MIN_UDP_HEADER_LENGTH: usize = 8;
 /// Minimum header length for ICMP Packet Header
@@ -271,7 +273,7 @@ fn forge_ip_packet(
     let mut buf = vec![0; total_length as usize];
     let mut pkt = MutableIpv4Packet::new(&mut buf).ok_or(PacketForgeryError::CreateIpv4Packet)?;
 
-    pkt.set_total_length(total_length as u16);
+    pkt.set_total_length(total_length);
     if !data.is_empty() {
         pkt.set_payload(&data);
     }
@@ -578,7 +580,7 @@ fn forge_tcp(
     th_urp: Option<u16>,
 ) -> Vec<u8> {
     let data: Vec<u8> = data.unwrap_or_default().into();
-    let total_length = FIX_IPV6_HEADER_LENGTH + data.len();
+    let total_length = MIN_TCP_HEADER_LENGTH + data.len();
     let mut buf = vec![0; total_length];
     // Safe because we know the buffer size.
     let mut tcp_seg = packet::tcp::MutableTcpPacket::new(&mut buf).unwrap();
@@ -873,21 +875,19 @@ fn set_elements_tcp<'a>(
 
     let tcp_total_length: usize;
     if !data.is_empty() {
-        //Prepare a new buffer with new size, copy the udp header and set the new data
-        tcp_total_length = FIX_IPV6_HEADER_LENGTH + data.len();
+        //Prepare a new buffer with new size, copy the tcp header and set the new data
+        tcp_total_length = MIN_TCP_HEADER_LENGTH + data.len();
         *new_buf = vec![0u8; tcp_total_length];
-        //new_buf[..8].copy_from_slice(&ori_udp_buf[..8]);
         safe_copy_from_slice(&mut new_buf[..], 0, 8, ori_tcp_buf, 0, 8)?;
 
         ori_tcp = MutableTcpPacket::new(new_buf)
             .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
         ori_tcp.set_payload(&data);
     } else {
-        // Copy the original udp buffer into the new buffer
+        // Copy the original tcp buffer into the new buffer
         tcp_total_length = ori_tcp_buf.len();
         *new_buf = vec![0u8; tcp_total_length];
 
-        //new_buf[..].copy_from_slice(&ori_udp_buf);
         safe_copy_from_slice(
             &mut new_buf[..],
             0,
@@ -1026,8 +1026,8 @@ fn set_tcp_elements(
     Ok(NaslValue::Data(pkt.packet().to_vec()))
 }
 
-fn insert_tcp_options<'a>(
-    ori_tcp_buf: &'a [u8],
+fn insert_tcp_options(
+    ori_tcp_buf: &[u8],
     data: Option<PacketPayload>,
     tcp_opts: CheckedPositionals<i64>,
 ) -> Result<Vec<u8>, FnError> {
@@ -1116,7 +1116,7 @@ fn insert_tcp_options<'a>(
     assert_eq!(opts_len % 4, 0);
 
     //Prepare a new buffer with new size, copy the tcp header and set the new data
-    let tcp_total_length = FIX_IPV6_HEADER_LENGTH + opts_len + data.len();
+    let tcp_total_length = MIN_TCP_HEADER_LENGTH + opts_len + data.len();
     let mut new_buf = vec![0u8; tcp_total_length];
     //new_buf[..20].copy_from_slice(&ori_tcp_buf[..20]);
     safe_copy_from_slice(&mut new_buf[..], 0, 20, ori_tcp_buf, 0, 20)?;
@@ -1152,7 +1152,7 @@ fn insert_tcp_v4_options(
     update_ip_len: Option<bool>,
     tcp_opts: CheckedPositionals<i64>,
 ) -> Result<NaslValue, FnError> {
-    let ip = Ipv4Packet::new(&tcp).unwrap();
+    let ip = Ipv4Packet::new(tcp).unwrap();
     let iph_len = ip.get_header_length() as usize * 4; // the header length is given in 32-bits words
     let ori_tcp_buf = ip.payload().to_vec();
 
@@ -2561,7 +2561,7 @@ fn insert_tcp_v6_options(
     update_ip_len: Option<bool>,
     tcp_opts: CheckedPositionals<i64>,
 ) -> Result<NaslValue, FnError> {
-    let ip = Ipv6Packet::new(&tcp).unwrap();
+    let ip = Ipv6Packet::new(tcp).unwrap();
     let payload_len = ip.get_payload_length();
     let ori_tcp_buf = ip.payload().to_vec();
 
@@ -2751,11 +2751,6 @@ fn forge_icmp_v6_packet(
 
     let data: Vec<u8> = data.unwrap_or_default().into();
     let icmp_code = Icmpv6Code::new(icmp_code.unwrap_or(0u8));
-
-    let total_length: usize;
-    let icmp_pkt_size: usize;
-    let mut icmp_buf: Vec<u8>;
-
     let icmp_type = packet::icmpv6::Icmpv6Type::new(icmp_type);
     let icmp_pkt_size = match icmp_type {
         Icmpv6Types::EchoRequest => MutableEchoRequestPacket::minimum_packet_size(),
@@ -2765,7 +2760,7 @@ fn forge_icmp_v6_packet(
         Icmpv6Types::NeighborAdvert => MutableNeighborAdvertPacket::minimum_packet_size(),
         _ => MIN_ICMP_HEADER_LENGTH,
     };
-    total_length = icmp_pkt_size + data.len();
+    let total_length = icmp_pkt_size + data.len();
     let mut icmp_buf = vec![0; total_length];
     match icmp_type {
         Icmpv6Types::EchoRequest => {
@@ -3108,7 +3103,7 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
     ip.set_traffic_class(0);
     ip.set_version(IPPROTO_IPV6);
     ip.set_next_header(IpNextHeaderProtocols::Tcp);
-    ip.set_payload_length(FIX_IPV6_HEADER_LENGTH as u16);
+    ip.set_payload_length(MIN_TCP_HEADER_LENGTH as u16);
     let ipv6_src = Ipv6Addr::from_str(&local_ip.to_string())
         .map_err(|_| ArgumentError::WrongArgument("invalid IP".to_string()))?;
     ip.set_source(ipv6_src);
