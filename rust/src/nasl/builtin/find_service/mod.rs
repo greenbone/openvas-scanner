@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::nasl::prelude::*;
 
-use super::network::socket::{make_tcp_socket, SocketError};
+use super::network::socket::{SocketError, make_tcp_socket};
 
 const TIMEOUT_MILLIS: u64 = 10000;
 
