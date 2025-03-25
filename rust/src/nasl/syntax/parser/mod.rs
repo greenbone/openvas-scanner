@@ -13,7 +13,8 @@ use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
     Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Paren, Return, Stmt,
-    Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, While,
+    Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, VarScope,
+    VarScopeDecl, While,
 };
 
 type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
@@ -184,6 +185,10 @@ impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Stmt> {
         if Ident::peek(parser) && AssignmentOperator::peek_next(parser) {
             Ok(Stmt::VarDecl(VarDecl::parse(parser)?))
+        } else if parser.matches(TokenKind::Keyword(Keyword::LocalVar))
+            || parser.matches(TokenKind::Keyword(Keyword::GlobalVar))
+        {
+            Ok(Stmt::VarScopeDecl(VarScopeDecl::parse(parser)?))
         } else if parser.matches(TokenKind::Keyword(Keyword::Function)) {
             Ok(Stmt::FnDecl(FnDecl::parse(parser)?))
         } else if parser.matches(TokenKind::Keyword(Keyword::While)) {
@@ -258,6 +263,20 @@ impl Parse for VarDecl {
             expr,
             operator,
         })
+    }
+}
+
+impl Parse for VarScopeDecl {
+    fn parse(parser: &mut Parser) -> Result<VarScopeDecl> {
+        let scope = if parser.consume_if_matches(TokenKind::Keyword(Keyword::LocalVar)) {
+            VarScope::Local
+        } else {
+            parser.consume(TokenKind::Keyword(Keyword::GlobalVar))?;
+            VarScope::Global
+        };
+        let ident = Ident::parse(parser)?;
+        parser.consume(TokenKind::Semicolon)?;
+        Ok(VarScopeDecl { ident, scope })
     }
 }
 

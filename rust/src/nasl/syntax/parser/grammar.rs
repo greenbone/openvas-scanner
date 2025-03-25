@@ -53,6 +53,7 @@ impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
 #[derive(Clone, Debug)]
 pub enum Stmt {
     VarDecl(VarDecl),
+    VarScopeDecl(VarScopeDecl),
     FnDecl(FnDecl),
     ExprStmt(Expr),
     Block(Block<Stmt>),
@@ -69,6 +70,19 @@ pub struct VarDecl {
     pub ident: Ident,
     pub operator: AssignmentOperator,
     pub expr: Expr,
+}
+
+#[derive(Clone, Debug)]
+pub struct VarScopeDecl {
+    pub ident: Ident,
+    pub scope: VarScope,
+}
+
+#[derive(Clone, Debug)]
+pub enum VarScope {
+    Local,
+    Global,
+    None,
 }
 
 #[derive(Clone, Debug)]

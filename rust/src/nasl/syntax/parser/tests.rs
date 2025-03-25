@@ -276,8 +276,10 @@ parse_test_ok!(while_loop_block, Program, "while (a) { b; d = 3; }");
 parse_test_ok!(break_while, Program, "while (a) { b = 2; break; }");
 parse_test_ok!(continue_while, Program, "while (a) { b = 2; continue; }");
 
+parse_test_ok!(declare_local_var, Program, "local_var a;");
+parse_test_ok!(declare_global_var, Program, "global_var a;");
+
 // parse_test_ok!(array_assignment, Program, "a[1] = 3;");
-// parse_test_ok!(declare, Program, "local_var a;");
 // parse_test_ok!(parameter, Program, "[a, b];");
 // parse_test_ok!(named_parameter, Program, "a: b;");
 // parse_test_ok!(repeat, Program, "repeat a; until b;");
