@@ -138,6 +138,66 @@ pub fn display_packet(vector: &[u8]) {
     println!("packet = {}", &s);
 }
 
+trait ChecksumCalculator<'a, V: 'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a V) -> u16;
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableUdpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::udp::ipv4_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableTcpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::tcp::ipv4_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableUdpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::udp::ipv6_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableTcpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::tcp::ipv6_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
 pub fn safe_copy_from_slice(
     d_buf: &mut [u8],
@@ -600,16 +660,10 @@ fn forge_tcp_packet(
     let mut tcp_seg = MutableTcpPacket::new(&mut tcp_buf)
         .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // Calculate checksum for TCP segment now, because it depends on the dst and src addresses
-    let chksum = match th_sum {
-        Some(x) if x != 0 => (x).to_be(),
-        _ => pnet::packet::tcp::ipv4_checksum(
-            &tcp_seg.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        ),
-    };
 
+    let chksum = tcp_seg.calculate_checksum(th_sum, &pkt.to_immutable());
     tcp_seg.set_checksum(chksum);
+
     let l = original_ip_len + tcp_buf.len();
     pkt.set_total_length((l as u16).to_le());
     pkt.set_payload(&tcp_buf);
@@ -1106,14 +1160,7 @@ fn insert_tcp_v4_options(
     let mut tcp_seg = MutableTcpPacket::new(&mut tcp_buf)
         .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // Set the checksum for the tcp segment
-    let chksum = match th_sum {
-        Some(x) if x != 0 => (x).to_be(),
-        _ => pnet::packet::tcp::ipv4_checksum(
-            &tcp_seg.to_immutable(),
-            &ip.get_source(),
-            &ip.get_destination(),
-        ),
-    };
+    let chksum = tcp_seg.calculate_checksum(th_sum, &ip);
     tcp_seg.set_checksum(chksum);
 
     let mut ip_buf = ip.packet().to_vec();
@@ -1246,15 +1293,9 @@ fn forge_udp_packet(
     udp_datagram.set_length(uh_ulen.unwrap_or(8_u16));
 
     let mut pkt = MutableIpv4Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
-    let chksum = match uh_sum {
-        Some(x) if x != 0 => (x).to_be(),
-        _ => pnet::packet::udp::ipv4_checksum(
-            &udp_datagram.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        ),
-    };
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
+
+    let chksum = udp_datagram.calculate_checksum(uh_sum, &pkt.to_immutable());
 
     let mut udp_datagram = MutableUdpPacket::new(&mut buf).unwrap();
     udp_datagram.set_checksum(chksum);
@@ -1353,14 +1394,7 @@ fn set_udp_elements(
     )?;
 
     // Set the checksum for the tcp segment
-    let chksum = match uh_sum {
-        Some(checksum) if checksum != 0 => (checksum).to_be(),
-        _ => pnet::packet::udp::ipv4_checksum(
-            &ori_udp.to_immutable(),
-            &udp.get_source(),
-            &udp.get_destination(),
-        ),
-    };
+    let chksum = ori_udp.calculate_checksum(uh_sum, &udp);
     ori_udp.set_checksum(chksum);
 
     let mut ip_buf = ip.packet().to_vec();
@@ -1902,12 +1936,9 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
 
         tcp.set_source(sport);
         tcp.set_destination(dport);
-        let chksum = pnet::packet::tcp::ipv4_checksum(
-            &tcp.to_immutable(),
-            &ip.get_source(),
-            &ip.get_destination(),
-        );
+        let chksum = tcp.calculate_checksum(None, &ip.to_immutable());
         tcp.set_checksum(chksum);
+
         ip.set_payload(tcp.packet());
 
         let sockaddr = socket2::SockAddr::from(SocketAddr::new(target_ip, 0));
@@ -2421,14 +2452,7 @@ fn forge_tcp_v6_packet(
         .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
 
     // Calculate checksum for TCP segment now, because it depends on the dst and src addresses
-    let chksum = match th_sum {
-        Some(x) if x != 0 => (x).to_be(),
-        _ => pnet::packet::tcp::ipv6_checksum(
-            &tcp_seg.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        ),
-    };
+    let chksum = tcp_seg.calculate_checksum(th_sum, &pkt.to_immutable());
     tcp_seg.set_checksum(chksum);
 
     pkt.set_payload_length(tcp_buf.len() as u16);
@@ -2502,14 +2526,7 @@ fn set_tcp_v6_elements(
     )?;
 
     // Set the checksum for the tcp segment
-    let chksum = match th_sum {
-        Some(checksum) if checksum != 0 => (checksum).to_be(),
-        _ => pnet::packet::tcp::ipv6_checksum(
-            &ori_tcp.to_immutable(),
-            &tcp.get_source(),
-            &tcp.get_destination(),
-        ),
-    };
+    let chksum = ori_tcp.calculate_checksum(th_sum, &tcp.to_immutable());
     ori_tcp.set_checksum(chksum);
 
     let mut ip_buf = ip.packet().to_vec();
@@ -2552,14 +2569,7 @@ fn insert_tcp_v6_options(
     let mut tcp_seg = MutableTcpPacket::new(&mut tcp_buf)
         .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
     // Set the checksum for the tcp segment
-    let chksum = match th_sum {
-        Some(x) if x != 0 => (x).to_be(),
-        _ => pnet::packet::tcp::ipv6_checksum(
-            &tcp_seg.to_immutable(),
-            &ip.get_source(),
-            &ip.get_destination(),
-        ),
-    };
+    let chksum = tcp_seg.calculate_checksum(th_sum, &ip.to_immutable());
     tcp_seg.set_checksum(chksum);
 
     let mut ip_buf = ip.packet().to_vec();
@@ -2633,15 +2643,8 @@ fn forge_udp_v6_packet(
     udp_datagram.set_length(uh_ulen.unwrap_or(8_u16));
 
     let mut pkt = MutableIpv6Packet::new(&mut ip_buf)
-        .ok_or_else(|| error("No possible to create a packet from buffer".to_string()))?;
-    let chksum = match uh_sum {
-        Some(x) if x != 0 => (x).to_be(),
-        _ => pnet::packet::udp::ipv6_checksum(
-            &udp_datagram.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        ),
-    };
+        .ok_or_else(|| error("Not possible to create a packet from buffer".to_string()))?;
+    let chksum = udp_datagram.calculate_checksum(uh_sum, &pkt.to_immutable());
 
     let mut udp_datagram = MutableUdpPacket::new(&mut buf).unwrap();
     udp_datagram.set_checksum(chksum);
@@ -2685,14 +2688,7 @@ fn set_udp_v6_elements(
         &mut udp_buf,
     )?;
     // Set the checksum for the tcp segment
-    let chksum = match uh_sum {
-        Some(checksum) if checksum != 0 => (checksum).to_be(),
-        _ => pnet::packet::udp::ipv6_checksum(
-            &ori_udp.to_immutable(),
-            &udp.get_source(),
-            &udp.get_destination(),
-        ),
-    };
+    let chksum = ori_udp.calculate_checksum(uh_sum, &udp.to_immutable());
     ori_udp.set_checksum(chksum);
 
     let mut ip_buf = ip.packet().to_vec();
@@ -3141,11 +3137,7 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
 
         tcp.set_source(sport);
         tcp.set_destination(dport);
-        let chksum = pnet::packet::tcp::ipv6_checksum(
-            &tcp.to_immutable(),
-            &ip.get_source(),
-            &ip.get_destination(),
-        );
+        let chksum = tcp.calculate_checksum(None, &ip.to_immutable());
         tcp.set_checksum(chksum);
         ip.set_payload(tcp.packet());
 
