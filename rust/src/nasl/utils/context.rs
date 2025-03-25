@@ -4,9 +4,8 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use itertools::Itertools;
-use tokio::sync::RwLock;
 use rand::seq::SliceRandom;
+use tokio::sync::RwLock;
 
 use crate::models::PortRange;
 use crate::nasl::builtin::{KBError, NaslSockets};
@@ -465,7 +464,6 @@ impl<T> ContextStorage for RedisStorage<T> where
 {
 }
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
-
 
 /// This struct includes all objects that a nasl function requires.
 pub struct Context<'a> {

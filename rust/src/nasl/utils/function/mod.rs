@@ -17,6 +17,6 @@ pub use maybe::Maybe;
 pub use positionals::CheckedPositionals;
 pub use positionals::Positionals;
 pub use to_nasl_result::ToNaslResult;
-pub use types::bytes_to_str;
 pub use types::Seconds;
 pub use types::StringOrData;
+pub use types::bytes_to_str;
