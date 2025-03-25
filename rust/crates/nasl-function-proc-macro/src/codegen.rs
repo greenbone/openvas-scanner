@@ -93,12 +93,12 @@ impl<'a> ArgsStruct<'a> {
                     ArgKind::NaslSockets(arg) => {
                         if arg.mutable {
                             quote! {
-                                &mut *_context.write_sockets()
+                                &mut *_context.write_sockets().await
                             }
                         }
                         else {
                             quote! {
-                                &*_context.read_sockets()
+                                &*_context.read_sockets().await
                             }
                         }
                     },
