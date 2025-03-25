@@ -11,10 +11,7 @@ use std::{
 };
 
 use crate::nasl::{prelude::*, utils::function::Seconds};
-use crate::{
-    nasl::prelude::*,
-    storage::items::kb::{self, KbKey},
-};
+use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
