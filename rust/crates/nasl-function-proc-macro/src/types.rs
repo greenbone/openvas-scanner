@@ -79,6 +79,22 @@ impl ArgKind {
             ArgKind::CheckedPositionalIterator(_) => 5,
         }
     }
+
+    pub fn requires_async(&self) -> bool {
+        // Keep this intentionally verbose by matching
+        // exhaustively, so we remember to check this
+        // function again if we introduce a new type.
+        match self {
+            ArgKind::Positional(_) => false,
+            ArgKind::Named(_) => false,
+            ArgKind::MaybeNamed(_, _) => false,
+            ArgKind::Context => false,
+            ArgKind::Register => false,
+            ArgKind::PositionalIterator(_) => false,
+            ArgKind::CheckedPositionalIterator(_) => false,
+            ArgKind::NaslSockets(_) => true,
+        }
+    }
 }
 
 pub struct NamedArg {
