@@ -2,21 +2,20 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{io, net::IpAddr, time::Duration};
+use std::net::IpAddr;
 
 use thiserror::Error;
-use tokio::{io::AsyncReadExt, net::TcpStream, time::timeout};
 
 use crate::nasl::prelude::*;
+
+use super::network::socket::{make_tcp_socket, SocketError};
 
 const TIMEOUT_MILLIS: u64 = 10000;
 
 #[derive(Debug, Error)]
 pub enum FindServiceError {
-    #[error("Failed to connect to TCP: {0}")]
-    TcpStreamConnect(io::Error),
-    #[error("Failed to read from TCP: {0}")]
-    TcpStreamRead(io::Error),
+    #[error("{0}")]
+    SocketError(#[from] SocketError),
 }
 
 struct Service {
@@ -36,32 +35,28 @@ enum SpecialBehavior {
 }
 
 async fn scan_port(target: IpAddr, port: u16) -> Result<Option<Service>, FindServiceError> {
-    let mut stream = TcpStream::connect((target, port))
-        .await
-        .map_err(|e| FindServiceError::TcpStreamConnect(e))?;
+    let socket = make_tcp_socket(target, port, 0)?;
 
     let mut buf: &mut [u8] = &mut [0; 10];
-    let result = timeout(Duration::from_millis(TIMEOUT_MILLIS), async move {
-        let result = stream
-            .read(&mut buf)
-            .await
-            .map_err(|e| FindServiceError::TcpStreamRead(e));
-        Ok::<_, FindServiceError>(buf)
-    })
-    .await;
-    match result {
-        Ok(Ok(buf)) => {
-            println!("{}", String::from_utf8(buf.to_vec()).unwrap());
-        }
-        Ok(Err(_)) => {
-            println!("err");
-        }
-        Err(_) => {
-            println!("{}", port);
-            println!("timeout");
-        }
-    }
-    Ok(None)
+    todo!()
+    // let result = timeout(Duration::from_millis(TIMEOUT_MILLIS), async move {
+    //     let result = socket.read_line();
+    //     Ok::<_, FindServiceError>(buf)
+    // })
+    // .await;
+    // match result {
+    //     Ok(Ok(buf)) => {
+    //         println!("{}", String::from_utf8(buf.to_vec()).unwrap());
+    //     }
+    //     Ok(Err(_)) => {
+    //         println!("err");
+    //     }
+    //     Err(_) => {
+    //         println!("{}", port);
+    //         println!("timeout");
+    //     }
+    // }
+    // Ok(None)
 }
 
 #[nasl_function]
