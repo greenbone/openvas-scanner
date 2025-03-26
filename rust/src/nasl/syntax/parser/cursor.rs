@@ -1,10 +1,25 @@
-use crate::nasl::syntax::{Token, Tokenizer, TokenizerError, tokenizer::CharIndex};
+use crate::nasl::syntax::{Token, TokenKind, Tokenizer, TokenizerError, tokenizer::CharIndex};
 
-use super::error::SpannedError;
+use super::{Matches, error::SpannedError};
 
-pub trait Peek {
-    fn peek(&self) -> &Token;
-    fn peek_next(&self) -> &Token;
+pub trait Peek: Sized {
+    fn peek(&self) -> &TokenKind;
+    fn peek_next(&self) -> &TokenKind;
+
+    fn lookahead(&self) -> Lookahead {
+        Lookahead {
+            current: &self.peek_next(),
+        }
+    }
+
+    fn matches<T: Matches>(&self) -> bool {
+        T::matches(self)
+    }
+
+    fn matches_next<T: Matches>(&self) -> bool {
+        let lookahead = self.lookahead();
+        lookahead.matches::<T>()
+    }
 }
 
 pub struct Cursor {
@@ -26,12 +41,12 @@ fn next_token(tokenizer: &mut Tokenizer, errors: &mut Vec<TokenizerError>) -> To
 }
 
 impl Peek for Cursor {
-    fn peek_next(&self) -> &Token {
-        &self.next
+    fn peek_next(&self) -> &TokenKind {
+        &self.next.kind
     }
 
-    fn peek(&self) -> &Token {
-        &self.current
+    fn peek(&self) -> &TokenKind {
+        &self.current.kind
     }
 }
 
@@ -59,7 +74,7 @@ impl Cursor {
     }
 
     pub(crate) fn current_token_start(&self) -> CharIndex {
-        CharIndex(self.peek().position.0)
+        CharIndex(self.current.position.0)
     }
 
     pub(crate) fn current_token_end(&self) -> CharIndex {
@@ -77,5 +92,20 @@ impl Cursor {
 
     pub(crate) fn drain_errors(&mut self) -> impl Iterator<Item = TokenizerError> {
         self.errors.drain(..)
+    }
+}
+
+pub struct Lookahead<'a> {
+    current: &'a TokenKind,
+}
+
+impl<'a> Peek for Lookahead<'a> {
+    fn peek(&self) -> &TokenKind {
+        self.current
+    }
+
+    fn peek_next(&self) -> &TokenKind {
+        // We don't need this
+        unimplemented!()
     }
 }

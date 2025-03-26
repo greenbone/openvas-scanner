@@ -15,9 +15,9 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Paren, Return, Stmt,
-    Unary, UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, VarScope,
-    VarScopeDecl, While,
+    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Return, Stmt, Unary,
+    UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, VarScope, VarScopeDecl,
+    While,
 };
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -26,16 +26,8 @@ pub(self) trait Parse: Sized {
     fn parse(parser: &mut Parser) -> Result<Self>;
 }
 
-pub trait Matches: Sized {
-    fn matches(kind: &TokenKind) -> bool;
-
-    fn peek(parser: &Parser) -> bool {
-        Self::matches(parser.peek())
-    }
-
-    fn peek_next(parser: &Parser) -> bool {
-        Self::matches(parser.peek_next())
-    }
+pub(self) trait Matches: Sized {
+    fn matches(p: &impl Peek) -> bool;
 }
 
 pub trait PeekParse: Sized {
@@ -139,15 +131,24 @@ impl Parser {
         T::parse(self)
     }
 
+    fn matches<T: Matches>(&self) -> bool {
+        T::matches(&self.cursor)
+    }
+
+    fn matches_next<T: Matches>(&self) -> bool {
+        let lookahead = self.cursor.lookahead();
+        T::matches(&lookahead)
+    }
+
     fn advance(&mut self) -> Token {
         self.cursor.advance()
     }
 
-    fn matches(&mut self, expected: TokenKind) -> bool {
+    fn matches_token(&mut self, expected: TokenKind) -> bool {
         self.peek() == &expected
     }
 
-    fn next_matches(&mut self, expected: TokenKind) -> bool {
+    fn next_matches_token(&mut self, expected: TokenKind) -> bool {
         self.peek_next() == &expected
     }
 
@@ -178,11 +179,11 @@ impl Parser {
     }
 
     fn peek(&self) -> &TokenKind {
-        self.cursor.peek().kind()
+        self.cursor.peek()
     }
 
     fn peek_next(&self) -> &TokenKind {
-        self.cursor.peek_next().kind()
+        self.cursor.peek_next()
     }
 
     fn is_at_end(&self) -> bool {
@@ -192,21 +193,21 @@ impl Parser {
 
 impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Stmt> {
-        if Ident::peek(parser) && AssignmentOperator::peek_next(parser) {
+        if parser.matches::<Ident>() && parser.matches_next::<AssignmentOperator>() {
             Ok(Stmt::VarDecl(parser.parse()?))
-        } else if parser.matches(TokenKind::Keyword(Keyword::LocalVar))
-            || parser.matches(TokenKind::Keyword(Keyword::GlobalVar))
+        } else if parser.matches_token(TokenKind::Keyword(Keyword::LocalVar))
+            || parser.matches_token(TokenKind::Keyword(Keyword::GlobalVar))
         {
             Ok(Stmt::VarScopeDecl(parser.parse()?))
-        } else if parser.matches(TokenKind::Keyword(Keyword::Function)) {
+        } else if parser.matches_token(TokenKind::Keyword(Keyword::Function)) {
             Ok(Stmt::FnDecl(parser.parse()?))
-        } else if parser.matches(TokenKind::Keyword(Keyword::While)) {
+        } else if parser.matches_token(TokenKind::Keyword(Keyword::While)) {
             Ok(Stmt::While(parser.parse()?))
-        } else if parser.matches(TokenKind::LeftBrace) {
+        } else if parser.matches_token(TokenKind::LeftBrace) {
             Ok(Stmt::Block(parser.parse()?))
-        } else if parser.matches(TokenKind::Keyword(Keyword::Return)) {
+        } else if parser.matches_token(TokenKind::Keyword(Keyword::Return)) {
             Ok(Stmt::Return(parser.parse()?))
-        } else if parser.matches(TokenKind::Keyword(Keyword::Include)) {
+        } else if parser.matches_token(TokenKind::Keyword(Keyword::Include)) {
             Ok(Stmt::Include(parser.parse()?))
         } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
             parser.consume(TokenKind::Semicolon)?;
@@ -240,7 +241,7 @@ impl<T: Parse> Parse for Block<T> {
 
 impl<T: Parse> Parse for OptionalBlock<T> {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        if parser.matches(TokenKind::LeftBrace) {
+        if parser.matches_token(TokenKind::LeftBrace) {
             Ok(OptionalBlock::Block(parser.parse()?))
         } else {
             // Parse omitted {}: Only a single T is allowed
@@ -257,6 +258,12 @@ impl Parse for Include {
         parser.consume(TokenKind::RightParen)?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(Include { path })
+    }
+}
+
+impl Matches for VarDecl {
+    fn matches(p: &impl Peek) -> bool {
+        p.matches::<Ident>() && p.matches_next::<AssignmentOperator>()
     }
 }
 
@@ -329,13 +336,13 @@ impl Parse for Expr {
 }
 
 fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
-    let mut lhs = if Atom::peek(parser) {
+    let mut lhs = if parser.matches::<Atom>() {
         Expr::Atom(parser.parse()?)
     } else if parser.consume_if_matches(TokenKind::LeftParen) {
         let lhs = pratt_parse_expr(parser, 0)?;
         parser.consume(TokenKind::RightParen)?;
         lhs
-    } else if UnaryPrefixOperator::peek(parser) {
+    } else if parser.matches::<UnaryPrefixOperator>() {
         let op: UnaryPrefixOperator = parser.parse()?;
         let r_bp = op.right_binding_power();
         Expr::Unary(Unary {
@@ -389,9 +396,9 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
 
 impl Parse for Atom {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        if Literal::peek(parser) {
+        if parser.matches::<Literal>() {
             Ok(Atom::Literal(parser.parse().unwrap()))
-        } else if parser.matches(TokenKind::LeftBracket) {
+        } else if parser.matches_token(TokenKind::LeftBracket) {
             Ok(Atom::Array(parser.parse()?))
         } else {
             let ident = parser.parse()?;
@@ -399,7 +406,7 @@ impl Parse for Atom {
                 let index_expr = Box::new(parser.parse()?);
                 parser.consume(TokenKind::RightBracket)?;
                 Ok(Atom::ArrayAccess(ArrayAccess { index_expr, ident }))
-            } else if parser.matches(TokenKind::LeftParen) {
+            } else if parser.matches_token(TokenKind::LeftParen) {
                 Ok(Atom::FnCall(FnCall {
                     fn_name: ident,
                     args: parser.parse()?,
@@ -412,8 +419,10 @@ impl Parse for Atom {
 }
 
 impl Matches for Atom {
-    fn matches(kind: &TokenKind) -> bool {
-        Ident::matches(kind) || Literal::matches(kind) || kind == &TokenKind::LeftBracket
+    fn matches(parser: &impl Peek) -> bool {
+        parser.matches::<Ident>()
+            || parser.matches::<Literal>()
+            || parser.peek() == &TokenKind::LeftBracket
     }
 }
 
@@ -443,7 +452,7 @@ impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
 
 impl Parse for FnArg {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        if Ident::peek(parser) && parser.next_matches(TokenKind::DoublePoint) {
+        if parser.matches::<Ident>() && parser.next_matches_token(TokenKind::DoublePoint) {
             let ident = parser.parse()?;
             parser.consume(TokenKind::DoublePoint)?;
             let expr = Box::new(parser.parse()?);
@@ -481,8 +490,8 @@ macro_rules! impl_trivial_parse {
         }
 
         impl Matches for $ty {
-            fn matches(kind: &TokenKind) -> bool {
-                matches!(kind, TokenKind::$kind(_))
+            fn matches(parser: &impl Peek) -> bool {
+                matches!(parser.peek(), TokenKind::$kind(_))
             }
         }
     };

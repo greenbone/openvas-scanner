@@ -203,8 +203,8 @@ macro_rules! make_operator {
         }
 
         impl super::Matches for $ty {
-            fn matches(kind: &TokenKind) -> bool {
-                Self::convert(kind).is_some()
+            fn matches(p: &impl Peek) -> bool {
+                Self::convert(p.peek()).is_some()
             }
         }
 
