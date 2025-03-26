@@ -210,13 +210,18 @@ macro_rules! make_operator {
 
         impl super::Parse for $ty {
             fn parse(parser: &mut Parser) -> Result<$ty, Error> {
-                parser.consume_pat(Self::convert, $err)
+                let kind = parser.peek();
+                let converted = Self::convert(&kind);
+                if converted.is_some() {
+                    parser.advance();
+                }
+                Ok(converted.ok_or_else(|| $err)?)
             }
         }
 
         impl super::PeekParse for $ty {
             fn peek_parse(parser: &Parser) -> Option<Self> {
-                Self::convert(&parser.cursor.peek().kind)
+                Self::convert(&parser.peek())
             }
         }
 

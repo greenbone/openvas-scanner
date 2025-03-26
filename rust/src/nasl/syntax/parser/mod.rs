@@ -74,7 +74,7 @@ impl Parser {
 
     fn parse_span<T: Parse>(&mut self) -> Result<T> {
         let pos_before = self.cursor.current_token_start();
-        let result = T::parse(self);
+        let result = self.parse();
         let pos_after = self.cursor.current_token_end();
         let span = Span::new(pos_before, pos_after);
         result.map_err(|err| err.add_span(span))
@@ -135,6 +135,10 @@ impl Parser {
         }
     }
 
+    fn parse<T: Parse>(&mut self) -> Result<T> {
+        T::parse(self)
+    }
+
     fn advance(&mut self) -> Token {
         self.cursor.advance()
     }
@@ -189,21 +193,21 @@ impl Parser {
 impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Stmt> {
         if Ident::peek(parser) && AssignmentOperator::peek_next(parser) {
-            Ok(Stmt::VarDecl(VarDecl::parse(parser)?))
+            Ok(Stmt::VarDecl(parser.parse()?))
         } else if parser.matches(TokenKind::Keyword(Keyword::LocalVar))
             || parser.matches(TokenKind::Keyword(Keyword::GlobalVar))
         {
-            Ok(Stmt::VarScopeDecl(VarScopeDecl::parse(parser)?))
+            Ok(Stmt::VarScopeDecl(parser.parse()?))
         } else if parser.matches(TokenKind::Keyword(Keyword::Function)) {
-            Ok(Stmt::FnDecl(FnDecl::parse(parser)?))
+            Ok(Stmt::FnDecl(parser.parse()?))
         } else if parser.matches(TokenKind::Keyword(Keyword::While)) {
-            Ok(Stmt::While(While::parse(parser)?))
+            Ok(Stmt::While(parser.parse()?))
         } else if parser.matches(TokenKind::LeftBrace) {
-            Ok(Stmt::Block(Block::parse(parser)?))
+            Ok(Stmt::Block(parser.parse()?))
         } else if parser.matches(TokenKind::Keyword(Keyword::Return)) {
-            Ok(Stmt::Return(Return::parse(parser)?))
+            Ok(Stmt::Return(parser.parse()?))
         } else if parser.matches(TokenKind::Keyword(Keyword::Include)) {
-            Ok(Stmt::Include(Include::parse(parser)?))
+            Ok(Stmt::Include(parser.parse()?))
         } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
             parser.consume(TokenKind::Semicolon)?;
             Ok(Stmt::Break)
@@ -213,7 +217,7 @@ impl Parse for Stmt {
         } else if parser.consume_if_matches(TokenKind::Semicolon) {
             Ok(Stmt::NoOp)
         } else {
-            let expr = Expr::parse(parser)?;
+            let expr = parser.parse()?;
             parser.consume(TokenKind::Semicolon)?;
             Ok(Stmt::ExprStmt(expr))
         }
@@ -237,11 +241,10 @@ impl<T: Parse> Parse for Block<T> {
 impl<T: Parse> Parse for OptionalBlock<T> {
     fn parse(parser: &mut Parser) -> Result<Self> {
         if parser.matches(TokenKind::LeftBrace) {
-            Ok(OptionalBlock::Block(Block::parse(parser)?))
+            Ok(OptionalBlock::Block(parser.parse()?))
         } else {
             // Parse omitted {}: Only a single T is allowed
-            let item = T::parse(parser)?;
-            Ok(OptionalBlock::Single(item))
+            Ok(OptionalBlock::Single(parser.parse()?))
         }
     }
 }
@@ -250,7 +253,7 @@ impl Parse for Include {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::Include))?;
         parser.consume(TokenKind::LeftParen)?;
-        let path = Literal::parse(parser)?;
+        let path = parser.parse()?;
         parser.consume(TokenKind::RightParen)?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(Include { path })
@@ -259,9 +262,9 @@ impl Parse for Include {
 
 impl Parse for VarDecl {
     fn parse(parser: &mut Parser) -> Result<VarDecl> {
-        let ident = Ident::parse(parser)?;
+        let ident = parser.parse()?;
         let operator = AssignmentOperator::parse(parser)?;
-        let expr = Expr::parse(parser)?;
+        let expr = parser.parse()?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(VarDecl {
             ident,
@@ -279,7 +282,7 @@ impl Parse for VarScopeDecl {
             parser.consume(TokenKind::Keyword(Keyword::GlobalVar))?;
             VarScope::Global
         };
-        let ident = Ident::parse(parser)?;
+        let ident = parser.parse()?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(VarScopeDecl { ident, scope })
     }
@@ -288,9 +291,9 @@ impl Parse for VarScopeDecl {
 impl Parse for FnDecl {
     fn parse(parser: &mut Parser) -> Result<FnDecl> {
         parser.consume(TokenKind::Keyword(Keyword::Function))?;
-        let fn_name = Ident::parse(parser)?;
-        let args = CommaSeparated::parse(parser)?;
-        let block = Block::parse(parser)?;
+        let fn_name = parser.parse()?;
+        let args = parser.parse()?;
+        let block = parser.parse()?;
         Ok(FnDecl {
             fn_name,
             args,
@@ -302,7 +305,7 @@ impl Parse for FnDecl {
 impl Parse for Return {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::Return))?;
-        let expr = Expr::parse(parser)?;
+        let expr = parser.parse()?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(Return { expr })
     }
@@ -312,9 +315,9 @@ impl Parse for While {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::While))?;
         parser.consume(TokenKind::LeftParen)?;
-        let condition = Expr::parse(parser)?;
+        let condition = parser.parse()?;
         parser.consume(TokenKind::RightParen)?;
-        let block = OptionalBlock::parse(parser)?.into();
+        let block = parser.parse::<OptionalBlock<_>>()?.into();
         Ok(While { condition, block })
     }
 }
@@ -327,13 +330,13 @@ impl Parse for Expr {
 
 fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
     let mut lhs = if Atom::peek(parser) {
-        Expr::Atom(Atom::parse(parser)?)
+        Expr::Atom(parser.parse()?)
     } else if parser.consume_if_matches(TokenKind::LeftParen) {
         let lhs = pratt_parse_expr(parser, 0)?;
         parser.consume(TokenKind::RightParen)?;
         lhs
     } else if UnaryPrefixOperator::peek(parser) {
-        let op = UnaryPrefixOperator::parse(parser)?;
+        let op: UnaryPrefixOperator = parser.parse()?;
         let r_bp = op.right_binding_power();
         Expr::Unary(Unary {
             op: UnaryOperator::Prefix(op),
@@ -360,7 +363,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             if l_bp < min_bp {
                 break;
             }
-            UnaryPostfixOperator::parse(parser).unwrap();
+            parser.parse::<UnaryPostfixOperator>().unwrap();
             lhs = Expr::Unary(Unary {
                 op: UnaryOperator::Postfix(op),
                 rhs: Box::new(lhs),
@@ -373,7 +376,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         if l_bp < min_bp {
             break;
         }
-        let _ = BinaryOperator::parse(parser).unwrap();
+        let _: BinaryOperator = parser.parse().unwrap();
         let rhs = pratt_parse_expr(parser, r_bp)?;
         lhs = Expr::Binary(Binary {
             lhs: Box::new(lhs),
@@ -387,22 +390,19 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
 impl Parse for Atom {
     fn parse(parser: &mut Parser) -> Result<Self> {
         if Literal::peek(parser) {
-            let literal = Literal::parse(parser).unwrap();
-            Ok(Atom::Literal(literal))
+            Ok(Atom::Literal(parser.parse().unwrap()))
         } else if parser.matches(TokenKind::LeftBracket) {
-            let array = Array::parse(parser)?;
-            Ok(Atom::Array(array))
+            Ok(Atom::Array(parser.parse()?))
         } else {
-            let ident = Ident::parse(parser)?;
+            let ident = parser.parse()?;
             if parser.consume_if_matches(TokenKind::LeftBracket) {
-                let index_expr = Box::new(Expr::parse(parser)?);
+                let index_expr = Box::new(parser.parse()?);
                 parser.consume(TokenKind::RightBracket)?;
                 Ok(Atom::ArrayAccess(ArrayAccess { index_expr, ident }))
             } else if parser.matches(TokenKind::LeftParen) {
-                let args = CommaSeparated::<FnArg, Paren>::parse(parser)?;
                 Ok(Atom::FnCall(FnCall {
                     fn_name: ident,
-                    args,
+                    args: parser.parse()?,
                 }))
             } else {
                 Ok(Atom::Ident(ident))
@@ -427,7 +427,11 @@ impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
             }
             // If we can't parse the remaining content as an item, report
             // a missing parentheses
-            items.push(Item::parse(parser).map_err(|_| ErrorKind::TokenExpected(Delim::end()))?);
+            items.push(
+                parser
+                    .parse()
+                    .map_err(|_| ErrorKind::TokenExpected(Delim::end()))?,
+            );
             if !parser.consume_if_matches(TokenKind::Comma) {
                 parser.consume(Delim::end())?;
                 break;
@@ -440,12 +444,12 @@ impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
 impl Parse for FnArg {
     fn parse(parser: &mut Parser) -> Result<Self> {
         if Ident::peek(parser) && parser.next_matches(TokenKind::DoublePoint) {
-            let ident = Ident::parse(parser)?;
+            let ident = parser.parse()?;
             parser.consume(TokenKind::DoublePoint)?;
-            let expr = Box::new(Expr::parse(parser)?);
+            let expr = Box::new(parser.parse()?);
             Ok(FnArg::Named(NamedFnArg { ident, expr }))
         } else {
-            let expr = Box::new(Expr::parse(parser)?);
+            let expr = Box::new(parser.parse()?);
             Ok(FnArg::Anonymous(AnonymousFnArg { expr }))
         }
     }
@@ -453,8 +457,9 @@ impl Parse for FnArg {
 
 impl Parse for Array {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        let items = CommaSeparated::parse(parser)?;
-        Ok(Array { items })
+        Ok(Array {
+            items: parser.parse()?,
+        })
     }
 }
 
