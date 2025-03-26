@@ -2,13 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{
-    collections::HashMap,
-    path::Path,
-};
+use std::{collections::HashMap, path::Path};
 
 use crate::nasl::prelude::*;
-#[cfg(feature = "nasl-builtin-raw-ip")]
 
 /// A type that can be converted from a NaslValue.
 /// The conversion may fail.
