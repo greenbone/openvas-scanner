@@ -227,8 +227,7 @@ fn copy_from_slice_panic() {
 
 #[test]
 fn forge_icmp_v6_packet() {
-    let key = crate::storage::ContextKey::Scan(String::default(), Some("5858::2".to_string()));
-    let mut t = TestBuilder::default().with_context_key(key);
+    let mut t = TestBuilder::default().with_target("5858::2".to_string());
     t.ok(
         r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
                                 ip6_p: 0x3a,
@@ -257,9 +256,7 @@ fn forge_icmp_v6_packet() {
 
 #[test]
 fn modify_ipv6_elements() {
-    let mut t = TestBuilder::default();
-    t.context().set_target("5858::3".to_string());
-
+    let mut t = TestBuilder::default().with_target("5858::2".to_string());
     t.run(
         r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
                                 ip6_p: 0x3a,
@@ -282,8 +279,7 @@ fn modify_ipv6_elements() {
 
 #[test]
 fn forge_udp_v6() {
-    let mut t = TestBuilder::default();
-    t.context().set_target("5858::3".to_string());
+    let mut t = TestBuilder::default().with_target("5858::2".to_string());
 
     t.run(
         r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
@@ -323,8 +319,7 @@ fn forge_udp_v6() {
 
 #[test]
 fn forge_tcp_v6() {
-    let mut t = TestBuilder::default();
-    t.context().set_target("5858::3".to_string());
+    let mut t = TestBuilder::default().with_target("5858::2".to_string());
 
     t.run(
         r#"ip6_packet = forge_ip_v6_packet( ip6_v: 6,
