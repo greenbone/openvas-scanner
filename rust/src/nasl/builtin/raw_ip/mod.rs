@@ -8,8 +8,8 @@ pub mod raw_ip_utils;
 use std::io;
 
 use crate::nasl::{
-    utils::{IntoFunctionSet, NaslVars, StoredFunctionSet},
     FnError,
+    utils::{IntoFunctionSet, NaslVars, StoredFunctionSet},
 };
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;

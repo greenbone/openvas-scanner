@@ -5,13 +5,13 @@
 //! Defines NASL packet forgery functions
 
 use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    net::{Ipv4Addr, Ipv6Addr, SocketAddr},
     str::FromStr,
 };
 
 use super::{
-    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
     PacketForgeryError, RawIpError,
+    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
 use super::super::host::get_host_ip;
@@ -26,15 +26,15 @@ use pnet::packet::{
     ethernet::EthernetPacket,
     icmp::*,
     icmpv6::{
+        Icmpv6Code, Icmpv6Packet, Icmpv6Types,
         echo_request::MutableEchoRequestPacket,
         ndp::{
             MutableNeighborAdvertPacket, MutableNeighborSolicitPacket, MutableRouterAdvertPacket,
             MutableRouterSolicitPacket,
         },
-        Icmpv6Code, Icmpv6Packet, Icmpv6Types,
     },
     ip::{IpNextHeaderProtocol, IpNextHeaderProtocols},
-    ipv4::{checksum, Ipv4Packet, MutableIpv4Packet},
+    ipv4::{Ipv4Packet, MutableIpv4Packet, checksum},
     ipv6::{Ipv6Packet, MutableIpv6Packet},
     tcp::{TcpOption, TcpOptionNumbers, TcpPacket, *},
     udp::{MutableUdpPacket, UdpPacket},
@@ -3313,10 +3313,11 @@ fn nasl_send_v6packet(
     for packet in positional.iter() {
         // If dst ip address inside the IP packet differs from target IP, it is consider a malicious or buggy script.
         if packet.get_destination() != target_ip {
-            return Err(error(
-                format!("send_packet: malicious or buggy script is trying to send packet to {} instead of designated target {}",
-                        packet.get_destination(), target_ip)
-            ));
+            return Err(error(format!(
+                "send_packet: malicious or buggy script is trying to send packet to {} instead of designated target {}",
+                packet.get_destination(),
+                target_ip
+            )));
         }
 
         let sock_str = format!("[{}]:{}", &packet.get_destination().to_string().as_str(), 0);
