@@ -1,11 +1,14 @@
 mod cursor;
-pub mod error;
+mod error;
 pub mod grammar;
 #[cfg(test)]
 mod tests;
 
-use cursor::Cursor;
-use error::{ParseError, ParseErrorKind};
+use cursor::{Cursor, Peek};
+pub use error::ErrorKind as ParseErrorKind;
+pub use error::SpannedError as ParseError;
+use error::SpannedError;
+use error::{Error, ErrorKind};
 
 use crate::nasl::error::Span;
 
@@ -17,9 +20,9 @@ use grammar::{
     VarScopeDecl, While,
 };
 
-type Result<T, E = ParseErrorKind> = std::result::Result<T, E>;
+type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub trait Parse: Sized {
+pub(self) trait Parse: Sized {
     fn parse(parser: &mut Parser) -> Result<Self>;
 }
 
@@ -69,15 +72,15 @@ impl Parser {
         }
     }
 
-    pub fn parse<T: Parse>(&mut self) -> Result<T, ParseError> {
+    fn parse_span<T: Parse>(&mut self) -> Result<T> {
         let pos_before = self.cursor.current_token_start();
         let result = T::parse(self);
         let pos_after = self.cursor.current_token_end();
         let span = Span::new(pos_before, pos_after);
-        result.map_err(|err| err.to_error(span))
+        result.map_err(|err| err.add_span(span))
     }
 
-    fn check_tokenizer_errors(&mut self, errs: &mut Vec<ParseError>) -> bool {
+    fn check_tokenizer_errors(&mut self, errs: &mut Vec<SpannedError>) -> bool {
         if self.cursor.has_errors() {
             for e in self.cursor.drain_errors() {
                 errs.push(e.into());
@@ -89,18 +92,20 @@ impl Parser {
         }
     }
 
-    pub fn parse_program(&mut self) -> Result<Ast, Vec<ParseError>> {
+    pub fn parse_program(&mut self) -> Result<Ast, Vec<SpannedError>> {
         let mut stmts = vec![];
         let mut errs = vec![];
         while !self.is_at_end() {
-            let result = self.parse::<Stmt>();
+            let result = self.parse_span::<Stmt>();
             // Check if any tokenization errors occured, those have priority
             // and make the actual result obtained from parsing void
             if !self.check_tokenizer_errors(&mut errs) {
                 match result {
                     Ok(decl) => stmts.push(decl),
                     Err(err) => {
-                        errs.push(err);
+                        // We know the error has a span since it originates from
+                        // parse_span
+                        errs.push(err.unwrap_as_spanned());
                         self.synchronize();
                     }
                 }
@@ -148,7 +153,7 @@ impl Parser {
 
     fn consume(&mut self, expected: TokenKind) -> Result<()> {
         if self.peek() != &expected {
-            Err(ParseErrorKind::TokenExpected(expected))
+            Err(ErrorKind::TokenExpected(expected).into())
         } else {
             self.advance();
             Ok(())
@@ -158,13 +163,13 @@ impl Parser {
     fn consume_pat<T>(
         &mut self,
         predicate: impl Fn(&TokenKind) -> Option<T>,
-        e: ParseErrorKind,
+        e: ErrorKind,
     ) -> Result<T> {
         if let Some(t) = predicate(self.peek()) {
             self.advance();
             Ok(t)
         } else {
-            Err(e)
+            Err(e.into())
         }
     }
 
@@ -223,7 +228,7 @@ impl<T: Parse> Parse for Block<T> {
             if parser.consume_if_matches(TokenKind::RightBrace) {
                 break;
             }
-            stmts.push(T::parse(parser)?);
+            stmts.push(parser.parse_span()?);
         }
         Ok(Block { items: stmts })
     }
@@ -335,7 +340,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             rhs: Box::new(pratt_parse_expr(parser, r_bp)?),
         })
     } else {
-        return Err(ParseErrorKind::ExpressionExpected);
+        Err(ErrorKind::ExpressionExpected)?
     };
 
     loop {
@@ -363,7 +368,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             continue;
         }
         let op = BinaryOperator::peek_parse(parser)
-            .ok_or_else(|| ParseErrorKind::TokenExpected(TokenKind::Semicolon))?;
+            .ok_or_else(|| ErrorKind::TokenExpected(TokenKind::Semicolon))?;
         let (l_bp, r_bp) = op.binding_power();
         if l_bp < min_bp {
             break;
@@ -422,9 +427,7 @@ impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
             }
             // If we can't parse the remaining content as an item, report
             // a missing parentheses
-            items.push(
-                Item::parse(parser).map_err(|_| ParseErrorKind::TokenExpected(Delim::end()))?,
-            );
+            items.push(Item::parse(parser).map_err(|_| ErrorKind::TokenExpected(Delim::end()))?);
             if !parser.consume_if_matches(TokenKind::Comma) {
                 parser.consume(Delim::end())?;
                 break;
@@ -480,5 +483,5 @@ macro_rules! impl_trivial_parse {
     };
 }
 
-impl_trivial_parse!(Ident, Ident, ParseErrorKind::IdentExpected);
-impl_trivial_parse!(Literal, Literal, ParseErrorKind::LiteralExpected);
+impl_trivial_parse!(Ident, Ident, ErrorKind::IdentExpected);
+impl_trivial_parse!(Literal, Literal, ErrorKind::LiteralExpected);

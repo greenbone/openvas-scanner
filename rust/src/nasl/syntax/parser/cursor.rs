@@ -1,6 +1,11 @@
 use crate::nasl::syntax::{Token, Tokenizer, TokenizerError, tokenizer::CharIndex};
 
-use super::error::ParseError;
+use super::error::SpannedError;
+
+pub trait Peek {
+    fn peek(&self) -> &Token;
+    fn peek_next(&self) -> &Token;
+}
 
 pub struct Cursor {
     tokenizer: Tokenizer,
@@ -20,8 +25,18 @@ fn next_token(tokenizer: &mut Tokenizer, errors: &mut Vec<TokenizerError>) -> To
     }
 }
 
+impl Peek for Cursor {
+    fn peek_next(&self) -> &Token {
+        &self.next
+    }
+
+    fn peek(&self) -> &Token {
+        &self.current
+    }
+}
+
 impl Cursor {
-    pub(crate) fn new(mut tokenizer: Tokenizer) -> Result<Self, ParseError> {
+    pub(crate) fn new(mut tokenizer: Tokenizer) -> Result<Self, SpannedError> {
         let mut errors = vec![];
         let current = next_token(&mut tokenizer, &mut errors);
         let next = next_token(&mut tokenizer, &mut errors);
@@ -32,14 +47,6 @@ impl Cursor {
             next,
             errors,
         })
-    }
-
-    pub fn peek_next(&self) -> &Token {
-        &self.next
-    }
-
-    pub(crate) fn peek(&self) -> &Token {
-        &self.current
     }
 
     pub fn advance(&mut self) -> Token {

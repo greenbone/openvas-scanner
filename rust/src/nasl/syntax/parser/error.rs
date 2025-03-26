@@ -6,19 +6,19 @@ use crate::nasl::{
 };
 
 #[derive(Debug)]
-pub struct ParseError {
-    pub kind: ParseErrorKind,
-    pub span: Span,
-}
-
-impl ParseErrorKind {
-    pub fn to_error(self, span: Span) -> ParseError {
-        ParseError { span, kind: self }
-    }
+pub(super) struct Error {
+    pub kind: ErrorKind,
+    pub span: Option<Span>,
 }
 
 #[derive(Debug)]
-pub enum ParseErrorKind {
+pub struct SpannedError {
+    pub kind: ErrorKind,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub enum ErrorKind {
     TokenExpected(TokenKind),
     ExpressionExpected,
     EofExpected,
@@ -31,41 +31,70 @@ pub enum ParseErrorKind {
     Tokenizer(TokenizerErrorKind),
 }
 
-impl Display for ParseErrorKind {
+impl Error {
+    pub fn unwrap_as_spanned(self) -> SpannedError {
+        SpannedError {
+            kind: self.kind,
+            span: self.span.unwrap(),
+        }
+    }
+
+    /// Add the given span only if no span is present.
+    pub fn add_span(self, span: Span) -> Error {
+        Self {
+            kind: self.kind,
+            span: Some(self.span.unwrap_or(span)),
+        }
+    }
+}
+
+impl ErrorKind {
+    pub fn to_error(self, span: Span) -> SpannedError {
+        SpannedError { span, kind: self }
+    }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Self {
+        Error { kind, span: None }
+    }
+}
+
+impl Display for ErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseErrorKind::ExpressionExpected => write!(f, "Expected expression"),
-            ParseErrorKind::EofExpected => write!(f, "Expected end of file"),
-            ParseErrorKind::UnexpectedKeyword(kw) => write!(f, "Unexpected keyword {kw:?}"),
-            ParseErrorKind::IdentExpected => write!(f, "Expected identifier."),
-            ParseErrorKind::LiteralExpected => write!(f, "Expected literal."),
-            ParseErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{}'", token_kind),
-            ParseErrorKind::ExpectedAssignmentOperator => {
+            ErrorKind::ExpressionExpected => write!(f, "Expected expression"),
+            ErrorKind::EofExpected => write!(f, "Expected end of file"),
+            ErrorKind::UnexpectedKeyword(kw) => write!(f, "Unexpected keyword {kw:?}"),
+            ErrorKind::IdentExpected => write!(f, "Expected identifier."),
+            ErrorKind::LiteralExpected => write!(f, "Expected literal."),
+            ErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{}'", token_kind),
+            ErrorKind::ExpectedAssignmentOperator => {
                 write!(f, "Expected assignment operator (=, +=, -=, ...)")
             }
-            ParseErrorKind::ExpectedUnaryOperator => {
+            ErrorKind::ExpectedUnaryOperator => {
                 write!(f, "Expected unary operator (!, -)")
             }
-            ParseErrorKind::ExpectedBinaryOperator => {
+            ErrorKind::ExpectedBinaryOperator => {
                 write!(f, "Expected binary operator (+, -, *, /, ...)")
             }
-            ParseErrorKind::Tokenizer(e) => {
+            ErrorKind::Tokenizer(e) => {
                 write!(f, "Error during tokenization: {e}")
             }
         }
     }
 }
 
-impl From<TokenizerError> for ParseError {
+impl From<TokenizerError> for SpannedError {
     fn from(e: TokenizerError) -> Self {
         Self {
-            kind: ParseErrorKind::Tokenizer(e.kind),
+            kind: ErrorKind::Tokenizer(e.kind),
             span: e.span,
         }
     }
 }
 
-impl AsCodespanError for ParseError {
+impl AsCodespanError for SpannedError {
     fn span(&self) -> Span {
         self.span.clone()
     }

@@ -1,6 +1,6 @@
 use std::vec;
 
-use super::{ParseErrorKind, Parser};
+use super::{ErrorKind, Parser, cursor::Peek, error::Error};
 use crate::nasl::syntax::token::{Ident, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
@@ -209,7 +209,7 @@ macro_rules! make_operator {
         }
 
         impl super::Parse for $ty {
-            fn parse(parser: &mut Parser) -> Result<$ty, ParseErrorKind> {
+            fn parse(parser: &mut Parser) -> Result<$ty, Error> {
                 parser.consume_pat(Self::convert, $err)
             }
         }
@@ -225,7 +225,7 @@ macro_rules! make_operator {
 
 make_operator! {
     UnaryPrefixOperator,
-    ParseErrorKind::ExpectedUnaryOperator,
+    ErrorKind::ExpectedUnaryOperator,
     (
         Minus,
         Bang,
@@ -238,7 +238,7 @@ make_operator! {
 
 make_operator! {
     UnaryPostfixOperator,
-    ParseErrorKind::ExpectedUnaryOperator,
+    ErrorKind::ExpectedUnaryOperator,
     (
         PlusPlus,
         MinusMinus,
@@ -247,7 +247,7 @@ make_operator! {
 
 make_operator! {
     AssignmentOperator,
-    ParseErrorKind::ExpectedAssignmentOperator,
+    ErrorKind::ExpectedAssignmentOperator,
     (
         Equal,
         MinusEqual,
@@ -264,7 +264,7 @@ make_operator! {
 
 make_operator! {
     BinaryOperator,
-    ParseErrorKind::ExpectedBinaryOperator,
+    ErrorKind::ExpectedBinaryOperator,
     (
         Plus,
         Minus,

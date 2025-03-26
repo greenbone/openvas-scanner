@@ -7,15 +7,17 @@ use crate::nasl::{
     syntax::{Tokenizer, parser::grammar::Expr},
 };
 
-use super::{Parse, Parser, error::ParseError, grammar::Stmt};
+use super::{Parse, Parser, error::SpannedError, grammar::Stmt};
 
 // TODO incorporate into `Code` eventually.
-fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, ParseError> {
+fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
     let code = Code::from_string_fake_filename(code, file_name)
         .code()
         .to_string();
     let tokenizer = Tokenizer::tokenize(&code);
-    Parser::new(tokenizer).parse::<T>()
+    Parser::new(tokenizer)
+        .parse_span::<T>()
+        .map_err(|e| e.unwrap_as_spanned())
 }
 
 fn parse_program_ok(file_name: &str, code: &str) -> Vec<Stmt> {
@@ -259,6 +261,8 @@ parse_test_ok!(block, Program, "{ a; }");
 parse_test_ok!(block_empty, Program, "{ }");
 parse_test_ok!(block_multiple_stmts, Program, "{ a; b; c; }");
 parse_test_ok!(nested_blocks, Program, "{ a; { b; c; } }");
+parse_test_err!(error_in_block, Program, "{ a =3; b=; }");
+
 parse_test_ok!(include, Program, "include(\"test.inc\");");
 
 parse_test_ok!(function_declaration, Program, "function a(b) {c;}");
