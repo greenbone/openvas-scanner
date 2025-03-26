@@ -6,15 +6,18 @@
 //!
 //! All known paths must be handled in the entrypoint function.
 
+use core::str;
 use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use super::{ClientIdentifier, context::Context};
 
 use http::StatusCode;
 use hyper::{Method, Request};
+use regex::Regex;
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 use scannerlib::models::{Action, Phase, Scan, ScanAction, scanner::*};
 use scannerlib::notus::NotusError;
+use tokio::process::Command;
 
 use crate::{
     config,
@@ -24,6 +27,9 @@ use crate::{
     storage::{NVTStorer as _, ProgressGetter as _, ScanIDClientMapper as _, ScanStorer as _},
 };
 
+const PERFORMANCE_TITLES: &str = r"(cpu-.*)|(proc)|(mem)|(swap)|(load)|(df-.*)|(disk-sd[a-z][0-9]-rw)|(disk-sd[a-z][0-9]-load)|(disk-sd[a-z][0-9]-io-load)|(interface-eth.*-traffic)|(interface-eth.*-err-rate)|(interface-eth.*-err)|(sensors-.*_temperature-.*)|(sensors-.*_fanspeed-.*)|(sensors-.*_voltage-.*)|(titles)";
+const PERFORMANCE_TITLES_FORBIDDEN: &str = r"^[^|&;]+$";
+
 #[derive(PartialEq, Eq)]
 enum HealthOpts {
     /// Ready
@@ -32,6 +38,8 @@ enum HealthOpts {
     Started,
     /// Alive
     Alive,
+    /// Performance
+    Performance,
 }
 /// The supported paths of openvasd
 // TODO: change KnownPath to reflect query parameter
@@ -107,6 +115,7 @@ impl KnownPaths {
                 Some("ready") => KnownPaths::Health(HealthOpts::Ready),
                 Some("alive") => KnownPaths::Health(HealthOpts::Alive),
                 Some("started") => KnownPaths::Health(HealthOpts::Started),
+                Some("performance") => KnownPaths::Health(HealthOpts::Performance),
                 _ => KnownPaths::Unknown,
             },
             _ => {
@@ -142,6 +151,7 @@ impl Display for KnownPaths {
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),
             KnownPaths::Health(HealthOpts::Started) => write!(f, "/health/started"),
+            KnownPaths::Health(HealthOpts::Performance) => write!(f, "/health/performance"),
             KnownPaths::ScanPreferences => write!(f, "/scans/preferences"),
         }
     }
@@ -194,6 +204,11 @@ where
             // on head requests we just return an empty response, except for /scans
             if req.method() == Method::HEAD && kp != KnownPaths::Scans(None) {
                 return Ok(ctx.response.empty(StatusCode::OK));
+            }
+            if kp == KnownPaths::Health(HealthOpts::Performance) && !&ctx.enable_get_performance {
+                return Ok(ctx
+                    .response
+                    .not_found("entrypoint disable:", req.uri().path()));
             }
             let cid: Option<ClientHash> = {
                 match &*cid {
@@ -269,6 +284,81 @@ where
                         Ok(ctx.response.empty(StatusCode::SERVICE_UNAVAILABLE))
                     } else {
                         Ok(ctx.response.empty(StatusCode::OK))
+                    }
+                }
+                (&Method::GET, Health(HealthOpts::Performance)) => {
+                    let query = req.uri().query();
+                    if query.is_none() {
+                        return Ok(ctx.response.bad_request("Bogus GET performance format"));
+                    }
+
+                    let mut child = Command::new("gvmcg");
+                    let query_parts = query.unwrap().split("&");
+                    let mut t = "";
+                    let mut start = "";
+                    let mut end = "";
+
+                    let re_titles = Regex::new(PERFORMANCE_TITLES).unwrap();
+                    let re_forbidden = Regex::new(PERFORMANCE_TITLES_FORBIDDEN).unwrap();
+                    for p in query_parts {
+                        let keyval = p.split("=").collect::<Vec<&str>>();
+                        if keyval.len() < 2 {
+                            return Ok(ctx.response.bad_request("Bogus GET performance format"));
+                        }
+                        match keyval[0] {
+                            "start" => {
+                                start = match keyval[1].parse::<i64>() {
+                                    Ok(_) => keyval[1],
+                                    Err(_) => {
+                                        return Ok(ctx.response.bad_request(
+                                            "Bogus GET performance format. Invalid start value",
+                                        ));
+                                    }
+                                };
+                            }
+                            "end" => {
+                                end = match keyval[1].parse::<i64>() {
+                                    Ok(_) => keyval[1],
+                                    Err(_) => {
+                                        return Ok(ctx.response.bad_request(
+                                            "Bogus GET performance format. Invalid end value",
+                                        ));
+                                    }
+                                };
+                            }
+                            "titles" => {
+                                if re_titles.is_match(keyval[1]) && re_forbidden.is_match(keyval[1])
+                                {
+                                    t = keyval[1];
+                                } else {
+                                    return Ok(ctx.response.bad_request(
+                                        "Bogus GET performance format. Argument not allowed",
+                                    ));
+                                };
+                            }
+                            _ => {
+                                return Ok(ctx.response.bad_request("Bogus GET performance format"));
+                            }
+                        };
+                    }
+                    if !start.is_empty() {
+                        child.arg(start);
+                    }
+                    if !end.is_empty() {
+                        child.arg(end);
+                    }
+
+                    let child = child.arg(t).output();
+                    match child.await {
+                        Ok(output) if output.status.success() => {
+                            let text_base64 =
+                                vec![String::from_utf8_lossy(&output.stdout).replace('\n', "")];
+                            Ok(ctx.response.ok(&text_base64))
+                        }
+                        Ok(output) => Ok(ctx
+                            .response
+                            .bad_request(str::from_utf8(&output.stderr).unwrap())),
+                        Err(output) => Ok(ctx.response.internal_server_error(&output)),
                     }
                 }
                 (&Method::GET, Notus(None)) => match &ctx.notus {
@@ -729,6 +819,7 @@ pub mod client {
         let scanner = scannerlib::scanner::Scanner::with_storage(store.clone(), &nasl_feed_path);
         Client::authenticated(scanner, store)
     }
+
     impl<S, DB> Client<S, DB>
     where
         S: Scanner + 'static + std::marker::Send + std::marker::Sync,
