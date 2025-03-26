@@ -4,11 +4,13 @@ pub mod grammar;
 #[cfg(test)]
 mod tests;
 
-use cursor::{Cursor, Peek};
+use cursor::Cursor;
+use cursor::Peek;
 pub use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
 use error::{Error, ErrorKind};
+use grammar::Repeat;
 
 use crate::nasl::error::Span;
 
@@ -30,8 +32,8 @@ pub(self) trait Matches: Sized {
     fn matches(p: &impl Peek) -> bool;
 }
 
-pub trait PeekParse: Sized {
-    fn peek_parse(parser: &Parser) -> Option<Self>;
+pub(self) trait FromPeek: Sized {
+    fn from_peek(p: &impl Peek) -> Option<Self>;
 }
 
 trait Delimiter: Default {
@@ -186,6 +188,8 @@ impl Parse for Stmt {
             Ok(Stmt::FnDecl(parser.parse()?))
         } else if parser.token_matches(TokenKind::Keyword(Keyword::While)) {
             Ok(Stmt::While(parser.parse()?))
+        } else if parser.token_matches(TokenKind::Keyword(Keyword::Repeat)) {
+            Ok(Stmt::Repeat(parser.parse()?))
         } else if parser.token_matches(TokenKind::LeftBrace) {
             Ok(Stmt::Block(parser.parse()?))
         } else if parser.token_matches(TokenKind::Keyword(Keyword::Return)) {
@@ -307,6 +311,30 @@ impl Parse for While {
     }
 }
 
+impl Parse for Repeat {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::Repeat))?;
+        let block = parser.parse::<OptionalBlock<_>>()?;
+        // If we parse a single stmt and the {} are omitted,
+        // then the semicolon is parsed as part of the single
+        // statement, so we don't check for another one.
+        if matches!(block, OptionalBlock::Block(_)) {
+            parser.consume_if_matches(TokenKind::Semicolon);
+        }
+        parser.consume(TokenKind::Keyword(Keyword::Until))?;
+        let has_paren = parser.consume_if_matches(TokenKind::LeftParen);
+        let condition = parser.parse()?;
+        if has_paren {
+            parser.consume(TokenKind::RightParen)?;
+        }
+        parser.consume(TokenKind::Semicolon)?;
+        Ok(Repeat {
+            condition,
+            block: block.into(),
+        })
+    }
+}
+
 impl Parse for Expr {
     fn parse(parser: &mut Parser) -> Result<Expr> {
         pratt_parse_expr(parser, 0)
@@ -343,7 +371,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             break;
         }
 
-        if let Some(op) = UnaryPostfixOperator::peek_parse(parser) {
+        if let Some(op) = parser.peek_parse::<UnaryPostfixOperator>() {
             let l_bp = op.left_binding_power();
             if l_bp < min_bp {
                 break;
@@ -355,7 +383,8 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             });
             continue;
         }
-        let op = BinaryOperator::peek_parse(parser)
+        let op = parser
+            .peek_parse::<BinaryOperator>()
             .ok_or_else(|| ErrorKind::TokenExpected(TokenKind::Semicolon))?;
         let (l_bp, r_bp) = op.binding_power();
         if l_bp < min_bp {

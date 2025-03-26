@@ -1,8 +1,8 @@
 use crate::nasl::syntax::{Token, TokenKind, Tokenizer, TokenizerError, tokenizer::CharIndex};
 
-use super::{Matches, error::SpannedError};
+use super::{FromPeek, Matches, error::SpannedError};
 
-pub trait Peek: Sized {
+pub(super) trait Peek: Sized {
     fn peek(&self) -> &TokenKind;
     fn peek_next(&self) -> &TokenKind;
 
@@ -27,6 +27,10 @@ pub trait Peek: Sized {
 
     fn next_token_matches(&self, kind: TokenKind) -> bool {
         self.peek_next() == &kind
+    }
+
+    fn peek_parse<T: FromPeek>(&self) -> Option<T> {
+        T::from_peek(self)
     }
 }
 

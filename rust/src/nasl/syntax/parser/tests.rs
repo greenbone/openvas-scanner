@@ -280,13 +280,25 @@ parse_test_ok!(while_loop_block, Program, "while (a) { b; d = 3; }");
 parse_test_ok!(break_while, Program, "while (a) { b = 2; break; }");
 parse_test_ok!(continue_while, Program, "while (a) { b = 2; continue; }");
 
+parse_test_ok!(repeat_loop, Program, "repeat a; until (b);");
+parse_test_ok!(repeat_loop_block, Program, "repeat { a; b; }; until (c);");
+parse_test_ok!(
+    repeat_loop_block_no_semicolon,
+    Program,
+    "repeat { a; b; } until (c);"
+);
+// TODO: The grammar document specifies this otherwise, but the
+// previous tests declared this ok
+parse_test_ok!(
+    repeat_loop_no_parentheses,
+    Program,
+    "repeat { a; b; } until c;"
+);
+
 parse_test_ok!(declare_local_var, Program, "local_var a;");
 parse_test_ok!(declare_global_var, Program, "global_var a;");
 
 // parse_test_ok!(array_assignment, Program, "a[1] = 3;");
-// parse_test_ok!(parameter, Program, "[a, b];");
-// parse_test_ok!(named_parameter, Program, "a: b;");
-// parse_test_ok!(repeat, Program, "repeat a; until b;");
 // parse_test_ok!(foreach, Program, "foreach a(b) c;");
 // parse_test_ok!(
 //     change_to_peek,

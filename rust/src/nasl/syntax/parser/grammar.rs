@@ -58,6 +58,7 @@ pub enum Stmt {
     ExprStmt(Expr),
     Block(Block<Stmt>),
     While(While),
+    Repeat(Repeat),
     Include(Include),
     Return(Return),
     Break,
@@ -106,6 +107,12 @@ pub struct Block<T> {
 pub struct While {
     pub condition: Expr,
     pub block: Block<Stmt>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Repeat {
+    pub block: Block<Stmt>,
+    pub condition: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -191,27 +198,15 @@ macro_rules! make_operator {
             )*
         }
 
-        impl $ty {
-            fn convert(kind: &TokenKind) -> Option<Self> {
-                match kind {
-                    $(
-                        TokenKind::$pat => Some(Self::$pat),
-                    )*
-                    _ => None,
-                }
-            }
-        }
-
         impl super::Matches for $ty {
             fn matches(p: &impl Peek) -> bool {
-                Self::convert(p.peek()).is_some()
+                p.peek_parse::<Self>().is_some()
             }
         }
 
         impl super::Parse for $ty {
             fn parse(parser: &mut Parser) -> Result<$ty, Error> {
-                let kind = parser.peek();
-                let converted = Self::convert(&kind);
+                let converted = parser.peek_parse::<Self>();
                 if converted.is_some() {
                     parser.advance();
                 }
@@ -219,9 +214,15 @@ macro_rules! make_operator {
             }
         }
 
-        impl super::PeekParse for $ty {
-            fn peek_parse(parser: &Parser) -> Option<Self> {
-                Self::convert(&parser.peek())
+        impl super::FromPeek for $ty {
+            fn from_peek(p: &impl Peek) -> Option<Self> {
+                let kind = p.peek();
+                match kind {
+                    $(
+                        TokenKind::$pat => Some(Self::$pat),
+                    )*
+                    _ => None,
+                }
             }
         }
 

@@ -1,0 +1,39 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (repeat_loop_no_parentheses),\n\"repeat { a; b; } until c;\")"
+---
+[
+    Repeat(
+        Repeat {
+            block: Block {
+                items: [
+                    ExprStmt(
+                        Atom(
+                            Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                        ),
+                    ),
+                    ExprStmt(
+                        Atom(
+                            Ident(
+                                Ident(
+                                    "b",
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+            },
+            condition: Atom(
+                Ident(
+                    Ident(
+                        "c",
+                    ),
+                ),
+            ),
+        },
+    ),
+]
