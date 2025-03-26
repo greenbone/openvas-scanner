@@ -20,6 +20,14 @@ pub trait Peek: Sized {
         let lookahead = self.lookahead();
         lookahead.matches::<T>()
     }
+
+    fn token_matches(&self, kind: TokenKind) -> bool {
+        self.peek() == &kind
+    }
+
+    fn next_token_matches(&self, kind: TokenKind) -> bool {
+        self.peek_next() == &kind
+    }
 }
 
 pub struct Cursor {

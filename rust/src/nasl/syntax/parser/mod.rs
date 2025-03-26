@@ -57,6 +57,16 @@ pub struct Parser {
     cursor: Cursor,
 }
 
+impl Peek for Parser {
+    fn peek(&self) -> &TokenKind {
+        self.cursor.peek()
+    }
+
+    fn peek_next(&self) -> &TokenKind {
+        self.cursor.peek_next()
+    }
+}
+
 impl Parser {
     pub fn new(tokenizer: Tokenizer) -> Self {
         Self {
@@ -131,25 +141,8 @@ impl Parser {
         T::parse(self)
     }
 
-    fn matches<T: Matches>(&self) -> bool {
-        T::matches(&self.cursor)
-    }
-
-    fn matches_next<T: Matches>(&self) -> bool {
-        let lookahead = self.cursor.lookahead();
-        T::matches(&lookahead)
-    }
-
     fn advance(&mut self) -> Token {
         self.cursor.advance()
-    }
-
-    fn matches_token(&mut self, expected: TokenKind) -> bool {
-        self.peek() == &expected
-    }
-
-    fn next_matches_token(&mut self, expected: TokenKind) -> bool {
-        self.peek_next() == &expected
     }
 
     fn consume_if_matches(&mut self, expected: TokenKind) -> bool {
@@ -178,14 +171,6 @@ impl Parser {
         }
     }
 
-    fn peek(&self) -> &TokenKind {
-        self.cursor.peek()
-    }
-
-    fn peek_next(&self) -> &TokenKind {
-        self.cursor.peek_next()
-    }
-
     fn is_at_end(&self) -> bool {
         self.peek() == &TokenKind::Eof
     }
@@ -193,21 +178,19 @@ impl Parser {
 
 impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Stmt> {
-        if parser.matches::<Ident>() && parser.matches_next::<AssignmentOperator>() {
+        if parser.matches::<VarDecl>() {
             Ok(Stmt::VarDecl(parser.parse()?))
-        } else if parser.matches_token(TokenKind::Keyword(Keyword::LocalVar))
-            || parser.matches_token(TokenKind::Keyword(Keyword::GlobalVar))
-        {
+        } else if parser.matches::<VarScope>() {
             Ok(Stmt::VarScopeDecl(parser.parse()?))
-        } else if parser.matches_token(TokenKind::Keyword(Keyword::Function)) {
+        } else if parser.token_matches(TokenKind::Keyword(Keyword::Function)) {
             Ok(Stmt::FnDecl(parser.parse()?))
-        } else if parser.matches_token(TokenKind::Keyword(Keyword::While)) {
+        } else if parser.token_matches(TokenKind::Keyword(Keyword::While)) {
             Ok(Stmt::While(parser.parse()?))
-        } else if parser.matches_token(TokenKind::LeftBrace) {
+        } else if parser.token_matches(TokenKind::LeftBrace) {
             Ok(Stmt::Block(parser.parse()?))
-        } else if parser.matches_token(TokenKind::Keyword(Keyword::Return)) {
+        } else if parser.token_matches(TokenKind::Keyword(Keyword::Return)) {
             Ok(Stmt::Return(parser.parse()?))
-        } else if parser.matches_token(TokenKind::Keyword(Keyword::Include)) {
+        } else if parser.token_matches(TokenKind::Keyword(Keyword::Include)) {
             Ok(Stmt::Include(parser.parse()?))
         } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
             parser.consume(TokenKind::Semicolon)?;
@@ -241,7 +224,7 @@ impl<T: Parse> Parse for Block<T> {
 
 impl<T: Parse> Parse for OptionalBlock<T> {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        if parser.matches_token(TokenKind::LeftBrace) {
+        if parser.token_matches(TokenKind::LeftBrace) {
             Ok(OptionalBlock::Block(parser.parse()?))
         } else {
             // Parse omitted {}: Only a single T is allowed
@@ -283,12 +266,7 @@ impl Parse for VarDecl {
 
 impl Parse for VarScopeDecl {
     fn parse(parser: &mut Parser) -> Result<VarScopeDecl> {
-        let scope = if parser.consume_if_matches(TokenKind::Keyword(Keyword::LocalVar)) {
-            VarScope::Local
-        } else {
-            parser.consume(TokenKind::Keyword(Keyword::GlobalVar))?;
-            VarScope::Global
-        };
+        let scope = parser.parse()?;
         let ident = parser.parse()?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(VarScopeDecl { ident, scope })
@@ -398,7 +376,7 @@ impl Parse for Atom {
     fn parse(parser: &mut Parser) -> Result<Self> {
         if parser.matches::<Literal>() {
             Ok(Atom::Literal(parser.parse().unwrap()))
-        } else if parser.matches_token(TokenKind::LeftBracket) {
+        } else if parser.token_matches(TokenKind::LeftBracket) {
             Ok(Atom::Array(parser.parse()?))
         } else {
             let ident = parser.parse()?;
@@ -406,7 +384,7 @@ impl Parse for Atom {
                 let index_expr = Box::new(parser.parse()?);
                 parser.consume(TokenKind::RightBracket)?;
                 Ok(Atom::ArrayAccess(ArrayAccess { index_expr, ident }))
-            } else if parser.matches_token(TokenKind::LeftParen) {
+            } else if parser.token_matches(TokenKind::LeftParen) {
                 Ok(Atom::FnCall(FnCall {
                     fn_name: ident,
                     args: parser.parse()?,
@@ -452,7 +430,7 @@ impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
 
 impl Parse for FnArg {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        if parser.matches::<Ident>() && parser.next_matches_token(TokenKind::DoublePoint) {
+        if parser.matches::<Ident>() && parser.next_token_matches(TokenKind::DoublePoint) {
             let ident = parser.parse()?;
             parser.consume(TokenKind::DoublePoint)?;
             let expr = Box::new(parser.parse()?);
@@ -499,3 +477,37 @@ macro_rules! impl_trivial_parse {
 
 impl_trivial_parse!(Ident, Ident, ErrorKind::IdentExpected);
 impl_trivial_parse!(Literal, Literal, ErrorKind::LiteralExpected);
+
+macro_rules! impl_multi_token_parse {
+    ($ty: ty, ($($kind: expr => $expr: expr),*$(,)?)) => {
+        impl Parse for $ty {
+            fn parse(parser: &mut Parser) -> Result<Self> {
+                $(
+                    if parser.consume_if_matches($kind) {
+                        return Ok($expr);
+                    }
+                )*
+                Err(ParseErrorKind::TokensExpected(vec![
+                    $( $kind ),*
+                ]).into())
+            }
+        }
+
+        impl Matches for $ty {
+            fn matches(p: &impl Peek) -> bool {
+                let kind = p.peek();
+                $(
+                    if *kind == $kind {
+                        return true
+                    }
+                )*
+                false
+            }
+        }
+    }
+}
+
+impl_multi_token_parse!(VarScope, (
+    TokenKind::Keyword(Keyword::LocalVar) => Self::Local,
+    TokenKind::Keyword(Keyword::GlobalVar) => Self::Global,
+));

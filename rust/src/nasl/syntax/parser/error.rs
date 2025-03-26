@@ -19,6 +19,7 @@ pub struct SpannedError {
 
 #[derive(Debug)]
 pub enum ErrorKind {
+    TokensExpected(Vec<TokenKind>),
     TokenExpected(TokenKind),
     ExpressionExpected,
     EofExpected,
@@ -69,6 +70,15 @@ impl Display for ErrorKind {
             ErrorKind::IdentExpected => write!(f, "Expected identifier."),
             ErrorKind::LiteralExpected => write!(f, "Expected literal."),
             ErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{}'", token_kind),
+            ErrorKind::TokensExpected(token_kinds) => write!(
+                f,
+                "Expected one of '{}'",
+                token_kinds
+                    .into_iter()
+                    .map(|k| k.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
             ErrorKind::ExpectedAssignmentOperator => {
                 write!(f, "Expected assignment operator (=, +=, -=, ...)")
             }
