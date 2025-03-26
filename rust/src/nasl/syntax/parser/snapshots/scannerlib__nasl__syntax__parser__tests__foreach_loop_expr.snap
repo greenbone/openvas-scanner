@@ -1,0 +1,67 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (foreach_loop_expr),\n\"foreach a ([1, 2, 3]) { c; d; }\")"
+---
+[
+    Foreach(
+        Foreach {
+            var: Ident(
+                "a",
+            ),
+            array: Atom(
+                Array(
+                    Array {
+                        items: CommaSeparated {
+                            items: [
+                                Atom(
+                                    Literal(
+                                        Number(
+                                            1,
+                                        ),
+                                    ),
+                                ),
+                                Atom(
+                                    Literal(
+                                        Number(
+                                            2,
+                                        ),
+                                    ),
+                                ),
+                                Atom(
+                                    Literal(
+                                        Number(
+                                            3,
+                                        ),
+                                    ),
+                                ),
+                            ],
+                            delimiter: Bracket,
+                        },
+                    },
+                ),
+            ),
+            block: Block {
+                items: [
+                    ExprStmt(
+                        Atom(
+                            Ident(
+                                Ident(
+                                    "c",
+                                ),
+                            ),
+                        ),
+                    ),
+                    ExprStmt(
+                        Atom(
+                            Ident(
+                                Ident(
+                                    "d",
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+            },
+        },
+    ),
+]

@@ -10,6 +10,7 @@ pub use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
 use error::{Error, ErrorKind};
+use grammar::Foreach;
 use grammar::Repeat;
 
 use crate::nasl::error::Span;
@@ -190,6 +191,8 @@ impl Parse for Stmt {
             Ok(Stmt::While(parser.parse()?))
         } else if parser.token_matches(TokenKind::Keyword(Keyword::Repeat)) {
             Ok(Stmt::Repeat(parser.parse()?))
+        } else if parser.token_matches(TokenKind::Keyword(Keyword::ForEach)) {
+            Ok(Stmt::Foreach(parser.parse()?))
         } else if parser.token_matches(TokenKind::LeftBrace) {
             Ok(Stmt::Block(parser.parse()?))
         } else if parser.token_matches(TokenKind::Keyword(Keyword::Return)) {
@@ -332,6 +335,18 @@ impl Parse for Repeat {
             condition,
             block: block.into(),
         })
+    }
+}
+
+impl Parse for Foreach {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::ForEach))?;
+        let var = parser.parse()?;
+        parser.consume(TokenKind::LeftParen)?;
+        let array = parser.parse()?;
+        parser.consume(TokenKind::RightParen)?;
+        let block = parser.parse::<OptionalBlock<_>>()?.into();
+        Ok(Foreach { array, block, var })
     }
 }
 

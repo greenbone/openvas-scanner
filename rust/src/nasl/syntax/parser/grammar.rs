@@ -59,6 +59,7 @@ pub enum Stmt {
     Block(Block<Stmt>),
     While(While),
     Repeat(Repeat),
+    Foreach(Foreach),
     Include(Include),
     Return(Return),
     Break,
@@ -113,6 +114,13 @@ pub struct While {
 pub struct Repeat {
     pub block: Block<Stmt>,
     pub condition: Expr,
+}
+
+#[derive(Clone, Debug)]
+pub struct Foreach {
+    pub var: Ident,
+    pub array: Expr,
+    pub block: Block<Stmt>,
 }
 
 #[derive(Clone, Debug)]

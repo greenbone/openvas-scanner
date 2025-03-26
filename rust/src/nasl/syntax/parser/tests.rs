@@ -295,11 +295,18 @@ parse_test_ok!(
     "repeat { a; b; } until c;"
 );
 
+parse_test_ok!(foreach_loop, Program, "foreach a(b) { c; d; }");
+parse_test_ok!(foreach_loop_single_stmt, Program, "foreach a(b) c;");
+parse_test_ok!(
+    foreach_loop_expr,
+    Program,
+    "foreach a ([1, 2, 3]) { c; d; }"
+);
+
 parse_test_ok!(declare_local_var, Program, "local_var a;");
 parse_test_ok!(declare_global_var, Program, "global_var a;");
 
 // parse_test_ok!(array_assignment, Program, "a[1] = 3;");
-// parse_test_ok!(foreach, Program, "foreach a(b) c;");
 // parse_test_ok!(
 //     change_to_peek,
 //     Program,
