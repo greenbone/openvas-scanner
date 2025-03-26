@@ -2241,11 +2241,8 @@ fn forge_ip_v6_packet(
     ip6_src: Option<Ipv6Addr>,
     ip6_dst: Option<Ipv6Addr>,
 ) -> Result<NaslValue, FnError> {
-    let mut dst_addr = get_host_ip(configs)?;
-
-    if dst_addr.is_ipv4() && dst_addr.is_loopback() {
-        dst_addr = IpAddr::V6(Ipv6Addr::from_str("::1").unwrap());
-    } else if !dst_addr.is_ipv6() {
+    let dst_addr = get_host_ip(configs)?;
+    if !dst_addr.is_ipv6() {
         return Err(FnError::wrong_unnamed_argument(
             "IPv6",
             "forge_ip_v6_packet: No valid dst_addr could be determined via call to get_host_ip()",
