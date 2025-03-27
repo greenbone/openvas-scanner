@@ -303,6 +303,9 @@ parse_test_ok!(
     "foreach a ([1, 2, 3]) { c; d; }"
 );
 
+parse_test_ok!(for_loop, Program, "for (i = 0; i < 10; i++) a;");
+parse_test_ok!(for_loop_single_stmt, Program, "for (i = 0; i < 10; i++) { a; b; }");
+
 parse_test_ok!(declare_local_var, Program, "local_var a;");
 parse_test_ok!(declare_global_var, Program, "global_var a;");
 
@@ -314,7 +317,6 @@ parse_test_ok!(declare_global_var, Program, "global_var a;");
 // );
 // parse_test_ok!(exit, Program, "exit(0);");
 // parse_test_ok!(if_stmt, Program, "if (a) b; else c;");
-// parse_test_ok!(for_stmt, Program, "for (i = 0; i < 10; i++) a;");
 // parse_test_ok!(
 //     position,
 //     Program,

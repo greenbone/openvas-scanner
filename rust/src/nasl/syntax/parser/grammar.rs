@@ -124,6 +124,14 @@ pub struct Foreach {
 }
 
 #[derive(Clone, Debug)]
+pub struct For {
+    pub init_stmt: Stmt,
+    pub condition: Expr,
+    pub advance_stmt: Stmt,
+    pub block: Block<Stmt>,
+}
+
+#[derive(Clone, Debug)]
 pub struct Include {
     pub path: Literal,
 }

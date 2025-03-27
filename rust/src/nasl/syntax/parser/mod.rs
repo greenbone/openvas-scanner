@@ -10,6 +10,7 @@ pub use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
 use error::{Error, ErrorKind};
+use grammar::For;
 use grammar::Foreach;
 use grammar::Repeat;
 
@@ -347,6 +348,25 @@ impl Parse for Foreach {
         parser.consume(TokenKind::RightParen)?;
         let block = parser.parse::<OptionalBlock<_>>()?.into();
         Ok(Foreach { array, block, var })
+    }
+}
+
+impl Parse for For {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::For))?;
+        parser.consume(TokenKind::LeftParen)?;
+        let init_stmt = parser.parse()?;
+        let condition = parser.parse()?;
+        parser.consume(TokenKind::Semicolon)?;
+        let advance_stmt = parser.parse()?;
+        parser.consume(TokenKind::RightParen)?;
+        let block = parser.parse::<OptionalBlock<_>>()?.into();
+        Ok(For {
+            init_stmt,
+            condition,
+            advance_stmt,
+            block,
+        })
     }
 }
 
