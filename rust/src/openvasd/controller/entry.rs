@@ -337,7 +337,9 @@ where
                                 };
                             }
                             _ => {
-                                return Ok(ctx.response.bad_request("Bogus GET performance format"));
+                                return Ok(ctx
+                                    .response
+                                    .bad_request("Bogus GET performance format"));
                             }
                         };
                     }
