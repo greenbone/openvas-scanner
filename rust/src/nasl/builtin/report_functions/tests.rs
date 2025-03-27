@@ -20,8 +20,7 @@ mod tests {
         "###
         ));
         t.check_no_errors();
-        let results = t.results();
-        let context = t.context();
+        let (results, context) = t.results_and_context();
         let get_result = |index| {
             context
                 .storage()
