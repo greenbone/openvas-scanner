@@ -5,7 +5,8 @@ on: [workflow_call]
 jobs:
   C:
     runs-on: self-hosted-generic
-    container: greenbone/gvm-libs:stable
+    container:
+      image: registry.community.greenbone.net/community/gvm-libs:stable
     steps:
       - uses: actions/checkout@v4
       - name: install dependencies
