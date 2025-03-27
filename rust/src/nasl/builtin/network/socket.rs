@@ -106,14 +106,14 @@ impl NaslSocket {
     pub fn read_with_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> io::Result<usize> {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.read_with_timeout(buf, timeout),
-            NaslSocket::Udp(udp_connetion) => udp_connetion.read_with_timeout(buf, timeout),
+            NaslSocket::Udp(udp_connection) => udp_connection.read_with_timeout(buf, timeout),
         }
     }
 
     pub fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.read(buf),
-            NaslSocket::Udp(udp_connetion) => udp_connetion.read(buf),
+            NaslSocket::Udp(udp_connection) => udp_connection.read(buf),
         }
     }
 }
