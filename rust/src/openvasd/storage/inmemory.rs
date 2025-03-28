@@ -146,6 +146,7 @@ where
                 to_remove.push(i);
             }
         }
+        to_remove.reverse();
         for i in to_remove {
             ids.remove(i);
         }
