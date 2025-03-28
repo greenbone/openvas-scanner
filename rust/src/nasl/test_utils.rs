@@ -398,6 +398,12 @@ where
         self
     }
 
+    /// Return a new `TestBuilder` with the given `target`.
+    pub fn with_target(mut self, target: String) -> Self {
+        self.target = target;
+        self
+    }
+
     /// Return a new `TestBuilder` with the given `Executor`.
     pub fn with_executor(mut self, executor: Executor) -> Self {
         self.context.functions = executor;

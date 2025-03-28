@@ -7,11 +7,16 @@ mod packet_forgery;
 pub mod raw_ip_utils;
 use std::io;
 
-use crate::nasl::utils::{IntoFunctionSet, NaslVars, StoredFunctionSet};
+use crate::nasl::{
+    FnError,
+    utils::{IntoFunctionSet, NaslVars, StoredFunctionSet},
+};
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;
-pub use packet_forgery::PacketForgeryError;
 use thiserror::Error;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Error)]
 pub enum RawIpError {
@@ -29,6 +34,31 @@ pub enum RawIpError {
     PacketForgery(PacketForgeryError),
 }
 
+#[derive(Debug, Error)]
+pub enum PacketForgeryError {
+    #[error("{0}")]
+    Custom(String),
+    #[error("Failed to parse socket address. {0}")]
+    ParseSocketAddr(std::net::AddrParseError),
+    #[error("Failed to send packet. {0}")]
+    SendPacket(std::io::Error),
+    #[error("Failed to create an Ipv4 packet from invalid buffer size.")]
+    CreateIpv4Packet,
+    #[error("Failed to create an Ipv6 packet from invalid buffer size.")]
+    CreateIpv6Packet,
+    #[error("Failed to create a TCP packet from invalid buffer size.")]
+    CreateTcpPacket,
+    #[error("Failed to create a UDP packet from invalid buffer size.")]
+    CreateUdpPacket,
+    #[error("Failed to create a ICMP packet from invalid buffer size.")]
+    CreateIcmpPacket,
+}
+
+impl From<PacketForgeryError> for FnError {
+    fn from(e: PacketForgeryError) -> Self {
+        RawIpError::PacketForgery(e).into()
+    }
+}
 pub struct RawIp;
 
 impl crate::nasl::utils::NaslVarDefiner for RawIp {
