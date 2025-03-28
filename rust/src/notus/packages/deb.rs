@@ -2,24 +2,93 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+//! This module contains regular expressions and functions to parse and compare deb packages.
+//! For more information about the deb package format see:
+//! https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
+
 use super::{Package, PackageVersion};
 use lazy_regex::{Lazy, Regex, lazy_regex};
 use std::cmp::Ordering;
 
 /// Used for parsing the full name of a deb package
 static RE: Lazy<Regex> = lazy_regex!(
-    r"^([a-z0-9](?:[a-z0-9+\-.])*)-(?:(\d*):)?(\d[[:alnum:]+\-.~]*)(?:-([[:alnum:]+\-.~]*))$"
+    r"^(?x)
+    (?P<name>
+        [a-z0-9]
+        (?:[a-z0-9+\-.])*
+    )
+    -
+    (?:
+        (?P<epoch>
+            \d*
+        )
+        :
+    )?
+    (?P<upstream>
+        \d
+        [[:alnum:]+\-.~]*
+    )
+    -
+    (?P<revision>
+        [[:alnum:]+.~]*
+    )
+    $"
 );
-/// Used for parsing the full name of a deb package without revision
-static RE_WO_REVISION: Lazy<Regex> =
-    lazy_regex!(r"^([a-z0-9](?:[a-z0-9+\-.])*)-(?:(\d*):)?(\d[[:alnum:]+\-.~]*)$");
+/// Used for parsing the full name of a deb package without revision. The reason to divide this into two regex is
+/// that an upstream version is not allowed to contain `-`, when the revision is not present.
+static RE_WO_REVISION: Lazy<Regex> = lazy_regex!(
+    r"^(?x)
+    (?P<name>
+        [a-z0-9]
+        (?:[a-z0-9+\-.])*
+    )
+    -
+    (?:
+        (?P<epoch>
+            \d*
+        )
+        :
+    )?
+    (?P<upstream>
+        \d[[:alnum:]+.~]*
+    )
+    $"
+);
 /// Used for parsing the full version of a deb package
-static RE_VERSION: Lazy<Regex> =
-    lazy_regex!(r"^(?:(\d*):)?(\d[[:alnum:]+\-.~]*)(?:-([[:alnum:]+\-.~]*))$");
-/// Used for parsing the full version of a deb package without revision
-static RE_VERSION_WO_REVISION: Lazy<Regex> = lazy_regex!(r"^(?:(\d*):)?(\d[[:alnum:]+\-.~]*)$");
+static RE_VERSION: Lazy<Regex> = lazy_regex!(
+    r"^(?x)
+    (?:
+        (?P<epoch>
+            \d*
+        )
+        :
+    )?
+    (?P<revision>
+        \d[[:alnum:]+\-.~]*
+    )
+    -
+    (?P<upstream>
+        [[:alnum:]+.~]*
+    )
+    $"
+);
+/// Used for parsing the full version of a deb package without revision. The reason to divide this into two regex is
+/// that an upstream version is not allowed to contain `-`, when the revision is not present.
+static RE_VERSION_WO_REVISION: Lazy<Regex> = lazy_regex!(
+    r"^(?x)
+    (?:
+        (?P<epoch>
+            \d*
+        )
+        :
+    )?
+    (?P<upstream>
+        \d[[:alnum:]+.~]*
+    )
+    $"
+);
 
-/// Represent a based Redhat package
+/// Represent a deb package
 #[derive(Debug, PartialEq, Clone)]
 pub struct Deb {
     name: String,
