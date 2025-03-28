@@ -13,6 +13,8 @@ use crate::{
     },
 };
 
+use super::packages::alpm::Alpm;
+
 /// VulnerabilityTests is a collection of Tests to detect vulnerabilities, in case of notus these
 /// consist of package names and versions, all corresponding to an OID.
 pub type VulnerabilityTests<P> = HashMap<String, Vec<VulnerabilityTest<P>>>;
@@ -26,6 +28,7 @@ pub enum Product {
     Rpm(VulnerabilityTests<Rpm>),
     Slack(VulnerabilityTests<Slack>),
     Windows(VulnerabilityTests<Windows>),
+    Alpm(VulnerabilityTests<Alpm>),
 }
 
 impl Product {
@@ -89,6 +92,10 @@ impl TryFrom<models::Product> for Product {
             PackageType::MSP => {
                 let vts = Self::transform(value.vulnerability_tests)?;
                 Ok(Self::Windows(vts))
+            }
+            PackageType::ALPM => {
+                let vts = Self::transform(value.vulnerability_tests)?;
+                Ok(Self::Alpm(vts))
             }
         }
     }
