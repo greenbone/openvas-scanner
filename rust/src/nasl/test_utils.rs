@@ -216,13 +216,20 @@ where
         self.should_verify = false;
     }
 
-    /// Return the list of results returned by all the lines of
-    /// code.
+    /// Runs the given lines of code and returns the list of results.
     pub fn results(&self) -> Vec<NaslResult> {
+        self.results_and_context().0
+    }
+
+    /// Runs the given lines of code and returns the list of results
+    /// along with the `Context` used for evaluating them.
+    pub fn results_and_context(&self) -> (Vec<NaslResult>, Context) {
         futures::executor::block_on(async {
-            self.results_stream(&self.code(), &self.context())
-                .collect()
-                .await
+            let context = self.context();
+            (
+                self.results_stream(&self.code(), &context).collect().await,
+                context,
+            )
         })
     }
 
@@ -276,8 +283,7 @@ where
         })
     }
 
-    /// Get the currently set `Context`.
-    pub fn context(&self) -> Context {
+    fn context(&self) -> Context {
         self.context
             .build(self.scan_id.clone(), &self.target, self.filename.clone())
     }
@@ -389,6 +395,12 @@ where
     /// Return a new `TestBuilder` with the given `filename`.
     pub fn with_filename(mut self, filename: PathBuf) -> Self {
         self.filename = filename;
+        self
+    }
+
+    /// Return a new `TestBuilder` with the given `target`.
+    pub fn with_target(mut self, target: String) -> Self {
+        self.target = target;
         self
     }
 

@@ -137,6 +137,7 @@ where
         .scanner(sh)
         .tls_config(tls_config(config).unwrap_or(None))
         .api_key(config.endpoints.key.clone())
+        .enable_get_performance(config.endpoints.enable_get_performance)
         .enable_get_scans(config.endpoints.enable_get_scans)
         .storage(db)
         .build()

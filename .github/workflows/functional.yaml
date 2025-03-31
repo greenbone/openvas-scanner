@@ -134,7 +134,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     container:
-      image: greenbone/gvm-libs:stable
+      image: registry.community.greenbone.net/community/gvm-libs:stable
       options: --privileged
     steps:
       - uses: actions/checkout@v4

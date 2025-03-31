@@ -17,7 +17,7 @@ An interpreter requires:
 
 ## Example
 
-```
+```rust
 use scannerlib::nasl::interpreter::{CodeInterpreter};
 use scannerlib::nasl::prelude::*;
 use scannerlib::storage::ScanID;
