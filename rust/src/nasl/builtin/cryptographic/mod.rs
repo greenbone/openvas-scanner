@@ -21,6 +21,7 @@ pub mod hash;
 pub mod hmac;
 pub mod rc4;
 pub mod rsa;
+pub mod smb;
 
 #[cfg(test)]
 mod tests;
@@ -137,6 +138,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(des::Des);
         set.add_set(rsa::Rsa);
         set.add_set(bf_cbc::BfCbc);
+        set.add_set(smb::Smb);
         set
     }
 }
