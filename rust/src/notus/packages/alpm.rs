@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::cmp::Ordering;
-
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
 
@@ -47,20 +45,14 @@ impl PartialOrd for Alpm {
             return None;
         }
 
-        if self.epoch != other.epoch {
-            return match self.epoch > other.epoch {
-                true => Some(Ordering::Greater),
-                false => Some(Ordering::Less),
-            };
-        };
-
-        if let Some(comp) = self.pkgver.partial_cmp(&other.pkgver) {
-            if comp.is_ne() {
-                return Some(comp);
-            }
-        }
-
-        self.pkgrel.partial_cmp(&other.pkgrel)
+        self.epoch
+            .partial_cmp(&other.epoch)
+            .filter(|comp| comp.is_ne())
+            .or(self
+                .pkgver
+                .partial_cmp(&other.pkgver)
+                .filter(|comp| comp.is_ne()))
+            .or(self.pkgrel.partial_cmp(&other.pkgrel))
     }
 }
 
@@ -89,16 +81,16 @@ impl Package for Alpm {
 
         let pkgver = captures
             .name("pkgver")
-            .map(|m| m.as_str().to_string())
-            .map(PackageVersion)
+            .map(|m| m.as_str())
             // Cannot fail, because the regex ensures that there is a pkgver
-            .unwrap();
+            .unwrap()
+            .into();
 
         let pkgrel = captures
             .name("pkgrel")
-            .map(|m| m.as_str().to_string())
-            .map(PackageVersion)
-            .unwrap_or_else(|| PackageVersion("1".to_string()));
+            .map(|m| m.as_str())
+            .unwrap_or_else(|| ("1"))
+            .into();
 
         Some(Self {
             name: name.to_string(),

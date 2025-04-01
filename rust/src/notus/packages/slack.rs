@@ -13,9 +13,9 @@ static RE_VERSION: Lazy<Regex> = lazy_regex!(r"(..*)-(..*)-(\d)(?:_slack(..*))?"
 #[derive(Debug, PartialEq, Clone)]
 pub struct Slack {
     name: String,
-    build: PackageVersion,
-    target: PackageVersion,
     version: PackageVersion,
+    target: PackageVersion,
+    build: PackageVersion,
     arch: String,
 }
 
@@ -29,19 +29,14 @@ impl PartialOrd for Slack {
             return None;
         }
 
-        if let Some(comp) = self.version.partial_cmp(&other.version) {
-            if comp.is_ne() {
-                return Some(comp);
-            }
-        }
-
-        if let Some(comp) = self.target.partial_cmp(&other.target) {
-            if comp.is_ne() {
-                return Some(comp);
-            }
-        }
-
-        self.build.partial_cmp(&other.build)
+        self.version
+            .partial_cmp(&other.version)
+            .filter(|comp: &Ordering| comp.is_ne())
+            .or(self
+                .target
+                .partial_cmp(&other.target)
+                .filter(|comp| comp.is_ne()))
+            .or(self.build.partial_cmp(&other.build))
     }
 }
 
