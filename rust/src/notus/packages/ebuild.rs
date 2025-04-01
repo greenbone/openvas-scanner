@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{cmp::Ordering, fmt::Display, vec};
+use std::{cmp::Ordering, fmt::Display, iter, vec};
 
-use itertools::{EitherOrBoth, Itertools};
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
 
@@ -12,7 +11,7 @@ use super::{Package, PackageVersion};
 
 static RE_FULL: Lazy<Regex> = lazy_regex!(
     r"^(?x)
-    (?:
+    (?P<path>
         .*
         /
     )?
@@ -45,7 +44,7 @@ static RE_FULL: Lazy<Regex> = lazy_regex!(
 
 static RE_NAME: Lazy<Regex> = lazy_regex!(
     r"^(?x)
-    (?:
+    (?P<path>
         .*
         /
     )?
@@ -80,7 +79,7 @@ static RE_VERSION: Lazy<Regex> = lazy_regex!(
     $"
 );
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, PartialOrd)]
 enum Suffix {
     Alpha(u64),
     Beta(u64),
@@ -88,25 +87,6 @@ enum Suffix {
     Rc(u64),
     Normal,
     P(u64),
-}
-
-impl Default for Suffix {
-    fn default() -> Self {
-        Suffix::Normal
-    }
-}
-
-impl From<&Suffix> for (u8, u64) {
-    fn from(suffix: &Suffix) -> Self {
-        match suffix {
-            Suffix::Alpha(n) => (0, *n),
-            Suffix::Beta(n) => (1, *n),
-            Suffix::Pre(n) => (2, *n),
-            Suffix::Rc(n) => (3, *n),
-            Suffix::Normal => (4, 0),
-            Suffix::P(n) => (5, *n),
-        }
-    }
 }
 
 fn num_to_str(num: u64) -> String {
@@ -127,17 +107,6 @@ impl Display for Suffix {
             Suffix::Normal => Ok(()),
             Suffix::P(n) => write!(f, "p{}", num_to_str(*n)),
         }
-    }
-}
-
-impl PartialOrd for Suffix {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let (release1, num1): (u8, u64) = self.into();
-        let (release2, num2): (u8, u64) = other.into();
-        release1
-            .partial_cmp(&release2)
-            .filter(|comp| comp.is_ne())
-            .or(num1.partial_cmp(&num2))
     }
 }
 
@@ -184,32 +153,14 @@ impl From<&str> for SuffixPart {
 
 impl PartialOrd for SuffixPart {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        for eob in self.0.iter().zip_longest(other.0.iter()) {
-            match eob {
-                EitherOrBoth::Both(suffix1, suffix2) => {
-                    if let Some(ordering) = suffix1.partial_cmp(suffix2) {
-                        if ordering.is_ne() {
-                            return Some(ordering);
-                        }
-                    }
-                }
-                EitherOrBoth::Left(suffix1) => {
-                    if let Some(ordering) = suffix1.partial_cmp(&Suffix::Normal) {
-                        if ordering.is_ne() {
-                            return Some(ordering);
-                        }
-                    }
-                }
-                EitherOrBoth::Right(suffix2) => {
-                    if let Some(ordering) = Suffix::Normal.partial_cmp(suffix2) {
-                        if ordering.is_ne() {
-                            return Some(ordering);
-                        }
-                    }
-                }
-            }
-        }
-        Some(Ordering::Equal)
+        let len = self.0.len().max(other.0.len());
+        let it1 = self.0.iter().chain(iter::repeat(&Suffix::Normal)).take(len);
+        let it2 = other
+            .0
+            .iter()
+            .chain(iter::repeat(&Suffix::Normal))
+            .take(len);
+        it1.partial_cmp(it2)
     }
 }
 
@@ -217,6 +168,7 @@ impl PartialOrd for SuffixPart {
 /// https://devmanual.gentoo.org/ebuild-writing/file-format/index.html
 #[derive(Debug, PartialEq, Clone)]
 pub struct EBuild {
+    path: String,
     name: String,
     version: PackageVersion,
     suffix_part: SuffixPart,
@@ -229,14 +181,11 @@ impl PartialOrd for EBuild {
             return None;
         }
 
-        self.version
-            .partial_cmp(&other.version)
-            .filter(|comp| comp.is_ne())
-            .or(self
-                .suffix_part
-                .partial_cmp(&other.suffix_part)
-                .filter(|comp| comp.is_ne()))
-            .or(self.revision.partial_cmp(&other.revision))
+        (&self.version, &self.suffix_part, &self.revision).partial_cmp(&(
+            &other.version,
+            &other.suffix_part,
+            &other.revision,
+        ))
     }
 }
 
@@ -248,25 +197,22 @@ impl Package for EBuild {
         }
         let full_name = full_name.trim();
 
-        // Get all fields
-        let (name, version, suffix_part, revision) =
-            RE_FULL.captures(full_name).and_then(|caps| {
-                let name = caps.name("name")?.as_str();
-                let version = caps.name("version")?.as_str();
-                let suffix = caps.name("suffix")?.as_str();
-                let revision = caps
-                    .name("revision")
-                    .map(|r| r.as_str().parse::<u64>().unwrap())
-                    .unwrap_or_default();
-
-                Some((name.into(), version.into(), suffix.into(), revision))
-            })?;
-
-        Some(EBuild {
-            name,
-            version,
-            suffix_part,
-            revision,
+        RE_FULL.captures(full_name).and_then(|caps| {
+            let path = caps.name("path").map(|m| m.as_str()).unwrap_or_default();
+            let name = caps.name("name")?.as_str();
+            let version = caps.name("version")?.as_str();
+            let suffix = caps.name("suffix")?.as_str();
+            let revision = caps
+                .name("revision")
+                .map(|r| r.as_str().parse::<u64>().unwrap())
+                .unwrap_or_default();
+            Some(EBuild {
+                path: path.into(),
+                name: name.into(),
+                version: version.into(),
+                suffix_part: suffix.into(),
+                revision,
+            })
         })
     }
 
@@ -277,9 +223,11 @@ impl Package for EBuild {
         let name = name.trim();
         let full_version = full_version.trim();
 
-        let name = RE_NAME
-            .captures(name)
-            .and_then(|caps| caps.name("name").map(|n| n.as_str().into()))?;
+        let (path, name) = RE_NAME.captures(name).and_then(|caps| {
+            let path = caps.name("path").map(|m| m.as_str()).unwrap_or_default();
+            let name = caps.name("name")?.as_str();
+            Some((path.into(), name.into()))
+        })?;
 
         let (version, suffix_part, revision) =
             RE_VERSION.captures(full_version).and_then(|caps| {
@@ -294,6 +242,7 @@ impl Package for EBuild {
             })?;
 
         Some(EBuild {
+            path,
             name,
             version,
             suffix_part,
@@ -302,7 +251,7 @@ impl Package for EBuild {
     }
 
     fn get_name(&self) -> String {
-        self.name.clone()
+        self.path.clone() + &self.name
     }
 
     fn get_version(&self) -> String {
@@ -317,7 +266,10 @@ mod ebuild_tests {
         io::{self, BufRead},
     };
 
-    use crate::notus::tests::make_test_path;
+    use crate::notus::{
+        packages::{PackageVersion, ebuild::Suffix},
+        tests::make_test_path,
+    };
 
     use super::EBuild;
     use super::Package;
@@ -333,6 +285,37 @@ mod ebuild_tests {
 
     #[test]
     pub fn test_parse_fullname() {
+        let ebuild = EBuild::from_full_name(
+            "app-i18n/tagainijisho-1.2.0_pre20200118132551_p20201001_p20201001-r42",
+        )
+        .unwrap();
+
+        assert_eq!(ebuild.path, "app-i18n/");
+        assert_eq!(ebuild.name, "tagainijisho");
+        assert_eq!(ebuild.version, PackageVersion("1.2.0".to_string()));
+        assert_eq!(ebuild.suffix_part.0.len(), 3);
+        assert_eq!(ebuild.suffix_part.0[0], Suffix::Pre(20200118132551));
+        assert_eq!(ebuild.suffix_part.0[1], Suffix::P(20201001));
+        assert_eq!(ebuild.suffix_part.0[2], Suffix::P(20201001));
+        assert_eq!(ebuild.revision, 42);
+        assert_eq!(ebuild.get_name(), "app-i18n/tagainijisho");
+        assert_eq!(
+            ebuild.get_version(),
+            "1.2.0_pre20200118132551_p20201001_p20201001-r42"
+        );
+
+        let ebuild = EBuild::from_full_name("some/path/www-servers/apache-2.4.51-r2").unwrap();
+        assert_eq!(ebuild.path, "some/path/www-servers/");
+        assert_eq!(ebuild.name, "apache");
+        assert_eq!(ebuild.version, PackageVersion("2.4.51".to_string()));
+        assert_eq!(ebuild.suffix_part.0.len(), 0);
+        assert_eq!(ebuild.revision, 2);
+        assert_eq!(ebuild.get_name(), "some/path/www-servers/apache");
+        assert_eq!(ebuild.get_version(), "2.4.51-r2");
+    }
+
+    #[test]
+    pub fn test_parse_fullname_from_file() {
         let path = make_test_path(&["data", "notus", "gentoo_examples.txt"]);
         let file = File::open(path).unwrap();
         for line in io::BufReader::new(file).lines() {
@@ -346,17 +329,37 @@ mod ebuild_tests {
         let apache2 =
             EBuild::from_name_and_full_version("www-servers/apache", "2.4.51-r3").unwrap();
 
-        println!("{}-{}", apache1.get_name(), apache1.get_version());
-        println!("{}-{}", apache2.get_name(), apache2.get_version());
-        println!("{:?}", apache2.partial_cmp(&apache1));
         assert!(apache2 > apache1);
 
         let apache3 =
             EBuild::from_name_and_full_version("www-servers/apache", "2.4.51-r3").unwrap();
 
-        assert!(apache2 < apache3);
+        assert!(apache2 == apache3);
 
-        let apache4 = EBuild::from_name_and_full_version("apache", "2.4.51-r3").unwrap();
+        let apache4 = EBuild::from_name_and_full_version("apachee", "2.4.51-r3").unwrap();
         assert!(apache4 != apache3);
+
+        let ebuild1 = EBuild::from_full_name(
+            "app-i18n/tagainijisho-1.2.0_pre20200118132551_p20201001_p20201001-r42",
+        )
+        .unwrap();
+
+        let ebuild2 = EBuild::from_full_name(
+            "app-i18n/tagainijisho-1.2.1_pre20200118132551_p20201001_p20201001-r42",
+        )
+        .unwrap();
+        assert!(ebuild1 < ebuild2);
+
+        let ebuild2 = EBuild::from_full_name(
+            "app-i18n/tagainijisho-1.2.0_pre20200118132551_p20201001_p20201000-r42",
+        )
+        .unwrap();
+        assert!(ebuild1 > ebuild2);
+
+        let ebuild2 = EBuild::from_full_name(
+            "app-i18n/tagainijisho-1.2.0_beta13_pre20200118132551_p20201001_p20201001-r42",
+        )
+        .unwrap();
+        assert!(ebuild1 > ebuild2);
     }
 }
