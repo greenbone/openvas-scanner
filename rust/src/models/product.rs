@@ -29,6 +29,8 @@ pub enum PackageType {
     SLACK,
     #[cfg_attr(feature = "serde_support", serde(rename = "msp"))]
     MSP,
+    #[cfg_attr(feature = "serde_support", serde(rename = "alpm"))]
+    ALPM,
 }
 
 /// Representing a single Vulnerability Test entry
