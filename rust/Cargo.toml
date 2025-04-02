@@ -95,6 +95,7 @@ nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 openssl = { version = "0.10.70", features = ["vendored"] }
 blowfish = "0.9.1"
 rc4 = "0.1.0"
+dsa = "0.6.3"
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
