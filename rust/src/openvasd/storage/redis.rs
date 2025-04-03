@@ -223,7 +223,7 @@ where
             let noids = notus_redis
                 .keys("internal*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()))
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()))
                 .filter_map(move |oid| notus_redis.redis_get_advisory(&oid).ok())
                 .flatten();
             Ok::<_, Error>(noids)
@@ -235,7 +235,7 @@ where
             let foids = nvt_redis
                 .keys("nvt:*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()))
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()))
                 .filter_map(move |oid| nvt_redis.redis_get_vt(&oid[4..]).ok())
                 .flatten();
             Ok::<_, Error>(foids)
@@ -254,7 +254,7 @@ where
             let noids = notus_redis
                 .keys("internal*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()));
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()));
             Ok::<_, Error>(noids)
         });
 
@@ -264,7 +264,7 @@ where
             let foids = nvt_redis
                 .keys("nvt:*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()));
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()));
             Ok::<_, Error>(foids)
         });
 

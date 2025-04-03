@@ -689,7 +689,7 @@ impl<'a> Context<'a> {
             .get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))?
             .iter()
             .filter_map(|x| {
-                x.0.split('/').last().and_then(|x| {
+                x.0.split('/').next_back().and_then(|x| {
                     if x == "21" {
                         open21 = true;
                         None
