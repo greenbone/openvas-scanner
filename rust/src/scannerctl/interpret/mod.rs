@@ -4,27 +4,26 @@
 
 use std::{
     fs::{self},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use futures::StreamExt;
-use scannerlib::{feed, scheduling::SchedulerStorage, storage::items::nvt::Oid};
-use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
+use scannerlib::nasl::{interpreter::ForkingInterpreter, utils::error::ReturnBehavior};
+use scannerlib::storage::items::nvt::Nvt;
 use scannerlib::{
+    feed,
     nasl::{
-        Loader, NoOpLoader,
+        ContextFactory, FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder,
+        WithErrorInfo,
         interpreter::InterpretErrorKind,
-        prelude::*,
         syntax::{LoadError, load_non_utf8_path},
     },
-    storage::items::nvt::Nvt,
+    scheduling::SchedulerStorage,
+    storage::items::nvt::Oid,
 };
-use scannerlib::{
-    nasl::{interpreter::ForkingInterpreter, utils::error::ReturnBehavior},
-    storage::redis::{FEEDUPDATE_SELECTOR, RedisCtx, RedisStorage},
-};
+use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
 
-use crate::{CliError, CliErrorKind, Db};
+use crate::{CliError, CliErrorKind, Db, Filename};
 
 struct Run<L, S> {
     context_builder: ContextFactory<L, S>,
@@ -97,24 +96,24 @@ where
     L: Loader,
     S: ContextStorage + SchedulerStorage,
 {
-    fn load(&self, script: &str) -> Result<String, CliErrorKind> {
-        match load_non_utf8_path(&script) {
+    fn load(&self, script: &Path) -> Result<String, CliErrorKind> {
+        match load_non_utf8_path(script) {
             Ok(x) => Ok(x),
             Err(LoadError::NotFound(_)) => {
                 match self
                     .context_builder
                     .storage
-                    .retrieve(&Oid(script.to_string()))?
+                    .retrieve(&Oid(script.to_string_lossy().to_string()))?
                 {
                     Some(vt) => Ok(self.context_builder.loader.load(&vt.filename)?),
-                    _ => Err(LoadError::NotFound(script.to_string()).into()),
+                    _ => Err(LoadError::NotFound(script.to_string_lossy().to_string()).into()),
                 }
             }
             Err(e) => Err(e.into()),
         }
     }
 
-    async fn run(&self, script: &str) -> Result<(), CliErrorKind> {
+    async fn run(&self, script: &Path) -> Result<(), CliErrorKind> {
         let context = self.context_builder.build(
             scannerlib::storage::ScanID(self.scan_id.clone()),
             &self.target,
@@ -152,10 +151,6 @@ where
     }
 }
 
-fn create_redis_storage(url: &str) -> RedisStorage<RedisCtx> {
-    RedisStorage::init(url, FEEDUPDATE_SELECTOR).unwrap()
-}
-
 async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
 where
     S: ContextStorage,
@@ -172,14 +167,15 @@ where
 
 fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliError> {
     tracing::info!(path=?path, "loading feed via json. This may take a while.");
-    let buf = fs::read_to_string(path).map_err(|e| CliError::load_error(e, path))?;
+    let buf = fs::read_to_string(path).map_err(|e| {
+        CliErrorKind::LoadError(LoadError::Dirty(format!("{e}"))).with(Filename(path))
+    })?;
     let vts: Vec<Nvt> = serde_json::from_str(&buf)?;
     let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();
 
-    store.set_vts(all_vts).map_err(|e| CliError {
-        filename: path.to_owned().to_string_lossy().to_string(),
-        kind: e.into(),
-    })?;
+    store
+        .set_vts(all_vts)
+        .map_err(|e| CliErrorKind::StorageError(e).with(Filename(path)))?;
     tracing::info!("loaded feed.");
     Ok(())
 }
@@ -187,28 +183,14 @@ fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliE
 pub async fn run(
     db: &Db,
     feed: Option<PathBuf>,
-    script: &str,
+    script: &Path,
     target: Option<String>,
 ) -> Result<(), CliError> {
     let builder = RunBuilder::default()
         .target(target.unwrap_or_default())
-        .scan_id(format!("scannerctl-{script}"));
+        .scan_id(format!("scannerctl-{script:?}"));
     let result = match (db, feed) {
-        (Db::Redis(url), None) => {
-            builder
-                .storage(create_redis_storage(url))
-                .build()
-                .run(script)
-                .await
-        }
         (Db::InMemory, None) => builder.build().run(script).await,
-        (Db::Redis(url), Some(path)) => {
-            let storage = create_redis_storage(url);
-            let loader = FSPluginLoader::new(path);
-            load_feed_by_exec(&storage, &loader).await?;
-            let builder = RunBuilder::default().loader(loader);
-            builder.storage(storage).build().run(script).await
-        }
         (Db::InMemory, Some(path)) => {
             let storage = InMemoryStorage::new();
             let guessed_feed_json = path.join("feed.json");
@@ -224,8 +206,5 @@ pub async fn run(
         }
     };
 
-    result.map_err(|e| CliError {
-        filename: script.to_string(),
-        kind: e,
-    })
+    Ok(result?)
 }

@@ -2,26 +2,20 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::fmt::Display;
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 use feed::VerifyError;
+use quick_xml::DeError;
+use scannerlib::nasl::WithErrorInfo;
 use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
 use scannerlib::storage::error::StorageError;
 use scannerlib::{feed, notus};
-use scannerlib::{
-    nasl::syntax::{SyntaxError, Token},
-    scanner::ExecuteError,
-};
+use scannerlib::{nasl::syntax::SyntaxError, scanner::ExecuteError};
 
 #[derive(Debug, thiserror::Error)]
 
 pub enum CliErrorKind {
-    #[error("Wrong action")]
-    WrongAction,
-
-    #[error("Plugin path ({0}) is not a directory.")]
-    PluginPathIsNotADir(PathBuf),
     #[error("openvas ({args:?}) failed: {err_msg}.")]
     Openvas {
         args: Option<String>,
@@ -30,59 +24,78 @@ pub enum CliErrorKind {
     #[error("{0}")]
     InterpretError(InterpretError),
     #[error("{0}")]
-    ExecuteError(ExecuteError),
+    ExecuteError(#[from] ExecuteError),
+    #[error("{0}")]
+    VerifyError(VerifyError),
     #[error("{0}")]
     LoadError(LoadError),
     #[error("{0}")]
     StorageError(StorageError),
     #[error("{0}")]
     SyntaxError(SyntaxError),
-    #[error("Missing arguments: {0:?}")]
-    MissingArguments(Vec<String>),
     #[error("{0}")]
     Corrupt(String),
+    #[error("Invalid XML: {0}")]
+    InvalidXML(#[from] DeError),
 }
 
-impl From<ExecuteError> for CliErrorKind {
-    fn from(value: ExecuteError) -> Self {
-        Self::ExecuteError(value)
+pub struct Filename<T>(pub T);
+
+impl From<CliErrorKind> for CliError {
+    fn from(kind: CliErrorKind) -> Self {
+        CliError {
+            kind,
+            filename: None,
+        }
     }
 }
 
-impl CliErrorKind {
-    pub fn as_token(&self) -> Option<&Token> {
-        match self {
-            CliErrorKind::InterpretError(e) => match &e.origin {
-                Some(s) => Some(s.as_token()),
-                None => None,
-            },
-            CliErrorKind::SyntaxError(e) => e.as_token(),
-            _ => None,
+impl WithErrorInfo<Filename<&PathBuf>> for CliErrorKind {
+    type Error = CliError;
+
+    fn with(self, filename: Filename<&PathBuf>) -> Self::Error {
+        CliError {
+            filename: Some(filename.0.to_owned()),
+            kind: self,
+        }
+    }
+}
+
+impl WithErrorInfo<Filename<&'_ Path>> for CliErrorKind {
+    type Error = CliError;
+
+    fn with(self, filename: Filename<&Path>) -> Self::Error {
+        CliError {
+            filename: Some(filename.0.to_owned()),
+            kind: self,
+        }
+    }
+}
+
+impl WithErrorInfo<Filename<PathBuf>> for CliErrorKind {
+    type Error = CliError;
+
+    fn with(self, filename: Filename<PathBuf>) -> Self::Error {
+        CliError {
+            filename: Some(filename.0.to_owned()),
+            kind: self,
         }
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub struct CliError {
-    pub filename: String,
+    pub filename: Option<PathBuf>,
     pub kind: CliErrorKind,
 }
 
-impl Display for CliError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if !self.filename.is_empty() {
-            write!(f, "{}: ", self.filename)?;
+impl fmt::Display for CliError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.kind)?;
+        if let Some(filename) = &self.filename {
+            write!(f, " filename: {:?}", filename)?;
         }
-        write!(f, "{}", self.kind)
-    }
-}
-
-impl CliError {
-    pub fn load_error(err: std::io::Error, path: &Path) -> Self {
-        Self {
-            filename: path.to_owned().to_string_lossy().to_string(),
-            kind: CliErrorKind::LoadError(LoadError::Dirty(err.to_string())),
-        }
+        Ok(())
     }
 }
 
@@ -119,23 +132,14 @@ impl From<notus::NotusError> for CliError {
     }
 }
 impl From<VerifyError> for CliError {
-    fn from(value: VerifyError) -> Self {
-        let filename = match &value {
-            VerifyError::SumsFileCorrupt(e) => e.sum_file(),
-            VerifyError::LoadError(_) => "",
-            VerifyError::HashInvalid {
-                expected: _,
-                actual: _,
-                key,
-            } => key,
-            VerifyError::MissingKeyring => {
-                "Signature check enabled but missing keyring. Set GNUPGHOME environment variable."
-            }
-            VerifyError::BadSignature(_) => "Bad signature",
+    fn from(error: VerifyError) -> Self {
+        let filename = match &error {
+            VerifyError::SumsFileCorrupt(e) => Some(Path::new(e.sum_file()).to_owned()),
+            _ => None,
         };
         Self {
-            filename: filename.to_string(),
-            kind: CliErrorKind::Corrupt(value.to_string()),
+            filename,
+            kind: CliErrorKind::VerifyError(error),
         }
     }
 }
@@ -173,7 +177,7 @@ impl From<SyntaxError> for CliErrorKind {
 impl From<LoadError> for CliError {
     fn from(value: LoadError) -> Self {
         Self {
-            filename: value.filename().to_string(),
+            filename: Some(Path::new(value.filename()).to_owned()),
             kind: value.into(),
         }
     }
@@ -191,10 +195,7 @@ impl From<feed::UpdateError> for CliError {
             }
             feed::UpdateErrorKind::VerifyError(e) => CliErrorKind::Corrupt(e.to_string()),
         };
-        CliError {
-            filename: value.key,
-            kind,
-        }
+        kind.into()
     }
 }
 
