@@ -8,7 +8,7 @@ use rand::seq::SliceRandom;
 
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
-use crate::nasl::{FromNaslValue, WithErrorInfo};
+use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
 use crate::storage::error::StorageError;
 use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
@@ -206,6 +206,18 @@ impl Register {
         self.blocks
             .last()
             .map(|x| x.defined.keys().map(|x| x.as_str()))
+    }
+
+    /// Find a named argument and return its value as a variable
+    /// or an error otherwise
+    pub(crate) fn nasl_value<'a>(&'a self, arg: &'a str) -> Result<&'a NaslValue, ArgumentError> {
+        match self.named(arg) {
+            Some(ContextType::Value(val)) => Ok(val),
+            Some(_) => Err(ArgumentError::WrongArgument(format!(
+                "Argument {arg} is a function but should be a value."
+            ))),
+            None => Err(ArgumentError::MissingNamed(vec![arg.to_string()])),
+        }
     }
 
     /// Adds a named parameter to the root context
