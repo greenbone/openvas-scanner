@@ -200,8 +200,7 @@ where
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
-        let mut target = Target::default();
-        target.set_target(self.target.clone());
+        let target = Target::resolve_hostname(&self.target);
 
         let context = Context::new(
             crate::storage::ScanID(self.scan_id.clone()),

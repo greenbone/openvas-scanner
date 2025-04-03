@@ -322,7 +322,7 @@ exit({rc});
         let storage = Arc::new(InMemoryStorage::new());
 
         let register = Register::root_initial(&initial);
-        let target = ContextTarget::default();
+        let target = ContextTarget::empty();
         let functions = nasl_std_functions();
         let loader = |_: &str| code.to_string();
         let key = ScanID(id.to_string());
