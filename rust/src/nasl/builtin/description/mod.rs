@@ -221,10 +221,7 @@ fn as_preference(arguments: &[&NaslValue]) -> Transform {
     let value = arguments[2].to_string();
     let id: Option<i32> = {
         if arguments.len() == 4 {
-            match arguments[3].to_string().parse() {
-                Ok(id) => Some(id),
-                _ => None,
-            }
+            arguments[3].to_string().parse().ok()
         } else {
             None
         }
