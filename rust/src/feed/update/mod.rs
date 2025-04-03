@@ -56,7 +56,7 @@ pub async fn feed_version(
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
     let k = ScanID("".to_string());
-    let target = Target::default();
+    let target = Target::empty();
     let filename = Default::default();
     // TODO add parameter to struct
     let functions = nasl_std_functions();
@@ -154,7 +154,7 @@ where
         let code = self.loader.load(&key.0)?;
 
         let register = Register::root_initial(&self.initial);
-        let target = Target::default();
+        let target = Target::empty();
         let context = Context::new(
             ScanID(key.0.clone()),
             target,

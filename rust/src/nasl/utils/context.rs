@@ -25,7 +25,7 @@ use crate::storage::{Dispatcher, Remover, Retriever};
 
 use super::FnError;
 use super::error::ReturnBehavior;
-use super::hosts::resolve;
+use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
@@ -325,7 +325,6 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 type Named = HashMap<String, ContextType>;
@@ -390,16 +389,26 @@ pub struct Target {
 }
 
 impl Target {
-    pub fn set_target(&mut self, target: String) -> &Target {
-        // Target can be an ip address or a hostname
-        self.target = target;
+    pub fn empty() -> Self {
+        Self {
+            target: "".into(),
+            ip_addr: LOCALHOST,
+            vhosts: Mutex::new(vec![]),
+        }
+    }
 
-        // Store the IpAddr if possible, else default to localhost
-        self.ip_addr = match resolve(self.target.clone()) {
-            Ok(a) => *a.first().unwrap_or(&IpAddr::from_str("127.0.0.1").unwrap()),
-            Err(_) => IpAddr::from_str("127.0.0.1").unwrap(),
-        };
-        self
+    pub fn resolve_hostname(target: &str) -> Self {
+        // TODO: We only ever remember the first IpAddr here,
+        // is that reasonable?
+        let ip_addr = resolve_hostname(target)
+            .ok()
+            .and_then(|ip_addrs| ip_addrs.into_iter().next())
+            .unwrap_or(LOCALHOST);
+        Self {
+            target: target.into(),
+            ip_addr,
+            ..Self::empty()
+        }
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) -> &Target {
@@ -409,16 +418,6 @@ impl Target {
 
     pub fn target(&self) -> &str {
         &self.target
-    }
-}
-
-impl Default for Target {
-    fn default() -> Self {
-        Self {
-            target: String::new(),
-            ip_addr: IpAddr::from_str("127.0.0.1").unwrap(),
-            vhosts: Mutex::new(vec![]),
-        }
     }
 }
 
@@ -556,10 +555,6 @@ impl<'a> Context<'a> {
     /// Get the target VHost list
     pub fn target_vhosts(&self) -> Vec<(String, String)> {
         self.target.vhosts.lock().unwrap().clone()
-    }
-
-    pub fn set_target(&mut self, target: String) {
-        self.target.target = target;
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) {

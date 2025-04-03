@@ -147,8 +147,7 @@ where
 
     /// Creates a new Context with the shared loader, logger and function register
     pub fn build(&self, scan_id: ScanID, target_string: &str, filename: PathBuf) -> Context {
-        let mut target = Target::default();
-        target.set_target(target_string.to_string());
+        let target = Target::resolve_hostname(target_string);
         Context::new(
             scan_id,
             target,
