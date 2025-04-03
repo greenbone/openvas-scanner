@@ -35,12 +35,17 @@ pub struct Arg<'a> {
     pub mutable: bool,
 }
 
+pub struct NaslSocketsArg {
+    pub mutable: bool,
+}
+
 pub enum ArgKind {
     Positional(PositionalArg),
     Named(NamedArg),
     MaybeNamed(PositionalArg, NamedArg),
     Context,
     Register,
+    NaslSockets(NaslSocketsArg),
     PositionalIterator(PositionalsArg),
     CheckedPositionalIterator(PositionalsArg),
 }
@@ -66,11 +71,28 @@ impl ArgKind {
         match self {
             ArgKind::Context => 0,
             ArgKind::Register => 0,
-            ArgKind::Positional(_) => 1,
-            ArgKind::MaybeNamed(_, _) => 2,
-            ArgKind::Named(_) => 3,
-            ArgKind::PositionalIterator(_) => 4,
-            ArgKind::CheckedPositionalIterator(_) => 4,
+            ArgKind::NaslSockets(_) => 1,
+            ArgKind::Positional(_) => 2,
+            ArgKind::MaybeNamed(_, _) => 3,
+            ArgKind::Named(_) => 4,
+            ArgKind::PositionalIterator(_) => 5,
+            ArgKind::CheckedPositionalIterator(_) => 5,
+        }
+    }
+
+    pub fn requires_async(&self) -> bool {
+        // Keep this intentionally verbose by matching
+        // exhaustively, so we remember to check this
+        // function again if we introduce a new type.
+        match self {
+            ArgKind::Positional(_) => false,
+            ArgKind::Named(_) => false,
+            ArgKind::MaybeNamed(_, _) => false,
+            ArgKind::Context => false,
+            ArgKind::Register => false,
+            ArgKind::PositionalIterator(_) => false,
+            ArgKind::CheckedPositionalIterator(_) => false,
+            ArgKind::NaslSockets(_) => true,
         }
     }
 }
