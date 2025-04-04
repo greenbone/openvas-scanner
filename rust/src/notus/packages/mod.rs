@@ -157,6 +157,12 @@ impl PartialOrd for PackageVersion {
     }
 }
 
+impl From<&str> for PackageVersion {
+    fn from(version: &str) -> Self {
+        PackageVersion(version.to_string())
+    }
+}
+
 /// Representation of a Package, containing functions to parse and compare packages.
 pub trait Package<Rhs = Self>: PartialOrd<Rhs> {
     /// Get the name of a package
