@@ -141,11 +141,12 @@ where
         let mut ids = self.client_id.write().unwrap();
         let ssid = scan_id.as_ref();
         let mut to_remove = vec![];
-        for (i, (_, sid)) in ids.iter().enumerate() {
+        for (i, (_, sid)) in ids.iter().enumerate().rev() {
             if sid == ssid {
                 to_remove.push(i);
             }
         }
+
         for i in to_remove {
             ids.remove(i);
         }
