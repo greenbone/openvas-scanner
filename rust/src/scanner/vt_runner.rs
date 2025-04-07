@@ -200,16 +200,16 @@ where
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
-        let target = Target::resolve_hostname(&self.target);
-
-        let context = Context::new(
-            crate::storage::ScanID(self.scan_id.clone()),
+        let target = Target::resolve_hostname(self.target);
+        let context = ContextFactory {
+            scan_id: crate::storage::ScanID(self.scan_id.clone()),
             target,
             filename,
-            self.storage,
-            self.loader,
-            self.executor,
-        );
+            storage: self.storage,
+            loader: self.loader,
+            executor: self.executor,
+        }
+        .build();
         let mut results = Box::pin(ForkingInterpreter::new(code, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {

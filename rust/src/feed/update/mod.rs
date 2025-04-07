@@ -55,12 +55,19 @@ pub async fn feed_version(
     let feed_info_key = "plugin_feed_info.inc";
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
-    let k = ScanID("".to_string());
-    let target = Target::empty();
-    let filename = Default::default();
-    // TODO add parameter to struct
-    let functions = nasl_std_functions();
-    let context = Context::new(k, target, filename, dispatcher, loader, &functions);
+    let scan_id = ScanID("".to_string());
+    let target = Target::do_not_resolve("");
+    let filename = "";
+    let executor = nasl_std_functions();
+    let cb = ContextFactory {
+        storage: dispatcher,
+        loader,
+        executor: &executor,
+        target,
+        filename,
+        scan_id,
+    };
+    let context = cb.build();
     let mut interpreter = Interpreter::new(register, Lexer::new(Tokenizer::new(&code)), &context);
     for stmt in crate::nasl::syntax::parse(&code) {
         let stmt = stmt?;
@@ -152,17 +159,17 @@ where
     /// Runs a single plugin in description mode.
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
         let code = self.loader.load(&key.0)?;
-
         let register = Register::root_initial(&self.initial);
-        let target = Target::empty();
-        let context = Context::new(
-            ScanID(key.0.clone()),
+        let target = Target::do_not_resolve("");
+        let context = ContextFactory {
+            scan_id: ScanID(key.0.clone()),
             target,
-            key.0.clone().into(),
-            self.storage,
-            self.loader,
-            &self.executor,
-        );
+            filename: &key.0,
+            storage: self.storage,
+            loader: self.loader,
+            executor: &self.executor,
+        };
+        let context = context.build();
         let mut results = Box::pin(ForkingInterpreter::new(&code, register, &context).stream());
         while let Some(stmt) = results.next().await {
             match stmt {

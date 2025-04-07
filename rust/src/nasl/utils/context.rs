@@ -14,8 +14,8 @@ use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
-use crate::storage::items::nvt::NvtField;
 use crate::storage::items::nvt::{Feed, FeedVersion, FileName, Nvt};
+use crate::storage::items::nvt::{NvtField, Oid};
 use crate::storage::items::result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem};
 use crate::storage::redis::{
     RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper,
@@ -324,7 +324,7 @@ impl Default for Register {
 use std::collections::HashMap;
 use std::io::Write;
 use std::net::IpAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 type Named = HashMap<String, ContextType>;
@@ -389,9 +389,18 @@ pub struct Target {
 }
 
 impl Target {
-    pub fn empty() -> Self {
+    fn empty() -> Self {
         Self {
             target: "".into(),
+            ip_addr: LOCALHOST,
+            vhosts: Mutex::new(vec![]),
+        }
+    }
+
+    pub fn do_not_resolve(target: impl AsRef<str>) -> Self {
+        // TODO: Check if the target string is an IP addr?
+        Self {
+            target: target.as_ref().into(),
             ip_addr: LOCALHOST,
             vhosts: Mutex::new(vec![]),
         }
@@ -440,6 +449,7 @@ pub trait ContextStorage:
     + Dispatcher<FeedVersion, Item = String>
     + Retriever<FeedVersion, Item = String>
     + Retriever<Feed, Item = Vec<Nvt>>
+    + Retriever<Oid, Item = Nvt> + Retriever<FileName, Item = Nvt>
 {
     /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
     /// KbKey, the value is appended to the existing list. This function is used to replace the
@@ -458,30 +468,26 @@ impl<T> ContextStorage for RedisStorage<T> where
 }
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
-/// Configurations
-///
-/// This struct includes all objects that a nasl function requires.
-/// New objects must be added here in
+/// NASL execution context.
 pub struct Context<'a> {
-    /// key for this context. A file name or a scan id
+    /// The key for this context.
     scan: ScanID,
-    /// target to run a scan against
+    /// Target against which the scan is run.
     target: Target,
-    /// File Name of the current script
+    /// Filename of the current script
     filename: PathBuf,
     /// Storage
     storage: &'a dyn ContextStorage,
-    /// Default Loader
+    /// Loader
     loader: &'a dyn Loader,
-    /// Default function executor.
+    /// Function executor.
     executor: &'a Executor,
     /// NVT object, which is put into the storage, when set
     nvt: Mutex<Option<Nvt>>,
 }
 
 impl<'a> Context<'a> {
-    /// Creates an empty configuration
-    pub fn new(
+    fn new(
         scan: ScanID,
         target: Target,
         filename: PathBuf,
@@ -738,5 +744,28 @@ impl From<&ContextType> for NaslValue {
             ContextType::Function(_, _) => NaslValue::Null,
             ContextType::Value(v) => v.to_owned(),
         }
+    }
+}
+
+pub struct ContextFactory<'a, P: AsRef<Path>> {
+    pub storage: &'a dyn ContextStorage,
+    pub loader: &'a dyn Loader,
+    pub executor: &'a Executor,
+    pub scan_id: ScanID,
+    pub target: Target,
+    pub filename: P,
+}
+
+impl<'a, P: AsRef<Path>> ContextFactory<'a, P> {
+    /// Builds the `Context`.
+    pub fn build(self) -> Context<'a> {
+        Context::new(
+            self.scan_id,
+            self.target,
+            self.filename.as_ref().to_owned(),
+            self.storage,
+            self.loader,
+            self.executor,
+        )
     }
 }

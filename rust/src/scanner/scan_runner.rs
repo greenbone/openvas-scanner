@@ -120,13 +120,13 @@ pub(super) mod tests {
     use crate::models::Scan;
     use crate::models::Target;
     use crate::models::VT;
+    use crate::nasl::ContextFactory;
     use crate::nasl::interpreter::ForkingInterpreter;
     use crate::nasl::nasl_std_functions;
     use crate::nasl::syntax::NaslValue;
-    use crate::nasl::utils::Context;
     use crate::nasl::utils::Executor;
     use crate::nasl::utils::Register;
-    use crate::nasl::utils::context::Target as ContextTarget;
+    use crate::nasl::utils::context;
     use crate::scanner::{
         error::{ExecuteError, ScriptResult},
         scan_runner::ScanRunner,
@@ -314,7 +314,7 @@ exit({rc});
         }
     }
 
-    fn parse_meta_data(id: &str, code: &str) -> Option<Nvt> {
+    fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         let initial = vec![
             ("description".to_owned(), true.into()),
             ("OPENVAS_VERSION".to_owned(), "testus".into()),
@@ -322,12 +322,20 @@ exit({rc});
         let storage = Arc::new(InMemoryStorage::new());
 
         let register = Register::root_initial(&initial);
-        let target = ContextTarget::empty();
-        let functions = nasl_std_functions();
+        let target = context::Target::do_not_resolve("");
+        let executor = nasl_std_functions();
         let loader = |_: &str| code.to_string();
-        let key = ScanID(id.to_string());
+        let scan_id = ScanID(filename.to_string());
 
-        let context = Context::new(key, target, id.into(), &storage, &loader, &functions);
+        let cb = ContextFactory {
+            storage: &storage,
+            loader: &loader,
+            executor: &executor,
+            scan_id,
+            target,
+            filename,
+        };
+        let context = cb.build();
         let interpreter = ForkingInterpreter::new(code, register, &context);
         for stmt in interpreter.iter_blocking() {
             if let NaslValue::Exit(_) = stmt.expect("stmt success") {
@@ -336,7 +344,7 @@ exit({rc});
         }
         drop(context);
         let result = storage
-            .retrieve(&FileName(id.to_string()))
+            .retrieve(&FileName(filename.to_string()))
             .expect("nvt for id");
         result
     }
