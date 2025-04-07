@@ -116,7 +116,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
-    let cb = ContextFactory {
+    let cb = ContextBuilder {
         storage: &storage,
         loader: &loader,
         executor: &nasl_std_functions(),

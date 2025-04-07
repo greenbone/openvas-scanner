@@ -340,7 +340,7 @@ where
 
     fn context(&self) -> Context {
         let target = Target::do_not_resolve(&self.target);
-        let context = ContextFactory {
+        let context = ContextBuilder {
             storage: &self.storage,
             loader: &self.loader,
             executor: &self.executor,

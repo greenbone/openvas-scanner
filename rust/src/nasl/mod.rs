@@ -28,7 +28,7 @@ pub mod prelude {
     pub use super::utils::InternalError;
     pub use super::utils::NaslResult;
     pub use super::utils::Register;
-    pub use super::utils::context::ContextFactory;
+    pub use super::utils::context::ContextBuilder;
     pub use super::utils::error::FnErrorKind;
     pub use super::utils::error::Retryable;
     pub use super::utils::error::ReturnValue;

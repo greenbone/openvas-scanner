@@ -59,7 +59,7 @@ pub async fn feed_version(
     let target = Target::do_not_resolve("");
     let filename = "";
     let executor = nasl_std_functions();
-    let cb = ContextFactory {
+    let cb = ContextBuilder {
         storage: dispatcher,
         loader,
         executor: &executor,
@@ -161,7 +161,7 @@ where
         let code = self.loader.load(&key.0)?;
         let register = Register::root_initial(&self.initial);
         let target = Target::do_not_resolve("");
-        let context = ContextFactory {
+        let context = ContextBuilder {
             scan_id: ScanID(key.0.clone()),
             target,
             filename: &key.0,

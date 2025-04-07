@@ -747,7 +747,7 @@ impl From<&ContextType> for NaslValue {
     }
 }
 
-pub struct ContextFactory<'a, P: AsRef<Path>> {
+pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub storage: &'a dyn ContextStorage,
     pub loader: &'a dyn Loader,
     pub executor: &'a Executor,
@@ -756,7 +756,7 @@ pub struct ContextFactory<'a, P: AsRef<Path>> {
     pub filename: P,
 }
 
-impl<'a, P: AsRef<Path>> ContextFactory<'a, P> {
+impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
     /// Builds the `Context`.
     pub fn build(self) -> Context<'a> {
         Context::new(

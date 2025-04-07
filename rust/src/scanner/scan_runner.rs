@@ -120,7 +120,7 @@ pub(super) mod tests {
     use crate::models::Scan;
     use crate::models::Target;
     use crate::models::VT;
-    use crate::nasl::ContextFactory;
+    use crate::nasl::ContextBuilder;
     use crate::nasl::interpreter::ForkingInterpreter;
     use crate::nasl::nasl_std_functions;
     use crate::nasl::syntax::NaslValue;
@@ -327,7 +327,7 @@ exit({rc});
         let loader = |_: &str| code.to_string();
         let scan_id = ScanID(filename.to_string());
 
-        let cb = ContextFactory {
+        let cb = ContextBuilder {
             storage: &storage,
             loader: &loader,
             executor: &executor,

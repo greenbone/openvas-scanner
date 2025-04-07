@@ -201,7 +201,7 @@ where
             return e;
         }
         let target = Target::resolve_hostname(self.target);
-        let context = ContextFactory {
+        let context = ContextBuilder {
             scan_id: crate::storage::ScanID(self.scan_id.clone()),
             target,
             filename,
