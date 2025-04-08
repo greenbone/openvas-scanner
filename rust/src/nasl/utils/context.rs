@@ -450,6 +450,15 @@ impl Target {
     pub fn kind(&self) -> &TargetKind {
         &self.kind
     }
+
+    /// Return the hostname that this `Target` was constructed with
+    /// or None otherwise
+    pub(crate) fn hostname(&self) -> Option<String> {
+        match self.kind {
+            TargetKind::Hostname => Some(self.original_target_str.clone()),
+            TargetKind::IpAddr => None,
+        }
+    }
 }
 
 impl From<Target> for CtxTarget {
