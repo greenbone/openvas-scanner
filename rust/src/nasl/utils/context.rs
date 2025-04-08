@@ -611,14 +611,8 @@ impl<'a> Context<'a> {
         &self.filename
     }
 
-    // TODO rename to target
-    pub fn target_orig(&self) -> &Target {
+    pub fn target(&self) -> &Target {
         self.target.target()
-    }
-
-    /// Get the target (hostname or ip address).
-    pub fn target(&self) -> &str {
-        self.target.original_target_str()
     }
 
     /// Get the ip address of the target.

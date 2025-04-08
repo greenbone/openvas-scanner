@@ -18,13 +18,13 @@ use nasl_function_proc_macro::nasl_function;
 /// Get the IP address of the currently scanned host
 #[nasl_function]
 fn get_host_ip(context: &Context) -> String {
-    context.target_orig().ip_addr().to_string()
+    context.target().ip_addr().to_string()
 }
 
 /// Get the IP address of the current (attacking) machine depending on which network device is used
 #[nasl_function]
 fn this_host(context: &Context) -> Result<String, SocketError> {
-    let dst = context.target_orig().ip_addr();
+    let dst = context.target().ip_addr();
 
     let port: u16 = DEFAULT_PORT;
 
@@ -46,20 +46,20 @@ fn this_host_name() -> String {
 /// get the maximum transition unit for the scanned host
 #[nasl_function]
 fn get_mtu(context: &Context) -> Result<i64, SocketError> {
-    Ok(mtu(context.target_orig().ip_addr()) as i64)
+    Ok(mtu(context.target().ip_addr()) as i64)
 }
 
 /// check if the currently scanned host is the localhost
 #[nasl_function]
 fn nasl_islocalhost(context: &Context) -> Result<bool, SocketError> {
-    let host_ip = context.target_orig().ip_addr();
+    let host_ip = context.target().ip_addr();
     Ok(islocalhost(host_ip))
 }
 
 /// Check if the target host is on the same network as the attacking host
 #[nasl_function]
 fn islocalnet(context: &Context) -> Result<bool, SocketError> {
-    let dst = context.target_orig().ip_addr();
+    let dst = context.target().ip_addr();
     let src = get_source_ip(dst, DEFAULT_PORT)?;
     let netmask = match get_netmask_by_local_ip(src)? {
         Some(netmask) => netmask,
