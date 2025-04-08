@@ -49,7 +49,7 @@ impl Reporting {
             Some("udp") => Protocol::UDP,
             _ => Protocol::TCP,
         };
-        let target = context.target_orig();
+        let target = context.target();
         let hostname = target.hostname();
         let ip_address = target.ip_addr();
         let result = models::Result {

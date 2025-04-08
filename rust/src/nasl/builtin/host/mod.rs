@@ -82,15 +82,15 @@ pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValu
         return Ok(NaslValue::Fork(v));
     }
 
-    let host = match context.target_orig().kind() {
+    let host = match context.target().kind() {
         TargetKind::IpAddr => {
-            let ip_addr = context.target_orig().ip_addr();
+            let ip_addr = context.target().ip_addr();
             match lookup_addr(&ip_addr) {
                 Ok(host) => host,
                 Err(_) => ip_addr.to_string(),
             }
         }
-        TargetKind::Hostname => context.target_orig().original_target_str().to_string(),
+        TargetKind::Hostname => context.target().original_target_str().to_string(),
     };
     Ok(NaslValue::String(host))
 }
@@ -107,7 +107,7 @@ pub fn get_host_name_source(context: &Context, hostname: Hostname) -> String {
             return source;
         };
     }
-    context.target_orig().original_target_str().to_string()
+    context.target().original_target_str().to_string()
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
@@ -140,7 +140,7 @@ fn resolve_hostname_to_multiple_ips(hostname: Hostname) -> Result<NaslValue, FnE
 /// Return TRUE if the current target is an IPv6 address, else FALSE.
 #[nasl_function]
 fn target_is_ipv6(context: &Context) -> bool {
-    context.target_orig().ip_addr().is_ipv6()
+    context.target().ip_addr().is_ipv6()
 }
 
 /// Compare if two hosts are the same.

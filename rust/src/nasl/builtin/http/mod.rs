@@ -243,7 +243,7 @@ impl NaslHttp {
             _ => 0u16,
         };
 
-        let ip_str = ctx.target_orig().original_target_str();
+        let ip_str = ctx.target().original_target_str();
 
         let mut uri: String;
         if port != 80 && port != 443 {
