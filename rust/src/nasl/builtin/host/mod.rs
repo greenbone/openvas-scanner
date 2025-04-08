@@ -36,16 +36,16 @@ impl<'a> FromNaslValue<'a> for Hostname {
 /// Get a list of found hostnames or a IP of the current target in case no hostnames were found yet.
 #[nasl_function]
 fn get_host_names(context: &Context) -> Result<NaslValue, FnError> {
-    let hns = context.target_vhosts();
+    let hns = context.target().vhosts();
     if !hns.is_empty() {
         let hns = hns
-            .into_iter()
-            .map(|(h, _s)| NaslValue::String(h))
+            .iter()
+            .map(|(h, _s)| NaslValue::String(h.to_string()))
             .collect::<Vec<_>>();
         return Ok(NaslValue::Array(hns));
     };
     Ok(NaslValue::Array(vec![NaslValue::String(
-        context.target_ip().to_string(),
+        context.target().ip_addr().to_string(),
     )]))
 }
 
@@ -66,7 +66,7 @@ pub fn add_host_name(
 /// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
 #[nasl_function]
 pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValue, FnError> {
-    let vh = context.target_vhosts();
+    let vh = context.target().vhosts();
     let v = if !vh.is_empty() {
         vh.iter()
             .map(|(v, _s)| NaslValue::String(v.to_string()))
@@ -101,10 +101,10 @@ pub fn get_host_name(_register: &Register, context: &Context) -> Result<NaslValu
 /// If no virtual hosts are found yet this function always returns IP-address.
 #[nasl_function(named(hostname))]
 pub fn get_host_name_source(context: &Context, hostname: Hostname) -> String {
-    let vh = context.target_vhosts();
+    let vh = context.target().vhosts();
     if !vh.is_empty() {
-        if let Some((_, source)) = vh.into_iter().find(|(v, _)| v == &hostname.0) {
-            return source;
+        if let Some((_, source)) = vh.iter().find(|(v, _)| v == &hostname.0) {
+            return source.to_string();
         };
     }
     context.target().original_target_str().to_string()
@@ -113,7 +113,7 @@ pub fn get_host_name_source(context: &Context, hostname: Hostname) -> String {
 /// Return the target's IP address or 127.0.0.1 if not set.
 #[nasl_function]
 fn nasl_get_host_ip(context: &Context) -> Result<NaslValue, FnError> {
-    let ip = context.target_ip();
+    let ip = context.target().ip_addr();
     Ok(NaslValue::String(ip.to_string()))
 }
 

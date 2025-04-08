@@ -325,7 +325,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 type Named = HashMap<String, ContextType>;
 
@@ -450,15 +450,6 @@ impl Target {
     pub fn kind(&self) -> &TargetKind {
         &self.kind
     }
-
-    /// Return the hostname that this `Target` was constructed with
-    /// or None otherwise
-    pub(crate) fn hostname(&self) -> Option<String> {
-        match self.kind {
-            TargetKind::Hostname => Some(self.original_target_str.clone()),
-            TargetKind::IpAddr => None,
-        }
-    }
 }
 
 impl From<Target> for CtxTarget {
@@ -476,16 +467,29 @@ impl CtxTarget {
         self
     }
 
-    fn original_target_str(&self) -> &str {
-        self.target.original_target_str()
+    pub fn original_target_str(&self) -> &str {
+        &self.target.original_target_str
     }
 
-    fn ip_addr(&self) -> &IpAddr {
-        &self.target.ip_addr
+    pub fn ip_addr(&self) -> IpAddr {
+        self.target.ip_addr
     }
 
-    fn target(&self) -> &Target {
-        &self.target
+    pub fn kind(&self) -> &TargetKind {
+        &self.target.kind
+    }
+
+    /// Return the hostname that this `Target` was constructed with
+    /// or None otherwise
+    pub fn hostname(&self) -> Option<String> {
+        match self.target.kind {
+            TargetKind::Hostname => Some(self.target.original_target_str.clone()),
+            TargetKind::IpAddr => None,
+        }
+    }
+
+    pub fn vhosts(&self) -> MutexGuard<'_, Vec<(String, String)>> {
+        self.vhosts.lock().unwrap()
     }
 }
 
@@ -607,18 +611,9 @@ impl<'a> Context<'a> {
         &self.filename
     }
 
-    pub fn target(&self) -> &Target {
-        self.target.target()
-    }
-
-    /// Get the ip address of the target.
-    pub fn target_ip(&self) -> &IpAddr {
-        self.target.ip_addr()
-    }
-
-    /// Get the target VHost list
-    pub fn target_vhosts(&self) -> Vec<(String, String)> {
-        self.target.vhosts.lock().unwrap().clone()
+    /// Get the `CtxTarget`
+    pub fn target(&self) -> &CtxTarget {
+        &self.target
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) {
