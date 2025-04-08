@@ -372,6 +372,16 @@ pub struct Target {
     original_target_str: String,
     /// The IP address of the target.
     ip_addr: IpAddr,
+    /// Whether the string given to `Target` was a hostname or an ip address.
+    kind: TargetKind,
+}
+
+/// Specifies whether the string given to `Target` was a hostname
+/// or an ip address.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TargetKind {
+    Hostname,
+    IpAddr,
 }
 
 #[derive(Debug)]
@@ -399,32 +409,46 @@ impl Target {
         Self {
             original_target_str: LOCALHOST.to_string(),
             ip_addr: LOCALHOST,
+            kind: TargetKind::IpAddr,
         }
     }
 
     #[cfg(test)]
     pub fn do_not_resolve_hostname(target: impl AsRef<str>) -> Self {
-        let ip_addr: IpAddr = target.as_ref().parse::<IpAddr>().unwrap_or(LOCALHOST);
+        let (ip_addr, kind) = match target.as_ref().parse::<IpAddr>() {
+            Ok(ip_addr) => (ip_addr, TargetKind::IpAddr),
+            Err(_) => (LOCALHOST, TargetKind::Hostname),
+        };
         Self {
             original_target_str: target.as_ref().into(),
             ip_addr,
+            kind,
         }
     }
 
     pub fn resolve_hostname(target: impl AsRef<str>) -> Option<Self> {
-        // TODO: We only ever remember the first IpAddr here,
-        // is that reasonable?
-        let ip_addr = resolve_hostname(target.as_ref())
-            .ok()
-            .and_then(|ip_addrs| ip_addrs.into_iter().next())?;
+        // Try to parse as IpAddr first
+        let (ip_addr, kind) = if let Ok(ip_addr) = target.as_ref().parse::<IpAddr>() {
+            (ip_addr, TargetKind::IpAddr)
+        } else {
+            let ip_addr = resolve_hostname(target.as_ref())
+                .ok()
+                .and_then(|ip_addrs| ip_addrs.into_iter().next())?;
+            (ip_addr, TargetKind::Hostname)
+        };
         Some(Self {
             original_target_str: target.as_ref().into(),
             ip_addr,
+            kind,
         })
     }
 
     pub fn original_target_str(&self) -> &str {
         &self.original_target_str
+    }
+
+    pub fn kind(&self) -> &TargetKind {
+        &self.kind
     }
 }
 
@@ -789,5 +813,30 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.loader,
             self.executor,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nasl::utils::context::TargetKind;
+
+    use super::Target;
+
+    #[test]
+    fn target_kind() {
+        assert_eq!(
+            Target::do_not_resolve_hostname("1.2.3.4").kind(),
+            &TargetKind::IpAddr
+        );
+        assert_eq!(
+            Target::do_not_resolve_hostname("foo").kind(),
+            &TargetKind::Hostname
+        );
+        // This should not do any actual resolution
+        // but immediately parse the IP address instead.
+        assert_eq!(
+            Target::resolve_hostname("1.2.3.4").unwrap().kind(),
+            &TargetKind::IpAddr
+        );
     }
 }
