@@ -128,7 +128,7 @@ impl ServerCertVerifier for NoVerifier {
 impl NaslHttp {
     async fn request(
         &self,
-        ip_str: &String,
+        ip_str: &str,
         port: u16,
         uri: String,
         data: String,
@@ -145,7 +145,7 @@ impl NaslHttp {
         // For HTTP/2. For older HTTP versions should not be set,
         config.alpn_protocols = vec![b"h2".to_vec()];
 
-        let server_name = ip_str.clone().to_owned().try_into().unwrap();
+        let server_name = ip_str.to_owned().try_into().unwrap();
 
         let connector = TlsConnector::from(Arc::new(config));
         let stream = TcpStream::connect(format!("{}:{}", ip_str, port))
@@ -243,10 +243,7 @@ impl NaslHttp {
             _ => 0u16,
         };
 
-        let ip_str: String = match ctx.target() {
-            x if !x.is_empty() => x.to_string(),
-            _ => "127.0.0.1".to_string(),
-        };
+        let ip_str = ctx.target_orig().original_target_str();
 
         let mut uri: String;
         if port != 80 && port != 443 {
@@ -258,7 +255,7 @@ impl NaslHttp {
         uri = format!("{}{}", uri, item);
 
         let (head, body) = self
-            .request(&ip_str, port, uri, data, method, handle)
+            .request(ip_str, port, uri, data, method, handle)
             .await?;
         handle.http_code = head.status.as_u16();
         let mut header_str = String::new();
