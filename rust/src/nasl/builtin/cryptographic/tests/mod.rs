@@ -12,5 +12,6 @@ mod des;
 mod hash;
 mod helper;
 mod hmac;
+mod pem_to;
 mod rc4;
 mod rsa;
