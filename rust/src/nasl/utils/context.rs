@@ -26,7 +26,10 @@ use crate::storage::{Dispatcher, Remover, Retriever};
 use super::FnError;
 use super::error::ReturnBehavior;
 use super::hosts::resolve;
-use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
+use super::{
+    executor::Executor,
+    lookup_keys::{FC_ANON_ARGS, SCRIPT_PARAMS},
+};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 ///
