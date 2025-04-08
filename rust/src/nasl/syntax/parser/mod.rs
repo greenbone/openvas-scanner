@@ -10,6 +10,8 @@ pub use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
 use error::{Error, ErrorKind};
+use grammar::ArrayAccess;
+use grammar::FnCall;
 use grammar::Foreach;
 use grammar::Repeat;
 
@@ -17,10 +19,9 @@ use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    AnonymousFnArg, Array, ArrayAccess, AssignmentOperator, Ast, Atom, Binary, BinaryOperator,
-    Block, CommaSeparated, Expr, FnArg, FnCall, FnDecl, Include, NamedFnArg, Return, Stmt, Unary,
-    UnaryOperator, UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, VarScope, VarScopeDecl,
-    While,
+    AnonymousFnArg, Array, AssignmentOperator, Ast, Atom, Binary, BinaryOperator, Block,
+    CommaSeparated, Expr, FnArg, FnDecl, Include, NamedFnArg, Return, Stmt, Unary, UnaryOperator,
+    UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, VarScope, VarScopeDecl, While,
 };
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -391,11 +392,39 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             if l_bp < min_bp {
                 break;
             }
-            parser.parse::<UnaryPostfixOperator>().unwrap();
-            lhs = Expr::Unary(Unary {
-                op: UnaryOperator::Postfix(op),
-                rhs: Box::new(lhs),
-            });
+            // We treat [ and ( as postfix operators
+            // but "short-circuit" to `ArrayAccess`
+            // or `FnCall` respectively, since they
+            // have maximal precedence
+            lhs = match op {
+                UnaryPostfixOperator::PlusPlus | UnaryPostfixOperator::MinusMinus => {
+                    // Consume the operator token
+                    parser.parse::<UnaryPostfixOperator>().unwrap();
+                    Expr::Unary(Unary {
+                        op: UnaryOperator::Postfix(op),
+                        rhs: Box::new(lhs),
+                    })
+                }
+                UnaryPostfixOperator::LeftBracket => {
+                    // Consume the [
+                    parser.parse::<UnaryPostfixOperator>().unwrap();
+                    let index_expr = parser.parse()?;
+                    parser.consume(TokenKind::RightBracket)?;
+                    Expr::Atom(Atom::ArrayAccess(ArrayAccess {
+                        index_expr: Box::new(index_expr),
+                        lhs_expr: Box::new(lhs),
+                    }))
+                }
+                UnaryPostfixOperator::LeftParen => {
+                    // Here, we don't consume the ( since that
+                    // is taken care of by CommaSeparated::parse
+                    let args = parser.parse()?;
+                    Expr::Atom(Atom::FnCall(FnCall {
+                        fn_expr: Box::new(lhs),
+                        args: args,
+                    }))
+                }
+            };
             continue;
         }
         let op = parser
@@ -424,18 +453,7 @@ impl Parse for Atom {
             Ok(Atom::Array(parser.parse()?))
         } else {
             let ident = parser.parse()?;
-            if parser.consume_if_matches(TokenKind::LeftBracket) {
-                let index_expr = Box::new(parser.parse()?);
-                parser.consume(TokenKind::RightBracket)?;
-                Ok(Atom::ArrayAccess(ArrayAccess { index_expr, ident }))
-            } else if parser.token_matches(TokenKind::LeftParen) {
-                Ok(Atom::FnCall(FnCall {
-                    fn_name: ident,
-                    args: parser.parse()?,
-                }))
-            } else {
-                Ok(Atom::Ident(ident))
-            }
+            Ok(Atom::Ident(ident))
         }
     }
 }

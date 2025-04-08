@@ -1,6 +1,7 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (array_expr),\n\"\n    a[1];\n    a[5 + 3];\n    a[5 + (3 * 4)];\n    a[1] * b[2];\n    a[b[1]];\n\")"
+snapshot_kind: text
 ---
 [
     ExprStmt(
@@ -14,8 +15,12 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             ),
                         ),
                     ),
-                    ident: Ident(
-                        "a",
+                    lhs_expr: Atom(
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
                     ),
                 },
             ),
@@ -44,8 +49,12 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             ),
                         },
                     ),
-                    ident: Ident(
-                        "a",
+                    lhs_expr: Atom(
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
                     ),
                 },
             ),
@@ -86,8 +95,12 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             ),
                         },
                     ),
-                    ident: Ident(
-                        "a",
+                    lhs_expr: Atom(
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
                     ),
                 },
             ),
@@ -106,8 +119,12 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                                     ),
                                 ),
                             ),
-                            ident: Ident(
-                                "a",
+                            lhs_expr: Atom(
+                                Ident(
+                                    Ident(
+                                        "a",
+                                    ),
+                                ),
                             ),
                         },
                     ),
@@ -123,8 +140,12 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                                     ),
                                 ),
                             ),
-                            ident: Ident(
-                                "b",
+                            lhs_expr: Atom(
+                                Ident(
+                                    Ident(
+                                        "b",
+                                    ),
+                                ),
                             ),
                         },
                     ),
@@ -146,14 +167,22 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                                         ),
                                     ),
                                 ),
-                                ident: Ident(
-                                    "b",
+                                lhs_expr: Atom(
+                                    Ident(
+                                        Ident(
+                                            "b",
+                                        ),
+                                    ),
                                 ),
                             },
                         ),
                     ),
-                    ident: Ident(
-                        "a",
+                    lhs_expr: Atom(
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
                     ),
                 },
             ),

@@ -1,0 +1,41 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Expr >\n(stringify! (fn_call_precedence), \"a(1)++\")"
+snapshot_kind: text
+---
+Unary(
+    Unary {
+        op: Postfix(
+            PlusPlus,
+        ),
+        rhs: Atom(
+            FnCall(
+                FnCall {
+                    fn_expr: Atom(
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                    ),
+                    args: CommaSeparated {
+                        items: [
+                            Anonymous(
+                                AnonymousFnArg {
+                                    expr: Atom(
+                                        Literal(
+                                            Number(
+                                                1,
+                                            ),
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ],
+                        delimiter: Paren,
+                    },
+                },
+            ),
+        ),
+    },
+)

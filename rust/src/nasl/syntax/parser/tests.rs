@@ -306,6 +306,12 @@ parse_test_ok!(
 parse_test_ok!(declare_local_var, Program, "local_var a;");
 parse_test_ok!(declare_global_var, Program, "global_var a;");
 
+parse_test_ok!(inline_array_access, Expr, "[1, 2, 3][1]");
+
+parse_test_ok!(fn_call_precedence, Expr, "a(1)++");
+parse_test_ok!(array_access_precedence, Expr, "a[1]++");
+parse_test_ok!(mixed_array_access_fn_call, Expr, "fn_array[5](a, b, c)");
+
 // parse_test_ok!(array_assignment, Program, "a[1] = 3;");
 // parse_test_ok!(
 //     change_to_peek,

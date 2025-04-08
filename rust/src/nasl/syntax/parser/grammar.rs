@@ -152,12 +152,12 @@ pub struct Array {
 #[derive(Clone, Debug)]
 pub struct ArrayAccess {
     pub index_expr: Box<Expr>,
-    pub ident: Ident,
+    pub lhs_expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]
 pub struct FnCall {
-    pub fn_name: Ident,
+    pub fn_expr: Box<Expr>,
     pub args: CommaSeparated<FnArg, Paren>,
 }
 
@@ -256,6 +256,13 @@ make_operator! {
     (
         PlusPlus,
         MinusMinus,
+        // The "weird" operators of array access and
+        // function calls. They will be immediately translated
+        // into `Atom::ArrayAccess` and `Atom::FnCall` respectively,
+        // but parsing them via the pratt parser allows writing expressions like
+        // [1, 2, 3][0] or fn_array[5](a, b, c).
+        LeftBracket,
+        LeftParen,
     )
 }
 
@@ -341,6 +348,8 @@ impl UnaryPostfixOperator {
         match self {
             PlusPlus => 21,
             MinusMinus => 21,
+            LeftBracket => 25,
+            LeftParen => 27,
         }
     }
 }
