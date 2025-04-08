@@ -255,6 +255,25 @@ impl Register {
         }
     }
 
+    /// Retrieves all script parameters
+    pub fn script_params(&self) -> &[NaslValue] {
+        match self
+            .blocks
+            .first()
+            .and_then(|x| x.named(self, SCRIPT_PARAMS))
+            .map(|(_, val)| val)
+        {
+            Some(ContextType::Value(NaslValue::Array(arr))) => arr,
+            _ => &[],
+        }
+    }
+
+    /// Retrieves a script parameter by id
+    pub fn script_param(&self, id: usize) -> Option<NaslValue> {
+        let params = self.script_params();
+        params.get(id).cloned()
+    }
+
     /// Destroys the current context.
     ///
     /// This must be called when a context vanishes.
