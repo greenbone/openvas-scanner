@@ -136,7 +136,7 @@ impl From<HashMap<String, NaslValue>> for ContextType {
 /// When creating a new context call a corresponding create method.
 /// Warning since those will be stored within a vector each context must be manually
 /// deleted by calling drop_last when the context runs out of scope.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Register {
     blocks: Vec<NaslContext>,
 }
@@ -337,7 +337,7 @@ type Named = HashMap<String, ContextType>;
 ///
 /// A context should never be created directly but via a Register.
 /// The reason for that is that a Registrat contains all blocks and a block must be registered to ensure that each Block must be created via an Registrat.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct NaslContext {
     /// Parent id within the register
     parent: Option<usize>,
