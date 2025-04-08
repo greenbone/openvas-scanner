@@ -3,13 +3,16 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (use_parser), \"a = 23;b = 1;\")"
 ---
 [
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: Equal,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         23,
@@ -18,13 +21,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "b",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "b",
+                ),
+                array_accesses: [],
+            },
             operator: Equal,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,

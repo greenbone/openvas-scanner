@@ -19,6 +19,7 @@ pub struct SpannedError {
 
 #[derive(Debug)]
 pub enum ErrorKind {
+    Tokenizer(TokenizerErrorKind),
     TokensExpected(Vec<TokenKind>),
     TokenExpected(TokenKind),
     ExpressionExpected,
@@ -29,7 +30,7 @@ pub enum ErrorKind {
     ExpectedAssignmentOperator,
     ExpectedUnaryOperator,
     ExpectedBinaryOperator,
-    Tokenizer(TokenizerErrorKind),
+    NotAllowedInPlaceExpr,
 }
 
 impl Error {
@@ -64,6 +65,9 @@ impl From<ErrorKind> for Error {
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ErrorKind::Tokenizer(e) => {
+                write!(f, "Error during tokenization: {e}")
+            }
             ErrorKind::ExpressionExpected => write!(f, "Expected expression"),
             ErrorKind::EofExpected => write!(f, "Expected end of file"),
             ErrorKind::UnexpectedKeyword(kw) => write!(f, "Unexpected keyword {kw:?}"),
@@ -88,8 +92,8 @@ impl Display for ErrorKind {
             ErrorKind::ExpectedBinaryOperator => {
                 write!(f, "Expected binary operator (+, -, *, /, ...)")
             }
-            ErrorKind::Tokenizer(e) => {
-                write!(f, "Error during tokenization: {e}")
+            ErrorKind::NotAllowedInPlaceExpr => {
+                write!(f, "Not a valid assignment target.")
             }
         }
     }

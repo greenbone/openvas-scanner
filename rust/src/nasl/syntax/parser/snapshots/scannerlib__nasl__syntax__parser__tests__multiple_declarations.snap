@@ -3,13 +3,16 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (multiple_declarations),\n\"a = 1;\n     b = 2;\n     c = 3;\")"
 ---
 [
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: Equal,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -18,13 +21,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "b",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "b",
+                ),
+                array_accesses: [],
+            },
             operator: Equal,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         2,
@@ -33,13 +39,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "c",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "c",
+                ),
+                array_accesses: [],
+            },
             operator: Equal,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         3,

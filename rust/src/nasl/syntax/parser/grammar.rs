@@ -52,7 +52,7 @@ impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    VarDecl(VarDecl),
+    Assignment(Assignment),
     VarScopeDecl(VarScopeDecl),
     FnDecl(FnDecl),
     ExprStmt(Expr),
@@ -68,10 +68,16 @@ pub enum Stmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct VarDecl {
-    pub ident: Ident,
+pub struct Assignment {
+    pub lhs: PlaceExpr,
     pub operator: AssignmentOperator,
-    pub expr: Expr,
+    pub rhs: Expr,
+}
+
+#[derive(Clone, Debug)]
+pub struct PlaceExpr {
+    pub ident: Ident,
+    pub array_accesses: Vec<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -275,7 +281,6 @@ make_operator! {
         PlusEqual,
         SlashEqual,
         StarEqual,
-        GreaterGreaterGreater,
         PercentEqual,
         LessLessEqual,
         GreaterGreaterEqual,
@@ -298,12 +303,12 @@ make_operator! {
         EqualTilde,
         Greater,
         GreaterGreater,
+        GreaterGreaterGreater,
         GreaterLess,
         GreaterEqual,
         Less,
         LessLess,
         LessEqual,
-        GreaterGreaterGreater,
         GreaterBangLess,
         Ampersand,
         AmpersandAmpersand,

@@ -3,13 +3,16 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (jsp_example),\nr#\"\n    gms_path = gms_path + 'webapps\\\\appliance\\\\';\n    jsp = '<% out.println( \"' + jsp_print  + '\" ); %>';\n    \"#)"
 ---
 [
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "gms_path",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "gms_path",
+                ),
+                array_accesses: [],
+            },
             operator: Equal,
-            expr: Binary(
+            rhs: Binary(
                 Binary {
                     lhs: Atom(
                         Ident(
@@ -49,13 +52,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "jsp",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "jsp",
+                ),
+                array_accesses: [],
+            },
             operator: Equal,
-            expr: Binary(
+            rhs: Binary(
                 Binary {
                     lhs: Binary(
                         Binary {

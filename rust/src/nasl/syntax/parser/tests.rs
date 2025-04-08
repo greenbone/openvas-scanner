@@ -312,7 +312,14 @@ parse_test_ok!(fn_call_precedence, Expr, "a(1)++");
 parse_test_ok!(array_access_precedence, Expr, "a[1]++");
 parse_test_ok!(mixed_array_access_fn_call, Expr, "fn_array[5](a, b, c)");
 
-// parse_test_ok!(array_assignment, Program, "a[1] = 3;");
+parse_test_ok!(array_assignment, Stmt, "a[1] = 3;");
+parse_test_ok!(array_assignment_multi, Stmt, "a[1][2][3] = 3;");
+
+parse_test_err!(assignment_without_place_expr, Stmt, "5 = 3;");
+parse_test_err!(assignment_without_place_expr2, Stmt, "5 + 3 = 3;");
+
+parse_test_err!(multiple_assignments_in_line, Stmt, "a[1] = 3 = 5;");
+
 // parse_test_ok!(
 //     change_to_peek,
 //     Program,

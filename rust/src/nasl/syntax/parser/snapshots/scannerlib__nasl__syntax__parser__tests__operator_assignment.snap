@@ -3,13 +3,16 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (operator_assignment),\n\"\n    a += 1;\n    a -= 1;\n    a /= 1;\n    a *= 1;\n    a %= 1;\n    a >>= 1;\n    a <<= 1;\n    a >>>= 1;\n    \")"
 ---
 [
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: PlusEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -18,13 +21,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: MinusEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -33,13 +39,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: SlashEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -48,13 +57,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: StarEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -63,13 +75,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: PercentEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -78,13 +93,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: GreaterGreaterEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -93,13 +111,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: LessLessEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,
@@ -108,13 +129,16 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
             ),
         },
     ),
-    VarDecl(
-        VarDecl {
-            ident: Ident(
-                "a",
-            ),
+    Assignment(
+        Assignment {
+            lhs: PlaceExpr {
+                ident: Ident(
+                    "a",
+                ),
+                array_accesses: [],
+            },
             operator: GreaterGreaterGreaterEqual,
-            expr: Atom(
+            rhs: Atom(
                 Literal(
                     Number(
                         1,

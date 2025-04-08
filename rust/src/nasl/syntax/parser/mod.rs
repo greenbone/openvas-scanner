@@ -11,17 +11,20 @@ pub use error::SpannedError as ParseError;
 use error::SpannedError;
 use error::{Error, ErrorKind};
 use grammar::ArrayAccess;
+use grammar::Assignment;
+use grammar::AssignmentOperator;
 use grammar::FnCall;
 use grammar::Foreach;
+use grammar::PlaceExpr;
 use grammar::Repeat;
 
 use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
-    AnonymousFnArg, Array, AssignmentOperator, Ast, Atom, Binary, BinaryOperator, Block,
-    CommaSeparated, Expr, FnArg, FnDecl, Include, NamedFnArg, Return, Stmt, Unary, UnaryOperator,
-    UnaryPostfixOperator, UnaryPrefixOperator, VarDecl, VarScope, VarScopeDecl, While,
+    AnonymousFnArg, Array, Ast, Atom, Binary, BinaryOperator, Block, CommaSeparated, Expr, FnArg,
+    FnDecl, Include, NamedFnArg, Return, Stmt, Unary, UnaryOperator, UnaryPostfixOperator,
+    UnaryPrefixOperator, VarScope, VarScopeDecl, While,
 };
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -182,9 +185,7 @@ impl Parser {
 
 impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Stmt> {
-        if parser.matches::<VarDecl>() {
-            Ok(Stmt::VarDecl(parser.parse()?))
-        } else if parser.matches::<VarScope>() {
+        if parser.matches::<VarScope>() {
             Ok(Stmt::VarScopeDecl(parser.parse()?))
         } else if parser.token_matches(TokenKind::Keyword(Keyword::Function)) {
             Ok(Stmt::FnDecl(parser.parse()?))
@@ -210,8 +211,16 @@ impl Parse for Stmt {
             Ok(Stmt::NoOp)
         } else {
             let expr = parser.parse()?;
-            parser.consume(TokenKind::Semicolon)?;
-            Ok(Stmt::ExprStmt(expr))
+            if parser.matches::<AssignmentOperator>() {
+                let lhs = PlaceExpr::from_expr(expr)?;
+                let operator = parser.parse()?;
+                let rhs = parser.parse()?;
+                parser.consume(TokenKind::Semicolon)?;
+                Ok(Stmt::Assignment(Assignment { lhs, rhs, operator }))
+            } else {
+                parser.consume(TokenKind::Semicolon)?;
+                Ok(Stmt::ExprStmt(expr))
+            }
         }
     }
 }
@@ -249,26 +258,6 @@ impl Parse for Include {
         parser.consume(TokenKind::RightParen)?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(Include { path })
-    }
-}
-
-impl Matches for VarDecl {
-    fn matches(p: &impl Peek) -> bool {
-        p.matches::<Ident>() && p.matches_next::<AssignmentOperator>()
-    }
-}
-
-impl Parse for VarDecl {
-    fn parse(parser: &mut Parser) -> Result<VarDecl> {
-        let ident = parser.parse()?;
-        let operator = AssignmentOperator::parse(parser)?;
-        let expr = parser.parse()?;
-        parser.consume(TokenKind::Semicolon)?;
-        Ok(VarDecl {
-            ident,
-            expr,
-            operator,
-        })
     }
 }
 
@@ -383,7 +372,8 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                 | TokenKind::Semicolon
                 | TokenKind::Eof
                 | TokenKind::Comma
-        ) {
+        ) || parser.matches::<AssignmentOperator>()
+        {
             break;
         }
 
@@ -463,6 +453,25 @@ impl Matches for Atom {
         parser.matches::<Ident>()
             || parser.matches::<Literal>()
             || parser.peek() == &TokenKind::LeftBracket
+    }
+}
+
+impl PlaceExpr {
+    fn from_expr(expr: Expr) -> Result<Self> {
+        if let Expr::Atom(Atom::Ident(ident)) = expr {
+            Ok(PlaceExpr {
+                ident: ident.clone(),
+                array_accesses: vec![],
+            })
+        } else if let Expr::Atom(Atom::ArrayAccess(array_access)) = expr {
+            let mut inner = PlaceExpr::from_expr(*array_access.lhs_expr)?;
+            inner
+                .array_accesses
+                .push((*array_access.index_expr).clone());
+            Ok(inner)
+        } else {
+            Err(ParseErrorKind::NotAllowedInPlaceExpr.into())
+        }
     }
 }
 
