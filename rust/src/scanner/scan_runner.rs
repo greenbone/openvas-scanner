@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::{Host, HostInfo, Scan};
+use crate::models::HostInfo;
 use crate::nasl::utils::Executor;
+use crate::nasl::utils::context::Target;
 use futures::{Stream, stream};
 
 use crate::scanner::ScannerStack;
 use crate::scheduling::{ConcurrentVT, VTError};
 
+use super::Scan;
 use super::error::{ExecuteError, ScriptResult};
 use super::scanner_stack::Schedule;
 use super::vt_runner::VTRunner;
@@ -21,7 +23,7 @@ struct Position {
 }
 
 /// Provides an iterator over all hosts, stages and vts within the stage
-fn all_positions(hosts: Vec<Host>, vts: Vec<ConcurrentVT>) -> impl Iterator<Item = Position> {
+fn all_positions(hosts: Vec<Target>, vts: Vec<ConcurrentVT>) -> impl Iterator<Item = Position> {
     hosts.into_iter().enumerate().flat_map(move |(host, _)| {
         let vts = vts.clone();
         vts.into_iter()
@@ -68,15 +70,21 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
     }
 
     pub fn host_info(&self) -> HostInfo {
-        HostInfo::from_hosts_and_num_vts(&self.scan.target.hosts, self.concurrent_vts.len())
+        HostInfo::from_hosts_and_num_vts(
+            self.scan
+                .targets
+                .iter()
+                .map(|target| target.original_target_str()),
+            self.concurrent_vts.len(),
+        )
     }
 
     pub fn stream(self) -> impl Stream<Item = Result<ScriptResult, ExecuteError>> + 'a {
-        let data = all_positions(self.scan.target.hosts.clone(), self.concurrent_vts.clone()).map(
-            move |pos| {
+        let data =
+            all_positions(self.scan.targets.clone(), self.concurrent_vts.clone()).map(move |pos| {
                 let (stage, vts) = &self.concurrent_vts[pos.stage];
                 let (vt, param) = &vts[pos.vt];
-                let host = &self.scan.target.hosts[pos.host];
+                let host = &self.scan.targets[pos.host];
                 (
                     *stage,
                     vt.clone(),
@@ -84,8 +92,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                     host.clone(),
                     self.scan.scan_id.clone(),
                 )
-            },
-        );
+            });
         // The usage of unfold here will prevent any real asynchronous running of VTs
         // and automatically guarantee that we stick to the scheduling requirements.
         // If this is changed, make sure to uphold the scheduling requirements in the
@@ -117,8 +124,6 @@ pub(super) mod tests {
     use std::sync::Arc;
 
     use crate::models::Protocol;
-    use crate::models::Scan;
-    use crate::models::Target;
     use crate::models::VT;
     use crate::nasl::ContextBuilder;
     use crate::nasl::interpreter::ForkingInterpreter;
@@ -126,7 +131,8 @@ pub(super) mod tests {
     use crate::nasl::syntax::NaslValue;
     use crate::nasl::utils::Executor;
     use crate::nasl::utils::Register;
-    use crate::nasl::utils::context;
+    use crate::nasl::utils::context::Target;
+    use crate::scanner::Scan;
     use crate::scanner::{
         error::{ExecuteError, ScriptResult},
         scan_runner::ScanRunner,
@@ -169,11 +175,7 @@ pub(super) mod tests {
         });
         let scan = Scan {
             scan_id: "sid".to_string(),
-            target: Target {
-                hosts: vec!["test.host".to_string()],
-                ..Default::default()
-            },
-            scan_preferences: vec![],
+            targets: vec![Target::do_not_resolve_hostname("test.host")],
             vts: scripts
                 .iter()
                 .map(|(_, v)| VT {
@@ -322,7 +324,7 @@ exit({rc});
         let storage = Arc::new(InMemoryStorage::new());
 
         let register = Register::root_initial(&initial);
-        let target = context::Target::do_not_resolve("");
+        let target = Target::do_not_resolve_hostname("");
         let executor = nasl_std_functions();
         let loader = |_: &str| code.to_string();
         let scan_id = ScanID(filename.to_string());
@@ -368,11 +370,7 @@ exit({rc});
         let loader = move |s: &str| loader_scripts[stou(s)].0.clone();
         let scan = Scan {
             scan_id: "sid".to_string(),
-            target: Target {
-                hosts: vec!["test.host".to_string()],
-                ..Default::default()
-            },
-            scan_preferences: vec![],
+            targets: vec![Target::do_not_resolve_hostname("test.host")],
             vts: scripts
                 .iter()
                 .map(|(_, v)| VT {
@@ -384,7 +382,7 @@ exit({rc});
 
         let executor = nasl_std_functions();
 
-        let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan)?;
+        let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan.vts)?;
         let interpreter: ScanRunner<(_, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan)?;
         let results = interpreter.stream().collect::<Vec<_>>().await;

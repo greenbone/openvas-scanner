@@ -16,7 +16,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                 let cb = ContextBuilder {
                     scan_id: ScanID("test.nasl".to_string()),
                     filename: "",
-                    target: Target::do_not_resolve(""),
+                    target: Target::do_not_resolve_hostname(""),
                     storage: &InMemoryStorage::default(),
                     executor: &nasl_std_functions(),
                     loader: &NoOpLoader::default(),

@@ -21,7 +21,7 @@ use scannerlib::{
 use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
     nasl::{
-        ContextFactory, FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder,
+        ContextBuilder, FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder,
         WithErrorInfo,
         interpreter::InterpretErrorKind,
         syntax::{LoadError, load_non_utf8_path},
@@ -133,7 +133,7 @@ pub async fn run(
     script: &Path,
     target: Option<String>,
 ) -> Result<(), CliError> {
-    let target = Target::resolve_hostname(&target.unwrap_or_default());
+    let target = Target::resolve_hostname(target.unwrap_or_default());
     let result = match (db, feed) {
         (Db::InMemory, None) => {
             run_on_storage(

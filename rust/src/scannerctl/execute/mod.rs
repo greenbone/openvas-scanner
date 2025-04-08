@@ -10,6 +10,7 @@ use std::sync::Arc;
 use clap::Subcommand;
 use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
+use scannerlib::models;
 use scannerlib::nasl::{FSPluginLoader, nasl_std_functions};
 use scannerlib::scanner::ScanRunner;
 use scannerlib::scheduling::{ExecutionPlaner, WaveExecutionPlan};
@@ -64,7 +65,7 @@ pub async fn run(args: ExecuteArgs) -> Result<(), CliError> {
 }
 
 async fn scan(args: ScanArgs) -> Result<(), CliError> {
-    let scan = match args.json {
+    let scan: models::Scan = match args.json {
         ArgOrStdin::Arg(f) => serde_json::from_reader(File::open(f)?)
             .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?,
         ArgOrStdin::Stdin => {
@@ -79,8 +80,9 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
     let updater = Update::init("1", 5, &loader, &storage, verifier);
     updater.perform_update().await?;
 
+    let vts_cloned = scan.vts.clone();
     let schedule = storage
-        .execution_plan::<WaveExecutionPlan>(&scan)
+        .execution_plan::<WaveExecutionPlan>(&vts_cloned)
         .expect("expected to be schedulable");
     info!("creating scheduling plan");
     if args.schedule_only {
@@ -97,6 +99,7 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
         }
     } else {
         let executor = nasl_std_functions();
+        let scan = scan.into();
         let runner: ScanRunner<(_, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan).unwrap();
         let mut results = Box::pin(runner.stream());

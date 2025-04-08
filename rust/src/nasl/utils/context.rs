@@ -366,11 +366,21 @@ impl NaslContext {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Target {
     /// The original target. IP or hostname
-    target: String,
-    /// The IP address. Always has a valid IP. It defaults to 127.0.0.1 if not possible to resolve target.
+    original_target_str: String,
+    /// The IP address. Defaults to 127.0.0.1 if target was not
+    /// resolved or could not be resolved
+    ip_addr: IpAddr,
+}
+
+#[derive(Debug)]
+pub struct CtxTarget {
+    /// The original target. IP or hostname
+    original_target_str: String,
+    /// The IP address. Defaults to 127.0.0.1 if target was not
+    /// resolved or could not be resolved
     ip_addr: IpAddr,
     // The shared state is guarded by a mutex. This is a `std::sync::Mutex` and
     // not a Tokio mutex. This is because there are no asynchronous operations
@@ -389,44 +399,46 @@ pub struct Target {
 }
 
 impl Target {
-    fn empty() -> Self {
+    pub fn do_not_resolve_hostname(target: impl AsRef<str>) -> Self {
+        let ip_addr: IpAddr = target.as_ref().parse::<IpAddr>().unwrap_or(LOCALHOST);
         Self {
-            target: "".into(),
-            ip_addr: LOCALHOST,
-            vhosts: Mutex::new(vec![]),
+            original_target_str: target.as_ref().into(),
+            ip_addr,
         }
     }
 
-    pub fn do_not_resolve(target: impl AsRef<str>) -> Self {
-        // TODO: Check if the target string is an IP addr?
-        Self {
-            target: target.as_ref().into(),
-            ip_addr: LOCALHOST,
-            vhosts: Mutex::new(vec![]),
-        }
-    }
-
-    pub fn resolve_hostname(target: &str) -> Self {
+    pub fn resolve_hostname(target: impl AsRef<str>) -> Self {
         // TODO: We only ever remember the first IpAddr here,
         // is that reasonable?
-        let ip_addr = resolve_hostname(target)
+        let ip_addr = resolve_hostname(target.as_ref())
             .ok()
             .and_then(|ip_addrs| ip_addrs.into_iter().next())
             .unwrap_or(LOCALHOST);
         Self {
-            target: target.into(),
+            original_target_str: target.as_ref().into(),
             ip_addr,
-            ..Self::empty()
         }
     }
 
-    pub fn add_hostname(&self, hostname: String, source: String) -> &Target {
+    pub fn original_target_str(&self) -> &str {
+        &self.original_target_str
+    }
+}
+
+impl From<Target> for CtxTarget {
+    fn from(value: Target) -> Self {
+        CtxTarget {
+            original_target_str: value.original_target_str,
+            ip_addr: value.ip_addr,
+            vhosts: Mutex::new(vec![]),
+        }
+    }
+}
+
+impl CtxTarget {
+    pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
         self.vhosts.lock().unwrap().push((hostname, source));
         self
-    }
-
-    pub fn target(&self) -> &str {
-        &self.target
     }
 }
 
@@ -473,7 +485,7 @@ pub struct Context<'a> {
     /// The key for this context.
     scan: ScanID,
     /// Target against which the scan is run.
-    target: Target,
+    target: CtxTarget,
     /// Filename of the current script
     filename: PathBuf,
     /// Storage
@@ -489,7 +501,7 @@ pub struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         scan: ScanID,
-        target: Target,
+        target: CtxTarget,
         filename: PathBuf,
         storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
@@ -546,7 +558,7 @@ impl<'a> Context<'a> {
 
     /// Get the target IP as string
     pub fn target(&self) -> &str {
-        &self.target.target
+        &self.target.original_target_str
     }
 
     pub fn filename(&self) -> &PathBuf {
@@ -603,7 +615,7 @@ impl<'a> Context<'a> {
         KbContextKey(
             (
                 self.scan.clone(),
-                storage::Target(self.target.target.clone()),
+                storage::Target(self.target.original_target_str.clone()),
             ),
             key,
         )
@@ -631,7 +643,7 @@ impl<'a> Context<'a> {
             .retrieve(&GetKbContextKey(
                 (
                     self.scan.clone(),
-                    storage::Target(self.target.target.clone()),
+                    storage::Target(self.target.original_target_str.clone()),
                 ),
                 key.clone(),
             ))?
@@ -761,7 +773,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
     pub fn build(self) -> Context<'a> {
         Context::new(
             self.scan_id,
-            self.target,
+            self.target.into(),
             self.filename.as_ref().to_owned(),
             self.storage,
             self.loader,

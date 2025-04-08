@@ -339,7 +339,7 @@ where
     }
 
     fn context(&self) -> Context {
-        let target = Target::do_not_resolve(&self.target);
+        let target = Target::do_not_resolve_hostname(&self.target);
         let context = ContextBuilder {
             storage: &self.storage,
             loader: &self.loader,

@@ -56,7 +56,7 @@ pub async fn feed_version(
     let code = loader.load(feed_info_key)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
-    let target = Target::do_not_resolve("");
+    let target = Target::do_not_resolve_hostname("");
     let filename = "";
     let executor = nasl_std_functions();
     let cb = ContextBuilder {
@@ -160,7 +160,7 @@ where
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
         let code = self.loader.load(&key.0)?;
         let register = Register::root_initial(&self.initial);
-        let target = Target::do_not_resolve("");
+        let target = Target::do_not_resolve_hostname("");
         let context = ContextBuilder {
             scan_id: ScanID(key.0.clone()),
             target,

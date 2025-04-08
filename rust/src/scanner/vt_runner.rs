@@ -5,7 +5,7 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{Host, Parameter, Protocol, ScanID};
+use crate::models::{Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::{Executor, Register};
@@ -31,7 +31,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
     loader: &'a S::Loader,
     executor: &'a Executor,
 
-    target: &'a Host,
+    target: &'a Target,
     vt: &'a Nvt,
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
@@ -47,7 +47,7 @@ where
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
         executor: &'a Executor,
-        target: &'a Host,
+        target: &'a Target,
         vt: &'a Nvt,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
@@ -187,7 +187,7 @@ where
     fn generate_key(&self) -> KbContext {
         (
             crate::storage::ScanID(self.scan_id.clone()),
-            crate::storage::Target(self.target.clone()),
+            crate::storage::Target(self.target.original_target_str().into()),
         )
     }
 
@@ -200,10 +200,9 @@ where
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
-        let target = Target::resolve_hostname(self.target);
         let context = ContextBuilder {
             scan_id: crate::storage::ScanID(self.scan_id.clone()),
-            target,
+            target: self.target.clone(),
             filename,
             storage: self.storage,
             loader: self.loader,
@@ -239,7 +238,7 @@ where
             filename: self.vt.filename.clone(),
             stage: self.stage,
             kind,
-            target: self.target.clone(),
+            target: self.target.original_target_str().into(),
         })
     }
 }
