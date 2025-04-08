@@ -377,11 +377,8 @@ pub struct Target {
 
 #[derive(Debug)]
 pub struct CtxTarget {
-    /// The original target. IP or hostname
-    original_target_str: String,
-    /// The IP address. Defaults to 127.0.0.1 if target was not
-    /// resolved or could not be resolved
-    ip_addr: IpAddr,
+    /// The target
+    target: Target,
     // The shared state is guarded by a mutex. This is a `std::sync::Mutex` and
     // not a Tokio mutex. This is because there are no asynchronous operations
     // being performed while holding the mutex. Additionally, the critical
@@ -428,8 +425,7 @@ impl Target {
 impl From<Target> for CtxTarget {
     fn from(value: Target) -> Self {
         CtxTarget {
-            original_target_str: value.original_target_str,
-            ip_addr: value.ip_addr,
+            target: value,
             vhosts: Mutex::new(vec![]),
         }
     }
@@ -439,6 +435,14 @@ impl CtxTarget {
     pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
         self.vhosts.lock().unwrap().push((hostname, source));
         self
+    }
+
+    fn original_target_str(&self) -> &str {
+        self.target.original_target_str()
+    }
+
+    fn ip_addr(&self) -> &IpAddr {
+        &self.target.ip_addr
     }
 }
 
@@ -556,18 +560,18 @@ impl<'a> Context<'a> {
         &self.scan
     }
 
-    /// Get the target (hostname or ip address).
-    pub fn target(&self) -> &str {
-        &self.target.original_target_str
-    }
-
     pub fn filename(&self) -> &PathBuf {
         &self.filename
     }
 
-    /// Get the target host as IpAddr enum member
-    pub fn target_ip(&self) -> IpAddr {
-        self.target.ip_addr
+    /// Get the target (hostname or ip address).
+    pub fn target(&self) -> &str {
+        self.target.original_target_str()
+    }
+
+    /// Get the ip address of the target.
+    pub fn target_ip(&self) -> &IpAddr {
+        self.target.ip_addr()
     }
 
     /// Get the target VHost list
@@ -615,7 +619,7 @@ impl<'a> Context<'a> {
         KbContextKey(
             (
                 self.scan.clone(),
-                storage::Target(self.target.original_target_str.clone()),
+                storage::Target(self.target.original_target_str().to_string()),
             ),
             key,
         )
@@ -643,7 +647,7 @@ impl<'a> Context<'a> {
             .retrieve(&GetKbContextKey(
                 (
                     self.scan.clone(),
-                    storage::Target(self.target.original_target_str.clone()),
+                    storage::Target(self.target.original_target_str().into()),
                 ),
                 key.clone(),
             ))?

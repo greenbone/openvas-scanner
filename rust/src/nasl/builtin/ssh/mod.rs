@@ -152,7 +152,7 @@ impl Ssh {
         let port = port
             .filter(|_| socket.is_none())
             .unwrap_or(DEFAULT_SSH_PORT);
-        let ip = ctx.target_ip();
+        let ip = *ctx.target_ip();
         let timeout = timeout.map(Duration::from_secs);
         let keytype = keytype
             .map(|keytype| keytype.0)
