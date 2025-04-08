@@ -556,7 +556,7 @@ impl<'a> Context<'a> {
         &self.scan
     }
 
-    /// Get the target IP as string
+    /// Get the target (hostname or ip address).
     pub fn target(&self) -> &str {
         &self.target.original_target_str
     }
