@@ -14,7 +14,7 @@ cbc = { version = "0.1.2", features = ["alloc"] }
 ccm = "0.5.0"
 chacha20 = "0.9.1"
 chrono = { version = "0.4.23", default-features = false, features = ["clock"] }
-clap = { version = "4.3.0", features = ["derive", "env"] }
+clap = { version = "4.5.27", features = ["derive", "env"] }
 cmac = "0.7.2"
 configparser = "3"
 ctr = "0.9.2"
