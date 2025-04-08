@@ -49,12 +49,14 @@ impl Reporting {
             Some("udp") => Protocol::UDP,
             _ => Protocol::TCP,
         };
+        let target = context.target_orig();
+        let hostname = target.hostname();
+        let ip_address = target.ip_addr();
         let result = models::Result {
             id: self.id(),
             r_type: typus,
-            ip_address: Some(context.target().to_string()),
-            // TODO: where to get hostname? is it only vhost relevant?
-            hostname: None,
+            ip_address: Some(ip_address.to_string()),
+            hostname,
             oid: Some(context.scan().0.clone()),
             port,
             protocol: Some(protocol),
