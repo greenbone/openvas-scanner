@@ -447,6 +447,10 @@ impl Target {
         &self.original_target_str
     }
 
+    pub fn ip_addr(&self) -> IpAddr {
+        self.ip_addr
+    }
+
     pub fn kind(&self) -> &TargetKind {
         &self.kind
     }
@@ -473,6 +477,10 @@ impl CtxTarget {
 
     fn ip_addr(&self) -> &IpAddr {
         &self.target.ip_addr
+    }
+
+    fn target(&self) -> &Target {
+        &self.target
     }
 }
 
@@ -592,6 +600,11 @@ impl<'a> Context<'a> {
 
     pub fn filename(&self) -> &PathBuf {
         &self.filename
+    }
+
+    // TODO rename to target
+    pub fn target_orig(&self) -> &Target {
+        self.target.target()
     }
 
     /// Get the target (hostname or ip address).
