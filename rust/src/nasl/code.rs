@@ -109,10 +109,10 @@ impl Code {
         }
     }
 
-    pub fn from_string_fake_filename(code: &str, filename: &str) -> Self {
+    pub fn from_string_fake_filename(code: &str, filename: impl AsRef<Path>) -> Self {
         Self {
             code: code.to_string(),
-            path: Some(Path::new(filename).to_owned()),
+            path: Some(filename.as_ref().to_owned()),
         }
     }
 

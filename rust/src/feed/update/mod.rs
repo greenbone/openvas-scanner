@@ -53,12 +53,19 @@ pub async fn feed_version(
     let feed_info_filename = "plugin_feed_info.inc";
     let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
-    let k = ScanID("".to_string());
-    let target = Target::default();
-    let filename = Default::default();
-    // TODO add parameter to struct
-    let functions = nasl_std_functions();
-    let context = Context::new(k, target, filename, dispatcher, loader, &functions);
+    let scan_id = ScanID("".to_string());
+    let target = Target::do_not_resolve_hostname("");
+    let filename = "";
+    let executor = nasl_std_functions();
+    let cb = ContextBuilder {
+        storage: dispatcher,
+        loader,
+        executor: &executor,
+        target,
+        filename,
+        scan_id,
+    };
+    let context = cb.build();
     // TODO do not unwrap here, handle errors
     let mut interpreter = Interpreter::new(register, code.parse().emit_errors().unwrap(), &context);
     interpreter.execute_all().await?;
@@ -150,15 +157,17 @@ where
         let code = Code::load(self.loader, &key.0)?;
 
         let register = Register::root_initial(&self.initial);
-        let target = Target::default();
-        let context = Context::new(
-            ScanID(key.0.clone()),
+        let target = Target::do_not_resolve_hostname("");
+        let context = ContextBuilder {
+            scan_id: ScanID(key.0.clone()),
             target,
-            key.0.clone().into(),
-            self.storage,
-            self.loader,
-            &self.executor,
-        );
+            filename: &key.0,
+            storage: self.storage,
+            loader: self.loader,
+            executor: &self.executor,
+        };
+        let context = context.build();
+        // TODO: Do not unwrap here.
         let ast = code.parse().emit_errors().unwrap();
         let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
         while let Some(stmt) = results.next().await {

@@ -5,93 +5,86 @@
 use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use clap::{Arg, ArgAction, Command, arg, value_parser};
 use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
+use scannerlib::nasl::WithErrorInfo;
 use scannerlib::storage::Retriever;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
 use scannerlib::storage::items::nvt::{Feed, Nvt, Oid};
 use serde::Deserialize;
 
-use crate::{CliError, CliErrorKind, get_path_from_openvas, read_openvas_config};
+use crate::{CliError, CliErrorKind, Filename, get_path_from_openvas, read_openvas_config};
 use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
 
-pub fn extend_args(cmd: Command) -> Command {
-    cmd.subcommand( crate::add_verbose(
-            Command::new("scan-config")
-                .about("Transforms a scan-config xml to a scan json for openvasd.
-When piping a scan json it is enriched with the scan-config xml and may the portlist otherwise it will print a scan json without target or credentials.")
-                .arg(arg!(-p --path <FILE> "Path to the feed.") .required(false)
-                    .value_parser(value_parser!(PathBuf)))
-                .arg(Arg::new("scan-config").required(true).action(ArgAction::Append))
-                .arg(arg!(-i --input "Parses scan json from stdin.").required(false).action(ArgAction::SetTrue))
-                .arg(arg!(-l --portlist <FILE> "Path to the port list xml") .required(false))
-        )
-    )
+#[derive(clap::Parser)]
+/// Transforms a scan-config xml to a scan json for openvasd.
+pub struct ScanConfigArgs {
+    /// Print more details while running
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
+    /// Print only error output.
+    #[arg(short, long)]
+    pub quiet: bool,
+
+    /// Path to the feed containing the scan-config.
+    pub path: Option<PathBuf>,
+    /// Path to the XML file with the port list
+    pub portlist: Option<PathBuf>,
+    /// If enabled, parse the scan json from stdin
+    #[clap(short, long)]
+    pub stdin: bool,
+    /// A list of paths of the scan configurations
+    pub scan_config: Vec<PathBuf>,
 }
 
-pub async fn run(root: &clap::ArgMatches) -> Option<Result<(), CliError>> {
-    let (args, _) = crate::get_args_set_logging(root, "scan-config")?;
-
-    let feed = args.get_one::<PathBuf>("path").cloned();
-    let config: Vec<String> = args
-        .get_many::<String>("scan-config")
-        .expect("scan-config is required")
-        .cloned()
-        .collect();
-    let port_list = args.get_one::<String>("portlist").cloned();
+pub async fn run(args: ScanConfigArgs) -> Result<(), CliError> {
+    let port_list = &args.portlist;
     tracing::debug!("port_list: {port_list:?}");
-    let stdin = args.get_one::<bool>("input").cloned().unwrap_or_default();
-    Some(execute(feed.as_ref(), &config, port_list.as_ref(), stdin).await)
+    execute(
+        args.path.as_ref(),
+        &args.scan_config,
+        args.portlist.as_ref(),
+        args.stdin,
+    )
+    .await
 }
 
 async fn execute(
     feed: Option<&PathBuf>,
-    config: &[String],
-    port_list: Option<&String>,
+    config: &[PathBuf],
+    port_list: Option<&PathBuf>,
     stdin: bool,
 ) -> Result<(), CliError> {
-    let map_error = |f: &str, e: Error| CliError {
-        filename: f.to_string(),
-        kind: CliErrorKind::Corrupt(format!("{e:?}")),
-    };
-    let as_bufreader = |f: &str| {
-        let file = std::fs::File::open(f).map_err(|e| CliError {
-            filename: f.to_string(),
-            kind: CliErrorKind::Corrupt(format!("{e:?}")),
-        })?;
+    let map_error =
+        |f: &PathBuf, e: Error| CliErrorKind::Corrupt(format!("{e:?}")).with(Filename(f));
+    let as_bufreader = |f: &PathBuf| {
+        let file = std::fs::File::open(f)
+            .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")).with(Filename(f)))?;
         let reader = BufReader::new(file);
         Ok::<BufReader<std::fs::File>, CliError>(reader)
     };
     let storage = Arc::new(InMemoryStorage::new());
-    let mut scan = {
-        if stdin {
-            tracing::debug!("reading scan config from stdin");
-            serde_json::from_reader(std::io::stdin()).map_err(|e| CliError {
-                filename: "".to_string(),
-                kind: CliErrorKind::Corrupt(format!("{e:?}")),
-            })?
-        } else {
-            Scan::default()
-        }
+    let mut scan = if stdin {
+        tracing::debug!("reading scan config from stdin");
+        serde_json::from_reader(std::io::stdin())
+            .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?
+    } else {
+        Scan::default()
     };
     let feed = match feed {
         Some(feed) => feed.to_owned(),
         None => read_openvas_config()
             .map(get_path_from_openvas)
-            .map_err(|e| CliError {
-                filename: "".to_string(),
-                kind: CliErrorKind::Corrupt(format!("{e:?}")),
-            })?,
+            .map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?,
     };
 
     tracing::info!("loading feed. This may take a while.");
-    crate::feed::update::run(Arc::clone(&storage), feed.to_owned(), false).await?;
+    crate::feed::update::run(Arc::clone(&storage), &feed, false).await?;
     tracing::info!("feed loaded.");
     let ports = match port_list {
         Some(ports) => {
-            tracing::debug!("reading port list from {ports}");
+            tracing::debug!("reading port list from {ports:?}");
             let reader = as_bufreader(ports)?;
             parse_portlist(reader).map_err(|e| map_error(ports, e))?
         }
@@ -106,10 +99,8 @@ async fn execute(
     }
     scan.vts.extend(vts);
     scan.target.ports = ports;
-    let out = serde_json::to_string_pretty(&scan).map_err(|e| CliError {
-        filename: config.join(","),
-        kind: CliErrorKind::Corrupt(format!("{e:?}")),
-    })?;
+    let out =
+        serde_json::to_string_pretty(&scan).map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?;
     println!("{}", out);
     Ok(())
 }

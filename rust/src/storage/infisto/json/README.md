@@ -74,7 +74,7 @@ Transforms a NVT to the json structure:
 
 To create a single json element per dispatch you can use the JsonStorage with a writer of your choice:
 
-```
+```rust
 let mut buf = Vec::with_capacity(1208);
 let dispatcher = scannerlib::storage::infisto::json::JsonStorage::new(&mut buf);
 ```
@@ -83,7 +83,7 @@ let dispatcher = scannerlib::storage::infisto::json::JsonStorage::new(&mut buf);
 
 To create an array for elements per dispatch call:
 
-```
+```rust
 let mut buf = Vec::with_capacity(1208);
 let mut ja = scannerlib::storage::infisto::json::ArrayWrapper::new(&mut buf);
 let dispatcher = scannerlib::storage::infisto::json::JsonStorage::new(&mut ja);

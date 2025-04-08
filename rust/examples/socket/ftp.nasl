@@ -12,5 +12,7 @@ display("is function ftp_log_in defined: ", defined_func("ftp_log_in"));
 user = "dlpuser";
 pass = "rNrKYTX9g7z3RgJRmxWuGHbeu";
 display("login succeeded: ", ftp_log_in(user: user, pass: pass, socket: sock));
+port = ftp_get_pasv_port(socket: sock);
+display("pasv port: ", port);
 close(sock);
 display("end");

@@ -216,14 +216,14 @@ where
         .unwrap()?;
         Ok(nr)
     }
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, Error> {
         let url = self.url.to_string();
         let noids = tokio::task::spawn_blocking(move || {
             let mut notus_redis = RedisCtx::open(&url, NOTUSUPDATE_SELECTOR)?;
             let noids = notus_redis
                 .keys("internal*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()))
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()))
                 .filter_map(move |oid| notus_redis.redis_get_advisory(&oid).ok())
                 .flatten();
             Ok::<_, Error>(noids)
@@ -235,7 +235,7 @@ where
             let foids = nvt_redis
                 .keys("nvt:*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()))
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()))
                 .filter_map(move |oid| nvt_redis.redis_get_vt(&oid[4..]).ok())
                 .flatten();
             Ok::<_, Error>(foids)
@@ -244,17 +244,17 @@ where
         let noids = noids.await.unwrap()?;
         let foids = foids.await.unwrap()?;
         let results = noids.chain(foids);
-        Ok(Box::new(results))
+        Ok(results.collect())
     }
 
-    async fn oids(&self) -> Result<Box<dyn Iterator<Item = String> + Send>, Error> {
+    async fn oids(&self) -> Result<Vec<String>, Error> {
         let url = Arc::new(self.url.to_string());
         let noids = tokio::task::spawn_blocking(move || {
             let mut notus_redis = RedisCtx::open(&url, NOTUSUPDATE_SELECTOR)?;
             let noids = notus_redis
                 .keys("internal*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()));
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()));
             Ok::<_, Error>(noids)
         });
 
@@ -264,14 +264,14 @@ where
             let foids = nvt_redis
                 .keys("nvt:*")?
                 .into_iter()
-                .filter_map(|x| x.split('/').last().map(|x| x.to_string()));
+                .filter_map(|x| x.split('/').next_back().map(|x| x.to_string()));
             Ok::<_, Error>(foids)
         });
 
         let noids = noids.await.unwrap()?;
         let foids = foids.await.unwrap()?;
         let results = noids.chain(foids);
-        Ok(Box::new(results))
+        Ok(results.collect())
     }
 
     async fn feed_hash(&self) -> Vec<FeedHash> {

@@ -169,6 +169,7 @@ where
             Product::Rpm(adv) => Self::parse_and_compare(packages, adv)?,
             Product::Slack(adv) => Self::parse_and_compare(packages, adv)?,
             Product::Windows(adv) => Self::parse_and_compare(packages, adv)?,
+            Product::Alpm(adv) => Self::parse_and_compare(packages, adv)?,
         };
 
         Ok(results)

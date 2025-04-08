@@ -7,7 +7,7 @@ use std::collections::HashMap;
 /// Represents an advisory json file for notus product.
 #[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProductsAdivisories {
+pub struct ProductsAdvisories {
     /// Version of the advisory file
     pub version: String,
     /// SPDX license identifier
@@ -19,7 +19,7 @@ pub struct ProductsAdivisories {
     pub family: String,
     /// List of Advisories
     #[cfg_attr(feature = "serde_support", serde(default))]
-    pub advisories: Vec<Advisories>,
+    pub advisories: Vec<Advisory>,
 }
 
 /// Represents an advisory json file for notus product.
@@ -29,7 +29,7 @@ pub struct ProductsAdivisories {
     derive(serde::Serialize, serde::Deserialize)
 )]
 
-pub struct Advisories {
+pub struct Advisory {
     /// The advisory's title.
     pub title: String,
     /// The advisory's ID.
@@ -42,6 +42,9 @@ pub struct Advisories {
     pub advisory_id: String,
     /// Advisory xref
     pub advisory_xref: String,
+    /// Advisory contains a CVE that is listed in the catalog of Known Exploited CVEs from CISA
+    #[cfg_attr(feature = "serde_support", serde(default))]
+    pub cisa_kev: bool,
     /// List of cves
     #[cfg_attr(feature = "serde_support", serde(default))]
     pub cves: Vec<String>,
@@ -52,7 +55,7 @@ pub struct Advisories {
     pub insight: String,
     /// Affected
     pub affected: String,
-    /// Listo of xrefs
+    /// List of xrefs
     #[cfg_attr(feature = "serde_support", serde(default))]
     pub xrefs: Vec<String>,
     /// Quality of detection
@@ -129,15 +132,15 @@ pub struct Severity {
     pub cvss_v3: Option<String>,
 }
 
-pub struct ProductsAdivisoriesIterator<'a> {
-    products_advisories: &'a ProductsAdivisories,
+pub struct ProductsAdvisoriesIterator<'a> {
+    products_advisories: &'a ProductsAdvisories,
     index: usize,
 }
 
-impl<'a> Iterator for ProductsAdivisoriesIterator<'a> {
-    type Item = &'a Advisories;
+impl<'a> Iterator for ProductsAdvisoriesIterator<'a> {
+    type Item = &'a Advisory;
 
-    fn next(&mut self) -> Option<&'a Advisories> {
+    fn next(&mut self) -> Option<&'a Advisory> {
         if self.index < self.products_advisories.advisories.len() {
             let result = Some(&self.products_advisories.advisories[self.index]);
             self.index += 1;
@@ -148,9 +151,9 @@ impl<'a> Iterator for ProductsAdivisoriesIterator<'a> {
     }
 }
 
-impl ProductsAdivisories {
-    pub fn iter(&self) -> ProductsAdivisoriesIterator {
-        ProductsAdivisoriesIterator {
+impl ProductsAdvisories {
+    pub fn iter(&self) -> ProductsAdvisoriesIterator {
+        ProductsAdvisoriesIterator {
             products_advisories: self,
             index: 0,
         }
@@ -159,7 +162,7 @@ impl ProductsAdivisories {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VulnerabilityData {
-    pub adv: Advisories,
+    pub adv: Advisory,
     pub family: String,
     pub filename: String,
 }
@@ -174,7 +177,18 @@ impl From<VulnerabilityData> for Vulnerability {
             },
         };
 
-        let refs = HashMap::new();
+        let mut refs = HashMap::new();
+        let mut url = data.adv.xrefs.clone();
+        url.push(data.adv.advisory_xref.clone());
+        if data.adv.cisa_kev {
+            refs.insert(
+                "CISA".to_string(),
+                vec!["Known Exploited Vulnerability (KEV) catalog".to_string()],
+            );
+            url.push("https://www.cisa.gov/known-exploited-vulnerabilities-catalog".to_string());
+        }
+        refs.insert("URL".to_string(), url);
+
         Self {
             vt_params: Vec::new(),
             creation_date: data.adv.creation_date,

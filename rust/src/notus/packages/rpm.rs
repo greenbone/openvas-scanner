@@ -7,9 +7,51 @@ use lazy_regex::{Lazy, Regex, lazy_regex};
 use std::cmp::Ordering;
 
 /// Used for parsing the full name of a package
-static RE: Lazy<Regex> = lazy_regex!(r"^(.*)-(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
+static RE: Lazy<Regex> = lazy_regex!(
+    r"^(?x)
+    (?P<name>
+        .*
+    )
+    -
+    (?:
+        (?P<epoch>
+            \d+
+        )
+        :
+    )?
+    (?P<version>
+        [^-]+
+    )
+    -
+    (?P<release>
+        [^-]+
+    )
+    \.
+    (?P<arch>
+        [^-]+
+    )$"
+);
 /// Used for parsing the full version of a package
-static RE_VERSION: Lazy<Regex> = lazy_regex!(r"^(?:(\d+):)?([^-]+)-([^-]+)\.([^-]+)$");
+static RE_VERSION: Lazy<Regex> = lazy_regex!(
+    r"^(?x)
+    (?:
+        (?P<epoch>
+            \d+
+        )
+        :
+    )?
+    (?P<version>
+        [^-]+
+    )
+    -
+    (?P<release>
+        [^-]+
+    )
+    \.
+    (?P<arch>
+        [^-]+
+    )$"
+);
 
 /// Represent a based Redhat package
 #[derive(Debug, PartialEq, Clone)]

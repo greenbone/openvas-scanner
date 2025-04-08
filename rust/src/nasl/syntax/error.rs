@@ -145,17 +145,6 @@ macro_rules! unexpected_end {
     }};
 }
 
-/// Creates an maximal recursion depth reached error.
-///
-/// To prevent stack overflows the Lexer veriefies it's depth and returns an error.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use scannerlib::max_recursion;
-/// max_recursion!(255);
-/// ```
 #[macro_export]
 macro_rules! max_recursion {
     ($reason:expr) => {{

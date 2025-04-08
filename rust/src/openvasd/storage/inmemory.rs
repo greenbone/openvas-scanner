@@ -7,7 +7,7 @@ use std::sync::RwLock;
 use super::*;
 use scannerlib::{
     models, notus,
-    storage::{Retriever, items::nvt::Feed},
+    storage::{Retriever, inmemory::OIDs, items::nvt::Feed},
 };
 use tokio::task::JoinSet;
 
@@ -141,11 +141,12 @@ where
         let mut ids = self.client_id.write().unwrap();
         let ssid = scan_id.as_ref();
         let mut to_remove = vec![];
-        for (i, (_, sid)) in ids.iter().enumerate() {
+        for (i, (_, sid)) in ids.iter().enumerate().rev() {
             if sid == ssid {
                 to_remove.push(i);
             }
         }
+
         for i in to_remove {
             ids.remove(i);
         }
@@ -356,16 +357,20 @@ where
         Ok(())
     }
 
-    async fn vts<'a>(&self) -> Result<Box<dyn Iterator<Item = Nvt> + Send + 'a>, Error> {
-        // TODO: change that setup to a channel based construct to get rid of collecting and
-        // cloning, see: response.rs#ok_bytestream. This would effectively change the response to a
-        // ByteStream enum. This should be fine as we usually just deliver results without
-        // analyzing them.
-        //
-        // For testing purposes I collect and filter for now. If you see that in production please
-        // create a github issue.
+    async fn vt_by_oid(&self, oid: &str) -> Result<Option<Nvt>, Error> {
+        self.underlying
+            .retrieve(&scannerlib::storage::items::nvt::Oid(oid.to_string()))
+            .map_err(|e| e.into())
+    }
+
+    async fn vts<'a>(&self) -> Result<Vec<Nvt>, Error> {
         let vts = self.underlying.retrieve(&Feed)?.unwrap_or_default();
-        Ok(Box::new(vts.into_iter()))
+        Ok(vts)
+    }
+
+    async fn oids(&self) -> Result<Vec<String>, Error> {
+        let vts = self.underlying.retrieve(&OIDs)?.unwrap_or_default();
+        Ok(vts)
     }
 
     async fn feed_hash(&self) -> Vec<FeedHash> {

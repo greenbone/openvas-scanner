@@ -9,22 +9,29 @@ mod error;
 mod execute;
 mod feed;
 mod interpret;
-mod notusupdate;
+mod notus_update;
 mod osp;
-mod scanconfig;
+mod scan_config;
 mod syntax;
+mod utils;
 
 use configparser::ini::Ini;
-pub use error::*;
+use error::*;
 
+use execute::ExecuteArgs;
+use feed::FeedArgs;
+use notus_update::scanner::NotusUpdateArgs;
+use osp::OspArgs;
+use scan_config::ScanConfigArgs;
 use scannerlib::storage::error::StorageError;
 use std::{path::PathBuf, process};
+use syntax::SyntaxArgs;
+use tracing::Level;
 
-use clap::{ArgAction, ArgMatches, Command, arg};
+use clap::{Parser, Subcommand, arg};
 
 #[derive(Debug, Clone)]
-pub enum Db {
-    Redis(String),
+enum Db {
     InMemory,
 }
 
@@ -54,24 +61,37 @@ fn get_path_from_openvas(config: Ini) -> PathBuf {
     )
 }
 
+#[derive(clap::Parser)]
+/// A CLI tool providing NASL-related functionality.
+struct Args {
+    /// Print more details while running
+    #[arg(short, long, action = clap::ArgAction::Count, global = true)]
+    verbose: u8,
+    /// Print only error output.
+    #[arg(short, long, global = true)]
+    quiet: bool,
+
+    #[command(subcommand)]
+    action: Action,
+}
+
+#[derive(Subcommand)]
+enum Action {
+    Syntax(SyntaxArgs),
+    ScanConfig(ScanConfigArgs),
+    Osp(OspArgs),
+    Execute(ExecuteArgs),
+    NotusUpdate(NotusUpdateArgs),
+    Feed(FeedArgs),
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    Alivetest(alivetest::AliveTestArgs),
+}
+
 #[tokio::main]
 async fn main() {
-    let matches = add_verbose(
-        Command::new("scannerctl")
-            .version("1.0")
-            .about("Is a CLI tool around NASL.")
-            .subcommand_required(true),
-    );
-    let matches = syntax::extend_args(matches);
-    let matches = scanconfig::extend_args(matches);
-    let matches = osp::extend_args(matches);
-    let matches = execute::extend_args(matches);
-    let matches = notusupdate::scanner::extend_args(matches);
-    let matches = feed::extend_args(matches);
-    #[cfg(feature = "nasl-builtin-raw-ip")]
-    let matches = alivetest::extend_args(matches);
-    let matches = matches.get_matches();
-    let result = run(&matches).await;
+    let args = Args::parse();
+    set_logging(args.verbose, args.quiet);
+    let result = run(args.action, args.verbose > 0, args.quiet).await;
 
     match result {
         Ok(_) => {}
@@ -89,67 +109,34 @@ async fn main() {
     }
 }
 
-async fn run(matches: &ArgMatches) -> Result<(), CliError> {
-    if let Some(result) = feed::run(matches).await {
-        return result;
+async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError> {
+    match action {
+        Action::Syntax(args) => syntax::run(args, verbose, quiet).await,
+        Action::ScanConfig(args) => scan_config::run(args).await,
+        Action::Osp(args) => osp::run(args).await,
+        Action::Execute(args) => execute::run(args).await,
+        Action::NotusUpdate(args) => notus_update::scanner::run(args).await,
+        Action::Feed(args) => feed::run(args).await,
+        #[cfg(feature = "nasl-builtin-raw-ip")]
+        Action::Alivetest(args) => alivetest::run(args).await,
     }
-    if let Some(result) = syntax::run(matches).await {
-        return result;
-    }
-    if let Some(result) = execute::run(matches).await {
-        return result;
-    }
-    if let Some(result) = scanconfig::run(matches).await {
-        return result;
-    }
-    if let Some(result) = notusupdate::scanner::run(matches).await {
-        return result;
-    }
-    if let Some(result) = osp::run(matches).await {
-        return result;
-    }
-    #[cfg(feature = "nasl-builtin-raw-ip")]
-    if let Some(result) = alivetest::run(matches).await {
-        return result;
-    }
-    Err(CliError {
-        filename: "".to_string(),
-        kind: CliErrorKind::Corrupt(format!(
-            "No valid subcommand found: {:?}",
-            matches.subcommand()
-        )),
-    })
 }
 
-pub fn set_logging(level: u8) {
-    let lv = if level > 1 {
-        tracing::Level::TRACE
-    } else if level > 0 {
-        tracing::Level::DEBUG
-    } else {
-        tracing::Level::INFO
+fn set_logging(level: u8, quiet: bool) {
+    let level = match level {
+        level if level > 1 => Level::TRACE,
+        1 => Level::DEBUG,
+        0 => Level::INFO,
+        _ => {
+            if quiet {
+                Level::ERROR
+            } else {
+                Level::INFO
+            }
+        }
     };
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
-        .with_max_level(lv)
+        .with_max_level(level)
         .init();
-}
-
-pub fn add_verbose(cmd: Command) -> Command {
-    cmd.arg(
-        arg!(-v --verbose ... "Prints more details while running")
-            .required(false)
-            .action(ArgAction::Count),
-    )
-}
-
-pub fn get_args_set_logging<'a>(
-    root: &'a ArgMatches,
-    name: &'a str,
-) -> Option<(&'a ArgMatches, u8)> {
-    let verbose = root.get_one::<u8>("verbose").cloned().unwrap_or_default();
-    let args = root.subcommand_matches(name)?;
-    let verbose = args.get_one::<u8>("verbose").cloned().unwrap_or(verbose);
-    set_logging(verbose);
-    Some((args, verbose))
 }

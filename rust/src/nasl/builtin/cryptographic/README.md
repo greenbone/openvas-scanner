@@ -6,7 +6,7 @@ It is part of the std lib which is proven by the tests.
 
 To use this module you have to initiate Cryptographic and look for the function:
 
-```
+```rust
 let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
     .push_register(nasl_builtin_cryptographic::Cryptographic)
     .build();
@@ -49,6 +49,12 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - aes256_ccm_encrypt
 - aes256_ccm_encrypt_auth
 - aes_mac_gcm
+- rsa_private_decrypt
+- rsa_public_decrypt
+- rsa_public_encrypt
+- rsa_sign
+- pem_to_dsa
+- pem_to_rsa
 - HMAC_MD2
 - HMAC_MD5
 - HMAC_RIPEMD160
@@ -91,15 +97,9 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - ntlmv2_response
 - ntv2_owf_gen
 - open_rc4_cipher
-- pem_to_dsa
-- pem_to_rsa
 - prf_sha256
 - prf_sha384
 - rc4_encrypt
-- rsa_private_decrypt
-- rsa_public_decrypt
-- rsa_public_encrypt
-- rsa_sign
 - smb3kdf
 - smb_cmac_aes_signature
 - smb_gmac_aes_signature

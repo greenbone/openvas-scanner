@@ -10,7 +10,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::models::{HostInfo, Phase, Scan, Status, scanner::Error};
+use crate::models::{HostInfo, Phase, Status, scanner::Error};
 use crate::nasl::utils::Executor;
 use crate::{
     scanner::scan_runner::ScanRunner,
@@ -20,7 +20,7 @@ use futures::StreamExt;
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
-use super::ScannerStack;
+use super::{ScannerStack, scan::Scan};
 
 /// Takes care of running a single scan to completion.
 /// Also provides methods for stopping the scan and
@@ -101,7 +101,7 @@ impl<S: ScannerStack> RunningScan<S> {
         };
         let schedule = self
             .storage
-            .execution_plan::<T>(&self.scan)
+            .execution_plan::<T>(&self.scan.vts)
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
             &*self.storage,
@@ -119,7 +119,7 @@ impl<S: ScannerStack> RunningScan<S> {
         while let Some(it) = stream.next().await {
             match it {
                 Ok(result) => {
-                    trace!(target = result.target, targets=?self.scan.target.hosts);
+                    trace!(target = result.target, targets=?self.scan.targets);
                     let mut status = self.status.write().await;
                     if let Some(host_info) = status.host_info.as_mut() {
                         host_info.register_finished_script(&result.target);
@@ -186,10 +186,9 @@ mod tests {
     use std::time::Duration;
 
     use crate::models::Phase;
-    use crate::models::{
-        Scan,
-        scanner::{ScanResultFetcher, ScanResults, ScanStarter},
-    };
+    use crate::models::scanner::{ScanResultFetcher, ScanResults};
+    use crate::nasl::utils::context::Target;
+    use crate::scanner::Scan;
     use crate::storage::inmemory::InMemoryStorage;
     use crate::storage::items::nvt::Nvt;
     use tracing_test::traced_test;
@@ -251,7 +250,7 @@ mod tests {
         let (scanner, scan) = make_scanner_and_scan(&failures);
 
         let id = scan.scan_id.clone();
-        let res = scanner.start_scan(scan).await;
+        let res = scanner.start_scan_internal(scan).await;
         assert!(res.is_ok());
         let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
 
@@ -276,10 +275,11 @@ mod tests {
     #[traced_test]
     async fn start_scan_success() {
         let (scanner, mut scan) = make_scanner_and_scan_success();
-        scan.target.hosts.push("wald.fee".to_string());
+        scan.targets
+            .push(Target::do_not_resolve_hostname("wald.fee"));
 
         let id = scan.scan_id.clone();
-        let res = scanner.start_scan(scan).await;
+        let res = scanner.start_scan_internal(scan).await;
         assert!(res.is_ok());
         let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
 

@@ -13,6 +13,8 @@ use super::cryptographic::CryptographicError;
 use super::host::HostError;
 use super::http::HttpError;
 use super::isotime::IsotimeError;
+#[cfg(feature = "nasl-builtin-raw-ip")]
+use super::raw_ip::RawIpError;
 use super::regex::RegexError;
 use super::sys::SysError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
@@ -45,7 +47,7 @@ pub enum BuiltinError {
     Sys(SysError),
     #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
-    RawIp(super::raw_ip::RawIpError),
+    RawIp(RawIpError),
 }
 
 macro_rules! builtin_error_variant (
@@ -91,4 +93,4 @@ builtin_error_variant!(CertError, Cert);
 builtin_error_variant!(SysError, Sys);
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
-builtin_error_variant!(super::raw_ip::RawIpError, RawIp);
+builtin_error_variant!(RawIpError, RawIp);

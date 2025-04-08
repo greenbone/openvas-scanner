@@ -14,7 +14,7 @@ use dns_lookup::lookup_addr;
 use thiserror::Error;
 
 use crate::nasl::prelude::*;
-use crate::nasl::utils::hosts::resolve;
+use crate::nasl::utils::hosts::resolve_hostname;
 
 #[derive(Debug, Error)]
 pub enum HostError {
@@ -139,7 +139,7 @@ fn nasl_get_host_ip(context: &Context) -> Result<NaslValue, FnError> {
 /// Get an IP address corresponding to the host name
 #[nasl_function(named(hostname))]
 fn resolve_host_name(hostname: Hostname) -> String {
-    resolve(hostname.0).map_or_else(
+    resolve_hostname(&hostname.0).map_or_else(
         |_| "127.0.0.1".to_string(),
         |x| x.first().map_or("127.0.0.1".to_string(), |v| v.to_string()),
     )
@@ -148,7 +148,7 @@ fn resolve_host_name(hostname: Hostname) -> String {
 /// Resolve a hostname to all found addresses and return them in an NaslValue::Array
 #[nasl_function(named(hostname))]
 fn resolve_hostname_to_multiple_ips(hostname: Hostname) -> Result<NaslValue, FnError> {
-    let ips = resolve(hostname.0)?
+    let ips = resolve_hostname(&hostname.0)?
         .into_iter()
         .map(|x| NaslValue::String(x.to_string()))
         .collect();
@@ -173,8 +173,8 @@ fn target_is_ipv6(context: &Context) -> Result<bool, FnError> {
 /// If the named argument cmp_hostname is set to TRUE, the given hosts are resolved into their hostnames
 #[nasl_function(named(cmp_hostname))]
 fn same_host(h1: &str, h2: &str, cmp_hostname: Option<bool>) -> Result<bool, FnError> {
-    let h1 = resolve(h1.to_string())?;
-    let h2 = resolve(h2.to_string())?;
+    let h1 = resolve_hostname(h1)?;
+    let h2 = resolve_hostname(h2)?;
 
     let hostnames1 = h1
         .iter()

@@ -15,4 +15,6 @@ extend-exclude = [
     "data/osp/response_*.xml",
     "crates/smoketest/configs/client_sample.cert",
     "*.notus",
+    "examples/pem_to.nasl",
+    "src/nasl/builtin/cryptographic/tests/pem_to.rs",
 ]
