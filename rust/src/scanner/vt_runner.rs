@@ -9,6 +9,7 @@ use crate::models::{Host, Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::{Executor, Register};
+use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::scheduling::Stage;
 use crate::storage::Retriever;
 use crate::storage::error::StorageError;
