@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use crate::models::{Host, Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
-use crate::nasl::utils::{Executor, Register};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
+use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::Retriever;
 use crate::storage::error::StorageError;
@@ -67,20 +67,19 @@ where
         s.execute().await
     }
 
-    fn parameter(
-        &self,
-        parameter: &Parameter,
-        _register: &mut Register,
-    ) -> Result<(), ExecuteError> {
-        // TODO: implement
-        Err(ExecuteError::Parameter(parameter.clone()))
-    }
-
     fn set_parameters(&mut self, register: &mut Register) -> Result<(), ExecuteError> {
         if let Some(params) = &self.param {
-            for p in params.iter() {
-                self.parameter(p, register)?;
+            let mut parameters = Vec::new();
+            for _ in params.iter() {
+                parameters.push("".into());
             }
+            for p in params.iter() {
+                parameters.insert(p.id.into(), NaslValue::String(p.value.clone()));
+            }
+            register.add_global(
+                SCRIPT_PARAMS,
+                ContextType::Value(NaslValue::Array(parameters)),
+            );
         }
         Ok(())
     }
