@@ -21,11 +21,8 @@ use rustls::ClientConnection;
 use thiserror::Error;
 
 use super::{
-    OpenvasEncaps, Port, get_retry,
-    network_utils::{convert_timeout, ipstr2ipaddr},
-    tcp::TcpConnection,
-    tls::create_tls_client,
-    udp::UdpConnection,
+    OpenvasEncaps, Port, get_retry, network_utils::convert_timeout, tcp::TcpConnection,
+    tls::create_tls_client, udp::UdpConnection,
 };
 
 static FTP_PASV: Lazy<Regex> =
@@ -448,7 +445,7 @@ impl NaslSockets {
     ) -> Result<NaslValue, FnError> {
         let transport = transport.unwrap_or(-1);
 
-        let addr = ipstr2ipaddr(context.target())?;
+        let addr = context.target_orig().ip_addr();
 
         self.wait_before_next_probe();
 
@@ -498,7 +495,7 @@ impl NaslSockets {
     /// Open a UDP socket to the target host
     #[nasl_function]
     fn open_sock_udp(&mut self, context: &Context, port: Port) -> Result<NaslValue, FnError> {
-        let addr = ipstr2ipaddr(context.target())?;
+        let addr = context.target_orig().ip_addr();
 
         let socket = NaslSocket::Udp(UdpConnection::new(addr, port.0)?);
         let fd = self.add(socket);
@@ -575,7 +572,7 @@ impl NaslSockets {
         dport: Port,
         sport: Option<Port>,
     ) -> Result<NaslValue, FnError> {
-        let addr = ipstr2ipaddr(context.target())?;
+        let addr = context.target_orig().ip_addr();
         self.open_priv_sock(addr, dport, sport, true)
     }
 
@@ -591,7 +588,7 @@ impl NaslSockets {
         dport: Port,
         sport: Option<Port>,
     ) -> Result<NaslValue, FnError> {
-        let addr = ipstr2ipaddr(context.target())?;
+        let addr = context.target_orig().ip_addr();
         self.open_priv_sock(addr, dport, sport, false)
     }
 
