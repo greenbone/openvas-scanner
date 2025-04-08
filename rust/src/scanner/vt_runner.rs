@@ -211,6 +211,7 @@ where
             self.loader,
             self.executor,
         );
+        context.set_nvt(self.vt.clone());
         let mut results = Box::pin(ForkingInterpreter::new(code, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {

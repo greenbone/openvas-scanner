@@ -620,6 +620,15 @@ impl<'a> Context<'a> {
             .unwrap();
     }
 
+    pub fn set_nvt(&self, vt: Nvt) {
+        let mut nvt = self.nvt.lock().unwrap();
+        *nvt = Some(vt);
+    }
+
+    pub fn nvt(&self) -> Option<Nvt> {
+        self.nvt.lock().unwrap().clone()
+    }
+
     fn kb_key(&self, key: KbKey) -> KbContextKey {
         KbContextKey(
             (
