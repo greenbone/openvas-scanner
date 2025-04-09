@@ -26,18 +26,13 @@ mod sys;
 #[cfg(test)]
 mod tests;
 
-use std::path::PathBuf;
-
 pub use error::BuiltinError;
 pub use host::HostError;
 pub use knowledge_base::KBError;
 
-use crate::nasl::syntax::{Loader, NoOpLoader};
-use crate::nasl::utils::{Context, Executor, NaslVarRegister, NaslVarRegisterBuilder, Register};
-use crate::storage::ScanID;
-use crate::storage::inmemory::InMemoryStorage;
+use crate::nasl::utils::{NaslVarRegister, NaslVarRegisterBuilder, Register};
 
-use super::utils::context::{ContextStorage, Target};
+use super::utils::Executor;
 
 /// Creates a new Executor and adds all the functions to it.
 ///
@@ -97,67 +92,6 @@ fn add_raw_ip_vars(builder: NaslVarRegisterBuilder) -> NaslVarRegisterBuilder {
 #[cfg(not(feature = "nasl-builtin-raw-ip"))]
 fn add_raw_ip_vars(builder: NaslVarRegisterBuilder) -> NaslVarRegisterBuilder {
     builder
-}
-
-/// The context builder.
-///
-/// This is the main entry point for the nasl interpreter and adds all the functions defined in
-/// [nasl_std_functions] to functions register.
-// TODO: remove key and target and box dyn
-pub struct ContextFactory<Loader, Storage> {
-    /// The shared storage
-    pub storage: Storage,
-    /// The loader to load the nasl files.
-    pub loader: Loader,
-    /// The functions available to the nasl script.
-    pub functions: Executor,
-}
-
-impl Default for ContextFactory<NoOpLoader, InMemoryStorage> {
-    fn default() -> Self {
-        Self {
-            loader: NoOpLoader::default(),
-            functions: nasl_std_functions(),
-            storage: InMemoryStorage::default(),
-        }
-    }
-}
-
-impl<L, S> ContextFactory<L, S>
-where
-    L: Loader,
-    S: ContextStorage,
-{
-    /// Creates a new ContextFactory with nasl_std_functions
-    ///
-    /// If you want to override the functions register please use functions method.
-    pub fn new(loader: L, storage: S) -> ContextFactory<L, S> {
-        ContextFactory {
-            storage,
-            loader,
-            functions: nasl_std_functions(),
-        }
-    }
-
-    /// Sets the functions available to the nasl script.
-    pub fn functions(mut self, functions: Executor) -> Self {
-        self.functions = functions;
-        self
-    }
-
-    /// Creates a new Context with the shared loader, logger and function register
-    pub fn build(&self, scan_id: ScanID, target_string: &str, filename: PathBuf) -> Context {
-        let mut target = Target::default();
-        target.set_target(target_string.to_string());
-        Context::new(
-            scan_id,
-            target,
-            filename,
-            &self.storage,
-            &self.loader,
-            &self.functions,
-        )
-    }
 }
 
 /// The register builder for NASL Variables

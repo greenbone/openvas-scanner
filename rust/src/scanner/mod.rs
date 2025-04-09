@@ -17,11 +17,13 @@
 
 mod error;
 mod running_scan;
+mod scan;
 mod scan_runner;
 mod scanner_stack;
 mod vt_runner;
 
 pub use error::ExecuteError;
+pub use scan::Scan;
 pub use scan_runner::ScanRunner;
 pub use scanner_stack::ScannerStack;
 pub use scanner_stack::ScannerStackWithStorage;
@@ -30,9 +32,9 @@ use async_trait::async_trait;
 use std::{collections::HashMap, path::Path, sync::Arc};
 use tokio::sync::RwLock;
 
-use crate::models::{
-    Scan,
-    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper},
+use crate::models;
+use crate::models::scanner::{
+    Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
 };
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
@@ -94,9 +96,8 @@ where
     }
 }
 
-#[async_trait]
-impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
-    async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
+impl<S: ScannerStack + 'static> Scanner<S> {
+    async fn start_scan_internal(&self, scan: Scan) -> Result<(), Error> {
         let storage = self.storage.clone();
         let loader = self.loader.clone();
         let function_executor = self.function_executor.clone();
@@ -106,8 +107,15 @@ impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
         self.running.write().await.insert(id, handle);
         Ok(())
     }
+}
 
-    async fn can_start_scan(&self, _: &Scan) -> bool {
+#[async_trait]
+impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
+    async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
+        self.start_scan_internal(scan.into()).await
+    }
+
+    async fn can_start_scan(&self, _: &models::Scan) -> bool {
         // Todo: Implement this properly
         true
     }

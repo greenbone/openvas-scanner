@@ -5,7 +5,7 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{Host, Parameter, Protocol, ScanID};
+use crate::models::{Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::{Executor, Register};
@@ -31,7 +31,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
     loader: &'a S::Loader,
     executor: &'a Executor,
 
-    target: &'a Host,
+    target: &'a Target,
     vt: &'a Nvt,
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
@@ -47,7 +47,7 @@ where
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
         executor: &'a Executor,
-        target: &'a Host,
+        target: &'a Target,
         vt: &'a Nvt,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
@@ -187,7 +187,7 @@ where
     fn generate_key(&self) -> KbContext {
         (
             crate::storage::ScanID(self.scan_id.clone()),
-            crate::storage::Target(self.target.clone()),
+            crate::storage::Target(self.target.original_target_str().into()),
         )
     }
 
@@ -200,17 +200,15 @@ where
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
-        let mut target = Target::default();
-        target.set_target(self.target.clone());
-
-        let context = Context::new(
-            crate::storage::ScanID(self.scan_id.clone()),
-            target,
+        let context = ContextBuilder {
+            scan_id: crate::storage::ScanID(self.scan_id.clone()),
+            target: self.target.clone(),
             filename,
-            self.storage,
-            self.loader,
-            self.executor,
-        );
+            storage: self.storage,
+            loader: self.loader,
+            executor: self.executor,
+        }
+        .build();
         let mut results = Box::pin(ForkingInterpreter::new(code, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {
@@ -240,7 +238,7 @@ where
             filename: self.vt.filename.clone(),
             stage: self.stage,
             kind,
-            target: self.target.clone(),
+            target: self.target.original_target_str().into(),
         })
     }
 }

@@ -9,8 +9,7 @@ mod tests {
     use crate::nasl::test_utils::TestBuilder;
     use crate::nasl::{Loader, syntax::LoadError};
 
-    use crate::nasl::{nasl_std_functions, prelude::*};
-    use crate::storage::inmemory::InMemoryStorage;
+    use crate::nasl::prelude::*;
 
     struct FakeInclude {
         plugins: HashMap<String, String>,
@@ -30,7 +29,6 @@ mod tests {
 
     #[test]
     fn function_variable() {
-        let t = TestBuilder::default();
         let example = r#"
         a = 12;
         function test() {
@@ -46,12 +44,7 @@ mod tests {
         a;
         test();
         "#;
-        let context = ContextFactory {
-            loader,
-            functions: nasl_std_functions(),
-            storage: InMemoryStorage::default(),
-        };
-        let mut t = t.with_context(context);
+        let mut t = TestBuilder::from_loader(loader);
         t.run_all(code);
         let mut results = t.results();
         let mut next_result = move || results.remove(0).unwrap();
