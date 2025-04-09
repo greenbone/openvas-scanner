@@ -1,0 +1,49 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (if_stmt_else), \"if (a) { b; } else { c; }\")"
+---
+[
+    If(
+        If {
+            if_branches: [
+                (
+                    Atom(
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                    ),
+                    Block {
+                        items: [
+                            ExprStmt(
+                                Atom(
+                                    Ident(
+                                        Ident(
+                                            "b",
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ],
+                    },
+                ),
+            ],
+            else_branch: Some(
+                Block {
+                    items: [
+                        ExprStmt(
+                            Atom(
+                                Ident(
+                                    Ident(
+                                        "c",
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                },
+            ),
+        },
+    ),
+]

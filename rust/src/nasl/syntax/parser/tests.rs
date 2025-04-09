@@ -331,8 +331,20 @@ parse_test_ok!(
 );
 
 parse_test_ok!(exit, Program, "exit(0);");
-// parse_test_ok!(if_stmt, Program, "if (a) b; else c;");
-// parse_test_ok!(for_stmt, Program, "for (i = 0; i < 10; i++) a;");
+
+parse_test_ok!(if_stmt_no_else_no_braces, Program, "if (a) b;");
+parse_test_ok!(if_stmt_no_else, Program, "if (a) { b; }");
+parse_test_ok!(if_stmt_else_no_braces, Program, "if (a) { b; } else c;");
+parse_test_ok!(if_stmt_else, Program, "if (a) { b; } else { c; }");
+parse_test_ok!(
+    if_stmt_else_if,
+    Program,
+    "if (a) { b; } else if (c) { d; } else { e; }"
+);
+
+parse_test_ok!(for_stmt_no_braces, Program, "for (i = 0; i < 10; i++) a;");
+parse_test_ok!(for_stmt, Program, "for (i = 0; i < 10; i++) { a; }");
+
 // parse_test_ok!(
 //     position,
 //     Program,

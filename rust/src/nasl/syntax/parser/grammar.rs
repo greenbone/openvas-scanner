@@ -60,6 +60,8 @@ pub enum Stmt {
     While(While),
     Repeat(Repeat),
     Foreach(Foreach),
+    For(For),
+    If(If),
     Include(Include),
     Exit(Exit),
     Return(Return),
@@ -132,6 +134,20 @@ pub struct Foreach {
     pub var: Ident,
     pub array: Expr,
     pub block: Block<Stmt>,
+}
+
+#[derive(Clone, Debug)]
+pub struct For {
+    pub initializer: Box<Stmt>,
+    pub condition: Expr,
+    pub increment: Box<Stmt>,
+    pub block: Block<Stmt>,
+}
+
+#[derive(Clone, Debug)]
+pub struct If {
+    pub if_branches: Vec<(Expr, Block<Stmt>)>,
+    pub else_branch: Option<Block<Stmt>>,
 }
 
 #[derive(Clone, Debug)]

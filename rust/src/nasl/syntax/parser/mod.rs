@@ -15,7 +15,9 @@ use grammar::Assignment;
 use grammar::AssignmentOperator;
 use grammar::Exit;
 use grammar::FnCall;
+use grammar::For;
 use grammar::Foreach;
+use grammar::If;
 use grammar::Increment;
 use grammar::IncrementKind;
 use grammar::IncrementOperator;
@@ -186,51 +188,74 @@ impl Parser {
     }
 }
 
+fn parse_stmt_without_semicolon(parser: &mut Parser) -> Result<Stmt> {
+    if parser.matches::<VarScope>() {
+        Ok(Stmt::VarScopeDecl(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::Function)) {
+        Ok(Stmt::FnDecl(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::While)) {
+        Ok(Stmt::While(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::Repeat)) {
+        Ok(Stmt::Repeat(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::ForEach)) {
+        Ok(Stmt::Foreach(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::For)) {
+        Ok(Stmt::For(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::If)) {
+        Ok(Stmt::If(parser.parse()?))
+    } else if parser.token_matches(TokenKind::LeftBrace) {
+        Ok(Stmt::Block(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::Return)) {
+        Ok(Stmt::Return(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::Include)) {
+        Ok(Stmt::Include(parser.parse()?))
+    } else if parser.token_matches(TokenKind::Keyword(Keyword::Exit)) {
+        Ok(Stmt::Exit(parser.parse()?))
+    } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
+        Ok(Stmt::Break)
+    } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Continue)) {
+        Ok(Stmt::Continue)
+    } else if parser.token_matches(TokenKind::Semicolon) {
+        Ok(Stmt::NoOp)
+    } else {
+        let expr = parser.parse()?;
+        if parser.matches::<AssignmentOperator>() {
+            let lhs = PlaceExpr::from_expr(expr)?;
+            let operator = parser.parse()?;
+            let rhs = parser.parse()?;
+            Ok(Stmt::Assignment(Assignment {
+                lhs,
+                rhs,
+                op: operator,
+            }))
+        } else {
+            Ok(Stmt::ExprStmt(expr))
+        }
+    }
+}
+
 impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Stmt> {
-        if parser.matches::<VarScope>() {
-            Ok(Stmt::VarScopeDecl(parser.parse()?))
-        } else if parser.token_matches(TokenKind::Keyword(Keyword::Function)) {
-            Ok(Stmt::FnDecl(parser.parse()?))
-        } else if parser.token_matches(TokenKind::Keyword(Keyword::While)) {
-            Ok(Stmt::While(parser.parse()?))
-        } else if parser.token_matches(TokenKind::Keyword(Keyword::Repeat)) {
-            Ok(Stmt::Repeat(parser.parse()?))
-        } else if parser.token_matches(TokenKind::Keyword(Keyword::ForEach)) {
-            Ok(Stmt::Foreach(parser.parse()?))
-        } else if parser.token_matches(TokenKind::LeftBrace) {
-            Ok(Stmt::Block(parser.parse()?))
-        } else if parser.token_matches(TokenKind::Keyword(Keyword::Return)) {
-            Ok(Stmt::Return(parser.parse()?))
-        } else if parser.token_matches(TokenKind::Keyword(Keyword::Include)) {
-            Ok(Stmt::Include(parser.parse()?))
-        } else if parser.token_matches(TokenKind::Keyword(Keyword::Exit)) {
-            Ok(Stmt::Exit(parser.parse()?))
-        } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
-            parser.consume(TokenKind::Semicolon)?;
-            Ok(Stmt::Break)
-        } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Continue)) {
-            parser.consume(TokenKind::Semicolon)?;
-            Ok(Stmt::Continue)
-        } else if parser.consume_if_matches(TokenKind::Semicolon) {
-            Ok(Stmt::NoOp)
-        } else {
-            let expr = parser.parse()?;
-            if parser.matches::<AssignmentOperator>() {
-                let lhs = PlaceExpr::from_expr(expr)?;
-                let operator = parser.parse()?;
-                let rhs = parser.parse()?;
-                parser.consume(TokenKind::Semicolon)?;
-                Ok(Stmt::Assignment(Assignment {
-                    lhs,
-                    rhs,
-                    op: operator,
-                }))
-            } else {
-                parser.consume(TokenKind::Semicolon)?;
-                Ok(Stmt::ExprStmt(expr))
-            }
+        let stmt = parse_stmt_without_semicolon(parser)?;
+        match stmt {
+            Stmt::Assignment(_)
+            | Stmt::VarScopeDecl(_)
+            | Stmt::ExprStmt(_)
+            | Stmt::Repeat(_)
+            | Stmt::Include(_)
+            | Stmt::Exit(_)
+            | Stmt::Return(_)
+            | Stmt::Break
+            | Stmt::Continue
+            | Stmt::NoOp => parser.consume(TokenKind::Semicolon)?,
+            Stmt::FnDecl(_)
+            | Stmt::Block(_)
+            | Stmt::While(_)
+            | Stmt::Foreach(_)
+            | Stmt::For(_)
+            | Stmt::If(_) => {}
         }
+        Ok(stmt)
     }
 }
 
@@ -265,7 +290,6 @@ impl Parse for Include {
         parser.consume(TokenKind::LeftParen)?;
         let path = parser.parse()?;
         parser.consume(TokenKind::RightParen)?;
-        parser.consume(TokenKind::Semicolon)?;
         Ok(Include { path })
     }
 }
@@ -276,7 +300,6 @@ impl Parse for Exit {
         parser.consume(TokenKind::LeftParen)?;
         let expr = parser.parse()?;
         parser.consume(TokenKind::RightParen)?;
-        parser.consume(TokenKind::Semicolon)?;
         Ok(Exit { expr })
     }
 }
@@ -285,7 +308,6 @@ impl Parse for VarScopeDecl {
     fn parse(parser: &mut Parser) -> Result<VarScopeDecl> {
         let scope = parser.parse()?;
         let ident = parser.parse()?;
-        parser.consume(TokenKind::Semicolon)?;
         Ok(VarScopeDecl { ident, scope })
     }
 }
@@ -308,7 +330,6 @@ impl Parse for Return {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::Return))?;
         let expr = parser.parse()?;
-        parser.consume(TokenKind::Semicolon)?;
         Ok(Return { expr })
     }
 }
@@ -340,10 +361,30 @@ impl Parse for Repeat {
         if has_paren {
             parser.consume(TokenKind::RightParen)?;
         }
-        parser.consume(TokenKind::Semicolon)?;
         Ok(Repeat {
             condition,
             block: block.into(),
+        })
+    }
+}
+
+impl Parse for For {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::For))?;
+        parser.consume(TokenKind::LeftParen)?;
+        let initializer = Box::new(parser.parse()?);
+        let condition = parser.parse()?;
+        parser.consume(TokenKind::Semicolon)?;
+        // The last statement probably doesn't have a trailing
+        // semicolon, so we cannot use parser.parse::<Stmt>() here.
+        let increment = Box::new(parse_stmt_without_semicolon(parser)?);
+        parser.consume(TokenKind::RightParen)?;
+        let block = parser.parse::<OptionalBlock<_>>()?.into();
+        Ok(For {
+            initializer,
+            condition,
+            increment,
+            block,
         })
     }
 }
@@ -357,6 +398,34 @@ impl Parse for Foreach {
         parser.consume(TokenKind::RightParen)?;
         let block = parser.parse::<OptionalBlock<_>>()?.into();
         Ok(Foreach { array, block, var })
+    }
+}
+
+impl Parse for If {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::If))?;
+        parser.consume(TokenKind::LeftParen)?;
+        let condition = parser.parse()?;
+        parser.consume(TokenKind::RightParen)?;
+        let block = parser.parse::<OptionalBlock<_>>()?.into();
+        let mut if_branches = vec![(condition, block)];
+        let mut else_branch = None;
+        while parser.consume_if_matches(TokenKind::Keyword(Keyword::Else)) {
+            if parser.consume_if_matches(TokenKind::Keyword(Keyword::If)) {
+                parser.consume(TokenKind::LeftParen)?;
+                let condition = parser.parse()?;
+                parser.consume(TokenKind::RightParen)?;
+                let block = parser.parse::<OptionalBlock<_>>()?.into();
+                if_branches.push((condition, block));
+            } else {
+                else_branch = Some(parser.parse::<OptionalBlock<_>>()?.into());
+                break;
+            }
+        }
+        Ok(If {
+            if_branches,
+            else_branch,
+        })
     }
 }
 
