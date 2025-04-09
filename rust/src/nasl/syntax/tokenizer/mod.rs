@@ -197,11 +197,10 @@ impl Iterator for Tokenizer {
 impl Tokenizer {
     /// Creates a new Tokenizer
     pub fn tokenize(code: &str) -> Self {
-        let tokenizer = Tokenizer {
+        Tokenizer {
             cursor: Cursor::new(code),
             begin_match_position: CharIndex::default(),
-        };
-        tokenizer
+        }
     }
 
     pub fn advance(&mut self) -> Result<Token, TokenizerError> {

@@ -78,7 +78,7 @@ impl Display for ErrorKind {
                 f,
                 "Expected one of '{}'",
                 token_kinds
-                    .into_iter()
+                    .iter()
                     .map(|k| k.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")

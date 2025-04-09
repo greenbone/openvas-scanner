@@ -48,7 +48,7 @@ pub struct InterpretError {
 impl InterpretError {
     fn format_origin(&self) -> String {
         // TODO
-        format!("")
+        String::new()
     }
 
     pub fn retryable(&self) -> bool {

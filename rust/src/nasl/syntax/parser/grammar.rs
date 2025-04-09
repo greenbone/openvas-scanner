@@ -28,7 +28,7 @@ impl Ast {
         self.stmts
     }
 
-    pub fn next(&mut self) -> Option<Stmt> {
+    pub fn next_stmt(&mut self) -> Option<Stmt> {
         let stmt = self.stmts.get(self.position);
         self.position += 1;
         stmt.cloned()

@@ -29,15 +29,15 @@ use grammar::{
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub(self) trait Parse: Sized {
+trait Parse: Sized {
     fn parse(parser: &mut Parser) -> Result<Self>;
 }
 
-pub(self) trait Matches: Sized {
+trait Matches: Sized {
     fn matches(p: &impl Peek) -> bool;
 }
 
-pub(self) trait FromPeek: Sized {
+trait FromPeek: Sized {
     fn from_peek(p: &impl Peek) -> Option<Self>;
 }
 
@@ -106,7 +106,7 @@ impl Parser {
         let mut errs = vec![];
         while !self.is_at_end() {
             let result = self.parse_span::<Stmt>();
-            // Check if any tokenization errors occured, those have priority
+            // Check if any tokenization errors occurred, those have priority
             // and make the actual result obtained from parsing void
             if !self.check_tokenizer_errors(&mut errs) {
                 match result {
@@ -135,11 +135,8 @@ impl Parser {
                 self.advance();
                 return;
             }
-            match self.peek() {
-                TokenKind::Keyword(Keyword::LocalVar) => {
-                    return;
-                }
-                _ => {}
+            if let TokenKind::Keyword(Keyword::LocalVar) = self.peek() {
+                return;
             }
         }
     }
@@ -411,7 +408,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                     let args = parser.parse()?;
                     Expr::Atom(Atom::FnCall(FnCall {
                         fn_expr: Box::new(lhs),
-                        args: args,
+                        args,
                     }))
                 }
             };
@@ -419,7 +416,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         }
         let op = parser
             .peek_parse::<BinaryOperator>()
-            .ok_or_else(|| ErrorKind::TokenExpected(TokenKind::Semicolon))?;
+            .ok_or(ErrorKind::TokenExpected(TokenKind::Semicolon))?;
         let (l_bp, r_bp) = op.binding_power();
         if l_bp < min_bp {
             break;

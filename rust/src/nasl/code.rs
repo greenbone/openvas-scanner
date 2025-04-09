@@ -24,15 +24,12 @@ fn split_tokens_and_errors(tokenizer: Tokenizer) -> Result<Vec<Token>, Vec<Token
 }
 
 fn parse(code: &str) -> Result<Ast, Vec<SyntaxError>> {
-    let tokens = split_tokens_and_errors(Tokenizer::tokenize(code)).map_err(|errs| {
-        errs.into_iter()
-            .map(|e| SyntaxError::from(e))
-            .collect::<Vec<_>>()
-    })?;
+    let tokens = split_tokens_and_errors(Tokenizer::tokenize(code))
+        .map_err(|errs| errs.into_iter().map(SyntaxError::from).collect::<Vec<_>>())?;
     let lexer = Lexer::new(tokens);
     let results = lexer.collect::<Result<Vec<_>, _>>();
     // TODO support multiple errors
-    results.map_err(|e| vec![e]).map(|stmts| Ast::new(stmts))
+    results.map_err(|e| vec![e]).map(Ast::new)
 }
 
 pub type SourceFile = SimpleFile<String, String>;

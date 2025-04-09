@@ -31,7 +31,7 @@ impl Ast {
         self.stmts
     }
 
-    pub fn next(&mut self) -> Option<Declaration> {
+    pub fn next_decl(&mut self) -> Option<Declaration> {
         let stmt = self.stmts.get(self.position);
         self.position += 1;
         stmt.cloned()

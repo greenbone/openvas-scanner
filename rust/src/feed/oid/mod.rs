@@ -59,7 +59,7 @@ where
         for decl in Code::load(&self.loader, &key)?
             .parse()
             .result()
-            .map_err(|errs| update::ErrorKind::SyntaxError(errs))?
+            .map_err(update::ErrorKind::SyntaxError)?
         {
             match decl {
                 Declaration::Statement(stmt) => {

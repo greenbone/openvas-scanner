@@ -32,15 +32,12 @@ fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
 
     let results = Code::load(&NonUtf8Loader, path)?.parse();
     num_errors += results.num_errors();
-    match results.emit_errors() {
-        Some(decls) => {
-            if verbose {
-                for decl in decls.decls().iter() {
-                    print_decl(decl);
-                }
+    if let Some(decls) = results.emit_errors() {
+        if verbose {
+            for decl in decls.decls().iter() {
+                print_decl(decl);
             }
         }
-        None => {}
     }
     Ok(num_errors)
 }

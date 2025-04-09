@@ -22,9 +22,9 @@ impl Span {
     }
 }
 
-impl Into<Range<usize>> for Span {
-    fn into(self) -> Range<usize> {
-        self.start.0..self.end.0
+impl From<Span> for Range<usize> {
+    fn from(value: Span) -> Range<usize> {
+        value.start.0..value.end.0
     }
 }
 
@@ -38,9 +38,9 @@ pub fn emit_errors<T: AsCodespanError>(file: &SourceFile, errs: impl Iterator<It
     let config = codespan_reporting::term::Config::default();
     for err in errs {
         let diagnostic = Diagnostic::error()
-            .with_message(&err.message())
+            .with_message(err.message())
             .with_labels(vec![
-                Label::primary((), err.span()).with_message(&err.message()),
+                Label::primary((), err.span()).with_message(err.message()),
             ]);
         term::emit(&mut writer.lock(), &config, file, &diagnostic).unwrap();
     }
@@ -54,9 +54,9 @@ pub fn emit_errors_str<T: AsCodespanError>(
     let config = codespan_reporting::term::Config::default();
     for err in errs {
         let diagnostic = Diagnostic::error()
-            .with_message(&err.message())
+            .with_message(err.message())
             .with_labels(vec![
-                Label::primary((), err.span()).with_message(&err.message()),
+                Label::primary((), err.span()).with_message(err.message()),
             ]);
         term::emit(&mut writer, &config, file, &diagnostic).unwrap();
     }

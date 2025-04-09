@@ -246,7 +246,7 @@ impl<'ctx> Interpreter<'ctx> {
 
     pub async fn execute_next_statement(&mut self) -> Option<InterpretResult> {
         self.initialize_fork_data();
-        match self.ast.next() {
+        match self.ast.next_decl() {
             Some(decl) => {
                 let result = self.resolve_decl(&decl).await;
                 if matches!(result, Ok(NaslValue::Exit(_))) {

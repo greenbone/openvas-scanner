@@ -6,19 +6,8 @@ pub(super) trait Peek: Sized {
     fn peek(&self) -> &TokenKind;
     fn peek_next(&self) -> &TokenKind;
 
-    fn lookahead(&self) -> Lookahead {
-        Lookahead {
-            current: &self.peek_next(),
-        }
-    }
-
     fn matches<T: Matches>(&self) -> bool {
         T::matches(self)
-    }
-
-    fn matches_next<T: Matches>(&self) -> bool {
-        let lookahead = self.lookahead();
-        lookahead.matches::<T>()
     }
 
     fn token_matches(&self, kind: TokenKind) -> bool {
@@ -111,7 +100,7 @@ pub struct Lookahead<'a> {
     current: &'a TokenKind,
 }
 
-impl<'a> Peek for Lookahead<'a> {
+impl Peek for Lookahead<'_> {
     fn peek(&self) -> &TokenKind {
         self.current
     }
