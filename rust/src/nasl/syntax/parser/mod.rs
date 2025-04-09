@@ -15,16 +15,20 @@ use grammar::Assignment;
 use grammar::AssignmentOperator;
 use grammar::FnCall;
 use grammar::Foreach;
+use grammar::Increment;
+use grammar::IncrementKind;
+use grammar::IncrementOperator;
 use grammar::PlaceExpr;
 use grammar::Repeat;
+use grammar::UnaryPrefixOperatorWithIncrement;
 
 use crate::nasl::error::Span;
 
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, Ast, Atom, Binary, BinaryOperator, Block, CommaSeparated, Expr, FnArg,
-    FnDecl, Include, NamedFnArg, Return, Stmt, Unary, UnaryOperator, UnaryPostfixOperator,
-    UnaryPrefixOperator, VarScope, VarScopeDecl, While,
+    FnDecl, Include, NamedFnArg, Return, Stmt, Unary, UnaryPostfixOperator, VarScope, VarScopeDecl,
+    While,
 };
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -213,7 +217,11 @@ impl Parse for Stmt {
                 let operator = parser.parse()?;
                 let rhs = parser.parse()?;
                 parser.consume(TokenKind::Semicolon)?;
-                Ok(Stmt::Assignment(Assignment { lhs, rhs, operator }))
+                Ok(Stmt::Assignment(Assignment {
+                    lhs,
+                    rhs,
+                    op: operator,
+                }))
             } else {
                 parser.consume(TokenKind::Semicolon)?;
                 Ok(Stmt::ExprStmt(expr))
@@ -350,13 +358,27 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         let lhs = pratt_parse_expr(parser, 0)?;
         parser.consume(TokenKind::RightParen)?;
         lhs
-    } else if parser.matches::<UnaryPrefixOperator>() {
-        let op: UnaryPrefixOperator = parser.parse()?;
+    } else if parser.matches::<UnaryPrefixOperatorWithIncrement>() {
+        let op: UnaryPrefixOperatorWithIncrement = parser.parse()?;
         let r_bp = op.right_binding_power();
-        Expr::Unary(Unary {
-            op: UnaryOperator::Prefix(op),
-            rhs: Box::new(pratt_parse_expr(parser, r_bp)?),
-        })
+        match op {
+            UnaryPrefixOperatorWithIncrement::Minus
+            | UnaryPrefixOperatorWithIncrement::Bang
+            | UnaryPrefixOperatorWithIncrement::Plus
+            | UnaryPrefixOperatorWithIncrement::Tilde => Expr::Unary(Unary {
+                op: op.into(),
+                rhs: Box::new(pratt_parse_expr(parser, r_bp)?),
+            }),
+            UnaryPrefixOperatorWithIncrement::PlusPlus
+            | UnaryPrefixOperatorWithIncrement::MinusMinus => {
+                let expr = parser.parse_span()?;
+                Expr::Atom(Atom::Increment(Increment {
+                    op: op.into(),
+                    expr,
+                    kind: IncrementKind::Prefix,
+                }))
+            }
+        }
     } else {
         Err(ErrorKind::ExpressionExpected)?
     };
@@ -385,12 +407,14 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             // have maximal precedence
             lhs = match op {
                 UnaryPostfixOperator::PlusPlus | UnaryPostfixOperator::MinusMinus => {
+                    let lhs = PlaceExpr::from_expr(lhs)?;
                     // Consume the operator token
-                    parser.parse::<UnaryPostfixOperator>().unwrap();
-                    Expr::Unary(Unary {
-                        op: UnaryOperator::Postfix(op),
-                        rhs: Box::new(lhs),
-                    })
+                    let op = parser.parse::<IncrementOperator>().unwrap();
+                    Expr::Atom(Atom::Increment(Increment {
+                        op,
+                        expr: lhs,
+                        kind: IncrementKind::Postfix,
+                    }))
                 }
                 UnaryPostfixOperator::LeftBracket => {
                     // Consume the [
@@ -469,6 +493,13 @@ impl PlaceExpr {
         } else {
             Err(ParseErrorKind::NotAllowedInPlaceExpr.into())
         }
+    }
+}
+
+impl Parse for PlaceExpr {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        let expr = Expr::parse(parser)?;
+        Self::from_expr(expr)
     }
 }
 

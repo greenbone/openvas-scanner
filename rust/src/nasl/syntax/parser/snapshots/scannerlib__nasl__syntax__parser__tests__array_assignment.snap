@@ -18,7 +18,7 @@ Assignment(
                 ),
             ],
         },
-        operator: Equal,
+        op: Equal,
         rhs: Atom(
             Literal(
                 Number(

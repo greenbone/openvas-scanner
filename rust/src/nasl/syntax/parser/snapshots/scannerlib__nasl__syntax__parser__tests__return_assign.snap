@@ -4,19 +4,18 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
 ---
 [
     ExprStmt(
-        Unary(
-            Unary {
-                op: Postfix(
-                    PlusPlus,
-                ),
-                rhs: Atom(
-                    Ident(
-                        Ident(
+        Atom(
+            Increment(
+                Increment {
+                    lhs: PlaceExpr {
+                        ident: Ident(
                             "a",
                         ),
-                    ),
-                ),
-            },
+                        array_accesses: [],
+                    },
+                    op: PlusPlus,
+                },
+            ),
         ),
     ),
 ]

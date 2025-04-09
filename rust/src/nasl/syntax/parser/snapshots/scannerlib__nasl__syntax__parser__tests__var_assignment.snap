@@ -10,7 +10,7 @@ Assignment(
             ),
             array_accesses: [],
         },
-        operator: Equal,
+        op: Equal,
         rhs: Atom(
             Literal(
                 Number(

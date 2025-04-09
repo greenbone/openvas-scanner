@@ -11,7 +11,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 ),
                 array_accesses: [],
             },
-            operator: Equal,
+            op: Equal,
             rhs: Atom(
                 Literal(
                     Number(
@@ -29,7 +29,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 ),
                 array_accesses: [],
             },
-            operator: Equal,
+            op: Equal,
             rhs: Atom(
                 Literal(
                     Number(
@@ -47,7 +47,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 ),
                 array_accesses: [],
             },
-            operator: Equal,
+            op: Equal,
             rhs: Atom(
                 Literal(
                     Number(

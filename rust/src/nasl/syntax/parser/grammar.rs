@@ -70,7 +70,7 @@ pub enum Stmt {
 #[derive(Clone, Debug)]
 pub struct Assignment {
     pub lhs: PlaceExpr,
-    pub operator: AssignmentOperator,
+    pub op: AssignmentOperator,
     pub rhs: Expr,
 }
 
@@ -90,7 +90,6 @@ pub struct VarScopeDecl {
 pub enum VarScope {
     Local,
     Global,
-    None,
 }
 
 #[derive(Clone, Debug)]
@@ -148,6 +147,7 @@ pub enum Atom {
     Array(Array),
     ArrayAccess(ArrayAccess),
     FnCall(FnCall),
+    Increment(Increment),
 }
 
 #[derive(Clone, Debug)]
@@ -185,15 +185,22 @@ pub struct NamedFnArg {
 }
 
 #[derive(Clone, Debug)]
-pub struct Unary {
-    pub op: UnaryOperator,
-    pub rhs: Box<Expr>,
+pub struct Increment {
+    pub expr: PlaceExpr,
+    pub op: IncrementOperator,
+    pub kind: IncrementKind,
 }
 
 #[derive(Clone, Debug)]
-pub enum UnaryOperator {
-    Postfix(UnaryPostfixOperator),
-    Prefix(UnaryPrefixOperator),
+pub enum IncrementKind {
+    Prefix,
+    Postfix,
+}
+
+#[derive(Clone, Debug)]
+pub struct Unary {
+    pub op: UnaryPrefixOperator,
+    pub rhs: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -251,24 +258,75 @@ make_operator! {
         Bang,
         Plus,
         Tilde,
+    )
+}
+
+make_operator! {
+    UnaryPrefixOperatorWithIncrement,
+    ErrorKind::ExpectedUnaryOperator,
+    (
+        Minus,
+        Bang,
+        Plus,
+        Tilde,
         PlusPlus,
         MinusMinus,
     )
+}
+
+impl From<UnaryPrefixOperatorWithIncrement> for IncrementOperator {
+    fn from(value: UnaryPrefixOperatorWithIncrement) -> Self {
+        match value {
+            UnaryPrefixOperatorWithIncrement::Minus
+            | UnaryPrefixOperatorWithIncrement::Bang
+            | UnaryPrefixOperatorWithIncrement::Plus
+            | UnaryPrefixOperatorWithIncrement::Tilde => unreachable!(),
+            UnaryPrefixOperatorWithIncrement::PlusPlus => IncrementOperator::PlusPlus,
+            UnaryPrefixOperatorWithIncrement::MinusMinus => IncrementOperator::MinusMinus,
+        }
+    }
+}
+
+impl From<UnaryPrefixOperatorWithIncrement> for UnaryPrefixOperator {
+    fn from(value: UnaryPrefixOperatorWithIncrement) -> Self {
+        match value {
+            UnaryPrefixOperatorWithIncrement::Minus => UnaryPrefixOperator::Minus,
+            UnaryPrefixOperatorWithIncrement::Bang => UnaryPrefixOperator::Bang,
+            UnaryPrefixOperatorWithIncrement::Plus => UnaryPrefixOperator::Plus,
+            UnaryPrefixOperatorWithIncrement::Tilde => UnaryPrefixOperator::Tilde,
+            UnaryPrefixOperatorWithIncrement::PlusPlus
+            | UnaryPrefixOperatorWithIncrement::MinusMinus => unreachable!(),
+        }
+    }
 }
 
 make_operator! {
     UnaryPostfixOperator,
     ErrorKind::ExpectedUnaryOperator,
     (
+        // The weird operators of increment/decrement.
+        // These will be immediately translated into
+        // `Atom::Increment` or `Atom::Decrement` respectively,
+        // after checking that their lhs is assignable (for example
+        // `x++` is fine, but `5++` clearly isn't.
         PlusPlus,
         MinusMinus,
-        // The "weird" operators of array access and
+        // The even weirder "operators" of array access and
         // function calls. They will be immediately translated
         // into `Atom::ArrayAccess` and `Atom::FnCall` respectively,
         // but parsing them via the pratt parser allows writing expressions like
         // [1, 2, 3][0] or fn_array[5](a, b, c).
         LeftBracket,
         LeftParen,
+    )
+}
+
+make_operator! {
+    IncrementOperator,
+    ErrorKind::ExpectedUnaryOperator, // irrelevant
+    (
+        PlusPlus,
+        MinusMinus,
     )
 }
 
@@ -338,9 +396,9 @@ impl BinaryOperator {
     }
 }
 
-impl UnaryPrefixOperator {
+impl UnaryPrefixOperatorWithIncrement {
     pub fn right_binding_power(&self) -> usize {
-        use UnaryPrefixOperator::*;
+        use UnaryPrefixOperatorWithIncrement::*;
         match self {
             Plus | Minus | Tilde | Bang | PlusPlus | MinusMinus => 21,
         }

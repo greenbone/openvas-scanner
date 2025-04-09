@@ -3,7 +3,8 @@ use std::fmt::Debug;
 use codespan_reporting::files::SimpleFile;
 
 use crate::nasl::{
-    Code, error,
+    Code,
+    error::{self, emit_errors},
     syntax::{Tokenizer, parser::grammar::Expr},
 };
 
@@ -21,11 +22,18 @@ fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
 }
 
 fn parse_program_ok(file_name: &str, code: &str) -> Vec<Stmt> {
-    let code = Code::from_string_fake_filename(code, file_name)
-        .code()
-        .to_string();
-    let tokens = Tokenizer::tokenize(&code);
-    Parser::new(tokens).parse_program().unwrap().stmts()
+    let code = Code::from_string_fake_filename(code, file_name);
+    let code_str = code.code().to_string();
+    let tokens = Tokenizer::tokenize(&code_str);
+    let results = Parser::new(tokens).parse_program();
+    match results {
+        Err(errs) => {
+            let file = SimpleFile::new(file_name.to_string(), code_str);
+            emit_errors(&file, errs.into_iter());
+            panic!("Errors during parsing");
+        }
+        Ok(results) => results.stmts(),
+    }
 }
 
 fn parse_program_err(file_name: &str, code: &str) -> String {
@@ -149,17 +157,9 @@ parse_test_ok!(
     "
 );
 
-parse_test_ok!(
-    unary_postfix_operators,
-    Program,
-    "
-    a++;
-    a--;
-    a-- --;
-    a++ ++;
-    ++a++;
-    "
-);
+parse_test_ok!(increment_operators_postfix, Program, "a++; a--;");
+
+parse_test_ok!(increment_operators_prefix, Program, "++a; --a;");
 
 parse_test_ok!(
     compare_operator,
@@ -214,8 +214,6 @@ parse_test_ok!(sub, Program, "a - 1;");
 parse_test_ok!(mul, Program, "a * 1;");
 parse_test_ok!(div, Program, "a / 1;");
 parse_test_ok!(modulo, Program, "a % 1;");
-parse_test_ok!(return_assign, Program, "a++;");
-parse_test_ok!(assign_return, Program, "--a;");
 
 parse_test_ok!(use_parser, Program, "a = 23;b = 1;");
 
@@ -308,15 +306,21 @@ parse_test_ok!(declare_global_var, Program, "global_var a;");
 
 parse_test_ok!(inline_array_access, Expr, "[1, 2, 3][1]");
 
-parse_test_ok!(fn_call_precedence, Expr, "a(1)++");
 parse_test_ok!(array_access_precedence, Expr, "a[1]++");
 parse_test_ok!(mixed_array_access_fn_call, Expr, "fn_array[5](a, b, c)");
 
 parse_test_ok!(array_assignment, Stmt, "a[1] = 3;");
 parse_test_ok!(array_assignment_multi, Stmt, "a[1][2][3] = 3;");
 
-parse_test_err!(assignment_without_place_expr, Stmt, "5 = 3;");
+parse_test_err!(assignment_without_place_expr1, Stmt, "5 = 3;");
 parse_test_err!(assignment_without_place_expr2, Stmt, "5 + 3 = 3;");
+parse_test_err!(assignment_without_place_expr3, Stmt, "a(1) = 3;");
+parse_test_err!(increment_without_place_expr1, Expr, "5++");
+parse_test_err!(increment_without_place_expr2, Expr, "(5 + 3)++");
+parse_test_err!(increment_without_place_expr3, Expr, "a(1)++");
+parse_test_err!(increment_without_place_expr4, Expr, "++a(1)");
+
+parse_test_err!(multiple_increments, Stmt, "x++ ++");
 
 parse_test_err!(multiple_assignments_in_line, Stmt, "a[1] = 3 = 5;");
 

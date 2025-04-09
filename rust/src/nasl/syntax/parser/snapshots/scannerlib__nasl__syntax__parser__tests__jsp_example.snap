@@ -11,7 +11,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 ),
                 array_accesses: [],
             },
-            operator: Equal,
+            op: Equal,
             rhs: Binary(
                 Binary {
                     lhs: Atom(
@@ -60,7 +60,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                 ),
                 array_accesses: [],
             },
-            operator: Equal,
+            op: Equal,
             rhs: Binary(
                 Binary {
                     lhs: Binary(
