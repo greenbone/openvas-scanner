@@ -753,12 +753,10 @@ impl<'a> Context<'a> {
     }
 
     pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
-        // TODO do not unwrap?
         self.sockets.read().await
     }
 
     pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
-        // TODO do not unwrap?
         self.sockets.write().await
     }
 }
