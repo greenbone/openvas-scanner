@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (empty_function_call), \"a();\")"
-snapshot_kind: text
 ---
 [
     ExprStmt(
@@ -19,6 +18,7 @@ snapshot_kind: text
                         items: [],
                         delimiter: Paren,
                     },
+                    num_repeats: None,
                 },
             ),
         ),

@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Expr >\n(stringify! (mixed_array_access_fn_call), \"fn_array[5](a, b, c)\")"
-snapshot_kind: text
 ---
 Atom(
     FnCall(
@@ -64,6 +63,7 @@ Atom(
                 ],
                 delimiter: Paren,
             },
+            num_repeats: None,
         },
     ),
 )

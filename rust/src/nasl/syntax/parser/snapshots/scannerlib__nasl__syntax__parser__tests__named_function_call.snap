@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (named_function_call),\n\"script_tag(name:\\\"cvss_base\\\", value:1 + 1 % 2);\")"
-snapshot_kind: text
 ---
 [
     ExprStmt(
@@ -72,6 +71,7 @@ snapshot_kind: text
                         ],
                         delimiter: Paren,
                     },
+                    num_repeats: None,
                 },
             ),
         ),

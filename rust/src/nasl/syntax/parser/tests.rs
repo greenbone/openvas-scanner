@@ -324,11 +324,12 @@ parse_test_err!(multiple_increments, Stmt, "x++ ++");
 
 parse_test_err!(multiple_assignments_in_line, Stmt, "a[1] = 3 = 5;");
 
-// parse_test_ok!(
-//     change_to_peek,
-//     Program,
-//     "send_packet( udp, pcap_active:FALSE ) x 200;"
-// );
+parse_test_ok!(
+    wonderful_x_operator,
+    Program,
+    "send_packet( udp, pcap_active:FALSE ) x 200;"
+);
+
 // parse_test_ok!(exit, Program, "exit(0);");
 // parse_test_ok!(if_stmt, Program, "if (a) b; else c;");
 // parse_test_ok!(for_stmt, Program, "for (i = 0; i < 10; i++) a;");

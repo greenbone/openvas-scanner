@@ -1,6 +1,6 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (anon_function_call), \"a(1, 2, 3);\")"
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (wonderful_x_operator),\n\"send_packet( udp, pcap_active:FALSE ) x 200;\")"
 ---
 [
     ExprStmt(
@@ -10,7 +10,7 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                     fn_expr: Atom(
                         Ident(
                             Ident(
-                                "a",
+                                "send_packet",
                             ),
                         ),
                     ),
@@ -19,31 +19,23 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                             Anonymous(
                                 AnonymousFnArg {
                                     expr: Atom(
-                                        Literal(
-                                            Number(
-                                                1,
+                                        Ident(
+                                            Ident(
+                                                "udp",
                                             ),
                                         ),
                                     ),
                                 },
                             ),
-                            Anonymous(
-                                AnonymousFnArg {
-                                    expr: Atom(
-                                        Literal(
-                                            Number(
-                                                2,
-                                            ),
-                                        ),
+                            Named(
+                                NamedFnArg {
+                                    ident: Ident(
+                                        "pcap_active",
                                     ),
-                                },
-                            ),
-                            Anonymous(
-                                AnonymousFnArg {
                                     expr: Atom(
                                         Literal(
-                                            Number(
-                                                3,
+                                            Boolean(
+                                                false,
                                             ),
                                         ),
                                     ),
@@ -52,7 +44,15 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
                         ],
                         delimiter: Paren,
                     },
-                    num_repeats: None,
+                    num_repeats: Some(
+                        Atom(
+                            Literal(
+                                Number(
+                                    200,
+                                ),
+                            ),
+                        ),
+                    ),
                 },
             ),
         ),

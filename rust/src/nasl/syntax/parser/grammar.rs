@@ -165,6 +165,8 @@ pub struct ArrayAccess {
 pub struct FnCall {
     pub fn_expr: Box<Expr>,
     pub args: CommaSeparated<FnArg, Paren>,
+    // We owe this beautiful field to the genius "x" operator.
+    pub num_repeats: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]
@@ -375,6 +377,12 @@ make_operator! {
         PipePipe,
         StarStar,
     )
+}
+
+// The binding power of the `X` operator,
+// which we define as maximal
+pub fn x_binding_power() -> usize {
+    25
 }
 
 impl BinaryOperator {

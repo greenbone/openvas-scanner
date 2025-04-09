@@ -21,6 +21,7 @@ use grammar::IncrementOperator;
 use grammar::PlaceExpr;
 use grammar::Repeat;
 use grammar::UnaryPrefixOperatorWithIncrement;
+use grammar::x_binding_power;
 
 use crate::nasl::error::Span;
 
@@ -430,9 +431,17 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                     // Here, we don't consume the ( since that
                     // is taken care of by CommaSeparated::parse
                     let args = parser.parse()?;
+                    // We take the precedence of the X operator to be maximal,
+                    // in order not to overcomplicate things.
+                    let num_repeats = if parser.consume_if_matches(TokenKind::X) {
+                        Some(Box::new(pratt_parse_expr(parser, x_binding_power())?))
+                    } else {
+                        None
+                    };
                     Expr::Atom(Atom::FnCall(FnCall {
                         fn_expr: Box::new(lhs),
                         args,
+                        num_repeats,
                     }))
                 }
             };
