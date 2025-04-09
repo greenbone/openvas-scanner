@@ -243,19 +243,19 @@ impl NaslHttp {
             _ => 0u16,
         };
 
-        let ip_str = ctx.target().original_target_str();
+        let target_str = ctx.target().original_target_str();
 
         let mut uri: String;
         if port != 80 && port != 443 {
-            uri = format!("{}://{}:{}", schema, ip_str, port);
+            uri = format!("{}://{}:{}", schema, target_str, port);
         } else {
-            uri = format!("{}://{}", schema, ip_str)
+            uri = format!("{}://{}", schema, target_str)
         }
 
         uri = format!("{}{}", uri, item);
 
         let (head, body) = self
-            .request(ip_str, port, uri, data, method, handle)
+            .request(target_str, port, uri, data, method, handle)
             .await?;
         handle.http_code = head.status.as_u16();
         let mut header_str = String::new();
