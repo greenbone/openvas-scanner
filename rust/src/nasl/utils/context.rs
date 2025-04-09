@@ -4,8 +4,6 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use rand::seq::SliceRandom;
-
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
@@ -22,6 +20,8 @@ use crate::storage::redis::{
 };
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
+use rand::seq::SliceRandom;
+use std::sync::MutexGuard;
 
 use super::FnError;
 use super::error::ReturnBehavior;
@@ -257,12 +257,7 @@ impl Register {
 
     /// Retrieves all script parameters
     pub fn script_params(&self) -> &[NaslValue] {
-        match self
-            .blocks
-            .first()
-            .and_then(|x| x.named(self, SCRIPT_PARAMS))
-            .map(|(_, val)| val)
-        {
+        match self.named(SCRIPT_PARAMS) {
             Some(ContextType::Value(NaslValue::Array(arr))) => arr,
             _ => &[],
         }
@@ -270,8 +265,10 @@ impl Register {
 
     /// Retrieves a script parameter by id
     pub fn script_param(&self, id: usize) -> Option<NaslValue> {
-        let params = self.script_params();
-        params.get(id).cloned()
+        match self.named(format!("{SCRIPT_PARAMS}_{id}").as_str()) {
+            Some(ContextType::Value(v)) => Some(v.clone()),
+            _ => None,
+        }
     }
 
     /// Destroys the current context.
@@ -625,8 +622,8 @@ impl<'a> Context<'a> {
         *nvt = Some(vt);
     }
 
-    pub fn nvt(&self) -> Option<Nvt> {
-        self.nvt.lock().unwrap().clone()
+    pub fn nvt(&self) -> MutexGuard<'_, Option<Nvt>> {
+        self.nvt.lock().unwrap()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
