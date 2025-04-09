@@ -13,6 +13,7 @@ use error::{Error, ErrorKind};
 use grammar::ArrayAccess;
 use grammar::Assignment;
 use grammar::AssignmentOperator;
+use grammar::Exit;
 use grammar::FnCall;
 use grammar::Foreach;
 use grammar::Increment;
@@ -203,6 +204,8 @@ impl Parse for Stmt {
             Ok(Stmt::Return(parser.parse()?))
         } else if parser.token_matches(TokenKind::Keyword(Keyword::Include)) {
             Ok(Stmt::Include(parser.parse()?))
+        } else if parser.token_matches(TokenKind::Keyword(Keyword::Exit)) {
+            Ok(Stmt::Exit(parser.parse()?))
         } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
             parser.consume(TokenKind::Semicolon)?;
             Ok(Stmt::Break)
@@ -264,6 +267,17 @@ impl Parse for Include {
         parser.consume(TokenKind::RightParen)?;
         parser.consume(TokenKind::Semicolon)?;
         Ok(Include { path })
+    }
+}
+
+impl Parse for Exit {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        parser.consume(TokenKind::Keyword(Keyword::Exit))?;
+        parser.consume(TokenKind::LeftParen)?;
+        let expr = parser.parse()?;
+        parser.consume(TokenKind::RightParen)?;
+        parser.consume(TokenKind::Semicolon)?;
+        Ok(Exit { expr })
     }
 }
 

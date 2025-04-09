@@ -1,0 +1,17 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (exit), \"exit(0);\")"
+---
+[
+    Exit(
+        Exit {
+            expr: Atom(
+                Literal(
+                    Number(
+                        0,
+                    ),
+                ),
+            ),
+        },
+    ),
+]

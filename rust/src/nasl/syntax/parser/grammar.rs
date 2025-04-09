@@ -61,6 +61,7 @@ pub enum Stmt {
     Repeat(Repeat),
     Foreach(Foreach),
     Include(Include),
+    Exit(Exit),
     Return(Return),
     Break,
     Continue,
@@ -97,6 +98,11 @@ pub struct FnDecl {
     pub fn_name: Ident,
     pub args: CommaSeparated<Ident, Paren>,
     pub block: Block<Stmt>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Exit {
+    pub expr: Expr,
 }
 
 #[derive(Clone, Debug)]

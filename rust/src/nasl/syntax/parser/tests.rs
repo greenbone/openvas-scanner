@@ -330,7 +330,7 @@ parse_test_ok!(
     "send_packet( udp, pcap_active:FALSE ) x 200;"
 );
 
-// parse_test_ok!(exit, Program, "exit(0);");
+parse_test_ok!(exit, Program, "exit(0);");
 // parse_test_ok!(if_stmt, Program, "if (a) b; else c;");
 // parse_test_ok!(for_stmt, Program, "for (i = 0; i < 10; i++) a;");
 // parse_test_ok!(
