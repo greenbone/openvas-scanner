@@ -69,17 +69,12 @@ where
 
     fn set_parameters(&mut self, register: &mut Register) -> Result<(), ExecuteError> {
         if let Some(params) = &self.param {
-            let mut parameters = Vec::new();
-            for _ in params.iter() {
-                parameters.push("".into());
-            }
             for p in params.iter() {
-                parameters.insert(p.id.into(), NaslValue::String(p.value.clone()));
+                register.add_global(
+                    format!("{}_{}", SCRIPT_PARAMS, p.id).as_str(),
+                    ContextType::Value(NaslValue::String(p.value.clone())),
+                );
             }
-            register.add_global(
-                SCRIPT_PARAMS,
-                ContextType::Value(NaslValue::Array(parameters)),
-            );
         }
         Ok(())
     }
