@@ -12,14 +12,6 @@ use std::{
 
 use super::socket::SocketError;
 
-/// Convert a string in a IpAddr
-pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, SocketError> {
-    match IpAddr::from_str(ip_addr) {
-        Ok(ip) => Ok(ip),
-        Err(_) => Err(SocketError::InvalidIpAddress(ip_addr.into())),
-    }
-}
-
 /// Convert timeout
 pub fn convert_timeout(timeout: Option<i64>) -> Option<Duration> {
     timeout

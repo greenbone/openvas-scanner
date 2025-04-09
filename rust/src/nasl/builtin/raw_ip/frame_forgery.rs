@@ -11,8 +11,6 @@ use std::{net::Ipv4Addr, str::FromStr};
 
 use pcap::{Capture, Device};
 
-use super::super::host::get_host_ip;
-
 use super::RawIpError;
 use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
 
@@ -359,7 +357,7 @@ fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslV
         }
     };
 
-    let target_ip = get_host_ip(context)?;
+    let target_ip = context.target().ip_addr();
 
     if target_ip.is_ipv6() {
         return Err(FnError::wrong_unnamed_argument(
@@ -499,7 +497,7 @@ fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, 
         }
     };
 
-    let target_ip = get_host_ip(context)?;
+    let target_ip = context.target().ip_addr();
 
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;

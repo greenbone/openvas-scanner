@@ -325,7 +325,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 type Named = HashMap<String, ContextType>;
 
@@ -373,6 +373,16 @@ pub struct Target {
     /// The IP address. Defaults to 127.0.0.1 if target was not
     /// resolved or could not be resolved
     ip_addr: IpAddr,
+    /// Whether the string given to `Target` was a hostname or an ip address.
+    kind: TargetKind,
+}
+
+/// Specifies whether the string given to `Target` was a hostname
+/// or an ip address.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TargetKind {
+    Hostname,
+    IpAddr,
 }
 
 #[derive(Debug)]
@@ -397,28 +407,48 @@ pub struct CtxTarget {
 
 impl Target {
     pub fn do_not_resolve_hostname(target: impl AsRef<str>) -> Self {
-        let ip_addr: IpAddr = target.as_ref().parse::<IpAddr>().unwrap_or(LOCALHOST);
+        let (ip_addr, kind) = match target.as_ref().parse::<IpAddr>() {
+            Ok(ip_addr) => (ip_addr, TargetKind::IpAddr),
+            Err(_) => (LOCALHOST, TargetKind::Hostname),
+        };
         Self {
             original_target_str: target.as_ref().into(),
             ip_addr,
+            kind,
         }
     }
 
     pub fn resolve_hostname(target: impl AsRef<str>) -> Self {
-        // TODO: We only ever remember the first IpAddr here,
-        // is that reasonable?
-        let ip_addr = resolve_hostname(target.as_ref())
+        // Try to parse as IpAddr first
+        let (ip_addr, kind) = if let Ok(ip_addr) = target.as_ref().parse::<IpAddr>() {
+            (ip_addr, TargetKind::IpAddr)
+        } else if let Some(ip_addr) = resolve_hostname(target.as_ref())
             .ok()
             .and_then(|ip_addrs| ip_addrs.into_iter().next())
-            .unwrap_or(LOCALHOST);
+        {
+            // TODO: We only ever remember the first IpAddr here,
+            // is that reasonable?
+            (ip_addr, TargetKind::Hostname)
+        } else {
+            (LOCALHOST, TargetKind::IpAddr)
+        };
         Self {
-            original_target_str: target.as_ref().into(),
             ip_addr,
+            kind,
+            original_target_str: target.as_ref().into(),
         }
     }
 
     pub fn original_target_str(&self) -> &str {
         &self.original_target_str
+    }
+
+    pub fn ip_addr(&self) -> IpAddr {
+        self.ip_addr
+    }
+
+    pub fn kind(&self) -> &TargetKind {
+        &self.kind
     }
 }
 
@@ -437,12 +467,29 @@ impl CtxTarget {
         self
     }
 
-    fn original_target_str(&self) -> &str {
-        self.target.original_target_str()
+    pub fn original_target_str(&self) -> &str {
+        &self.target.original_target_str
     }
 
-    fn ip_addr(&self) -> &IpAddr {
-        &self.target.ip_addr
+    pub fn ip_addr(&self) -> IpAddr {
+        self.target.ip_addr
+    }
+
+    pub fn kind(&self) -> &TargetKind {
+        &self.target.kind
+    }
+
+    /// Return the hostname that this `Target` was constructed with
+    /// or None otherwise
+    pub fn hostname(&self) -> Option<String> {
+        match self.target.kind {
+            TargetKind::Hostname => Some(self.target.original_target_str.clone()),
+            TargetKind::IpAddr => None,
+        }
+    }
+
+    pub fn vhosts(&self) -> MutexGuard<'_, Vec<(String, String)>> {
+        self.vhosts.lock().unwrap()
     }
 }
 
@@ -564,19 +611,9 @@ impl<'a> Context<'a> {
         &self.filename
     }
 
-    /// Get the target (hostname or ip address).
-    pub fn target(&self) -> &str {
-        self.target.original_target_str()
-    }
-
-    /// Get the ip address of the target.
-    pub fn target_ip(&self) -> &IpAddr {
-        self.target.ip_addr()
-    }
-
-    /// Get the target VHost list
-    pub fn target_vhosts(&self) -> Vec<(String, String)> {
-        self.target.vhosts.lock().unwrap().clone()
+    /// Get the `CtxTarget`
+    pub fn target(&self) -> &CtxTarget {
+        &self.target
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) {
@@ -783,5 +820,24 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.loader,
             self.executor,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nasl::utils::context::TargetKind;
+
+    use super::Target;
+
+    #[test]
+    fn target_kind() {
+        assert_eq!(
+            Target::do_not_resolve_hostname("1.2.3.4").kind(),
+            &TargetKind::IpAddr
+        );
+        assert_eq!(
+            Target::do_not_resolve_hostname("foo").kind(),
+            &TargetKind::Hostname
+        );
     }
 }
