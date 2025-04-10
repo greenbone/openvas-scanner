@@ -307,8 +307,12 @@ impl Parse for Exit {
 impl Parse for VarScopeDecl {
     fn parse(parser: &mut Parser) -> Result<VarScopeDecl> {
         let scope = parser.parse()?;
-        let ident = parser.parse()?;
-        Ok(VarScopeDecl { ident, scope })
+        let mut idents = vec![];
+        idents.push(parser.parse()?);
+        while parser.consume_if_matches(TokenKind::Comma) {
+            idents.push(parser.parse()?);
+        }
+        Ok(VarScopeDecl { idents, scope })
     }
 }
 

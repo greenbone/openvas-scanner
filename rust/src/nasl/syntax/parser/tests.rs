@@ -303,6 +303,8 @@ parse_test_ok!(
 
 parse_test_ok!(declare_local_var, Program, "local_var a;");
 parse_test_ok!(declare_global_var, Program, "global_var a;");
+parse_test_ok!(declare_local_vars, Program, "local_var a, b, c;");
+parse_test_ok!(declare_global_vars, Program, "global_var a, b, c;");
 
 parse_test_ok!(inline_array_access, Expr, "[1, 2, 3][1]");
 
@@ -345,33 +347,33 @@ parse_test_ok!(
 parse_test_ok!(for_stmt_no_braces, Program, "for (i = 0; i < 10; i++) a;");
 parse_test_ok!(for_stmt, Program, "for (i = 0; i < 10; i++) { a; }");
 
-// parse_test_ok!(
-//     position,
-//     Program,
-//     r#"
-//         a = 1 + 1;
-//         b = 2 * 2;
-//         a = ++a;
-//         arr = mkarray(a, b, c      );
-//         arr[++a];
-//         exit(1);
-//         return 1;
-//         include('test.inc');
-//         local_var a, b, c;
-//         global_var a, b, c;
-//         if (a) display(1); else display(2);
-//         for (i = 1; i < 10; i++) display(i);
-//         while(TRUE) display(i);
-//         foreach a(q) display(a);
-//         repeat display("q"); until 1;
-//         {
-//             a;
-//             b;
-//         }
-//         function register_packages( buf ) { return 1; }
-//     "#
-// );
-//
+parse_test_ok!(
+    position,
+    Program,
+    r#"
+        a = 1 + 1;
+        b = 2 * 2;
+        a = ++a;
+        arr = mkarray(a, b, c      );
+        arr[++a];
+        exit(1);
+        return 1;
+        include('test.inc');
+        local_var a, b, c;
+        global_var a, b, c;
+        if (a) display(1); else display(2);
+        for (i = 1; i < 10; i++) display(i);
+        while(TRUE) display(i);
+        foreach a(q) display(a);
+        repeat display("q"); until 1;
+        {
+            a;
+            b;
+        }
+        function register_packages( buf ) { return 1; }
+    "#
+);
+
 // parse_test_ok!(
 //     unexpected_assign,
 //     Program,

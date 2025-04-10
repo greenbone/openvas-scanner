@@ -85,7 +85,7 @@ pub struct PlaceExpr {
 
 #[derive(Clone, Debug)]
 pub struct VarScopeDecl {
-    pub ident: Ident,
+    pub idents: Vec<Ident>,
     pub scope: VarScope,
 }
 
