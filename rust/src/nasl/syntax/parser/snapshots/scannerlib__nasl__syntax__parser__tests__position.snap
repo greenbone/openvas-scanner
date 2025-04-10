@@ -3,153 +3,161 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (position),\nr#\"\n        a = 1 + 1;\n        b = 2 * 2;\n        a = ++a;\n        arr = mkarray(a, b, c      );\n        arr[++a];\n        exit(1);\n        return 1;\n        include('test.inc');\n        local_var a, b, c;\n        global_var a, b, c;\n        if (a) display(1); else display(2);\n        for (i = 1; i < 10; i++) display(i);\n        while(TRUE) display(i);\n        foreach a(q) display(a);\n        repeat display(\"q\"); until 1;\n        {\n            a;\n            b;\n        }\n        function register_packages( buf ) { return 1; }\n    \"#)"
 ---
 [
-    Assignment(
-        Assignment {
-            lhs: PlaceExpr {
-                ident: Ident(
-                    "a",
-                ),
-                array_accesses: [],
-            },
-            op: Equal,
-            rhs: Binary(
-                Binary {
-                    lhs: Atom(
-                        Literal(
-                            Number(
-                                1,
-                            ),
-                        ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident(
+                        "a",
                     ),
-                    op: Plus,
-                    rhs: Atom(
-                        Literal(
-                            Number(
-                                1,
-                            ),
-                        ),
-                    ),
+                    array_accesses: [],
                 },
-            ),
-        },
-    ),
-    Assignment(
-        Assignment {
-            lhs: PlaceExpr {
-                ident: Ident(
-                    "b",
-                ),
-                array_accesses: [],
-            },
-            op: Equal,
-            rhs: Binary(
-                Binary {
-                    lhs: Atom(
-                        Literal(
-                            Number(
-                                2,
+                op: Equal,
+                rhs: Binary(
+                    Binary {
+                        lhs: Atom(
+                            Literal(
+                                Number(
+                                    1,
+                                ),
                             ),
                         ),
-                    ),
-                    op: Star,
-                    rhs: Atom(
-                        Literal(
-                            Number(
-                                2,
+                        op: Plus,
+                        rhs: Atom(
+                            Literal(
+                                Number(
+                                    1,
+                                ),
                             ),
                         ),
-                    ),
-                },
-            ),
-        },
-    ),
-    Assignment(
-        Assignment {
-            lhs: PlaceExpr {
-                ident: Ident(
-                    "a",
-                ),
-                array_accesses: [],
-            },
-            op: Equal,
-            rhs: Atom(
-                Increment(
-                    Increment {
-                        expr: PlaceExpr {
-                            ident: Ident(
-                                "a",
-                            ),
-                            array_accesses: [],
-                        },
-                        op: PlusPlus,
-                        kind: Prefix,
                     },
                 ),
-            ),
-        },
-    ),
-    Assignment(
-        Assignment {
-            lhs: PlaceExpr {
-                ident: Ident(
-                    "arr",
-                ),
-                array_accesses: [],
             },
-            op: Equal,
-            rhs: Atom(
-                FnCall(
-                    FnCall {
-                        fn_expr: Atom(
-                            Ident(
+        ),
+    ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident(
+                        "b",
+                    ),
+                    array_accesses: [],
+                },
+                op: Equal,
+                rhs: Binary(
+                    Binary {
+                        lhs: Atom(
+                            Literal(
+                                Number(
+                                    2,
+                                ),
+                            ),
+                        ),
+                        op: Star,
+                        rhs: Atom(
+                            Literal(
+                                Number(
+                                    2,
+                                ),
+                            ),
+                        ),
+                    },
+                ),
+            },
+        ),
+    ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident(
+                        "a",
+                    ),
+                    array_accesses: [],
+                },
+                op: Equal,
+                rhs: Atom(
+                    Increment(
+                        Increment {
+                            expr: PlaceExpr {
+                                ident: Ident(
+                                    "a",
+                                ),
+                                array_accesses: [],
+                            },
+                            op: PlusPlus,
+                            kind: Prefix,
+                        },
+                    ),
+                ),
+            },
+        ),
+    ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident(
+                        "arr",
+                    ),
+                    array_accesses: [],
+                },
+                op: Equal,
+                rhs: Atom(
+                    FnCall(
+                        FnCall {
+                            fn_expr: Atom(
                                 Ident(
-                                    "mkarray",
+                                    Ident(
+                                        "mkarray",
+                                    ),
                                 ),
                             ),
-                        ),
-                        args: CommaSeparated {
-                            items: [
-                                Anonymous(
-                                    AnonymousFnArg {
-                                        expr: Atom(
-                                            Ident(
+                            args: CommaSeparated {
+                                items: [
+                                    Anonymous(
+                                        AnonymousFnArg {
+                                            expr: Atom(
                                                 Ident(
-                                                    "a",
+                                                    Ident(
+                                                        "a",
+                                                    ),
                                                 ),
                                             ),
-                                        ),
-                                    },
-                                ),
-                                Anonymous(
-                                    AnonymousFnArg {
-                                        expr: Atom(
-                                            Ident(
+                                        },
+                                    ),
+                                    Anonymous(
+                                        AnonymousFnArg {
+                                            expr: Atom(
                                                 Ident(
-                                                    "b",
+                                                    Ident(
+                                                        "b",
+                                                    ),
                                                 ),
                                             ),
-                                        ),
-                                    },
-                                ),
-                                Anonymous(
-                                    AnonymousFnArg {
-                                        expr: Atom(
-                                            Ident(
+                                        },
+                                    ),
+                                    Anonymous(
+                                        AnonymousFnArg {
+                                            expr: Atom(
                                                 Ident(
-                                                    "c",
+                                                    Ident(
+                                                        "c",
+                                                    ),
                                                 ),
                                             ),
-                                        ),
-                                    },
-                                ),
-                            ],
-                            delimiter: Paren,
+                                        },
+                                    ),
+                                ],
+                                delimiter: Paren,
+                            },
+                            num_repeats: None,
                         },
-                        num_repeats: None,
-                    },
+                    ),
                 ),
-            ),
-        },
+            },
+        ),
     ),
     ExprStmt(
         Atom(
@@ -341,23 +349,25 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
     ),
     For(
         For {
-            initializer: Assignment(
-                Assignment {
-                    lhs: PlaceExpr {
-                        ident: Ident(
-                            "i",
-                        ),
-                        array_accesses: [],
-                    },
-                    op: Equal,
-                    rhs: Atom(
-                        Literal(
-                            Number(
-                                1,
+            initializer: ExprStmt(
+                Assignment(
+                    Assignment {
+                        lhs: PlaceExpr {
+                            ident: Ident(
+                                "i",
+                            ),
+                            array_accesses: [],
+                        },
+                        op: Equal,
+                        rhs: Atom(
+                            Literal(
+                                Number(
+                                    1,
+                                ),
                             ),
                         ),
-                    ),
-                },
+                    },
+                ),
             ),
             condition: Binary(
                 Binary {

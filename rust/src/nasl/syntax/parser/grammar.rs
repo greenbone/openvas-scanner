@@ -1,6 +1,6 @@
 use std::vec;
 
-use super::{ErrorKind, Parser, cursor::Peek, error::Error};
+use super::{ErrorKind, FromPeek, Parser, cursor::Peek, error::Error};
 use crate::nasl::syntax::token::{Ident, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
@@ -52,7 +52,6 @@ impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    Assignment(Assignment),
     VarScopeDecl(VarScopeDecl),
     FnDecl(FnDecl),
     ExprStmt(Expr),
@@ -72,9 +71,9 @@ pub enum Stmt {
 
 #[derive(Clone, Debug)]
 pub struct Assignment {
-    pub lhs: PlaceExpr,
+    pub lhs: Box<PlaceExpr>,
     pub op: AssignmentOperator,
-    pub rhs: Expr,
+    pub rhs: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -160,6 +159,8 @@ pub enum Expr {
     Atom(Atom),
     Binary(Binary),
     Unary(Unary),
+    // Assignments can appear within expressions.
+    Assignment(Assignment),
 }
 
 #[derive(Clone, Debug)]
@@ -245,13 +246,13 @@ macro_rules! make_operator {
 
         impl super::Matches for $ty {
             fn matches(p: &impl Peek) -> bool {
-                p.peek_parse::<Self>().is_some()
+                p.parse_from_peek::<Self>().is_some()
             }
         }
 
         impl super::Parse for $ty {
             fn parse(parser: &mut Parser) -> Result<$ty, Error> {
-                let converted = parser.peek_parse::<Self>();
+                let converted = parser.parse_from_peek::<Self>();
                 if converted.is_some() {
                     parser.advance();
                 }
@@ -401,6 +402,29 @@ make_operator! {
     )
 }
 
+#[derive(Debug, Clone)]
+pub enum BinaryOrAssignmentOperator {
+    Binary(BinaryOperator),
+    Assignment(AssignmentOperator),
+}
+
+impl BinaryOrAssignmentOperator {
+    pub fn binding_power(&self) -> (usize, usize) {
+        match self {
+            Self::Binary(binary_operator) => binary_operator.binding_power(),
+            Self::Assignment(assignment_operator) => assignment_operator.binding_power(),
+        }
+    }
+}
+
+impl FromPeek for BinaryOrAssignmentOperator {
+    fn from_peek(p: &impl Peek) -> Option<Self> {
+        BinaryOperator::from_peek(p)
+            .map(Self::Binary)
+            .or_else(|| AssignmentOperator::from_peek(p).map(Self::Assignment))
+    }
+}
+
 // The binding power of the `X` operator,
 // which we define as maximal
 pub fn x_binding_power() -> usize {
@@ -423,6 +447,12 @@ impl BinaryOperator {
             AmpersandAmpersand => (6, 7),
             PipePipe => (4, 5),
         }
+    }
+}
+
+impl AssignmentOperator {
+    pub fn binding_power(&self) -> (usize, usize) {
+        (2, 3)
     }
 }
 

@@ -5,23 +5,25 @@ expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(str
 [
     For(
         For {
-            initializer: Assignment(
-                Assignment {
-                    lhs: PlaceExpr {
-                        ident: Ident(
-                            "i",
-                        ),
-                        array_accesses: [],
-                    },
-                    op: Equal,
-                    rhs: Atom(
-                        Literal(
-                            Number(
-                                0,
+            initializer: ExprStmt(
+                Assignment(
+                    Assignment {
+                        lhs: PlaceExpr {
+                            ident: Ident(
+                                "i",
+                            ),
+                            array_accesses: [],
+                        },
+                        op: Equal,
+                        rhs: Atom(
+                            Literal(
+                                Number(
+                                    0,
+                                ),
                             ),
                         ),
-                    ),
-                },
+                    },
+                ),
             ),
             condition: Binary(
                 Binary {

@@ -18,7 +18,7 @@ pub(super) trait Peek: Sized {
         self.peek_next() == &kind
     }
 
-    fn peek_parse<T: FromPeek>(&self) -> Option<T> {
+    fn parse_from_peek<T: FromPeek>(&self) -> Option<T> {
         T::from_peek(self)
     }
 }

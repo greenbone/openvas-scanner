@@ -374,16 +374,18 @@ parse_test_ok!(
     "#
 );
 
-// parse_test_ok!(
-//     unexpected_assign,
-//     Program,
-//     r###"
-//     while(y = recv(socket:soc, length:1024)) {
-//     buf1 += y;
-//     }
-//     "###
-// );
-//
+parse_test_ok!(
+    assignment_in_while_loop_condition,
+    Program,
+    r###"
+    while(y = recv(socket:soc, length:1024)) {
+        buf1 += y;
+    }
+    "###
+);
+
+parse_test_ok!(assignment_in_arbitrary_expressions, Stmt, "(a = 1);");
+
 // parse_test_ok!(
 //     unexpected_noop,
 //     Program,
@@ -515,7 +517,6 @@ parse_test_ok!(
 //     "###
 // );
 
-// parse_test_ok!(assignment, Program, "(a = 1);");
 // TODO?
 // test_err!(wrong_assignment, "a = ");
 // test_err!(wrong_keyword_assignment, "a = for;");

@@ -13,6 +13,7 @@ use error::{Error, ErrorKind};
 use grammar::ArrayAccess;
 use grammar::Assignment;
 use grammar::AssignmentOperator;
+use grammar::BinaryOrAssignmentOperator;
 use grammar::Exit;
 use grammar::FnCall;
 use grammar::For;
@@ -219,18 +220,7 @@ fn parse_stmt_without_semicolon(parser: &mut Parser) -> Result<Stmt> {
         Ok(Stmt::NoOp)
     } else {
         let expr = parser.parse()?;
-        if parser.matches::<AssignmentOperator>() {
-            let lhs = PlaceExpr::from_expr(expr)?;
-            let operator = parser.parse()?;
-            let rhs = parser.parse()?;
-            Ok(Stmt::Assignment(Assignment {
-                lhs,
-                rhs,
-                op: operator,
-            }))
-        } else {
-            Ok(Stmt::ExprStmt(expr))
-        }
+        Ok(Stmt::ExprStmt(expr))
     }
 }
 
@@ -238,8 +228,7 @@ impl Parse for Stmt {
     fn parse(parser: &mut Parser) -> Result<Stmt> {
         let stmt = parse_stmt_without_semicolon(parser)?;
         match stmt {
-            Stmt::Assignment(_)
-            | Stmt::VarScopeDecl(_)
+            Stmt::VarScopeDecl(_)
             | Stmt::ExprStmt(_)
             | Stmt::Repeat(_)
             | Stmt::Include(_)
@@ -479,12 +468,11 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                 | TokenKind::Semicolon
                 | TokenKind::Eof
                 | TokenKind::Comma
-        ) || parser.matches::<AssignmentOperator>()
-        {
+        ) {
             break;
         }
 
-        if let Some(op) = parser.peek_parse::<UnaryPostfixOperator>() {
+        if let Some(op) = parser.parse_from_peek::<UnaryPostfixOperator>() {
             let l_bp = op.left_binding_power();
             if l_bp < min_bp {
                 break;
@@ -534,20 +522,38 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             };
             continue;
         }
+
+        // Handle binary operators and assignment separately, so
+        // that we're able to verify that the LHS is a valid
+        // place expression.
         let op = parser
-            .peek_parse::<BinaryOperator>()
+            .parse_from_peek::<BinaryOrAssignmentOperator>()
             .ok_or(ErrorKind::TokenExpected(TokenKind::Semicolon))?;
         let (l_bp, r_bp) = op.binding_power();
         if l_bp < min_bp {
             break;
         }
-        let _: BinaryOperator = parser.parse().unwrap();
-        let rhs = pratt_parse_expr(parser, r_bp)?;
-        lhs = Expr::Binary(Binary {
-            lhs: Box::new(lhs),
-            op,
-            rhs: Box::new(rhs),
-        });
+        lhs = match op {
+            BinaryOrAssignmentOperator::Binary(_) => {
+                let op: BinaryOperator = parser.parse().unwrap();
+                let rhs = pratt_parse_expr(parser, r_bp)?;
+                Expr::Binary(Binary {
+                    lhs: Box::new(lhs),
+                    op,
+                    rhs: Box::new(rhs),
+                })
+            }
+            BinaryOrAssignmentOperator::Assignment(_) => {
+                let place_expr = Box::new(PlaceExpr::from_expr(lhs)?);
+                let op: AssignmentOperator = parser.parse().unwrap();
+                let rhs = pratt_parse_expr(parser, r_bp)?;
+                Expr::Assignment(Assignment {
+                    lhs: place_expr,
+                    op,
+                    rhs: Box::new(rhs),
+                })
+            }
+        }
     }
     Ok(lhs)
 }

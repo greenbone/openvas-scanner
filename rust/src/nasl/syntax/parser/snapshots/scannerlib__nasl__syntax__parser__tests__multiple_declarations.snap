@@ -3,58 +3,64 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (multiple_declarations),\n\"a = 1;\n     b = 2;\n     c = 3;\")"
 ---
 [
-    Assignment(
-        Assignment {
-            lhs: PlaceExpr {
-                ident: Ident(
-                    "a",
-                ),
-                array_accesses: [],
-            },
-            op: Equal,
-            rhs: Atom(
-                Literal(
-                    Number(
-                        1,
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident(
+                        "a",
+                    ),
+                    array_accesses: [],
+                },
+                op: Equal,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            1,
+                        ),
                     ),
                 ),
-            ),
-        },
+            },
+        ),
     ),
-    Assignment(
-        Assignment {
-            lhs: PlaceExpr {
-                ident: Ident(
-                    "b",
-                ),
-                array_accesses: [],
-            },
-            op: Equal,
-            rhs: Atom(
-                Literal(
-                    Number(
-                        2,
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident(
+                        "b",
+                    ),
+                    array_accesses: [],
+                },
+                op: Equal,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            2,
+                        ),
                     ),
                 ),
-            ),
-        },
+            },
+        ),
     ),
-    Assignment(
-        Assignment {
-            lhs: PlaceExpr {
-                ident: Ident(
-                    "c",
-                ),
-                array_accesses: [],
-            },
-            op: Equal,
-            rhs: Atom(
-                Literal(
-                    Number(
-                        3,
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident(
+                        "c",
+                    ),
+                    array_accesses: [],
+                },
+                op: Equal,
+                rhs: Atom(
+                    Literal(
+                        Number(
+                            3,
+                        ),
                     ),
                 ),
-            ),
-        },
+            },
+        ),
     ),
 ]
