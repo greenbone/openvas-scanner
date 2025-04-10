@@ -1,29 +1,5 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (array), \"a[1];\")"
-snapshot_kind: text
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (array),\n\"a[1];\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _ >>\n().join(\"\\n\")"
 ---
-[
-    ExprStmt(
-        Atom(
-            ArrayAccess(
-                ArrayAccess {
-                    index_expr: Atom(
-                        Literal(
-                            Number(
-                                1,
-                            ),
-                        ),
-                    ),
-                    lhs_expr: Atom(
-                        Ident(
-                            Ident(
-                                "a",
-                            ),
-                        ),
-                    ),
-                },
-            ),
-        ),
-    ),
-]
+a[1];

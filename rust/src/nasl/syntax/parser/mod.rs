@@ -1,6 +1,7 @@
 mod cursor;
 mod error;
 pub mod grammar;
+mod pretty_print;
 #[cfg(test)]
 mod tests;
 
@@ -322,7 +323,11 @@ impl Parse for FnDecl {
 impl Parse for Return {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::Return))?;
-        let expr = parser.parse()?;
+        let expr = if parser.token_matches(TokenKind::Semicolon) {
+            None
+        } else {
+            Some(parser.parse()?)
+        };
         Ok(Return { expr })
     }
 }

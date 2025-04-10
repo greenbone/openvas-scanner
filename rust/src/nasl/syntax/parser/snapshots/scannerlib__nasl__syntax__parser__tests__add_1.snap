@@ -2,22 +2,4 @@
 source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Expr >\n(stringify! (add_1), \"5 + 3\")"
 ---
-Binary(
-    Binary {
-        lhs: Atom(
-            Literal(
-                Number(
-                    5,
-                ),
-            ),
-        ),
-        op: Plus,
-        rhs: Atom(
-            Literal(
-                Number(
-                    3,
-                ),
-            ),
-        ),
-    },
-)
+(5 + 3)

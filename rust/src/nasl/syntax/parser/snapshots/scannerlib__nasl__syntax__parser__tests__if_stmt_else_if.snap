@@ -1,71 +1,11 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (if_stmt_else_if),\n\"if (a) { b; } else if (c) { d; } else { e; }\")"
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (if_stmt_else_if),\n\"if (a) { b; } else if (c) { d; } else { e; }\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
 ---
-[
-    If(
-        If {
-            if_branches: [
-                (
-                    Atom(
-                        Ident(
-                            Ident(
-                                "a",
-                            ),
-                        ),
-                    ),
-                    Block {
-                        items: [
-                            ExprStmt(
-                                Atom(
-                                    Ident(
-                                        Ident(
-                                            "b",
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ],
-                    },
-                ),
-                (
-                    Atom(
-                        Ident(
-                            Ident(
-                                "c",
-                            ),
-                        ),
-                    ),
-                    Block {
-                        items: [
-                            ExprStmt(
-                                Atom(
-                                    Ident(
-                                        Ident(
-                                            "d",
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ],
-                    },
-                ),
-            ],
-            else_branch: Some(
-                Block {
-                    items: [
-                        ExprStmt(
-                            Atom(
-                                Ident(
-                                    Ident(
-                                        "e",
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                },
-            ),
-        },
-    ),
-]
+if (a) {
+  b;
+} else if (c) {
+  d;
+} else {
+  e;
+}

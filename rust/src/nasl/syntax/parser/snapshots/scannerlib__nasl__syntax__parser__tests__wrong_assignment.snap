@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (wrong_assignment), \"a = \")"
+---
+error: Expected expression
+  ┌─ wrong_assignment:1:1
+  │
+1 │ a = 
+  │ ^^^ Expected expression
