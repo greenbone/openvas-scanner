@@ -108,7 +108,7 @@ pub struct Exit {
 
 #[derive(Clone, Debug)]
 pub struct Return {
-    pub expr: Expr,
+    pub expr: Option<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -272,6 +272,15 @@ macro_rules! make_operator {
             }
         }
 
+        impl std::fmt::Display for $ty {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    $(
+                        Self::$pat => write!(f, "{}", TokenKind::$pat),
+                    )*
+                }
+            }
+        }
     }
 }
 

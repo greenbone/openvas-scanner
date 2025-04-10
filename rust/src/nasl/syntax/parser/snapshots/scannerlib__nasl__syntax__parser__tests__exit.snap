@@ -1,17 +1,5 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (exit), \"exit(0);\")"
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (exit),\n\"exit(0);\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _ >>\n().join(\"\\n\")"
 ---
-[
-    Exit(
-        Exit {
-            expr: Atom(
-                Literal(
-                    Number(
-                        0,
-                    ),
-                ),
-            ),
-        },
-    ),
-]
+exit(0);

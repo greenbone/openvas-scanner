@@ -1,0 +1,10 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (unexpected_equal_operator),\nr###\"\n# Message Server runs on ports 36xx or 39xx\nif (port < 3600 || port >= 3700)\nif (port < 3900 || port >= 4000)\nexit(0);\n\nsoc = open_sock_tcp(port);\n\n    \"###).into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+if (((port < 3600) || (port >= 3700))) {
+  if (((port < 3900) || (port >= 4000))) {
+    exit(0);
+  }
+}
+soc = open_sock_tcp(port);
