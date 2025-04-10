@@ -87,8 +87,8 @@ if(description)
             required_udp_ports: vec!["Services/udp/unknown".into(), "17".into()],
             references: vec![
                 NvtRef {
-                    class: "http://freshmeat.sourceforge.net/projects/eventh/".into(),
-                    id: "URL".into()
+                    class: "URL".into(),
+                    id: "http://freshmeat.sourceforge.net/projects/eventh/".into(),
                 },
                 NvtRef {
                     class: "cve".into(),
