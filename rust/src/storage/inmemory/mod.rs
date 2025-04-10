@@ -323,8 +323,10 @@ mod tests {
     pub fn nvt() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
-        let mut nvt = Nvt::default();
-        nvt.oid = "moep".to_string();
+        let nvt = Nvt {
+            oid: "moep".to_string(),
+            ..Nvt::default()
+        };
         storage.dispatch(key.clone(), nvt.clone())?;
         let ret = storage.retrieve(&key).unwrap().unwrap();
         assert_eq!(nvt, ret);
@@ -335,8 +337,10 @@ mod tests {
     pub fn nvt_oid() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
-        let mut nvt = Nvt::default();
-        nvt.oid = "moep".to_string();
+        let nvt = Nvt {
+            oid: "moep".to_string(),
+            ..Nvt::default()
+        };
         storage.dispatch(key.clone(), nvt.clone())?;
         let key = Oid(nvt.oid.clone());
         let ret = storage.retrieve(&key).unwrap().unwrap();
