@@ -324,7 +324,7 @@ exit({rc});
         let storage = Arc::new(InMemoryStorage::new());
 
         let register = Register::root_initial(&initial);
-        let target = Target::do_not_resolve_hostname("");
+        let target = Target::localhost();
         let executor = nasl_std_functions();
         let loader = |_: &str| code.to_string();
         let scan_id = ScanID(filename.to_string());

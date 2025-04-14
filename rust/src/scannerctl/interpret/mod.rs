@@ -133,7 +133,12 @@ pub async fn run(
     script: &Path,
     target: Option<String>,
 ) -> Result<(), CliError> {
-    let target = Target::resolve_hostname(target.unwrap_or_default());
+    let target = target
+        .map(|target| {
+            Target::resolve_hostname(&target)
+                .unwrap_or_else(|| panic!("Hostname resolution failed for target {target}"))
+        })
+        .unwrap_or(Target::localhost());
     let result = match (db, feed) {
         (Db::InMemory, None) => {
             run_on_storage(

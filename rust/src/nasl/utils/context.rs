@@ -370,8 +370,7 @@ impl NaslContext {
 pub struct Target {
     /// The original target. IP or hostname
     original_target_str: String,
-    /// The IP address. Defaults to 127.0.0.1 if target was not
-    /// resolved or could not be resolved
+    /// The IP address of the target.
     ip_addr: IpAddr,
 }
 
@@ -396,6 +395,14 @@ pub struct CtxTarget {
 }
 
 impl Target {
+    pub fn localhost() -> Self {
+        Self {
+            original_target_str: LOCALHOST.to_string(),
+            ip_addr: LOCALHOST,
+        }
+    }
+
+    #[cfg(test)]
     pub fn do_not_resolve_hostname(target: impl AsRef<str>) -> Self {
         let ip_addr: IpAddr = target.as_ref().parse::<IpAddr>().unwrap_or(LOCALHOST);
         Self {
@@ -404,17 +411,16 @@ impl Target {
         }
     }
 
-    pub fn resolve_hostname(target: impl AsRef<str>) -> Self {
+    pub fn resolve_hostname(target: impl AsRef<str>) -> Option<Self> {
         // TODO: We only ever remember the first IpAddr here,
         // is that reasonable?
         let ip_addr = resolve_hostname(target.as_ref())
             .ok()
-            .and_then(|ip_addrs| ip_addrs.into_iter().next())
-            .unwrap_or(LOCALHOST);
-        Self {
+            .and_then(|ip_addrs| ip_addrs.into_iter().next())?;
+        Some(Self {
             original_target_str: target.as_ref().into(),
             ip_addr,
-        }
+        })
     }
 
     pub fn original_target_str(&self) -> &str {

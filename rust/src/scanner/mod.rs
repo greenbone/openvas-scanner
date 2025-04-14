@@ -112,7 +112,8 @@ impl<S: ScannerStack + 'static> Scanner<S> {
 #[async_trait]
 impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
-        self.start_scan_internal(scan.into()).await
+        self.start_scan_internal(Scan::from_resolvable_hosts(scan))
+            .await
     }
 
     async fn can_start_scan(&self, _: &models::Scan) -> bool {
