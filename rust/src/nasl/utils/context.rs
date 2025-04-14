@@ -255,14 +255,6 @@ impl Register {
         }
     }
 
-    /// Retrieves all script parameters
-    pub fn script_params(&self) -> &[NaslValue] {
-        match self.named(SCRIPT_PARAMS) {
-            Some(ContextType::Value(NaslValue::Array(arr))) => arr,
-            _ => &[],
-        }
-    }
-
     /// Retrieves a script parameter by id
     pub fn script_param(&self, id: usize) -> Option<NaslValue> {
         match self.named(format!("{SCRIPT_PARAMS}_{id}").as_str()) {
