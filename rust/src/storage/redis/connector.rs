@@ -457,7 +457,7 @@ pub trait RedisAddNvt: RedisWrapper {
                         }
                         _ => {
                             let mut new_xref: Vec<String> = xrefs;
-                            new_xref.push(format!("{}:{}", b.id(), b.class()));
+                            new_xref.push(format!("{}:{}", b.class(), b.id()));
                             (bids, cves, new_xref)
                         }
                     }
