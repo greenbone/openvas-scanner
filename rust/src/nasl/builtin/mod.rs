@@ -15,6 +15,7 @@ mod isotime;
 mod knowledge_base;
 mod misc;
 mod network;
+mod preferences;
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod raw_ip;
 mod regex;
@@ -61,6 +62,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(cryptographic::Cryptographic)
         .add_set(description::Description)
         .add_set(isotime::NaslIsotime)
+        .add_set(preferences::Preferences)
         .add_set(cryptographic::rc4::CipherHandlers::default())
         .add_set(sys::Sys)
         .add_set(ssh::Ssh::default())

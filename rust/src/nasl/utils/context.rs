@@ -4,8 +4,6 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use rand::seq::SliceRandom;
-
 use crate::nasl::builtin::KBError;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
@@ -22,11 +20,16 @@ use crate::storage::redis::{
 };
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
+use rand::seq::SliceRandom;
+use std::sync::MutexGuard;
 
 use super::FnError;
 use super::error::ReturnBehavior;
 use super::hosts::resolve;
-use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
+use super::{
+    executor::Executor,
+    lookup_keys::{FC_ANON_ARGS, SCRIPT_PARAMS},
+};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 ///
@@ -133,7 +136,7 @@ impl From<HashMap<String, NaslValue>> for ContextType {
 /// When creating a new context call a corresponding create method.
 /// Warning since those will be stored within a vector each context must be manually
 /// deleted by calling drop_last when the context runs out of scope.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Register {
     blocks: Vec<NaslContext>,
 }
@@ -252,6 +255,14 @@ impl Register {
         }
     }
 
+    /// Retrieves a script parameter by id
+    pub fn script_param(&self, id: usize) -> Option<NaslValue> {
+        match self.named(format!("{SCRIPT_PARAMS}_{id}").as_str()) {
+            Some(ContextType::Value(v)) => Some(v.clone()),
+            _ => None,
+        }
+    }
+
     /// Destroys the current context.
     ///
     /// This must be called when a context vanishes.
@@ -334,7 +345,7 @@ type Named = HashMap<String, ContextType>;
 ///
 /// A context should never be created directly but via a Register.
 /// The reason for that is that a Registrat contains all blocks and a block must be registered to ensure that each Block must be created via an Registrat.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct NaslContext {
     /// Parent id within the register
     parent: Option<usize>,
@@ -596,6 +607,15 @@ impl<'a> Context<'a> {
         self.storage
             .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
             .unwrap();
+    }
+
+    pub fn set_nvt(&self, vt: Nvt) {
+        let mut nvt = self.nvt.lock().unwrap();
+        *nvt = Some(vt);
+    }
+
+    pub fn nvt(&self) -> MutexGuard<'_, Option<Nvt>> {
+        self.nvt.lock().unwrap()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
