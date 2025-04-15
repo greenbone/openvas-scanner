@@ -135,7 +135,8 @@ impl<S: Write> Dispatcher<FileName> for JsonStorage<S> {
 impl<S: Write> Dispatcher<FeedVersion> for JsonStorage<S> {
     type Item = String;
     fn dispatch(&self, _: FeedVersion, _: Self::Item) -> Result<(), StorageError> {
-        unimplemented!()
+        // TODO: Feed information is currently not written to the output json
+        Ok(())
     }
 }
 
