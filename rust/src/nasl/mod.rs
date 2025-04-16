@@ -17,7 +17,6 @@ pub mod raw_ip_utils {
 
 pub mod prelude {
     pub use super::builtin::BuiltinError;
-    pub use super::builtin::ContextFactory;
     pub use super::builtin::RegisterBuilder;
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
@@ -29,6 +28,7 @@ pub mod prelude {
     pub use super::utils::InternalError;
     pub use super::utils::NaslResult;
     pub use super::utils::Register;
+    pub use super::utils::context::ContextBuilder;
     pub use super::utils::error::FnErrorKind;
     pub use super::utils::error::Retryable;
     pub use super::utils::error::ReturnValue;

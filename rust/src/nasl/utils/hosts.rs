@@ -2,17 +2,18 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::net::{IpAddr, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, ToSocketAddrs};
 
 use crate::nasl::builtin::HostError;
 
 use super::FnError;
 
-pub fn resolve(mut hostname: String) -> Result<Vec<IpAddr>, FnError> {
-    //std::net to_socket_addrs() requires a port. Therefore, using a dummy port
-    hostname.push_str(":5000");
+const DUMMY_PORT: u16 = 5000;
+pub const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
-    match hostname.to_socket_addrs() {
+pub fn resolve_hostname(hostname: &str) -> Result<Vec<IpAddr>, FnError> {
+    // std::net to_socket_addrs() requires a port. Therefore, using a dummy port
+    match (hostname, DUMMY_PORT).to_socket_addrs() {
         Ok(addr) => {
             let ips = addr.into_iter().map(|x| x.ip()).collect::<Vec<_>>();
             Ok(ips)

@@ -2,24 +2,6 @@
 
 Contains functions that are within the std library of nasl.
 
-To use the std functions it is recommended to use the defined `ContextFactory` as it sets the function register to the one created in `nasl_std_functions` automatically.
-
-All you have to do as a user is to create the builder
-
-```rust
-let cb = scannerlib::nasl::ContextFactory::default();
-```
-
-and set all but the functions. This will use the InMemoryStorage as well as an empty String as a key.
-
-For production use cases it is recommended to use new method and include a key and a storage:
-
-```rust
-let loader = scannerlib::nasl::FSPluginLoader::new("/feed");
-let storage = scannerlib::storage::inmemory::InMemoryStorage::default();
-let cb = scannerlib::nasl::ContextFactory::new(loader, storage);
-```
-
 ## Add functions to std
 
 To add a function to std you have to add function crate to the Cargo.toml

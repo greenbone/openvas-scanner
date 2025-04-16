@@ -18,9 +18,12 @@ use crate::storage::{ScanID, inmemory::InMemoryStorage};
 use futures::{Stream, StreamExt};
 
 use super::{
-    builtin::ContextFactory,
     interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
-    utils::{Executor, context::ContextStorage},
+    nasl_std_functions,
+    utils::{
+        Executor,
+        context::{ContextStorage, Target},
+    },
 };
 
 // The following exists to trick the trait solver into
@@ -118,12 +121,14 @@ enum TestResult {
 pub struct TestBuilder<L: Loader, S: ContextStorage> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
-    context: ContextFactory<L, S>,
     scan_id: ScanID,
     filename: PathBuf,
     target: String,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
+    loader: L,
+    storage: S,
+    executor: Executor,
 }
 
 pub type DefaultTestBuilder = TestBuilder<NoOpLoader, InMemoryStorage>;
@@ -133,12 +138,62 @@ impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
         Self {
             lines: vec![],
             results: vec![],
-            context: ContextFactory::default(),
             scan_id: Default::default(),
             filename: Default::default(),
             target: Default::default(),
             variables: vec![],
             should_verify: true,
+            loader: NoOpLoader::default(),
+            storage: InMemoryStorage::default(),
+            executor: nasl_std_functions(),
+        }
+    }
+}
+
+impl<S> TestBuilder<NoOpLoader, S>
+where
+    S: ContextStorage,
+{
+    pub fn from_storage(storage: S) -> Self {
+        // Unfortunately, we can't really get rid of all this duplication here, since
+        // struct update syntax won't work due to different generics.
+        // We also can't provide a with_storage method, since there is no way to clone
+        // the storage.
+        Self {
+            lines: vec![],
+            results: vec![],
+            scan_id: Default::default(),
+            filename: Default::default(),
+            target: Default::default(),
+            variables: vec![],
+            should_verify: true,
+            loader: NoOpLoader::default(),
+            storage,
+            executor: nasl_std_functions(),
+        }
+    }
+}
+
+impl<L> TestBuilder<L, InMemoryStorage>
+where
+    L: Loader,
+{
+    pub fn from_loader(loader: L) -> Self {
+        // Unfortunately, we can't really get rid of all this duplication here, since
+        // struct update syntax won't work due to different generics.
+        // We also can't provide a with_loader method, since there is no way to clone
+        // the loader.
+        Self {
+            lines: vec![],
+            results: vec![],
+            scan_id: Default::default(),
+            filename: Default::default(),
+            target: Default::default(),
+            variables: vec![],
+            should_verify: true,
+            loader,
+            storage: InMemoryStorage::default(),
+            executor: nasl_std_functions(),
         }
     }
 }
@@ -284,8 +339,17 @@ where
     }
 
     fn context(&self) -> Context {
-        self.context
-            .build(self.scan_id.clone(), &self.target, self.filename.clone())
+        let target = Target::do_not_resolve_hostname(&self.target);
+        let context = ContextBuilder {
+            storage: &self.storage,
+            loader: &self.loader,
+            executor: &self.executor,
+            scan_id: self.scan_id.clone(),
+            target,
+            filename: self.filename.clone(),
+        }
+        .build();
+        context
     }
 
     /// Check that no errors were returned by any
@@ -375,23 +439,6 @@ where
         }
     }
 
-    /// Return a new `TestBuilder` with the given `Context`.
-    pub fn with_context<L2: Loader, S2: ContextStorage>(
-        self,
-        context: ContextFactory<L2, S2>,
-    ) -> TestBuilder<L2, S2> {
-        TestBuilder {
-            lines: self.lines.clone(),
-            results: self.results.clone(),
-            should_verify: self.should_verify,
-            variables: self.variables.clone(),
-            context,
-            scan_id: self.scan_id.clone(),
-            target: self.target.clone(),
-            filename: self.filename.clone(),
-        }
-    }
-
     /// Return a new `TestBuilder` with the given `filename`.
     pub fn with_filename(mut self, filename: PathBuf) -> Self {
         self.filename = filename;
@@ -406,7 +453,7 @@ where
 
     /// Return a new `TestBuilder` with the given `Executor`.
     pub fn with_executor(mut self, executor: Executor) -> Self {
-        self.context.functions = executor;
+        self.executor = executor;
         self
     }
 
@@ -420,10 +467,8 @@ impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
-        } else {
-            if let Err(err) = futures::executor::block_on(self.verify()) {
-                panic!("{}", err)
-            }
+        } else if let Err(err) = futures::executor::block_on(self.verify()) {
+            panic!("{}", err)
         }
     }
 }

@@ -10,7 +10,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::models::{HostInfo, Phase, Scan, Status, scanner::Error};
+use crate::models::{HostInfo, Phase, Status, scanner::Error};
 use crate::nasl::utils::Executor;
 use crate::{
     scanner::scan_runner::ScanRunner,
@@ -20,7 +20,7 @@ use futures::StreamExt;
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
-use super::ScannerStack;
+use super::{ScannerStack, scan::Scan};
 
 /// Takes care of running a single scan to completion.
 /// Also provides methods for stopping the scan and
@@ -34,7 +34,7 @@ pub struct RunningScan<S: ScannerStack> {
     status: Arc<RwLock<Status>>,
 }
 
-fn current_time_in_seconds(name: &'static str) -> u64 {
+pub(super) fn current_time_in_seconds(name: &'static str) -> u64 {
     match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(x) => x.as_secs(),
         Err(e) => {
@@ -101,7 +101,7 @@ impl<S: ScannerStack> RunningScan<S> {
         };
         let schedule = self
             .storage
-            .execution_plan::<T>(&self.scan)
+            .execution_plan::<T>(&self.scan.vts)
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
             &*self.storage,
@@ -119,7 +119,7 @@ impl<S: ScannerStack> RunningScan<S> {
         while let Some(it) = stream.next().await {
             match it {
                 Ok(result) => {
-                    trace!(target = result.target, targets=?self.scan.target.hosts);
+                    trace!(target = result.target, targets=?self.scan.targets);
                     let mut status = self.status.write().await;
                     if let Some(host_info) = status.host_info.as_mut() {
                         host_info.register_finished_script(&result.target);
@@ -177,126 +177,5 @@ impl RunningScanHandle {
 
     pub async fn status(&self) -> Status {
         self.status.read().await.clone()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-    use std::time::Duration;
-
-    use crate::models::Phase;
-    use crate::models::{
-        Scan,
-        scanner::{ScanResultFetcher, ScanResults, ScanStarter},
-    };
-    use crate::storage::inmemory::InMemoryStorage;
-    use crate::storage::items::nvt::Nvt;
-    use tracing_test::traced_test;
-
-    use crate::scanner::{
-        Scanner,
-        scan_runner::tests::{GenerateScript, setup, setup_success},
-    };
-
-    type TestStack = (Arc<InMemoryStorage>, fn(&str) -> String);
-
-    fn make_scanner_and_scan_success() -> (Scanner<TestStack>, Scan) {
-        let ((storage, loader, executor), scan) = setup_success();
-        (Scanner::new(Arc::new(storage), loader, executor), scan)
-    }
-
-    fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (Scanner<TestStack>, Scan) {
-        let ((storage, loader, executor), scan) = setup(scripts);
-        (Scanner::new(Arc::new(storage), loader, executor), scan)
-    }
-
-    /// Blocks until given id is in given phase or panics after 1 second
-    async fn wait_for_status(scanner: Scanner<TestStack>, id: &str, phase: Phase) -> ScanResults {
-        let start = super::current_time_in_seconds("test");
-        assert!(start > 0);
-        loop {
-            let current = super::current_time_in_seconds("loop test");
-            assert!(
-                current > 0,
-                "it was not possible to get the system time in seconds"
-            );
-            // we need the sleep to not instantly read lock running and preventing write access
-            tokio::time::sleep(Duration::from_nanos(100)).await;
-            let scan_results = scanner
-                .fetch_results(id.to_string())
-                .await
-                .expect("no error when fetching results");
-            if scan_results.status.status == phase {
-                return scan_results;
-            }
-            if current - start > 1 {
-                tracing::debug!(status=%scan_results.status.status, expected=%phase);
-
-                panic!("timeout reached");
-            }
-        }
-    }
-
-    #[tokio::test]
-    #[traced_test]
-    async fn start_scan_failure() {
-        let failures = [GenerateScript {
-            id: "0".into(),
-            rc: 1,
-            ..Default::default()
-        }
-        .generate()];
-
-        let (scanner, scan) = make_scanner_and_scan(&failures);
-
-        let id = scan.scan_id.clone();
-        let res = scanner.start_scan(scan).await;
-        assert!(res.is_ok());
-        let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
-
-        assert!(
-            scan_results.status.start_time.is_some(),
-            "expect start time to be set when scan starts"
-        );
-        assert!(
-            scan_results.status.end_time.is_some(),
-            "expect end time to be set when scan finished"
-        );
-        assert!(
-            scan_results.status.host_info.is_some(),
-            "host_info should be set"
-        );
-        let host_info = scan_results.status.host_info.unwrap();
-        assert_eq!(host_info.finished(), 1);
-        assert_eq!(host_info.queued(), 0);
-    }
-
-    #[tokio::test]
-    #[traced_test]
-    async fn start_scan_success() {
-        let (scanner, mut scan) = make_scanner_and_scan_success();
-        scan.target.hosts.push("wald.fee".to_string());
-
-        let id = scan.scan_id.clone();
-        let res = scanner.start_scan(scan).await;
-        assert!(res.is_ok());
-        let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
-
-        assert!(
-            scan_results.status.start_time.is_some(),
-            "expect start time to be set when scan starts"
-        );
-        assert!(
-            scan_results.status.end_time.is_some(),
-            "expect end time to be set when scan finished"
-        );
-        assert!(
-            scan_results.status.host_info.is_some(),
-            "host_info should be set"
-        );
-        let host_info = scan_results.status.host_info.unwrap();
-        assert_eq!(host_info.finished(), 2);
-        assert_eq!(host_info.queued(), 0);
     }
 }

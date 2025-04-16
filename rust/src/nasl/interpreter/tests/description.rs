@@ -26,7 +26,6 @@ impl Loader for NoOpLoader {
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::nasl::builtin::ContextFactory;
 use crate::nasl::test_prelude::*;
 
 #[test]
@@ -57,10 +56,7 @@ if(description)
         "#;
     let storage = Arc::new(InMemoryStorage::new());
     let key = FileName("test.nasl".to_string());
-    let context = ContextFactory::new(NoOpLoader::default(), storage.clone());
-    let mut t = TestBuilder::default()
-        .with_context(context)
-        .with_filename(key.0.clone().into());
+    let mut t = TestBuilder::from_storage(storage.clone()).with_filename(key.0.clone().into());
     t.set_variable("description", NaslValue::Number(1));
     t.run_all(code);
     let results = t.results();
@@ -87,8 +83,8 @@ if(description)
             required_udp_ports: vec!["Services/udp/unknown".into(), "17".into()],
             references: vec![
                 NvtRef {
-                    class: "http://freshmeat.sourceforge.net/projects/eventh/".into(),
-                    id: "URL".into()
+                    class: "URL".into(),
+                    id: "http://freshmeat.sourceforge.net/projects/eventh/".into(),
                 },
                 NvtRef {
                     class: "cve".into(),

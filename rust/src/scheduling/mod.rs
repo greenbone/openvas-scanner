@@ -8,7 +8,7 @@ mod wave;
 use std::{collections::HashMap, fmt::Display, io::Write, sync::Arc};
 
 use crate::{
-    models::{Parameter, Scan},
+    models::{Parameter, VT},
     storage::{
         Retriever,
         error::StorageError,
@@ -124,7 +124,7 @@ pub trait ExecutionPlaner {
     /// and was not explicitly mentioned in the Scan.
     fn execution_plan<E>(
         &self,
-        ids: &Scan,
+        ids: &[VT],
     ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
     where
         E: ExecutionPlan;
@@ -216,18 +216,18 @@ where
 {
     fn execution_plan<E>(
         &self,
-        scan: &Scan,
+        scan_vts: &[VT],
     ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
     where
         E: ExecutionPlan,
     {
         let mut results = core::array::from_fn(|_| E::default());
-        let mut vts = Vec::new();
         let mut unknown_dependencies = Vec::new();
         let mut known_dependencies = HashMap::new();
+        let mut vts = vec![];
 
         // Collect all VT information
-        for vt in &scan.vts {
+        for vt in scan_vts {
             if let Some(nvt) = self.retrieve(&Oid(vt.oid.clone()))? {
                 unknown_dependencies.extend(nvt.dependencies.clone());
                 vts.push((nvt, Some(vt.parameters.clone())));
@@ -258,9 +258,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::models::Scan;
     use crate::models::VT;
 
+    use crate::scanner::Scan;
     use crate::scheduling::ExecutionPlaner;
     use crate::scheduling::Stage;
     use crate::scheduling::WaveExecutionPlan;
@@ -306,7 +306,7 @@ mod tests {
             ..Default::default()
         };
         let results = storage
-            .execution_plan::<WaveExecutionPlan>(&scan)
+            .execution_plan::<WaveExecutionPlan>(&scan.vts)
             .expect("no error expected");
         assert_eq!(
             vec![

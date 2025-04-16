@@ -5,9 +5,10 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{Host, Parameter, Protocol, ScanID};
+use crate::models::{Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
+use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::Retriever;
@@ -31,7 +32,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
     loader: &'a S::Loader,
     executor: &'a Executor,
 
-    target: &'a Host,
+    target: &'a Target,
     vt: &'a Nvt,
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
@@ -47,7 +48,7 @@ where
         storage: &'a Stack::Storage,
         loader: &'a Stack::Loader,
         executor: &'a Executor,
-        target: &'a Host,
+        target: &'a Target,
         vt: &'a Nvt,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
@@ -66,19 +67,13 @@ where
         s.execute().await
     }
 
-    fn parameter(
-        &self,
-        parameter: &Parameter,
-        _register: &mut Register,
-    ) -> Result<(), ExecuteError> {
-        // TODO: implement
-        Err(ExecuteError::Parameter(parameter.clone()))
-    }
-
     fn set_parameters(&mut self, register: &mut Register) -> Result<(), ExecuteError> {
         if let Some(params) = &self.param {
             for p in params.iter() {
-                self.parameter(p, register)?;
+                register.add_global(
+                    format!("{}_{}", SCRIPT_PARAMS, p.id).as_str(),
+                    ContextType::Value(NaslValue::String(p.value.clone())),
+                );
             }
         }
         Ok(())
@@ -187,7 +182,7 @@ where
     fn generate_key(&self) -> KbContext {
         (
             crate::storage::ScanID(self.scan_id.clone()),
-            crate::storage::Target(self.target.clone()),
+            crate::storage::Target(self.target.original_target_str().into()),
         )
     }
 
@@ -200,17 +195,16 @@ where
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
-        let mut target = Target::default();
-        target.set_target(self.target.clone());
-
-        let context = Context::new(
-            crate::storage::ScanID(self.scan_id.clone()),
-            target,
+        let context = ContextBuilder {
+            scan_id: crate::storage::ScanID(self.scan_id.clone()),
+            target: self.target.clone(),
             filename,
-            self.storage,
-            self.loader,
-            self.executor,
-        );
+            storage: self.storage,
+            loader: self.loader,
+            executor: self.executor,
+        }
+        .build();
+        context.set_nvt(self.vt.clone());
         let mut results = Box::pin(ForkingInterpreter::new(code, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {
@@ -240,7 +234,7 @@ where
             filename: self.vt.filename.clone(),
             stage: self.stage,
             kind,
-            target: self.target.clone(),
+            target: self.target.original_target_str().into(),
         })
     }
 }
