@@ -58,11 +58,17 @@ pub struct HostInfo {
 }
 
 impl HostInfo {
-    pub fn from_hosts_and_num_vts(hosts: &[Host], num_vts: usize) -> Self {
+    pub fn from_hosts_and_num_vts<'a>(
+        targets: impl Iterator<Item = &'a str>,
+        num_vts: usize,
+    ) -> Self {
+        let hosts: HashMap<_, _> = targets
+            .map(|target| (target.to_string(), num_vts))
+            .collect();
         Self {
             all: hosts.len() as u64,
             queued: hosts.len() as u64,
-            remaining_vts_per_host: hosts.iter().map(|host| (host.clone(), num_vts)).collect(),
+            remaining_vts_per_host: hosts,
             ..Default::default()
         }
     }

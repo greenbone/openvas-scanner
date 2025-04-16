@@ -10,7 +10,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::models::{HostInfo, Phase, Scan, Status, scanner::Error};
+use crate::models::{HostInfo, Phase, Status, scanner::Error};
 use crate::nasl::utils::Executor;
 use crate::{
     scanner::scan_runner::ScanRunner,
@@ -20,7 +20,7 @@ use futures::StreamExt;
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
-use super::ScannerStack;
+use super::{ScannerStack, scan::Scan};
 
 /// Takes care of running a single scan to completion.
 /// Also provides methods for stopping the scan and
@@ -101,7 +101,7 @@ impl<S: ScannerStack> RunningScan<S> {
         };
         let schedule = self
             .storage
-            .execution_plan::<T>(&self.scan)
+            .execution_plan::<T>(&self.scan.vts)
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
             &*self.storage,
@@ -119,7 +119,7 @@ impl<S: ScannerStack> RunningScan<S> {
         while let Some(it) = stream.next().await {
             match it {
                 Ok(result) => {
-                    trace!(target = result.target, targets=?self.scan.target.hosts);
+                    trace!(target = result.target, targets=?self.scan.targets);
                     let mut status = self.status.write().await;
                     if let Some(host_info) = status.host_info.as_mut() {
                         host_info.register_finished_script(&result.target);

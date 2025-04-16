@@ -12,8 +12,8 @@ use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
-use crate::storage::items::nvt::NvtField;
 use crate::storage::items::nvt::{Feed, FeedVersion, FileName, Nvt};
+use crate::storage::items::nvt::{NvtField, Oid};
 use crate::storage::items::result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem};
 use crate::storage::redis::{
     RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper,
@@ -25,7 +25,7 @@ use std::sync::MutexGuard;
 
 use super::FnError;
 use super::error::ReturnBehavior;
-use super::hosts::resolve;
+use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{
     executor::Executor,
     lookup_keys::{FC_ANON_ARGS, SCRIPT_PARAMS},
@@ -335,8 +335,7 @@ impl Default for Register {
 use std::collections::HashMap;
 use std::io::Write;
 use std::net::IpAddr;
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 type Named = HashMap<String, ContextType>;
@@ -378,12 +377,28 @@ impl NaslContext {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Target {
     /// The original target. IP or hostname
-    target: String,
-    /// The IP address. Always has a valid IP. It defaults to 127.0.0.1 if not possible to resolve target.
+    original_target_str: String,
+    /// The IP address of the target.
     ip_addr: IpAddr,
+    /// Whether the string given to `Target` was a hostname or an ip address.
+    kind: TargetKind,
+}
+
+/// Specifies whether the string given to `Target` was a hostname
+/// or an ip address.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TargetKind {
+    Hostname,
+    IpAddr,
+}
+
+#[derive(Debug)]
+pub struct CtxTarget {
+    /// The target
+    target: Target,
     // The shared state is guarded by a mutex. This is a `std::sync::Mutex` and
     // not a Tokio mutex. This is because there are no asynchronous operations
     // being performed while holding the mutex. Additionally, the critical
@@ -401,35 +416,95 @@ pub struct Target {
 }
 
 impl Target {
-    pub fn set_target(&mut self, target: String) -> &Target {
-        // Target can be an ip address or a hostname
-        self.target = target;
-
-        // Store the IpAddr if possible, else default to localhost
-        self.ip_addr = match resolve(self.target.clone()) {
-            Ok(a) => *a.first().unwrap_or(&IpAddr::from_str("127.0.0.1").unwrap()),
-            Err(_) => IpAddr::from_str("127.0.0.1").unwrap(),
-        };
-        self
+    pub fn localhost() -> Self {
+        Self {
+            original_target_str: LOCALHOST.to_string(),
+            ip_addr: LOCALHOST,
+            kind: TargetKind::IpAddr,
+        }
     }
 
-    pub fn add_hostname(&self, hostname: String, source: String) -> &Target {
+    #[cfg(test)]
+    pub fn do_not_resolve_hostname(target: impl AsRef<str>) -> Self {
+        let (ip_addr, kind) = match target.as_ref().parse::<IpAddr>() {
+            Ok(ip_addr) => (ip_addr, TargetKind::IpAddr),
+            Err(_) => (LOCALHOST, TargetKind::Hostname),
+        };
+        Self {
+            original_target_str: target.as_ref().into(),
+            ip_addr,
+            kind,
+        }
+    }
+
+    pub fn resolve_hostname(target: impl AsRef<str>) -> Option<Self> {
+        // Try to parse as IpAddr first
+        let (ip_addr, kind) = if let Ok(ip_addr) = target.as_ref().parse::<IpAddr>() {
+            (ip_addr, TargetKind::IpAddr)
+        } else {
+            let ip_addr = resolve_hostname(target.as_ref())
+                .ok()
+                .and_then(|ip_addrs| ip_addrs.into_iter().next())?;
+            (ip_addr, TargetKind::Hostname)
+        };
+        Some(Self {
+            original_target_str: target.as_ref().into(),
+            ip_addr,
+            kind,
+        })
+    }
+
+    pub fn original_target_str(&self) -> &str {
+        &self.original_target_str
+    }
+
+    pub fn ip_addr(&self) -> IpAddr {
+        self.ip_addr
+    }
+
+    pub fn kind(&self) -> &TargetKind {
+        &self.kind
+    }
+}
+
+impl From<Target> for CtxTarget {
+    fn from(value: Target) -> Self {
+        CtxTarget {
+            target: value,
+            vhosts: Mutex::new(vec![]),
+        }
+    }
+}
+
+impl CtxTarget {
+    pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
         self.vhosts.lock().unwrap().push((hostname, source));
         self
     }
 
-    pub fn target(&self) -> &str {
-        &self.target
+    pub fn original_target_str(&self) -> &str {
+        &self.target.original_target_str
     }
-}
 
-impl Default for Target {
-    fn default() -> Self {
-        Self {
-            target: String::new(),
-            ip_addr: IpAddr::from_str("127.0.0.1").unwrap(),
-            vhosts: Mutex::new(vec![]),
+    pub fn ip_addr(&self) -> IpAddr {
+        self.target.ip_addr
+    }
+
+    pub fn kind(&self) -> &TargetKind {
+        &self.target.kind
+    }
+
+    /// Return the hostname that this `Target` was constructed with
+    /// or None otherwise
+    pub fn hostname(&self) -> Option<String> {
+        match self.target.kind {
+            TargetKind::Hostname => Some(self.target.original_target_str.clone()),
+            TargetKind::IpAddr => None,
         }
+    }
+
+    pub fn vhosts(&self) -> MutexGuard<'_, Vec<(String, String)>> {
+        self.vhosts.lock().unwrap()
     }
 }
 
@@ -452,6 +527,7 @@ pub trait ContextStorage:
     + Dispatcher<FeedVersion, Item = String>
     + Retriever<FeedVersion, Item = String>
     + Retriever<Feed, Item = Vec<Nvt>>
+    + Retriever<Oid, Item = Nvt> + Retriever<FileName, Item = Nvt>
 {
     /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
     /// KbKey, the value is appended to the existing list. This function is used to replace the
@@ -470,32 +546,28 @@ impl<T> ContextStorage for RedisStorage<T> where
 }
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
-/// Configurations
-///
-/// This struct includes all objects that a nasl function requires.
-/// New objects must be added here in
+/// NASL execution context.
 pub struct Context<'a> {
-    /// key for this context. A file name or a scan id
+    /// The key for this context.
     scan: ScanID,
-    /// target to run a scan against
-    target: Target,
-    /// File Name of the current script
+    /// Target against which the scan is run.
+    target: CtxTarget,
+    /// Filename of the current script
     filename: PathBuf,
     /// Storage
     storage: &'a dyn ContextStorage,
-    /// Default Loader
+    /// Loader
     loader: &'a dyn Loader,
-    /// Default function executor.
+    /// Function executor.
     executor: &'a Executor,
     /// NVT object, which is put into the storage, when set
     nvt: Mutex<Option<Nvt>>,
 }
 
 impl<'a> Context<'a> {
-    /// Creates an empty configuration
-    pub fn new(
+    fn new(
         scan: ScanID,
-        target: Target,
+        target: CtxTarget,
         filename: PathBuf,
         storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
@@ -550,27 +622,13 @@ impl<'a> Context<'a> {
         &self.scan
     }
 
-    /// Get the target IP as string
-    pub fn target(&self) -> &str {
-        &self.target.target
-    }
-
     pub fn filename(&self) -> &PathBuf {
         &self.filename
     }
 
-    /// Get the target host as IpAddr enum member
-    pub fn target_ip(&self) -> IpAddr {
-        self.target.ip_addr
-    }
-
-    /// Get the target VHost list
-    pub fn target_vhosts(&self) -> Vec<(String, String)> {
-        self.target.vhosts.lock().unwrap().clone()
-    }
-
-    pub fn set_target(&mut self, target: String) {
-        self.target.target = target;
+    /// Get the `CtxTarget`
+    pub fn target(&self) -> &CtxTarget {
+        &self.target
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) {
@@ -622,7 +680,7 @@ impl<'a> Context<'a> {
         KbContextKey(
             (
                 self.scan.clone(),
-                storage::Target(self.target.target.clone()),
+                storage::Target(self.target.original_target_str().to_string()),
             ),
             key,
         )
@@ -650,7 +708,7 @@ impl<'a> Context<'a> {
             .retrieve(&GetKbContextKey(
                 (
                     self.scan.clone(),
-                    storage::Target(self.target.target.clone()),
+                    storage::Target(self.target.original_target_str().into()),
                 ),
                 key.clone(),
             ))?
@@ -763,5 +821,53 @@ impl From<&ContextType> for NaslValue {
             ContextType::Function(_, _) => NaslValue::Null,
             ContextType::Value(v) => v.to_owned(),
         }
+    }
+}
+
+pub struct ContextBuilder<'a, P: AsRef<Path>> {
+    pub storage: &'a dyn ContextStorage,
+    pub loader: &'a dyn Loader,
+    pub executor: &'a Executor,
+    pub scan_id: ScanID,
+    pub target: Target,
+    pub filename: P,
+}
+
+impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
+    /// Builds the `Context`.
+    pub fn build(self) -> Context<'a> {
+        Context::new(
+            self.scan_id,
+            self.target.into(),
+            self.filename.as_ref().to_owned(),
+            self.storage,
+            self.loader,
+            self.executor,
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nasl::utils::context::TargetKind;
+
+    use super::Target;
+
+    #[test]
+    fn target_kind() {
+        assert_eq!(
+            Target::do_not_resolve_hostname("1.2.3.4").kind(),
+            &TargetKind::IpAddr
+        );
+        assert_eq!(
+            Target::do_not_resolve_hostname("foo").kind(),
+            &TargetKind::Hostname
+        );
+        // This should not do any actual resolution
+        // but immediately parse the IP address instead.
+        assert_eq!(
+            Target::resolve_hostname("1.2.3.4").unwrap().kind(),
+            &TargetKind::IpAddr
+        );
     }
 }

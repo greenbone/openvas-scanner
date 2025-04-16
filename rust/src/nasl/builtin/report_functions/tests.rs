@@ -35,8 +35,8 @@ fn verify(function: &str, result_type: ResultType) {
     let create_expected = |id, port, protocol| models::Result {
         id,
         r_type: result_type.clone(),
-        ip_address: Some(context.target().to_string()),
-        hostname: None,
+        ip_address: Some(context.target().ip_addr().to_string()),
+        hostname: Some("".into()),
         oid: Some(context.scan().0.clone()),
         port,
         protocol: Some(protocol),

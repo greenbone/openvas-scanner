@@ -1,18 +1,16 @@
+use super::Scan;
 use crate::models::Phase;
 use crate::models::Protocol;
-use crate::models::Scan;
-use crate::models::Target;
 use crate::models::VT;
-use crate::models::scanner::{ScanResultFetcher, ScanResults, ScanStarter};
+use crate::models::scanner::{ScanResultFetcher, ScanResults};
+use crate::nasl::ContextBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::Context;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::Register;
-use crate::nasl::utils::context::Target as ContextTarget;
+use crate::nasl::utils::context::Target;
 use crate::scanner::Scanner;
-use crate::scanner::running_scan::current_time_in_seconds;
 use crate::scanner::{
     error::{ExecuteError, ScriptResult},
     scan_runner::ScanRunner,
@@ -32,12 +30,13 @@ use crate::storage::items::nvt::Nvt;
 use futures::StreamExt;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::time::Instant;
 use tracing_test::traced_test;
 
 type TestStack = (Arc<InMemoryStorage>, fn(&str) -> String);
 
 pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
-    let storage = Arc::new(InMemoryStorage::new());
+    let storage = InMemoryStorage::new();
     scripts.iter().map(|(_, v)| v).for_each(|n| {
         storage
             .dispatch(FileName(n.filename.clone()), n.clone())
@@ -45,11 +44,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
     });
     let scan = Scan {
         scan_id: "sid".to_string(),
-        target: Target {
-            hosts: vec!["test.host".to_string()],
-            ..Default::default()
-        },
-        scan_preferences: vec![],
+        targets: vec![Target::do_not_resolve_hostname("test.host")],
         vts: scripts
             .iter()
             .map(|(_, v)| VT {
@@ -59,7 +54,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
             .collect(),
     };
     let executor = nasl_std_functions();
-    ((storage, loader), executor, scan)
+    ((Arc::new(storage), loader), executor, scan)
 }
 
 fn make_scanner_and_scan_success() -> (Scanner<TestStack>, Scan) {
@@ -210,7 +205,7 @@ exit({rc});
     }
 }
 
-fn parse_meta_data(id: &str, code: &str) -> Option<Nvt> {
+fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     let initial = vec![
         ("description".to_owned(), true.into()),
         ("OPENVAS_VERSION".to_owned(), "testus".into()),
@@ -218,12 +213,20 @@ fn parse_meta_data(id: &str, code: &str) -> Option<Nvt> {
     let storage = Arc::new(InMemoryStorage::new());
 
     let register = Register::root_initial(&initial);
-    let target = ContextTarget::default();
-    let functions = nasl_std_functions();
+    let target = Target::localhost();
+    let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
-    let key = ScanID(id.to_string());
+    let scan_id = ScanID(filename.to_string());
 
-    let context = Context::new(key, target, id.into(), &storage, &loader, &functions);
+    let cb = ContextBuilder {
+        storage: &storage,
+        loader: &loader,
+        executor: &executor,
+        scan_id,
+        target,
+        filename,
+    };
+    let context = cb.build();
     let interpreter = ForkingInterpreter::new(code, register, &context);
     for stmt in interpreter.iter_blocking() {
         if let NaslValue::Exit(_) = stmt.expect("stmt success") {
@@ -231,9 +234,8 @@ fn parse_meta_data(id: &str, code: &str) -> Option<Nvt> {
         }
     }
     drop(context);
-
     storage
-        .retrieve(&FileName(id.to_string()))
+        .retrieve(&FileName(filename.to_string()))
         .expect("nvt for id")
 }
 
@@ -256,11 +258,7 @@ async fn run(
     let loader = move |s: &str| loader_scripts[stou(s)].0.clone();
     let scan = Scan {
         scan_id: "sid".to_string(),
-        target: Target {
-            hosts: vec!["test.host".to_string()],
-            ..Default::default()
-        },
-        scan_preferences: vec![],
+        targets: vec![Target::do_not_resolve_hostname("test.host")],
         vts: scripts
             .iter()
             .map(|(_, v)| VT {
@@ -272,7 +270,7 @@ async fn run(
 
     let executor = nasl_std_functions();
 
-    let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan)?;
+    let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan.vts)?;
     let interpreter: ScanRunner<(_, _)> =
         ScanRunner::new(&storage, &loader, &executor, schedule, &scan)?;
     let results = interpreter.stream().collect::<Vec<_>>().await;
@@ -397,16 +395,10 @@ async fn mandatory_keys() {
     assert_eq!(failure.len(), 1);
 }
 
-/// Blocks until given id is in given phase or panics after 1 second
 async fn wait_for_status(scanner: Scanner<TestStack>, id: &str, phase: Phase) -> ScanResults {
-    let start = current_time_in_seconds("test");
-    assert!(start > 0);
+    const TIMEOUT: u128 = 500;
+    let start = Instant::now();
     loop {
-        let current = current_time_in_seconds("loop test");
-        assert!(
-            current > 0,
-            "it was not possible to get the system time in seconds"
-        );
         // we need the sleep to not instantly read lock running and preventing write access
         tokio::time::sleep(Duration::from_nanos(100)).await;
         let scan_results = scanner
@@ -416,7 +408,8 @@ async fn wait_for_status(scanner: Scanner<TestStack>, id: &str, phase: Phase) ->
         if scan_results.status.status == phase {
             return scan_results;
         }
-        if current - start > 1 {
+        let delta = start.elapsed();
+        if delta.as_millis() > TIMEOUT {
             tracing::debug!(status=%scan_results.status.status, expected=%phase);
 
             panic!("timeout reached");
@@ -437,7 +430,7 @@ async fn start_scan_failure() {
     let (scanner, scan) = make_scanner_and_scan(&failures);
 
     let id = scan.scan_id.clone();
-    let res = scanner.start_scan(scan).await;
+    let res = scanner.start_scan_internal(scan).await;
     assert!(res.is_ok());
     let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
 
@@ -462,10 +455,11 @@ async fn start_scan_failure() {
 #[traced_test]
 async fn start_scan_success() {
     let (scanner, mut scan) = make_scanner_and_scan_success();
-    scan.target.hosts.push("wald.fee".to_string());
+    scan.targets
+        .push(Target::do_not_resolve_hostname("wald.fee"));
 
     let id = scan.scan_id.clone();
-    let res = scanner.start_scan(scan).await;
+    let res = scanner.start_scan_internal(scan).await;
     assert!(res.is_ok());
     let scan_results = wait_for_status(scanner, &id, Phase::Succeeded).await;
 

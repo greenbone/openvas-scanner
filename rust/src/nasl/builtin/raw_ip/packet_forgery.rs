@@ -14,7 +14,6 @@ use super::{
     raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
-use super::super::host::get_host_ip;
 use crate::nasl::builtin::misc::random_impl;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::NaslValue;
@@ -364,7 +363,7 @@ fn forge_ip_packet(
     ip_src: Option<Ipv4Addr>,
     ip_sum: Option<u16>,
 ) -> Result<NaslValue, FnError> {
-    let dst_addr = get_host_ip(configs)?;
+    let dst_addr = configs.target().ip_addr();
     if !dst_addr.is_ipv4() {
         return Err(ArgumentError::WrongArgument(
             "forge_ip_packet: No valid dst_addr could be determined via call to get_host_ip()"
@@ -1979,7 +1978,7 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
     };
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
+    let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
@@ -2106,7 +2105,7 @@ fn nasl_send_packet(
     let _dflt_packet_sz = length.unwrap_or_default();
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
+    let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
@@ -2183,7 +2182,7 @@ fn nasl_send_capture(
     let timeout = timeout.unwrap_or(DEFAULT_TIMEOUT_SEC) * 1000;
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
+    let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let mut iface = get_interface_by_local_ip(local_ip)?;
     if !interface.is_empty() {
@@ -2241,7 +2240,7 @@ fn forge_ip_v6_packet(
     ip6_src: Option<Ipv6Addr>,
     ip6_dst: Option<Ipv6Addr>,
 ) -> Result<NaslValue, FnError> {
-    let dst_addr = get_host_ip(configs)?;
+    let dst_addr = configs.target().ip_addr();
     if !dst_addr.is_ipv6() {
         return Err(FnError::wrong_unnamed_argument(
             "IPv6",
@@ -3178,7 +3177,7 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
     };
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
+    let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
@@ -3298,7 +3297,7 @@ fn nasl_send_v6packet(
     let _dflt_packet_sz = length.unwrap_or_default();
 
     // Get the iface name, to set the capture device.
-    let target_ip = get_host_ip(configs)?;
+    let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 

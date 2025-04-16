@@ -143,8 +143,9 @@ impl Iterator for WaveExecutionPlan {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::{Scan, VT};
+    use crate::models::VT;
 
+    use crate::scanner::Scan;
     use crate::storage::inmemory::InMemoryStorage;
 
     use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, SchedulerStorage, Stage};
@@ -318,7 +319,7 @@ mod tests {
             ..Default::default()
         };
         let results =
-            (&storage as &dyn SchedulerStorage).execution_plan::<WaveExecutionPlan>(&scan);
+            (&storage as &dyn SchedulerStorage).execution_plan::<WaveExecutionPlan>(&scan.vts);
 
         results.map(|x| x.collect())
     }
