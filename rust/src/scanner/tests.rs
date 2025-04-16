@@ -234,10 +234,9 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         }
     }
     drop(context);
-    let result = storage
+    storage
         .retrieve(&FileName(filename.to_string()))
-        .expect("nvt for id");
-    result
+        .expect("nvt for id")
 }
 
 fn prepare_vt_storage(scripts: &[(String, Nvt)]) -> InMemoryStorage {
