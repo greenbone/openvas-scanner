@@ -347,6 +347,7 @@ where
             scan_id: self.scan_id.clone(),
             target,
             filename: self.filename.clone(),
+            scan_params: Vec::default(),
         }
         .build();
         context

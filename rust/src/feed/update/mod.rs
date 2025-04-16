@@ -59,6 +59,7 @@ pub async fn feed_version(
     let target = Target::localhost();
     let filename = "";
     let executor = nasl_std_functions();
+    let scan_params = Vec::default();
     let cb = ContextBuilder {
         storage: dispatcher,
         loader,
@@ -66,6 +67,7 @@ pub async fn feed_version(
         target,
         filename,
         scan_id,
+        scan_params,
     };
     let context = cb.build();
     let mut interpreter = Interpreter::new(register, Lexer::new(Tokenizer::new(&code)), &context);
@@ -160,6 +162,7 @@ where
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
         let code = self.loader.load(&key.0)?;
         let register = Register::root_initial(&self.initial);
+        let scan_params = Vec::default();
         let target = Target::localhost();
         let context = ContextBuilder {
             scan_id: ScanID(key.0.clone()),
@@ -168,6 +171,7 @@ where
             storage: self.storage,
             loader: self.loader,
             executor: &self.executor,
+            scan_params,
         };
         let context = context.build();
         let mut results = Box::pin(ForkingInterpreter::new(&code, register, &context).stream());

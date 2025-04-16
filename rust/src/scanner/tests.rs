@@ -217,7 +217,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
     let scan_id = ScanID(filename.to_string());
-
+    let scan_params = Vec::default();
     let cb = ContextBuilder {
         storage: &storage,
         loader: &loader,
@@ -225,6 +225,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         scan_id,
         target,
         filename,
+        scan_params,
     };
     let context = cb.build();
     let interpreter = ForkingInterpreter::new(code, register, &context);

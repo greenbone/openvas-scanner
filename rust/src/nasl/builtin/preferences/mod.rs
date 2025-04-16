@@ -42,6 +42,14 @@ fn script_get_preference(
     None
 }
 
+#[nasl_function]
+fn get_preference(config: &Context, name: String) -> Option<NaslValue> {
+    if let Some(pref) = config.scan_params().iter().find(|p| p.id == name) {
+        return Some(NaslValue::from(pref.value.clone()));
+    }
+    None
+}
+
 /// The description builtin function
 pub struct Preferences;
 
@@ -49,5 +57,6 @@ function_set! {
     Preferences,
     (
         script_get_preference,
+        get_preference,
     )
 }

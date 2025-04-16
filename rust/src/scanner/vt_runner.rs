@@ -5,7 +5,8 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{Parameter, Protocol, ScanID};
+
+use crate::models::{Host, Parameter, Protocol, ScanID, ScanPreference};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
@@ -37,6 +38,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
     scan_id: ScanID,
+    scan_params: &'a Vec<ScanPreference>,
 }
 
 impl<'a, Stack: ScannerStack> VTRunner<'a, Stack>
@@ -53,6 +55,7 @@ where
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
         scan_id: ScanID,
+        scan_params: &'a Vec<ScanPreference>,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
             storage,
@@ -63,6 +66,7 @@ where
             stage,
             param,
             scan_id,
+            scan_params,
         };
         s.execute().await
     }
@@ -202,6 +206,8 @@ where
             storage: self.storage,
             loader: self.loader,
             executor: self.executor,
+            scan_params: self.scan_params.to_vec(),
+
         }
         .build();
         context.set_nvt(self.vt.clone());
