@@ -205,8 +205,8 @@ fn as_xref_field(arguments: &[&NaslValue]) -> Transform {
         return Err(ArgumentError::MissingNamed(vec!["name".to_owned(), "csv".to_owned()]).into());
     }
     Ok(vec![NvtField::Reference(vec![NvtRef {
-        class: arguments[1].to_string(),
-        id: arguments[0].to_string(),
+        class: arguments[0].to_string(),
+        id: arguments[1].to_string(),
     }])])
 }
 

@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use crate::models::{Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
+use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::Retriever;
@@ -66,19 +67,13 @@ where
         s.execute().await
     }
 
-    fn parameter(
-        &self,
-        parameter: &Parameter,
-        _register: &mut Register,
-    ) -> Result<(), ExecuteError> {
-        // TODO: implement
-        Err(ExecuteError::Parameter(parameter.clone()))
-    }
-
     fn set_parameters(&mut self, register: &mut Register) -> Result<(), ExecuteError> {
         if let Some(params) = &self.param {
             for p in params.iter() {
-                self.parameter(p, register)?;
+                register.add_global(
+                    format!("{}_{}", SCRIPT_PARAMS, p.id).as_str(),
+                    ContextType::Value(NaslValue::String(p.value.clone())),
+                );
             }
         }
         Ok(())
@@ -209,6 +204,7 @@ where
             executor: self.executor,
         }
         .build();
+        context.set_nvt(self.vt.clone());
         let mut results = Box::pin(ForkingInterpreter::new(code, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {

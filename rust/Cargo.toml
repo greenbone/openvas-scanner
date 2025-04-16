@@ -92,7 +92,7 @@ libssh-rs = { version = "0.3.5", features = [
 
 nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
 nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
-openssl = { version = "0.10.70", features = ["vendored"] }
+openssl = { version = "0.10.72", features = ["vendored"] }
 blowfish = "0.9.1"
 rc4 = "0.1.0"
 dsa = "0.6.3"

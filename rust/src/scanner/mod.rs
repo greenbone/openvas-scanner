@@ -22,6 +22,9 @@ mod scan_runner;
 mod scanner_stack;
 mod vt_runner;
 
+#[cfg(test)]
+mod tests;
+
 pub use error::ExecuteError;
 pub use scan::Scan;
 pub use scan_runner::ScanRunner;
