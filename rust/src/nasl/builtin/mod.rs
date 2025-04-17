@@ -35,6 +35,8 @@ use crate::nasl::utils::{NaslVarRegister, NaslVarRegisterBuilder, Register};
 
 use super::utils::Executor;
 
+pub use network::socket::NaslSockets;
+
 /// Creates a new Executor and adds all the functions to it.
 ///
 /// When you have a function that is considered experimental due to either dependencies on
@@ -51,7 +53,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(string::NaslString)
         .add_set(host::Host)
         .add_set(http::NaslHttp::default())
-        .add_set(network::socket::NaslSockets::default())
+        .add_set(network::socket::SocketFns)
         .add_set(network::network::Network)
         .add_set(regex::RegularExpressions)
         .add_set(cryptographic::Cryptographic)
