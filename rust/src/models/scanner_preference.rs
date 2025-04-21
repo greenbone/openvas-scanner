@@ -34,6 +34,27 @@ impl Default for PreferenceValue {
     }
 }
 
+impl PreferenceValue {
+    pub fn get_bool(&self) -> bool {
+        match self {
+            PreferenceValue::Bool(v) => *v,
+            _ => false,
+        }
+    }
+    pub fn get_string(&self) -> String {
+        match self {
+            PreferenceValue::String(v) => v.to_string(),
+            _ => "".to_string(),
+        }
+    }
+    pub fn get_int(&self) -> i64 {
+        match self {
+            PreferenceValue::Int(v) => *v,
+            _ => 0,
+        }
+    }
+}
+
 /// Configuration preference information for a scan. The type can be derived from the default value.
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(

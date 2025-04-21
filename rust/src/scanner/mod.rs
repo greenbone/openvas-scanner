@@ -16,6 +16,7 @@
 //! VT is then run to completion using the `VTRunner`.
 
 mod error;
+pub mod preferences;
 mod running_scan;
 mod scan;
 mod scan_runner;

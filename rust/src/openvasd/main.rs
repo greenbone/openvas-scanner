@@ -17,7 +17,7 @@ use scannerlib::nasl::utils::context::ContextStorage;
 use scannerlib::notus::{HashsumProductLoader, Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
-use scannerlib::scanner::ScannerStackWithStorage;
+use scannerlib::scanner::{ScannerStackWithStorage, preferences};
 use scannerlib::scheduling::SchedulerStorage;
 use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
 use storage::results::ResultCatcher;
@@ -36,7 +36,6 @@ pub mod controller;
 pub mod crypt;
 pub mod feed;
 pub mod notus;
-pub mod preference;
 pub mod request;
 pub mod response;
 mod scheduling;
@@ -94,7 +93,7 @@ fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
         None,
         cmd::check_sudo(),
         redis_url,
-        crate::preference::PREFERENCES.to_vec(),
+        preferences::preference::PREFERENCES.to_vec(),
     )
 }
 
@@ -211,6 +210,7 @@ async fn run(config: &Config) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
+    //    dbg!(&config);
     tracing::debug!(key = config.storage.fs.key);
     setup_log(&config);
     run(&config).await

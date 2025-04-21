@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use scannerlib::models::PreferenceValue;
+use scannerlib::scanner::preferences::preference::PREFERENCES;
 use std::{
+    collections::HashMap,
     fmt::{self, Display, Formatter},
     net::SocketAddr,
     path::PathBuf,
@@ -286,6 +289,13 @@ pub struct Storage {
     pub redis: Redis,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum ScanPrefValue {
+    Bool(bool),
+    Int(i64),
+    String(String),
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     #[serde(default)]
@@ -308,6 +318,8 @@ pub struct Config {
     pub storage: Storage,
     #[serde(default)]
     pub scheduler: Scheduler,
+    #[serde(default)]
+    pub preferences: HashMap<String, ScanPrefValue>,
 }
 
 impl Display for Config {
@@ -358,7 +370,7 @@ impl Config {
     }
 
     pub fn load() -> Self {
-        let cmds = clap::Command::new("openvasd")
+        let mut cmds = clap::Command::new("openvasd")
             .arg(
                 clap::Arg::new("config")
                     .short('c')
@@ -568,8 +580,13 @@ impl Config {
                     .value_name("service,service_notus")
                     .value_parser(Mode::Service)
                     .help("Sets the openvasd mode"),
-            )
-            .get_matches();
+            );
+
+        for pref in PREFERENCES {
+            cmds = cmds.arg(clap::Arg::new(pref.id).long(pref.id).help(pref.description));
+        }
+
+        let cmds = cmds.get_matches();
         let mut config = match cmds.get_one::<String>("config") {
             Some(path) => Self::from_file(path),
             None => {
@@ -655,6 +672,37 @@ impl Config {
                 config.storage.fs.key = Some(key.clone());
             }
         }
+
+        let mut scan_prefs: HashMap<String, ScanPrefValue> = HashMap::new();
+        for pref in PREFERENCES.iter() {
+            match pref.default {
+                PreferenceValue::Bool(v) => {
+                    if let Some(p) = cmds.get_one::<bool>(pref.id) {
+                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(*p));
+                    } else {
+                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(v));
+                    }
+                }
+                PreferenceValue::String(v) => {
+                    if let Some(p) = cmds.get_one::<String>(pref.id) {
+                        scan_prefs
+                            .insert(pref.id.to_string(), ScanPrefValue::String(p.to_string()));
+                    } else {
+                        scan_prefs
+                            .insert(pref.id.to_string(), ScanPrefValue::String(v.to_string()));
+                    }
+                }
+                PreferenceValue::Int(v) => {
+                    if let Some(p) = cmds.get_one::<i64>(pref.id) {
+                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(*p));
+                    } else {
+                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(v));
+                    }
+                }
+            }
+        }
+        config.preferences = scan_prefs;
+
         config
     }
 }
