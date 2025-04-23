@@ -294,6 +294,10 @@ min_free_mem
     system. Once this limit is reached, no further VTs are started until
     sufficient memory is available again.
 
+max_mem_kb
+
+: Maximum amount of memory allowed to use for a single script
+
 The other options in this file can usually be redefined by the client.
 
 ## NETWORK USAGE

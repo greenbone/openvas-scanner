@@ -317,17 +317,32 @@ impl Display for Config {
 }
 
 impl Config {
+    fn read_to_string<P>(path: P) -> String
+    where
+        P: AsRef<std::path::Path> + std::fmt::Display + std::fmt::Debug,
+    {
+        std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("Failed to read openvasd config from file: {path:?}. {e}"))
+    }
+
     fn load_etc() -> Option<Self> {
-        let config = std::fs::read_to_string("/etc/openvasd/openvasd.toml").unwrap_or_default();
-        toml::from_str(&config).ok()
+        let path = "/etc/openvasd/openvasd.toml";
+        if !std::fs::exists(path).unwrap_or_default() {
+            return None;
+        }
+        let config = Self::read_to_string(path);
+        toml::from_str(&config).unwrap()
     }
 
     fn load_user() -> Option<Self> {
         match std::env::var("HOME") {
             Ok(home) => {
                 let path = format!("{}/.config/openvasd/openvasd.toml", home);
-                let config = std::fs::read_to_string(path).unwrap_or_default();
-                toml::from_str(&config).ok()
+                if !std::fs::exists(&path).unwrap_or_default() {
+                    return None;
+                }
+                let config = Self::read_to_string(path);
+                toml::from_str(&config).unwrap()
             }
             Err(_) => None,
         }
@@ -337,8 +352,8 @@ impl Config {
     where
         P: AsRef<std::path::Path> + std::fmt::Display + std::fmt::Debug,
     {
-        let config = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("Failed to read openvasd config from file: {path:?}. {e}"));
+        let config = std::fs::read_to_string(path).unwrap();
+
         toml::from_str(&config).unwrap()
     }
 

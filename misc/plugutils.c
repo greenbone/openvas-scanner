@@ -37,6 +37,27 @@
 /* Used to allow debugging for openvas-nasl */
 int global_nasl_debug = 0;
 
+/* Track amount of KB memory used */
+static size_t kb_usage = 0;
+
+static const size_t MAX_KB_USAGE = 1024 * 1024 * 512; // 500MB
+
+static int
+add_kb_usage (struct script_infos *args, size_t size)
+{
+  if (kb_usage > MAX_KB_USAGE)
+    return -1;
+  kb_usage += size;
+  if (kb_usage > MAX_KB_USAGE)
+    {
+      g_warning ("KB usage exceeded %lu MB. Unable to store any further KB "
+                 "Items for script %s",
+                 MAX_KB_USAGE / 1024 / 1024, args->name);
+      return -1;
+    }
+  return 0;
+}
+
 /* In case of multiple vhosts fork, this holds the value of the current vhost
  * we're scanning.
  */
@@ -952,7 +973,11 @@ plug_set_key_len (struct script_infos *args, char *name, int type,
     return;
 
   if (type == ARG_STRING)
-    kb_item_add_str_unique (kb, name, value, len, pos);
+    {
+      if (add_kb_usage (args, len) == -1)
+        return;
+      kb_item_add_str_unique (kb, name, value, len, pos);
+    }
   else if (type == ARG_INT)
     kb_item_add_int_unique (kb, name, GPOINTER_TO_SIZE (value));
   if (global_nasl_debug == 1)
@@ -1032,7 +1057,11 @@ plug_replace_key_len (struct script_infos *args, char *name, int type,
     return;
 
   if (type == ARG_STRING)
-    kb_item_set_str (kb, name, value, len);
+    {
+      if (add_kb_usage (args, len) == -1)
+        return;
+      kb_item_set_str (kb, name, value, len);
+    }
   else if (type == ARG_INT)
     kb_item_set_int (kb, name, GPOINTER_TO_SIZE (value));
   if (global_nasl_debug == 1)
