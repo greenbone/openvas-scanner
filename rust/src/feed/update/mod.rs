@@ -57,6 +57,7 @@ pub async fn feed_version(
     let register = Register::default();
     let scan_id = ScanID("".to_string());
     let target = Target::localhost();
+    let ports = Default::default();
     let filename = "";
     let executor = nasl_std_functions();
     let scan_params = Vec::default();
@@ -65,6 +66,7 @@ pub async fn feed_version(
         loader,
         executor: &executor,
         target,
+        ports,
         filename,
         scan_id,
         scan_preferences: scan_params,
@@ -164,9 +166,11 @@ where
         let register = Register::root_initial(&self.initial);
         let scan_params = Vec::default();
         let target = Target::localhost();
+        let ports = Default::default();
         let context = ContextBuilder {
             scan_id: ScanID(key.0.clone()),
             target,
+            ports,
             filename: &key.0,
             storage: self.storage,
             loader: self.loader,

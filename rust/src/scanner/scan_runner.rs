@@ -85,11 +85,13 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                 let (stage, vts) = &self.concurrent_vts[pos.stage];
                 let (vt, param) = &vts[pos.vt];
                 let host = &self.scan.targets[pos.host];
+                let ports = &self.scan.ports;
                 (
                     *stage,
                     vt.clone(),
                     param.clone(),
                     host.clone(),
+                    ports.clone(),
                     self.scan.scan_id.clone(),
                 )
             });
@@ -99,12 +101,13 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         // new implementation.
         stream::unfold(data, move |mut data| async move {
             match data.next() {
-                Some((stage, vt, param, host, scan_id)) => {
+                Some((stage, vt, param, host, ports, scan_id)) => {
                     let result = VTRunner::<Stack>::run(
                         self.storage,
                         self.loader,
                         self.executor,
                         &host,
+                        &ports,
                         &vt,
                         stage,
                         param.as_ref(),

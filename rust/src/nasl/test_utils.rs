@@ -5,6 +5,7 @@
 //! Utilities to test the outcome of NASL functions
 
 use std::{
+    collections::HashSet,
     fmt::{self, Display, Formatter},
     panic::Location,
     path::PathBuf,
@@ -22,7 +23,7 @@ use super::{
     nasl_std_functions,
     utils::{
         Executor,
-        context::{ContextStorage, Target},
+        context::{ContextStorage, Ports, Target},
     },
 };
 
@@ -124,6 +125,8 @@ pub struct TestBuilder<L: Loader, S: ContextStorage> {
     scan_id: ScanID,
     filename: PathBuf,
     target: String,
+    ports_tcp: HashSet<u16>,
+    ports_udp: HashSet<u16>,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
     loader: L,
@@ -141,6 +144,8 @@ impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
             scan_id: Default::default(),
             filename: Default::default(),
             target: Default::default(),
+            ports_tcp: Default::default(),
+            ports_udp: Default::default(),
             variables: vec![],
             should_verify: true,
             loader: NoOpLoader::default(),
@@ -165,6 +170,8 @@ where
             scan_id: Default::default(),
             filename: Default::default(),
             target: Default::default(),
+            ports_tcp: Default::default(),
+            ports_udp: Default::default(),
             variables: vec![],
             should_verify: true,
             loader: NoOpLoader::default(),
@@ -189,6 +196,8 @@ where
             scan_id: Default::default(),
             filename: Default::default(),
             target: Default::default(),
+            ports_tcp: Default::default(),
+            ports_udp: Default::default(),
             variables: vec![],
             should_verify: true,
             loader,
@@ -346,6 +355,10 @@ where
             executor: &self.executor,
             scan_id: self.scan_id.clone(),
             target,
+            ports: Ports {
+                tcp: self.ports_tcp.clone(),
+                udp: self.ports_udp.clone(),
+            },
             filename: self.filename.clone(),
             scan_preferences: Vec::default(),
         }
