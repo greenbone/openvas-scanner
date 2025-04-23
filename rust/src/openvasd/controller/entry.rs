@@ -17,7 +17,6 @@ use regex::Regex;
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 use scannerlib::models::{Action, Phase, Scan, ScanAction, scanner::*};
 use scannerlib::notus::NotusError;
-use scannerlib::scanner::preferences;
 use tokio::process::Command;
 
 use crate::{
@@ -402,6 +401,11 @@ where
                             };
                             let resp = ctx.response.created(&id);
                             scan.scan_id.clone_from(&id);
+
+                            if let Some(scan_prefs) = &ctx.scan_preferences {
+                                scan_prefs.set_scan_with_preferences(&mut scan);
+                            }
+                            
                             ctx.scheduler.insert_scan(scan).await?;
                             ctx.scheduler.add_scan_client_id(id.clone(), cid).await?;
                             tracing::debug!(%id, "Scan created");
@@ -455,9 +459,13 @@ where
                         Ok(ctx.response.not_found("scans", "all"))
                     }
                 }
-                (&Method::GET, ScanPreferences) => Ok(ctx
-                    .response
-                    .ok_static(preferences::preference::PREFERENCES_JSON.as_bytes())),
+                (&Method::GET, ScanPreferences) => {
+                    let p = ctx.scan_preferences.clone().unwrap();
+                    Ok(ctx.response.ok_static(&serde_json::to_string(&p).unwrap().into_bytes()))
+//                    Ok(ctx
+//                    .response
+//                       .ok_static(preferences::preference::PREFERENCES_JSON.as_bytes()))
+                },
                 (&Method::GET, Scans(Some(id))) => match ctx.scheduler.get_scan(&id).await {
                     Ok((mut scan, _)) => {
                         let credentials = scan

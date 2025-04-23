@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::models::{PreferenceValue, ScanPreferenceInformation};
+use crate::models::{PreferenceValue, ScanPreferenceInformation, ScanPreference, Scan};
 use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize, Deserializer, de::{self, MapAccess, Visitor, VariantAccess, EnumAccess, Error}};
+use std::collections::HashMap;
 
 pub const PREFERENCES: [ScanPreferenceInformation; 22] = [
     ScanPreferenceInformation {
@@ -216,4 +218,294 @@ pub const PREFERENCES: [ScanPreferenceInformation; 22] = [
 
 lazy_static! {
     pub static ref PREFERENCES_JSON: String = serde_json::to_string(&PREFERENCES).unwrap();
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq)]
+pub struct ScanParam {
+    pub id: String,
+    pub value: ScanPrefValue
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq)]
+pub enum ScanPrefValue {
+    Bool(bool),
+    Int(i64),
+    String(String),
+}
+
+impl Default for ScanPrefValue {
+    fn default() -> Self {
+        Self::Int(0)
+    }
+}
+
+impl From<&str> for ScanPrefValue {
+    fn from(_value: &str) -> Self {
+        Self::Bool(true)
+    }
+}
+impl ScanPrefValue {
+    // toml is not able to handle ScanPrefValue enum types and it looks cleaner in toml when we flatten
+    pub fn config_deserialize<'de, D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        dbg!(&s);
+        Ok(Self::from(s.as_str()))
+    }
+
+    //// toml is not able to handle File(PathBuf) and it looks cleaner in toml when we flatten
+    //fn config_serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    //where
+    //    S: serde::Serializer,
+    //{
+    //    match self {
+    //        Self::InMemory => serializer.serialize_str("in-memory"),
+    //        Self::File(path) => serializer.serialize_str(path.to_str().unwrap_or("")),
+    //    }
+    //}
+}
+
+
+//impl<'de> Deserialize<'de> for ScanPrefValue
+//{
+//    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//    where
+//        D: Deserializer<'de>,
+//    {
+//    deserializer.deserialize_enum("ScanPrefValue", &["Bool", "Int", "String"], ScanPrefVisitor)
+//    }    
+//}
+// 
+//use std::fmt::Debug;
+// 
+//struct ScanPrefVisitor;
+// 
+//impl<'de> Visitor<'de> for ScanPrefVisitor {
+//    type Value = ScanPrefValue;
+// 
+//    fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+//        formatter.write_str("enum ScanPrefValue")
+//    }
+//    
+//    fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+//    where
+//        A: EnumAccess<'de>,
+//    {
+//        #[derive(Deserialize, Debug)]
+//        enum DataVar {
+//            Bool,
+//            Int,
+//            String,
+//        }
+//        
+//        let (variant_name, variant_data): (DataVar, _) = data.variant()?;
+//        dbg!(&variant_name);
+//        
+//        match variant_name {
+//            DataVar::Bool => variant_data.struct_variant(&["f0"], ScanPrefBoolVisitor),
+//            DataVar::Int => variant_data.struct_variant(&["f0"], ScanPrefIntVisitor),
+//            DataVar::String => variant_data.struct_variant(&["f0"], ScanPrefStringVisitor),
+//        }
+////        // in practice, you'd replace this String with a data-less, unit-only `enum`,
+////        // for avoiding the allocation
+////        let (variant_data, variant_name): (String, _) = data.variant()?;
+////        
+////        match variant_name {
+////            "Bool" => variant_name.struct_variant(&["f0"], ScanPrefBoolVisitor),
+////            "String" => variant_name.struct_variant(&["f0"], ScanPrefStringVisitor),
+////            "Int" => variant_name.struct_variant(&["f0"], ScanPrefIntVisitor),
+////            _ => Err(A::Error::custom("unknown variant of enum ScanPrefValue"))
+////        }
+//    }
+//}
+// 
+//struct ScanPrefBoolVisitor;
+// 
+//impl<'de> Visitor<'de> for ScanPrefBoolVisitor {
+//    type Value = ScanPrefValue;
+// 
+//    fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+//        formatter.write_str("enum variant ScanPrefValue::Bool")
+//    }
+//    
+//    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+//    where
+//        A: de::MapAccess<'de>,
+//    {
+//        let mut f0: Option<bool> = None;
+//        
+//        // again, use an enum of field names here instead of String
+//        while let Some(key) = map.next_key::<String>()? {
+//            match key.as_str() {
+//                "f0" => {
+//                    f0 = Some(map.next_value()?);
+//                }
+//                _ => {}
+//            }
+//        }
+//        
+//        match f0 {
+//            Some(f0) => Ok(ScanPrefValue::Bool( f0 )),
+//            _ => Err(A::Error::custom("missing field in ScanPrefValue::Bool"))
+//        }
+//    }
+//}
+// 
+//struct ScanPrefIntVisitor;
+// 
+//impl<'de> Visitor<'de> for ScanPrefIntVisitor {
+//    type Value = ScanPrefValue;
+// 
+//    fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+//        formatter.write_str("enum variant ScanPrefValue::Int")
+//    }
+//    
+//    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+//    where
+//        A: de::MapAccess<'de>,
+//    {
+//        let mut f0: Option<i64> = None;
+//        
+//        // again, use an enum of field names here instead of String
+//        while let Some(key) = map.next_key::<String>()? {
+//            match key.as_str() {
+//                "f0" => {
+//                    f0 = Some(map.next_value()?);
+//                }
+//                _ => {}
+//            }
+//        }
+//        
+//        match f0 {
+//            Some(f0) => Ok(ScanPrefValue::Int( f0 )),
+//            _ => Err(A::Error::custom("missing field in ScanPrefValue::Int"))
+//        }
+//    }
+//}
+// 
+// 
+//struct ScanPrefStringVisitor;
+// 
+//impl<'de> Visitor<'de> for ScanPrefStringVisitor {
+//    type Value = ScanPrefValue;
+// 
+//    fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+//        formatter.write_str("enum variant ScanPrefValue::String")
+//    }
+//    
+//    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+//    where
+//        A: de::MapAccess<'de>,
+//    {
+//        let mut f0: Option<String> = None;
+//        
+//        // again, use an enum of field names here instead of String
+//        while let Some(key) = map.next_key::<String>()? {
+//            match key.as_str() {
+//                "f0" => {
+//                    f0 = Some(map.next_value()?);
+//                }
+//                _ => {}
+//            }
+//        }
+//        
+//        match f0 {
+//            Some(f0) => Ok(ScanPrefValue::String( f0 )),
+//            _ => Err(A::Error::custom("missing field in ScanPrefValue::String"))
+//        }
+//    }
+//}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct ScanPreferences {
+  pub scan_preferences: Vec<FullScanPreference>,
+}
+
+/// Configuration preference information for a scan. The type can be derived from the default value.
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct FullScanPreference {
+    /// The ID of the scan preference
+    pub id: String,
+    /// Display name of the scan preference
+    pub name: String,
+    /// The value of the scan preference
+    pub default: ScanPrefValue,
+    /// Description of the scan preference
+    pub description: String,
+}
+
+impl From<&ScanPreferenceInformation> for FullScanPreference {
+    fn from(value: &ScanPreferenceInformation) -> Self {
+        Self {
+            id:  value.id.to_string(),
+            name: value.name.to_string(),
+            default: match value.default {
+                PreferenceValue::Bool(v) => ScanPrefValue::Bool(v),
+                PreferenceValue::String(v) => ScanPrefValue::String(v.to_string()),
+                PreferenceValue::Int(v) => ScanPrefValue::Int(v),
+            },
+            description: value.description.to_string(),           
+        }
+    }
+}
+
+impl From<&FullScanPreference> for ScanPreference {
+    fn from(value: &FullScanPreference) -> Self {
+        Self {
+            id:  value.id.to_string(),
+            value: match &value.default {
+                ScanPrefValue::Bool(v) => v.to_string(),
+                ScanPrefValue::String(v) => v.to_string(),
+                ScanPrefValue::Int(v) => v.to_string(),
+            },
+        }
+    }
+}
+
+
+impl ScanPreferences {
+    pub fn new() -> Self {
+        let mut scan_preferences = Vec::new();
+        for pref in PREFERENCES.iter() {
+            scan_preferences.push(FullScanPreference::from(pref));
+        }
+        Self {
+            scan_preferences
+        }
+    }
+
+    /// Override the default scan parameters with the one from the config file or command line.
+    pub fn load_params (&mut self, params: HashMap<String, ScanPrefValue>) -> &Self {
+        for (param_id, param_val) in params.clone().iter() {
+            if let Some(a) = self.scan_preferences.iter_mut().find(|p| p.id == *param_id) {
+                a.default = param_val.clone();
+            }
+        }
+        self
+    }
+
+    pub fn set_scan_with_preferences (&self, scan: &mut Scan) {
+        let mut config_prefs_copy = self.scan_preferences.clone();
+        let scan_prefs = scan.scan_preferences.clone();
+        
+        for (i,cp) in self.scan_preferences.iter().enumerate() {
+            for sp in scan_prefs.iter(){
+                if cp.id == sp.id {
+                    config_prefs_copy.remove(i);
+                }
+            }
+        }
+        let conf_prefs: Vec<ScanPreference> = config_prefs_copy.iter().map(ScanPreference::from).collect();
+        scan.scan_preferences.extend( conf_prefs);
+    }   
 }

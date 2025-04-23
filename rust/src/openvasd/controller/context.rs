@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
-use scannerlib::{feed, nasl::FSPluginLoader, storage::inmemory::InMemoryStorage};
+use scannerlib::{feed, nasl::FSPluginLoader, storage::inmemory::InMemoryStorage, scanner::preferences::preference};
 use std::sync::{Arc, RwLock};
-
+use std::collections::HashMap;
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
 
 use scannerlib::models::scanner::{
@@ -32,6 +32,7 @@ pub struct ContextBuilder<S, DB, T> {
     scheduler_config: Option<config::Scheduler>,
     mode: config::Mode,
     enable_get_performance: bool,
+    preferences: Option<preference::ScanPreferences>
 }
 
 impl<S>
@@ -52,6 +53,7 @@ impl<S>
             scheduler_config: None,
             mode: config::Mode::default(),
             enable_get_performance: false,
+            preferences: None,
         }
     }
 }
@@ -85,6 +87,14 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
     /// Set the TLS config
     pub fn tls_config(mut self, tls_config: Option<TlsConfig>) -> Self {
         self.tls_config = tls_config;
+        self
+    }
+
+    /// Set scanner preferences
+    pub fn scan_preferences(mut self, prefs: HashMap<String, preference::ScanPrefValue>) -> Self {
+        let mut prefs_bind = preference::ScanPreferences::new();
+        let prefs = prefs_bind.load_params(prefs);
+        self.preferences = Some(prefs.clone());
         self
     }
 
@@ -126,6 +136,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             scheduler_config,
             mode,
             enable_get_performance,
+            preferences,
         } = self;
         ContextBuilder {
             scanner,
@@ -140,6 +151,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
             scheduler_config,
             mode,
             enable_get_performance,
+            preferences,
         }
     }
 }
@@ -163,6 +175,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
             scheduler_config,
             mode,
             enable_get_performance,
+            preferences,
         } = self;
         ContextBuilder {
             scanner: Scanner(scanner),
@@ -177,6 +190,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
             scheduler_config,
             mode,
             enable_get_performance,
+            preferences,
         }
     }
 }
@@ -228,6 +242,7 @@ impl<S, DB> ContextBuilder<S, DB, Scanner<S>> {
             enable_get_performance: self.enable_get_performance,
             notus: self.notus,
             mode: self.mode,
+            scan_preferences: self.preferences,
         }
     }
 }
@@ -258,6 +273,7 @@ pub struct Context<S, DB> {
     /// This allows us to throttle requests per need and gives us control when to start/stop/delete
     /// a scan.
     pub scheduler: scheduling::Scheduler<DB, S>,
+    pub scan_preferences: Option<preference::ScanPreferences>
 }
 
 #[derive(Debug, Clone, Default)]

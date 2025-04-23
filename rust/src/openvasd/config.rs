@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use scannerlib::models::PreferenceValue;
-use scannerlib::scanner::preferences::preference::PREFERENCES;
+use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
@@ -287,13 +287,6 @@ pub struct Storage {
     pub fs: FileStorage,
     #[serde(default)]
     pub redis: Redis,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub enum ScanPrefValue {
-    Bool(bool),
-    Int(i64),
-    String(String),
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -597,6 +590,7 @@ impl Config {
                 }
             }
         };
+
         if let Some(interval) = cmds.get_one::<u64>("feed-check-interval") {
             config.feed.check_interval = Duration::from_secs(*interval);
         }
@@ -676,33 +670,26 @@ impl Config {
         let mut scan_prefs: HashMap<String, ScanPrefValue> = HashMap::new();
         for pref in PREFERENCES.iter() {
             match pref.default {
-                PreferenceValue::Bool(v) => {
+                PreferenceValue::Bool(_) => {
                     if let Some(p) = cmds.get_one::<bool>(pref.id) {
                         scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(*p));
-                    } else {
-                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(v));
-                    }
+                    } 
                 }
-                PreferenceValue::String(v) => {
+                PreferenceValue::String(_) => {
                     if let Some(p) = cmds.get_one::<String>(pref.id) {
                         scan_prefs
                             .insert(pref.id.to_string(), ScanPrefValue::String(p.to_string()));
-                    } else {
-                        scan_prefs
-                            .insert(pref.id.to_string(), ScanPrefValue::String(v.to_string()));
-                    }
+                    } 
                 }
-                PreferenceValue::Int(v) => {
+                PreferenceValue::Int(_) => {
                     if let Some(p) = cmds.get_one::<i64>(pref.id) {
                         scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(*p));
-                    } else {
-                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(v));
-                    }
+                    } 
                 }
             }
         }
+        
         config.preferences = scan_prefs;
-
         config
     }
 }
@@ -710,13 +697,15 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use std::{path::PathBuf, time::Duration};
-
+    use scannerlib::scanner::preferences::preference::ScanPrefValue;
     use crate::config::StorageType;
 
     #[test]
     fn defaults() {
-        let config = super::Config::default();
-
+        let mut config = super::Config::default();
+        config.preferences.insert("aaa".to_string(), ScanPrefValue::Bool(false));
+        config.preferences.insert("bbb".to_string(), ScanPrefValue::String("foobar".to_string()));
+        
         assert_eq!(
             config.feed.path,
             std::path::PathBuf::from("/var/lib/openvas/plugins")
@@ -743,7 +732,7 @@ mod tests {
         assert_eq!(config.log.level, "INFO".to_string());
         // this is used to verify the default config manually.
         // se to true to write the default configuration to `tmp`
-        if false {
+        if true {
             let mut cf = std::fs::File::create("/tmp/openvas.default.example.toml").unwrap();
             use std::io::Write;
             cf.write_all(toml::to_string_pretty(&config).unwrap().as_bytes())

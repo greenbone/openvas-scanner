@@ -139,6 +139,7 @@ where
         .enable_get_performance(config.endpoints.enable_get_performance)
         .enable_get_scans(config.endpoints.enable_get_scans)
         .storage(db)
+        .scan_preferences(config.preferences.clone())
         .build()
 }
 
