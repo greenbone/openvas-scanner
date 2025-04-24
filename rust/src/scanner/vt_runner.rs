@@ -5,8 +5,7 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-
-use crate::models::{Host, Parameter, Protocol, ScanID, ScanPreference};
+use crate::models::{Parameter, Protocol, ScanID, ScanPreference};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
@@ -207,7 +206,6 @@ where
             loader: self.loader,
             executor: self.executor,
             scan_params: self.scan_params.to_vec(),
-
         }
         .build();
         context.set_nvt(self.vt.clone());

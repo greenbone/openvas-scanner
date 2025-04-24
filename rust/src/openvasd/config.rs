@@ -673,22 +673,22 @@ impl Config {
                 PreferenceValue::Bool(_) => {
                     if let Some(p) = cmds.get_one::<bool>(pref.id) {
                         scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(*p));
-                    } 
+                    }
                 }
                 PreferenceValue::String(_) => {
                     if let Some(p) = cmds.get_one::<String>(pref.id) {
                         scan_prefs
                             .insert(pref.id.to_string(), ScanPrefValue::String(p.to_string()));
-                    } 
+                    }
                 }
                 PreferenceValue::Int(_) => {
                     if let Some(p) = cmds.get_one::<i64>(pref.id) {
                         scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(*p));
-                    } 
+                    }
                 }
             }
         }
-        
+
         config.preferences = scan_prefs;
         config
     }
@@ -696,16 +696,21 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::PathBuf, time::Duration};
-    use scannerlib::scanner::preferences::preference::ScanPrefValue;
     use crate::config::StorageType;
+    use scannerlib::scanner::preferences::preference::ScanPrefValue;
+    use std::{path::PathBuf, time::Duration};
 
     #[test]
     fn defaults() {
         let mut config = super::Config::default();
-        config.preferences.insert("aaa".to_string(), ScanPrefValue::Bool(false));
-        config.preferences.insert("bbb".to_string(), ScanPrefValue::String("foobar".to_string()));
-        
+        config
+            .preferences
+            .insert("aaa".to_string(), ScanPrefValue::Bool(false));
+        config.preferences.insert(
+            "bbb".to_string(),
+            ScanPrefValue::String("foobar".to_string()),
+        );
+
         assert_eq!(
             config.feed.path,
             std::path::PathBuf::from("/var/lib/openvas/plugins")

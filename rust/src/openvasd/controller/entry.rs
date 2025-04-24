@@ -405,7 +405,7 @@ where
                             if let Some(scan_prefs) = &ctx.scan_preferences {
                                 scan_prefs.set_scan_with_preferences(&mut scan);
                             }
-                            
+
                             ctx.scheduler.insert_scan(scan).await?;
                             ctx.scheduler.add_scan_client_id(id.clone(), cid).await?;
                             tracing::debug!(%id, "Scan created");
@@ -461,11 +461,13 @@ where
                 }
                 (&Method::GET, ScanPreferences) => {
                     let p = ctx.scan_preferences.clone().unwrap();
-                    Ok(ctx.response.ok_static(&serde_json::to_string(&p).unwrap().into_bytes()))
-//                    Ok(ctx
-//                    .response
-//                       .ok_static(preferences::preference::PREFERENCES_JSON.as_bytes()))
-                },
+                    Ok(ctx
+                        .response
+                        .ok_static(&serde_json::to_string(&p).unwrap().into_bytes()))
+                    //                    Ok(ctx
+                    //                    .response
+                    //                       .ok_static(preferences::preference::PREFERENCES_JSON.as_bytes()))
+                }
                 (&Method::GET, Scans(Some(id))) => match ctx.scheduler.get_scan(&id).await {
                     Ok((mut scan, _)) => {
                         let credentials = scan

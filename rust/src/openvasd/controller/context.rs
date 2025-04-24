@@ -2,11 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use async_trait::async_trait;
-use scannerlib::{feed, nasl::FSPluginLoader, storage::inmemory::InMemoryStorage, scanner::preferences::preference};
-use std::sync::{Arc, RwLock};
-use std::collections::HashMap;
 use crate::{config, notus::NotusWrapper, response, scheduling, tls::TlsConfig};
+use async_trait::async_trait;
+use scannerlib::{
+    feed, nasl::FSPluginLoader, scanner::preferences::preference,
+    storage::inmemory::InMemoryStorage,
+};
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use scannerlib::models::scanner::{
     Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
@@ -32,7 +35,7 @@ pub struct ContextBuilder<S, DB, T> {
     scheduler_config: Option<config::Scheduler>,
     mode: config::Mode,
     enable_get_performance: bool,
-    preferences: Option<preference::ScanPreferences>
+    preferences: Option<preference::ScanPreferences>,
 }
 
 impl<S>
@@ -273,7 +276,7 @@ pub struct Context<S, DB> {
     /// This allows us to throttle requests per need and gives us control when to start/stop/delete
     /// a scan.
     pub scheduler: scheduling::Scheduler<DB, S>,
-    pub scan_preferences: Option<preference::ScanPreferences>
+    pub scan_preferences: Option<preference::ScanPreferences>,
 }
 
 #[derive(Debug, Clone, Default)]

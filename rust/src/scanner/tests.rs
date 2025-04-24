@@ -52,6 +52,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
                 parameters: vec![],
             })
             .collect(),
+        scan_preferences: Vec::new(),
     };
     let executor = nasl_std_functions();
     ((Arc::new(storage), loader), executor, scan)
@@ -267,6 +268,7 @@ async fn run(
                 parameters: vec![],
             })
             .collect(),
+        scan_preferences: Vec::new(),
     };
 
     let executor = nasl_std_functions();

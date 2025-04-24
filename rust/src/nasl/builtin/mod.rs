@@ -98,7 +98,6 @@ fn add_raw_ip_vars(builder: NaslVarRegisterBuilder) -> NaslVarRegisterBuilder {
     builder
 }
 
-
 /// The register builder for NASL Variables
 ///
 /// This is the main entry point for the nasl interpreter and adds all the variables defined in

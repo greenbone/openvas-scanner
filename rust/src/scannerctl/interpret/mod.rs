@@ -123,6 +123,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
         target,
         scan_id,
         filename,
+        scan_params: Vec::new(),
     };
     run_with_context(cb.build(), script).await
 }

@@ -4,12 +4,11 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-
 use tokio::sync::RwLock;
 
 use crate::models::PortRange;
-use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::models::ScanPreference;
+use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
 use crate::storage::error::StorageError;
@@ -882,7 +881,7 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub scan_id: ScanID,
     pub target: Target,
     pub filename: P,
-    pub scan_params: Vec<ScanPreference>
+    pub scan_params: Vec<ScanPreference>,
 }
 
 impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
@@ -895,7 +894,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.storage,
             self.loader,
             self.executor,
-            self.scan_params
+            self.scan_params,
         )
     }
 }
