@@ -61,6 +61,8 @@ pub struct Scanner {
     pub scanner_type: ScannerType,
     #[serde(default)]
     pub ospd: OspdWrapper,
+    #[serde(default)]
+    pub preferences: HashMap<String, ScanPrefValue>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -311,8 +313,6 @@ pub struct Config {
     pub storage: Storage,
     #[serde(default)]
     pub scheduler: Scheduler,
-    #[serde(default)]
-    pub preferences: HashMap<String, ScanPrefValue>,
 }
 
 impl Display for Config {
@@ -673,23 +673,43 @@ impl Config {
                 PreferenceValue::Bool(_) => {
                     if let Some(p) = cmds.get_one::<bool>(pref.id) {
                         scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(*p));
+                    } else if let Some(ScanPrefValue::Bool(p)) =
+                        config.scanner.preferences.get(pref.id)
+                    {
+                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(*p));
+                    } else {
+                        scan_prefs.insert(pref.id.to_string(), pref.default.clone().into());
                     }
                 }
                 PreferenceValue::String(_) => {
                     if let Some(p) = cmds.get_one::<String>(pref.id) {
                         scan_prefs
                             .insert(pref.id.to_string(), ScanPrefValue::String(p.to_string()));
+                    } else if let Some(ScanPrefValue::String(p)) =
+                        config.scanner.preferences.get(pref.id)
+                    {
+                        scan_prefs
+                            .insert(pref.id.to_string(), ScanPrefValue::String(p.to_string()));
+                    } else {
+                        scan_prefs.insert(pref.id.to_string(), pref.default.clone().into());
                     }
                 }
                 PreferenceValue::Int(_) => {
                     if let Some(p) = cmds.get_one::<i64>(pref.id) {
                         scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(*p));
+                    } else if let Some(ScanPrefValue::Int(p)) =
+                        config.scanner.preferences.get(pref.id)
+                    {
+                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(*p));
+                    } else {
+                        scan_prefs.insert(pref.id.to_string(), pref.default.clone().into());
                     }
                 }
             }
         }
 
-        config.preferences = scan_prefs;
+        config.scanner.preferences = scan_prefs;
+        println!("Config: {config}");
         config
     }
 }
@@ -704,9 +724,10 @@ mod tests {
     fn defaults() {
         let mut config = super::Config::default();
         config
+            .scanner
             .preferences
             .insert("aaa".to_string(), ScanPrefValue::Bool(false));
-        config.preferences.insert(
+        config.scanner.preferences.insert(
             "bbb".to_string(),
             ScanPrefValue::String("foobar".to_string()),
         );

@@ -221,10 +221,21 @@ lazy_static! {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq)]
+#[serde(untagged)]
 pub enum ScanPrefValue {
     Bool(bool),
     Int(i64),
     String(String),
+}
+
+impl From<PreferenceValue> for ScanPrefValue {
+    fn from(value: PreferenceValue) -> Self {
+        match value {
+            PreferenceValue::Bool(v) => ScanPrefValue::Bool(v),
+            PreferenceValue::String(v) => ScanPrefValue::String(v.to_string()),
+            PreferenceValue::Int(v) => ScanPrefValue::Int(v),
+        }
+    }
 }
 
 impl Default for ScanPrefValue {
