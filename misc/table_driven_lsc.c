@@ -689,14 +689,15 @@ process_notus_response (const gchar *resp, const size_t len)
   parser = json_parser_new ();
   if (!json_parser_load_from_data (parser, resp, len, &err))
     {
-      g_message ("Errror parsing");
+      g_message ("Error parsing");
     }
 
   reader = json_reader_new (json_parser_get_root (parser));
 
   if (!json_reader_is_object (reader))
     {
-      g_message ("No es un object");
+      g_debug ("It is not an object");
+      goto cleanup_advisories;
     }
 
   char **members = json_reader_list_members (reader);
@@ -985,6 +986,7 @@ notus_get_response (const char *pkg_list, const char *os)
   char *json_pkglist;
   char *response = NULL;
   notus_info_t notusdata;
+  long ret;
 
   // Parse the server and get the port, host, schema
   // and necessary information to build the message
@@ -1005,8 +1007,9 @@ notus_get_response (const char *pkg_list, const char *os)
       return NULL;
     }
 
-  if (send_request (notusdata, os, json_pkglist, &response) == -1)
-    g_warning ("Error sending request to openvasd");
+  ret = send_request (notusdata, os, json_pkglist, &response);
+  if (ret != 200)
+    g_warning ("%ld: Error sending request to openvasd: %s", ret, response);
 
   free_notus_info (notusdata);
   g_free (json_pkglist);
