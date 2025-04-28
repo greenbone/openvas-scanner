@@ -17,6 +17,7 @@ use regex::Regex;
 use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
 use scannerlib::models::{Action, Phase, Scan, ScanAction, scanner::*};
 use scannerlib::notus::NotusError;
+use scannerlib::scanner::preferences::preference;
 use tokio::process::Command;
 
 use crate::{
@@ -460,13 +461,15 @@ where
                     }
                 }
                 (&Method::GET, ScanPreferences) => {
-                    let p = ctx.scan_preferences.clone().unwrap();
-                    Ok(ctx
-                        .response
-                        .ok_static(&serde_json::to_string(&p).unwrap().into_bytes()))
-                    //                    Ok(ctx
-                    //                    .response
-                    //                       .ok_static(preferences::preference::PREFERENCES_JSON.as_bytes()))
+                    if let Some(p) = ctx.scan_preferences.clone() {
+                        Ok(ctx
+                            .response
+                            .ok_static(&serde_json::to_string(&p).unwrap().into_bytes()))
+                    } else {
+                        Ok(ctx
+                            .response
+                            .ok_static(preference::PREFERENCES_JSON.as_bytes()))
+                    }
                 }
                 (&Method::GET, Scans(Some(id))) => match ctx.scheduler.get_scan(&id).await {
                     Ok((mut scan, _)) => {

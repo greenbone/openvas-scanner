@@ -576,7 +576,32 @@ impl Config {
             );
 
         for pref in PREFERENCES {
-            cmds = cmds.arg(clap::Arg::new(pref.id).long(pref.id).help(pref.description));
+            match pref.default {
+                PreferenceValue::Bool(_) => {
+                    cmds = cmds.arg(
+                        clap::Arg::new(pref.id)
+                            .long(pref.id)
+                            .value_parser(clap::builder::BoolValueParser::new())
+                            .help(pref.description),
+                    );
+                }
+                PreferenceValue::String(_) => {
+                    cmds = cmds.arg(
+                        clap::Arg::new(pref.id)
+                            .long(pref.id)
+                            .value_parser(clap::value_parser!(String))
+                            .help(pref.description),
+                    );
+                }
+                PreferenceValue::Int(_) => {
+                    cmds = cmds.arg(
+                        clap::Arg::new(pref.id)
+                            .long(pref.id)
+                            .value_parser(clap::value_parser!(i64))
+                            .help(pref.description),
+                    );
+                }
+            };
         }
 
         let cmds = cmds.get_matches();

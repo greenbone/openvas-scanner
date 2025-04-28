@@ -320,14 +320,18 @@ impl ScanPreferences {
     pub fn set_scan_with_preferences(&self, scan: &mut Scan) {
         let mut config_prefs_copy = self.scan_preferences.clone();
         let scan_prefs = scan.scan_preferences.clone();
-
+        let mut pref_index_to_remove = vec![];
         for (i, cp) in self.scan_preferences.iter().enumerate() {
             for sp in scan_prefs.iter() {
                 if cp.id == sp.id {
-                    config_prefs_copy.remove(i);
+                    pref_index_to_remove.push(i);
                 }
             }
         }
+        for i in pref_index_to_remove.iter().rev() {
+            config_prefs_copy.remove(*i);
+        }
+
         let conf_prefs: Vec<ScanPreference> =
             config_prefs_copy.iter().map(ScanPreference::from).collect();
         scan.scan_preferences.extend(conf_prefs);
