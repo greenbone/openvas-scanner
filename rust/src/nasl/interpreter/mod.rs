@@ -8,7 +8,6 @@ mod include;
 #[allow(clippy::module_inception)]
 mod interpreter;
 mod loop_extension;
-mod operator;
 
 pub use error::{FunctionCallError, InterpretError, InterpretErrorKind};
 pub use forking_interpreter::ForkingInterpreter;

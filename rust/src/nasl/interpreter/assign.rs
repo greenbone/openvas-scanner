@@ -5,13 +5,14 @@
 use std::collections::HashMap;
 
 use crate::nasl::interpreter::InterpretError;
-use crate::nasl::syntax::{AssignOrder, Statement, TokenKind};
 
-use super::interpreter::InterpretResult;
 use super::interpreter::Interpreter;
+use super::interpreter::Result;
 use crate::nasl::syntax::NaslValue;
-use crate::nasl::syntax::StatementKind::*;
 use crate::nasl::utils::ContextType;
+
+// TODO remove
+pub type AssignOrder = ();
 
 fn prepare_array(idx: &NaslValue, left: NaslValue) -> (usize, Vec<NaslValue>) {
     let idx = i64::from(idx) as usize;
@@ -58,187 +59,187 @@ impl Interpreter<'_> {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn handle_dict(
-        &mut self,
-        ridx: usize,
-        key: &str,
-        idx: String,
-        left: NaslValue,
-        right: &NaslValue,
-        return_original: &AssignOrder,
-        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
-    ) -> NaslValue {
-        let mut dict = prepare_dict(left);
-        match return_original {
-            AssignOrder::ReturnAssign => {
-                let original = dict.get(&idx).unwrap_or(&NaslValue::Null).clone();
-                let result = result(&original, right);
-                dict.insert(idx, result);
-                self.save(ridx, key, NaslValue::Dict(dict));
-                original
-            }
-            AssignOrder::AssignReturn => {
-                let original = dict.get(&idx).unwrap_or(&NaslValue::Null);
-                let result = result(original, right);
-                dict.insert(idx, result.clone());
-                self.save(ridx, key, NaslValue::Dict(dict));
-                result
-            }
-        }
-    }
+    // #[allow(clippy::too_many_arguments)]
+    // fn handle_dict(
+    //     &mut self,
+    //     ridx: usize,
+    //     key: &str,
+    //     idx: String,
+    //     left: NaslValue,
+    //     right: &NaslValue,
+    //     return_original: &AssignOrder,
+    //     result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    // ) -> NaslValue {
+    //     let mut dict = prepare_dict(left);
+    //     match return_original {
+    //         AssignOrder::ReturnAssign => {
+    //             let original = dict.get(&idx).unwrap_or(&NaslValue::Null).clone();
+    //             let result = result(&original, right);
+    //             dict.insert(idx, result);
+    //             self.save(ridx, key, NaslValue::Dict(dict));
+    //             original
+    //         }
+    //         AssignOrder::AssignReturn => {
+    //             let original = dict.get(&idx).unwrap_or(&NaslValue::Null);
+    //             let result = result(original, right);
+    //             dict.insert(idx, result.clone());
+    //             self.save(ridx, key, NaslValue::Dict(dict));
+    //             result
+    //         }
+    //     }
+    // }
 
-    #[allow(clippy::too_many_arguments)]
-    fn handle_array(
-        &mut self,
-        ridx: usize,
-        key: &str,
-        idx: &NaslValue,
-        left: NaslValue,
-        right: &NaslValue,
-        return_original: &AssignOrder,
-        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
-    ) -> NaslValue {
-        let (idx, mut arr) = prepare_array(idx, left);
-        match return_original {
-            AssignOrder::ReturnAssign => {
-                let orig = arr[idx].clone();
-                let result = result(&orig, right);
-                arr[idx] = result;
-                self.save(ridx, key, NaslValue::Array(arr));
-                orig
-            }
-            AssignOrder::AssignReturn => {
-                let result = result(&arr[idx], right);
-                arr[idx] = result.clone();
-                self.save(ridx, key, NaslValue::Array(arr));
-                result
-            }
-        }
-    }
+    // #[allow(clippy::too_many_arguments)]
+    // fn handle_array(
+    //     &mut self,
+    //     ridx: usize,
+    //     key: &str,
+    //     idx: &NaslValue,
+    //     left: NaslValue,
+    //     right: &NaslValue,
+    //     return_original: &AssignOrder,
+    //     result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    // ) -> NaslValue {
+    //     let (idx, mut arr) = prepare_array(idx, left);
+    //     match return_original {
+    //         AssignOrder::ReturnAssign => {
+    //             let orig = arr[idx].clone();
+    //             let result = result(&orig, right);
+    //             arr[idx] = result;
+    //             self.save(ridx, key, NaslValue::Array(arr));
+    //             orig
+    //         }
+    //         AssignOrder::AssignReturn => {
+    //             let result = result(&arr[idx], right);
+    //             arr[idx] = result.clone();
+    //             self.save(ridx, key, NaslValue::Array(arr));
+    //             result
+    //         }
+    //     }
+    // }
 
-    fn store_return(
-        &mut self,
-        key: &str,
-        lookup: Option<NaslValue>,
-        right: &NaslValue,
-        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
-    ) -> InterpretResult {
-        self.dynamic_return(key, &AssignOrder::AssignReturn, lookup, right, result)
-    }
+    // fn store_return(
+    //     &mut self,
+    //     key: &str,
+    //     lookup: Option<NaslValue>,
+    //     right: &NaslValue,
+    //     result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    // ) -> Result {
+    //     self.dynamic_return(key, &AssignOrder::AssignReturn, lookup, right, result)
+    // }
 
-    fn dynamic_return(
-        &mut self,
-        key: &str,
-        order: &AssignOrder,
-        lookup: Option<NaslValue>,
-        right: &NaslValue,
-        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
-    ) -> InterpretResult {
-        let (ridx, left) = self.named_value(key)?;
-        let result = match lookup {
-            None => {
-                let result = result(&left, right);
-                self.save(ridx, key, result.clone());
-                match order {
-                    AssignOrder::AssignReturn => result,
-                    AssignOrder::ReturnAssign => left,
-                }
-            }
-            Some(idx) => match idx {
-                NaslValue::String(idx) => {
-                    self.handle_dict(ridx, key, idx, left, right, order, result)
-                }
-                NaslValue::Data(idx) => {
-                    let idx = idx.into_iter().map(|x| x as char).collect();
-                    self.handle_dict(ridx, key, idx, left, right, order, result)
-                }
-                _ => match left {
-                    NaslValue::Dict(_) => {
-                        self.handle_dict(ridx, key, idx.to_string(), left, right, order, result)
-                    }
-                    _ => self.handle_array(ridx, key, &idx, left, right, order, result),
-                },
-            },
-        };
-        Ok(result)
-    }
-    fn without_right(
-        &mut self,
-        order: &AssignOrder,
-        key: &str,
-        lookup: Option<NaslValue>,
-        result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
-    ) -> InterpretResult {
-        self.dynamic_return(key, order, lookup, &NaslValue::Null, result)
-    }
+    // fn dynamic_return(
+    //     &mut self,
+    //     key: &str,
+    //     order: &AssignOrder,
+    //     lookup: Option<NaslValue>,
+    //     right: &NaslValue,
+    //     result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    // ) -> Result {
+    //     let (ridx, left) = self.named_value(key)?;
+    //     let result = match lookup {
+    //         None => {
+    //             let result = result(&left, right);
+    //             self.save(ridx, key, result.clone());
+    //             match order {
+    //                 AssignOrder::AssignReturn => result,
+    //                 AssignOrder::ReturnAssign => left,
+    //             }
+    //         }
+    //         Some(idx) => match idx {
+    //             NaslValue::String(idx) => {
+    //                 self.handle_dict(ridx, key, idx, left, right, order, result)
+    //             }
+    //             NaslValue::Data(idx) => {
+    //                 let idx = idx.into_iter().map(|x| x as char).collect();
+    //                 self.handle_dict(ridx, key, idx, left, right, order, result)
+    //             }
+    //             _ => match left {
+    //                 NaslValue::Dict(_) => {
+    //                     self.handle_dict(ridx, key, idx.to_string(), left, right, order, result)
+    //                 }
+    //                 _ => self.handle_array(ridx, key, &idx, left, right, order, result),
+    //             },
+    //         },
+    //     };
+    //     Ok(result)
+    // }
+    // fn without_right(
+    //     &mut self,
+    //     order: &AssignOrder,
+    //     key: &str,
+    //     lookup: Option<NaslValue>,
+    //     result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
+    // ) -> Result {
+    //     self.dynamic_return(key, order, lookup, &NaslValue::Null, result)
+    // }
 }
 
 impl Interpreter<'_> {
-    /// Assign a right value to a left value. Return either the
-    /// previous or the new value, based on the order.
-    pub async fn assign(
-        &mut self,
-        kind: &TokenKind,
-        order: &AssignOrder,
-        left: &Statement,
-        right: &Statement,
-    ) -> InterpretResult {
-        let (key, lookup) = {
-            match left.kind() {
-                Variable => (left.as_token().identifier()?, None),
-                Array(Some(stmt)) => (
-                    left.as_token().identifier()?,
-                    Some(self.resolve(stmt).await?),
-                ),
-                Array(None) => (left.as_token().identifier()?, None),
-                _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
-            }
-        };
-        let val = self.resolve(right).await?;
-        match kind {
-            TokenKind::Equal => self.store_return(&key, lookup, &val, |_, right| right.clone()),
-            TokenKind::PlusEqual => self.store_return(&key, lookup, &val, |left, right| {
-                NaslValue::Number(i64::from(left) + i64::from(right))
-            }),
-            TokenKind::MinusEqual => self.store_return(&key, lookup, &val, |left, right| {
-                NaslValue::Number(i64::from(left) - i64::from(right))
-            }),
-            TokenKind::SlashEqual => self.store_return(&key, lookup, &val, |left, right| {
-                NaslValue::Number(i64::from(left) / i64::from(right))
-            }),
-            TokenKind::StarEqual => self.store_return(&key, lookup, &val, |left, right| {
-                NaslValue::Number(i64::from(left) * i64::from(right))
-            }),
-            TokenKind::GreaterGreaterEqual => {
-                self.store_return(&key, lookup, &val, |left, right| {
-                    NaslValue::Number(i64::from(left) >> i64::from(right))
-                })
-            }
-            TokenKind::LessLessEqual => self.store_return(&key, lookup, &val, |left, right| {
-                NaslValue::Number(i64::from(left) << i64::from(right))
-            }),
-            TokenKind::GreaterGreaterGreaterEqual => {
-                self.store_return(&key, lookup, &val, |left, right| {
-                    // get rid of minus sign
-                    let left = i64::from(left) as u32;
-                    let right = i64::from(right) as u32;
-                    NaslValue::Number((left >> right) as i64)
-                })
-            }
-            TokenKind::PercentEqual => self.store_return(&key, lookup, &val, |left, right| {
-                NaslValue::Number(i64::from(left) % i64::from(right))
-            }),
-            TokenKind::PlusPlus => self.without_right(order, &key, lookup, |left, _| {
-                NaslValue::Number(i64::from(left) + 1)
-            }),
-            TokenKind::MinusMinus => self.without_right(order, &key, lookup, |left, _| {
-                NaslValue::Number(i64::from(left) - 1)
-            }),
+    // /// Assign a right value to a left value. Return either the
+    // /// previous or the new value, based on the order.
+    // pub async fn assign(
+    //     &mut self,
+    //     kind: &TokenKind,
+    //     order: &AssignOrder,
+    //     left: &Statement,
+    //     right: &Statement,
+    // ) -> Result {
+    //     let (key, lookup) = {
+    //         match left.kind() {
+    //             Variable => (left.as_token().identifier()?, None),
+    //             Array(Some(stmt)) => (
+    //                 left.as_token().identifier()?,
+    //                 Some(self.resolve(stmt).await?),
+    //             ),
+    //             Array(None) => (left.as_token().identifier()?, None),
+    //             _ => return Err(InterpretError::unsupported(left, "Array or Variable")),
+    //         }
+    //     };
+    //     let val = self.resolve(right).await?;
+    //     match kind {
+    //         TokenKind::Equal => self.store_return(&key, lookup, &val, |_, right| right.clone()),
+    //         TokenKind::PlusEqual => self.store_return(&key, lookup, &val, |left, right| {
+    //             NaslValue::Number(i64::from(left) + i64::from(right))
+    //         }),
+    //         TokenKind::MinusEqual => self.store_return(&key, lookup, &val, |left, right| {
+    //             NaslValue::Number(i64::from(left) - i64::from(right))
+    //         }),
+    //         TokenKind::SlashEqual => self.store_return(&key, lookup, &val, |left, right| {
+    //             NaslValue::Number(i64::from(left) / i64::from(right))
+    //         }),
+    //         TokenKind::StarEqual => self.store_return(&key, lookup, &val, |left, right| {
+    //             NaslValue::Number(i64::from(left) * i64::from(right))
+    //         }),
+    //         TokenKind::GreaterGreaterEqual => {
+    //             self.store_return(&key, lookup, &val, |left, right| {
+    //                 NaslValue::Number(i64::from(left) >> i64::from(right))
+    //             })
+    //         }
+    //         TokenKind::LessLessEqual => self.store_return(&key, lookup, &val, |left, right| {
+    //             NaslValue::Number(i64::from(left) << i64::from(right))
+    //         }),
+    //         TokenKind::GreaterGreaterGreaterEqual => {
+    //             self.store_return(&key, lookup, &val, |left, right| {
+    //                 // get rid of minus sign
+    //                 let left = i64::from(left) as u32;
+    //                 let right = i64::from(right) as u32;
+    //                 NaslValue::Number((left >> right) as i64)
+    //             })
+    //         }
+    //         TokenKind::PercentEqual => self.store_return(&key, lookup, &val, |left, right| {
+    //             NaslValue::Number(i64::from(left) % i64::from(right))
+    //         }),
+    //         TokenKind::PlusPlus => self.without_right(order, &key, lookup, |left, _| {
+    //             NaslValue::Number(i64::from(left) + 1)
+    //         }),
+    //         TokenKind::MinusMinus => self.without_right(order, &key, lookup, |left, _| {
+    //             NaslValue::Number(i64::from(left) - 1)
+    //         }),
 
-            kind => Err(InterpretError::wrong_kind(kind)),
-        }
-    }
+    //         kind => Err(InterpretError::wrong_kind(kind)),
+    //     }
+    // }
 }
 
 #[cfg(test)]

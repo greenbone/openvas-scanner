@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (named_function_call),\n\"script_tag(name:\\\"cvss_base\\\", value:1 + 1 % 2);\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-script_tag(name: "cvss_base", value: 1 + 1 % 2);

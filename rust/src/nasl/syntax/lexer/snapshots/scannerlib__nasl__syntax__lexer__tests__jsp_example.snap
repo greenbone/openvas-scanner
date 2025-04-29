@@ -1,7 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (jsp_example),\nr#\"\n    gms_path = gms_path + 'webapps\\\\appliance\\\\';\n    jsp = '<% out.println( \"' + jsp_print  + '\" ); %>';\n    \"#).into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-gms_path = gms_path + [119, 101, 98, 97, 112, 112, 115, 92, 97, 112, 112, 108, 105, 97, 110, 99, 101, 92]
-jsp = [60, 37, 32, 111, 117, 116, 46, 112, 114, 105, 110, 116, 108, 110, 40, 32, 34] + jsp_print + [34, 32, 41, 59, 32, 37, 62]

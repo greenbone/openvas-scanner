@@ -1,7 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (logical_operator),\n\"a && 1; a || 1;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec\n< _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-a && 1
-a || 1

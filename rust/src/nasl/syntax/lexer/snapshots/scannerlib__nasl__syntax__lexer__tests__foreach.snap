@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (foreach),\n\"foreach a(b) c;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec\n< _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-foreach a(b) {c}

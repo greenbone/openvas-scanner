@@ -2,7 +2,7 @@ use crate::nasl::syntax::{Token, TokenKind, Tokenizer, TokenizerError, tokenizer
 
 use super::{FromPeek, Matches, error::SpannedError};
 
-pub(super) trait Peek: Sized {
+pub trait Peek: Sized {
     fn peek(&self) -> &TokenKind;
     fn peek_next(&self) -> &TokenKind;
 

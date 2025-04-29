@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (repeat),\n\"repeat a; until b;\").into_iter().map(| stmt | stmt.to_string()).collect :: <\nVec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-repeat a until b

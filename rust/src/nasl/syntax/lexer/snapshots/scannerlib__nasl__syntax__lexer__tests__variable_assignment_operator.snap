@@ -1,9 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (variable_assignment_operator),\n\"a++; a--; a[1]++; a[1]--;\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-a++
-a--
-a[1]++
-a[1]--

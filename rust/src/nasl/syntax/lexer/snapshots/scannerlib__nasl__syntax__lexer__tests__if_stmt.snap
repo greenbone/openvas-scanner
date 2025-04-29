@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (if_stmt),\n\"if (a) b; else c;\").into_iter().map(| stmt | stmt.to_string()).collect :: <\nVec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-if (a) b else c

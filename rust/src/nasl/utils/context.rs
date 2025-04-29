@@ -37,7 +37,7 @@ use super::{
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 ///
 /// Represents a Value within the NaslContext
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub enum ContextType {
     /// Represents a Function definition
     Function(Vec<String>, Statement),

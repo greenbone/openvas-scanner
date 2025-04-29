@@ -1,8 +1,10 @@
 use futures::{Stream, stream};
 
-use crate::nasl::{Context, Register, syntax::Ast};
+use crate::nasl::{Context, NaslValue, Register, syntax::Ast};
 
-use super::{interpreter::InterpretResult, interpreter::Interpreter};
+use super::{InterpretError, interpreter::Interpreter};
+
+use super::interpreter::Result;
 
 /// Handles code execution with forking behavior.
 /// In order to do so, this struct maintains a list of
@@ -27,19 +29,19 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         }
     }
 
-    pub fn stream(self) -> impl Stream<Item = InterpretResult> + use<'ctx> {
+    pub fn stream(self) -> impl Stream<Item = Result> + use<'ctx> {
         Box::pin(stream::unfold(self, |mut s| async move {
             s.next().await.map(|x| (x, s))
         }))
     }
 
-    pub fn iter_blocking(self) -> impl Iterator<Item = InterpretResult> + use<> {
+    pub fn iter_blocking(self) -> impl Iterator<Item = Result> + use<> {
         use futures::StreamExt;
 
         futures::executor::block_on(async { self.stream().collect::<Vec<_>>().await.into_iter() })
     }
 
-    async fn next(&mut self) -> Option<InterpretResult> {
+    async fn next(&mut self) -> Option<Result> {
         while self
             .interpreters
             .iter()
@@ -58,7 +60,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
     /// if the current interpreter wanted to fork (in which case we return
     /// `None` once but subsequent calls to `try_next` will begin executing
     /// the same statement for the forks).
-    async fn try_next(&mut self) -> Option<InterpretResult> {
+    async fn try_next(&mut self) -> Option<Result> {
         self.interpreter_index = (self.interpreter_index + 1) % self.interpreters.len();
         let interpreter = &mut self.interpreters[self.interpreter_index];
         if !interpreter.is_finished() {

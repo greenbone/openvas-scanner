@@ -1,5 +1,5 @@
-mod cursor;
-mod error;
+pub mod cursor;
+pub mod error;
 pub mod grammar;
 mod pretty_print;
 #[cfg(test)]
@@ -10,7 +10,8 @@ use cursor::Peek;
 pub use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
-use error::{Error, ErrorKind};
+// TODO make this private and the definition pub(super) again.
+pub use error::{Error, ErrorKind};
 use grammar::ArrayAccess;
 use grammar::Assignment;
 use grammar::AssignmentOperator;
@@ -39,19 +40,19 @@ use grammar::{
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
-trait Parse: Sized {
+pub trait Parse: Sized {
     fn parse(parser: &mut Parser) -> Result<Self>;
 }
 
-trait Matches: Sized {
+pub trait Matches: Sized {
     fn matches(p: &impl Peek) -> bool;
 }
 
-trait FromPeek: Sized {
+pub trait FromPeek: Sized {
     fn from_peek(p: &impl Peek) -> Option<Self>;
 }
 
-trait Delimiter: Default {
+pub trait Delimiter: Default {
     fn start() -> TokenKind;
     fn end() -> TokenKind;
 }
@@ -155,7 +156,7 @@ impl Parser {
         T::parse(self)
     }
 
-    fn advance(&mut self) -> Token {
+    pub fn advance(&mut self) -> Token {
         self.cursor.advance()
     }
 

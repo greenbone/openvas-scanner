@@ -6,7 +6,7 @@ use crate::nasl::{
 };
 
 #[derive(Debug)]
-pub(super) struct Error {
+pub struct Error {
     pub kind: ErrorKind,
     pub span: Option<Span>,
 }

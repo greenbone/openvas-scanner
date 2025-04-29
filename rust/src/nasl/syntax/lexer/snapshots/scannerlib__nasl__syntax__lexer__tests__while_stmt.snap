@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (while_stmt),\n\"while (a) b;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec <\n_ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-while (a) {b}

@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (include),\n\"include(\\\"test.inc\\\");\").into_iter().map(| stmt | stmt.to_string()).collect\n:: < Vec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-include("test.inc");

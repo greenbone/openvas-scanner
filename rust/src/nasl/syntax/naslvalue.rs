@@ -2,9 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::ops::{BitAnd, BitOr, BitXor, Div, Mul, Rem, Shl, Shr};
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
-use crate::storage::items::{kb::KbItem, nvt::ACT};
+use regex::Regex;
+
+use crate::nasl::utils::function::bytes_to_str;
+use crate::{
+    nasl::interpreter::{InterpretError, InterpretErrorKind},
+    storage::items::{kb::KbItem, nvt::ACT},
+};
 
 use super::{Keyword, token::Literal};
 
@@ -67,6 +74,112 @@ impl NaslValue {
             Self::Boolean(x) => Boolean(x),
             _ => Null,
         }
+    }
+
+    pub(crate) fn as_number(&self) -> Result<i64, InterpretErrorKind> {
+        match self {
+            NaslValue::Number(n) => Ok(*n),
+            _ => Err(InterpretErrorKind::ExpectedNumber),
+        }
+    }
+
+    pub(crate) fn as_string(&self) -> Result<String, InterpretErrorKind> {
+        match self {
+            NaslValue::String(string) => Ok(string.clone()),
+            NaslValue::Data(buffer) => Ok(bytes_to_str(buffer)),
+            _ => Err(InterpretErrorKind::ExpectedString),
+        }
+    }
+
+    pub(crate) fn as_boolean(&self) -> Result<bool, InterpretErrorKind> {
+        match self {
+            NaslValue::Boolean(b) => Ok(*b),
+            NaslValue::Number(n) => Ok(*n != 0),
+            NaslValue::String(s) => Ok(!s.is_empty()),
+            NaslValue::Data(d) => Ok(!d.is_empty()),
+            NaslValue::Array(_) => Ok(true),
+            _ => Ok(true),
+        }
+    }
+
+    fn add_string(&self, rhs: &NaslValue) -> Option<NaslValue> {
+        let concatenated = || format!("{self}{rhs}");
+        match self {
+            NaslValue::String(_) => return Some(NaslValue::String(concatenated())),
+            NaslValue::Data(_) => return Some(NaslValue::Data(concatenated().into())),
+            _ => {}
+        }
+        match rhs {
+            NaslValue::String(_) => Some(NaslValue::String(concatenated())),
+            NaslValue::Data(_) => Some(NaslValue::Data(concatenated().into())),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn add(&self, rhs: NaslValue) -> NaslValue {
+        self.add_string(&rhs)
+            .unwrap_or_else(|| (i64::from(self) + i64::from(rhs)).into())
+    }
+
+    fn sub_string(&self, rhs: &NaslValue) -> Option<NaslValue> {
+        let concatenated = || {
+            let lhs = self.to_string();
+            let rhs = rhs.to_string();
+            lhs.replacen(&rhs, "", 1)
+        };
+        match self {
+            NaslValue::String(_) => return Some(NaslValue::String(concatenated())),
+            NaslValue::Data(_) => return Some(NaslValue::Data(concatenated().into())),
+            _ => {}
+        }
+        match rhs {
+            NaslValue::String(_) => Some(NaslValue::String(concatenated())),
+            NaslValue::Data(_) => Some(NaslValue::Data(concatenated().into())),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn sub(&self, rhs: NaslValue) -> NaslValue {
+        self.sub_string(&rhs)
+            .unwrap_or_else(|| (i64::from(self) - i64::from(rhs)).into())
+    }
+
+    pub(crate) fn shr_unsigned(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+        let lhs = self.as_number()?;
+        let rhs = rhs.as_number()?;
+        let result = ((lhs as u32) >> rhs) as i32;
+        Ok(NaslValue::Number(result as i64))
+    }
+
+    pub(crate) fn neg(&self) -> Result<NaslValue, InterpretError> {
+        Ok(NaslValue::Number(-self.as_number()?))
+    }
+
+    pub(crate) fn not(&self) -> Result<NaslValue, InterpretError> {
+        Ok(NaslValue::Boolean(!self.as_boolean()?))
+    }
+
+    pub(crate) fn bitwise_not(&self) -> Result<NaslValue, InterpretError> {
+        Ok(NaslValue::Number(!self.as_number()?))
+    }
+
+    pub(crate) fn pow(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+        let lhs = self.as_number()?;
+        let rhs = rhs.as_number()?;
+        Ok(NaslValue::Number((lhs as u32).pow(rhs as u32) as i64))
+    }
+
+    pub(crate) fn match_regex(&self, matches: NaslValue) -> Result<NaslValue, InterpretError> {
+        let matches = matches.as_string()?;
+        match Regex::new(&matches) {
+            Ok(c) => Ok(NaslValue::Boolean(c.is_match(&self.to_string()))),
+            Err(_) => Err(InterpretError::unparse_regex(&matches)),
+        }
+    }
+
+    pub(crate) fn match_string(&self, matches: NaslValue) -> Result<NaslValue, InterpretError> {
+        let matches = matches.as_string()?;
+        Ok(NaslValue::Boolean(self.as_string()?.contains(&matches)))
     }
 }
 
@@ -182,6 +295,50 @@ impl From<HashMap<String, NaslValue>> for NaslValue {
         NaslValue::Dict(x)
     }
 }
+
+macro_rules! impl_number_operator {
+    ($ident: ident, $path: expr) => {
+        impl NaslValue {
+            pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+                let n1 = self.as_number()?;
+                let n2 = rhs.as_number()?;
+                Ok($path(n1.$ident(&n2)))
+            }
+        }
+    };
+}
+
+impl_number_operator!(mul, Self::Number);
+impl_number_operator!(div, Self::Number);
+impl_number_operator!(rem, Self::Number);
+impl_number_operator!(shl, Self::Number);
+impl_number_operator!(shr, Self::Number);
+impl_number_operator!(bitor, Self::Number);
+impl_number_operator!(bitand, Self::Number);
+impl_number_operator!(bitxor, Self::Number);
+impl_number_operator!(eq, Self::Boolean);
+impl_number_operator!(ne, Self::Boolean);
+impl_number_operator!(gt, Self::Boolean);
+impl_number_operator!(ge, Self::Boolean);
+impl_number_operator!(lt, Self::Boolean);
+impl_number_operator!(le, Self::Boolean);
+
+macro_rules! impl_boolean_operator {
+    ($ident: ident, $path: expr, $op: tt) => {
+        impl NaslValue {
+            pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+                let b1 = self.as_boolean()?;
+                let b2 = rhs.as_boolean()?;
+                Ok($path(b1 $op b2))
+            }
+        }
+    };
+}
+
+impl_boolean_operator!(and, Self::Boolean, &&);
+impl_boolean_operator!(or, Self::Boolean, ||);
+
+// TODO turn these into error-based conversions
 
 impl From<NaslValue> for Vec<u8> {
     fn from(value: NaslValue) -> Self {

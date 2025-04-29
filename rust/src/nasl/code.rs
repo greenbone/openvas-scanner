@@ -1,14 +1,14 @@
-use std::{
-    path::{Path, PathBuf},
-    vec,
-};
+use std::path::{Path, PathBuf};
 
 use codespan_reporting::files::SimpleFile;
 use itertools::{Either, Itertools};
 
 use super::{
     Loader,
-    syntax::{Ast, Declaration, Lexer, LoadError, SyntaxError, Token, Tokenizer, TokenizerError},
+    syntax::{
+        Ast, LoadError, Token, Tokenizer, TokenizerError,
+        parser::{ParseError, Parser},
+    },
 };
 
 fn split_tokens_and_errors(tokenizer: Tokenizer) -> Result<Vec<Token>, Vec<TokenizerError>> {
@@ -23,19 +23,16 @@ fn split_tokens_and_errors(tokenizer: Tokenizer) -> Result<Vec<Token>, Vec<Token
     }
 }
 
-fn parse(code: &str) -> Result<Ast, Vec<SyntaxError>> {
-    let tokens = split_tokens_and_errors(Tokenizer::tokenize(code))
-        .map_err(|errs| errs.into_iter().map(SyntaxError::from).collect::<Vec<_>>())?;
-    let lexer = Lexer::new(tokens);
-    let results = lexer.collect::<Result<Vec<_>, _>>();
-    // TODO support multiple errors
-    results.map_err(|e| vec![e]).map(Ast::new)
+fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
+    let tokenizer = Tokenizer::tokenize(code);
+    let mut parser = Parser::new(tokenizer);
+    parser.parse_program()
 }
 
 pub type SourceFile = SimpleFile<String, String>;
 
 pub struct ParseResult {
-    result: Result<Ast, Vec<SyntaxError>>,
+    result: Result<Ast, Vec<ParseError>>,
     file: SourceFile,
 }
 
@@ -50,7 +47,7 @@ impl ParseResult {
         Self::new(code, Path::new(""))
     }
 
-    pub fn result(self) -> Result<Ast, Vec<SyntaxError>> {
+    pub fn result(self) -> Result<Ast, Vec<ParseError>> {
         self.result
     }
 
@@ -75,10 +72,6 @@ impl ParseResult {
     pub fn unwrap_errors_str(self) -> String {
         let errs = self.result.unwrap_err();
         super::error::emit_errors_str(&self.file, errs.into_iter())
-    }
-
-    pub fn unwrap_decls(self) -> Vec<Declaration> {
-        self.result.unwrap().decls()
     }
 
     pub fn file(&self) -> &SourceFile {

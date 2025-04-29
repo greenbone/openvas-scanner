@@ -516,3 +516,28 @@ parse_test_ok!(
                 0x0a);
     "###
 );
+
+parse_test_err!(
+    missing_semicolon_assignment,
+    Program,
+    "a = 12",
+    "a = [1, 2, 4]"
+);
+parse_test_err!(missing_semicolon_call, Program, "called(me)");
+parse_test_err!(
+    missing_right_paren,
+    Program,
+    "called(me;",
+    "foreach a(x { a = 2;",
+    "for (i = 0; i < 10; i++ ;",
+    "while (TRUE ;"
+);
+
+parse_test_err!(
+    missing_right_curly_bracket,
+    Program,
+    "if (a) { a = 2",
+    "foreach a(x) { a = 2;",
+    "{ a = 2;",
+    "function a() { a = 2;",
+);

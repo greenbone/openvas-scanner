@@ -101,6 +101,21 @@ pub enum InterpretErrorKind {
         "Invalid fork. The interpreter forked in a position which was not reached by the created forks."
     )]
     InvalidFork,
+    #[error("Expected a string.")]
+    ExpectedString,
+    #[error("Expected a boolean.")]
+    ExpectedBoolean,
+    #[error("Expected a number.")]
+    ExpectedNumber,
+    #[error("Expected an array.")]
+    ExpectedArray,
+}
+
+// TODO fix this
+impl From<InterpretErrorKind> for InterpretError {
+    fn from(kind: InterpretErrorKind) -> Self {
+        Self { kind, origin: None }
+    }
 }
 
 #[derive(Debug)]

@@ -7,7 +7,7 @@ use crate::nasl::syntax::{Statement, Token};
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
 
-use super::interpreter::{InterpretResult, Interpreter};
+use super::interpreter::{Interpreter, Result};
 
 /// Note that for all loops, we do not
 /// change the context, as the current NASL also does not change it too.
@@ -26,30 +26,31 @@ impl Interpreter<'_> {
         condition: &Statement,
         update: &Statement,
         body: &Statement,
-    ) -> InterpretResult {
-        // Resolve assignment
-        self.resolve(assignment).await?;
-        loop {
-            // Check condition statement
-            if !bool::from(self.resolve(condition).await?) {
-                break;
-            }
+    ) -> Result {
+        todo!()
+        // // Resolve assignment
+        // self.resolve(assignment).await?;
+        // loop {
+        //     // Check condition statement
+        //     if !bool::from(self.resolve(condition).await?) {
+        //         break;
+        //     }
 
-            // Execute loop body
-            let ret = self.resolve(body).await?;
-            // Catch special values
-            match ret {
-                NaslValue::Break => break,
-                NaslValue::Exit(code) => return Ok(NaslValue::Exit(code)),
-                NaslValue::Return(val) => return Ok(NaslValue::Return(val)),
-                _ => (),
-            };
+        //     // Execute loop body
+        //     let ret = self.resolve(body).await?;
+        //     // Catch special values
+        //     match ret {
+        //         NaslValue::Break => break,
+        //         NaslValue::Exit(code) => return Ok(NaslValue::Exit(code)),
+        //         NaslValue::Return(val) => return Ok(NaslValue::Return(val)),
+        //         _ => (),
+        //     };
 
-            // Execute update Statement
-            self.resolve(update).await?;
-        }
+        //     // Execute update Statement
+        //     self.resolve(update).await?;
+        // }
 
-        Ok(NaslValue::Null)
+        // Ok(NaslValue::Null)
     }
 
     /// Interpreting a NASL repeat until loop. A NASL repeat until loop is built
@@ -64,7 +65,7 @@ impl Interpreter<'_> {
         variable: &Token,
         iterable: &Statement,
         body: &Statement,
-    ) -> InterpretResult {
+    ) -> Result {
         // Get name of the iteration variable
         let iter_name = variable.identifier()?;
         // Iterate through the iterable Statement
@@ -93,7 +94,7 @@ impl Interpreter<'_> {
     ///
     /// The iterable is first transformed into an Array, then we iterate through
     /// it and resolve the body for every value in the array.
-    pub async fn while_loop(&mut self, condition: &Statement, body: &Statement) -> InterpretResult {
+    pub async fn while_loop(&mut self, condition: &Statement, body: &Statement) -> Result {
         while bool::from(self.resolve(condition).await?) {
             // Execute loop body
             let ret = self.resolve(body).await?;
@@ -116,11 +117,7 @@ impl Interpreter<'_> {
     ///
     /// The condition is first checked, then the body resolved, as long as the
     /// condition resolves into a `TRUE` NaslValue.
-    pub async fn repeat_loop(
-        &mut self,
-        body: &Statement,
-        condition: &Statement,
-    ) -> InterpretResult {
+    pub async fn repeat_loop(&mut self, body: &Statement, condition: &Statement) -> Result {
         loop {
             // Execute loop body
             let ret = self.resolve(body).await?;

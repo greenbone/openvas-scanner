@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (arrays),\n\"a[0] = [1, 2, 4];\").into_iter().map(| stmt | stmt.to_string()).collect :: <\nVec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-a[0] = (1, 2, 4)

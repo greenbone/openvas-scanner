@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (declare),\n\"local_var a;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec <\n_ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-local_var a

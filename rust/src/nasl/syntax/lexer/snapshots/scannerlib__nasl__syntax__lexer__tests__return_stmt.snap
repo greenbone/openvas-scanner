@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/lexer/tests.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (return_stmt),\n\"return 0;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec < _\n>> ().join(\"\\n\")"
-snapshot_kind: text
----
-return 0;

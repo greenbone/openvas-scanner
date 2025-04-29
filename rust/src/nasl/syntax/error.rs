@@ -15,7 +15,7 @@ use crate::nasl::{
 
 use super::{TokenizerError, tokenizer::TokenizerErrorKind};
 
-#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Debug, Error)]
 /// A list specifying general categories of Syntax error.
 pub enum ErrorKind {
     /// An unexpected token occurred
@@ -70,17 +70,18 @@ pub struct SyntaxError {
 impl SyntaxError {
     /// Returns a token of the underlying error kind
     pub fn as_token(&self) -> Option<&Token> {
-        match &self.kind {
-            ErrorKind::UnexpectedToken(t) => Some(t),
-            ErrorKind::UnclosedToken(t) => Some(t),
-            ErrorKind::UnexpectedStatement(s) => Some(s.as_token()),
-            ErrorKind::MissingSemicolon(s) => Some(s.as_token()),
-            ErrorKind::UnclosedStatement(s) => Some(s.as_token()),
-            ErrorKind::EoF => None,
-            ErrorKind::IOError(_) => None,
-            ErrorKind::MaxRecursionDepth(_) => None,
-            ErrorKind::Tokenizer(_) => None,
-        }
+        todo!()
+        // match &self.kind {
+        //     ErrorKind::UnexpectedToken(t) => Some(t),
+        //     ErrorKind::UnclosedToken(t) => Some(t),
+        //     ErrorKind::UnexpectedStatement(s) => Some(s.as_token()),
+        //     ErrorKind::MissingSemicolon(s) => Some(s.as_token()),
+        //     ErrorKind::UnclosedStatement(s) => Some(s.as_token()),
+        //     ErrorKind::EoF => None,
+        //     ErrorKind::IOError(_) => None,
+        //     ErrorKind::MaxRecursionDepth(_) => None,
+        //     ErrorKind::Tokenizer(_) => None,
+        // }
     }
 }
 
@@ -169,27 +170,4 @@ impl AsCodespanError for SyntaxError {
     fn message(&self) -> String {
         format!("{}", self.kind)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::nasl::syntax::lexer::tests::parse_test_err;
-
-    parse_test_err!(missing_semicolon_assignment, "a = 12", "a = [1, 2, 4]");
-    parse_test_err!(missing_semicolon_call, "called(me)");
-    parse_test_err!(
-        missing_right_paren,
-        "called(me;",
-        "foreach a(x { a = 2;",
-        "for (i = 0; i < 10; i++ ;",
-        "while (TRUE ;"
-    );
-
-    parse_test_err!(
-        missing_right_curly_bracket,
-        "if (a) { a = 2",
-        "foreach a(x) { a = 2;",
-        "{ a = 2;",
-        "function a() { a = 2;",
-    );
 }

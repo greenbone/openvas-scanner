@@ -6,8 +6,8 @@
 
 use std::fs::File;
 
-use crate::nasl::syntax::{AsBufReader, Declaration, Ident, Loader};
-use crate::nasl::syntax::{Statement, StatementKind, TokenKind};
+use crate::nasl::syntax::{AsBufReader, Ident, Loader};
+use crate::nasl::syntax::{Statement, TokenKind};
 
 use crate::feed::{
     update,
@@ -40,42 +40,44 @@ where
     }
 
     fn script_oid(stmt: &Statement) -> Option<String> {
-        match stmt.kind() {
-            StatementKind::Call(param) => match stmt.start().kind() {
-                TokenKind::Ident(Ident(s)) => match s as &str {
-                    // maybe switch from children to patternmatching?
-                    "script_oid" => param.children().first().map(|x| x.to_string()),
-                    _ => None,
-                },
-                _ => None,
-            },
-            _ => None,
-        }
+        todo!()
+        // match stmt.kind() {
+        //     StatementKind::Call(param) => match stmt.start().kind() {
+        //         TokenKind::Ident(Ident(s)) => match s as &str {
+        //             // maybe switch from children to patternmatching?
+        //             "script_oid" => param.children().first().map(|x| x.to_string()),
+        //             _ => None,
+        //         },
+        //         _ => None,
+        //     },
+        //     _ => None,
+        // }
     }
 
     /// Returns the OID string or update::Error::MissingExit.
     fn single(&self, key: String) -> Result<String, update::ErrorKind> {
-        // TODO: This makes no sense.
-        for decl in Code::load(&self.loader, &key)?
-            .parse()
-            .result()
-            .map_err(update::ErrorKind::SyntaxError)?
-        {
-            match decl {
-                Declaration::Statement(stmt) => {
-                    if let StatementKind::If(_, stmts, _, _) = stmt.kind() {
-                        if let StatementKind::Block(x) = stmts.kind() {
-                            for stmt in x {
-                                if let Some(oid) = Self::script_oid(stmt) {
-                                    return Ok(oid);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Err(update::ErrorKind::MissingExit(key))
+        todo!()
+        // // TODO: This makes no sense.
+        // for decl in Code::load(&self.loader, &key)?
+        //     .parse()
+        //     .result()
+        //     .map_err(update::ErrorKind::SyntaxError)?
+        // {
+        //     match decl {
+        //         Declaration::Statement(stmt) => {
+        //             if let StatementKind::If(_, stmts, _, _) = stmt.kind() {
+        //                 if let StatementKind::Block(x) = stmts.kind() {
+        //                     for stmt in x {
+        //                         if let Some(oid) = Self::script_oid(stmt) {
+        //                             return Ok(oid);
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        // Err(update::ErrorKind::MissingExit(key))
     }
 }
 
