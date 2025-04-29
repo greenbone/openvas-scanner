@@ -96,8 +96,8 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
     /// Set scanner preferences
     pub fn scan_preferences(mut self, prefs: HashMap<String, preference::ScanPrefValue>) -> Self {
         let mut prefs_bind = preference::ScanPreferences::new();
-        let prefs = prefs_bind.load_params(prefs);
-        self.preferences = Some(prefs.clone());
+        prefs_bind.override_default_preferences(prefs);
+        self.preferences = Some(prefs_bind);
         self
     }
 

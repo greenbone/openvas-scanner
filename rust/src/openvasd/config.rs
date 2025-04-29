@@ -576,32 +576,13 @@ impl Config {
             );
 
         for pref in PREFERENCES {
-            match pref.default {
-                PreferenceValue::Bool(_) => {
-                    cmds = cmds.arg(
-                        clap::Arg::new(pref.id)
-                            .long(pref.id)
-                            .value_parser(clap::builder::BoolValueParser::new())
-                            .help(pref.description),
-                    );
-                }
-                PreferenceValue::String(_) => {
-                    cmds = cmds.arg(
-                        clap::Arg::new(pref.id)
-                            .long(pref.id)
-                            .value_parser(clap::value_parser!(String))
-                            .help(pref.description),
-                    );
-                }
-                PreferenceValue::Int(_) => {
-                    cmds = cmds.arg(
-                        clap::Arg::new(pref.id)
-                            .long(pref.id)
-                            .value_parser(clap::value_parser!(i64))
-                            .help(pref.description),
-                    );
-                }
+            let mut arg = clap::Arg::new(pref.id).long(pref.id).help(pref.description);
+            arg = match pref.default {
+                PreferenceValue::Bool(_) => arg.value_parser(clap::builder::BoolValueParser::new()),
+                PreferenceValue::String(_) => arg.value_parser(clap::value_parser!(String)),
+                PreferenceValue::Int(_) => arg.value_parser(clap::value_parser!(i64)),
             };
+            cmds = cmds.arg(arg);
         }
 
         let cmds = cmds.get_matches();
@@ -692,49 +673,49 @@ impl Config {
             }
         }
 
-        let mut scan_prefs: HashMap<String, ScanPrefValue> = HashMap::new();
-        for pref in PREFERENCES.iter() {
-            match pref.default {
-                PreferenceValue::Bool(_) => {
-                    if let Some(p) = cmds.get_one::<bool>(pref.id) {
-                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(*p));
-                    } else if let Some(ScanPrefValue::Bool(p)) =
-                        config.scanner.preferences.get(pref.id)
-                    {
-                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Bool(*p));
-                    } else {
-                        scan_prefs.insert(pref.id.to_string(), pref.default.clone().into());
+        let scan_prefs: HashMap<String, ScanPrefValue> = PREFERENCES
+            .iter()
+            .map(|pref| {
+                let val = match pref.default {
+                    PreferenceValue::Bool(_) => {
+                        if let Some(p) = cmds.get_one::<bool>(pref.id) {
+                            ScanPrefValue::Bool(*p)
+                        } else if let Some(ScanPrefValue::Bool(p)) =
+                            config.scanner.preferences.get(pref.id)
+                        {
+                            ScanPrefValue::Bool(*p)
+                        } else {
+                            pref.default.clone().into()
+                        }
                     }
-                }
-                PreferenceValue::String(_) => {
-                    if let Some(p) = cmds.get_one::<String>(pref.id) {
-                        scan_prefs
-                            .insert(pref.id.to_string(), ScanPrefValue::String(p.to_string()));
-                    } else if let Some(ScanPrefValue::String(p)) =
-                        config.scanner.preferences.get(pref.id)
-                    {
-                        scan_prefs
-                            .insert(pref.id.to_string(), ScanPrefValue::String(p.to_string()));
-                    } else {
-                        scan_prefs.insert(pref.id.to_string(), pref.default.clone().into());
+                    PreferenceValue::String(_) => {
+                        if let Some(p) = cmds.get_one::<String>(pref.id) {
+                            ScanPrefValue::String(p.to_string())
+                        } else if let Some(ScanPrefValue::String(p)) =
+                            config.scanner.preferences.get(pref.id)
+                        {
+                            ScanPrefValue::String(p.to_string())
+                        } else {
+                            pref.default.clone().into()
+                        }
                     }
-                }
-                PreferenceValue::Int(_) => {
-                    if let Some(p) = cmds.get_one::<i64>(pref.id) {
-                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(*p));
-                    } else if let Some(ScanPrefValue::Int(p)) =
-                        config.scanner.preferences.get(pref.id)
-                    {
-                        scan_prefs.insert(pref.id.to_string(), ScanPrefValue::Int(*p));
-                    } else {
-                        scan_prefs.insert(pref.id.to_string(), pref.default.clone().into());
+                    PreferenceValue::Int(_) => {
+                        if let Some(p) = cmds.get_one::<i64>(pref.id) {
+                            ScanPrefValue::Int(*p)
+                        } else if let Some(ScanPrefValue::Int(p)) =
+                            config.scanner.preferences.get(pref.id)
+                        {
+                            ScanPrefValue::Int(*p)
+                        } else {
+                            pref.default.clone().into()
+                        }
                     }
-                }
-            }
-        }
+                };
+                (pref.id.to_string(), val)
+            })
+            .collect();
 
         config.scanner.preferences = scan_prefs;
-        println!("Config: {config}");
         config
     }
 }
@@ -783,7 +764,7 @@ mod tests {
         assert_eq!(config.log.level, "INFO".to_string());
         // this is used to verify the default config manually.
         // se to true to write the default configuration to `tmp`
-        if true {
+        if false {
             let mut cf = std::fs::File::create("/tmp/openvas.default.example.toml").unwrap();
             use std::io::Write;
             cf.write_all(toml::to_string_pretty(&config).unwrap().as_bytes())

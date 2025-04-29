@@ -67,7 +67,7 @@ pub async fn feed_version(
         target,
         filename,
         scan_id,
-        scan_params,
+        scan_preferences: scan_params,
     };
     let context = cb.build();
     let mut interpreter = Interpreter::new(register, Lexer::new(Tokenizer::new(&code)), &context);
@@ -171,7 +171,7 @@ where
             storage: self.storage,
             loader: self.loader,
             executor: &self.executor,
-            scan_params,
+            scan_preferences: scan_params,
         };
         let context = context.build();
         let mut results = Box::pin(ForkingInterpreter::new(&code, register, &context).stream());

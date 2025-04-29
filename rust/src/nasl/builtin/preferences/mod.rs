@@ -44,7 +44,7 @@ fn script_get_preference(
 
 #[nasl_function]
 fn get_preference(config: &Context, name: String) -> Option<NaslValue> {
-    if let Some(pref) = config.scan_params().iter().find(|p| p.id == name) {
+    if let Some(pref) = config.scan_params().find(|p| p.id == name) {
         return Some(NaslValue::from(pref.value.clone()));
     }
     None

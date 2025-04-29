@@ -244,7 +244,7 @@ impl Default for ScanPrefValue {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
@@ -307,14 +307,13 @@ impl ScanPreferences {
         Self { scan_preferences }
     }
 
-    /// Override the default scan parameters with the one from the config file or command line.
-    pub fn load_params(&mut self, params: HashMap<String, ScanPrefValue>) -> &Self {
-        for (param_id, param_val) in params.clone().iter() {
-            if let Some(a) = self.scan_preferences.iter_mut().find(|p| p.id == *param_id) {
-                a.default = param_val.clone();
+    /// Override the default scanner preferences with the ones from the config file or command line.
+    pub fn override_default_preferences(&mut self, preferences: HashMap<String, ScanPrefValue>) {
+        for (pref_id, pref_val) in preferences.into_iter() {
+            if let Some(pref) = self.scan_preferences.iter_mut().find(|p| p.id == *pref_id) {
+                pref.default = pref_val.clone();
             }
         }
-        self
     }
 
     pub fn set_scan_with_preferences(&self, scan: &mut Scan) {

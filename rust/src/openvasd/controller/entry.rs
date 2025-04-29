@@ -461,7 +461,7 @@ where
                     }
                 }
                 (&Method::GET, ScanPreferences) => {
-                    if let Some(p) = ctx.scan_preferences.clone() {
+                    if let Some(p) = &ctx.scan_preferences {
                         Ok(ctx
                             .response
                             .ok_static(&serde_json::to_string(&p).unwrap().into_bytes()))

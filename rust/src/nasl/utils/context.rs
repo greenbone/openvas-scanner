@@ -583,8 +583,8 @@ pub struct Context<'a> {
     /// NVT object, which is put into the storage, when set
     nvt: Mutex<Option<Nvt>>,
     sockets: RwLock<NaslSockets>,
-    /// Scanner parameters
-    scan_params: Vec<ScanPreference>,
+    /// Scanner preferences
+    scan_preferences: Vec<ScanPreference>,
 }
 
 impl<'a> Context<'a> {
@@ -595,7 +595,7 @@ impl<'a> Context<'a> {
         storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
         executor: &'a Executor,
-        scan_params: Vec<ScanPreference>,
+        scan_preferences: Vec<ScanPreference>,
     ) -> Self {
         Self {
             scan,
@@ -606,7 +606,7 @@ impl<'a> Context<'a> {
             executor,
             nvt: Mutex::new(None),
             sockets: RwLock::new(NaslSockets::default()),
-            scan_params,
+            scan_preferences,
         }
     }
 
@@ -711,11 +711,11 @@ impl<'a> Context<'a> {
     }
 
     pub fn set_scan_params(&mut self, params: Vec<ScanPreference>) {
-        self.scan_params = params;
+        self.scan_preferences = params;
     }
 
-    pub fn scan_params(&self) -> Vec<ScanPreference> {
-        self.scan_params.clone()
+    pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
+        self.scan_preferences.iter()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
@@ -881,7 +881,7 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub scan_id: ScanID,
     pub target: Target,
     pub filename: P,
-    pub scan_params: Vec<ScanPreference>,
+    pub scan_preferences: Vec<ScanPreference>,
 }
 
 impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
@@ -894,7 +894,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.storage,
             self.loader,
             self.executor,
-            self.scan_params,
+            self.scan_preferences,
         )
     }
 }

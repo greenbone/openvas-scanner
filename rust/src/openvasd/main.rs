@@ -211,7 +211,6 @@ async fn run(config: &Config) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
-    //    dbg!(&config);
     tracing::debug!(key = config.storage.fs.key);
     setup_log(&config);
     run(&config).await
