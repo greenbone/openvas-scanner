@@ -6,46 +6,46 @@ use crate::nasl::{
 use super::grammar::{
     AnonymousFnArg, Array, ArrayAccess, Assignment, Atom, Binary, Block, Exit, Expr, FnArg, FnCall,
     FnDecl, For, Foreach, If, Include, Increment, IncrementKind, NamedFnArg, PlaceExpr, Repeat,
-    Return, Stmt, Unary, VarScope, VarScopeDecl, While,
+    Return, Statement, Unary, VarScope, VarScopeDecl, While,
 };
 
 use std::fmt::{Display, Formatter, Result};
 
-impl Display for Stmt {
+impl Display for Statement {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            Stmt::VarScopeDecl(x) => write!(f, "{}", x),
-            Stmt::FnDecl(x) => write!(f, "{}", x),
-            Stmt::ExprStmt(x) => write!(f, "{}", x),
-            Stmt::Block(x) => write!(f, "{}", x),
-            Stmt::While(x) => write!(f, "{}", x),
-            Stmt::Repeat(x) => write!(f, "{}", x),
-            Stmt::Foreach(x) => write!(f, "{}", x),
-            Stmt::For(x) => write!(f, "{}", x),
-            Stmt::If(x) => write!(f, "{}", x),
-            Stmt::Include(x) => write!(f, "{}", x),
-            Stmt::Exit(x) => write!(f, "{}", x),
-            Stmt::Return(x) => write!(f, "{}", x),
-            Stmt::Break => write!(f, "break"),
-            Stmt::Continue => write!(f, "continue"),
-            Stmt::NoOp => write!(f, ""),
+            Statement::VarScopeDecl(x) => write!(f, "{}", x),
+            Statement::FnDecl(x) => write!(f, "{}", x),
+            Statement::ExprStmt(x) => write!(f, "{}", x),
+            Statement::Block(x) => write!(f, "{}", x),
+            Statement::While(x) => write!(f, "{}", x),
+            Statement::Repeat(x) => write!(f, "{}", x),
+            Statement::Foreach(x) => write!(f, "{}", x),
+            Statement::For(x) => write!(f, "{}", x),
+            Statement::If(x) => write!(f, "{}", x),
+            Statement::Include(x) => write!(f, "{}", x),
+            Statement::Exit(x) => write!(f, "{}", x),
+            Statement::Return(x) => write!(f, "{}", x),
+            Statement::Break => write!(f, "break"),
+            Statement::Continue => write!(f, "continue"),
+            Statement::NoOp => write!(f, ""),
         }?;
         match self {
-            Stmt::VarScopeDecl(_)
-            | Stmt::ExprStmt(_)
-            | Stmt::Repeat(_)
-            | Stmt::Include(_)
-            | Stmt::Exit(_)
-            | Stmt::Return(_)
-            | Stmt::Break
-            | Stmt::Continue
-            | Stmt::NoOp => write!(f, ";"),
-            Stmt::FnDecl(_)
-            | Stmt::Block(_)
-            | Stmt::While(_)
-            | Stmt::Foreach(_)
-            | Stmt::For(_)
-            | Stmt::If(_) => Ok(()),
+            Statement::VarScopeDecl(_)
+            | Statement::ExprStmt(_)
+            | Statement::Repeat(_)
+            | Statement::Include(_)
+            | Statement::Exit(_)
+            | Statement::Return(_)
+            | Statement::Break
+            | Statement::Continue
+            | Statement::NoOp => write!(f, ";"),
+            Statement::FnDecl(_)
+            | Statement::Block(_)
+            | Statement::While(_)
+            | Statement::Foreach(_)
+            | Statement::For(_)
+            | Statement::If(_) => Ok(()),
         }
     }
 }

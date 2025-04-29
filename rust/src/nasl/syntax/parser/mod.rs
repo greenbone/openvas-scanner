@@ -33,8 +33,8 @@ use crate::nasl::error::Span;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use grammar::{
     AnonymousFnArg, Array, Ast, Atom, Binary, BinaryOperator, Block, CommaSeparated, Expr, FnArg,
-    FnDecl, Include, NamedFnArg, Return, Stmt, Unary, UnaryPostfixOperator, VarScope, VarScopeDecl,
-    While,
+    FnDecl, Include, NamedFnArg, Return, Statement, Unary, UnaryPostfixOperator, VarScope,
+    VarScopeDecl, While,
 };
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -115,7 +115,7 @@ impl Parser {
         let mut stmts = vec![];
         let mut errs = vec![];
         while !self.is_at_end() {
-            let result = self.parse_span::<Stmt>();
+            let result = self.parse_span::<Statement>();
             // Check if any tokenization errors occurred, those have priority
             // and make the actual result obtained from parsing void
             if !self.check_tokenizer_errors(&mut errs) {
@@ -190,60 +190,60 @@ impl Parser {
     }
 }
 
-fn parse_stmt_without_semicolon(parser: &mut Parser) -> Result<Stmt> {
+fn parse_stmt_without_semicolon(parser: &mut Parser) -> Result<Statement> {
     if parser.matches::<VarScope>() {
-        Ok(Stmt::VarScopeDecl(parser.parse()?))
+        Ok(Statement::VarScopeDecl(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::Function)) {
-        Ok(Stmt::FnDecl(parser.parse()?))
+        Ok(Statement::FnDecl(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::While)) {
-        Ok(Stmt::While(parser.parse()?))
+        Ok(Statement::While(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::Repeat)) {
-        Ok(Stmt::Repeat(parser.parse()?))
+        Ok(Statement::Repeat(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::ForEach)) {
-        Ok(Stmt::Foreach(parser.parse()?))
+        Ok(Statement::Foreach(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::For)) {
-        Ok(Stmt::For(parser.parse()?))
+        Ok(Statement::For(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::If)) {
-        Ok(Stmt::If(parser.parse()?))
+        Ok(Statement::If(parser.parse()?))
     } else if parser.token_matches(TokenKind::LeftBrace) {
-        Ok(Stmt::Block(parser.parse()?))
+        Ok(Statement::Block(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::Return)) {
-        Ok(Stmt::Return(parser.parse()?))
+        Ok(Statement::Return(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::Include)) {
-        Ok(Stmt::Include(parser.parse()?))
+        Ok(Statement::Include(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::Exit)) {
-        Ok(Stmt::Exit(parser.parse()?))
+        Ok(Statement::Exit(parser.parse()?))
     } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Break)) {
-        Ok(Stmt::Break)
+        Ok(Statement::Break)
     } else if parser.consume_if_matches(TokenKind::Keyword(Keyword::Continue)) {
-        Ok(Stmt::Continue)
+        Ok(Statement::Continue)
     } else if parser.token_matches(TokenKind::Semicolon) {
-        Ok(Stmt::NoOp)
+        Ok(Statement::NoOp)
     } else {
         let expr = parser.parse()?;
-        Ok(Stmt::ExprStmt(expr))
+        Ok(Statement::ExprStmt(expr))
     }
 }
 
-impl Parse for Stmt {
-    fn parse(parser: &mut Parser) -> Result<Stmt> {
+impl Parse for Statement {
+    fn parse(parser: &mut Parser) -> Result<Statement> {
         let stmt = parse_stmt_without_semicolon(parser)?;
         match stmt {
-            Stmt::VarScopeDecl(_)
-            | Stmt::ExprStmt(_)
-            | Stmt::Repeat(_)
-            | Stmt::Include(_)
-            | Stmt::Exit(_)
-            | Stmt::Return(_)
-            | Stmt::Break
-            | Stmt::Continue
-            | Stmt::NoOp => parser.consume(TokenKind::Semicolon)?,
-            Stmt::FnDecl(_)
-            | Stmt::Block(_)
-            | Stmt::While(_)
-            | Stmt::Foreach(_)
-            | Stmt::For(_)
-            | Stmt::If(_) => {}
+            Statement::VarScopeDecl(_)
+            | Statement::ExprStmt(_)
+            | Statement::Repeat(_)
+            | Statement::Include(_)
+            | Statement::Exit(_)
+            | Statement::Return(_)
+            | Statement::Break
+            | Statement::Continue
+            | Statement::NoOp => parser.consume(TokenKind::Semicolon)?,
+            Statement::FnDecl(_)
+            | Statement::Block(_)
+            | Statement::While(_)
+            | Statement::Foreach(_)
+            | Statement::For(_)
+            | Statement::If(_) => {}
         }
         Ok(stmt)
     }

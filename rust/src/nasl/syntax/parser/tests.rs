@@ -8,7 +8,7 @@ use crate::nasl::{
     syntax::{Tokenizer, parser::grammar::Expr},
 };
 
-use super::{Parse, Parser, error::SpannedError, grammar::Stmt};
+use super::{Parse, Parser, error::SpannedError, grammar::Statement};
 
 // TODO incorporate into `Code` eventually.
 fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
@@ -21,7 +21,7 @@ fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
         .map_err(|e| e.unwrap_as_spanned())
 }
 
-fn parse_program_ok(file_name: &str, code: &str) -> Vec<Stmt> {
+fn parse_program_ok(file_name: &str, code: &str) -> Vec<Statement> {
     let code = Code::from_string_fake_filename(code, file_name);
     let code_str = code.code().to_string();
     let tokens = Tokenizer::tokenize(&code_str);
@@ -109,13 +109,13 @@ macro_rules! parse_test_err {
     };
 }
 
-parse_test_ok!(number_declaration, Stmt, "5;");
-parse_test_err!(number_declaration_missing_semicolon, Stmt, "5");
+parse_test_ok!(number_declaration, Statement, "5;");
+parse_test_err!(number_declaration_missing_semicolon, Statement, "5");
 parse_test_ok!(number_expr, Expr, "5");
 parse_test_ok!(add_1, Expr, "5 + 3");
 parse_test_ok!(add_mul, Expr, "5 + 3 * 4");
 parse_test_ok!(left_associativity, Expr, "3 - 3 - 3");
-parse_test_ok!(var_assignment, Stmt, "x = 3;");
+parse_test_ok!(var_assignment, Statement, "x = 3;");
 parse_test_ok!(
     multiple_declarations,
     Program,
@@ -311,20 +311,20 @@ parse_test_ok!(inline_array_access, Expr, "[1, 2, 3][1]");
 parse_test_ok!(array_access_precedence, Expr, "a[1]++");
 parse_test_ok!(mixed_array_access_fn_call, Expr, "fn_array[5](a, b, c)");
 
-parse_test_ok!(array_assignment, Stmt, "a[1] = 3;");
-parse_test_ok!(array_assignment_multi, Stmt, "a[1][2][3] = 3;");
+parse_test_ok!(array_assignment, Statement, "a[1] = 3;");
+parse_test_ok!(array_assignment_multi, Statement, "a[1][2][3] = 3;");
 
-parse_test_err!(assignment_without_place_expr1, Stmt, "5 = 3;");
-parse_test_err!(assignment_without_place_expr2, Stmt, "5 + 3 = 3;");
-parse_test_err!(assignment_without_place_expr3, Stmt, "a(1) = 3;");
+parse_test_err!(assignment_without_place_expr1, Statement, "5 = 3;");
+parse_test_err!(assignment_without_place_expr2, Statement, "5 + 3 = 3;");
+parse_test_err!(assignment_without_place_expr3, Statement, "a(1) = 3;");
 parse_test_err!(increment_without_place_expr1, Expr, "5++");
 parse_test_err!(increment_without_place_expr2, Expr, "(5 + 3)++");
 parse_test_err!(increment_without_place_expr3, Expr, "a(1)++");
 parse_test_err!(increment_without_place_expr4, Expr, "++a(1)");
 
-parse_test_err!(multiple_increments, Stmt, "x++ ++");
+parse_test_err!(multiple_increments, Statement, "x++ ++");
 
-parse_test_err!(multiple_assignments_in_line, Stmt, "a[1] = 3 = 5;");
+parse_test_err!(multiple_assignments_in_line, Statement, "a[1] = 3 = 5;");
 
 parse_test_ok!(
     wonderful_x_operator,
@@ -384,7 +384,7 @@ parse_test_ok!(
     "###
 );
 
-parse_test_ok!(assignment_in_arbitrary_expressions, Stmt, "(a = 1);");
+parse_test_ok!(assignment_in_arbitrary_expressions, Statement, "(a = 1);");
 
 parse_test_ok!(
     unexpected_noop,

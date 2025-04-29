@@ -5,14 +5,14 @@ use crate::nasl::syntax::token::{Ident, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
 pub struct Ast {
-    stmts: Vec<Stmt>,
+    stmts: Vec<Statement>,
     position: usize,
 }
 
 impl IntoIterator for Ast {
-    type Item = Stmt;
+    type Item = Statement;
 
-    type IntoIter = vec::IntoIter<Stmt>;
+    type IntoIter = vec::IntoIter<Statement>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.stmts.into_iter()
@@ -20,15 +20,15 @@ impl IntoIterator for Ast {
 }
 
 impl Ast {
-    pub fn new(stmts: Vec<Stmt>) -> Self {
+    pub fn new(stmts: Vec<Statement>) -> Self {
         Self { stmts, position: 0 }
     }
 
-    pub fn stmts(self) -> Vec<Stmt> {
+    pub fn stmts(self) -> Vec<Statement> {
         self.stmts
     }
 
-    pub fn next_stmt(&mut self) -> Option<Stmt> {
+    pub fn next_stmt(&mut self) -> Option<Statement> {
         let stmt = self.stmts.get(self.position);
         self.position += 1;
         stmt.cloned()
@@ -51,11 +51,11 @@ impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
 }
 
 #[derive(Clone, Debug)]
-pub enum Stmt {
+pub enum Statement {
     VarScopeDecl(VarScopeDecl),
     FnDecl(FnDecl),
     ExprStmt(Expr),
-    Block(Block<Stmt>),
+    Block(Block<Statement>),
     While(While),
     Repeat(Repeat),
     Foreach(Foreach),
@@ -98,7 +98,7 @@ pub enum VarScope {
 pub struct FnDecl {
     pub fn_name: Ident,
     pub args: CommaSeparated<Ident, Paren>,
-    pub block: Block<Stmt>,
+    pub block: Block<Statement>,
 }
 
 #[derive(Clone, Debug)]
@@ -119,12 +119,12 @@ pub struct Block<T> {
 #[derive(Clone, Debug)]
 pub struct While {
     pub condition: Expr,
-    pub block: Block<Stmt>,
+    pub block: Block<Statement>,
 }
 
 #[derive(Clone, Debug)]
 pub struct Repeat {
-    pub block: Block<Stmt>,
+    pub block: Block<Statement>,
     pub condition: Expr,
 }
 
@@ -132,21 +132,21 @@ pub struct Repeat {
 pub struct Foreach {
     pub var: Ident,
     pub array: Expr,
-    pub block: Block<Stmt>,
+    pub block: Block<Statement>,
 }
 
 #[derive(Clone, Debug)]
 pub struct For {
-    pub initializer: Box<Stmt>,
+    pub initializer: Box<Statement>,
     pub condition: Expr,
-    pub increment: Box<Stmt>,
-    pub block: Block<Stmt>,
+    pub increment: Box<Statement>,
+    pub block: Block<Statement>,
 }
 
 #[derive(Clone, Debug)]
 pub struct If {
-    pub if_branches: Vec<(Expr, Block<Stmt>)>,
-    pub else_branch: Option<Block<Stmt>>,
+    pub if_branches: Vec<(Expr, Block<Statement>)>,
+    pub else_branch: Option<Block<Statement>>,
 }
 
 #[derive(Clone, Debug)]
