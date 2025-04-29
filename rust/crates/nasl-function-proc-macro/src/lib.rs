@@ -94,10 +94,11 @@ use types::{ArgsStruct, Attrs};
 /// define a normal rust function and take a number of arguments.
 ///
 /// Example:
-/// ```rust
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function]
 /// fn string_index(string: &str, index: usize) -> &str {
-///     &string[index]
+///     string[index].chars().nth(i).unwrap()
 /// }
 /// ```
 ///
@@ -106,7 +107,8 @@ use types::{ArgsStruct, Attrs};
 /// # Optional arguments
 /// In order to receive optional arguments, where omitting them during the function call should not result in an error, we can simply make the function receive `Option<T>`. For example:
 ///
-/// ```rust
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function]
 /// fn hexstr(s: Option<NaslValue>) -> Option<String> {
 ///     match s? {
@@ -120,7 +122,8 @@ use types::{ArgsStruct, Attrs};
 /// # Named arguments
 /// In order to receive named arguments, additional attributes can be given to the `nasl_function` macro. For example:
 ///
-/// ```rust
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function(maybe_named(length), named(data))]
 /// fn crap(length: usize, data: Option<&str>) -> String {
 ///     let data = data.unwrap_or("X");
@@ -138,7 +141,9 @@ use types::{ArgsStruct, Attrs};
 /// the `Maybe` will simply be `None`, allowing the function author
 /// to handle the wrong type gracefully.
 ///
-/// ```rust
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
+/// #[nasl_function]
 /// fn data_to_hexstr(bytes: Maybe<&[u8]>) -> Option<String> {
 ///     bytes.map(encode_hex)
 /// }
@@ -146,7 +151,8 @@ use types::{ArgsStruct, Attrs};
 ///
 /// # `Context`
 /// The `Context` can be obtained in a function, simply by adding it as an argument:
-/// ```rust
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function]
 /// fn foo(context: &Context, ...) -> ... {
 /// }
@@ -156,11 +162,12 @@ use types::{ArgsStruct, Attrs};
 /// # `Positionals` and `CheckedPositionals`
 /// For functions that receive lists of positional arguments, the `Positionals` and `CheckedPositionals` types are provided. `Positionals` simply provides an iterator over the arguments with item type `Result<T, FunctionErrorKind>`,  meaning that the conversion is done while iterating over the arguments:
 ///
-/// ```rust
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function]
 /// fn foo(positional: Positionals<&NaslValue>) -> Result<(), FunctionErrorKind> {
 ///     for arg in positional.iter() {
-///         do_something(arg?) /// Conversion would fail here
+///         println!("{}", arg?) // Conversion would fail here
 ///     }
 /// }
 /// ```
@@ -168,7 +175,8 @@ use types::{ArgsStruct, Attrs};
 /// The `CheckedPositionals` type checks all arguments before the inner function is even called (and returns an error if one fails to convert), which is convenient but also potentially slow:
 ///
 ///
-/// ```rust
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function]
 /// fn foo(positional: CheckedPositionals<&NaslValue>) {
 ///     for arg in positional.iter() {
