@@ -780,7 +780,6 @@ impl<'a> Context<'a> {
             _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
         }
     }
-    // TODO: Check which KbKey is used for Port Transport
     /// Sets the state of a port
     pub fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
         self.set_single_kb_item(
@@ -790,7 +789,7 @@ impl<'a> Context<'a> {
     }
 
     pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
-        self.get_single_kb_item_inner(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+        self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
             .map(|x| match x {
                 KbItem::Number(n) => Some(n),
                 _ => None,
