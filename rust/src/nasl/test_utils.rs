@@ -464,10 +464,8 @@ impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
-        } else {
-            if let Err(err) = futures::executor::block_on(self.verify()) {
-                panic!("{}", err)
-            }
+        } else if let Err(err) = futures::executor::block_on(self.verify()) {
+            panic!("{}", err)
         }
     }
 }

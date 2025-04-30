@@ -86,20 +86,11 @@ impl PartialOrd for Rpm {
             return None;
         }
 
-        if self.epoch != other.epoch {
-            return match self.epoch > other.epoch {
-                true => Some(Ordering::Greater),
-                false => Some(Ordering::Less),
-            };
-        };
-
-        if let Some(comp) = self.version.partial_cmp(&other.version) {
-            if comp.is_ne() {
-                return Some(comp);
-            }
-        }
-
-        self.release.partial_cmp(&other.release)
+        (&self.epoch, &self.version, &self.release).partial_cmp(&(
+            &other.epoch,
+            &other.version,
+            &other.release,
+        ))
     }
 }
 

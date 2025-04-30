@@ -546,8 +546,7 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn set_running() {
-            let scans = std::iter::repeat(Scan::default())
-                .take(10)
+            let scans = std::iter::repeat_n(Scan::default(), 10)
                 .map(|x| {
                     let mut y = x.clone();
                     y.scan_id = uuid::Uuid::new_v4().to_string();
@@ -572,8 +571,7 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn not_move_from_queue_on_max_running() {
-            let scans = std::iter::repeat(Scan::default())
-                .take(10)
+            let scans = std::iter::repeat_n(Scan::default(), 10)
                 .map(|x| {
                     let mut y = x.clone();
                     y.scan_id = uuid::Uuid::new_v4().to_string();
@@ -608,8 +606,7 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn not_move_from_queue_on_insufficient_memory() {
-            let scans = std::iter::repeat(Scan::default())
-                .take(10)
+            let scans = std::iter::repeat_n(Scan::default(), 10)
                 .map(|x| {
                     let mut y = x.clone();
                     y.scan_id = uuid::Uuid::new_v4().to_string();
@@ -635,8 +632,7 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn not_move_from_queue_on_connection_error() {
-            let scans = std::iter::repeat(Scan::default())
-                .take(10)
+            let scans = std::iter::repeat_n(Scan::default(), 10)
                 .map(|x| {
                     let mut y = x.clone();
                     y.scan_id = uuid::Uuid::new_v4().to_string();
@@ -668,8 +664,7 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn remove_from_queue_on_any_other_scan_error() {
-            let scans = std::iter::repeat(Scan::default())
-                .take(10)
+            let scans = std::iter::repeat_n(Scan::default(), 10)
                 .map(|x| {
                     let mut y = x.clone();
                     y.scan_id = uuid::Uuid::new_v4().to_string();
@@ -697,8 +692,7 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn remove_from_running_when_stop() {
-            let scans = std::iter::repeat(Scan::default())
-                .take(10)
+            let scans = std::iter::repeat_n(Scan::default(), 10)
                 .map(|x| {
                     let mut y = x.clone();
                     y.scan_id = uuid::Uuid::new_v4().to_string();
@@ -727,8 +721,7 @@ mod tests {
         #[traced_test]
         #[tokio::test]
         async fn remove_from_running_when_finished() {
-            let scans = std::iter::repeat(Scan::default())
-                .take(10)
+            let scans = std::iter::repeat_n(Scan::default(), 10)
                 .map(|x| {
                     let mut y = x.clone();
                     y.scan_id = uuid::Uuid::new_v4().to_string();

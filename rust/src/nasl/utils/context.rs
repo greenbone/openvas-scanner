@@ -4,9 +4,10 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
-use rand::seq::SliceRandom;
+use tokio::sync::RwLock;
 
-use crate::nasl::builtin::KBError;
+use crate::models::PortRange;
+use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
 use crate::storage::error::StorageError;
@@ -22,11 +23,16 @@ use crate::storage::redis::{
 };
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
+use rand::seq::SliceRandom;
+use std::sync::MutexGuard;
 
 use super::FnError;
 use super::error::ReturnBehavior;
 use super::hosts::{LOCALHOST, resolve_hostname};
-use super::{executor::Executor, lookup_keys::FC_ANON_ARGS};
+use super::{
+    executor::Executor,
+    lookup_keys::{FC_ANON_ARGS, SCRIPT_PARAMS},
+};
 
 /// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
 ///
@@ -133,7 +139,7 @@ impl From<HashMap<String, NaslValue>> for ContextType {
 /// When creating a new context call a corresponding create method.
 /// Warning since those will be stored within a vector each context must be manually
 /// deleted by calling drop_last when the context runs out of scope.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Register {
     blocks: Vec<NaslContext>,
 }
@@ -252,6 +258,14 @@ impl Register {
         }
     }
 
+    /// Retrieves a script parameter by id
+    pub fn script_param(&self, id: usize) -> Option<NaslValue> {
+        match self.named(format!("{SCRIPT_PARAMS}_{id}").as_str()) {
+            Some(ContextType::Value(v)) => Some(v.clone()),
+            _ => None,
+        }
+    }
+
     /// Destroys the current context.
     ///
     /// This must be called when a context vanishes.
@@ -333,7 +347,7 @@ type Named = HashMap<String, ContextType>;
 ///
 /// A context should never be created directly but via a Register.
 /// The reason for that is that a Registrat contains all blocks and a block must be registered to ensure that each Block must be created via an Registrat.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct NaslContext {
     /// Parent id within the register
     parent: Option<usize>,
@@ -366,13 +380,38 @@ impl NaslContext {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct VHost {
+    source: String,
+    hostname: String,
+}
+
+impl VHost {
+    pub fn hostname(&self) -> &str {
+        &self.hostname
+    }
+
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Target {
     /// The original target. IP or hostname
     original_target_str: String,
-    /// The IP address. Defaults to 127.0.0.1 if target was not
-    /// resolved or could not be resolved
+    /// The IP address of the target.
     ip_addr: IpAddr,
+    /// Whether the string given to `Target` was a hostname or an ip address.
+    kind: TargetKind,
+}
+
+/// Specifies whether the string given to `Target` was a hostname
+/// or an ip address.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TargetKind {
+    Hostname,
+    IpAddr,
 }
 
 #[derive(Debug)]
@@ -392,33 +431,58 @@ pub struct CtxTarget {
     // is considered a "blocking" operation and `tokio::task::spawn_blocking`
     // should be used.
     /// vhost list which resolve to the IP address and their sources.
-    vhosts: Mutex<Vec<(String, String)>>,
+    vhosts: Mutex<Vec<VHost>>,
 }
 
 impl Target {
-    pub fn do_not_resolve_hostname(target: impl AsRef<str>) -> Self {
-        let ip_addr: IpAddr = target.as_ref().parse::<IpAddr>().unwrap_or(LOCALHOST);
+    pub fn localhost() -> Self {
         Self {
-            original_target_str: target.as_ref().into(),
-            ip_addr,
+            original_target_str: LOCALHOST.to_string(),
+            ip_addr: LOCALHOST,
+            kind: TargetKind::IpAddr,
         }
     }
 
-    pub fn resolve_hostname(target: impl AsRef<str>) -> Self {
-        // TODO: We only ever remember the first IpAddr here,
-        // is that reasonable?
-        let ip_addr = resolve_hostname(target.as_ref())
-            .ok()
-            .and_then(|ip_addrs| ip_addrs.into_iter().next())
-            .unwrap_or(LOCALHOST);
+    #[cfg(test)]
+    pub fn do_not_resolve_hostname(target: impl AsRef<str>) -> Self {
+        let (ip_addr, kind) = match target.as_ref().parse::<IpAddr>() {
+            Ok(ip_addr) => (ip_addr, TargetKind::IpAddr),
+            Err(_) => (LOCALHOST, TargetKind::Hostname),
+        };
         Self {
             original_target_str: target.as_ref().into(),
             ip_addr,
+            kind,
         }
+    }
+
+    pub fn resolve_hostname(target: impl AsRef<str>) -> Option<Self> {
+        // Try to parse as IpAddr first
+        let (ip_addr, kind) = if let Ok(ip_addr) = target.as_ref().parse::<IpAddr>() {
+            (ip_addr, TargetKind::IpAddr)
+        } else {
+            let ip_addr = resolve_hostname(target.as_ref())
+                .ok()
+                .and_then(|ip_addrs| ip_addrs.into_iter().next())?;
+            (ip_addr, TargetKind::Hostname)
+        };
+        Some(Self {
+            original_target_str: target.as_ref().into(),
+            ip_addr,
+            kind,
+        })
     }
 
     pub fn original_target_str(&self) -> &str {
         &self.original_target_str
+    }
+
+    pub fn ip_addr(&self) -> IpAddr {
+        self.ip_addr
+    }
+
+    pub fn kind(&self) -> &TargetKind {
+        &self.kind
     }
 }
 
@@ -433,16 +497,33 @@ impl From<Target> for CtxTarget {
 
 impl CtxTarget {
     pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
-        self.vhosts.lock().unwrap().push((hostname, source));
+        self.vhosts.lock().unwrap().push(VHost { hostname, source });
         self
     }
 
-    fn original_target_str(&self) -> &str {
-        self.target.original_target_str()
+    pub fn original_target_str(&self) -> &str {
+        &self.target.original_target_str
     }
 
-    fn ip_addr(&self) -> &IpAddr {
-        &self.target.ip_addr
+    pub fn ip_addr(&self) -> IpAddr {
+        self.target.ip_addr
+    }
+
+    pub fn kind(&self) -> &TargetKind {
+        &self.target.kind
+    }
+
+    /// Return the hostname that this `Target` was constructed with
+    /// or None otherwise
+    pub fn hostname(&self) -> Option<String> {
+        match self.target.kind {
+            TargetKind::Hostname => Some(self.target.original_target_str.clone()),
+            TargetKind::IpAddr => None,
+        }
+    }
+
+    pub fn vhosts(&self) -> MutexGuard<'_, Vec<VHost>> {
+        self.vhosts.lock().unwrap()
     }
 }
 
@@ -500,6 +581,7 @@ pub struct Context<'a> {
     executor: &'a Executor,
     /// NVT object, which is put into the storage, when set
     nvt: Mutex<Option<Nvt>>,
+    sockets: RwLock<NaslSockets>,
 }
 
 impl<'a> Context<'a> {
@@ -519,6 +601,7 @@ impl<'a> Context<'a> {
             loader,
             executor,
             nvt: Mutex::new(None),
+            sockets: RwLock::new(NaslSockets::default()),
         }
     }
 
@@ -564,23 +647,21 @@ impl<'a> Context<'a> {
         &self.filename
     }
 
-    /// Get the target (hostname or ip address).
-    pub fn target(&self) -> &str {
-        self.target.original_target_str()
-    }
-
-    /// Get the ip address of the target.
-    pub fn target_ip(&self) -> &IpAddr {
-        self.target.ip_addr()
-    }
-
-    /// Get the target VHost list
-    pub fn target_vhosts(&self) -> Vec<(String, String)> {
-        self.target.vhosts.lock().unwrap().clone()
+    /// Get the `CtxTarget`
+    pub fn target(&self) -> &CtxTarget {
+        &self.target
     }
 
     pub fn add_hostname(&self, hostname: String, source: String) {
         self.target.add_hostname(hostname, source);
+    }
+
+    pub fn port_range(&self) -> PortRange {
+        // TODO Get this from the scan prefs
+        PortRange {
+            start: 0,
+            end: None,
+        }
     }
 
     /// Get the storage
@@ -613,6 +694,15 @@ impl<'a> Context<'a> {
         self.storage
             .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
             .unwrap();
+    }
+
+    pub fn set_nvt(&self, vt: Nvt) {
+        let mut nvt = self.nvt.lock().unwrap();
+        *nvt = Some(vt);
+    }
+
+    pub fn nvt(&self) -> MutexGuard<'_, Option<Nvt>> {
+        self.nvt.lock().unwrap()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
@@ -743,6 +833,14 @@ impl<'a> Context<'a> {
         };
         Ok(ret)
     }
+
+    pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
+        self.sockets.read().await
+    }
+
+    pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
+        self.sockets.write().await
+    }
 }
 
 impl Drop for Context<'_> {
@@ -783,5 +881,30 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.loader,
             self.executor,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nasl::utils::context::TargetKind;
+
+    use super::Target;
+
+    #[test]
+    fn target_kind() {
+        assert_eq!(
+            Target::do_not_resolve_hostname("1.2.3.4").kind(),
+            &TargetKind::IpAddr
+        );
+        assert_eq!(
+            Target::do_not_resolve_hostname("foo").kind(),
+            &TargetKind::Hostname
+        );
+        // This should not do any actual resolution
+        // but immediately parse the IP address instead.
+        assert_eq!(
+            Target::resolve_hostname("1.2.3.4").unwrap().kind(),
+            &TargetKind::IpAddr
+        );
     }
 }

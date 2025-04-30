@@ -54,7 +54,7 @@ pub async fn feed_version(
     let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
-    let target = Target::do_not_resolve_hostname("");
+    let target = Target::localhost();
     let filename = "";
     let executor = nasl_std_functions();
     let cb = ContextBuilder {
@@ -157,7 +157,7 @@ where
         let code = Code::load(self.loader, &key.0)?;
 
         let register = Register::root_initial(&self.initial);
-        let target = Target::do_not_resolve_hostname("");
+        let target = Target::localhost();
         let context = ContextBuilder {
             scan_id: ScanID(key.0.clone()),
             target,

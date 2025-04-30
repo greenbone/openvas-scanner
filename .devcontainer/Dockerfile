@@ -34,7 +34,9 @@ RUN python3 -m pipx install greenbone-feed-sync
 # installing gvm-libs and openvas-scanner
 RUN github-clone greenbone/gvm-libs 
 RUN github-clone greenbone/openvas-scanner
+RUN github-clone greenbone/openvas-smb
 RUN sudo sh /workspaces/greenbone/gvm-libs/.github/install-dependencies.sh
+RUN sudo sh /workspaces/greenbone/openvas-smb/.github/install-openvas-smb-dependencies.sh
 RUN sudo sh /workspaces/greenbone/openvas-scanner/.github/install-openvas-dependencies.sh
 
 RUN build-gvm-libs

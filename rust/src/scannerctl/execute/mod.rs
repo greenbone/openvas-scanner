@@ -12,7 +12,7 @@ use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
 use scannerlib::models;
 use scannerlib::nasl::{FSPluginLoader, nasl_std_functions};
-use scannerlib::scanner::ScanRunner;
+use scannerlib::scanner::{Scan, ScanRunner};
 use scannerlib::scheduling::{ExecutionPlaner, WaveExecutionPlan};
 use scannerlib::storage::inmemory::InMemoryStorage;
 use tracing::{info, warn, warn_span};
@@ -99,7 +99,7 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
         }
     } else {
         let executor = nasl_std_functions();
-        let scan = scan.into();
+        let scan = Scan::default_to_localhost(scan);
         let runner: ScanRunner<(_, _)> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan).unwrap();
         let mut results = Box::pin(runner.stream());
