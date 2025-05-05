@@ -6,14 +6,11 @@
 
 #include "nasl_var.h"
 
-#include "exec.h"
 #include "nasl_debug.h"
-#include "nasl_func.h"
-#include "nasl_global_ctxt.h"
 #include "nasl_lex_ctxt.h"
-#include "nasl_tree.h"
 
 #include <glib.h>   /* for g_free */
+#include <stdio.h>  /* for snprintf, FILE */
 #include <stdlib.h> /* for abort */
 #include <string.h> /* for strlen */
 
