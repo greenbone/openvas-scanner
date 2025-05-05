@@ -306,7 +306,11 @@ impl<'ctx> Interpreter<'ctx> {
             Break => Ok(NaslValue::Break),
             ExprStmt(expr) => self.resolve_expr(expr).await,
             Block(block) => self.resolve_block(block).await,
-            _ => todo!(),
+            VarScopeDecl(var_scope_decl) => self.resolve_var_scope_decl(var_scope_decl),
+            FnDecl(fn_decl) => self.resolve_fn_decl(fn_decl),
+            _ => {
+                todo!()
+            }
         }
         .map_err(|e: InterpretError| {
             if e.origin.is_none() {
@@ -477,7 +481,7 @@ impl<'ctx> Interpreter<'ctx> {
     //     }
     // }
 
-    async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
+    pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
         self.register.create_child(HashMap::default());
         for stmt in block.items.iter() {
             match Box::pin(self.resolve(stmt)).await {

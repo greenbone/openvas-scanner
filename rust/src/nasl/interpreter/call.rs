@@ -75,7 +75,7 @@ impl Interpreter<'_> {
                                 .add_local(&arg, ContextType::Value(NaslValue::Null));
                         }
                     }
-                    match self.resolve(&stmt).await? {
+                    match self.resolve_block(&stmt).await? {
                         NaslValue::Return(x) => Ok(*x),
                         _ => Ok(NaslValue::Null),
                     }

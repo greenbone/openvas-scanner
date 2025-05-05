@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 use crate::models::PortRange;
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::interpreter::InterpretErrorKind;
+use crate::nasl::syntax::parser::grammar::Block;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
 use crate::storage::error::StorageError;
@@ -41,7 +42,7 @@ use super::{
 #[derive(Clone, Debug)]
 pub enum ContextType {
     /// Represents a Function definition
-    Function(Vec<String>, Statement),
+    Function(Vec<String>, Block<Statement>),
     /// Represents a Variable or Parameter
     Value(NaslValue),
 }

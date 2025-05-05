@@ -2,81 +2,46 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::{Statement, Token};
-
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::ContextType;
+use crate::nasl::{
+    ContextType, NaslValue,
+    syntax::{
+        Statement, Token,
+        parser::grammar::{FnDecl, VarScope, VarScopeDecl},
+    },
+};
 
 use super::interpreter::{Interpreter, Result};
 
-/// Is a trait to declare functions
-pub(crate) trait DeclareFunctionExtension {
-    fn declare_function(
-        &mut self,
-        name: &Token,
-        arguments: &[Statement],
-        execution: &Statement,
-    ) -> Result;
-}
-
-impl DeclareFunctionExtension for Interpreter<'_> {
-    fn declare_function(
-        &mut self,
-        name: &Token,
-        arguments: &[Statement],
-        execution: &Statement,
-    ) -> Result {
-        todo!()
-        // let name = name.identifier()?;
-        // let mut names = vec![];
-        // for a in arguments {
-        //     match a.kind() {
-        //         StatementKind::Variable => {
-        //             let param_name = &a.as_token().identifier()?;
-        //             names.push(param_name.to_owned());
-        //         }
-        //         _ => return Err(InterpretError::unsupported(a, "variable")),
-        //     }
-        // }
-        // self.register
-        //     .add_global(&name, ContextType::Function(names, execution.clone()));
-        // Ok(NaslValue::Null)
+impl Interpreter<'_> {
+    pub(crate) fn resolve_fn_decl(&mut self, fn_decl: &FnDecl) -> Result {
+        self.register.add_global(
+            &fn_decl.fn_name.0,
+            ContextType::Function(
+                fn_decl
+                    .args
+                    .items
+                    .iter()
+                    .map(|ident| ident.0.clone())
+                    .collect(),
+                fn_decl.block.clone(),
+            ),
+        );
+        Ok(NaslValue::Null)
     }
-}
 
-pub(crate) trait DeclareVariableExtension {
-    fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> Result;
-}
-
-impl DeclareVariableExtension for Interpreter<'_> {
-    fn declare_variable(&mut self, scope: &Token, stmts: &[Statement]) -> Result {
-        todo!()
-        // let mut add = |key: &str| {
-        //     let value = ContextType::Value(NaslValue::Null);
-        //     match scope.kind() {
-        //         TokenKind::Keyword(crate::nasl::syntax::Keyword::GlobalVar) => {
-        //             self.register.add_global(key, value)
-        //         }
-        //         TokenKind::Keyword(crate::nasl::syntax::Keyword::LocalVar) => {
-        //             self.register.add_local(key, value)
-        //         }
-        //         _ => unreachable!(
-        //             "{} should not be identified as an declare statement",
-        //             scope.kind()
-        //         ),
-        //     }
-        // };
-
-        // for stmt in stmts {
-        //     if let StatementKind::Variable = stmt.kind() {
-        //         if let TokenKind::Ident(ident) = stmt.as_token().kind() {
-        //             add(&ident.0);
-        //         } else {
-        //             unreachable!()
-        //         }
-        //     };
-        // }
-        // Ok(NaslValue::Null)
+    pub(crate) fn resolve_var_scope_decl(&mut self, scope_decl: &VarScopeDecl) -> Result {
+        for ident in scope_decl.idents.iter() {
+            let value = ContextType::Value(NaslValue::Null);
+            match scope_decl.scope {
+                VarScope::Local => {
+                    self.register.add_local(&ident.0, value);
+                }
+                VarScope::Global => {
+                    self.register.add_global(&ident.0, value);
+                }
+            }
+        }
+        Ok(NaslValue::Null)
     }
 }
 
@@ -98,6 +63,21 @@ mod tests {
         );
         t.ok("test(a: 1, b: 2);", 3);
         t.ok("c;", NaslValue::Null);
+    }
+
+    #[test]
+    fn declare_global() {
+        let mut t = TestBuilder::default();
+        t.ok(
+            "
+        function test(a, b) {
+            global_var c;
+            c = a + b;
+        }",
+            NaslValue::Null,
+        );
+        t.ok("test(a: 1, b: 2);", NaslValue::Null);
+        t.ok("c;", 3);
     }
 
     #[test]
