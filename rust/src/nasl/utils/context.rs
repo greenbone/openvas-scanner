@@ -783,7 +783,7 @@ impl<'a> Context<'a> {
     /// Sets the state of a port
     pub fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
         self.set_single_kb_item(
-            KbKey::Port(kb::Port::Tcp(port.to_string())),
+            KbKey::Transport(kb::Transport::Tcp(port.to_string())),
             KbItem::Number(transport as i64),
         )
     }
