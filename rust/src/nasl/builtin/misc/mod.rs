@@ -247,7 +247,7 @@ fn gettimeofday() -> Result<String, MiscError> {
 /// nor returns any arguments.
 #[nasl_function]
 fn dump_ctxt(register: &Register) {
-    register.dump(register.index() - 1);
+    register.dump(register.next_index() - 1);
 }
 
 pub struct Misc;

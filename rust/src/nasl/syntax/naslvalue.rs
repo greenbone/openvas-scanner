@@ -102,6 +102,41 @@ impl NaslValue {
         }
     }
 
+    pub(crate) fn as_dict(&self) -> Result<&HashMap<String, NaslValue>, InterpretErrorKind> {
+        match self {
+            NaslValue::Dict(d) => Ok(d),
+            _ => Err(InterpretErrorKind::ExpectedDict),
+        }
+    }
+
+    pub(crate) fn as_array(&self) -> Result<&Vec<NaslValue>, InterpretErrorKind> {
+        match self {
+            NaslValue::Array(d) => Ok(d),
+            _ => Err(InterpretErrorKind::ExpectedArray),
+        }
+    }
+
+    pub(crate) fn as_dict_mut(
+        &mut self,
+    ) -> Result<&mut HashMap<String, NaslValue>, InterpretErrorKind> {
+        match self {
+            NaslValue::Dict(d) => Ok(d),
+            _ => Err(InterpretErrorKind::ExpectedDict),
+        }
+    }
+
+    pub(crate) fn as_array_mut(&mut self) -> Result<&mut Vec<NaslValue>, InterpretErrorKind> {
+        match self {
+            NaslValue::Array(d) => Ok(d),
+            _ => Err(InterpretErrorKind::ExpectedArray),
+        }
+    }
+
+    #[must_use]
+    pub fn is_dict(&self) -> bool {
+        matches!(self, Self::Dict(..))
+    }
+
     fn add_string(&self, rhs: &NaslValue) -> Option<NaslValue> {
         let concatenated = || format!("{self}{rhs}");
         match self {
@@ -113,6 +148,23 @@ impl NaslValue {
             NaslValue::String(_) => Some(NaslValue::String(concatenated())),
             NaslValue::Data(_) => Some(NaslValue::Data(concatenated().into())),
             _ => None,
+        }
+    }
+
+    pub(crate) fn index(&self, index: NaslValue) -> Result<&NaslValue, InterpretError> {
+        if let Ok(arr) = self.as_array() {
+            let index = index.as_number()?;
+            let index = index
+                .try_into()
+                .map_err(|_| InterpretErrorKind::NegativeIndex(index))?;
+            arr.get(index)
+                .ok_or_else(|| InterpretErrorKind::ArrayOutOfRange(index).into())
+        } else if let Ok(dict) = self.as_dict() {
+            let index = index.as_string()?;
+            dict.get(&index)
+                .ok_or_else(|| InterpretErrorKind::DictKeyDoesNotExist(index).into())
+        } else {
+            Err(InterpretErrorKind::ArrayOrDictExpected.into())
         }
     }
 

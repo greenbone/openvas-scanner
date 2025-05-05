@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::code::SourceFile;
-use crate::nasl::error::emit_errors;
-use crate::nasl::syntax::{LoadError, Token};
+use crate::nasl::error::{AsCodespanError, Span, emit_errors};
+use crate::nasl::syntax::{Ident, LoadError, Token};
 use crate::nasl::syntax::{Statement, SyntaxError, TokenKind};
 use crate::nasl::utils::error::FnError;
 use thiserror::Error;
@@ -111,6 +111,20 @@ pub enum InterpretErrorKind {
     ExpectedNumber,
     #[error("Expected an array.")]
     ExpectedArray,
+    #[error("Expected a dict.")]
+    ExpectedDict,
+    #[error("Undefined variable: {0}")]
+    UndefinedVariable(Ident),
+    #[error("Assignment to undefined variable: {0}")]
+    AssignmentToUndefinedVar(Ident),
+    #[error("Array out of range for index: {0}")]
+    ArrayOutOfRange(usize),
+    #[error("Negative index into array: {0}")]
+    NegativeIndex(i64),
+    #[error("Dict key does not exist: {0}")]
+    DictKeyDoesNotExist(String),
+    #[error("Expected array or dict.")]
+    ArrayOrDictExpected,
 }
 
 // TODO fix this
@@ -229,5 +243,15 @@ impl From<LoadError> for InterpretError {
 impl From<FunctionCallError> for InterpretError {
     fn from(fe: FunctionCallError) -> Self {
         Self::new(InterpretErrorKind::FunctionCallError(fe), None)
+    }
+}
+
+impl AsCodespanError for InterpretError {
+    fn span(&self) -> Span {
+        self.token.span()
+    }
+
+    fn message(&self) -> String {
+        self.kind.to_string()
     }
 }

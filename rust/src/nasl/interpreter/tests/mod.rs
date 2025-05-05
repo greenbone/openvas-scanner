@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use codespan_reporting::files::SimpleFile;
+
+use crate::nasl::error::emit_errors_str;
 use crate::nasl::{NaslResult, test_utils::TestBuilder};
 
 mod description;
@@ -12,6 +15,21 @@ pub fn interpret(code: &str) -> Vec<NaslResult> {
     let mut t = TestBuilder::default();
     t.run_all(code);
     t.results()
+}
+
+pub fn interpret_err(file_name: &str, code: &str) -> String {
+    let mut t = TestBuilder::default();
+    t.run_all(code);
+    let err = t
+        .interpreter_results()
+        .into_iter()
+        .find(|result| result.is_err())
+        .unwrap()
+        .unwrap_err();
+    emit_errors_str(
+        &SimpleFile::new(file_name.to_string(), code.to_string()),
+        vec![err].into_iter(),
+    )
 }
 
 #[macro_export]
@@ -26,6 +44,7 @@ macro_rules! interpreter_test_single {
         }
     };
 }
+
 #[macro_export]
 macro_rules! interpreter_test {
     ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
@@ -37,6 +56,19 @@ macro_rules! interpreter_test {
                 assert_eq!(result, $expected.to_nasl_result().unwrap());
             )*
             assert_eq!(results.len(), 0);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! interpreter_test_err {
+    ($name: ident, $code: literal) => {
+        #[test]
+        fn $name() {
+            insta::assert_snapshot!(crate::nasl::interpreter::tests::interpret_err(
+                stringify!($name),
+                $code
+            ));
         }
     };
 }
@@ -106,13 +138,122 @@ mod operator {
     }
 }
 
-use crate::nasl::test_prelude::*;
+#[cfg(test)]
+mod assign {
+    use crate::nasl::test_prelude::*;
+    use std::collections::HashMap;
 
-interpreter_test!(block, "{ 3; 4; }", NaslValue::Null);
-interpreter_test!(
-    block_scope,
-    "a = 3; { local_var a; a = 4; } a;",
-    3,
-    NaslValue::Null,
-    4
-);
+    #[test]
+    fn variables() {
+        let mut t = TestBuilder::default();
+        t.ok("a = 12;", 12);
+        t.ok("a += 13;", 25);
+        t.ok("a -= 2;", 23);
+        t.ok("a /= 2;", 11);
+        t.ok("a *= 2;", 22);
+        t.ok("a >>= 2;", 5);
+        t.ok("a <<= 2;", 20);
+        t.ok("a >>>= 2;", 5);
+        t.ok("a %= 2;", 1);
+        t.ok("a++;", 1);
+        t.ok("++a;", 3);
+        t.ok("a--;", 3);
+        t.ok("--a;", 1);
+    }
+
+    #[test]
+    fn unsigned_shift_operator() {
+        let mut t = TestBuilder::default();
+        t.ok("a = -5;", -5);
+        t.ok("a >>= 2;", -2);
+        t.ok("a = -5;", -5);
+        t.ok("a >>>= 2;", 1073741822);
+    }
+
+    interpreter_test!(basic_assign, "a = 12; a + 3;", 12, 15);
+
+    interpreter_test!(
+        implicit_extend,
+        "a[2] = 12; a;",
+        12,
+        NaslValue::Array(vec![NaslValue::Null, NaslValue::Null, 12.into()])
+    );
+
+    interpreter_test!(
+        implicit_transformation,
+        "a = 12; a; a[2] = 12; a;",
+        12,
+        12,
+        12,
+        NaslValue::Array(vec![12.into(), NaslValue::Null, 12.into()])
+    );
+
+    interpreter_test!(
+        dict,
+        "a['hi'] = 12; a; a['hi'];",
+        12,
+        NaslValue::Dict(HashMap::from([("hi".to_string(), 12.into())])),
+        12
+    );
+
+    interpreter_test!(array_creation, "a = [1, 2, 3];", vec![1, 2, 3]);
+
+    #[test]
+    fn multidimensional_array() {
+        let mut t = TestBuilder::default();
+        t.ok(
+            "a = [[1,2,3], [4,5,6], [7,8,9]];",
+            vec![
+                NaslValue::Array(vec![
+                    NaslValue::Number(1),
+                    NaslValue::Number(2),
+                    NaslValue::Number(3),
+                ]),
+                NaslValue::Array(vec![
+                    NaslValue::Number(4),
+                    NaslValue::Number(5),
+                    NaslValue::Number(6),
+                ]),
+                NaslValue::Array(vec![
+                    NaslValue::Number(7),
+                    NaslValue::Number(8),
+                    NaslValue::Number(9),
+                ]),
+            ],
+        );
+        t.ok("a[0][0];", 1);
+        t.ok("a[0][1];", 2);
+        t.ok("a[0][2];", 3);
+        t.ok("a[1][0];", 4);
+        t.ok("a[1][1];", 5);
+        t.ok("a[1][2];", 6);
+        t.ok("a[2][0];", 7);
+        t.ok("a[2][1];", 8);
+        t.ok("a[2][2];", 9);
+        t.ok("a[1][2] = 1000;", 1000);
+        t.ok("a[0][0];", 1);
+        t.ok("a[0][1];", 2);
+        t.ok("a[0][2];", 3);
+        t.ok("a[1][0];", 4);
+        t.ok("a[1][1];", 5);
+        t.ok("a[1][2];", 1000);
+        t.ok("a[2][0];", 7);
+        t.ok("a[2][1];", 8);
+        t.ok("a[2][2];", 9);
+    }
+}
+
+mod misc {
+    use crate::nasl::test_prelude::*;
+
+    interpreter_test!(block, "{ 3; 4; }", NaslValue::Null);
+    interpreter_test!(
+        block_scope,
+        "a = 3; { local_var a; a = 4; } a;",
+        3,
+        NaslValue::Null,
+        4
+    );
+
+    interpreter_test_err!(nonexistent_variable, "a += 12;");
+}

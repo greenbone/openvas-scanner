@@ -8,6 +8,7 @@ use tokio::sync::RwLock;
 
 use crate::models::PortRange;
 use crate::nasl::builtin::{KBError, NaslSockets};
+use crate::nasl::interpreter::InterpretErrorKind;
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
 use crate::storage::error::StorageError;
@@ -43,6 +44,16 @@ pub enum ContextType {
     Function(Vec<String>, Statement),
     /// Represents a Variable or Parameter
     Value(NaslValue),
+}
+
+impl ContextType {
+    pub(crate) fn as_value(&self) -> Result<&NaslValue, InterpretErrorKind> {
+        if let Self::Value(val) = self {
+            Ok(val)
+        } else {
+            Err(InterpretErrorKind::FunctionExpectedValue)
+        }
+    }
 }
 
 impl std::fmt::Display for ContextType {
@@ -134,6 +145,13 @@ impl From<HashMap<String, NaslValue>> for ContextType {
         Self::Value(x.into())
     }
 }
+
+#[derive(Copy, Clone)]
+pub struct Var<'a> {
+    name: &'a str,
+    block_idx: usize,
+}
+
 /// Registers all NaslContext
 ///
 /// When creating a new context call a corresponding create method.
@@ -166,8 +184,13 @@ impl Register {
     }
 
     /// Returns the next index
-    pub fn index(&self) -> usize {
+    pub fn next_index(&self) -> usize {
         self.blocks.len()
+    }
+
+    /// Returns the next index
+    fn current_index(&self) -> usize {
+        self.blocks.len() - 1
     }
 
     /// Creates a child context using the last context as a parent
@@ -175,7 +198,7 @@ impl Register {
         let parent_id = self.blocks.last().map(|x| x.id).unwrap_or_default();
         let result = NaslContext {
             parent: Some(parent_id),
-            id: self.index(),
+            id: self.next_index(),
             defined,
         };
         self.blocks.push(result);
@@ -188,23 +211,15 @@ impl Register {
     pub fn create_root_child(&mut self, defined: Named) {
         let result = NaslContext {
             parent: Some(0),
-            id: self.index(),
+            id: self.next_index(),
             defined,
         };
         self.blocks.push(result);
     }
 
-    /// Finds a named ContextType
+    /// Gets a reference to a ContextType by name
     pub fn named<'a>(&'a self, name: &'a str) -> Option<&'a ContextType> {
-        self.blocks
-            .last()
-            .and_then(|x| x.named(self, name))
-            .map(|(_, val)| val)
-    }
-
-    /// Finds a named ContextType with index
-    pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &'a ContextType)> {
-        self.blocks.last().and_then(|x| x.named(self, name))
+        Some(self.get_val(self.get(name)?))
     }
 
     /// Return an iterator over the names of the named arguments.
@@ -244,12 +259,39 @@ impl Register {
         }
     }
     /// Adds a named parameter to the last context
-    pub fn add_local(&mut self, name: &str, value: ContextType) {
-        if let Some(last) = self.blocks.last_mut() {
-            last.add_named(name, value);
+    pub fn add_local<'a>(&mut self, name: &'a str, value: ContextType) -> Var<'a> {
+        let block = self.blocks.last_mut().unwrap();
+        block.add_named(name, value);
+        let block_idx = self.current_index();
+        Var { name, block_idx }
+    }
+
+    pub(crate) fn get<'a>(&self, name: &'a str) -> Option<Var<'a>> {
+        let block_idx = self.blocks.len() - 1;
+        self.get_from_block(name, block_idx)
+    }
+
+    fn get_from_block<'a>(&self, name: &'a str, block_idx: usize) -> Option<Var<'a>> {
+        let block = &self.blocks[block_idx];
+        if block.defined.contains_key(name) {
+            Some(Var { name, block_idx })
+        } else if let Some(parent) = block.parent {
+            self.get_from_block(name, parent)
+        } else {
+            None
         }
     }
 
+    pub(crate) fn get_val<'a>(&self, var: Var<'a>) -> &ContextType {
+        self.blocks[var.block_idx].defined.get(var.name).unwrap()
+    }
+
+    pub(crate) fn get_val_mut<'a>(&mut self, var: Var<'a>) -> &mut ContextType {
+        self.blocks[var.block_idx]
+            .defined
+            .get_mut(var.name)
+            .unwrap()
+    }
     /// Retrieves all positional definitions
     pub fn positional(&self) -> &[NaslValue] {
         match self.named(FC_ANON_ARGS) {
@@ -366,14 +408,14 @@ impl NaslContext {
     /// Retrieves a definition by name
     fn named<'a>(
         &'a self,
-        registrat: &'a Register,
+        register: &'a Register,
         name: &'a str,
     ) -> Option<(usize, &'a ContextType)> {
         // first check local
         match self.defined.get(name) {
             Some(ctx) => Some((self.id, ctx)),
             None => match self.parent {
-                Some(parent) => registrat.blocks[parent].named(registrat, name),
+                Some(parent) => register.blocks[parent].named(register, name),
                 None => None,
             },
         }

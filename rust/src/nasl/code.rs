@@ -1,27 +1,14 @@
 use std::path::{Path, PathBuf};
 
 use codespan_reporting::files::SimpleFile;
-use itertools::{Either, Itertools};
 
 use super::{
     Loader,
     syntax::{
-        Ast, LoadError, Token, Tokenizer, TokenizerError,
+        Ast, LoadError, Tokenizer,
         parser::{ParseError, Parser},
     },
 };
-
-fn split_tokens_and_errors(tokenizer: Tokenizer) -> Result<Vec<Token>, Vec<TokenizerError>> {
-    let (tokens, errors): (Vec<_>, Vec<_>) = tokenizer.partition_map(|a| match a {
-        Ok(a) => Either::Left(a),
-        Err(a) => Either::Right(a),
-    });
-    if !errors.is_empty() {
-        Err(errors)
-    } else {
-        Ok(tokens)
-    }
-}
 
 fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
     let tokenizer = Tokenizer::tokenize(code);
@@ -134,10 +121,23 @@ mod tokenize {
     use std::path::Path;
 
     use codespan_reporting::files::SimpleFile;
+    use itertools::{Either, Itertools};
 
     use crate::nasl::syntax::{Token, Tokenizer, TokenizerError};
 
-    use super::{super::error, SourceFile, split_tokens_and_errors};
+    use super::{super::error, SourceFile};
+
+    fn split_tokens_and_errors(tokenizer: Tokenizer) -> Result<Vec<Token>, Vec<TokenizerError>> {
+        let (tokens, errors): (Vec<_>, Vec<_>) = tokenizer.partition_map(|a| match a {
+            Ok(a) => Either::Left(a),
+            Err(a) => Either::Right(a),
+        });
+        if !errors.is_empty() {
+            Err(errors)
+        } else {
+            Ok(tokens)
+        }
+    }
 
     pub struct TokenizeResult {
         result: Result<Vec<Token>, Vec<TokenizerError>>,

@@ -246,7 +246,7 @@ pub struct Binary {
 
 macro_rules! make_operator {
     ($ty: ident, $err: expr, ($($pat: ident$(,)?),*)) => {
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Copy, Debug, Clone, PartialEq)]
         pub enum $ty {
             $(
                 $pat,

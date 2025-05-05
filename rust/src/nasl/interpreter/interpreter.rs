@@ -1,15 +1,15 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
-    Code, Context, ContextType, Register,
-    interpreter::{
-        InterpretError,
-        declare::{DeclareFunctionExtension, DeclareVariableExtension},
-    },
+    Context, Register,
+    interpreter::InterpretError,
     prelude::NaslValue,
     syntax::{
-        Ast, Keyword, Statement, Token, TokenKind,
-        parser::grammar::{Atom, Binary, BinaryOperator, Block, Expr, Unary, UnaryPrefixOperator},
+        Ast, Ident, Statement, Token,
+        parser::grammar::{
+            Array, ArrayAccess, Atom, Binary, BinaryOperator, Block, Expr, Unary,
+            UnaryPrefixOperator,
+        },
     },
 };
 
@@ -322,19 +322,48 @@ impl<'ctx> Interpreter<'ctx> {
             Expr::Atom(atom) => Box::pin(self.resolve_atom(atom)).await,
             Expr::Binary(binary) => Box::pin(self.resolve_binary(binary)).await,
             Expr::Unary(unary) => Box::pin(self.resolve_unary(unary)).await,
-            // Expr::Assignment(assignment) => self.resolve_assignment(assignment).await,
-            _ => todo!(),
+            Expr::Assignment(assignment) => Box::pin(self.resolve_assignment(assignment)).await,
         }
+    }
+
+    pub async fn collect_exprs(
+        &mut self,
+        exprs: impl Iterator<Item = &Expr>,
+    ) -> Result<Vec<NaslValue>> {
+        let mut vals = vec![];
+        for array_access in exprs {
+            vals.push(self.resolve_expr(array_access).await?);
+        }
+        Ok(vals)
     }
 
     async fn resolve_atom(&mut self, atom: &Atom) -> Result {
         match atom {
             Atom::Literal(literal) => Ok(literal.into()),
             Atom::FnCall(call) => self.resolve_fn_call(call).await,
-            _ => todo!(), // Atom::Ident(ident) => Ok(self.lookup_var(ident)?.clone()),
-                          // Atom::Array(array) => Ok(self.resolve_array(array)?),
-                          // Atom::ArrayAccess(array_access) => Ok(self.resolve_array_access(array_access)?),
+            Atom::Ident(ident) => Ok(self.resolve_var(ident)?.clone()),
+            Atom::Array(array) => Ok(self.resolve_array(array).await?),
+            Atom::ArrayAccess(array_access) => Ok(self.resolve_array_access(array_access).await?),
+            _ => todo!(),
         }
+    }
+
+    fn resolve_var(&self, ident: &Ident) -> Result {
+        Ok(self
+            .register
+            .get_val(
+                self.register
+                    .get(&ident.0)
+                    .ok_or_else(|| InterpretErrorKind::UndefinedVariable(ident.clone()))?,
+            )
+            .as_value()?
+            .clone())
+    }
+
+    async fn resolve_array_access(&mut self, array_access: &ArrayAccess) -> Result {
+        let lhs = self.resolve_expr(&array_access.lhs_expr).await?;
+        let index = self.resolve_expr(&array_access.index_expr).await?;
+        lhs.index(index).map(|val| val.clone())
     }
 
     async fn resolve_unary(&mut self, unary: &Unary) -> Result {
@@ -386,38 +415,11 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    // async fn resolve_array(
-    //     &mut self,
-    //     statement: &Statement,
-    //     position: Option<Box<Statement>>,
-    // ) -> Result<NaslValue, InterpretError> {
-    //     let name = statement.start().identifier()?;
-    //     let val = self
-    //         .register
-    //         .named(&name)
-    //         .unwrap_or(&ContextType::Value(NaslValue::Null));
-    //     let val = val.clone();
-
-    //     match (position, val) {
-    //         (None, ContextType::Value(v)) => Ok(v),
-    //         (Some(p), ContextType::Value(NaslValue::Array(x))) => {
-    //             let position = Box::pin(self.resolve(&p)).await?;
-    //             let position = i64::from(&position) as usize;
-    //             let result = x.get(position).unwrap_or(&NaslValue::Null);
-    //             Ok(result.clone())
-    //         }
-    //         (Some(p), ContextType::Value(NaslValue::Dict(x))) => {
-    //             let position = Box::pin(self.resolve(&p)).await?.to_string();
-    //             let result = x.get(&position).unwrap_or(&NaslValue::Null);
-    //             Ok(result.clone())
-    //         }
-    //         (Some(_), ContextType::Value(NaslValue::Null)) => Ok(NaslValue::Null),
-    //         (Some(p), _) => Err(InterpretError::unsupported(&p, "array")),
-    //         (None, ContextType::Function(_, _)) => {
-    //             Err(InterpretError::unsupported(statement, "variable"))
-    //         }
-    //     }
-    // }
+    async fn resolve_array(&mut self, array: &Array) -> Result {
+        Ok(NaslValue::Array(
+            self.collect_exprs(array.items.items.iter()).await?,
+        ))
+    }
 
     // async fn resolve_exit(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
     //     let rc = Box::pin(self.resolve(statement)).await?;

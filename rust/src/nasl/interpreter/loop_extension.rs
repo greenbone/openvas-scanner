@@ -22,10 +22,10 @@ impl Interpreter<'_> {
     /// iteration.
     pub async fn for_loop(
         &mut self,
-        assignment: &Statement,
-        condition: &Statement,
-        update: &Statement,
-        body: &Statement,
+        _: &Statement,
+        _: &Statement,
+        _: &Statement,
+        _: &Statement,
     ) -> Result {
         todo!()
         // // Resolve assignment

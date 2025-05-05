@@ -1,0 +1,9 @@
+---
+source: src/nasl/interpreter/tests/mod.rs
+expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (nonexistent_variable), \"a += 12;\")"
+---
+error: Assignment to undefined variable: a
+  ┌─ nonexistent_variable:1:1
+  │
+1 │ a += 12;
+  │ ^ Assignment to undefined variable: a

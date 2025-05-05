@@ -5,7 +5,12 @@
 //! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use std::{fmt::Display, net::Ipv4Addr};
 
-use crate::{nasl::interpreter::InterpretError, storage::items::nvt::ACT};
+use crate::{
+    nasl::{error::Span, interpreter::InterpretError},
+    storage::items::nvt::ACT,
+};
+
+use super::CharIndex;
 
 /// A reserved NASL keyword.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -344,7 +349,7 @@ impl Token {
     pub fn sentinel() -> Token {
         Self {
             kind: TokenKind::X,
-            position: (usize::MAX, usize::MAX),
+            position: (0, 0),
         }
     }
 
@@ -354,6 +359,11 @@ impl Token {
 
     pub fn end(&self) -> usize {
         self.position.1
+    }
+
+    pub(crate) fn span(&self) -> Span {
+        // TODO remove this and make span the stored type
+        Span::new(CharIndex(self.start()), CharIndex(self.end()))
     }
 }
 
