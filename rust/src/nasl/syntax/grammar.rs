@@ -1,6 +1,9 @@
 use std::vec;
 
-use super::parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind};
+use super::{
+    Token,
+    parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind},
+};
 use crate::nasl::syntax::token::{Ident, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
@@ -47,6 +50,12 @@ impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
             items,
             delimiter: Delim::default(),
         }
+    }
+}
+
+impl<Item, Delim: Default> AsRef<[Item]> for CommaSeparated<Item, Delim> {
+    fn as_ref(&self) -> &[Item] {
+        &self.items
     }
 }
 
@@ -505,3 +514,20 @@ macro_rules! make_delimiter {
 
 make_delimiter!(Paren, LeftParen, RightParen);
 make_delimiter!(Bracket, LeftBracket, RightBracket);
+
+pub trait AsToken {
+    fn token(&self) -> Token;
+}
+
+// Just to make things work for now
+macro_rules! impl_dumb_temporary_token_info {
+    ($ty: ty) => {
+        impl AsToken for $ty {
+            fn token(&self) -> crate::nasl::syntax::Token {
+                crate::nasl::syntax::Token::sentinel()
+            }
+        }
+    };
+}
+
+impl_dumb_temporary_token_info!(Expr);

@@ -329,10 +329,10 @@ impl<'ctx> Interpreter<'ctx> {
     async fn resolve_atom(&mut self, atom: &Atom) -> Result {
         match atom {
             Atom::Literal(literal) => Ok(literal.into()),
+            Atom::FnCall(call) => self.resolve_fn_call(call).await,
             _ => todo!(), // Atom::Ident(ident) => Ok(self.lookup_var(ident)?.clone()),
                           // Atom::Array(array) => Ok(self.resolve_array(array)?),
                           // Atom::ArrayAccess(array_access) => Ok(self.resolve_array_access(array_access)?),
-                          // Atom::FnCall(call) => self.resolve_fn_call(call),
         }
     }
 

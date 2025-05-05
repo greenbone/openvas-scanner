@@ -4,7 +4,7 @@
 
 use crate::nasl::code::SourceFile;
 use crate::nasl::error::emit_errors;
-use crate::nasl::syntax::LoadError;
+use crate::nasl::syntax::{LoadError, Token};
 use crate::nasl::syntax::{Statement, SyntaxError, TokenKind};
 use crate::nasl::utils::error::FnError;
 use thiserror::Error;
@@ -41,8 +41,10 @@ pub struct InterpretError {
     /// Defined the type of error that occurred.
     #[source]
     pub kind: InterpretErrorKind,
+    // todo remove
     /// The statement on which this error occurred.
     pub origin: Option<Statement>,
+    pub token: Token,
 }
 
 impl InterpretError {
@@ -114,7 +116,11 @@ pub enum InterpretErrorKind {
 // TODO fix this
 impl From<InterpretErrorKind> for InterpretError {
     fn from(kind: InterpretErrorKind) -> Self {
-        Self { kind, origin: None }
+        Self {
+            kind,
+            origin: None,
+            token: Token::sentinel(),
+        }
     }
 }
 
@@ -140,15 +146,30 @@ impl InterpretError {
     /// Use this only when there is no statement available.
     /// If the line as well as col is null Interpreter::resolve will replace it
     /// with the line and col number based on the root statement.
+    // TODO: remove
     pub fn new(kind: InterpretErrorKind, origin: Option<Statement>) -> Self {
-        Self { kind, origin }
+        Self {
+            kind,
+            origin,
+            token: Token::sentinel(),
+        }
     }
 
+    pub fn new_temporary(kind: InterpretErrorKind, token: Token) -> Self {
+        Self {
+            kind,
+            origin: Some(Statement::NoOp),
+            token,
+        }
+    }
+
+    // TODO: Remove
     /// Creates a new Error based on a given statement and reason
     pub fn from_statement(stmt: &Statement, kind: InterpretErrorKind) -> Self {
         InterpretError {
             kind,
             origin: Some(stmt.clone()),
+            token: Token::sentinel(),
         }
     }
 

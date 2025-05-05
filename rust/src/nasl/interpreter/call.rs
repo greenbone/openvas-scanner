@@ -8,7 +8,7 @@ use super::interpreter::{Interpreter, Result};
 use crate::nasl::{
     ContextType, NaslValue,
     interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
-    syntax::Statement,
+    syntax::parser::grammar::{AsToken, Atom, Expr, FnArg, FnCall},
     utils::lookup_keys::FC_ANON_ARGS,
 };
 
@@ -18,110 +18,111 @@ enum ArgumentKind {
 }
 
 impl Interpreter<'_> {
-    // async fn resolve_argument(
-    //     &mut self,
-    //     arg: &Statement,
-    // ) -> Result<(ArgumentKind, NaslValue), InterpretError> {
-    //     match arg {
-    //         StatementKind::NamedParameter(val) => {
-    //             let name = arg.as_token().identifier()?;
-    //             let val = self.resolve(val).await?;
-    //             Ok((ArgumentKind::Named(name), val))
-    //         }
-    //         _ => {
-    //             let val = self.resolve(arg).await?;
-    //             Ok((ArgumentKind::Positional, val))
-    //         }
-    //     }
-    // }
+    async fn resolve_arg(
+        &mut self,
+        arg: &FnArg,
+    ) -> Result<(ArgumentKind, NaslValue), InterpretError> {
+        match arg {
+            FnArg::Anonymous(anon) => {
+                let val = self.resolve_expr(&anon.expr).await?;
+                Ok((ArgumentKind::Positional, val))
+            }
+            FnArg::Named(named) => {
+                let val = self.resolve_expr(&named.expr).await?;
+                Ok((ArgumentKind::Named(named.ident.to_string()), val))
+            }
+        }
+    }
 
-    // async fn create_arguments_map(
-    //     &mut self,
-    //     args: &[Statement],
-    // ) -> Result<HashMap<String, ContextType>, InterpretError> {
-    //     let mut positional = vec![];
-    //     let mut named = HashMap::new();
-    //     for arg in args.iter() {
-    //         let (kind, value) = self.resolve_argument(arg).await?;
-    //         match kind {
-    //             ArgumentKind::Positional => {
-    //                 positional.push(value);
-    //             }
-    //             ArgumentKind::Named(name) => {
-    //                 named.insert(name, value.into());
-    //             }
-    //         }
-    //     }
-    //     named.insert(
-    //         FC_ANON_ARGS.to_owned(),
-    //         ContextType::Value(NaslValue::Array(positional)),
-    //     );
-    //     Ok(named)
-    // }
+    async fn create_arguments_map(
+        &mut self,
+        args: &[FnArg],
+    ) -> Result<HashMap<String, ContextType>, InterpretError> {
+        let mut positional = vec![];
+        let mut named = HashMap::new();
+        for arg in args.iter() {
+            let (kind, value) = self.resolve_arg(arg).await?;
+            match kind {
+                ArgumentKind::Positional => {
+                    positional.push(value);
+                }
+                ArgumentKind::Named(name) => {
+                    named.insert(name, value.into());
+                }
+            }
+        }
+        named.insert(
+            FC_ANON_ARGS.to_owned(),
+            ContextType::Value(NaslValue::Array(positional)),
+        );
+        Ok(named)
+    }
 
-    // async fn execute_user_defined_fn(&mut self, fn_name: &str) -> Result {
-    //     let found = self
-    //         .register
-    //         .named(fn_name)
-    //         .ok_or_else(|| InterpretError::not_found(fn_name))?
-    //         .clone();
-    //     match found {
-    //         ContextType::Function(arguments, stmt) => {
-    //             for arg in arguments {
-    //                 if self.register.named(&arg).is_none() {
-    //                     // Add default NaslValue::Null for each defined argument
-    //                     self.register
-    //                         .add_local(&arg, ContextType::Value(NaslValue::Null));
-    //                 }
-    //             }
-    //             match self.resolve(&stmt).await? {
-    //                 NaslValue::Return(x) => Ok(*x),
-    //                 _ => Ok(NaslValue::Null),
-    //             }
-    //         }
-    //         ContextType::Value(_) => Err(InterpretError::expected_function()),
-    //     }
-    // }
+    async fn execute_user_defined_fn(&mut self, fn_expr: &Expr) -> Result {
+        if let Expr::Atom(Atom::Ident(ref ident)) = *fn_expr {
+            let fn_name = &ident.0;
+            let found = self
+                .register
+                .named(fn_name)
+                .ok_or_else(|| InterpretError::not_found(fn_name))?
+                .clone();
+            match found {
+                ContextType::Function(arguments, stmt) => {
+                    for arg in arguments {
+                        if self.register.named(&arg).is_none() {
+                            // Add default NaslValue::Null for each defined argument
+                            self.register
+                                .add_local(&arg, ContextType::Value(NaslValue::Null));
+                        }
+                    }
+                    match self.resolve(&stmt).await? {
+                        NaslValue::Return(x) => Ok(*x),
+                        _ => Ok(NaslValue::Null),
+                    }
+                }
+                ContextType::Value(_) => Err(InterpretError::expected_function()),
+            }
+        } else {
+            unimplemented!()
+        }
+    }
 
-    // async fn execute_builtin_fn(
-    //     &mut self,
-    //     statement: &Statement,
-    //     fn_name: &str,
-    // ) -> Option<Result> {
-    //     self.context
-    //         .execute_builtin_fn(fn_name, &self.register)
-    //         .await
-    //         .map(|o| {
-    //             o.map_err(|e| {
-    //                 InterpretError::new(
-    //                     InterpretErrorKind::FunctionCallError(FunctionCallError::new(fn_name, e)),
-    //                     Some(statement.clone()),
-    //                 )
-    //             })
-    //         })
-    // }
+    async fn execute_builtin_fn(&mut self, call: &FnCall) -> Option<Result> {
+        if let Expr::Atom(Atom::Ident(ref ident)) = *call.fn_expr {
+            self.context
+                .execute_builtin_fn(&ident.0, &self.register)
+                .await
+                .map(|o| {
+                    o.map_err(|e| {
+                        InterpretError::new_temporary(
+                            InterpretErrorKind::FunctionCallError(FunctionCallError::new(
+                                &ident.0, e,
+                            )),
+                            call.fn_expr.token(),
+                        )
+                    })
+                })
+        } else {
+            None
+        }
+    }
 
-    // pub async fn call(
-    //     &mut self,
-    //     statement: &Statement,
-    //     arguments: &[Statement],
-    // ) -> Result {
-    //     if let Some(val) = self.fork_reentry_data.try_restore(statement.as_token())? {
-    //         return Ok(val);
-    //     }
-    //     let fn_name = statement.as_token().identifier()?;
-    //     let arguments = self.create_arguments_map(arguments).await?;
-    //     self.register.create_root_child(arguments);
-    //     let val = match self.execute_builtin_fn(statement, &fn_name).await {
-    //         Some(result) => result,
-    //         _ => self.execute_user_defined_fn(&fn_name).await,
-    //     }?;
-    //     self.register.drop_last();
-    //     let val = replace_empty_or_identity_fork(val);
-    //     self.fork_reentry_data
-    //         .try_collect(val.clone(), statement.as_token());
-    //     Ok(val)
-    // }
+    pub(crate) async fn resolve_fn_call(&mut self, call: &FnCall) -> Result {
+        let token = call.fn_expr.token();
+        if let Some(val) = self.fork_reentry_data.try_restore(&token)? {
+            return Ok(val);
+        }
+        let arguments = self.create_arguments_map(call.args.as_ref()).await?;
+        self.register.create_root_child(arguments);
+        let val = match self.execute_builtin_fn(call).await {
+            Some(result) => result,
+            _ => self.execute_user_defined_fn(&call.fn_expr).await,
+        }?;
+        self.register.drop_last();
+        let val = replace_empty_or_identity_fork(val);
+        self.fork_reentry_data.try_collect(val.clone(), &token);
+        Ok(val)
+    }
 }
 
 fn replace_empty_or_identity_fork(mut val: NaslValue) -> NaslValue {
