@@ -13,7 +13,7 @@ use crate::{
     storage::items::{kb::KbItem, nvt::ACT},
 };
 
-use super::{Keyword, token::Literal};
+use super::token::Literal;
 
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -277,7 +277,7 @@ impl Display for NaslValue {
             NaslValue::Null => write!(f, "\0"),
             NaslValue::Exit(rc) => write!(f, "exit({})", rc),
             NaslValue::AttackCategory(category) => {
-                write!(f, "{}", Keyword::ACT(*category))
+                write!(f, "{}", *category)
             }
             NaslValue::Return(rc) => write!(f, "return({:?})", *rc),
             NaslValue::Continue => write!(f, "continue"),
@@ -481,6 +481,7 @@ impl From<&Literal> for NaslValue {
             Literal::IPv4Address(ipv4_addr) => NaslValue::String(ipv4_addr.to_string()),
             Literal::Null => NaslValue::Null,
             Literal::Boolean(b) => NaslValue::Boolean(*b),
+            Literal::AttackCategory(a) => NaslValue::AttackCategory(*a),
         }
     }
 }

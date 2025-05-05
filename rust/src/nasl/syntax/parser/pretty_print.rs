@@ -309,6 +309,7 @@ impl Display for Literal {
             Literal::IPv4Address(ip) => write!(f, "{}", ip),
             Literal::Boolean(b) => write!(f, "{}", if *b { "TRUE" } else { "FALSE" }),
             Literal::Null => write!(f, "Null"),
+            Literal::AttackCategory(a) => write!(f, "{a}"),
         }
     }
 }

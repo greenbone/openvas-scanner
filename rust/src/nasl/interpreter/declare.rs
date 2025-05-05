@@ -4,10 +4,7 @@
 
 use crate::nasl::{
     ContextType, NaslValue,
-    syntax::{
-        Statement, Token,
-        parser::grammar::{FnDecl, VarScope, VarScopeDecl},
-    },
+    syntax::parser::grammar::{FnDecl, VarScope, VarScopeDecl},
 };
 
 use super::interpreter::{Interpreter, Result};

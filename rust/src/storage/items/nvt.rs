@@ -767,3 +767,21 @@ impl From<NvtField> for Nvt {
         }
     }
 }
+
+impl std::fmt::Display for ACT {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ACT::Attack => write!(f, "ACT_ATTACK"),
+            ACT::Denial => write!(f, "ACT_DENIAL"),
+            ACT::DestructiveAttack => write!(f, "ACT_DESTRUCTIVE_ATTACK"),
+            ACT::End => write!(f, "ACT_END"),
+            ACT::Flood => write!(f, "ACT_FLOOD"),
+            ACT::GatherInfo => write!(f, "ACT_GATHER_INFO"),
+            ACT::Init => write!(f, "ACT_INIT"),
+            ACT::KillHost => write!(f, "ACT_KILL_HOST"),
+            ACT::MixedAttack => write!(f, "ACT_MIXED_ATTACK"),
+            ACT::Scanner => write!(f, "ACT_SCANNER"),
+            ACT::Settings => write!(f, "ACT_SETTINGS"),
+        }
+    }
+}

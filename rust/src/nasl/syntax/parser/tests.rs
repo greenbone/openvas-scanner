@@ -541,3 +541,9 @@ parse_test_err!(
     "{ a = 2;",
     "function a() { a = 2;",
 );
+
+parse_test_ok!(
+    attack_category,
+    Program,
+    "script_category(ACT_GATHER_INFO);"
+);

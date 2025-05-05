@@ -7,7 +7,7 @@ use crate::nasl::{
     syntax::{
         Ast, Ident, Statement, Token,
         parser::grammar::{
-            Array, ArrayAccess, Atom, Binary, BinaryOperator, Block, Expr, Unary,
+            Array, ArrayAccess, Atom, Binary, BinaryOperator, Block, Exit, Expr, If, Unary,
             UnaryPrefixOperator,
         },
     },
@@ -270,37 +270,6 @@ impl<'ctx> Interpreter<'ctx> {
     ) -> Result<NaslValue, InterpretError> {
         use Statement::*;
         match statement {
-            // Include(inc) => Box::pin(self.include(inc)).await,
-            // Array(position) => self.resolve_array(statement, position.clone()).await,
-            // Exit(stmt) => self.resolve_exit(stmt).await,
-            // Return(stmt) => self.resolve_return(stmt).await,
-            // NamedParameter(..) => {
-            //     unreachable!("named parameter should not be an executable statement.")
-            // }
-            // For(assignment, condition, update, body) => {
-            //     Box::pin(self.for_loop(assignment, condition, update, body)).await
-            // }
-            // While(condition, body) => Box::pin(self.while_loop(condition, body)).await,
-            // Repeat(body, condition) => Box::pin(self.repeat_loop(body, condition)).await,
-            // ForEach(variable, iterable, body) => {
-            //     Box::pin(self.for_each_loop(variable, iterable, body)).await
-            // }
-            // FunctionDeclaration(name, args, exec) => {
-            //     self.declare_function(name, args.children(), exec)
-            // }
-            // Primitive => self.resolve_primitive(statement),
-            // Variable => self.resolve_variable(statement),
-            // Call(arguments) => Box::pin(self.call(statement, arguments.children())).await,
-            // Declare(stmts) => self.declare_variable(statement.as_token(), stmts),
-            // Parameter(x) => self.resolve_parameter(x).await,
-            // Assign(cat, order, left, right) => Box::pin(self.assign(cat, order, left, right)).await,
-            // Operator(sign, stmts) => Box::pin(self.operator(sign, stmts)).await,
-            // If(condition, if_block, _, else_block) => {
-            //     self.resolve_if(condition, if_block, else_block.clone())
-            //         .await
-            // }
-            // Block(blocks) => self.resolve_block(blocks).await,
-            // AttackCategory => self.resolve_attack_category(statement),
             NoOp => Ok(NaslValue::Null),
             Continue => Ok(NaslValue::Continue),
             Break => Ok(NaslValue::Break),
@@ -308,9 +277,14 @@ impl<'ctx> Interpreter<'ctx> {
             Block(block) => self.resolve_block(block).await,
             VarScopeDecl(var_scope_decl) => self.resolve_var_scope_decl(var_scope_decl),
             FnDecl(fn_decl) => self.resolve_fn_decl(fn_decl),
-            _ => {
-                todo!()
-            }
+            If(if_) => self.resolve_if(if_).await,
+            While(_) => todo!(),
+            Repeat(_) => todo!(),
+            Foreach(_) => todo!(),
+            For(_) => todo!(),
+            Exit(exit) => self.resolve_exit(exit).await,
+            Include(_) => todo!(),
+            Return(_) => todo!(),
         }
         .map_err(|e: InterpretError| {
             if e.origin.is_none() {
@@ -346,9 +320,9 @@ impl<'ctx> Interpreter<'ctx> {
             Atom::Literal(literal) => Ok(literal.into()),
             Atom::FnCall(call) => self.resolve_fn_call(call).await,
             Atom::Ident(ident) => Ok(self.resolve_var(ident)?.clone()),
-            Atom::Array(array) => Ok(self.resolve_array(array).await?),
-            Atom::ArrayAccess(array_access) => Ok(self.resolve_array_access(array_access).await?),
-            _ => todo!(),
+            Atom::Array(array) => self.resolve_array(array).await,
+            Atom::ArrayAccess(array_access) => self.resolve_array_access(array_access).await,
+            Atom::Increment(increment) => self.resolve_increment(increment).await,
         }
     }
 
@@ -425,13 +399,13 @@ impl<'ctx> Interpreter<'ctx> {
         ))
     }
 
-    // async fn resolve_exit(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-    //     let rc = Box::pin(self.resolve(statement)).await?;
-    //     match rc {
-    //         NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
-    //         _ => Err(InterpretError::unsupported(statement, "numeric")),
-    //     }
-    // }
+    async fn resolve_exit(&mut self, exit: &Exit) -> Result<NaslValue, InterpretError> {
+        let rc = Box::pin(self.resolve_expr(&exit.expr)).await?;
+        match rc {
+            NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
+            _ => Err(InterpretErrorKind::NonNumericExitCode(rc).into()),
+        }
+    }
 
     // async fn resolve_return(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
     //     let rc = Box::pin(self.resolve(statement)).await?;
@@ -462,24 +436,24 @@ impl<'ctx> Interpreter<'ctx> {
     //     Ok(NaslValue::Array(result))
     // }
 
-    // async fn resolve_if(
-    //     &mut self,
-    //     condition: &Statement,
-    //     if_block: &Statement,
-    //     else_block: Option<Box<Statement>>,
-    // ) -> Result<NaslValue, InterpretError> {
-    //     match Box::pin(self.resolve(condition)).await {
-    //         Ok(value) => {
-    //             if bool::from(value) {
-    //                 return Box::pin(self.resolve(if_block)).await;
-    //             } else if let Some(else_block) = else_block {
-    //                 return Box::pin(self.resolve(else_block.as_ref())).await;
-    //             }
-    //             Ok(NaslValue::Null)
-    //         }
-    //         Err(err) => Err(err),
-    //     }
-    // }
+    async fn resolve_if(
+        &mut self,
+        If {
+            if_branches,
+            else_branch,
+        }: &If,
+    ) -> Result<NaslValue, InterpretError> {
+        for (condition, block) in if_branches.iter() {
+            let val = self.resolve_expr(condition).await?;
+            if bool::from(val) {
+                return self.resolve_block(block).await;
+            }
+        }
+        if let Some(block) = else_branch {
+            return self.resolve_block(block).await;
+        }
+        Ok(NaslValue::Null)
+    }
 
     pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
         self.register.create_child(HashMap::default());
@@ -504,19 +478,6 @@ impl<'ctx> Interpreter<'ctx> {
         // currently blocks return null
         Ok(NaslValue::Null)
     }
-
-    // async fn resolve_block(&mut self, blocks: &[Statement]) -> Result<NaslValue, InterpretError> {
-    // }
-
-    // fn resolve_attack_category(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-    //     match statement.as_token().kind() {
-    //         TokenKind::Keyword(Keyword::ACT(cat)) => Ok(NaslValue::AttackCategory(*cat)),
-    //         _ => unreachable!(
-    //             "AttackCategory must have ACT token but got {:?}, this is an bug within the lexer.",
-    //             statement.as_token()
-    //         ),
-    //     }
-    // }
 
     // async fn include(&mut self, name: &Statement) -> Result {
     //     match self.resolve(name).await? {

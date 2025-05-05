@@ -45,8 +45,6 @@ pub enum Keyword {
     Break,
     /// include
     Include,
-    /// Scanning phases; can be set by category in the description block
-    ACT(ACT),
     /// exit
     Exit,
 }
@@ -95,17 +93,6 @@ make_keyword_matcher! {
     return, Keyword::Return,
     include, Keyword::Include,
     exit, Keyword::Exit,
-    ACT_ATTACK, Keyword::ACT(ACT::Attack),
-    ACT_DENIAL, Keyword::ACT(ACT::Denial),
-    ACT_DESTRUCTIVE_ATTACK, Keyword::ACT(ACT::DestructiveAttack),
-    ACT_END, Keyword::ACT(ACT::End),
-    ACT_FLOOD, Keyword::ACT(ACT::Flood),
-    ACT_GATHER_INFO, Keyword::ACT(ACT::GatherInfo),
-    ACT_INIT, Keyword::ACT(ACT::Init),
-    ACT_KILL_HOST, Keyword::ACT(ACT::KillHost),
-    ACT_MIXED_ATTACK, Keyword::ACT(ACT::MixedAttack),
-    ACT_SCANNER, Keyword::ACT(ACT::Scanner),
-    ACT_SETTINGS, Keyword::ACT(ACT::Settings),
     continue, Keyword::Continue,
     break, Keyword::Break
 }
@@ -131,6 +118,8 @@ pub enum Literal {
     IPv4Address(Ipv4Addr),
     /// A boolean.
     Boolean(bool),
+    /// Attack category
+    AttackCategory(ACT),
     /// Null
     Null,
 }
@@ -141,6 +130,17 @@ impl Literal {
             "NULL" => Some(Self::Null),
             "FALSE" => Some(Self::Boolean(false)),
             "TRUE" => Some(Self::Boolean(true)),
+            "ACT_ATTACK" => Some(Self::AttackCategory(ACT::Attack)),
+            "ACT_DENIAL" => Some(Self::AttackCategory(ACT::Denial)),
+            "ACT_DESTRUCTIVE_ATTACK" => Some(Self::AttackCategory(ACT::DestructiveAttack)),
+            "ACT_END" => Some(Self::AttackCategory(ACT::End)),
+            "ACT_FLOOD" => Some(Self::AttackCategory(ACT::Flood)),
+            "ACT_GATHER_INFO" => Some(Self::AttackCategory(ACT::GatherInfo)),
+            "ACT_INIT" => Some(Self::AttackCategory(ACT::Init)),
+            "ACT_KILL_HOST" => Some(Self::AttackCategory(ACT::KillHost)),
+            "ACT_MIXED_ATTACK" => Some(Self::AttackCategory(ACT::MixedAttack)),
+            "ACT_SCANNER" => Some(Self::AttackCategory(ACT::Scanner)),
+            "ACT_SETTINGS" => Some(Self::AttackCategory(ACT::Settings)),
             _ => None,
         }
     }
@@ -314,6 +314,7 @@ impl Display for TokenKind {
             TokenKind::Literal(Literal::IPv4Address(ip)) => write!(f, "{ip}"),
             TokenKind::Literal(Literal::Boolean(b)) => write!(f, "{}", b),
             TokenKind::Literal(Literal::Null) => write!(f, "Null"),
+            TokenKind::Literal(Literal::AttackCategory(c)) => write!(f, "{c}"),
             TokenKind::Eof => write!(f, ""),
         }
     }

@@ -6,6 +6,11 @@ use std::collections::HashMap;
 
 use crate::nasl::syntax::parser::grammar::Assignment;
 use crate::nasl::syntax::parser::grammar::AssignmentOperator;
+use crate::nasl::syntax::parser::grammar::Increment;
+use crate::nasl::syntax::parser::grammar::IncrementKind;
+use crate::nasl::syntax::parser::grammar::IncrementOperator;
+use crate::nasl::syntax::parser::grammar::PlaceExpr;
+use crate::nasl::utils::context::Var;
 
 use super::InterpretErrorKind;
 use super::interpreter::Interpreter;
@@ -51,10 +56,8 @@ fn convert_value_to_dict(val: &mut NaslValue, index: &str) {
 fn assign(
     lhs: &mut NaslValue,
     indices: &[NaslValue],
-    rhs: NaslValue,
-    op: AssignmentOperator,
+    modify: impl FnOnce(&mut NaslValue) -> Result<NaslValue>,
 ) -> Result {
-    use AssignmentOperator::*;
     match indices.first() {
         Some(index) => {
             // We implicitly convert the lhs into whatever type
@@ -65,99 +68,31 @@ fn assign(
                 let index = index.to_string();
                 convert_value_to_dict(lhs, &index);
                 let lhs = lhs.as_dict_mut().unwrap().get_mut(&index).unwrap();
-                assign(lhs, &indices[1..], rhs, op)
+                assign(lhs, &indices[1..], modify)
             } else {
                 let index = index.as_number()? as usize;
                 convert_value_to_array(lhs, index);
                 let lhs = &mut lhs.as_array_mut().unwrap()[index];
-                assign(lhs, &indices[1..], rhs, op)
+                assign(lhs, &indices[1..], modify)
             }
         }
-        None => {
-            *lhs = match op {
-                Equal => Ok(rhs),
-                PlusEqual => Ok(lhs.add(rhs)),
-                MinusEqual => Ok(lhs.sub(rhs)),
-                StarEqual => lhs.mul(rhs),
-                SlashEqual => lhs.div(rhs),
-                PercentEqual => lhs.rem(rhs),
-                LessLessEqual => lhs.shl(rhs),
-                GreaterGreaterEqual => lhs.shr(rhs),
-                GreaterGreaterGreaterEqual => lhs.shr_unsigned(rhs),
-            }?;
-            Ok(lhs.clone())
-        }
+        None => modify(lhs),
     }
 }
 
 impl Interpreter<'_> {
-    // #[allow(clippy::too_many_arguments)]
-    // fn handle_dict(
-    //     &mut self,
-    //     ridx: usize,
-    //     key: &str,
-    //     idx: String,
-    //     left: NaslValue,
-    //     right: &NaslValue,
-    //     return_original: &AssignOrder,
-    //     result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
-    // ) -> NaslValue {
-    //     let mut dict = prepare_dict(left);
-    //     match return_original {
-    //         AssignOrder::ReturnAssign => {
-    //             let original = dict.get(&idx).unwrap_or(&NaslValue::Null).clone();
-    //             let result = result(&original, right);
-    //             dict.insert(idx, result);
-    //             self.save(ridx, key, NaslValue::Dict(dict));
-    //             original
-    //         }
-    //         AssignOrder::AssignReturn => {
-    //             let original = dict.get(&idx).unwrap_or(&NaslValue::Null);
-    //             let result = result(original, right);
-    //             dict.insert(idx, result.clone());
-    //             self.save(ridx, key, NaslValue::Dict(dict));
-    //             result
-    //         }
-    //     }
-    // }
+    async fn eval_place_expr<'a>(
+        &mut self,
+        place_expr: &'a PlaceExpr,
+    ) -> Result<(Option<Var<'a>>, Vec<NaslValue>)> {
+        let var = self.register.get(&place_expr.ident.0);
+        let indices = self.collect_exprs(place_expr.array_accesses.iter()).await?;
+        Ok((var, indices))
+    }
 
-    // #[allow(clippy::too_many_arguments)]
-    // fn handle_array(
-    //     &mut self,
-    //     ridx: usize,
-    //     key: &str,
-    //     idx: &NaslValue,
-    //     left: NaslValue,
-    //     right: &NaslValue,
-    //     return_original: &AssignOrder,
-    //     result: impl Fn(&NaslValue, &NaslValue) -> NaslValue,
-    // ) -> NaslValue {
-    //     let (idx, mut arr) = prepare_array(idx, left);
-    //     match return_original {
-    //         AssignOrder::ReturnAssign => {
-    //             let orig = arr[idx].clone();
-    //             let result = result(&orig, right);
-    //             arr[idx] = result;
-    //             self.save(ridx, key, NaslValue::Array(arr));
-    //             orig
-    //         }
-    //         AssignOrder::AssignReturn => {
-    //             let result = result(&arr[idx], right);
-    //             arr[idx] = result.clone();
-    //             self.save(ridx, key, NaslValue::Array(arr));
-    //             result
-    //         }
-    //     }
-    // }
-
-    /// Assign a right value to a left value. Return either the
-    /// previous or the new value, based on the order.
     pub(crate) async fn resolve_assignment(&mut self, assignment: &Assignment) -> Result {
         let rhs = self.resolve_expr(&assignment.rhs).await?;
-        let var = self.register.get(&assignment.lhs.ident.0);
-        let indices = self
-            .collect_exprs(assignment.lhs.array_accesses.iter())
-            .await?;
+        let (var, indices) = self.eval_place_expr(&assignment.lhs).await?;
         // match instead of unwrap_or to make returning errors easier.
         let var = match var {
             None => {
@@ -178,11 +113,43 @@ impl Interpreter<'_> {
             }
             Some(var) => var,
         };
-        let val_mut = self.register.get_val_mut(var);
-        match val_mut {
-            ContextType::Function(_, _) => Err(InterpretErrorKind::FunctionExpectedValue)?,
-            ContextType::Value(val) => assign(val, &indices, rhs, assignment.op),
-        }
+        let val_mut = self.register.get_val_mut(var).as_value_mut()?;
+        use AssignmentOperator::*;
+        let modify = |lhs: &mut NaslValue| -> Result<NaslValue> {
+            *lhs = match assignment.op {
+                Equal => Ok(rhs),
+                PlusEqual => Ok(lhs.add(rhs)),
+                MinusEqual => Ok(lhs.sub(rhs)),
+                StarEqual => lhs.mul(rhs),
+                SlashEqual => lhs.div(rhs),
+                PercentEqual => lhs.rem(rhs),
+                LessLessEqual => lhs.shl(rhs),
+                GreaterGreaterEqual => lhs.shr(rhs),
+                GreaterGreaterGreaterEqual => lhs.shr_unsigned(rhs),
+            }?;
+            Ok(lhs.clone())
+        };
+        assign(val_mut, &indices, modify)
+    }
+
+    pub(crate) async fn resolve_increment(&mut self, increment: &Increment) -> Result {
+        let (var, indices) = self.eval_place_expr(&increment.expr).await?;
+        let var = var.ok_or_else(|| {
+            InterpretErrorKind::AssignmentToUndefinedVar(increment.expr.ident.clone())
+        })?;
+        let val_mut = self.register.get_val_mut(var).as_value_mut()?;
+        let modify = |val: &mut NaslValue| -> Result<NaslValue> {
+            let previous_value = val.clone();
+            *val = match increment.op {
+                IncrementOperator::PlusPlus => val.add(NaslValue::Number(1)),
+                IncrementOperator::MinusMinus => val.sub(NaslValue::Number(1)),
+            };
+            match increment.kind {
+                IncrementKind::Prefix => Ok(val.clone()),
+                IncrementKind::Postfix => Ok(previous_value),
+            }
+        };
+        assign(val_mut, &indices, modify)
     }
 }
 

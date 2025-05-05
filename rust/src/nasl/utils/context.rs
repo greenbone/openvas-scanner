@@ -55,6 +55,14 @@ impl ContextType {
             Err(InterpretErrorKind::FunctionExpectedValue)
         }
     }
+
+    pub(crate) fn as_value_mut(&mut self) -> Result<&mut NaslValue, InterpretErrorKind> {
+        if let Self::Value(val) = self {
+            Ok(val)
+        } else {
+            Err(InterpretErrorKind::FunctionExpectedValue)
+        }
+    }
 }
 
 impl std::fmt::Display for ContextType {

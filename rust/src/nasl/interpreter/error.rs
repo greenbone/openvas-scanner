@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::nasl::NaslValue;
 use crate::nasl::code::SourceFile;
 use crate::nasl::error::{AsCodespanError, Span, emit_errors};
 use crate::nasl::syntax::{Ident, LoadError, Token};
@@ -125,6 +126,8 @@ pub enum InterpretErrorKind {
     DictKeyDoesNotExist(String),
     #[error("Expected array or dict.")]
     ArrayOrDictExpected,
+    #[error("Tried to exit with non-numeric exit code {0}.")]
+    NonNumericExitCode(NaslValue),
 }
 
 // TODO fix this
