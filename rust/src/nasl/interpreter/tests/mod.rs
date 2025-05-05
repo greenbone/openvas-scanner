@@ -10,7 +10,7 @@ mod retry;
 
 pub fn interpret(code: &str) -> Vec<NaslResult> {
     let mut t = TestBuilder::default();
-    t.run(code);
+    t.run_all(code);
     t.results()
 }
 
@@ -23,6 +23,20 @@ macro_rules! interpreter_test_single {
             assert_eq!(results.len(), 1);
             let result = results.remove(0).unwrap();
             assert_eq!(result, $expected.to_nasl_result().unwrap());
+        }
+    };
+}
+#[macro_export]
+macro_rules! interpreter_test {
+    ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
+        #[test]
+        fn $name() {
+            let mut results = crate::nasl::interpreter::tests::interpret($code);
+            $(
+                let result = results.remove(0).unwrap();
+                assert_eq!(result, $expected.to_nasl_result().unwrap());
+            )*
+            assert_eq!(results.len(), 0);
         }
     };
 }
@@ -91,3 +105,14 @@ mod operator {
         assert_eq!(t.results().pop().unwrap().unwrap(), NaslValue::Null);
     }
 }
+
+use crate::nasl::test_prelude::*;
+
+interpreter_test!(block, "{ 3; 4; }", NaslValue::Null);
+interpreter_test!(
+    block_scope,
+    "a = 3; { local_var a; a = 4; } a;",
+    3,
+    NaslValue::Null,
+    4
+);

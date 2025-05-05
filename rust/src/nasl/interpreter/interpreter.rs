@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
     Code, Context, ContextType, Register,
@@ -9,7 +9,7 @@ use crate::nasl::{
     prelude::NaslValue,
     syntax::{
         Ast, Keyword, Statement, Token, TokenKind,
-        parser::grammar::{Atom, Binary, BinaryOperator, Expr, Unary, UnaryPrefixOperator},
+        parser::grammar::{Atom, Binary, BinaryOperator, Block, Expr, Unary, UnaryPrefixOperator},
     },
 };
 
@@ -305,6 +305,7 @@ impl<'ctx> Interpreter<'ctx> {
             Continue => Ok(NaslValue::Continue),
             Break => Ok(NaslValue::Break),
             ExprStmt(expr) => self.resolve_expr(expr).await,
+            Block(block) => self.resolve_block(block).await,
             _ => todo!(),
         }
         .map_err(|e: InterpretError| {
@@ -474,28 +475,31 @@ impl<'ctx> Interpreter<'ctx> {
     //     }
     // }
 
+    async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
+        self.register.create_child(HashMap::default());
+        for stmt in block.items.iter() {
+            match Box::pin(self.resolve(stmt)).await {
+                Ok(x) => {
+                    if matches!(
+                        x,
+                        NaslValue::Exit(_)
+                            | NaslValue::Return(_)
+                            | NaslValue::Break
+                            | NaslValue::Continue
+                    ) {
+                        self.register.drop_last();
+                        return Ok(x);
+                    }
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        self.register.drop_last();
+        // currently blocks return null
+        Ok(NaslValue::Null)
+    }
+
     // async fn resolve_block(&mut self, blocks: &[Statement]) -> Result<NaslValue, InterpretError> {
-    //     self.register.create_child(HashMap::default());
-    //     for stmt in blocks {
-    //         match Box::pin(self.resolve(stmt)).await {
-    //             Ok(x) => {
-    //                 if matches!(
-    //                     x,
-    //                     NaslValue::Exit(_)
-    //                         | NaslValue::Return(_)
-    //                         | NaslValue::Break
-    //                         | NaslValue::Continue
-    //                 ) {
-    //                     self.register.drop_last();
-    //                     return Ok(x);
-    //                 }
-    //             }
-    //             Err(e) => return Err(e),
-    //         }
-    //     }
-    //     self.register.drop_last();
-    //     // currently blocks don't return something
-    //     Ok(NaslValue::Null)
     // }
 
     // fn resolve_attack_category(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
