@@ -20,6 +20,9 @@
 #define ARG_INT 2
 
 void
+init_kb_usage (void);
+
+void
 scanner_add_port (struct script_infos *, int, char *);
 
 /*

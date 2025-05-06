@@ -820,7 +820,7 @@ replace_kb_item (lex_ctxt *lexic)
 }
 
 /**
- * @brief Set a volate kb item.
+ * @brief Set a volatile kb item.
  *
  * @param[in]  lexic  NASL lexer.
  * @param[in]  name Name of Item.

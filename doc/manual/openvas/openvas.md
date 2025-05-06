@@ -294,6 +294,17 @@ min_free_mem
     system. Once this limit is reached, no further VTs are started until
     sufficient memory is available again.
 
+max_mem_kb
+
+:   Maximum amount of memory (in MB) allowed to use for a single script.
+    If this value is set, the amount of memory put into redis is tracked
+    for every Script. If the amount of memory exceeds this limit, the
+    script is not able to set more kb items. The tracked the value
+    written into redis is only estimated, as it does not check, if a
+    value was replaced or appended. The size of the key is also not
+    tracked. If this value is not set or <= 0, the maximum amount is
+    unlimited (Default).
+
 The other options in this file can usually be redefined by the client.
 
 ## NETWORK USAGE
