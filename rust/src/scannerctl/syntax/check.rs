@@ -4,8 +4,9 @@
 
 use std::path::Path;
 
+use scannerlib::nasl::syntax::LoadError;
+use scannerlib::nasl::syntax::grammar::Statement;
 use scannerlib::nasl::syntax::load_non_utf8_path;
-use scannerlib::nasl::syntax::{LoadError};
 use scannerlib::nasl::{Code, Loader};
 use walkdir::WalkDir;
 
@@ -26,16 +27,16 @@ impl Loader for NonUtf8Loader {
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut num_errors = 0;
 
-    let print_decl = |decl: &Declaration| {
-        println!("{}: {}", path.to_string_lossy(), decl);
+    let print_stmt = |stmt: &Statement| {
+        println!("{}: {}", path.to_string_lossy(), stmt);
     };
 
     let results = Code::load(&NonUtf8Loader, path)?.parse();
     num_errors += results.num_errors();
-    if let Some(decls) = results.emit_errors() {
+    if let Some(stmts) = results.emit_errors() {
         if verbose {
-            for decl in decls.decls().iter() {
-                print_decl(decl);
+            for stmt in stmts.stmts().iter() {
+                print_stmt(stmt);
             }
         }
     }

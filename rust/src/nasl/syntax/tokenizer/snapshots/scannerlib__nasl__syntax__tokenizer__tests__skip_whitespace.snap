@@ -1,14 +1,17 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (skip_whitespace), \"     (       \")"
-snapshot_kind: text
 ---
 [
     Token {
         kind: LeftParen,
-        position: (
-            5,
-            6,
-        ),
+        span: Span {
+            start: CharIndex(
+                5,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
     },
 ]

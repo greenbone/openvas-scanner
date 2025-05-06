@@ -5,128 +5,200 @@ expression: "tokenize_ok(stringify! (one_char_tokens),\n\"( ) [ ] { } . - + % ; 
 [
     Token {
         kind: LeftParen,
-        position: (
-            0,
-            1,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
     },
     Token {
         kind: RightParen,
-        position: (
-            2,
-            3,
-        ),
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                3,
+            ),
+        },
     },
     Token {
         kind: LeftBracket,
-        position: (
-            4,
-            5,
-        ),
+        span: Span {
+            start: CharIndex(
+                4,
+            ),
+            end: CharIndex(
+                5,
+            ),
+        },
     },
     Token {
         kind: RightBracket,
-        position: (
-            6,
-            7,
-        ),
+        span: Span {
+            start: CharIndex(
+                6,
+            ),
+            end: CharIndex(
+                7,
+            ),
+        },
     },
     Token {
         kind: LeftBrace,
-        position: (
-            8,
-            9,
-        ),
+        span: Span {
+            start: CharIndex(
+                8,
+            ),
+            end: CharIndex(
+                9,
+            ),
+        },
     },
     Token {
         kind: RightBrace,
-        position: (
-            10,
-            11,
-        ),
+        span: Span {
+            start: CharIndex(
+                10,
+            ),
+            end: CharIndex(
+                11,
+            ),
+        },
     },
     Token {
         kind: Dot,
-        position: (
-            12,
-            13,
-        ),
+        span: Span {
+            start: CharIndex(
+                12,
+            ),
+            end: CharIndex(
+                13,
+            ),
+        },
     },
     Token {
         kind: Minus,
-        position: (
-            14,
-            15,
-        ),
+        span: Span {
+            start: CharIndex(
+                14,
+            ),
+            end: CharIndex(
+                15,
+            ),
+        },
     },
     Token {
         kind: Plus,
-        position: (
-            16,
-            17,
-        ),
+        span: Span {
+            start: CharIndex(
+                16,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
     },
     Token {
         kind: Percent,
-        position: (
-            18,
-            19,
-        ),
+        span: Span {
+            start: CharIndex(
+                18,
+            ),
+            end: CharIndex(
+                19,
+            ),
+        },
     },
     Token {
         kind: Semicolon,
-        position: (
-            20,
-            21,
-        ),
+        span: Span {
+            start: CharIndex(
+                20,
+            ),
+            end: CharIndex(
+                21,
+            ),
+        },
     },
     Token {
         kind: Slash,
-        position: (
-            22,
-            23,
-        ),
+        span: Span {
+            start: CharIndex(
+                22,
+            ),
+            end: CharIndex(
+                23,
+            ),
+        },
     },
     Token {
         kind: Star,
-        position: (
-            24,
-            25,
-        ),
+        span: Span {
+            start: CharIndex(
+                24,
+            ),
+            end: CharIndex(
+                25,
+            ),
+        },
     },
     Token {
         kind: DoublePoint,
-        position: (
-            26,
-            27,
-        ),
+        span: Span {
+            start: CharIndex(
+                26,
+            ),
+            end: CharIndex(
+                27,
+            ),
+        },
     },
     Token {
         kind: Tilde,
-        position: (
-            28,
-            29,
-        ),
+        span: Span {
+            start: CharIndex(
+                28,
+            ),
+            end: CharIndex(
+                29,
+            ),
+        },
     },
     Token {
         kind: Ampersand,
-        position: (
-            30,
-            31,
-        ),
+        span: Span {
+            start: CharIndex(
+                30,
+            ),
+            end: CharIndex(
+                31,
+            ),
+        },
     },
     Token {
         kind: Pipe,
-        position: (
-            32,
-            33,
-        ),
+        span: Span {
+            start: CharIndex(
+                32,
+            ),
+            end: CharIndex(
+                33,
+            ),
+        },
     },
     Token {
         kind: Caret,
-        position: (
-            34,
-            35,
-        ),
+        span: Span {
+            start: CharIndex(
+                34,
+            ),
+            end: CharIndex(
+                35,
+            ),
+        },
     },
 ]

@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::interpreter::InterpretError;
-use crate::nasl::syntax::{LoadError, SyntaxError};
+use crate::nasl::syntax::LoadError;
+use crate::nasl::syntax::ParseError;
 use crate::storage::error::StorageError;
 use thiserror::Error;
 
@@ -17,7 +18,7 @@ pub enum ErrorKind {
     InterpretError(#[from] InterpretError),
     /// NASL script contains SyntaxErrors
     #[error("Encountered syntax errors in scripts.")]
-    SyntaxError(Vec<SyntaxError>),
+    SyntaxError(Vec<ParseError>),
     /// Storage is unable to handle operation
     #[error("Storage error: {0}")]
     StorageError(#[from] StorageError),

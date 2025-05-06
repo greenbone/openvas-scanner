@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (simple_number), \"1\")"
-snapshot_kind: text
 ---
 [
     Token {
@@ -10,9 +9,13 @@ snapshot_kind: text
                 1,
             ),
         ),
-        position: (
-            0,
-            1,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
     },
 ]

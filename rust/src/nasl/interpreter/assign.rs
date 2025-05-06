@@ -4,12 +4,12 @@
 
 use std::collections::HashMap;
 
-use crate::nasl::syntax::parser::grammar::Assignment;
-use crate::nasl::syntax::parser::grammar::AssignmentOperator;
-use crate::nasl::syntax::parser::grammar::Increment;
-use crate::nasl::syntax::parser::grammar::IncrementKind;
-use crate::nasl::syntax::parser::grammar::IncrementOperator;
-use crate::nasl::syntax::parser::grammar::PlaceExpr;
+use crate::nasl::syntax::grammar::Assignment;
+use crate::nasl::syntax::grammar::AssignmentOperator;
+use crate::nasl::syntax::grammar::Increment;
+use crate::nasl::syntax::grammar::IncrementKind;
+use crate::nasl::syntax::grammar::IncrementOperator;
+use crate::nasl::syntax::grammar::PlaceExpr;
 use crate::nasl::utils::context::Var;
 
 use super::InterpretErrorKind;
@@ -85,7 +85,7 @@ impl Interpreter<'_> {
         &mut self,
         place_expr: &'a PlaceExpr,
     ) -> Result<(Option<Var<'a>>, Vec<NaslValue>)> {
-        let var = self.register.get(&place_expr.ident.0);
+        let var = self.register.get(place_expr.ident.to_str());
         let indices = self.collect_exprs(place_expr.array_accesses.iter()).await?;
         Ok((var, indices))
     }
@@ -100,8 +100,10 @@ impl Interpreter<'_> {
                 // we implicitly declare a new variable in the innermost scope
                 // and leave it uninitialized for now.
                 if let AssignmentOperator::Equal = assignment.op {
-                    self.register
-                        .add_local(&assignment.lhs.ident.0, ContextType::Value(NaslValue::Null))
+                    self.register.add_local(
+                        &assignment.lhs.ident.to_str(),
+                        ContextType::Value(NaslValue::Null),
+                    )
                 }
                 // Otherwise, we return an error.
                 else {
@@ -155,7 +157,7 @@ impl Interpreter<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::interpreter_test;
+    use crate::interpreter_test_ok;
     use crate::nasl::test_prelude::*;
     use std::collections::HashMap;
 
@@ -186,16 +188,16 @@ mod tests {
         t.ok("a >>>= 2;", 1073741822);
     }
 
-    interpreter_test!(basic_assign, "a = 12; a + 3;", 12, 15);
+    interpreter_test_ok!(basic_assign, "a = 12; a + 3;", 12, 15);
 
-    interpreter_test!(
+    interpreter_test_ok!(
         implicit_extend,
         "a[2] = 12; a;",
         12,
         NaslValue::Array(vec![NaslValue::Null, NaslValue::Null, 12.into()])
     );
 
-    interpreter_test!(
+    interpreter_test_ok!(
         implicit_transformation,
         "a = 12; a; a[2] = 12; a;",
         12,
@@ -204,7 +206,7 @@ mod tests {
         NaslValue::Array(vec![12.into(), NaslValue::Null, 12.into()])
     );
 
-    interpreter_test!(
+    interpreter_test_ok!(
         dict,
         "a['hi'] = 12; a; a['hi'];",
         12,
@@ -212,7 +214,7 @@ mod tests {
         12
     );
 
-    interpreter_test!(array_creation, "a = [1, 2, 3];", vec![1, 2, 3]);
+    interpreter_test_ok!(array_creation, "a = [1, 2, 3];", vec![1, 2, 3]);
 
     #[test]
     fn multidimensional_array() {

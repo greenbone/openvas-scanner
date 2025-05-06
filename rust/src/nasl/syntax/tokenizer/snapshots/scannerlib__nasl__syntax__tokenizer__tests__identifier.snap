@@ -1,41 +1,76 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (identifier), \"help_lo _hello _h4llo 4_h4llo\")"
-snapshot_kind: text
 ---
 [
     Token {
         kind: Ident(
-            Ident(
-                "help_lo",
+            Ident {
+                ident: "help_lo",
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        7,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
             ),
-        ),
-        position: (
-            0,
-            7,
-        ),
+            end: CharIndex(
+                7,
+            ),
+        },
     },
     Token {
         kind: Ident(
-            Ident(
-                "_hello",
+            Ident {
+                ident: "_hello",
+                span: Span {
+                    start: CharIndex(
+                        8,
+                    ),
+                    end: CharIndex(
+                        14,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                8,
             ),
-        ),
-        position: (
-            8,
-            14,
-        ),
+            end: CharIndex(
+                14,
+            ),
+        },
     },
     Token {
         kind: Ident(
-            Ident(
-                "_h4llo",
+            Ident {
+                ident: "_h4llo",
+                span: Span {
+                    start: CharIndex(
+                        15,
+                    ),
+                    end: CharIndex(
+                        21,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                15,
             ),
-        ),
-        position: (
-            15,
-            21,
-        ),
+            end: CharIndex(
+                21,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -43,20 +78,36 @@ snapshot_kind: text
                 4,
             ),
         ),
-        position: (
-            22,
-            23,
-        ),
+        span: Span {
+            start: CharIndex(
+                22,
+            ),
+            end: CharIndex(
+                23,
+            ),
+        },
     },
     Token {
         kind: Ident(
-            Ident(
-                "_h4llo",
+            Ident {
+                ident: "_h4llo",
+                span: Span {
+                    start: CharIndex(
+                        23,
+                    ),
+                    end: CharIndex(
+                        29,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                23,
             ),
-        ),
-        position: (
-            23,
-            29,
-        ),
+            end: CharIndex(
+                29,
+            ),
+        },
     },
 ]

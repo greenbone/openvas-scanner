@@ -5,10 +5,10 @@ use codespan_reporting::files::SimpleFile;
 use crate::nasl::{
     Code,
     error::{self, emit_errors},
-    syntax::{Tokenizer, parser::grammar::Expr},
+    syntax::{Tokenizer, grammar::Expr},
 };
 
-use super::{Parse, Parser, error::SpannedError, grammar::Statement};
+use super::{super::grammar::Statement, Parse, Parser, error::SpannedError};
 
 // TODO incorporate into `Code` eventually.
 fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
@@ -309,7 +309,6 @@ parse_test_ok!(declare_global_vars, Program, "global_var a, b, c;");
 parse_test_ok!(inline_array_access, Expr, "[1, 2, 3][1]");
 
 parse_test_ok!(array_access_precedence, Expr, "a[1]++");
-parse_test_ok!(mixed_array_access_fn_call, Expr, "fn_array[5](a, b, c)");
 
 parse_test_ok!(array_assignment, Statement, "a[1] = 3;");
 parse_test_ok!(array_assignment_multi, Statement, "a[1][2][3] = 3;");
@@ -346,6 +345,12 @@ parse_test_ok!(
 
 parse_test_ok!(for_stmt_no_braces, Program, "for (i = 0; i < 10; i++) a;");
 parse_test_ok!(for_stmt, Program, "for (i = 0; i < 10; i++) { a; }");
+parse_test_ok!(
+    for_stmt_no_initializer,
+    Program,
+    "for (; i < 10; i++) { a; }"
+);
+parse_test_ok!(for_stmt_no_increment, Program, "for (; i < 10;) { a; }");
 
 parse_test_ok!(
     position,

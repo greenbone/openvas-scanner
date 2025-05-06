@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (keyword_literals), \"TRUE FALSE NULL\")"
-snapshot_kind: text
 ---
 [
     Token {
@@ -10,10 +9,14 @@ snapshot_kind: text
                 true,
             ),
         ),
-        position: (
-            0,
-            4,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                4,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -21,18 +24,26 @@ snapshot_kind: text
                 false,
             ),
         ),
-        position: (
-            5,
-            10,
-        ),
+        span: Span {
+            start: CharIndex(
+                5,
+            ),
+            end: CharIndex(
+                10,
+            ),
+        },
     },
     Token {
         kind: Literal(
             Null,
         ),
-        position: (
-            11,
-            15,
-        ),
+        span: Span {
+            start: CharIndex(
+                11,
+            ),
+            end: CharIndex(
+                15,
+            ),
+        },
     },
 ]

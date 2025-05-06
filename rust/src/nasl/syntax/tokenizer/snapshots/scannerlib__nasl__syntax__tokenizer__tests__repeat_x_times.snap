@@ -1,40 +1,63 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (repeat_x_times), \"x() x 10;\")"
-snapshot_kind: text
 ---
 [
     Token {
         kind: Ident(
-            Ident(
-                "x",
+            Ident {
+                ident: "x",
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        1,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
             ),
-        ),
-        position: (
-            0,
-            1,
-        ),
+            end: CharIndex(
+                1,
+            ),
+        },
     },
     Token {
         kind: LeftParen,
-        position: (
-            1,
-            2,
-        ),
+        span: Span {
+            start: CharIndex(
+                1,
+            ),
+            end: CharIndex(
+                2,
+            ),
+        },
     },
     Token {
         kind: RightParen,
-        position: (
-            2,
-            3,
-        ),
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                3,
+            ),
+        },
     },
     Token {
         kind: X,
-        position: (
-            4,
-            6,
-        ),
+        span: Span {
+            start: CharIndex(
+                4,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -42,16 +65,24 @@ snapshot_kind: text
                 10,
             ),
         ),
-        position: (
-            6,
-            8,
-        ),
+        span: Span {
+            start: CharIndex(
+                6,
+            ),
+            end: CharIndex(
+                8,
+            ),
+        },
     },
     Token {
         kind: Semicolon,
-        position: (
-            8,
-            9,
-        ),
+        span: Span {
+            start: CharIndex(
+                8,
+            ),
+            end: CharIndex(
+                9,
+            ),
+        },
     },
 ]

@@ -4,7 +4,7 @@
 
 use crate::nasl::{
     ContextType, NaslValue,
-    syntax::parser::grammar::{FnDecl, VarScope, VarScopeDecl},
+    syntax::grammar::{FnDecl, VarScope, VarScopeDecl},
 };
 
 use super::interpreter::{Interpreter, Result};
@@ -12,13 +12,13 @@ use super::interpreter::{Interpreter, Result};
 impl Interpreter<'_> {
     pub(crate) fn resolve_fn_decl(&mut self, fn_decl: &FnDecl) -> Result {
         self.register.add_global(
-            &fn_decl.fn_name.0,
+            &fn_decl.fn_name.to_str(),
             ContextType::Function(
                 fn_decl
                     .args
                     .items
                     .iter()
-                    .map(|ident| ident.0.clone())
+                    .map(|ident| ident.to_str().to_owned())
                     .collect(),
                 fn_decl.block.clone(),
             ),
@@ -31,10 +31,10 @@ impl Interpreter<'_> {
             let value = ContextType::Value(NaslValue::Null);
             match scope_decl.scope {
                 VarScope::Local => {
-                    self.register.add_local(&ident.0, value);
+                    self.register.add_local(&ident.to_str(), value);
                 }
                 VarScope::Global => {
-                    self.register.add_global(&ident.0, value);
+                    self.register.add_global(&ident.to_str(), value);
                 }
             }
         }

@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (if_else_statement),\n\"if (description) script_oid('1'); else display('hi');\").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-if (description) script_oid([49]); else display([104, 105]);

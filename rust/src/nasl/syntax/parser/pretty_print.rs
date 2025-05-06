@@ -3,7 +3,7 @@ use crate::nasl::{
     utils::function::bytes_to_str,
 };
 
-use super::grammar::{
+use super::super::grammar::{
     AnonymousFnArg, Array, ArrayAccess, Assignment, Atom, Binary, Block, Exit, Expr, FnArg, FnCall,
     FnDecl, For, Foreach, If, Include, Increment, IncrementKind, NamedFnArg, PlaceExpr, Repeat,
     Return, Statement, Unary, VarScope, VarScopeDecl, While,
@@ -164,9 +164,9 @@ impl Display for FnCall {
             .collect::<Vec<_>>()
             .join(", ");
         if let Some(repeats) = &self.num_repeats {
-            write!(f, "{}({}) x {}", self.fn_expr, args, repeats)
+            write!(f, "{}({}) x {}", self.fn_name, args, repeats)
         } else {
-            write!(f, "{}({})", self.fn_expr, args)
+            write!(f, "{}({})", self.fn_name, args)
         }
     }
 }
@@ -235,10 +235,18 @@ impl Display for Foreach {
 
 impl Display for For {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let initializer = match self.initializer {
+            Some(ref initializer) => format!("{}", initializer),
+            None => ";".to_string(),
+        };
+        let increment = match self.increment {
+            Some(ref increment) => format!("{}", increment),
+            None => "".to_string(),
+        };
         write!(
             f,
             "for ({} {}; {}) {}",
-            self.initializer, self.condition, self.increment, self.block
+            initializer, self.condition, increment, self.block
         )
     }
 }
@@ -274,7 +282,7 @@ impl Display for FnDecl {
 
 impl Display for Include {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "include({})", self.path)
+        write!(f, "include(\'{}\')", self.path)
     }
 }
 
@@ -296,7 +304,7 @@ impl Display for Return {
 
 impl Display for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.to_str())
     }
 }
 

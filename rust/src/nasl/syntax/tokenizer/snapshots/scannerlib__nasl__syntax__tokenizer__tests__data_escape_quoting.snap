@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (data_escape_quoting), r#\"'version=\\\"1.0\\\"'\"#)"
-snapshot_kind: text
 ---
 [
     Token {
@@ -24,9 +23,13 @@ snapshot_kind: text
                 ],
             ),
         ),
-        position: (
-            0,
-            17,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
     },
 ]

@@ -5,8 +5,9 @@
 use crate::nasl::NaslValue;
 use crate::nasl::code::SourceFile;
 use crate::nasl::error::{AsCodespanError, Span, emit_errors};
-use crate::nasl::syntax::{Ident, LoadError, Token};
-use crate::nasl::syntax::{Statement, SyntaxError, TokenKind};
+use crate::nasl::syntax::ParseError;
+use crate::nasl::syntax::grammar::Statement;
+use crate::nasl::syntax::{Ident, LoadError, Token, TokenKind};
 use crate::nasl::utils::error::FnError;
 use thiserror::Error;
 
@@ -45,7 +46,7 @@ pub struct InterpretError {
     // todo remove
     /// The statement on which this error occurred.
     pub origin: Option<Statement>,
-    pub token: Token,
+    pub span: Span,
 }
 
 impl InterpretError {
@@ -85,9 +86,6 @@ pub enum InterpretErrorKind {
     /// A SyntaxError while including another script
     #[error("{0}")]
     IncludeSyntaxError(IncludeSyntaxError),
-    /// SyntaxError
-    #[error("{0}")]
-    SyntaxError(SyntaxError),
     /// When the given key was not found in the context
     #[error("Key not found: {0}")]
     NotFound(String),
@@ -136,7 +134,7 @@ impl From<InterpretErrorKind> for InterpretError {
         Self {
             kind,
             origin: None,
-            token: Token::sentinel(),
+            span: Token::sentinel().span(),
         }
     }
 }
@@ -144,8 +142,8 @@ impl From<InterpretErrorKind> for InterpretError {
 #[derive(Debug)]
 // TODO
 pub struct IncludeSyntaxError {
-    file: SourceFile,
-    errs: Vec<SyntaxError>,
+    pub file: SourceFile,
+    pub errs: Vec<ParseError>,
 }
 
 // TODO Get rid of this once we have a proper implementation of spans
@@ -164,76 +162,41 @@ impl InterpretError {
     /// If the line as well as col is null Interpreter::resolve will replace it
     /// with the line and col number based on the root statement.
     // TODO: remove
-    pub fn new(kind: InterpretErrorKind, origin: Option<Statement>) -> Self {
+    pub(crate) fn new(kind: InterpretErrorKind, origin: Option<Statement>) -> Self {
         Self {
             kind,
             origin,
-            token: Token::sentinel(),
+            span: Token::sentinel().span(),
         }
     }
 
-    pub fn new_temporary(kind: InterpretErrorKind, token: Token) -> Self {
+    pub(crate) fn new_temporary(kind: InterpretErrorKind, span: Span) -> Self {
         Self {
             kind,
             origin: Some(Statement::NoOp),
-            token,
+            span,
         }
     }
 
     // TODO: Remove
     /// Creates a new Error based on a given statement and reason
-    pub fn from_statement(stmt: &Statement, kind: InterpretErrorKind) -> Self {
-        InterpretError {
-            kind,
-            origin: Some(stmt.clone()),
-            token: Token::sentinel(),
-        }
-    }
-
-    /// Creates a InterpreterError for an unsupported statement
-    ///
-    /// It produces the reason {root}: {statement} is not supported
-    pub fn unsupported(stmt: &Statement, expected: &str) -> Self {
-        Self::from_statement(stmt, InterpretErrorKind::WrongType(expected.to_string()))
-    }
-
-    /// Creates an InterpreterError if the found context is a function although a value is required
-    pub fn expected_value() -> Self {
-        Self::new(InterpretErrorKind::FunctionExpectedValue, None)
+    pub(crate) fn from_statement(stmt: &Statement, kind: InterpretErrorKind) -> Self {
+        Self::new(kind, Some(stmt.clone()))
     }
 
     /// Creates an InterpreterError if the found context is a value although a function is required
-    pub fn expected_function() -> Self {
+    pub(crate) fn expected_function() -> Self {
         Self::new(InterpretErrorKind::ValueExpectedFunction, None)
     }
 
-    /// Creates an error if the TokenKind is wrong
-    pub fn wrong_kind(cat: &TokenKind) -> Self {
-        Self::new(InterpretErrorKind::WrongCategory(cat.clone()), None)
-    }
-
     /// When something was not found
-    pub fn not_found(name: &str) -> Self {
+    pub(crate) fn not_found(name: &str) -> Self {
         Self::new(InterpretErrorKind::NotFound(name.to_owned()), None)
     }
 
-    /// When a include file has syntactical errors
-    pub fn include_syntax_error(file: SourceFile, errs: Vec<SyntaxError>) -> Self {
-        Self::new(
-            InterpretErrorKind::IncludeSyntaxError(IncludeSyntaxError { file, errs }),
-            None,
-        )
-    }
-
     /// When a given regex is not parseable
-    pub fn unparse_regex(rx: &str) -> Self {
+    pub(crate) fn unparse_regex(rx: &str) -> Self {
         Self::new(InterpretErrorKind::InvalidRegex(rx.to_owned()), None)
-    }
-}
-
-impl From<SyntaxError> for InterpretError {
-    fn from(err: SyntaxError) -> Self {
-        Self::new(InterpretErrorKind::SyntaxError(err), None)
     }
 }
 
@@ -251,7 +214,7 @@ impl From<FunctionCallError> for InterpretError {
 
 impl AsCodespanError for InterpretError {
     fn span(&self) -> Span {
-        self.token.span()
+        self.span
     }
 
     fn message(&self) -> String {

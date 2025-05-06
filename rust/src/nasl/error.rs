@@ -10,7 +10,7 @@ use codespan_reporting::term::termcolor::StandardStream;
 use super::code::SourceFile;
 use super::syntax::CharIndex;
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Span {
     start: CharIndex,
     end: CharIndex,
@@ -19,6 +19,14 @@ pub struct Span {
 impl Span {
     pub(crate) fn new(start: CharIndex, end: CharIndex) -> Self {
         Self { start, end }
+    }
+
+    pub(crate) fn start(&self) -> CharIndex {
+        self.start
+    }
+
+    pub(crate) fn end(&self) -> CharIndex {
+        self.end
     }
 }
 

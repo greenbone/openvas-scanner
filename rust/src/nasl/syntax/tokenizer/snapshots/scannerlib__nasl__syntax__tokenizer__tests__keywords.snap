@@ -1,133 +1,188 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (keywords),\n\"for foreach if else while repeat until local_var global_var return include exit break continue\")"
-snapshot_kind: text
 ---
 [
     Token {
         kind: Keyword(
             For,
         ),
-        position: (
-            0,
-            3,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                3,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             ForEach,
         ),
-        position: (
-            4,
-            11,
-        ),
+        span: Span {
+            start: CharIndex(
+                4,
+            ),
+            end: CharIndex(
+                11,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             If,
         ),
-        position: (
-            12,
-            14,
-        ),
+        span: Span {
+            start: CharIndex(
+                12,
+            ),
+            end: CharIndex(
+                14,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Else,
         ),
-        position: (
-            15,
-            19,
-        ),
+        span: Span {
+            start: CharIndex(
+                15,
+            ),
+            end: CharIndex(
+                19,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             While,
         ),
-        position: (
-            20,
-            25,
-        ),
+        span: Span {
+            start: CharIndex(
+                20,
+            ),
+            end: CharIndex(
+                25,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Repeat,
         ),
-        position: (
-            26,
-            32,
-        ),
+        span: Span {
+            start: CharIndex(
+                26,
+            ),
+            end: CharIndex(
+                32,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Until,
         ),
-        position: (
-            33,
-            38,
-        ),
+        span: Span {
+            start: CharIndex(
+                33,
+            ),
+            end: CharIndex(
+                38,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             LocalVar,
         ),
-        position: (
-            39,
-            48,
-        ),
+        span: Span {
+            start: CharIndex(
+                39,
+            ),
+            end: CharIndex(
+                48,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             GlobalVar,
         ),
-        position: (
-            49,
-            59,
-        ),
+        span: Span {
+            start: CharIndex(
+                49,
+            ),
+            end: CharIndex(
+                59,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Return,
         ),
-        position: (
-            60,
-            66,
-        ),
+        span: Span {
+            start: CharIndex(
+                60,
+            ),
+            end: CharIndex(
+                66,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Include,
         ),
-        position: (
-            67,
-            74,
-        ),
+        span: Span {
+            start: CharIndex(
+                67,
+            ),
+            end: CharIndex(
+                74,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Exit,
         ),
-        position: (
-            75,
-            79,
-        ),
+        span: Span {
+            start: CharIndex(
+                75,
+            ),
+            end: CharIndex(
+                79,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Break,
         ),
-        position: (
-            80,
-            85,
-        ),
+        span: Span {
+            start: CharIndex(
+                80,
+            ),
+            end: CharIndex(
+                85,
+            ),
+        },
     },
     Token {
         kind: Keyword(
             Continue,
         ),
-        position: (
-            86,
-            94,
-        ),
+        span: Span {
+            start: CharIndex(
+                86,
+            ),
+            end: CharIndex(
+                94,
+            ),
+        },
     },
 ]

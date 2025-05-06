@@ -1,10 +1,10 @@
 use std::vec;
 
-use super::{
-    Token,
-    parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind},
+use super::parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind};
+use crate::nasl::{
+    error::Span,
+    syntax::token::{Ident, Literal, TokenKind},
 };
-use crate::nasl::syntax::token::{Ident, Literal, TokenKind};
 
 #[derive(Clone, Debug)]
 pub struct Ast {
@@ -146,9 +146,9 @@ pub struct Foreach {
 
 #[derive(Clone, Debug)]
 pub struct For {
-    pub initializer: Box<Statement>,
+    pub initializer: Option<Box<Statement>>,
     pub condition: Expr,
-    pub increment: Box<Statement>,
+    pub increment: Option<Box<Statement>>,
     pub block: Block<Statement>,
 }
 
@@ -160,7 +160,7 @@ pub struct If {
 
 #[derive(Clone, Debug)]
 pub struct Include {
-    pub path: Literal,
+    pub path: String,
 }
 
 #[derive(Clone, Debug)]
@@ -195,7 +195,7 @@ pub struct ArrayAccess {
 
 #[derive(Clone, Debug)]
 pub struct FnCall {
-    pub fn_expr: Box<Expr>,
+    pub fn_name: Ident,
     pub args: CommaSeparated<FnArg, Paren>,
     // We owe this beautiful field to the genius "x" operator.
     pub num_repeats: Option<Box<Expr>>,
@@ -515,19 +515,19 @@ macro_rules! make_delimiter {
 make_delimiter!(Paren, LeftParen, RightParen);
 make_delimiter!(Bracket, LeftBracket, RightBracket);
 
-pub trait AsToken {
-    fn token(&self) -> Token;
+pub trait Spanned {
+    fn span(&self) -> Span;
 }
 
-// Just to make things work for now
-macro_rules! impl_dumb_temporary_token_info {
-    ($ty: ty) => {
-        impl AsToken for $ty {
-            fn token(&self) -> crate::nasl::syntax::Token {
-                crate::nasl::syntax::Token::sentinel()
-            }
-        }
-    };
-}
+// // Just to make things work for now
+// macro_rules! impl_dumb_temporary_span_info {
+//     ($ty: ty) => {
+//         impl Spanned for $ty {
+//             fn span(&self) -> crate::nasl::error::Span {
+//                 crate::nasl::syntax::Token::sentinel().span()
+//             }
+//         }
+//     };
+// }
 
-impl_dumb_temporary_token_info!(Expr);
+// impl_dumb_temporary_span_info!(Ident);

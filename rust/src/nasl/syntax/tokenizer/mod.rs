@@ -215,10 +215,10 @@ impl Tokenizer {
             }
         }
         let position = self.cursor.position();
-        Ok(Token {
-            position: (position.0, position.0 + 1),
-            kind: TokenKind::Eof,
-        })
+        Ok(Token::new(
+            TokenKind::Eof,
+            Span::new(position, position + 1),
+        ))
     }
 
     fn consume(&mut self, expected: char, f: TokenizerErrorKind) -> Result<(), TokenizerErrorKind> {
@@ -281,10 +281,10 @@ impl Tokenizer {
             _ => return Err(self.error(TokenizerErrorKind::InvalidCharacter)),
         };
 
-        Ok(Some(Token {
+        Ok(Some(Token::new(
             kind,
-            position: (start.0, self.cursor.position().0),
-        }))
+            Span::new(start, self.cursor.position()),
+        )))
     }
 
     pub fn error(&self, kind: TokenizerErrorKind) -> TokenizerError {
@@ -509,14 +509,14 @@ impl Tokenizer {
             } else if let Some(literal) = Literal::from_keyword(&lookup) {
                 TokenKind::Literal(literal)
             } else {
-                TokenKind::Ident(Ident(lookup))
+                TokenKind::Ident(Ident::new(lookup, Span::new(start, end)))
             }
         } else {
             self.cursor.skip_while(|c| c.is_whitespace());
             if self.cursor.peek().is_numeric() {
                 TokenKind::X
             } else {
-                TokenKind::Ident(Ident(lookup))
+                TokenKind::Ident(Ident::new(lookup, Span::new(start, end)))
             }
         }
     }

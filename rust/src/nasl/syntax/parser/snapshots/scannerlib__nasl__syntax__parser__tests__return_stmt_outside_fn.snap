@@ -1,9 +1,0 @@
----
-source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (return_stmt_outside_fn), \"return 0;\")"
----
-error: Expected expression
-  ┌─ return_stmt_outside_fn:1:1
-  │
-1 │ return 0;
-  │ ^ Expected expression

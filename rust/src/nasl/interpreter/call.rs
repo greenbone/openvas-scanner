@@ -8,7 +8,10 @@ use super::interpreter::{Interpreter, Result};
 use crate::nasl::{
     ContextType, NaslValue,
     interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
-    syntax::parser::grammar::{AsToken, Atom, Expr, FnArg, FnCall},
+    syntax::{
+        Ident,
+        grammar::{FnArg, FnCall, Spanned},
+    },
     utils::lookup_keys::FC_ANON_ARGS,
 };
 
@@ -58,69 +61,70 @@ impl Interpreter<'_> {
         Ok(named)
     }
 
-    async fn execute_user_defined_fn(&mut self, fn_expr: &Expr) -> Result {
-        if let Expr::Atom(Atom::Ident(ref ident)) = *fn_expr {
-            let fn_name = &ident.0;
-            let found = self
-                .register
-                .named(fn_name)
-                .ok_or_else(|| InterpretError::not_found(fn_name))?
-                .clone();
-            match found {
-                ContextType::Function(arguments, stmt) => {
-                    for arg in arguments {
-                        if self.register.named(&arg).is_none() {
-                            // Add default NaslValue::Null for each defined argument
-                            self.register
-                                .add_local(&arg, ContextType::Value(NaslValue::Null));
-                        }
-                    }
-                    match self.resolve_block(&stmt).await? {
-                        NaslValue::Return(x) => Ok(*x),
-                        _ => Ok(NaslValue::Null),
+    async fn execute_user_defined_fn(&mut self, fn_name: &Ident) -> Result {
+        let fn_name = &fn_name.to_str();
+        let found = self
+            .register
+            .named(fn_name)
+            .ok_or_else(|| InterpretError::not_found(fn_name))?
+            .clone();
+        match found {
+            ContextType::Function(arguments, stmt) => {
+                for arg in arguments {
+                    if self.register.named(&arg).is_none() {
+                        // Add default NaslValue::Null for each defined argument
+                        self.register
+                            .add_local(&arg, ContextType::Value(NaslValue::Null));
                     }
                 }
-                ContextType::Value(_) => Err(InterpretError::expected_function()),
+                match self.resolve_block(&stmt).await? {
+                    NaslValue::Return(x) => Ok(*x),
+                    _ => Ok(NaslValue::Null),
+                }
             }
-        } else {
-            unimplemented!()
+            ContextType::Value(_) => Err(InterpretError::expected_function()),
         }
     }
 
     async fn execute_builtin_fn(&mut self, call: &FnCall) -> Option<Result> {
-        if let Expr::Atom(Atom::Ident(ref ident)) = *call.fn_expr {
-            self.context
-                .execute_builtin_fn(&ident.0, &self.register)
-                .await
-                .map(|o| {
-                    o.map_err(|e| {
-                        InterpretError::new_temporary(
-                            InterpretErrorKind::FunctionCallError(FunctionCallError::new(
-                                &ident.0, e,
-                            )),
-                            call.fn_expr.token(),
-                        )
-                    })
+        self.context
+            .execute_builtin_fn(&call.fn_name.to_str(), &self.register)
+            .await
+            .map(|o| {
+                o.map_err(|e| {
+                    InterpretError::new_temporary(
+                        InterpretErrorKind::FunctionCallError(FunctionCallError::new(
+                            &call.fn_name.to_str(),
+                            e,
+                        )),
+                        call.fn_name.span(),
+                    )
                 })
-        } else {
-            None
-        }
+            })
     }
 
     pub(crate) async fn resolve_fn_call(&mut self, call: &FnCall) -> Result {
-        let token = call.fn_expr.token();
-        if let Some(val) = self.fork_reentry_data.try_restore(&token)? {
-            return Ok(val);
+        let num_repeats = if let Some(ref num_repeats) = call.num_repeats {
+            self.resolve_expr(&num_repeats).await?.as_number()?
+        } else {
+            1
+        };
+        let mut val = NaslValue::Null;
+        for _ in 0..num_repeats {
+            let span = call.fn_name.span();
+            if let Some(val) = self.fork_reentry_data.try_restore(&span)? {
+                return Ok(val);
+            }
+            let arguments = self.create_arguments_map(call.args.as_ref()).await?;
+            self.register.create_root_child(arguments);
+            val = match self.execute_builtin_fn(call).await {
+                Some(result) => result,
+                _ => self.execute_user_defined_fn(&call.fn_name).await,
+            }?;
+            self.register.drop_last();
+            val = replace_empty_or_identity_fork(val);
+            self.fork_reentry_data.try_collect(val.clone(), &span);
         }
-        let arguments = self.create_arguments_map(call.args.as_ref()).await?;
-        self.register.create_root_child(arguments);
-        let val = match self.execute_builtin_fn(call).await {
-            Some(result) => result,
-            _ => self.execute_user_defined_fn(&call.fn_expr).await,
-        }?;
-        self.register.drop_last();
-        let val = replace_empty_or_identity_fork(val);
-        self.fork_reentry_data.try_collect(val.clone(), &token);
         Ok(val)
     }
 }

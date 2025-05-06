@@ -1,19 +1,20 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
-    Context, Register,
+    Code, Context, Register,
+    error::Span,
     interpreter::InterpretError,
     prelude::NaslValue,
     syntax::{
-        Ast, Ident, Statement, Token,
-        parser::grammar::{
-            Array, ArrayAccess, Atom, Binary, BinaryOperator, Block, Exit, Expr, If, Unary,
-            UnaryPrefixOperator,
+        Ident,
+        grammar::{
+            Array, ArrayAccess, Ast, Atom, Binary, BinaryOperator, Block, Exit, Expr, If, Include,
+            Return, Statement, Unary, UnaryPrefixOperator,
         },
     },
 };
 
-use super::InterpretErrorKind;
+use super::{InterpretErrorKind, error::IncludeSyntaxError};
 
 pub type Result<T = NaslValue, E = InterpretError> = std::result::Result<T, E>;
 
@@ -30,12 +31,12 @@ impl InterpreterState {
 }
 
 /// Represents the result of a function call (`value`) along with
-/// the `Token` pointing to the identifier of the function that
+/// the `Span` pointing to the identifier of the function that
 /// resulted in this value originally.
 #[derive(Clone)]
 pub struct FunctionCallData {
     value: NaslValue,
-    token: Token,
+    span: Span,
 }
 
 /// This type contains the necessary data to reproduce the execution
@@ -46,7 +47,7 @@ pub struct FunctionCallData {
 /// 1. `Collecting`: This variant is used by any interpreter which is
 ///    currently executing normally.  In this mode, the result of any
 ///    function call performed by the interpreter within a single
-///    top-level statement will be stored along with the `Token` at which
+///    top-level statement will be stored along with the `Span` at which
 ///    the function call took place (as a safeguard). The variant also
 ///    stores the original `Register` and `Ast` in order to be able to "rewind"
 ///    into the exact state before the statement that caused the fork.
@@ -102,11 +103,11 @@ impl ForkReentryData {
 
     /// If in `Collecting` mode, remember the given result. Otherwise
     /// do nothing.
-    pub(crate) fn try_collect(&mut self, value: NaslValue, token: &Token) {
+    pub(crate) fn try_collect(&mut self, value: NaslValue, span: &Span) {
         match self {
             ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
                 value,
-                token: token.clone(),
+                span: span.clone(),
             }),
             ForkReentryData::Restoring { data: _ } => {}
         }
@@ -114,14 +115,11 @@ impl ForkReentryData {
 
     /// If in `Restoring` mode, remove and return the first stored
     /// result from the queue. Otherwise do nothing.
-    pub(crate) fn try_restore(
-        &mut self,
-        token: &Token,
-    ) -> Result<Option<NaslValue>, InterpretError> {
+    pub(crate) fn try_restore(&mut self, span: &Span) -> Result<Option<NaslValue>, InterpretError> {
         match self {
             Self::Restoring { data } => {
                 if let Some(data) = data.pop_front() {
-                    if *token != data.token {
+                    if *span != data.span {
                         return Err(InterpretError::new(InterpretErrorKind::InvalidFork, None));
                     }
                     Ok(Some(data.value))
@@ -183,9 +181,9 @@ fn expand_first_fork(
         .iter()
         .enumerate()
         .filter_map(|(index, data)| {
-            let FunctionCallData { value, token } = data;
+            let FunctionCallData { value, span } = data;
             if let NaslValue::Fork(vals) = value {
-                Some((index, vals.clone(), token.clone()))
+                Some((index, vals.clone(), span.clone()))
             } else {
                 None
             }
@@ -206,14 +204,14 @@ fn expand_fork_at(
     data: VecDeque<FunctionCallData>,
     index: usize,
     vals: Vec<NaslValue>,
-    token: Token,
+    span: Span,
 ) -> Vec<VecDeque<FunctionCallData>> {
     vals.iter()
         .map(|val| {
             let mut data = data.clone();
             data[index] = FunctionCallData {
                 value: val.clone(),
-                token: token.clone(),
+                span: span.clone(),
             };
             data
         })
@@ -278,13 +276,13 @@ impl<'ctx> Interpreter<'ctx> {
             VarScopeDecl(var_scope_decl) => self.resolve_var_scope_decl(var_scope_decl),
             FnDecl(fn_decl) => self.resolve_fn_decl(fn_decl),
             If(if_) => self.resolve_if(if_).await,
-            While(_) => todo!(),
-            Repeat(_) => todo!(),
-            Foreach(_) => todo!(),
-            For(_) => todo!(),
+            While(while_) => Box::pin(self.resolve_while(while_)).await,
+            Repeat(repeat) => Box::pin(self.resolve_repeat(repeat)).await,
+            Foreach(foreach) => Box::pin(self.resolve_foreach(foreach)).await,
+            For(for_) => Box::pin(self.resolve_for(for_)).await,
             Exit(exit) => self.resolve_exit(exit).await,
-            Include(_) => todo!(),
-            Return(_) => todo!(),
+            Include(include_) => self.resolve_include(include_).await,
+            Return(return_) => self.resolve_return(return_).await,
         }
         .map_err(|e: InterpretError| {
             if e.origin.is_none() {
@@ -327,15 +325,12 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     fn resolve_var(&self, ident: &Ident) -> Result {
-        Ok(self
-            .register
-            .get_val(
-                self.register
-                    .get(&ident.0)
-                    .ok_or_else(|| InterpretErrorKind::UndefinedVariable(ident.clone()))?,
-            )
-            .as_value()?
-            .clone())
+        let var = self.register.get(&ident.to_str());
+        if let Some(var) = var {
+            Ok(self.register.get_val(var).as_value()?.clone())
+        } else {
+            Ok(NaslValue::Null)
+        }
     }
 
     async fn resolve_array_access(&mut self, array_access: &ArrayAccess) -> Result {
@@ -399,7 +394,7 @@ impl<'ctx> Interpreter<'ctx> {
         ))
     }
 
-    async fn resolve_exit(&mut self, exit: &Exit) -> Result<NaslValue, InterpretError> {
+    async fn resolve_exit(&mut self, exit: &Exit) -> Result {
         let rc = Box::pin(self.resolve_expr(&exit.expr)).await?;
         match rc {
             NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
@@ -407,34 +402,14 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    // async fn resolve_return(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-    //     let rc = Box::pin(self.resolve(statement)).await?;
-    //     Ok(NaslValue::Return(Box::new(rc)))
-    // }
-
-    // fn resolve_primitive(&self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-    //     Ok(statement.as_token().literal()?.into())
-    // }
-
-    // fn resolve_variable(&mut self, statement: &Statement) -> Result<NaslValue, InterpretError> {
-    //     let name = statement.as_token().identifier()?;
-    //     match self.register.named(&name) {
-    //         Some(ContextType::Value(result)) => Ok(result.clone()),
-    //         None => Ok(NaslValue::Null),
-    //         Some(ContextType::Function(_, _)) => {
-    //             Err(InterpretError::unsupported(statement, "variable"))
-    //         }
-    //     }
-    // }
-
-    // async fn resolve_parameter(&mut self, x: &[Statement]) -> Result<NaslValue, InterpretError> {
-    //     let mut result = vec![];
-    //     for stmt in x {
-    //         let val = Box::pin(self.resolve(stmt)).await?;
-    //         result.push(val);
-    //     }
-    //     Ok(NaslValue::Array(result))
-    // }
+    async fn resolve_return(&mut self, return_: &Return) -> Result {
+        let rc = if let Some(ref expr) = return_.expr {
+            self.resolve_expr(expr).await?
+        } else {
+            NaslValue::Null
+        };
+        Ok(NaslValue::Return(Box::new(rc)))
+    }
 
     async fn resolve_if(
         &mut self,
@@ -479,23 +454,18 @@ impl<'ctx> Interpreter<'ctx> {
         Ok(NaslValue::Null)
     }
 
-    // async fn include(&mut self, name: &Statement) -> Result {
-    //     match self.resolve(name).await? {
-    //         NaslValue::String(key) => {
-    //             let loader = self.context.loader();
-    //             let code = Code::load(loader, &key)?.parse();
-    //             let file = code.file().clone();
-    //             let ast = code
-    //                 .result()
-    //                 .map_err(|e| InterpretError::include_syntax_error(file, e))?;
-    //             let mut inter = Interpreter::new(self.register.clone(), ast, self.context);
-    //             inter.execute_all().await?;
-    //             self.register = inter.register;
-    //             Ok(NaslValue::Null)
-    //         }
-    //         _ => Err(InterpretError::unsupported(name, "string")),
-    //     }
-    // }
+    async fn resolve_include(&mut self, include: &Include) -> Result {
+        let loader = self.context.loader();
+        let code = Code::load(loader, &include.path)?.parse();
+        let file = code.file().clone();
+        let ast = code.result().map_err(|errs| {
+            InterpretErrorKind::IncludeSyntaxError(IncludeSyntaxError { file, errs })
+        })?;
+        let mut inter = Interpreter::new(self.register.clone(), ast, self.context);
+        Box::pin(inter.execute_all()).await?;
+        self.register = inter.register;
+        Ok(NaslValue::Null)
+    }
 
     pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'ctx>> {
         let forks = self.fork_reentry_data.create_forks();

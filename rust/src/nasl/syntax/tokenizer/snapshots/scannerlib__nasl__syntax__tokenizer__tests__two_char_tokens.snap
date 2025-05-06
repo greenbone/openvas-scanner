@@ -1,196 +1,303 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (two_char_tokens),\n\"& && | || ! != !~ = == =~ > >> >= >< < << <= - -- + += ++ / /= * ** *=\")"
-snapshot_kind: text
 ---
 [
     Token {
         kind: Ampersand,
-        position: (
-            0,
-            1,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
     },
     Token {
         kind: AmpersandAmpersand,
-        position: (
-            2,
-            4,
-        ),
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                4,
+            ),
+        },
     },
     Token {
         kind: Pipe,
-        position: (
-            5,
-            6,
-        ),
+        span: Span {
+            start: CharIndex(
+                5,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
     },
     Token {
         kind: PipePipe,
-        position: (
-            7,
-            9,
-        ),
+        span: Span {
+            start: CharIndex(
+                7,
+            ),
+            end: CharIndex(
+                9,
+            ),
+        },
     },
     Token {
         kind: Bang,
-        position: (
-            10,
-            11,
-        ),
+        span: Span {
+            start: CharIndex(
+                10,
+            ),
+            end: CharIndex(
+                11,
+            ),
+        },
     },
     Token {
         kind: BangEqual,
-        position: (
-            12,
-            14,
-        ),
+        span: Span {
+            start: CharIndex(
+                12,
+            ),
+            end: CharIndex(
+                14,
+            ),
+        },
     },
     Token {
         kind: BangTilde,
-        position: (
-            15,
-            17,
-        ),
+        span: Span {
+            start: CharIndex(
+                15,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
     },
     Token {
         kind: Equal,
-        position: (
-            18,
-            19,
-        ),
+        span: Span {
+            start: CharIndex(
+                18,
+            ),
+            end: CharIndex(
+                19,
+            ),
+        },
     },
     Token {
         kind: EqualEqual,
-        position: (
-            20,
-            22,
-        ),
+        span: Span {
+            start: CharIndex(
+                20,
+            ),
+            end: CharIndex(
+                22,
+            ),
+        },
     },
     Token {
         kind: EqualTilde,
-        position: (
-            23,
-            25,
-        ),
+        span: Span {
+            start: CharIndex(
+                23,
+            ),
+            end: CharIndex(
+                25,
+            ),
+        },
     },
     Token {
         kind: Greater,
-        position: (
-            26,
-            27,
-        ),
+        span: Span {
+            start: CharIndex(
+                26,
+            ),
+            end: CharIndex(
+                27,
+            ),
+        },
     },
     Token {
         kind: GreaterGreater,
-        position: (
-            28,
-            30,
-        ),
+        span: Span {
+            start: CharIndex(
+                28,
+            ),
+            end: CharIndex(
+                30,
+            ),
+        },
     },
     Token {
         kind: GreaterEqual,
-        position: (
-            31,
-            33,
-        ),
+        span: Span {
+            start: CharIndex(
+                31,
+            ),
+            end: CharIndex(
+                33,
+            ),
+        },
     },
     Token {
         kind: GreaterLess,
-        position: (
-            34,
-            36,
-        ),
+        span: Span {
+            start: CharIndex(
+                34,
+            ),
+            end: CharIndex(
+                36,
+            ),
+        },
     },
     Token {
         kind: Less,
-        position: (
-            37,
-            38,
-        ),
+        span: Span {
+            start: CharIndex(
+                37,
+            ),
+            end: CharIndex(
+                38,
+            ),
+        },
     },
     Token {
         kind: LessLess,
-        position: (
-            39,
-            41,
-        ),
+        span: Span {
+            start: CharIndex(
+                39,
+            ),
+            end: CharIndex(
+                41,
+            ),
+        },
     },
     Token {
         kind: LessEqual,
-        position: (
-            42,
-            44,
-        ),
+        span: Span {
+            start: CharIndex(
+                42,
+            ),
+            end: CharIndex(
+                44,
+            ),
+        },
     },
     Token {
         kind: Minus,
-        position: (
-            45,
-            46,
-        ),
+        span: Span {
+            start: CharIndex(
+                45,
+            ),
+            end: CharIndex(
+                46,
+            ),
+        },
     },
     Token {
         kind: MinusMinus,
-        position: (
-            47,
-            49,
-        ),
+        span: Span {
+            start: CharIndex(
+                47,
+            ),
+            end: CharIndex(
+                49,
+            ),
+        },
     },
     Token {
         kind: Plus,
-        position: (
-            50,
-            51,
-        ),
+        span: Span {
+            start: CharIndex(
+                50,
+            ),
+            end: CharIndex(
+                51,
+            ),
+        },
     },
     Token {
         kind: PlusEqual,
-        position: (
-            52,
-            54,
-        ),
+        span: Span {
+            start: CharIndex(
+                52,
+            ),
+            end: CharIndex(
+                54,
+            ),
+        },
     },
     Token {
         kind: PlusPlus,
-        position: (
-            55,
-            57,
-        ),
+        span: Span {
+            start: CharIndex(
+                55,
+            ),
+            end: CharIndex(
+                57,
+            ),
+        },
     },
     Token {
         kind: Slash,
-        position: (
-            58,
-            59,
-        ),
+        span: Span {
+            start: CharIndex(
+                58,
+            ),
+            end: CharIndex(
+                59,
+            ),
+        },
     },
     Token {
         kind: SlashEqual,
-        position: (
-            60,
-            62,
-        ),
+        span: Span {
+            start: CharIndex(
+                60,
+            ),
+            end: CharIndex(
+                62,
+            ),
+        },
     },
     Token {
         kind: Star,
-        position: (
-            63,
-            64,
-        ),
+        span: Span {
+            start: CharIndex(
+                63,
+            ),
+            end: CharIndex(
+                64,
+            ),
+        },
     },
     Token {
         kind: StarStar,
-        position: (
-            65,
-            67,
-        ),
+        span: Span {
+            start: CharIndex(
+                65,
+            ),
+            end: CharIndex(
+                67,
+            ),
+        },
     },
     Token {
         kind: StarEqual,
-        position: (
-            68,
-            70,
-        ),
+        span: Span {
+            start: CharIndex(
+                68,
+            ),
+            end: CharIndex(
+                70,
+            ),
+        },
     },
 ]

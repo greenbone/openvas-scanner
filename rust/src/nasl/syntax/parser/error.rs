@@ -11,13 +11,13 @@ pub struct Error {
     pub span: Option<Span>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SpannedError {
     pub kind: ErrorKind,
     pub span: Span,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ErrorKind {
     Tokenizer(TokenizerErrorKind),
     TokensExpected(Vec<TokenKind>),
@@ -27,6 +27,7 @@ pub enum ErrorKind {
     UnexpectedKeyword(Keyword),
     IdentExpected,
     LiteralExpected,
+    StringExpected,
     ExpectedAssignmentOperator,
     ExpectedUnaryOperator,
     ExpectedBinaryOperator,
@@ -73,6 +74,9 @@ impl Display for ErrorKind {
             ErrorKind::UnexpectedKeyword(kw) => write!(f, "Unexpected keyword {kw:?}"),
             ErrorKind::IdentExpected => write!(f, "Expected identifier."),
             ErrorKind::LiteralExpected => write!(f, "Expected literal."),
+            ErrorKind::StringExpected => {
+                write!(f, "Expected string.")
+            }
             ErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{}'", token_kind),
             ErrorKind::TokensExpected(token_kinds) => write!(
                 f,

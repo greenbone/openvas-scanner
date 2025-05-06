@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (global_var),\n\"global_var a, b, c;\").into_iter().map(| stmt | stmt.to_string()).collect :: <\nVec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-global_var a, b, c

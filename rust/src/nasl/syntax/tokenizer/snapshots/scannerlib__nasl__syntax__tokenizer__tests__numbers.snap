@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (numbers),\n\"0 0b01 1234567890 012345670 0x1234567890ABCDEF 0b02\")"
-snapshot_kind: text
 ---
 [
     Token {
@@ -10,10 +9,14 @@ snapshot_kind: text
                 0,
             ),
         ),
-        position: (
-            0,
-            1,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -21,10 +24,14 @@ snapshot_kind: text
                 1,
             ),
         ),
-        position: (
-            2,
-            6,
-        ),
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -32,10 +39,14 @@ snapshot_kind: text
                 1234567890,
             ),
         ),
-        position: (
-            7,
-            17,
-        ),
+        span: Span {
+            start: CharIndex(
+                7,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -43,10 +54,14 @@ snapshot_kind: text
                 2739128,
             ),
         ),
-        position: (
-            18,
-            27,
-        ),
+        span: Span {
+            start: CharIndex(
+                18,
+            ),
+            end: CharIndex(
+                27,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -54,10 +69,14 @@ snapshot_kind: text
                 1311768467294899695,
             ),
         ),
-        position: (
-            28,
-            46,
-        ),
+        span: Span {
+            start: CharIndex(
+                28,
+            ),
+            end: CharIndex(
+                46,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -65,10 +84,14 @@ snapshot_kind: text
                 0,
             ),
         ),
-        position: (
-            47,
-            50,
-        ),
+        span: Span {
+            start: CharIndex(
+                47,
+            ),
+            end: CharIndex(
+                50,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -76,9 +99,13 @@ snapshot_kind: text
                 2,
             ),
         ),
-        position: (
-            50,
-            51,
-        ),
+        span: Span {
+            start: CharIndex(
+                50,
+            ),
+            end: CharIndex(
+                51,
+            ),
+        },
     },
 ]

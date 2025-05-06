@@ -8,10 +8,11 @@ use std::path::{Path, PathBuf};
 use feed::VerifyError;
 use quick_xml::DeError;
 use scannerlib::nasl::WithErrorInfo;
+use scannerlib::nasl::syntax::ParseError;
 use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
+use scannerlib::scanner::ExecuteError;
 use scannerlib::storage::error::StorageError;
 use scannerlib::{feed, notus};
-use scannerlib::{nasl::syntax::SyntaxError, scanner::ExecuteError};
 
 #[derive(Debug, thiserror::Error)]
 
@@ -33,7 +34,7 @@ pub enum CliErrorKind {
     StorageError(StorageError),
     // TODO fix this error message.
     #[error("Encountered syntax errors.")]
-    SyntaxError(Vec<SyntaxError>),
+    SyntaxError(Vec<ParseError>),
     #[error("{0}")]
     Corrupt(String),
     #[error("Invalid XML: {0}")]

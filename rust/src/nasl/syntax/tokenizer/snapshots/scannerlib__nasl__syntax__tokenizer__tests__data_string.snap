@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (data_string), r#\"'Hello \\\\\\'you\\\\\\'!'\"#)"
-snapshot_kind: text
 ---
 [
     Token {
@@ -25,9 +24,13 @@ snapshot_kind: text
                 ],
             ),
         ),
-        position: (
-            0,
-            20,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                20,
+            ),
+        },
     },
 ]

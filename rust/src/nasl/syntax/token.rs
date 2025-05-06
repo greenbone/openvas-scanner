@@ -6,11 +6,11 @@
 use std::{fmt::Display, net::Ipv4Addr};
 
 use crate::{
-    nasl::{error::Span, interpreter::InterpretError},
+    nasl::{error::Span, utils::function::bytes_to_str},
     storage::items::nvt::ACT,
 };
 
-use super::CharIndex;
+use super::{CharIndex, grammar::Spanned};
 
 /// A reserved NASL keyword.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -98,7 +98,26 @@ make_keyword_matcher! {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Ident(pub String);
+pub struct Ident {
+    ident: String,
+    span: Span,
+}
+
+impl Spanned for Ident {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl Ident {
+    pub(crate) fn to_str(&self) -> &str {
+        &self.ident
+    }
+
+    pub(crate) fn new(ident: String, span: Span) -> Self {
+        Self { ident, span }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Literal {
@@ -128,6 +147,7 @@ impl Literal {
     pub fn from_keyword(lookup: &str) -> Option<Self> {
         match lookup {
             "NULL" => Some(Self::Null),
+            "Null" => Some(Self::Null),
             "FALSE" => Some(Self::Boolean(false)),
             "TRUE" => Some(Self::Boolean(true)),
             "ACT_ATTACK" => Some(Self::AttackCategory(ACT::Attack)),
@@ -141,6 +161,14 @@ impl Literal {
             "ACT_MIXED_ATTACK" => Some(Self::AttackCategory(ACT::MixedAttack)),
             "ACT_SCANNER" => Some(Self::AttackCategory(ACT::Scanner)),
             "ACT_SETTINGS" => Some(Self::AttackCategory(ACT::Settings)),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_string(self) -> Option<String> {
+        match self {
+            Literal::String(s) => Some(s),
+            Literal::Data(bytes) => Some(bytes_to_str(&bytes)),
             _ => None,
         }
     }
@@ -307,7 +335,7 @@ impl Display for TokenKind {
             TokenKind::GreaterGreaterGreaterEqual => write!(f, ">>>="),
             TokenKind::X => write!(f, "X"),
             TokenKind::Keyword(kw) => write!(f, "{}", kw),
-            TokenKind::Ident(ident) => write!(f, "{}", ident.0),
+            TokenKind::Ident(ident) => write!(f, "{}", ident),
             TokenKind::Literal(Literal::Number(num)) => write!(f, "{num}"),
             TokenKind::Literal(Literal::String(s)) => write!(f, "\"{s}\""),
             TokenKind::Literal(Literal::Data(data)) => write!(f, "{data:?}"),
@@ -325,46 +353,25 @@ impl Display for TokenKind {
 pub struct Token {
     /// The kind of a token
     pub kind: TokenKind,
-    /// Byte position
-    pub position: (usize, usize),
+    span: Span,
 }
 
 impl Token {
-    // TODO get rid of this
-    pub fn identifier(&self) -> Result<String, InterpretError> {
-        match self.kind() {
-            TokenKind::Ident(ident) => Ok(ident.0.clone()),
-            kind => Err(InterpretError::wrong_kind(kind)),
-        }
-    }
-
-    // TODO get rid of this
-    pub fn literal(&self) -> Result<&Literal, InterpretError> {
-        match self.kind() {
-            TokenKind::Literal(lit) => Ok(lit),
-            kind => Err(InterpretError::wrong_kind(kind)),
-        }
+    pub fn new(kind: TokenKind, span: Span) -> Self {
+        Self { kind, span }
     }
 
     // TODO get rid of this
     pub fn sentinel() -> Token {
         Self {
             kind: TokenKind::X,
-            position: (0, 0),
+            span: Span::new(CharIndex(0), CharIndex(0)),
         }
-    }
-
-    pub fn start(&self) -> usize {
-        self.position.0
-    }
-
-    pub fn end(&self) -> usize {
-        self.position.1
     }
 
     pub(crate) fn span(&self) -> Span {
         // TODO remove this and make span the stored type
-        Span::new(CharIndex(self.start()), CharIndex(self.end()))
+        self.span
     }
 }
 

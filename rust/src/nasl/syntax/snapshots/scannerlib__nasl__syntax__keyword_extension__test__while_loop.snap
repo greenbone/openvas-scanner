@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (while_loop),\n\"while (TRUE) ;\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec\n< _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-while (true) {NoOp}

@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (function),\n\"function register_packages( buf ) { return 1; }\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-function register_packages((buf)) { ... }

@@ -1,42 +1,40 @@
 pub mod cursor;
 pub mod error;
-pub mod grammar;
 mod pretty_print;
 #[cfg(test)]
 mod tests;
 
-use cursor::Cursor;
-use cursor::Peek;
 pub use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
 // TODO make this private and the definition pub(super) again.
 pub use error::{Error, ErrorKind};
-use grammar::ArrayAccess;
-use grammar::Assignment;
-use grammar::AssignmentOperator;
-use grammar::BinaryOrAssignmentOperator;
-use grammar::Exit;
-use grammar::FnCall;
-use grammar::For;
-use grammar::Foreach;
-use grammar::If;
-use grammar::Increment;
-use grammar::IncrementKind;
-use grammar::IncrementOperator;
-use grammar::PlaceExpr;
-use grammar::Repeat;
-use grammar::UnaryPrefixOperatorWithIncrement;
-use grammar::x_binding_power;
 
-use crate::nasl::error::Span;
-
-use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
-use grammar::{
+use super::grammar::ArrayAccess;
+use super::grammar::Assignment;
+use super::grammar::AssignmentOperator;
+use super::grammar::BinaryOrAssignmentOperator;
+use super::grammar::Exit;
+use super::grammar::FnCall;
+use super::grammar::For;
+use super::grammar::Foreach;
+use super::grammar::If;
+use super::grammar::Increment;
+use super::grammar::IncrementKind;
+use super::grammar::IncrementOperator;
+use super::grammar::PlaceExpr;
+use super::grammar::Repeat;
+use super::grammar::UnaryPrefixOperatorWithIncrement;
+use super::grammar::x_binding_power;
+use super::grammar::{
     AnonymousFnArg, Array, Ast, Atom, Binary, BinaryOperator, Block, CommaSeparated, Expr, FnArg,
     FnDecl, Include, NamedFnArg, Return, Statement, Unary, UnaryPostfixOperator, VarScope,
     VarScopeDecl, While,
 };
+use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
+use crate::nasl::error::Span;
+use cursor::Cursor;
+use cursor::Peek;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -150,6 +148,10 @@ impl Parser {
                 return;
             }
         }
+    }
+
+    fn peek_span(&self) -> Span {
+        self.cursor.peek_span()
     }
 
     fn parse<T: Parse>(&mut self) -> Result<T> {
@@ -279,7 +281,13 @@ impl Parse for Include {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::Include))?;
         parser.consume(TokenKind::LeftParen)?;
-        let path = parser.parse()?;
+        let path: Literal = parser.parse()?;
+        let span = parser.peek_span();
+        if !matches!(path, Literal::String(_) | Literal::Data(_)) {
+            let error: Error = ErrorKind::StringExpected.into();
+            return Err(error.add_span(span));
+        }
+        let path = path.as_string().unwrap();
         parser.consume(TokenKind::RightParen)?;
         Ok(Include { path })
     }
@@ -371,13 +379,25 @@ impl Parse for For {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::For))?;
         parser.consume(TokenKind::LeftParen)?;
-        let initializer = Box::new(parser.parse()?);
+        let initializer = if parser.consume_if_matches(TokenKind::Semicolon) {
+            None
+        } else {
+            Some(Box::new(parser.parse()?))
+        };
         let condition = parser.parse()?;
         parser.consume(TokenKind::Semicolon)?;
         // The last statement probably doesn't have a trailing
         // semicolon, so we cannot use parser.parse::<Stmt>() here.
-        let increment = Box::new(parse_stmt_without_semicolon(parser)?);
-        parser.consume(TokenKind::RightParen)?;
+        let increment = if parser.consume_if_matches(TokenKind::Semicolon) {
+            parser.consume(TokenKind::RightParen)?;
+            None
+        } else if parser.consume_if_matches(TokenKind::RightParen) {
+            None
+        } else {
+            let increment = Some(Box::new(parse_stmt_without_semicolon(parser)?));
+            parser.consume(TokenKind::RightParen)?;
+            increment
+        };
         let block = parser.parse::<OptionalBlock<_>>()?.into();
         Ok(For {
             initializer,
@@ -520,7 +540,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                         None
                     };
                     Expr::Atom(Atom::FnCall(FnCall {
-                        fn_expr: Box::new(lhs),
+                        fn_name: Ident::from_expr(lhs)?,
                         args,
                         num_repeats,
                     }))
@@ -684,6 +704,16 @@ macro_rules! impl_trivial_parse {
 
 impl_trivial_parse!(Ident, Ident, ErrorKind::IdentExpected);
 impl_trivial_parse!(Literal, Literal, ErrorKind::LiteralExpected);
+
+impl Ident {
+    pub(crate) fn from_expr(lhs: super::grammar::Expr) -> Result<Ident> {
+        if let Expr::Atom(Atom::Ident(ident)) = lhs {
+            Ok(ident)
+        } else {
+            Err(ErrorKind::IdentExpected.into())
+        }
+    }
+}
 
 macro_rules! impl_multi_token_parse {
     ($ty: ty, ($($kind: expr => $expr: expr),*$(,)?)) => {

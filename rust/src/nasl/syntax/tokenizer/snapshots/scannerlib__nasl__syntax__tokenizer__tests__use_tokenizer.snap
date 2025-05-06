@@ -1,35 +1,54 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (use_tokenizer), \"local_var hello = 'World!';\")"
-snapshot_kind: text
 ---
 [
     Token {
         kind: Keyword(
             LocalVar,
         ),
-        position: (
-            0,
-            9,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                9,
+            ),
+        },
     },
     Token {
         kind: Ident(
-            Ident(
-                "hello",
+            Ident {
+                ident: "hello",
+                span: Span {
+                    start: CharIndex(
+                        10,
+                    ),
+                    end: CharIndex(
+                        15,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                10,
             ),
-        ),
-        position: (
-            10,
-            15,
-        ),
+            end: CharIndex(
+                15,
+            ),
+        },
     },
     Token {
         kind: Equal,
-        position: (
-            16,
-            17,
-        ),
+        span: Span {
+            start: CharIndex(
+                16,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
     },
     Token {
         kind: Literal(
@@ -44,16 +63,24 @@ snapshot_kind: text
                 ],
             ),
         ),
-        position: (
-            18,
-            26,
-        ),
+        span: Span {
+            start: CharIndex(
+                18,
+            ),
+            end: CharIndex(
+                26,
+            ),
+        },
     },
     Token {
         kind: Semicolon,
-        position: (
-            26,
-            27,
-        ),
+        span: Span {
+            start: CharIndex(
+                26,
+            ),
+            end: CharIndex(
+                27,
+            ),
+        },
     },
 ]

@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/keyword_extension.rs
-expression: "crate :: nasl :: syntax :: lexer :: tests ::\nparse_ok(stringify! (if_statement),\n\"if( version[1] ) report += '\\nVersion: ' + version[1];\").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
-snapshot_kind: text
----
-if (version[1]) report += [10, 86, 101, 114, 115, 105, 111, 110, 58, 32] + version[1]

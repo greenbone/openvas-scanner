@@ -1,4 +1,7 @@
-use crate::nasl::syntax::{Token, TokenKind, Tokenizer, TokenizerError, tokenizer::CharIndex};
+use crate::nasl::{
+    error::Span,
+    syntax::{Token, TokenKind, Tokenizer, TokenizerError, tokenizer::CharIndex},
+};
 
 use super::{FromPeek, Matches, error::SpannedError};
 
@@ -75,16 +78,14 @@ impl Cursor {
     }
 
     pub(crate) fn current_token_start(&self) -> CharIndex {
-        CharIndex(self.current.position.0)
+        self.current.span().start()
     }
 
     pub(crate) fn current_token_end(&self) -> CharIndex {
-        CharIndex(
-            self.previous
-                .clone()
-                .map(|prev| prev.position.1)
-                .unwrap_or(0),
-        )
+        self.previous
+            .clone()
+            .map(|prev| prev.span().end())
+            .unwrap_or(CharIndex(0))
     }
 
     pub(crate) fn has_errors(&self) -> bool {
@@ -93,6 +94,10 @@ impl Cursor {
 
     pub(crate) fn drain_errors(&mut self) -> impl Iterator<Item = TokenizerError> {
         self.errors.drain(..)
+    }
+
+    pub(crate) fn peek_span(&self) -> Span {
+        self.current.span()
     }
 }
 

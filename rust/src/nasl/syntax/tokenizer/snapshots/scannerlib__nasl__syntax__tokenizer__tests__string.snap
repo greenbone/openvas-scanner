@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_ok(stringify! (string), \"\\\"I am a closed string \\\"\")"
-snapshot_kind: text
 ---
 [
     Token {
@@ -10,9 +9,13 @@ snapshot_kind: text
                 "I am a closed string ",
             ),
         ),
-        position: (
-            0,
-            23,
-        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                23,
+            ),
+        },
     },
 ]

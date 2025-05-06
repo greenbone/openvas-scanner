@@ -4,10 +4,7 @@ use codespan_reporting::files::SimpleFile;
 
 use super::{
     Loader,
-    syntax::{
-        Ast, LoadError, Tokenizer,
-        parser::{ParseError, Parser},
-    },
+    syntax::{LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
 fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
