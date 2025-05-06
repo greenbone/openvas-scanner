@@ -39,7 +39,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libbsd0 \
   rsync \
   # net-tools is required by some nasl plugins.
-  # nasl_pread: Failed to execute child process “netstat” (No such file or directory)
   net-tools \
   libgnutls30 \
   libgssapi3-heimdal \
