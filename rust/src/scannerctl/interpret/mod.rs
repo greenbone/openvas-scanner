@@ -49,8 +49,11 @@ fn load(ctx: &Context, script: &Path) -> Result<String, CliErrorKind> {
 
 async fn run_with_context(context: Context<'_>, script: &Path) -> Result<(), CliErrorKind> {
     let register = RegisterBuilder::build();
-    let code = Code::from_string_fake_filename(&load(&context, script)?, script);
-    let ast = code.parse().emit_errors().unwrap();
+    let code = Code::from_string_filename(&load(&context, script)?, script);
+    let ast = code
+        .parse()
+        .emit_errors()
+        .map_err(CliErrorKind::SyntaxError)?;
     let mut results = ForkingInterpreter::new(ast, register, &context).stream();
     while let Some(result) = results.next().await {
         let r = match result {

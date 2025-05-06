@@ -66,8 +66,11 @@ pub async fn feed_version(
         scan_id,
     };
     let context = cb.build();
-    // TODO do not unwrap here, handle errors
-    let mut interpreter = Interpreter::new(register, code.parse().emit_errors().unwrap(), &context);
+    let mut interpreter = Interpreter::new(
+        register,
+        code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
+        &context,
+    );
     interpreter.execute_all().await?;
 
     let feed_version = interpreter
@@ -167,8 +170,7 @@ where
             executor: &self.executor,
         };
         let context = context.build();
-        // TODO: Do not unwrap here.
-        let ast = code.parse().emit_errors().unwrap();
+        let ast = code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?;
         let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
         while let Some(stmt) = results.next().await {
             match stmt {

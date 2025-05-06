@@ -42,12 +42,12 @@ impl ParseResult {
         }
     }
 
-    pub fn emit_errors(self) -> Option<Ast> {
+    pub fn emit_errors(self) -> Result<Ast, Vec<ParseError>> {
         match self.result {
-            Ok(result) => Some(result),
+            Ok(result) => Ok(result),
             Err(errors) => {
-                super::error::emit_errors(&self.file, errors.into_iter());
-                None
+                super::error::emit_errors(&self.file, errors.iter().cloned());
+                Err(errors)
             }
         }
     }
@@ -83,7 +83,7 @@ impl Code {
         }
     }
 
-    pub fn from_string_fake_filename(code: &str, filename: impl AsRef<Path>) -> Self {
+    pub fn from_string_filename(code: &str, filename: impl AsRef<Path>) -> Self {
         Self {
             code: code.to_string(),
             path: Some(filename.as_ref().to_owned()),

@@ -118,6 +118,6 @@ impl AsCodespanError for SpannedError {
     }
 
     fn message(&self) -> String {
-        self.kind.to_string()
+        format!("{}", self.kind)
     }
 }

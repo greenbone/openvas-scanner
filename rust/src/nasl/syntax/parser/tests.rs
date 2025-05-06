@@ -12,7 +12,7 @@ use super::{super::grammar::Statement, Parse, Parser, error::SpannedError};
 
 // TODO incorporate into `Code` eventually.
 fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
-    let code = Code::from_string_fake_filename(code, file_name)
+    let code = Code::from_string_filename(code, file_name)
         .code()
         .to_string();
     let tokenizer = Tokenizer::tokenize(&code);
@@ -22,7 +22,7 @@ fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
 }
 
 fn parse_program_ok(file_name: &str, code: &str) -> Vec<Statement> {
-    let code = Code::from_string_fake_filename(code, file_name);
+    let code = Code::from_string_filename(code, file_name);
     let code_str = code.code().to_string();
     let tokens = Tokenizer::tokenize(&code_str);
     let results = Parser::new(tokens).parse_program();
@@ -37,7 +37,7 @@ fn parse_program_ok(file_name: &str, code: &str) -> Vec<Statement> {
 }
 
 fn parse_program_err(file_name: &str, code: &str) -> String {
-    let code = Code::from_string_fake_filename(code, file_name)
+    let code = Code::from_string_filename(code, file_name)
         .code()
         .to_string();
     let tokens = Tokenizer::tokenize(&code);

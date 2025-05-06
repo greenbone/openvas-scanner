@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 
 use crate::models::{Parameter, Protocol, ScanID};
-use crate::nasl::interpreter::ForkingInterpreter;
+use crate::nasl::interpreter::{ForkingInterpreter, InterpretErrorKind};
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
@@ -205,8 +205,11 @@ where
         }
         .build();
         context.set_nvt(self.vt.clone());
-        // TODO figure out what to do with the syntax errors here.
-        let ast = code.parse().emit_errors().unwrap();
+        let ast = code.parse().emit_errors();
+        if let Err(errs) = ast {
+            return ScriptResultKind::Error(InterpretErrorKind::SyntaxError(errs).into());
+        }
+        let ast = ast.unwrap();
         let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
         while let Some(r) = results.next().await {
             match r {
