@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2025 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+use crate::models::PreferenceValue;
 use crate::nasl::prelude::*;
-
+use crate::scanner::preferences::preference::PREFERENCES;
 #[nasl_function(named(id))]
 fn script_get_preference(
     register: &Register,
@@ -44,10 +45,28 @@ fn script_get_preference(
 
 #[nasl_function]
 fn get_preference(config: &Context, name: String) -> Option<NaslValue> {
-    if let Some(pref) = config.scan_params().find(|p| p.id == name) {
-        return Some(NaslValue::from(pref.value.clone()));
+    let val = if let Some(pref) = config.scan_params().find(|p| p.id == name) {
+        pref.value.clone()
+    } else {
+        return None;
+    };
+
+    for p in PREFERENCES.to_vec().iter() {
+        if p.id == name {
+            match p.default {
+                PreferenceValue::Bool(_) => match val.as_str() {
+                    "false" => return Some(NaslValue::String("no".to_string())),
+                    "true" => return Some(NaslValue::String("yes".to_string())),
+                    _ => return Some(NaslValue::String(val)),
+                },
+                PreferenceValue::String(_) => return Some(NaslValue::String(val)),
+                PreferenceValue::Int(_) => {
+                    return Some(NaslValue::Number(val.parse::<i64>().unwrap()));
+                }
+            }
+        };
     }
-    None
+    Some(NaslValue::Null)
 }
 
 /// The description builtin function
