@@ -40,19 +40,43 @@ int global_nasl_debug = 0;
 /* Track amount of KB memory used */
 static size_t kb_usage = 0;
 
-static const size_t MAX_KB_USAGE = 1024 * 1024 * 512; // 500MB
+static size_t max_kb_usage;
+
+void
+init_kb_usage (void)
+{
+  const char *usage_char;
+  int usage_int;
+  usage_char = prefs_get ("max_mem_kb");
+  if (usage_char)
+    {
+      usage_int = atoi (usage_char);
+      if (usage_int < 0)
+        {
+          max_kb_usage = 0;
+        }
+      else
+        {
+          max_kb_usage = (size_t) usage_int * 1024 * 1024;
+        }
+    }
+  else
+    max_kb_usage = 0;
+}
 
 static int
 add_kb_usage (struct script_infos *args, size_t size)
 {
-  if (kb_usage > MAX_KB_USAGE)
+  if (max_kb_usage == 0)
+    return 0;
+  if (kb_usage > max_kb_usage)
     return -1;
   kb_usage += size;
-  if (kb_usage > MAX_KB_USAGE)
+  if (kb_usage > max_kb_usage)
     {
       g_warning ("KB usage exceeded %lu MB. Unable to store any further KB "
                  "Items for script %s",
-                 MAX_KB_USAGE / 1024 / 1024, args->name);
+                 max_kb_usage / 1024 / 1024, args->name);
       return -1;
     }
   return 0;
