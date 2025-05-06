@@ -71,7 +71,7 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
     add_custom_target (revisiontag ALL)
 
     # creates gitversion.h using cmake script
-    add_custom_command (TARGET revisiontag COMMAND ${CMAKE_COMMAND}
+    add_custom_command (TARGET revisiontag POST_BUILD COMMAND ${CMAKE_COMMAND}
                         -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
                         -P ${CMAKE_SOURCE_DIR}/cmake/GetGit.cmake)
 
