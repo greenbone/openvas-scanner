@@ -362,6 +362,19 @@ impl Config {
         toml::from_str(&config).unwrap()
     }
 
+    fn ret_pref_value_or_panic_with_wrong_type(
+        p: &ScanPrefValue,
+        expected: &str,
+        name: &str,
+    ) -> ScanPrefValue {
+        match (p, expected) {
+            (ScanPrefValue::Bool(_), "bool") => p.clone(),
+            (ScanPrefValue::Int(_), "int") => p.clone(),
+            (ScanPrefValue::String(_), "string") => p.clone(),
+            _ => panic!("Wrong value type. Expected {} for {}", expected, name),
+        }
+    }
+
     pub fn load() -> Self {
         let mut cmds = clap::Command::new("openvasd")
             .arg(
@@ -680,10 +693,8 @@ impl Config {
                     PreferenceValue::Bool(_) => {
                         if let Some(p) = cmds.get_one::<bool>(pref.id) {
                             ScanPrefValue::Bool(*p)
-                        } else if let Some(ScanPrefValue::Bool(p)) =
-                            config.scanner.preferences.get(pref.id)
-                        {
-                            ScanPrefValue::Bool(*p)
+                        } else if let Some(p) = config.scanner.preferences.get(pref.id) {
+                            Self::ret_pref_value_or_panic_with_wrong_type(p, "bool", pref.id)
                         } else {
                             pref.default.clone().into()
                         }
@@ -691,10 +702,8 @@ impl Config {
                     PreferenceValue::String(_) => {
                         if let Some(p) = cmds.get_one::<String>(pref.id) {
                             ScanPrefValue::String(p.to_string())
-                        } else if let Some(ScanPrefValue::String(p)) =
-                            config.scanner.preferences.get(pref.id)
-                        {
-                            ScanPrefValue::String(p.to_string())
+                        } else if let Some(p) = config.scanner.preferences.get(pref.id) {
+                            Self::ret_pref_value_or_panic_with_wrong_type(p, "string", pref.id)
                         } else {
                             pref.default.clone().into()
                         }
@@ -702,10 +711,8 @@ impl Config {
                     PreferenceValue::Int(_) => {
                         if let Some(p) = cmds.get_one::<i64>(pref.id) {
                             ScanPrefValue::Int(*p)
-                        } else if let Some(ScanPrefValue::Int(p)) =
-                            config.scanner.preferences.get(pref.id)
-                        {
-                            ScanPrefValue::Int(*p)
+                        } else if let Some(p) = config.scanner.preferences.get(pref.id) {
+                            Self::ret_pref_value_or_panic_with_wrong_type(p, "int", pref.id)
                         } else {
                             pref.default.clone().into()
                         }
