@@ -7,6 +7,7 @@
 use tokio::sync::RwLock;
 
 use crate::models::PortRange;
+use crate::models::ScanPreference;
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
@@ -582,6 +583,8 @@ pub struct Context<'a> {
     /// NVT object, which is put into the storage, when set
     nvt: Mutex<Option<Nvt>>,
     sockets: RwLock<NaslSockets>,
+    /// Scanner preferences
+    scan_preferences: Vec<ScanPreference>,
 }
 
 impl<'a> Context<'a> {
@@ -592,6 +595,7 @@ impl<'a> Context<'a> {
         storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
         executor: &'a Executor,
+        scan_preferences: Vec<ScanPreference>,
     ) -> Self {
         Self {
             scan,
@@ -602,6 +606,7 @@ impl<'a> Context<'a> {
             executor,
             nvt: Mutex::new(None),
             sockets: RwLock::new(NaslSockets::default()),
+            scan_preferences,
         }
     }
 
@@ -703,6 +708,14 @@ impl<'a> Context<'a> {
 
     pub fn nvt(&self) -> MutexGuard<'_, Option<Nvt>> {
         self.nvt.lock().unwrap()
+    }
+
+    pub fn set_scan_params(&mut self, params: Vec<ScanPreference>) {
+        self.scan_preferences = params;
+    }
+
+    pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
+        self.scan_preferences.iter()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
@@ -868,6 +881,7 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub scan_id: ScanID,
     pub target: Target,
     pub filename: P,
+    pub scan_preferences: Vec<ScanPreference>,
 }
 
 impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
@@ -880,6 +894,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.storage,
             self.loader,
             self.executor,
+            self.scan_preferences,
         )
     }
 }

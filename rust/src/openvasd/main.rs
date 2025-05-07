@@ -17,7 +17,7 @@ use scannerlib::nasl::utils::context::ContextStorage;
 use scannerlib::notus::{HashsumProductLoader, Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
-use scannerlib::scanner::ScannerStackWithStorage;
+use scannerlib::scanner::{ScannerStackWithStorage, preferences};
 use scannerlib::scheduling::SchedulerStorage;
 use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
 use storage::results::ResultCatcher;
@@ -36,7 +36,6 @@ pub mod controller;
 pub mod crypt;
 pub mod feed;
 pub mod notus;
-pub mod preference;
 pub mod request;
 pub mod response;
 mod scheduling;
@@ -94,7 +93,7 @@ fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
         None,
         cmd::check_sudo(),
         redis_url,
-        crate::preference::PREFERENCES.to_vec(),
+        preferences::preference::PREFERENCES.to_vec(),
     )
 }
 
@@ -140,6 +139,7 @@ where
         .enable_get_performance(config.endpoints.enable_get_performance)
         .enable_get_scans(config.endpoints.enable_get_scans)
         .storage(db)
+        .scan_preferences(config.scanner.preferences.clone())
         .build()
 }
 

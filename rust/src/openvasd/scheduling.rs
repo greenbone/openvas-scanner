@@ -261,6 +261,7 @@ where
                         let scan_status = self.db.get_status(&scan_id).await?;
                         results.status.update_with(&scan_status);
                     }
+
                     match self.append_fetched_result(vec![results]).await {
                         Ok(()) => {
                             tracing::trace!(%scan_id, "fetched and append results");
