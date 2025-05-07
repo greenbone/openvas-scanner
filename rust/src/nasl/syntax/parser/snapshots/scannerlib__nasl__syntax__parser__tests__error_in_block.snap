@@ -7,3 +7,9 @@ error: Expected expression
   │
 1 │ { a =3; b=; }
   │         ^^ Expected expression
+
+error: Expected expression
+  ┌─ error_in_block:1:13
+  │
+1 │ { a =3; b=; }
+  │             ^ Expected expression

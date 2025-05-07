@@ -21,8 +21,7 @@ use scannerlib::{
 use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
     nasl::{
-        ContextBuilder, FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder,
-        WithErrorInfo,
+        ContextBuilder, FSPluginLoader, Loader, NaslValue, RegisterBuilder, WithErrorInfo,
         interpreter::InterpretErrorKind,
         syntax::{LoadError, load_non_utf8_path},
     },
@@ -147,7 +146,7 @@ pub async fn run(
         (Db::InMemory, None) => {
             run_on_storage(
                 InMemoryStorage::default(),
-                NoOpLoader::default(),
+                FSPluginLoader::new(script.parent().unwrap()),
                 target,
                 script,
             )

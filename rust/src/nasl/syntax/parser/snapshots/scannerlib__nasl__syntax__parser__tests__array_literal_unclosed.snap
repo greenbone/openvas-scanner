@@ -3,7 +3,7 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (array_literal_unclosed), \"a = [1, 2, 3;\")"
 ---
 error: Expected ']'
-  ┌─ array_literal_unclosed:1:1
+  ┌─ array_literal_unclosed:1:13
   │
 1 │ a = [1, 2, 3;
-  │ ^^^^^^^^^^^^ Expected ']'
+  │             ^ Expected ']'

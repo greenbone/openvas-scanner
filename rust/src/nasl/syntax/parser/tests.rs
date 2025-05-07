@@ -552,3 +552,30 @@ parse_test_ok!(
     Program,
     "script_category(ACT_GATHER_INFO);"
 );
+
+parse_test_err!(
+    missing_semicolon_newlines,
+    Program,
+    "foo
+
+
+
+    "
+);
+
+parse_test_err!(
+    missing_semicolon_in_block,
+    Program,
+    "{
+        foo
+    }"
+);
+
+parse_test_err!(
+    multiple_missing_semicolons,
+    Program,
+    "foo
+    {
+        foo
+    }"
+);

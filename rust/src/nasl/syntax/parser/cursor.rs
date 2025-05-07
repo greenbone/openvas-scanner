@@ -99,6 +99,13 @@ impl Cursor {
     pub(crate) fn peek_span(&self) -> Span {
         self.current.span()
     }
+
+    pub(crate) fn span_previous_token_end(&self) -> Span {
+        self.previous
+            .as_ref()
+            .map(|prev| Span::new(prev.span().end(), prev.span().end()))
+            .unwrap_or(Span::new(CharIndex(0), CharIndex(0)))
+    }
 }
 
 pub struct Lookahead<'a> {

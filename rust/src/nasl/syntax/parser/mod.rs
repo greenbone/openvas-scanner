@@ -139,14 +139,26 @@ impl Parser {
 
     fn synchronize(&mut self) {
         while !self.is_at_end() {
-            let token = self.advance();
-            if token.kind == TokenKind::Semicolon {
+            let token = self.peek();
+            if matches!(token, TokenKind::Semicolon) {
                 self.advance();
                 return;
             }
-            if let TokenKind::Keyword(Keyword::LocalVar) = self.peek() {
+            if matches!(
+                token,
+                TokenKind::Keyword(Keyword::LocalVar)
+                    | TokenKind::Keyword(Keyword::GlobalVar)
+                    | TokenKind::Keyword(Keyword::Return)
+                    | TokenKind::Keyword(Keyword::Exit)
+                    | TokenKind::Keyword(Keyword::ForEach)
+                    | TokenKind::Keyword(Keyword::For)
+                    | TokenKind::Keyword(Keyword::Repeat)
+                    | TokenKind::Keyword(Keyword::While)
+                    | TokenKind::LeftBrace
+            ) {
                 return;
             }
+            self.advance();
         }
     }
 
@@ -168,7 +180,8 @@ impl Parser {
 
     fn consume(&mut self, expected: TokenKind) -> Result<()> {
         if self.peek() != &expected {
-            Err(ErrorKind::TokenExpected(expected).into())
+            let err: Error = ErrorKind::TokenExpected(expected).into();
+            Err(err.add_span(self.cursor.span_previous_token_end()))
         } else {
             self.advance();
             Ok(())
@@ -554,7 +567,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
         // place expression.
         let op = parser
             .parse_from_peek::<BinaryOrAssignmentOperator>()
-            .ok_or(ErrorKind::TokenExpected(TokenKind::Semicolon))?;
+            .ok_or_else(|| parser.consume(TokenKind::Semicolon).unwrap_err())?;
         let (l_bp, r_bp) = op.binding_power();
         if l_bp < min_bp {
             break;
