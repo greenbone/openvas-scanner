@@ -6,12 +6,10 @@
 #include "nasl_signature.h"
 
 #include "nasl_debug.h"
-#include "nasl_func.h"
-#include "nasl_lex_ctxt.h"
-#include "nasl_tree.h"
-#include "nasl_var.h"
 
 #include <gvm/util/gpgmeutils.h>
+#include <glib.h>  /* for g_free */
+#include <gpgme.h> /* for gpgme_* */
 #include <locale.h> /* for LC_CTYPE  */
 #include <stdio.h>
 #include <stdlib.h>

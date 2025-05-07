@@ -10,6 +10,9 @@
 
 #include <glib.h>
 
+/* for script_infos */
+#include "../misc/scanneraux.h"
+
 /* for tree_cell */
 #include "nasl_tree.h"
 

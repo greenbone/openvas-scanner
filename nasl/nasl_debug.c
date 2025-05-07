@@ -6,16 +6,10 @@
 
 #include "nasl_debug.h"
 
-#include "../misc/plugutils.h"
-#include "exec.h"
-#include "nasl_func.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_lex_ctxt.h"
-#include "nasl_tree.h"
-#include "nasl_var.h"
-
+#include <assert.h>
 #include <gvm/base/logging.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h> /* for str() */
 #include <unistd.h>
 
