@@ -14,8 +14,8 @@ use crate::nasl::utils::context::Var;
 
 use super::InterpretErrorKind;
 use super::Interpreter;
+use super::NaslValue;
 use super::Result;
-use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
 
 fn convert_value_to_array(val: &mut NaslValue, idx: usize) {

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::models::{Parameter, Protocol, ScanID};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpretErrorKind};
-use crate::nasl::syntax::NaslValue;
+use crate::nasl::prelude::NaslValue;
 use crate::nasl::utils::context::{ContextStorage, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::{Executor, Register};

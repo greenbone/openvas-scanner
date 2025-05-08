@@ -5,7 +5,7 @@
 use crate::nasl::syntax::grammar::{For, Foreach, Repeat, While};
 
 use crate::nasl::ContextType;
-use crate::nasl::syntax::NaslValue;
+use crate::nasl::prelude::NaslValue;
 
 use super::{Interpreter, Result};
 

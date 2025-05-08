@@ -19,13 +19,15 @@ pub use error::InternalError;
 
 pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 
+use crate::nasl::interpreter::NaslValue;
+
 /// The result of a function call.
-pub type NaslResult = Result<crate::nasl::syntax::NaslValue, FnError>;
+pub type NaslResult = Result<NaslValue, FnError>;
 
 /// Resolves positional arguments from the register.
-pub fn resolve_positional_arguments(register: &Register) -> Vec<crate::nasl::syntax::NaslValue> {
+pub fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
     match register.named(lookup_keys::FC_ANON_ARGS).cloned() {
-        Some(ContextType::Value(crate::nasl::syntax::NaslValue::Array(arr))) => arr,
+        Some(ContextType::Value(NaslValue::Array(arr))) => arr,
         Some(unexpected) => {
             tracing::warn!(
                 "expected array but got: {:?}. Maybe {} was overridden. Ignoring.",
@@ -49,7 +51,7 @@ pub fn get_named_parameter<'a>(
     registrat: &'a Register,
     key: &'a str,
     required: bool,
-) -> Result<&'a crate::nasl::syntax::NaslValue, ArgumentError> {
+) -> Result<&'a NaslValue, ArgumentError> {
     match registrat.named(key) {
         None => {
             if required {
@@ -57,7 +59,7 @@ pub fn get_named_parameter<'a>(
             } else {
                 // we use exit because a named value can be intentionally set to null and may be
                 // treated differently when it is not set compared to set but null.
-                Ok(&crate::nasl::syntax::NaslValue::Exit(0))
+                Ok(&NaslValue::Exit(0))
             }
         }
         Some(ct) => match ct {
@@ -70,7 +72,7 @@ pub fn get_named_parameter<'a>(
 /// Is a type definition for built-in variables
 ///
 /// It is mostly used internally when building a NaslVarDefiner.
-pub type NaslVars<'a> = HashMap<&'a str, crate::nasl::syntax::NaslValue>;
+pub type NaslVars<'a> = HashMap<&'a str, NaslValue>;
 
 /// Looks for NaslVars.
 pub trait NaslVarDefiner {

@@ -7,7 +7,7 @@ use crate::nasl::Code;
 use crate::nasl::ContextBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_functions;
-use crate::nasl::syntax::NaslValue;
+use crate::nasl::prelude::NaslValue;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::Register;
 use crate::nasl::utils::context::Target;

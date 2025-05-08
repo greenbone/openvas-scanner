@@ -6,6 +6,7 @@ mod declare;
 mod forking_interpreter;
 mod include;
 mod loop_extension;
+mod nasl_value;
 
 #[cfg(test)]
 mod tests;
@@ -15,7 +16,6 @@ use std::collections::{HashMap, VecDeque};
 use crate::nasl::{
     Code, Context, Register,
     error::Span,
-    prelude::NaslValue,
     syntax::{
         Ident,
         grammar::{
@@ -26,8 +26,12 @@ use crate::nasl::{
 };
 
 use error::IncludeSyntaxError;
+
 pub use error::{FunctionCallError, InterpretError, InterpretErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
+pub use nasl_value::NaslValue;
+
+use super::syntax::Literal;
 
 pub type Result<T = NaslValue, E = InterpretError> = std::result::Result<T, E>;
 
@@ -328,7 +332,15 @@ impl<'ctx> Interpreter<'ctx> {
 
     async fn resolve_atom(&mut self, atom: &Atom) -> Result {
         match atom {
-            Atom::Literal(literal) => Ok(literal.into()),
+            Atom::Literal(literal) => Ok(match &literal {
+                Literal::String(s) => NaslValue::String(s.clone()),
+                Literal::Data(data) => NaslValue::Data(data.clone()),
+                Literal::Number(num) => NaslValue::Number(*num),
+                Literal::IPv4Address(ipv4_addr) => NaslValue::String(ipv4_addr.to_string()),
+                Literal::Null => NaslValue::Null,
+                Literal::Boolean(b) => NaslValue::Boolean(*b),
+                Literal::AttackCategory(a) => NaslValue::AttackCategory(*a),
+            }),
             Atom::FnCall(call) => self.resolve_fn_call(call).await,
             Atom::Ident(ident) => Ok(self.resolve_var(ident)?.clone()),
             Atom::Array(array) => self.resolve_array(array).await,

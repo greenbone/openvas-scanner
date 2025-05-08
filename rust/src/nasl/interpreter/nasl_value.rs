@@ -13,8 +13,6 @@ use crate::{
     storage::items::{kb::KbItem, nvt::ACT},
 };
 
-use super::token::Literal;
-
 /// Represents a valid Value of NASL
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NaslValue {
@@ -468,20 +466,6 @@ impl From<&NaslValue> for Vec<u8> {
 impl From<NaslValue> for i64 {
     fn from(nv: NaslValue) -> Self {
         i64::from(&nv)
-    }
-}
-
-impl From<&Literal> for NaslValue {
-    fn from(val: &Literal) -> Self {
-        match val {
-            Literal::String(s) => NaslValue::String(s.clone()),
-            Literal::Data(data) => NaslValue::Data(data.clone()),
-            Literal::Number(num) => NaslValue::Number(*num),
-            Literal::IPv4Address(ipv4_addr) => NaslValue::String(ipv4_addr.to_string()),
-            Literal::Null => NaslValue::Null,
-            Literal::Boolean(b) => NaslValue::Boolean(*b),
-            Literal::AttackCategory(a) => NaslValue::AttackCategory(*a),
-        }
     }
 }
 
