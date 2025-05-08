@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+
+sudo apt-get install -y clang-format
+
 # I wanted to get the merge base using {{ github.base_ref }}, however this is only
 # available for the event that opens the PR or edits it, not on pushes to the branch.
 # Comparing to main should be an OK alternative, since it will - at worst - do more

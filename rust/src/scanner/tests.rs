@@ -53,6 +53,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
                 parameters: vec![],
             })
             .collect(),
+        scan_preferences: Vec::new(),
     };
     let executor = nasl_std_functions();
     ((Arc::new(storage), loader), executor, scan)
@@ -218,7 +219,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
     let scan_id = ScanID(filename.to_string());
-
+    let scan_preferences = Vec::default();
     let cb = ContextBuilder {
         storage: &storage,
         loader: &loader,
@@ -226,6 +227,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         scan_id,
         target,
         filename,
+        scan_preferences,
     };
     let context = cb.build();
     let ast = Code::from_string(code).parse().emit_errors().unwrap();
@@ -268,6 +270,7 @@ async fn run(
                 parameters: vec![],
             })
             .collect(),
+        scan_preferences: Vec::new(),
     };
 
     let executor = nasl_std_functions();

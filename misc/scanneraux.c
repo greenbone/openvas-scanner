@@ -10,8 +10,6 @@
 
 #include "scanneraux.h"
 
-#include "../nasl/nasl_krb5.h"
-
 void
 destroy_scan_globals (struct scan_globals *globals)
 {

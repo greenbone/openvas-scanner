@@ -109,6 +109,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                         stage,
                         param.as_ref(),
                         scan_id,
+                        &self.scan.scan_preferences,
                     )
                     .await;
                     Some((result, data))

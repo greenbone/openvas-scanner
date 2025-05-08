@@ -56,6 +56,7 @@ pub async fn feed_version(
     let target = Target::localhost();
     let filename = "";
     let executor = nasl_std_functions();
+    let scan_params = Vec::default();
     let cb = ContextBuilder {
         storage: dispatcher,
         loader,
@@ -63,6 +64,7 @@ pub async fn feed_version(
         target,
         filename,
         scan_id,
+        scan_preferences: scan_params,
     };
     let context = cb.build();
     let mut interpreter = Interpreter::new(
@@ -159,6 +161,7 @@ where
         let code = Code::load(self.loader, &key.0)?;
 
         let register = Register::from_global_variables(&self.initial);
+        let scan_params = Vec::default();
         let target = Target::localhost();
         let context = ContextBuilder {
             scan_id: ScanID(key.0.clone()),
@@ -167,6 +170,7 @@ where
             storage: self.storage,
             loader: self.loader,
             executor: &self.executor,
+            scan_preferences: scan_params,
         };
         let context = context.build();
         let ast = code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?;
