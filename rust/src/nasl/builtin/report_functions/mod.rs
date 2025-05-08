@@ -35,7 +35,7 @@ impl Reporting {
         let port = register
             .named("port")
             .and_then(|x| match x {
-                ContextType::Value(x) => Some(x.into()),
+                ContextType::Value(x) => Some(x.convert_to_number()),
                 _ => None,
             })
             .map(|x: i64| x as i16);

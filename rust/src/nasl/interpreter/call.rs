@@ -50,7 +50,7 @@ impl Interpreter<'_> {
                     positional.push(value);
                 }
                 ArgumentKind::Named(name) => {
-                    named.insert(name, value.into());
+                    named.insert(name, ContextType::Value(value));
                 }
             }
         }

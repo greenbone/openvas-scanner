@@ -8,7 +8,6 @@
 mod error;
 
 use crate::nasl::prelude::*;
-use crate::nasl::utils::ContextType;
 
 pub use error::HttpError;
 use h2::client;

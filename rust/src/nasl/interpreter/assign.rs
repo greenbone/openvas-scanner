@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 use super::register::Var;
+use crate::nasl::ContextType;
 use crate::nasl::syntax::grammar::Assignment;
 use crate::nasl::syntax::grammar::AssignmentOperator;
 use crate::nasl::syntax::grammar::Increment;
@@ -16,7 +17,6 @@ use super::InterpretErrorKind;
 use super::Interpreter;
 use super::NaslValue;
 use super::Result;
-use crate::nasl::utils::ContextType;
 
 fn convert_value_to_array(val: &mut NaslValue, idx: usize) {
     let mut temp = NaslValue::Null;

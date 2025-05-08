@@ -32,6 +32,7 @@ use super::syntax::Literal;
 
 pub use error::{FunctionCallError, InterpretError, InterpretErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
+pub use nasl_value::ContextType;
 pub use nasl_value::NaslValue;
 pub use register::Register;
 
@@ -380,10 +381,10 @@ impl<'ctx> Interpreter<'ctx> {
         use BinaryOperator::*;
         let lhs = self.resolve_expr(&binary.lhs).await?;
         // Short circuit
-        if binary.op == AmpersandAmpersand && !lhs.as_boolean()? {
+        if binary.op == AmpersandAmpersand && !lhs.convert_to_boolean() {
             return Ok(NaslValue::Boolean(false));
         }
-        if binary.op == PipePipe && lhs.as_boolean()? {
+        if binary.op == PipePipe && lhs.convert_to_boolean() {
             return Ok(NaslValue::Boolean(true));
         }
         let rhs = self.resolve_expr(&binary.rhs).await?;
@@ -447,7 +448,7 @@ impl<'ctx> Interpreter<'ctx> {
     ) -> Result<NaslValue, InterpretError> {
         for (condition, block) in if_branches.iter() {
             let val = self.resolve_expr(condition).await?;
-            if bool::from(val) {
+            if val.convert_to_boolean() {
                 return self.resolve_block(block).await;
             }
         }

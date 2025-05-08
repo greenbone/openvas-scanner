@@ -307,7 +307,7 @@ where
         let variables: Vec<_> = self
             .variables
             .iter()
-            .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
+            .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
         let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();

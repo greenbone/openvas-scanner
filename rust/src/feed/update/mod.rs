@@ -11,7 +11,6 @@ use futures::{Stream, StreamExt, stream};
 use std::fs::File;
 use tracing::trace;
 
-use crate::nasl::ContextType;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::interpreter::Interpreter;
 use crate::nasl::nasl_std_functions;
@@ -37,7 +36,7 @@ pub struct Update<'a, S, L, V> {
     /// Is used to load nasl plugins by a relative path
     loader: &'a L,
     /// Initial data, usually set in new.
-    initial: Vec<(String, ContextType)>,
+    initial: Vec<(String, NaslValue)>,
     /// How often loader or storage should retry before giving up when a retryable error occurs.
     max_retry: usize,
     verifier: V,

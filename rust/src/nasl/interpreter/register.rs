@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use crate::nasl::{
-    ArgumentError, ContextType,
+    ArgumentError,
     utils::lookup_keys::{FC_ANON_ARGS, SCRIPT_PARAMS},
 };
 
-use super::NaslValue;
+use super::{ContextType, NaslValue};
 
 /// Holds the defined variables and functions within a scope
 /// (i.e. a block, such as loops or a function) during
@@ -44,6 +44,8 @@ impl Scope {
     }
 }
 
+/// Used to keep a temporary reference to a
+/// specific variable within the interpreter.
 #[derive(Copy, Clone)]
 pub(super) struct Var<'a> {
     name: &'a str,
@@ -60,8 +62,12 @@ pub struct Register {
 
 impl Register {
     /// Creates a global scope based on the given initial values
-    pub fn from_global_variables(initial: &[(String, ContextType)]) -> Self {
-        let defined = initial.into_iter().cloned().collect();
+    pub fn from_global_variables(initial: &[(String, NaslValue)]) -> Self {
+        let defined = initial
+            .into_iter()
+            .cloned()
+            .map(|(k, v)| (k, ContextType::Value(v)))
+            .collect();
         let global = Scope {
             variables: defined,
             ..Default::default()

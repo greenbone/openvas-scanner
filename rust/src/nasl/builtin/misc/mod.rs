@@ -107,10 +107,31 @@ fn unixtime() -> Result<u64, MiscError> {
         .map_err(|e| MiscError::TimeBefore1970(e.to_string()))
 }
 
+fn to_bytes(value: NaslValue) -> Vec<u8> {
+    match value {
+        NaslValue::String(x) => x.into(),
+        NaslValue::Data(x) => x,
+        NaslValue::Array(x) => x
+            .iter()
+            .flat_map(<&NaslValue as Into<Vec<u8>>>::into)
+            .collect(),
+        NaslValue::Boolean(_) | NaslValue::Number(_) | NaslValue::Dict(_) => {
+            value.to_string().as_bytes().into()
+        }
+        NaslValue::AttackCategory(_)
+        | NaslValue::Fork(_)
+        | NaslValue::Null
+        | NaslValue::Return(_)
+        | NaslValue::Continue
+        | NaslValue::Break
+        | NaslValue::Exit(_) => vec![],
+    }
+}
+
 /// Compress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
 #[nasl_function(named(data, headformat))]
 fn gzip(data: NaslValue, headformat: Option<&str>) -> Option<Vec<u8>> {
-    let data = Vec::<u8>::from(data);
+    let data = to_bytes(data);
     let headformat = headformat.unwrap_or("noheaderformat");
     if headformat.eq_ignore_ascii_case("gzip") {
         let mut e = GzEncoder::new(Vec::new(), Compression::default());
@@ -124,7 +145,7 @@ fn gzip(data: NaslValue, headformat: Option<&str>) -> Option<Vec<u8>> {
 /// uncompress given data with gzip, when headformat is set to 'gzip' it uses gzipheader.
 #[nasl_function(named(data))]
 fn gunzip(data: NaslValue) -> Option<String> {
-    let data = Vec::<u8>::from(data);
+    let data = to_bytes(data);
     let mut uncompress = ZlibDecoder::new(&data[..]);
     let mut uncompressed = String::new();
     match uncompress.read_to_string(&mut uncompressed) {

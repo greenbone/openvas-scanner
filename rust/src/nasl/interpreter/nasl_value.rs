@@ -7,13 +7,22 @@ use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 use regex::Regex;
 
+use crate::nasl::syntax::grammar::{Block, Statement};
 use crate::nasl::utils::function::bytes_to_str;
 use crate::{
     nasl::interpreter::{InterpretError, InterpretErrorKind},
     storage::items::{kb::KbItem, nvt::ACT},
 };
 
-/// Represents a valid Value of NASL
+#[derive(Clone, Debug)]
+pub enum ContextType {
+    /// Represents a function definition
+    Function(Vec<String>, Block<Statement>),
+    /// Represents a variable
+    Value(NaslValue),
+}
+
+/// Represents a NASL value during runtime.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NaslValue {
     /// String value
@@ -80,6 +89,24 @@ impl NaslValue {
         }
     }
 
+    pub(crate) fn convert_to_number(&self) -> i64 {
+        match self {
+            NaslValue::String(_) => 1,
+            &NaslValue::Number(x) => x,
+            NaslValue::Array(_) => 1,
+            NaslValue::Data(_) => 1,
+            NaslValue::Dict(_) => 1,
+            &NaslValue::Boolean(x) => x as i64,
+            &NaslValue::AttackCategory(x) => x as i64,
+            NaslValue::Null => 0,
+            &NaslValue::Exit(x) => x,
+            &NaslValue::Return(_) => -1,
+            &NaslValue::Continue => 0,
+            &NaslValue::Break => 0,
+            NaslValue::Fork(_) => 1,
+        }
+    }
+
     pub(crate) fn as_string(&self) -> Result<String, InterpretErrorKind> {
         match self {
             NaslValue::String(string) => Ok(string.clone()),
@@ -88,14 +115,15 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn as_boolean(&self) -> Result<bool, InterpretErrorKind> {
+    pub(crate) fn convert_to_boolean(&self) -> bool {
         match self {
-            NaslValue::Boolean(b) => Ok(*b),
-            NaslValue::Number(n) => Ok(*n != 0),
-            NaslValue::String(s) => Ok(!s.is_empty()),
-            NaslValue::Data(d) => Ok(!d.is_empty()),
-            NaslValue::Array(_) => Ok(true),
-            _ => Ok(true),
+            NaslValue::Boolean(b) => *b,
+            NaslValue::Number(n) => *n != 0,
+            NaslValue::String(s) => !s.is_empty() && s != "0",
+            NaslValue::Data(d) => !d.is_empty(),
+            NaslValue::Array(v) => !v.is_empty(),
+            NaslValue::Null => false,
+            _ => true,
         }
     }
 
@@ -167,7 +195,7 @@ impl NaslValue {
 
     pub(crate) fn add(&self, rhs: NaslValue) -> NaslValue {
         self.add_string(&rhs)
-            .unwrap_or_else(|| (i64::from(self) + i64::from(rhs)).into())
+            .unwrap_or_else(|| (self.convert_to_number() + rhs.convert_to_number()).into())
     }
 
     fn sub_string(&self, rhs: &NaslValue) -> Option<NaslValue> {
@@ -190,7 +218,7 @@ impl NaslValue {
 
     pub(crate) fn sub(&self, rhs: NaslValue) -> NaslValue {
         self.sub_string(&rhs)
-            .unwrap_or_else(|| (i64::from(self) - i64::from(rhs)).into())
+            .unwrap_or_else(|| (self.convert_to_number() - rhs.convert_to_number()).into())
     }
 
     pub(crate) fn shr_unsigned(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
@@ -205,7 +233,7 @@ impl NaslValue {
     }
 
     pub(crate) fn not(&self) -> Result<NaslValue, InterpretError> {
-        Ok(NaslValue::Boolean(!self.as_boolean()?))
+        Ok(NaslValue::Boolean(!self.convert_to_boolean()))
     }
 
     pub(crate) fn bitwise_not(&self) -> Result<NaslValue, InterpretError> {
@@ -291,12 +319,6 @@ impl Display for NaslValue {
     }
 }
 
-impl From<&[u8]> for NaslValue {
-    fn from(value: &[u8]) -> Self {
-        value.to_vec().into()
-    }
-}
-
 impl From<Vec<u8>> for NaslValue {
     fn from(s: Vec<u8>) -> Self {
         Self::Data(s)
@@ -376,8 +398,8 @@ macro_rules! impl_boolean_operator {
     ($ident: ident, $path: expr, $op: tt) => {
         impl NaslValue {
             pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
-                let b1 = self.as_boolean()?;
-                let b2 = rhs.as_boolean()?;
+                let b1 = self.convert_to_boolean();
+                let b2 = rhs.convert_to_boolean();
                 Ok($path(b1 $op b2))
             }
         }
@@ -387,71 +409,6 @@ macro_rules! impl_boolean_operator {
 impl_boolean_operator!(and, Self::Boolean, &&);
 impl_boolean_operator!(or, Self::Boolean, ||);
 
-// TODO turn these into error-based conversions
-
-impl From<NaslValue> for Vec<u8> {
-    fn from(value: NaslValue) -> Self {
-        match value {
-            NaslValue::String(x) => x.into(),
-            NaslValue::Data(x) => x,
-            NaslValue::Array(x) => x
-                .iter()
-                .flat_map(<&NaslValue as Into<Vec<u8>>>::into)
-                .collect(),
-            NaslValue::Boolean(_) | NaslValue::Number(_) | NaslValue::Dict(_) => {
-                value.to_string().as_bytes().into()
-            }
-            NaslValue::AttackCategory(_)
-            | NaslValue::Fork(_)
-            | NaslValue::Null
-            | NaslValue::Return(_)
-            | NaslValue::Continue
-            | NaslValue::Break
-            | NaslValue::Exit(_) => vec![],
-        }
-    }
-}
-
-impl From<NaslValue> for bool {
-    fn from(value: NaslValue) -> Self {
-        match value {
-            NaslValue::String(string) => !string.is_empty() && string != "0",
-            NaslValue::Array(v) => !v.is_empty(),
-            NaslValue::Data(v) => !v.is_empty(),
-            NaslValue::Boolean(boolean) => boolean,
-            NaslValue::Null => false,
-            NaslValue::Number(number) => number != 0,
-            NaslValue::Exit(number) => number != 0,
-            NaslValue::AttackCategory(_) => true,
-            NaslValue::Dict(v) => !v.is_empty(),
-            NaslValue::Return(_) => true,
-            NaslValue::Continue => false,
-            NaslValue::Break => false,
-            NaslValue::Fork(v) => v.is_empty(),
-        }
-    }
-}
-
-impl From<&NaslValue> for i64 {
-    fn from(value: &NaslValue) -> Self {
-        match value {
-            NaslValue::String(_) => 1,
-            &NaslValue::Number(x) => x,
-            NaslValue::Array(_) => 1,
-            NaslValue::Data(_) => 1,
-            NaslValue::Dict(_) => 1,
-            &NaslValue::Boolean(x) => x as i64,
-            &NaslValue::AttackCategory(x) => x as i64,
-            NaslValue::Null => 0,
-            &NaslValue::Exit(x) => x,
-            &NaslValue::Return(_) => -1,
-            &NaslValue::Continue => 0,
-            &NaslValue::Break => 0,
-            NaslValue::Fork(_) => 1,
-        }
-    }
-}
-
 impl From<&NaslValue> for Vec<u8> {
     fn from(value: &NaslValue) -> Vec<u8> {
         match value {
@@ -459,29 +416,6 @@ impl From<&NaslValue> for Vec<u8> {
             &NaslValue::Number(x) => x.to_ne_bytes().to_vec(),
             NaslValue::Data(x) => x.to_vec(),
             _ => Vec::new(),
-        }
-    }
-}
-
-impl From<NaslValue> for i64 {
-    fn from(nv: NaslValue) -> Self {
-        i64::from(&nv)
-    }
-}
-
-// is used for loops, maybe refactor
-impl From<NaslValue> for Vec<NaslValue> {
-    fn from(value: NaslValue) -> Self {
-        match value {
-            NaslValue::Array(ret) => ret,
-            NaslValue::Dict(ret) => ret.values().cloned().collect(),
-            NaslValue::Boolean(_) | NaslValue::Number(_) => vec![value],
-            NaslValue::Data(ret) => ret.into_iter().map(|x| NaslValue::Data(vec![x])).collect(),
-            NaslValue::String(ret) => ret
-                .chars()
-                .map(|x| NaslValue::String(x.to_string()))
-                .collect(),
-            _ => vec![],
         }
     }
 }
@@ -497,6 +431,33 @@ impl From<KbItem> for NaslValue {
             Dict(x) => Self::Dict(x.into_iter().map(|(k, v)| (k, Self::from(v))).collect()),
             Boolean(x) => Self::Boolean(x),
             Null => Self::Null,
+        }
+    }
+}
+
+impl ContextType {
+    pub(crate) fn as_value(&self) -> Result<&NaslValue, InterpretErrorKind> {
+        if let Self::Value(val) = self {
+            Ok(val)
+        } else {
+            Err(InterpretErrorKind::FunctionExpectedValue)
+        }
+    }
+
+    pub(crate) fn as_value_mut(&mut self) -> Result<&mut NaslValue, InterpretErrorKind> {
+        if let Self::Value(val) = self {
+            Ok(val)
+        } else {
+            Err(InterpretErrorKind::FunctionExpectedValue)
+        }
+    }
+}
+
+impl std::fmt::Display for ContextType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ContextType::Function(_, _) => write!(f, ""),
+            ContextType::Value(v) => write!(f, "{v}"),
         }
     }
 }

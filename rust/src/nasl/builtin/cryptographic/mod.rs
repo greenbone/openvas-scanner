@@ -7,7 +7,7 @@ use thiserror::Error;
 // use crate::nasl::utils::combine_function_sets;
 use crate::nasl::prelude::*;
 
-use crate::nasl::utils::{ContextType, IntoFunctionSet, Register, StoredFunctionSet};
+use crate::nasl::utils::{IntoFunctionSet, Register, StoredFunctionSet};
 
 pub mod aes_cbc;
 pub mod aes_ccm;

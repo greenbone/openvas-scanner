@@ -9,6 +9,20 @@ use crate::nasl::prelude::NaslValue;
 
 use super::{Interpreter, Result};
 
+fn value_into_vec(v: NaslValue) -> Vec<NaslValue> {
+    match v {
+        NaslValue::Array(ret) => ret,
+        NaslValue::Dict(ret) => ret.values().cloned().collect(),
+        NaslValue::Boolean(_) | NaslValue::Number(_) => vec![v],
+        NaslValue::Data(ret) => ret.into_iter().map(|x| NaslValue::Data(vec![x])).collect(),
+        NaslValue::String(ret) => ret
+            .chars()
+            .map(|x| NaslValue::String(x.to_string()))
+            .collect(),
+        _ => vec![],
+    }
+}
+
 impl Interpreter<'_> {
     /// Interpreting a NASL for loop. A NASL for loop is built up with the
     /// following:
@@ -33,7 +47,7 @@ impl Interpreter<'_> {
         }
         loop {
             // Check condition statement
-            if !bool::from(self.resolve_expr(condition).await?) {
+            if !self.resolve_expr(condition).await?.convert_to_boolean() {
                 break;
             }
 
@@ -64,7 +78,7 @@ impl Interpreter<'_> {
     /// it and resolve the body for every value in the array.
     pub async fn resolve_foreach(&mut self, Foreach { var, array, block }: &Foreach) -> Result {
         // Iterate through the iterable Statement
-        for val in Vec::<NaslValue>::from(self.resolve_expr(array).await?) {
+        for val in value_into_vec(self.resolve_expr(array).await?) {
             // Change the value of the iteration variable after each iteration
             self.register
                 .add_local(&var.to_str(), ContextType::Value(val));
@@ -91,7 +105,7 @@ impl Interpreter<'_> {
     /// The condition is first checked, then the body resolved, as long as the
     /// condition resolves into a `TRUE` NaslValue.
     pub async fn resolve_while(&mut self, While { condition, block }: &While) -> Result {
-        while bool::from(self.resolve_expr(condition).await?) {
+        while self.resolve_expr(condition).await?.convert_to_boolean() {
             // Execute loop body
             let ret = self.resolve_block(block).await?;
             // Catch special values
@@ -126,7 +140,7 @@ impl Interpreter<'_> {
             };
 
             // Check condition statement
-            if bool::from(self.resolve_expr(condition).await?) {
+            if self.resolve_expr(condition).await?.convert_to_boolean() {
                 break;
             }
         }

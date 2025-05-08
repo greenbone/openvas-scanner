@@ -21,13 +21,13 @@ pub mod prelude {
     pub use super::builtin::BuiltinError;
     pub use super::code::Code;
     pub use super::code::ParseResult;
+    pub use super::interpreter::ContextType;
     pub use super::interpreter::NaslValue;
     pub use super::interpreter::Register;
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
     pub use super::utils::ArgumentError;
     pub use super::utils::Context;
-    pub use super::utils::ContextType;
     pub use super::utils::FnError;
     pub use super::utils::InternalError;
     pub use super::utils::NaslResult;
