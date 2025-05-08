@@ -2,9 +2,7 @@ use futures::{Stream, stream};
 
 use crate::nasl::{Context, Register, syntax::grammar::Ast};
 
-use super::interpreter::Interpreter;
-
-use super::interpreter::Result;
+use super::{Interpreter, Result};
 
 /// Handles code execution with forking behavior.
 /// In order to do so, this struct maintains a list of

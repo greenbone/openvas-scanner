@@ -13,8 +13,8 @@ use crate::nasl::syntax::grammar::PlaceExpr;
 use crate::nasl::utils::context::Var;
 
 use super::InterpretErrorKind;
-use super::interpreter::Interpreter;
-use super::interpreter::Result;
+use super::Interpreter;
+use super::Result;
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::ContextType;
 

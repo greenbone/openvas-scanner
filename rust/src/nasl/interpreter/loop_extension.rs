@@ -7,7 +7,7 @@ use crate::nasl::syntax::grammar::{For, Foreach, Repeat, While};
 use crate::nasl::ContextType;
 use crate::nasl::syntax::NaslValue;
 
-use super::interpreter::{Interpreter, Result};
+use super::{Interpreter, Result};
 
 impl Interpreter<'_> {
     /// Interpreting a NASL for loop. A NASL for loop is built up with the

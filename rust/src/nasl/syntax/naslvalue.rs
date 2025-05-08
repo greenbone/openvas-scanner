@@ -16,7 +16,7 @@ use crate::{
 use super::token::Literal;
 
 /// Represents a valid Value of NASL
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NaslValue {
     /// String value
     String(String),
@@ -33,7 +33,6 @@ pub enum NaslValue {
     /// Attack category keyword
     AttackCategory(ACT),
     /// Null value
-    #[default]
     Null,
     /// Returns value of the context
     Return(Box<NaslValue>),

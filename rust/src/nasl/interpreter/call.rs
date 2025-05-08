@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use super::interpreter::{Interpreter, Result};
+use super::{Interpreter, Result};
 use crate::nasl::{
     ContextType, NaslValue,
     interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},

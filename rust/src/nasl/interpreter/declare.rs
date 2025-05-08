@@ -7,7 +7,7 @@ use crate::nasl::{
     syntax::grammar::{FnDecl, VarScope, VarScopeDecl},
 };
 
-use super::interpreter::{Interpreter, Result};
+use super::{Interpreter, Result};
 
 impl Interpreter<'_> {
     pub(crate) fn resolve_fn_decl(&mut self, fn_decl: &FnDecl) -> Result {
