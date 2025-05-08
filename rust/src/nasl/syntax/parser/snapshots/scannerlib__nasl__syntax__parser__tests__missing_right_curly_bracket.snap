@@ -7,3 +7,9 @@ error: Expected ';'
   │
 1 │ if (a) { a = 2
   │               ^ Expected ';'
+
+error: Expected '}'
+  ┌─ missing_right_curly_bracket:1:15
+  │
+1 │ if (a) { a = 2
+  │               ^ Expected '}'

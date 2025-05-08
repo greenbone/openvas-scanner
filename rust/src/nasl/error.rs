@@ -18,6 +18,7 @@ pub struct Span {
 
 impl Span {
     pub(crate) fn new(start: CharIndex, end: CharIndex) -> Self {
+        assert!(start.0 <= end.0);
         Self { start, end }
     }
 

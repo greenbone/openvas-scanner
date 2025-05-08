@@ -9,7 +9,7 @@ use super::{
 
 fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
     let tokenizer = Tokenizer::tokenize(code);
-    let mut parser = Parser::new(tokenizer);
+    let parser = Parser::new(tokenizer);
     parser.parse_program()
 }
 

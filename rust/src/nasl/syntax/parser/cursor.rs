@@ -81,7 +81,7 @@ impl Cursor {
         self.current.span().start()
     }
 
-    pub(crate) fn current_token_end(&self) -> CharIndex {
+    pub(crate) fn previous_token_end(&self) -> CharIndex {
         self.previous
             .clone()
             .map(|prev| prev.span().end())

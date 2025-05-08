@@ -579,3 +579,16 @@ parse_test_err!(
         foo
     }"
 );
+
+parse_test_err!(
+    multiple_missing_semicolons_2,
+    Program,
+    "{
+        a  = 1
+        b  = 1;
+        c  = 1;
+        d = 1
+    }"
+);
+
+parse_test_ok!(negated_assignment, Program, "!a = 1;");

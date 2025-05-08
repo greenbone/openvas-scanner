@@ -24,6 +24,7 @@ use super::grammar::IncrementKind;
 use super::grammar::IncrementOperator;
 use super::grammar::PlaceExpr;
 use super::grammar::Repeat;
+use super::grammar::UnaryPrefixOperator;
 use super::grammar::UnaryPrefixOperatorWithIncrement;
 use super::grammar::x_binding_power;
 use super::grammar::{
@@ -71,6 +72,7 @@ impl<T> From<OptionalBlock<T>> for Block<T> {
 
 pub struct Parser {
     cursor: Cursor,
+    errors: Vec<SpannedError>,
 }
 
 impl Peek for Parser {
@@ -87,21 +89,22 @@ impl Parser {
     pub fn new(tokenizer: Tokenizer) -> Self {
         Self {
             cursor: Cursor::new(tokenizer).unwrap(),
+            errors: vec![],
         }
     }
 
     fn parse_span<T: Parse>(&mut self) -> Result<T> {
         let pos_before = self.cursor.current_token_start();
         let result = self.parse();
-        let pos_after = self.cursor.current_token_end();
+        let pos_after = self.cursor.previous_token_end();
         let span = Span::new(pos_before, pos_after);
         result.map_err(|err| err.add_span(span))
     }
 
-    fn check_tokenizer_errors(&mut self, errs: &mut Vec<SpannedError>) -> bool {
+    fn check_tokenizer_errors(&mut self) -> bool {
         if self.cursor.has_errors() {
             for e in self.cursor.drain_errors() {
-                errs.push(e.into());
+                self.errors.push(e.into());
             }
             self.synchronize();
             true
@@ -110,30 +113,29 @@ impl Parser {
         }
     }
 
-    pub fn parse_program(&mut self) -> Result<Ast, Vec<SpannedError>> {
+    pub fn parse_program(mut self) -> Result<Ast, Vec<SpannedError>> {
         let mut stmts = vec![];
-        let mut errs = vec![];
         while !self.is_at_end() {
             let result = self.parse_span::<Statement>();
             // Check if any tokenization errors occurred, those have priority
             // and make the actual result obtained from parsing void
-            if !self.check_tokenizer_errors(&mut errs) {
+            if !self.check_tokenizer_errors() {
                 match result {
                     Ok(decl) => stmts.push(decl),
                     Err(err) => {
                         // We know the error has a span since it originates from
                         // parse_span
-                        errs.push(err.unwrap_as_spanned());
+                        self.errors.push(err.unwrap_as_spanned());
                         self.synchronize();
                     }
                 }
             }
         }
-        self.check_tokenizer_errors(&mut errs);
-        if errs.is_empty() {
+        self.check_tokenizer_errors();
+        if self.errors.is_empty() {
             Ok(Ast::new(stmts))
         } else {
-            Err(errs)
+            Err(self.errors)
         }
     }
 
@@ -155,6 +157,7 @@ impl Parser {
                     | TokenKind::Keyword(Keyword::Repeat)
                     | TokenKind::Keyword(Keyword::While)
                     | TokenKind::LeftBrace
+                    | TokenKind::RightBrace
             ) {
                 return;
             }
@@ -273,7 +276,18 @@ impl<T: Parse> Parse for Block<T> {
             if parser.consume_if_matches(TokenKind::RightBrace) {
                 break;
             }
-            stmts.push(parser.parse_span()?);
+            let result = parser.parse_span();
+            match result {
+                Ok(stmt) => stmts.push(stmt),
+                Err(err) => {
+                    // TODO: verify this unwrap is ok
+                    parser.errors.push(err.unwrap_as_spanned());
+                    parser.synchronize();
+                    if parser.token_matches(TokenKind::Eof) {
+                        return Err(parser.consume(TokenKind::RightBrace).unwrap_err());
+                    }
+                }
+            }
         }
         Ok(Block { items: stmts })
     }
@@ -624,6 +638,7 @@ impl PlaceExpr {
             Ok(PlaceExpr {
                 ident: ident.clone(),
                 array_accesses: vec![],
+                negate: false,
             })
         } else if let Expr::Atom(Atom::ArrayAccess(array_access)) = expr {
             let mut inner = PlaceExpr::from_expr(*array_access.lhs_expr)?;
@@ -631,6 +646,14 @@ impl PlaceExpr {
                 .array_accesses
                 .push((*array_access.index_expr).clone());
             Ok(inner)
+        } else if let Expr::Unary(unary) = expr {
+            let mut place_expr = PlaceExpr::from_expr(*unary.rhs)?;
+            if let UnaryPrefixOperator::Bang = unary.op {
+                place_expr.negate = true
+            } else {
+                return Err(ParseErrorKind::NotAllowedInPlaceExpr.into());
+            }
+            Ok(place_expr)
         } else {
             Err(ParseErrorKind::NotAllowedInPlaceExpr.into())
         }

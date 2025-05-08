@@ -16,10 +16,6 @@ pub struct ForkingInterpreter<'ctx> {
 
 impl<'ctx> ForkingInterpreter<'ctx> {
     pub fn new(ast: Ast, register: Register, context: &'ctx Context<'ctx>) -> Self {
-        // TODO: Get rid of the unwrap and emit errors here.
-        // We probably want to rename this method
-        // or alternatively take an already parsed AST as input to the method.
-        // so we don't have to do TokenizerError/SyntaxError handling here.
         let interpreters = vec![Interpreter::new(register, ast, context)];
         Self {
             interpreters,

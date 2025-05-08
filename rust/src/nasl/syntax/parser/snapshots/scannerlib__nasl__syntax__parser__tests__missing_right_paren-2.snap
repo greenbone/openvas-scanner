@@ -13,3 +13,9 @@ error: Expected expression
   │
 1 │ foreach a(x { a = 2;
   │                     ^ Expected expression
+
+error: Expected '}'
+  ┌─ missing_right_paren:1:21
+  │
+1 │ foreach a(x { a = 2;
+  │                     ^ Expected '}'

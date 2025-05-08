@@ -85,12 +85,14 @@ impl Display for Assignment {
 
 impl Display for PlaceExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let negation = if self.negate { "!" } else { "" };
         if self.array_accesses.is_empty() {
-            write!(f, "{}", self.ident)
+            write!(f, "{}{}", negation, self.ident)
         } else {
             write!(
                 f,
-                "{}{}",
+                "{}{}{}",
+                negation,
                 self.ident,
                 self.array_accesses
                     .iter()

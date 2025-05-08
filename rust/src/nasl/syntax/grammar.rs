@@ -89,6 +89,7 @@ pub struct Assignment {
 pub struct PlaceExpr {
     pub ident: Ident,
     pub array_accesses: Vec<Expr>,
+    pub negate: bool,
 }
 
 #[derive(Clone, Debug)]
