@@ -979,7 +979,7 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
  *  @return String containing the server response or NULL
  *          Must be free()'ed by the caller.
  */
-static char *
+char *
 notus_get_response (const char *pkg_list, const char *os)
 {
   const char *server = NULL;
@@ -999,7 +999,7 @@ notus_get_response (const char *pkg_list, const char *os)
       return NULL;
     }
 
-  // Convert the packge list string into a string containing json
+  // Convert the package list string into a string containing json
   // array of packages
   if ((json_pkglist = make_package_list_as_json_str (pkg_list)) == NULL)
     {
@@ -1020,10 +1020,10 @@ notus_get_response (const char *pkg_list, const char *os)
 /** @brief Call notus and stores the results
  *
  *  @param ip_str Target's IP address.
- *  @param hostname Targer's hostname.
+ *  @param hostname Target's hostname.
  *  @param pkg_list List of packages installed in the target. The packages are
  * "\n" separated.
- *  @param os Name of the target's operative sistem.
+ *  @param os Name of the target's operating system.
  *
  *  @result Count of stored results. -1 on error.
  */
