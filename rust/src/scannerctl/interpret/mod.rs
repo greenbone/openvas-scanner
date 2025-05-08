@@ -11,7 +11,7 @@ use futures::StreamExt;
 use scannerlib::{
     feed,
     nasl::{
-        Code, Context,
+        Code, Context, Register,
         interpreter::ForkingInterpreter,
         nasl_std_functions,
         utils::{context::Target, error::ReturnBehavior},
@@ -21,7 +21,7 @@ use scannerlib::{
 use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
     nasl::{
-        ContextBuilder, FSPluginLoader, Loader, NaslValue, RegisterBuilder, WithErrorInfo,
+        ContextBuilder, FSPluginLoader, Loader, NaslValue, WithErrorInfo,
         interpreter::InterpretErrorKind,
         syntax::{LoadError, load_non_utf8_path},
     },
@@ -47,7 +47,7 @@ fn load(ctx: &Context, script: &Path) -> Result<String, CliErrorKind> {
 }
 
 async fn run_with_context(context: Context<'_>, script: &Path) -> Result<(), CliErrorKind> {
-    let register = RegisterBuilder::build();
+    let register = Register::default();
     let code = Code::from_string_filename(&load(&context, script)?, script);
     let ast = code
         .parse()

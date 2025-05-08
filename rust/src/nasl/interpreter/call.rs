@@ -116,7 +116,7 @@ impl Interpreter<'_> {
                 return Ok(val);
             }
             let arguments = self.create_arguments_map(call.args.as_ref()).await?;
-            self.register.create_root_child(arguments);
+            self.register.create_global_child(arguments);
             val = match self.execute_builtin_fn(call).await {
                 Some(result) => result,
                 _ => self.execute_user_defined_fn(&call.fn_name).await,

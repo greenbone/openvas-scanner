@@ -4,13 +4,13 @@
 
 use std::collections::HashMap;
 
+use super::register::Var;
 use crate::nasl::syntax::grammar::Assignment;
 use crate::nasl::syntax::grammar::AssignmentOperator;
 use crate::nasl::syntax::grammar::Increment;
 use crate::nasl::syntax::grammar::IncrementKind;
 use crate::nasl::syntax::grammar::IncrementOperator;
 use crate::nasl::syntax::grammar::PlaceExpr;
-use crate::nasl::utils::context::Var;
 
 use super::InterpretErrorKind;
 use super::Interpreter;

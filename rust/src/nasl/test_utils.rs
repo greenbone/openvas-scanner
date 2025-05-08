@@ -309,7 +309,7 @@ where
             .iter()
             .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
             .collect();
-        let register = Register::root_initial(&variables);
+        let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();
         ForkingInterpreter::new(ast, register, context)
     }

@@ -7,14 +7,15 @@ mod forking_interpreter;
 mod include;
 mod loop_extension;
 mod nasl_value;
+mod register;
 
 #[cfg(test)]
 mod tests;
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
 use crate::nasl::{
-    Code, Context, Register,
+    Code, Context,
     error::Span,
     syntax::{
         Ident,
@@ -27,11 +28,12 @@ use crate::nasl::{
 
 use error::IncludeSyntaxError;
 
+use super::syntax::Literal;
+
 pub use error::{FunctionCallError, InterpretError, InterpretErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
 pub use nasl_value::NaslValue;
-
-use super::syntax::Literal;
+pub use register::Register;
 
 pub type Result<T = NaslValue, E = InterpretError> = std::result::Result<T, E>;
 
@@ -456,7 +458,7 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
-        self.register.create_child(HashMap::default());
+        self.register.create_child();
         for stmt in block.items.iter() {
             match Box::pin(self.resolve(stmt)).await {
                 Ok(x) => {

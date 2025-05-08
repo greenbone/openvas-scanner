@@ -159,7 +159,7 @@ where
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
         let code = Code::load(self.loader, &key.0)?;
 
-        let register = Register::root_initial(&self.initial);
+        let register = Register::from_global_variables(&self.initial);
         let target = Target::localhost();
         let context = ContextBuilder {
             scan_id: ScanID(key.0.clone()),

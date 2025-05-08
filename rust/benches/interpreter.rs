@@ -12,7 +12,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
     c.bench_function("interpreter", |b| {
         b.iter(|| {
             futures::executor::block_on(async {
-                let register = Register::root_initial(&variables);
+                let register = Register::from_global_variables(&variables);
                 let cb = ContextBuilder {
                     scan_id: ScanID("test.nasl".to_string()),
                     filename: "",

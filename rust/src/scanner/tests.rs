@@ -6,10 +6,10 @@ use crate::models::scanner::{ScanResultFetcher, ScanResults};
 use crate::nasl::Code;
 use crate::nasl::ContextBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
+use crate::nasl::interpreter::Register;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::NaslValue;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::Register;
 use crate::nasl::utils::context::Target;
 use crate::scanner::Scanner;
 use crate::scanner::{
@@ -213,7 +213,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     ];
     let storage = Arc::new(InMemoryStorage::new());
 
-    let register = Register::root_initial(&initial);
+    let register = Register::from_global_variables(&initial);
     let target = Target::localhost();
     let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
