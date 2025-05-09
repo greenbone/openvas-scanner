@@ -368,18 +368,24 @@ pub struct ScanResult {
 
 impl From<&ScanResult> for crate::models::ResultType {
     fn from(sr: &ScanResult) -> Self {
-        match (sr.name.as_str(), &sr.result_type) {
-            ("HOST_START", ResultType::Log) => crate::models::ResultType::HostStart,
-            ("HOST_END", ResultType::Log) => crate::models::ResultType::HostEnd,
-            ("DEADHOST", ResultType::Log) => crate::models::ResultType::DeadHost,
-            ("Host Details", ResultType::Log) => crate::models::ResultType::HostDetail,
-            (_, ResultType::Log) => crate::models::ResultType::Log,
-            (_, ResultType::Alarm) => crate::models::ResultType::Alarm,
-            (_, ResultType::Error) => crate::models::ResultType::Error,
-            (_, ResultType::HostStart) => crate::models::ResultType::HostStart,
-            (_, ResultType::HostEnd) => crate::models::ResultType::HostEnd,
+        match (
+            sr.port.clone().unwrap_or("".to_string()).as_str(),
+            sr.name.as_str(),
+            &sr.result_type,
+        ) {
+            // Not only the Host Details script produces host details. Therefore, check the port
+            ("general/Host_Details", _, ResultType::Log) => crate::models::ResultType::HostDetail,
+            (_, "HOST_START", ResultType::Log) => crate::models::ResultType::HostStart,
+            (_, "HOST_END", ResultType::Log) => crate::models::ResultType::HostEnd,
+            (_, "DEADHOST", ResultType::Log) => crate::models::ResultType::DeadHost,
+            (_, "Host Details", ResultType::Log) => crate::models::ResultType::HostDetail,
+            (_, _, ResultType::Log) => crate::models::ResultType::Log,
+            (_, _, ResultType::Alarm) => crate::models::ResultType::Alarm,
+            (_, _, ResultType::Error) => crate::models::ResultType::Error,
+            (_, _, ResultType::HostStart) => crate::models::ResultType::HostStart,
+            (_, _, ResultType::HostEnd) => crate::models::ResultType::HostEnd,
             // host details are sent via log messages
-            (_, ResultType::HostDetail) => unreachable!(),
+            (_, _, ResultType::HostDetail) => unreachable!(),
         }
     }
 }
