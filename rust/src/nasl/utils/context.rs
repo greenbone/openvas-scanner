@@ -6,8 +6,7 @@
 
 use tokio::sync::RwLock;
 
-use crate::models::PortRange;
-use crate::models::ScanPreference;
+use crate::models::{Port, PortRange, Protocol, ScanPreference};
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
@@ -336,7 +335,7 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
@@ -407,6 +406,36 @@ pub struct Target {
     kind: TargetKind,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Ports {
+    /// The TCP ports to test against.
+    pub tcp: HashSet<u16>,
+    /// The UDP ports to test against.
+    pub udp: HashSet<u16>,
+}
+
+impl From<Vec<Port>> for Ports {
+    fn from(ports: Vec<Port>) -> Self {
+        let tcp = ports
+            .clone()
+            .into_iter()
+            .filter(|p| p.protocol.unwrap_or(Protocol::TCP) == Protocol::TCP)
+            .flat_map(|p| p.range.into_iter())
+            .flat_map(|p| p.into_iter())
+            .collect();
+
+        let udp = ports
+            .clone()
+            .into_iter()
+            .filter(|p| p.protocol.unwrap_or(Protocol::UDP) == Protocol::UDP)
+            .flat_map(|p| p.range.into_iter())
+            .flat_map(|p| p.into_iter())
+            .collect();
+
+        Self { tcp, udp }
+    }
+}
+
 /// Specifies whether the string given to `Target` was a hostname
 /// or an ip address.
 #[derive(Clone, Debug, PartialEq)]
@@ -433,6 +462,10 @@ pub struct CtxTarget {
     // should be used.
     /// vhost list which resolve to the IP address and their sources.
     vhosts: Mutex<Vec<VHost>>,
+    /// The TCP ports to test against.
+    ports_tcp: HashSet<u16>,
+    /// The UDP ports to test against.
+    ports_udp: HashSet<u16>,
 }
 
 impl Target {
@@ -487,11 +520,13 @@ impl Target {
     }
 }
 
-impl From<Target> for CtxTarget {
-    fn from(value: Target) -> Self {
+impl From<(Target, Ports)> for CtxTarget {
+    fn from(value: (Target, Ports)) -> Self {
         CtxTarget {
-            target: value,
+            target: value.0,
             vhosts: Mutex::new(vec![]),
+            ports_tcp: value.1.tcp,
+            ports_udp: value.1.udp,
         }
     }
 }
@@ -525,6 +560,14 @@ impl CtxTarget {
 
     pub fn vhosts(&self) -> MutexGuard<'_, Vec<VHost>> {
         self.vhosts.lock().unwrap()
+    }
+
+    pub fn ports_tcp(&self) -> &HashSet<u16> {
+        &self.ports_tcp
+    }
+
+    pub fn ports_udp(&self) -> &HashSet<u16> {
+        &self.ports_udp
     }
 }
 
@@ -879,6 +922,7 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub executor: &'a Executor,
     pub scan_id: ScanID,
     pub target: Target,
+    pub ports: Ports,
     pub filename: P,
     pub scan_preferences: Vec<ScanPreference>,
 }
@@ -888,7 +932,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
     pub fn build(self) -> Context<'a> {
         Context::new(
             self.scan_id,
-            self.target.into(),
+            (self.target, self.ports).into(),
             self.filename.as_ref().to_owned(),
             self.storage,
             self.loader,
