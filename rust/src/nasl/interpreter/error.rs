@@ -87,7 +87,7 @@ pub enum InterpretErrorKind {
     #[error("{0}")]
     IncludeSyntaxError(IncludeSyntaxError),
     /// Syntax errors in the script.
-    #[error("Syntax errors occured.")]
+    #[error("Syntax errors occurred.")]
     SyntaxError(Vec<ParseError>),
     /// When the given key was not found in the context
     #[error("Key not found: {0}")]

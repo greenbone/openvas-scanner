@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-pub enum ContextType {
+pub(super) enum RuntimeValue {
     /// Represents a function definition
     Function(Vec<String>, Block<Statement>),
     /// Represents a variable
@@ -435,7 +435,7 @@ impl From<KbItem> for NaslValue {
     }
 }
 
-impl ContextType {
+impl RuntimeValue {
     pub(crate) fn as_value(&self) -> Result<&NaslValue, InterpretErrorKind> {
         if let Self::Value(val) = self {
             Ok(val)
@@ -453,11 +453,11 @@ impl ContextType {
     }
 }
 
-impl std::fmt::Display for ContextType {
+impl std::fmt::Display for RuntimeValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ContextType::Function(_, _) => write!(f, ""),
-            ContextType::Value(v) => write!(f, "{v}"),
+            RuntimeValue::Function(_, _) => write!(f, ""),
+            RuntimeValue::Value(v) => write!(f, "{v}"),
         }
     }
 }

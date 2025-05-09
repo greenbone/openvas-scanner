@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use super::register::Var;
-use crate::nasl::ContextType;
+use crate::nasl::interpreter::nasl_value::RuntimeValue;
 use crate::nasl::syntax::grammar::Assignment;
 use crate::nasl::syntax::grammar::AssignmentOperator;
 use crate::nasl::syntax::grammar::Increment;
@@ -102,7 +102,7 @@ impl Interpreter<'_> {
                 if let AssignmentOperator::Equal = assignment.op {
                     self.register.add_local(
                         &assignment.lhs.ident.to_str(),
-                        ContextType::Value(NaslValue::Null),
+                        RuntimeValue::Value(NaslValue::Null),
                     )
                 }
                 // Otherwise, we return an error.

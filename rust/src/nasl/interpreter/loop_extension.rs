@@ -4,9 +4,9 @@
 
 use crate::nasl::syntax::grammar::{For, Foreach, Repeat, While};
 
-use crate::nasl::ContextType;
 use crate::nasl::prelude::NaslValue;
 
+use super::nasl_value::RuntimeValue;
 use super::{Interpreter, Result};
 
 fn value_into_vec(v: NaslValue) -> Vec<NaslValue> {
@@ -81,7 +81,7 @@ impl Interpreter<'_> {
         for val in value_into_vec(self.resolve_expr(array).await?) {
             // Change the value of the iteration variable after each iteration
             self.register
-                .add_local(&var.to_str(), ContextType::Value(val));
+                .add_local(&var.to_str(), RuntimeValue::Value(val));
 
             // Execute loop body
             let ret = self.resolve_block(block).await?;

@@ -5,7 +5,7 @@ use crate::nasl::{
     utils::lookup_keys::{FC_ANON_ARGS, SCRIPT_PARAMS},
 };
 
-use super::{ContextType, NaslValue};
+use super::{NaslValue, nasl_value::RuntimeValue};
 
 /// Holds the defined variables and functions within a scope
 /// (i.e. a block, such as loops or a function) during
@@ -18,12 +18,12 @@ struct Scope {
     /// Own index within the register
     index: usize,
     /// The defined variables and functions.
-    variables: HashMap<String, ContextType>,
+    variables: HashMap<String, RuntimeValue>,
 }
 
 impl Scope {
     /// Adds a named variable to the scope.
-    fn add_named(&mut self, name: &str, value: ContextType) {
+    fn add_named(&mut self, name: &str, value: RuntimeValue) {
         self.variables.insert(name.to_owned(), value);
     }
 
@@ -32,7 +32,7 @@ impl Scope {
         &'a self,
         register: &'a Register,
         name: &'a str,
-    ) -> Option<(usize, &'a ContextType)> {
+    ) -> Option<(usize, &'a RuntimeValue)> {
         // first check local
         match self.variables.get(name) {
             Some(ctx) => Some((self.index, ctx)),
@@ -66,7 +66,7 @@ impl Register {
         let defined = initial
             .into_iter()
             .cloned()
-            .map(|(k, v)| (k, ContextType::Value(v)))
+            .map(|(k, v)| (k, RuntimeValue::Value(v)))
             .collect();
         let global = Scope {
             variables: defined,
@@ -97,7 +97,7 @@ impl Register {
     }
 
     /// Creates a child of the global scope scope.
-    pub(super) fn create_global_child(&mut self, defined: HashMap<String, ContextType>) {
+    pub(super) fn create_global_child(&mut self, defined: HashMap<String, RuntimeValue>) {
         let result = Scope {
             parent: Some(0),
             index: self.next_index(),
@@ -107,13 +107,19 @@ impl Register {
     }
 
     /// Adds a named variable to the global scope
-    pub(crate) fn add_global(&mut self, name: &str, value: ContextType) {
+    pub(crate) fn add_global_var(&mut self, name: &str, value: NaslValue) {
+        let global = &mut self.scopes[0];
+        global.add_named(name, RuntimeValue::Value(value));
+    }
+
+    /// Adds a named runtime value to the global scope
+    pub(super) fn add_global(&mut self, name: &str, value: RuntimeValue) {
         let global = &mut self.scopes[0];
         global.add_named(name, value);
     }
 
     /// Adds a named variable to the innermost scope
-    pub(super) fn add_local<'a>(&mut self, name: &'a str, value: ContextType) -> Var<'a> {
+    pub(super) fn add_local<'a>(&mut self, name: &'a str, value: RuntimeValue) -> Var<'a> {
         let scope = self.scopes.last_mut().unwrap();
         scope.add_named(name, value);
         let scope_index = self.current_index();
@@ -136,14 +142,14 @@ impl Register {
         }
     }
 
-    pub(super) fn get_val<'a>(&self, var: Var<'a>) -> &ContextType {
+    pub(super) fn get_val<'a>(&self, var: Var<'a>) -> &RuntimeValue {
         self.scopes[var.scope_index]
             .variables
             .get(var.name)
             .unwrap()
     }
 
-    pub(super) fn get_val_mut<'a>(&mut self, var: Var<'a>) -> &mut ContextType {
+    pub(super) fn get_val_mut<'a>(&mut self, var: Var<'a>) -> &mut RuntimeValue {
         self.scopes[var.scope_index]
             .variables
             .get_mut(var.name)
@@ -156,13 +162,17 @@ impl Register {
         self.scopes.pop();
     }
 
-    pub(crate) fn dump(&self) {
-        self.dump_scope(self.scopes.last().unwrap().index);
+    /// Gets a reference to a ContextType by name
+    pub(super) fn named<'a>(&'a self, name: &'a str) -> Option<&'a RuntimeValue> {
+        Some(self.get_val(self.get(name)?))
     }
 
-    /// Gets a reference to a ContextType by name
-    pub(crate) fn named<'a>(&'a self, name: &'a str) -> Option<&'a ContextType> {
-        Some(self.get_val(self.get(name)?))
+    pub(crate) fn function_exists(&self, name: &str) -> bool {
+        if let Some(val) = self.named(name) {
+            matches!(val, RuntimeValue::Function(_, _))
+        } else {
+            false
+        }
     }
 
     /// Return an iterator over the names of the named arguments.
@@ -176,7 +186,7 @@ impl Register {
     /// or an error otherwise
     pub(crate) fn nasl_value<'a>(&'a self, arg: &'a str) -> Result<&'a NaslValue, ArgumentError> {
         match self.named(arg) {
-            Some(ContextType::Value(val)) => Ok(val),
+            Some(RuntimeValue::Value(val)) => Ok(val),
             Some(_) => Err(ArgumentError::WrongArgument(format!(
                 "Argument {arg} is a function but should be a value."
             ))),
@@ -187,7 +197,7 @@ impl Register {
     /// Retrieves all positional definitions
     pub(crate) fn positional(&self) -> &[NaslValue] {
         match self.named(FC_ANON_ARGS) {
-            Some(ContextType::Value(NaslValue::Array(arr))) => arr,
+            Some(RuntimeValue::Value(NaslValue::Array(arr))) => arr,
             _ => &[],
         }
     }
@@ -195,9 +205,13 @@ impl Register {
     /// Retrieves a script parameter by id
     pub(crate) fn script_param(&self, id: usize) -> Option<NaslValue> {
         match self.named(format!("{SCRIPT_PARAMS}_{id}").as_str()) {
-            Some(ContextType::Value(v)) => Some(v.clone()),
+            Some(RuntimeValue::Value(v)) => Some(v.clone()),
             _ => None,
         }
+    }
+
+    pub(crate) fn dump(&self) {
+        self.dump_scope(self.scopes.last().unwrap().index);
     }
 
     fn dump_scope(&self, index: usize) {
@@ -208,7 +222,7 @@ impl Register {
 
                 // Get number of positional arguments
                 let num_pos = match current.named(self, FC_ANON_ARGS).map(|(_, val)| val) {
-                    Some(ContextType::Value(NaslValue::Array(arr))) => arr.len(),
+                    Some(RuntimeValue::Value(NaslValue::Array(arr))) => arr.len(),
                     _ => 0,
                 };
 
@@ -221,8 +235,8 @@ impl Register {
                         }
 
                         match ctype {
-                            ContextType::Function(_, _) => funs.push(name),
-                            ContextType::Value(_) => vars.push(name),
+                            RuntimeValue::Function(_, _) => funs.push(name),
+                            RuntimeValue::Value(_) => vars.push(name),
                         };
                     }
                     if let Some(parent) = current.parent {

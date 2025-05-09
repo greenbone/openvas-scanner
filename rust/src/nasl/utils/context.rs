@@ -509,6 +509,12 @@ impl<'a> Context<'a> {
     pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
         self.sockets.write().await
     }
+
+    pub(crate) fn add_fn_global_vars(&self, register: &mut Register) {
+        for (name, val) in self.executor.iter_fn_global_vars() {
+            register.add_global_var(name, val);
+        }
+    }
 }
 
 impl Drop for Context<'_> {

@@ -4,9 +4,9 @@
 
 use std::collections::HashMap;
 
-use super::{Interpreter, Result};
+use super::{Interpreter, Result, nasl_value::RuntimeValue};
 use crate::nasl::{
-    ContextType, NaslValue,
+    NaslValue,
     interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
     syntax::{
         Ident,
@@ -40,7 +40,7 @@ impl Interpreter<'_> {
     async fn create_arguments_map(
         &mut self,
         args: &[FnArg],
-    ) -> Result<HashMap<String, ContextType>, InterpretError> {
+    ) -> Result<HashMap<String, RuntimeValue>, InterpretError> {
         let mut positional = vec![];
         let mut named = HashMap::new();
         for arg in args.iter() {
@@ -50,13 +50,13 @@ impl Interpreter<'_> {
                     positional.push(value);
                 }
                 ArgumentKind::Named(name) => {
-                    named.insert(name, ContextType::Value(value));
+                    named.insert(name, RuntimeValue::Value(value));
                 }
             }
         }
         named.insert(
             FC_ANON_ARGS.to_owned(),
-            ContextType::Value(NaslValue::Array(positional)),
+            RuntimeValue::Value(NaslValue::Array(positional)),
         );
         Ok(named)
     }
@@ -69,12 +69,12 @@ impl Interpreter<'_> {
             .ok_or_else(|| InterpretError::not_found(fn_name))?
             .clone();
         match found {
-            ContextType::Function(arguments, stmt) => {
+            RuntimeValue::Function(arguments, stmt) => {
                 for arg in arguments {
                     if self.register.named(&arg).is_none() {
                         // Add default NaslValue::Null for each defined argument
                         self.register
-                            .add_local(&arg, ContextType::Value(NaslValue::Null));
+                            .add_local(&arg, RuntimeValue::Value(NaslValue::Null));
                     }
                 }
                 match self.resolve_block(&stmt).await? {
@@ -82,7 +82,7 @@ impl Interpreter<'_> {
                     _ => Ok(NaslValue::Null),
                 }
             }
-            ContextType::Value(_) => Err(InterpretError::expected_function()),
+            RuntimeValue::Value(_) => Err(InterpretError::expected_function()),
         }
     }
 

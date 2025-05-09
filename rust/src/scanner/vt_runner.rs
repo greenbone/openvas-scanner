@@ -73,9 +73,9 @@ where
     fn set_parameters(&mut self, register: &mut Register) -> Result<(), ExecuteError> {
         if let Some(params) = &self.param {
             for p in params.iter() {
-                register.add_global(
+                register.add_global_var(
                     format!("{}_{}", SCRIPT_PARAMS, p.id).as_str(),
-                    ContextType::Value(NaslValue::String(p.value.clone())),
+                    NaslValue::String(p.value.clone()),
                 );
             }
         }

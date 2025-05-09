@@ -36,11 +36,6 @@ use super::utils::Executor;
 pub use network::socket::NaslSockets;
 
 /// Creates a new Executor and adds all the functions to it.
-///
-/// When you have a function that is considered experimental due to either dependencies on
-/// c-library or other reasons, you have to add the library as optional and put it into the
-/// `experimental` feature flag. Additionally you have to create two new functions one with the
-/// library toggle enabled and one when it is disabled.
 pub fn nasl_std_functions() -> Executor {
     let mut executor = Executor::default();
     executor
@@ -65,6 +60,8 @@ pub fn nasl_std_functions() -> Executor {
 
     #[cfg(feature = "nasl-builtin-raw-ip")]
     executor.add_set(raw_ip::RawIp);
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    executor.add_global_vars(raw_ip::RawIp);
 
     executor
 }

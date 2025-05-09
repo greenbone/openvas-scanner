@@ -21,7 +21,6 @@ pub mod prelude {
     pub use super::builtin::BuiltinError;
     pub use super::code::Code;
     pub use super::code::ParseResult;
-    pub use super::interpreter::ContextType;
     pub use super::interpreter::NaslValue;
     pub use super::interpreter::Register;
     pub use super::syntax::FSPluginLoader;

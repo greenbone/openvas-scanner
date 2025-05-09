@@ -3,17 +3,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::{
-    ContextType, NaslValue,
+    NaslValue,
     syntax::grammar::{FnDecl, VarScope, VarScopeDecl},
 };
 
-use super::{Interpreter, Result};
+use super::{Interpreter, Result, nasl_value::RuntimeValue};
 
 impl Interpreter<'_> {
     pub(crate) fn resolve_fn_decl(&mut self, fn_decl: &FnDecl) -> Result {
         self.register.add_global(
             &fn_decl.fn_name.to_str(),
-            ContextType::Function(
+            RuntimeValue::Function(
                 fn_decl
                     .args
                     .items
@@ -28,7 +28,7 @@ impl Interpreter<'_> {
 
     pub(crate) fn resolve_var_scope_decl(&mut self, scope_decl: &VarScopeDecl) -> Result {
         for ident in scope_decl.idents.iter() {
-            let value = ContextType::Value(NaslValue::Null);
+            let value = RuntimeValue::Value(NaslValue::Null);
             match scope_decl.scope {
                 VarScope::Local => {
                     self.register.add_local(&ident.to_str(), value);

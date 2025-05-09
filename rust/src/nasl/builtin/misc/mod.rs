@@ -242,10 +242,7 @@ fn localtime(secs: Option<i64>, utc: Option<NaslValue>) -> HashMap<String, NaslV
 fn defined_func(ctx: &Context, register: &Register, fn_name: Option<Maybe<&str>>) -> bool {
     fn_name
         .and_then(Maybe::as_option)
-        .map(|fn_name| match register.named(fn_name) {
-            Some(ContextType::Function(_, _)) => true,
-            _ => ctx.nasl_fn_defined(fn_name),
-        })
+        .map(|fn_name| register.function_exists(fn_name) || ctx.nasl_fn_defined(fn_name))
         .unwrap_or(false)
 }
 

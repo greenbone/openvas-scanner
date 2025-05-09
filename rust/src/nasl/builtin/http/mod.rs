@@ -204,8 +204,8 @@ impl NaslHttp {
         ctx: &Context<'_>,
         method: Method,
     ) -> Result<NaslValue, FnError> {
-        let handle_id = match register.named("handle") {
-            Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
+        let handle_id = match register.nasl_value("handle") {
+            Ok(NaslValue::Number(x)) => *x as i32,
             _ => return Err(ArgumentError::WrongArgument("Invalid handle ID".to_string()).into()),
         };
 
@@ -217,12 +217,13 @@ impl NaslHttp {
             .ok_or(HttpError::HandleIdNotFound(handle_id))?;
 
         let item: String = register
-            .named("item")
+            .nasl_value("item")
+            .ok()
             .map(|x| x.to_string())
             .ok_or(FnError::missing_argument("item"))?;
 
-        let schema: String = match register.named("schema") {
-            Some(x) => {
+        let schema: String = match register.nasl_value("schema") {
+            Ok(x) => {
                 if x.to_string() == *"http" || x.to_string() == *"https" {
                     x.to_string()
                 } else {
@@ -232,13 +233,13 @@ impl NaslHttp {
             _ => "https".to_string(),
         };
 
-        let data: String = match register.named("data") {
-            Some(x) => x.to_string(),
+        let data: String = match register.nasl_value("data") {
+            Ok(x) => x.to_string(),
             _ => String::new(),
         };
 
-        let port = match register.named("port") {
-            Some(ContextType::Value(NaslValue::Number(x))) => *x as u16,
+        let port = match register.nasl_value("port") {
+            Ok(NaslValue::Number(x)) => *x as u16,
             _ => 0u16,
         };
 
@@ -352,8 +353,8 @@ impl NaslHttp {
     /// representing the http code response. Null on error.
     #[nasl_function]
     async fn get_response_code(&self, register: &Register) -> Result<NaslValue, FnError> {
-        let handle_id = match register.named("handle") {
-            Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
+        let handle_id = match register.nasl_value("handle") {
+            Ok(NaslValue::Number(x)) => *x as i32,
             _ => {
                 return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into());
             }
@@ -378,15 +379,15 @@ impl NaslHttp {
     /// On success the function returns an integer. 0 on success. Null on error.
     #[nasl_function]
     async fn set_custom_header(&self, register: &Register) -> Result<NaslValue, FnError> {
-        let header_item = match register.named("header_item") {
-            Some(ContextType::Value(NaslValue::String(x))) => x,
+        let header_item = match register.nasl_value("header_item") {
+            Ok(NaslValue::String(x)) => x,
             _ => return Err(FnError::missing_argument("No command passed")),
         };
 
         let (key, val) = header_item.split_once(": ").expect("Missing header_item");
 
-        let handle_id = match register.named("handle") {
-            Some(ContextType::Value(NaslValue::Number(x))) => *x as i32,
+        let handle_id = match register.nasl_value("handle") {
+            Ok(NaslValue::Number(x)) => *x as i32,
             _ => {
                 return Err(ArgumentError::WrongArgument(("Invalid handle ID").to_string()).into());
             }

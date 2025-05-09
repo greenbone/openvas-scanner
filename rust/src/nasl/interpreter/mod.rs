@@ -32,7 +32,6 @@ use super::syntax::Literal;
 
 pub use error::{FunctionCallError, InterpretError, InterpretErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
-pub use nasl_value::ContextType;
 pub use nasl_value::NaslValue;
 pub use register::Register;
 

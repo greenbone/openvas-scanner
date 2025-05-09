@@ -76,9 +76,9 @@ pub async fn feed_version(
 
     let feed_version = interpreter
         .register()
-        .named("PLUGIN_SET")
+        .nasl_value("PLUGIN_SET")
         .map(|x| x.to_string())
-        .unwrap_or_else(|| "0".to_owned());
+        .unwrap_or_else(|_| "0".to_owned());
     Ok(feed_version)
 }
 
