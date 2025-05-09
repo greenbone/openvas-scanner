@@ -15,11 +15,12 @@
 
 #include "nasl_scanner_glue.h"
 
-#include "../misc/ipc_openvas.h"   /* for ipc_* */
-#include "../misc/network.h"       /* for getpts */
-#include "../misc/plugutils.h"     /* for plug_set_id */
-#include "../misc/support.h"       /* for the g_memdup2 workaround */
-#include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "../misc/ipc_openvas.h"      /* for ipc_* */
+#include "../misc/network.h"          /* for getpts */
+#include "../misc/plugutils.h"        /* for plug_set_id */
+#include "../misc/support.h"          /* for the g_memdup2 workaround */
+#include "../misc/table_driven_lsc.h" /* for lsc */
+#include "../misc/vendorversion.h"    /* for vendor_version_get */
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -1114,6 +1115,34 @@ nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
 
   g_free ((void *) json);
   return NULL;
+}
+
+tree_cell *
+table_driven_lsc (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  char *response;
+  char *pkg_list = get_str_var_by_name (lexic, "pkg_list");
+  char *product = get_str_var_by_name (lexic, "product");
+
+  if (product == NULL || pkg_list == NULL)
+    {
+      g_warning ("%s: Missing data for running LSC", __func__);
+      return NULL;
+    }
+
+  response = notus_get_response (pkg_list, product);
+
+  if (!response)
+    {
+      g_warning ("%s: Unable to get the response", __func__);
+      return NULL;
+    }
+
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = g_strdup (response);
+  retc->size = strlen (response);
+  return retc;
 }
 
 /*-------------------------[ Reporting an open port ]---------------------*/
