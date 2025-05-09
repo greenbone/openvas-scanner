@@ -171,7 +171,7 @@ impl Display for KbKey {
             KbKey::Port(Port::Tcp(port)) => write!(f, "Ports/tcp/{port}"),
             KbKey::Port(Port::Udp(port)) => write!(f, "Ports/udp/{port}"),
 
-            KbKey::Transport(Transport::Tcp(transport)) => write!(f, "Transport/TCP/{transport}"),
+            KbKey::Transport(Transport::Tcp(transport)) => write!(f, "Transports/TCP/{transport}"),
             KbKey::Transport(Transport::Ssl) => write!(f, "Transport/SSL"),
 
             KbKey::Internals(Internals::Results) => write!(f, "internal/results"),
