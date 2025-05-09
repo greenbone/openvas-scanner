@@ -1055,7 +1055,7 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
               g_string_printf (res,
                                "\nVulnerable package: %s\n"
                                "Installed version:    %s-%s\n"
-                               "Fixed version:      <=%s-%s\n"
+                               "Fixed version:      < %s-%s\n"
                                "Fixed version:      >=%s-%s\n",
                                pkg->pkg_name, pkg->pkg_name,
                                pkg->install_version, pkg->pkg_name,
