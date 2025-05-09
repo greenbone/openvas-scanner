@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::grammar::{For, Foreach, Repeat, While};
+use crate::nasl::syntax::grammar::{For, ForEach, Repeat, While};
 
 use crate::nasl::prelude::NaslValue;
 
@@ -76,7 +76,7 @@ impl Interpreter<'_> {
     ///
     /// The iterable is first transformed into an Array, then we iterate through
     /// it and resolve the body for every value in the array.
-    pub async fn resolve_foreach(&mut self, Foreach { var, array, block }: &Foreach) -> Result {
+    pub async fn resolve_foreach(&mut self, ForEach { var, array, block }: &ForEach) -> Result {
         // Iterate through the iterable Statement
         for val in value_into_vec(self.resolve_expr(array).await?) {
             // Change the value of the iteration variable after each iteration

@@ -147,7 +147,7 @@ expression: "tokenize_ok(stringify! (one_char_tokens),\n\"( ) [ ] { } . - + % ; 
         },
     },
     Token {
-        kind: DoublePoint,
+        kind: Colon,
         span: Span {
             start: CharIndex(
                 26,

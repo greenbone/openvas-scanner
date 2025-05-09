@@ -5,7 +5,7 @@ use crate::nasl::{
 
 use super::super::grammar::{
     AnonymousFnArg, Array, ArrayAccess, Assignment, Atom, Binary, Block, Exit, Expr, FnArg, FnCall,
-    FnDecl, For, Foreach, If, Include, Increment, IncrementKind, NamedFnArg, PlaceExpr, Repeat,
+    FnDecl, For, ForEach, If, Include, Increment, IncrementKind, NamedFnArg, PlaceExpr, Repeat,
     Return, Statement, Unary, VarScope, VarScopeDecl, While,
 };
 
@@ -20,7 +20,7 @@ impl Display for Statement {
             Statement::Block(x) => write!(f, "{}", x),
             Statement::While(x) => write!(f, "{}", x),
             Statement::Repeat(x) => write!(f, "{}", x),
-            Statement::Foreach(x) => write!(f, "{}", x),
+            Statement::ForEach(x) => write!(f, "{}", x),
             Statement::For(x) => write!(f, "{}", x),
             Statement::If(x) => write!(f, "{}", x),
             Statement::Include(x) => write!(f, "{}", x),
@@ -43,7 +43,7 @@ impl Display for Statement {
             Statement::FnDecl(_)
             | Statement::Block(_)
             | Statement::While(_)
-            | Statement::Foreach(_)
+            | Statement::ForEach(_)
             | Statement::For(_)
             | Statement::If(_) => Ok(()),
         }
@@ -229,7 +229,7 @@ impl Display for Repeat {
     }
 }
 
-impl Display for Foreach {
+impl Display for ForEach {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "foreach {} ({}) {}", self.var, self.array, self.block)
     }

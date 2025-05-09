@@ -297,7 +297,7 @@ impl<'ctx> Interpreter<'ctx> {
             If(if_) => self.resolve_if(if_).await,
             While(while_) => Box::pin(self.resolve_while(while_)).await,
             Repeat(repeat) => Box::pin(self.resolve_repeat(repeat)).await,
-            Foreach(foreach) => Box::pin(self.resolve_foreach(foreach)).await,
+            ForEach(foreach) => Box::pin(self.resolve_foreach(foreach)).await,
             For(for_) => Box::pin(self.resolve_for(for_)).await,
             Exit(exit) => self.resolve_exit(exit).await,
             Include(include_) => self.resolve_include(include_).await,

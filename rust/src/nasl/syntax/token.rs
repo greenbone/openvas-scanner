@@ -200,7 +200,7 @@ pub enum TokenKind {
     /// `;`
     Semicolon,
     /// `:`
-    DoublePoint,
+    Colon,
     /// `~`
     Tilde,
     /// `^`
@@ -297,7 +297,7 @@ impl Display for TokenKind {
             TokenKind::Percent => write!(f, "%"),
             TokenKind::PercentEqual => write!(f, "%="),
             TokenKind::Semicolon => write!(f, ";"),
-            TokenKind::DoublePoint => write!(f, ":"),
+            TokenKind::Colon => write!(f, ":"),
             TokenKind::Tilde => write!(f, "~"),
             TokenKind::Caret => write!(f, "^"),
             TokenKind::Ampersand => write!(f, "&"),

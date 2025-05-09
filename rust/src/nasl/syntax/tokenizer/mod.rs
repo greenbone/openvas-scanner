@@ -260,7 +260,7 @@ impl Tokenizer {
             '*' => {
                 two_symbol_token!(self.cursor, start, Star, '*', StarStar, '=', StarEqual)
             }
-            ':' => DoublePoint,
+            ':' => Colon,
             '~' => Tilde,
             '&' => {
                 two_symbol_token!(self.cursor, start, Ampersand, '&', AmpersandAmpersand)

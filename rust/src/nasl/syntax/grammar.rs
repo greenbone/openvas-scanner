@@ -67,7 +67,7 @@ pub enum Statement {
     Block(Block<Statement>),
     While(While),
     Repeat(Repeat),
-    Foreach(Foreach),
+    ForEach(ForEach),
     For(For),
     If(If),
     Include(Include),
@@ -139,7 +139,7 @@ pub struct Repeat {
 }
 
 #[derive(Clone, Debug)]
-pub struct Foreach {
+pub struct ForEach {
     pub var: Ident,
     pub array: Expr,
     pub block: Block<Statement>,

@@ -17,7 +17,7 @@ use super::grammar::BinaryOrAssignmentOperator;
 use super::grammar::Exit;
 use super::grammar::FnCall;
 use super::grammar::For;
-use super::grammar::Foreach;
+use super::grammar::ForEach;
 use super::grammar::If;
 use super::grammar::Increment;
 use super::grammar::IncrementKind;
@@ -219,7 +219,7 @@ fn parse_stmt_without_semicolon(parser: &mut Parser) -> Result<Statement> {
     } else if parser.token_matches(TokenKind::Keyword(Keyword::Repeat)) {
         Ok(Statement::Repeat(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::ForEach)) {
-        Ok(Statement::Foreach(parser.parse()?))
+        Ok(Statement::ForEach(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::For)) {
         Ok(Statement::For(parser.parse()?))
     } else if parser.token_matches(TokenKind::Keyword(Keyword::If)) {
@@ -260,7 +260,7 @@ impl Parse for Statement {
             Statement::FnDecl(_)
             | Statement::Block(_)
             | Statement::While(_)
-            | Statement::Foreach(_)
+            | Statement::ForEach(_)
             | Statement::For(_)
             | Statement::If(_) => {}
         }
@@ -435,7 +435,7 @@ impl Parse for For {
     }
 }
 
-impl Parse for Foreach {
+impl Parse for ForEach {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::ForEach))?;
         let var = parser.parse()?;
@@ -443,7 +443,7 @@ impl Parse for Foreach {
         let array = parser.parse()?;
         parser.consume(TokenKind::RightParen)?;
         let block = parser.parse::<OptionalBlock<_>>()?.into();
-        Ok(Foreach { array, block, var })
+        Ok(ForEach { array, block, var })
     }
 }
 
@@ -693,9 +693,9 @@ impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
 
 impl Parse for FnArg {
     fn parse(parser: &mut Parser) -> Result<Self> {
-        if parser.matches::<Ident>() && parser.next_token_matches(TokenKind::DoublePoint) {
+        if parser.matches::<Ident>() && parser.next_token_matches(TokenKind::Colon) {
             let ident = parser.parse()?;
-            parser.consume(TokenKind::DoublePoint)?;
+            parser.consume(TokenKind::Colon)?;
             let expr = Box::new(parser.parse()?);
             Ok(FnArg::Named(NamedFnArg { ident, expr }))
         } else {
