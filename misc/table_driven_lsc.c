@@ -246,7 +246,7 @@ struct notus_info
   char *alpn; // Application layer protocol negotiation: http/1.0, http/1.1, h2
   char *http_version; // same version as in application layer
   int port;           // server port
-  int tls;            // 0: TLS encapsulation diable. Otherwise enable
+  int tls;            // 0: TLS encapsulation disable. Otherwise enable
 };
 
 typedef struct notus_info *notus_info_t;
@@ -477,7 +477,7 @@ struct advisory
   char *oid;             // Advisory OID
   vuln_pkg_t *pkgs[100]; // list of vulnerable packages, installed version and
                          // fixed versions
-  size_t count;          // Count of vulnerable packages this adivsory has
+  size_t count;          // Count of vulnerable packages this advisory has
 };
 
 typedef struct advisory advisory_t;
@@ -492,7 +492,7 @@ struct advisories
 };
 typedef struct advisories advisories_t;
 
-/** @brief Initialize a new adivisories struct with 100 slots
+/** @brief Initialize a new advisories struct with 100 slots
  *
  *  @return initialized advisories_t struct. It must be free by the caller
  *          with advisories_free()
@@ -508,7 +508,7 @@ advisories_new ()
   return advisories_list;
 }
 
-/** @brief Initialize a new adivisories struct with 100 slots
+/** @brief Initialize a new advisories struct with 100 slots
  *
  *  @param advisories_list[in/out] An advisories holder to add new advisories
 into.
@@ -533,7 +533,7 @@ advisories_add (advisories_t *advisories_list, advisory_t *advisory)
   advisories_list->count++;
 }
 
-/** @brief Initialize a new adivisory
+/** @brief Initialize a new advisory
  *
  *  @param oid The advisory's OID
  *
@@ -574,7 +574,7 @@ advisory_add_vuln_pkg (advisory_t *adv, vuln_pkg_t *vuln)
 
 /** @brief Free()'s an advisory
  *
- *  @param advisory The adviosory to be free()'ed.
+ *  @param advisory The advisory to be free()'ed.
  *  It free()'s all vulnerable packages that belong to this advisory.
  */
 static void
@@ -607,7 +607,7 @@ advisory_free (advisory_t *advisory)
 
 /** @brief Free()'s an advisories
  *
- *  @param advisory The adviosories holder to be free()'ed.
+ *  @param advisory The advisories holder to be free()'ed.
  *  It free()'s all advisories members.
  */
 static void
@@ -629,11 +629,11 @@ advisories_free (advisories_t *advisories)
  *              Can be RANGE or SINGLE
  *  @param item1 Depending on the type is the "version" for SINGLE type,
  *               or the "less than" for RANGE type
- *  @param item2 Depending on the type is the "specifer" for SINGLE type,
- *               or the "greather than" for RANGE type
+ *  @param item2 Depending on the type is the "specifier" for SINGLE type,
+ *               or the "greater than" for RANGE type
  *
  *  @return a vulnerable packages struct. Members are a copy of the passed
- *          parametes. They must be free separately.
+ *          parameters. They must be free separately.
  */
 static vuln_pkg_t *
 vulnerable_pkg_new (const char *pkg_name, const char *install_version,
@@ -671,7 +671,7 @@ vulnerable_pkg_new (const char *pkg_name, const char *install_version,
  *  @description This is the body string in response get from an openvasd server
  *
  *  @param resp String containing the json object to be processed.
- *  @param len String lenght.
+ *  @param len String length.
  *
  *  @return a advisories_t struct containing all advisories and vulnerable
  *                         packages.
@@ -1212,7 +1212,7 @@ run_table_driven_lsc (const char *scan_id, const char *ip_str,
               if (err == 1)
                 {
                   g_warning (
-                    "%s: Unablet to retrieve message. Timeout after 60s.",
+                    "%s: Unable to retrieve message. Timeout after 60s.",
                     __func__);
                   return -1;
                 }
