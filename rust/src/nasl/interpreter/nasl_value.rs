@@ -10,7 +10,7 @@ use regex::Regex;
 use crate::nasl::syntax::grammar::{Block, Statement};
 use crate::nasl::utils::function::bytes_to_str;
 use crate::{
-    nasl::interpreter::{InterpretError, InterpretErrorKind},
+    nasl::interpreter::InterpretErrorKind,
     storage::items::{kb::KbItem, nvt::ACT},
 };
 
@@ -176,7 +176,7 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn index(&self, index: NaslValue) -> Result<&NaslValue, InterpretError> {
+    pub(crate) fn index(&self, index: NaslValue) -> Result<&NaslValue, InterpretErrorKind> {
         if let Ok(arr) = self.as_array() {
             let index = index.as_number()?;
             let index = index
@@ -221,40 +221,40 @@ impl NaslValue {
             .unwrap_or_else(|| (self.convert_to_number() - rhs.convert_to_number()).into())
     }
 
-    pub(crate) fn shr_unsigned(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+    pub(crate) fn shr_unsigned(&self, rhs: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
         let lhs = self.as_number()?;
         let rhs = rhs.as_number()?;
         let result = ((lhs as u32) >> rhs) as i32;
         Ok(NaslValue::Number(result as i64))
     }
 
-    pub(crate) fn neg(&self) -> Result<NaslValue, InterpretError> {
+    pub(crate) fn neg(&self) -> Result<NaslValue, InterpretErrorKind> {
         Ok(NaslValue::Number(-self.as_number()?))
     }
 
-    pub(crate) fn not(&self) -> Result<NaslValue, InterpretError> {
+    pub(crate) fn not(&self) -> Result<NaslValue, InterpretErrorKind> {
         Ok(NaslValue::Boolean(!self.convert_to_boolean()))
     }
 
-    pub(crate) fn bitwise_not(&self) -> Result<NaslValue, InterpretError> {
+    pub(crate) fn bitwise_not(&self) -> Result<NaslValue, InterpretErrorKind> {
         Ok(NaslValue::Number(!self.as_number()?))
     }
 
-    pub(crate) fn pow(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+    pub(crate) fn pow(&self, rhs: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
         let lhs = self.as_number()?;
         let rhs = rhs.as_number()?;
         Ok(NaslValue::Number((lhs as u32).pow(rhs as u32) as i64))
     }
 
-    pub(crate) fn match_regex(&self, matches: NaslValue) -> Result<NaslValue, InterpretError> {
+    pub(crate) fn match_regex(&self, matches: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
         let matches = matches.as_string()?;
         match Regex::new(&matches) {
             Ok(c) => Ok(NaslValue::Boolean(c.is_match(&self.to_string()))),
-            Err(_) => Err(InterpretError::unparse_regex(&matches)),
+            Err(_) => Err(InterpretErrorKind::InvalidRegex(matches.to_owned())),
         }
     }
 
-    pub(crate) fn match_string(&self, matches: NaslValue) -> Result<NaslValue, InterpretError> {
+    pub(crate) fn match_string(&self, matches: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
         let matches = matches.as_string()?;
         Ok(NaslValue::Boolean(self.as_string()?.contains(&matches)))
     }
@@ -370,7 +370,7 @@ impl From<HashMap<String, NaslValue>> for NaslValue {
 macro_rules! impl_number_operator {
     ($ident: ident, $path: expr) => {
         impl NaslValue {
-            pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+            pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
                 let n1 = self.as_number()?;
                 let n2 = rhs.as_number()?;
                 Ok($path(n1.$ident(&n2)))
@@ -397,10 +397,10 @@ impl_number_operator!(le, Self::Boolean);
 macro_rules! impl_boolean_operator {
     ($ident: ident, $path: expr, $op: tt) => {
         impl NaslValue {
-            pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, InterpretError> {
+            pub fn $ident(&self, rhs: NaslValue) -> NaslValue {
                 let b1 = self.convert_to_boolean();
                 let b2 = rhs.convert_to_boolean();
-                Ok($path(b1 $op b2))
+                $path(b1 $op b2)
             }
         }
     };

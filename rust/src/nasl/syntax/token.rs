@@ -10,7 +10,8 @@ use crate::{
     storage::items::nvt::ACT,
 };
 
-use super::{CharIndex, grammar::Spanned};
+use super::CharIndex;
+use crate::nasl::error::Spanned;
 
 /// A reserved NASL keyword.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -101,12 +102,6 @@ make_keyword_matcher! {
 pub struct Ident {
     ident: String,
     span: Span,
-}
-
-impl Spanned for Ident {
-    fn span(&self) -> Span {
-        self.span
-    }
 }
 
 impl Ident {
@@ -384,5 +379,17 @@ impl Display for Token {
 impl Token {
     pub fn kind(&self) -> &TokenKind {
         &self.kind
+    }
+}
+
+impl Spanned for Ident {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl Spanned for &Ident {
+    fn span(&self) -> Span {
+        self.span
     }
 }

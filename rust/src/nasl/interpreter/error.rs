@@ -4,11 +4,11 @@
 
 use crate::nasl::NaslValue;
 use crate::nasl::code::SourceFile;
-use crate::nasl::error::{AsCodespanError, Span, emit_errors};
-use crate::nasl::syntax::ParseError;
-use crate::nasl::syntax::grammar::Statement;
-use crate::nasl::syntax::{Ident, LoadError, Token, TokenKind};
+use crate::nasl::error::{AsCodespanError, Span, Spanned, emit_errors};
+use crate::nasl::syntax::{CharIndex, ParseError};
+use crate::nasl::syntax::{Ident, LoadError, TokenKind};
 use crate::nasl::utils::error::FnError;
+use codespan_reporting::files::SimpleFile;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -40,12 +40,9 @@ impl FunctionCallError {
 /// Is used to represent an error while interpreting
 #[error("{} {kind}", self.format_origin())]
 pub struct InterpretError {
-    /// Defined the type of error that occurred.
+    /// The kind of error that occurred.
     #[source]
     pub kind: InterpretErrorKind,
-    // todo remove
-    /// The statement on which this error occurred.
-    pub origin: Option<Statement>,
     pub span: Span,
 }
 
@@ -131,13 +128,32 @@ pub enum InterpretErrorKind {
     NonNumericExitCode(NaslValue),
 }
 
-// TODO fix this
-impl From<InterpretErrorKind> for InterpretError {
-    fn from(kind: InterpretErrorKind) -> Self {
+impl InterpretErrorKind {
+    pub(crate) fn with_span(self, s: &impl Spanned) -> InterpretError {
+        InterpretError {
+            kind: self,
+            span: s.span(),
+        }
+    }
+}
+
+impl InterpretError {
+    pub(crate) fn syntax_error(errs: Vec<ParseError>) -> Self {
         Self {
-            kind,
-            origin: None,
-            span: Token::sentinel().span(),
+            // fake value since we don't need the span in this case
+            span: Span::new(CharIndex(usize::MAX - 1), CharIndex(usize::MAX)),
+            kind: InterpretErrorKind::SyntaxError(errs),
+        }
+    }
+
+    pub(crate) fn include_syntax_error(
+        errs: Vec<ParseError>,
+        file: SimpleFile<String, String>,
+    ) -> Self {
+        Self {
+            // fake value since we don't need the span in this case
+            span: Span::new(CharIndex(usize::MAX - 1), CharIndex(usize::MAX)),
+            kind: InterpretErrorKind::IncludeSyntaxError(IncludeSyntaxError { errs, file }),
         }
     }
 }
@@ -159,59 +175,8 @@ impl std::fmt::Display for IncludeSyntaxError {
 }
 
 impl InterpretError {
-    /// Creates a new Error with line and col set to 0
-    ///
-    /// Use this only when there is no statement available.
-    /// If the line as well as col is null Interpreter::resolve will replace it
-    /// with the line and col number based on the root statement.
-    // TODO: remove
-    pub(crate) fn new(kind: InterpretErrorKind, origin: Option<Statement>) -> Self {
-        Self {
-            kind,
-            origin,
-            span: Token::sentinel().span(),
-        }
-    }
-
-    pub(crate) fn new_temporary(kind: InterpretErrorKind, span: Span) -> Self {
-        Self {
-            kind,
-            origin: Some(Statement::NoOp),
-            span,
-        }
-    }
-
-    // TODO: Remove
-    /// Creates a new Error based on a given statement and reason
-    pub(crate) fn from_statement(stmt: &Statement, kind: InterpretErrorKind) -> Self {
-        Self::new(kind, Some(stmt.clone()))
-    }
-
-    /// Creates an InterpreterError if the found context is a value although a function is required
-    pub(crate) fn expected_function() -> Self {
-        Self::new(InterpretErrorKind::ValueExpectedFunction, None)
-    }
-
-    /// When something was not found
-    pub(crate) fn not_found(name: &str) -> Self {
-        Self::new(InterpretErrorKind::NotFound(name.to_owned()), None)
-    }
-
-    /// When a given regex is not parseable
-    pub(crate) fn unparse_regex(rx: &str) -> Self {
-        Self::new(InterpretErrorKind::InvalidRegex(rx.to_owned()), None)
-    }
-}
-
-impl From<LoadError> for InterpretError {
-    fn from(le: LoadError) -> Self {
-        Self::new(InterpretErrorKind::LoadError(le), None)
-    }
-}
-
-impl From<FunctionCallError> for InterpretError {
-    fn from(fe: FunctionCallError) -> Self {
-        Self::new(InterpretErrorKind::FunctionCallError(fe), None)
+    pub(crate) fn new(kind: InterpretErrorKind, span: Span) -> Self {
+        Self { kind, span }
     }
 }
 

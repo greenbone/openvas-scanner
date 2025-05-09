@@ -7,10 +7,11 @@ use std::collections::HashMap;
 use super::{Interpreter, Result, nasl_value::RuntimeValue};
 use crate::nasl::{
     NaslValue,
+    error::Spanned,
     interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
     syntax::{
         Ident,
-        grammar::{FnArg, FnCall, Spanned},
+        grammar::{FnArg, FnCall},
     },
     utils::lookup_keys::FC_ANON_ARGS,
 };
@@ -62,11 +63,12 @@ impl Interpreter<'_> {
     }
 
     async fn execute_user_defined_fn(&mut self, fn_name: &Ident) -> Result {
-        let fn_name = &fn_name.to_str();
         let found = self
             .register
-            .named(fn_name)
-            .ok_or_else(|| InterpretError::not_found(fn_name))?
+            .named(fn_name.to_str())
+            .ok_or_else(|| {
+                InterpretErrorKind::NotFound(fn_name.to_str().to_owned()).with_span(&fn_name)
+            })?
             .clone();
         match found {
             RuntimeValue::Function(arguments, stmt) => {
@@ -82,7 +84,9 @@ impl Interpreter<'_> {
                     _ => Ok(NaslValue::Null),
                 }
             }
-            RuntimeValue::Value(_) => Err(InterpretError::expected_function()),
+            RuntimeValue::Value(_) => {
+                Err(InterpretErrorKind::ValueExpectedFunction.with_span(fn_name))
+            }
         }
     }
 
@@ -92,7 +96,7 @@ impl Interpreter<'_> {
             .await
             .map(|o| {
                 o.map_err(|e| {
-                    InterpretError::new_temporary(
+                    InterpretError::new(
                         InterpretErrorKind::FunctionCallError(FunctionCallError::new(
                             &call.fn_name.to_str(),
                             e,
@@ -105,7 +109,10 @@ impl Interpreter<'_> {
 
     pub(crate) async fn resolve_fn_call(&mut self, call: &FnCall) -> Result {
         let num_repeats = if let Some(ref num_repeats) = call.num_repeats {
-            self.resolve_expr(&num_repeats).await?.as_number()?
+            self.resolve_expr(&num_repeats)
+                .await?
+                .as_number()
+                .map_err(|e| e.with_span(&**num_repeats))?
         } else {
             1
         };

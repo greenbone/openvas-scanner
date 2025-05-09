@@ -162,6 +162,7 @@ pub struct If {
 #[derive(Clone, Debug)]
 pub struct Include {
     pub path: String,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -516,19 +517,15 @@ macro_rules! make_delimiter {
 make_delimiter!(Paren, LeftParen, RightParen);
 make_delimiter!(Bracket, LeftBracket, RightBracket);
 
-pub trait Spanned {
-    fn span(&self) -> Span;
+// Just to make things work for now
+macro_rules! impl_dumb_temporary_span_info {
+    ($ty: ty) => {
+        impl crate::nasl::error::Spanned for $ty {
+            fn span(&self) -> crate::nasl::error::Span {
+                crate::nasl::syntax::Token::sentinel().span()
+            }
+        }
+    };
 }
 
-// // Just to make things work for now
-// macro_rules! impl_dumb_temporary_span_info {
-//     ($ty: ty) => {
-//         impl Spanned for $ty {
-//             fn span(&self) -> crate::nasl::error::Span {
-//                 crate::nasl::syntax::Token::sentinel().span()
-//             }
-//         }
-//     };
-// }
-
-// impl_dumb_temporary_span_info!(Ident);
+impl_dumb_temporary_span_info!(Expr);

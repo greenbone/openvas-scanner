@@ -29,11 +29,28 @@ impl Span {
     pub(crate) fn end(&self) -> CharIndex {
         self.end
     }
+
+    pub(crate) fn join(&self, span: Span) -> Span {
+        Span::new(
+            CharIndex(self.start.0.min(span.start.0)),
+            CharIndex(self.end.0.min(span.end.0)),
+        )
+    }
 }
 
 impl From<Span> for Range<usize> {
     fn from(value: Span) -> Range<usize> {
         value.start.0..value.end.0
+    }
+}
+
+pub trait Spanned {
+    fn span(&self) -> Span;
+}
+
+impl Spanned for Span {
+    fn span(&self) -> Span {
+        *self
     }
 }
 

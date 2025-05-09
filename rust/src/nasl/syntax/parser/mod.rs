@@ -98,7 +98,7 @@ impl Parser {
         let result = self.parse();
         let pos_after = self.cursor.previous_token_end();
         let span = Span::new(pos_before, pos_after);
-        result.map_err(|err| err.add_span(span))
+        result.map_err(|err| err.with_span(span))
     }
 
     fn check_tokenizer_errors(&mut self) -> bool {
@@ -184,7 +184,7 @@ impl Parser {
     fn consume(&mut self, expected: TokenKind) -> Result<()> {
         if self.peek() != &expected {
             let err: Error = ErrorKind::TokenExpected(expected).into();
-            Err(err.add_span(self.cursor.span_previous_token_end()))
+            Err(err.with_span(self.cursor.span_previous_token_end()))
         } else {
             self.advance();
             Ok(())
@@ -312,11 +312,11 @@ impl Parse for Include {
         let span = parser.peek_span();
         if !matches!(path, Literal::String(_) | Literal::Data(_)) {
             let error: Error = ErrorKind::StringExpected.into();
-            return Err(error.add_span(span));
+            return Err(error.with_span(span));
         }
         let path = path.as_string().unwrap();
         parser.consume(TokenKind::RightParen)?;
-        Ok(Include { path })
+        Ok(Include { path, span })
     }
 }
 

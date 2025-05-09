@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 use super::register::Var;
+use crate::nasl::error::Spanned;
 use crate::nasl::interpreter::nasl_value::RuntimeValue;
 use crate::nasl::syntax::grammar::Assignment;
 use crate::nasl::syntax::grammar::AssignmentOperator;
@@ -56,8 +57,8 @@ fn convert_value_to_dict(val: &mut NaslValue, index: &str) {
 fn assign(
     lhs: &mut NaslValue,
     indices: &[NaslValue],
-    modify: impl FnOnce(&mut NaslValue) -> Result<NaslValue>,
-) -> Result {
+    modify: impl FnOnce(&mut NaslValue) -> Result<NaslValue, InterpretErrorKind>,
+) -> Result<NaslValue, InterpretErrorKind> {
     match indices.first() {
         Some(index) => {
             // We implicitly convert the lhs into whatever type
@@ -93,6 +94,7 @@ impl Interpreter<'_> {
     pub(crate) async fn resolve_assignment(&mut self, assignment: &Assignment) -> Result {
         let rhs = self.resolve_expr(&assignment.rhs).await?;
         let (var, indices) = self.eval_place_expr(&assignment.lhs).await?;
+        let span = assignment.lhs.ident.span().join(assignment.rhs.span());
         // match instead of unwrap_or to make returning errors easier.
         let var = match var {
             None => {
@@ -110,14 +112,18 @@ impl Interpreter<'_> {
                     return Err(InterpretErrorKind::AssignmentToUndefinedVar(
                         assignment.lhs.ident.clone(),
                     )
-                    .into());
+                    .with_span(&assignment.lhs.ident));
                 }
             }
             Some(var) => var,
         };
-        let val_mut = self.register.get_val_mut(var).as_value_mut()?;
+        let val_mut = self
+            .register
+            .get_val_mut(var)
+            .as_value_mut()
+            .map_err(|e| e.with_span(&assignment.lhs.ident))?;
         use AssignmentOperator::*;
-        let modify = |lhs: &mut NaslValue| -> Result<NaslValue> {
+        let modify = |lhs: &mut NaslValue| -> Result<NaslValue, InterpretErrorKind> {
             *lhs = match assignment.op {
                 Equal => Ok(rhs),
                 PlusEqual => Ok(lhs.add(rhs)),
@@ -131,16 +137,21 @@ impl Interpreter<'_> {
             }?;
             Ok(lhs.clone())
         };
-        assign(val_mut, &indices, modify)
+        assign(val_mut, &indices, modify).map_err(|e| e.with_span(&span))
     }
 
     pub(crate) async fn resolve_increment(&mut self, increment: &Increment) -> Result {
         let (var, indices) = self.eval_place_expr(&increment.expr).await?;
         let var = var.ok_or_else(|| {
             InterpretErrorKind::AssignmentToUndefinedVar(increment.expr.ident.clone())
+                .with_span(&increment.expr.ident)
         })?;
-        let val_mut = self.register.get_val_mut(var).as_value_mut()?;
-        let modify = |val: &mut NaslValue| -> Result<NaslValue> {
+        let val_mut = self
+            .register
+            .get_val_mut(var)
+            .as_value_mut()
+            .map_err(|e| e.with_span(&increment.expr.ident))?;
+        let modify = |val: &mut NaslValue| -> Result<NaslValue, InterpretErrorKind> {
             let previous_value = val.clone();
             *val = match increment.op {
                 IncrementOperator::PlusPlus => val.add(NaslValue::Number(1)),
@@ -151,7 +162,7 @@ impl Interpreter<'_> {
                 IncrementKind::Postfix => Ok(previous_value),
             }
         };
-        assign(val_mut, &indices, modify)
+        assign(val_mut, &indices, modify).map_err(|e| e.with_span(&increment.expr.ident))
     }
 }
 

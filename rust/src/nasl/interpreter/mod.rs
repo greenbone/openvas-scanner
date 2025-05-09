@@ -16,7 +16,7 @@ use std::collections::VecDeque;
 
 use crate::nasl::{
     Code, Context,
-    error::Span,
+    error::{Span, Spanned},
     syntax::{
         Ident,
         grammar::{
@@ -25,8 +25,6 @@ use crate::nasl::{
         },
     },
 };
-
-use error::IncludeSyntaxError;
 
 use super::syntax::Literal;
 
@@ -139,7 +137,7 @@ impl ForkReentryData {
             Self::Restoring { data } => {
                 if let Some(data) = data.pop_front() {
                     if *span != data.span {
-                        return Err(InterpretError::new(InterpretErrorKind::InvalidFork, None));
+                        return Err(InterpretErrorKind::InvalidFork.with_span(&data.span));
                     }
                     Ok(Some(data.value))
                 } else {
@@ -303,13 +301,6 @@ impl<'ctx> Interpreter<'ctx> {
             Include(include_) => self.resolve_include(include_).await,
             Return(return_) => self.resolve_return(return_).await,
         }
-        .map_err(|e: InterpretError| {
-            if e.origin.is_none() {
-                InterpretError::from_statement(statement, e.kind)
-            } else {
-                e
-            }
-        })
     }
 
     pub(super) async fn resolve_expr(&mut self, expr: &Expr) -> Result {
@@ -354,7 +345,12 @@ impl<'ctx> Interpreter<'ctx> {
     fn resolve_var(&self, ident: &Ident) -> Result {
         let var = self.register.get(&ident.to_str());
         if let Some(var) = var {
-            Ok(self.register.get_val(var).as_value()?.clone())
+            Ok(self
+                .register
+                .get_val(var)
+                .as_value()
+                .map_err(|e| e.with_span(&ident))?
+                .clone())
         } else {
             Ok(NaslValue::Null)
         }
@@ -363,7 +359,9 @@ impl<'ctx> Interpreter<'ctx> {
     async fn resolve_array_access(&mut self, array_access: &ArrayAccess) -> Result {
         let lhs = self.resolve_expr(&array_access.lhs_expr).await?;
         let index = self.resolve_expr(&array_access.index_expr).await?;
-        lhs.index(index).map(|val| val.clone())
+        lhs.index(index)
+            .map_err(|e| e.with_span(&*array_access.index_expr))
+            .map(|val| val.clone())
     }
 
     async fn resolve_unary(&mut self, unary: &Unary) -> Result {
@@ -374,6 +372,7 @@ impl<'ctx> Interpreter<'ctx> {
             UnaryPrefixOperator::Bang => rhs.not(),
             UnaryPrefixOperator::Tilde => rhs.bitwise_not(),
         }
+        .map_err(|e| e.with_span(&*unary.rhs))
     }
 
     async fn resolve_binary(&mut self, binary: &Binary) -> Result {
@@ -387,7 +386,7 @@ impl<'ctx> Interpreter<'ctx> {
             return Ok(NaslValue::Boolean(true));
         }
         let rhs = self.resolve_expr(&binary.rhs).await?;
-        match binary.op {
+        let eval = || match binary.op {
             Plus => Ok(lhs.add(rhs)),
             Minus => Ok(lhs.sub(rhs)),
             Star => lhs.mul(rhs),
@@ -404,15 +403,16 @@ impl<'ctx> Interpreter<'ctx> {
             Ampersand => lhs.bitand(rhs),
             Pipe => lhs.bitor(rhs),
             Caret => lhs.bitxor(rhs),
-            AmpersandAmpersand => lhs.and(rhs),
-            PipePipe => lhs.or(rhs),
+            AmpersandAmpersand => Ok(lhs.and(rhs)),
+            PipePipe => Ok(lhs.or(rhs)),
             EqualTilde => lhs.match_regex(rhs),
             BangTilde => lhs.match_regex(rhs)?.not(),
             GreaterLess => lhs.match_string(rhs),
             GreaterBangLess => lhs.match_string(rhs)?.not(),
             EqualEqual => Ok(NaslValue::Boolean(lhs == rhs)),
             BangEqual => Ok(NaslValue::Boolean(lhs != rhs)),
-        }
+        };
+        eval().map_err(|e| e.with_span(&binary.lhs.span().join(binary.rhs.span())))
     }
 
     async fn resolve_array(&mut self, array: &Array) -> Result {
@@ -425,7 +425,7 @@ impl<'ctx> Interpreter<'ctx> {
         let rc = Box::pin(self.resolve_expr(&exit.expr)).await?;
         match rc {
             NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
-            _ => Err(InterpretErrorKind::NonNumericExitCode(rc).into()),
+            _ => Err(InterpretErrorKind::NonNumericExitCode(rc).with_span(&exit.expr)),
         }
     }
 
@@ -483,11 +483,13 @@ impl<'ctx> Interpreter<'ctx> {
 
     async fn resolve_include(&mut self, include: &Include) -> Result {
         let loader = self.context.loader();
-        let code = Code::load(loader, &include.path)?.parse();
+        let code = Code::load(loader, &include.path)
+            .map_err(|e| InterpretErrorKind::LoadError(e).with_span(&include.span))?
+            .parse();
         let file = code.file().clone();
-        let ast = code.result().map_err(|errs| {
-            InterpretErrorKind::IncludeSyntaxError(IncludeSyntaxError { file, errs })
-        })?;
+        let ast = code
+            .result()
+            .map_err(|errs| InterpretError::include_syntax_error(errs, file))?;
         let mut inter = Interpreter::new(self.register.clone(), ast, self.context);
         Box::pin(inter.execute_all()).await?;
         self.register = inter.register;

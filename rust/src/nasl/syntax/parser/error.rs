@@ -43,7 +43,7 @@ impl Error {
     }
 
     /// Add the given span only if no span is present.
-    pub fn add_span(self, span: Span) -> Error {
+    pub fn with_span(self, span: Span) -> Error {
         Self {
             kind: self.kind,
             span: Some(self.span.unwrap_or(span)),
