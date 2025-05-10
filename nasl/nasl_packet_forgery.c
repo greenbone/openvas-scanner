@@ -643,7 +643,7 @@ forge_tcp_packet (lex_ctxt *lexic)
  * @brief Extracts TCP field from an IP datagram.
  *
  * @param[in] lexic   Lexical context of NASL interpreter.
- * @param[in] element Name of the the TCP field. See forge_tcp_packet().
+ * @param[in] element Name of the TCP field. See forge_tcp_packet().
  * @param[in] tcp     The full IP datagram (IP + TCP).
  *
  * @return  Data block or an integer, according to the type of the element.

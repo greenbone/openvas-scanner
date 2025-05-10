@@ -11,7 +11,7 @@ A `plugin_feed_info.inc` defines the variables:
 PLUGIN_SET = "the version of the feed";
 PLUGIN_FEED = "name of the feed";
 FEED_VENDOR = "vendor";
-FEED_HOME = "url the the feed";
+FEED_HOME = "url of the feed";
 FEED_NAME = "short name of the feed";
 ```
 ## Verify

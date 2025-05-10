@@ -51,7 +51,7 @@ hash. In this case we can see that there is a key named “1” (item 1) and the
 value for this key is also “1” (item 2). All this means that the DB 1 is in
 use. Another way to see the same is using the command
  `HGET GVM.__GlobalDBIndex 1` to check directly if there is a key named “1” in
-the hash. If the key exist, we will get the value stored there.
+the hash. If the key exists, we will get the value stored there.
 
 ```
 redis /run/redis-openvas/redis.sock> HGET GVM.__GlobalDBIndex 1
@@ -108,7 +108,7 @@ single hosts in the target were scanned, the main kb data will be deleted
 and the in-use DB list inside the hash `GVM.__GlobalDBIndex` is updated.
 
 The task main KB is used for storing the results. Each result produced by NVTs
-as well as the the progress status of the currently scanned hosts will be stored
+as well as the progress status of the currently scanned hosts will be stored
 in this KB.
 
 ### Temporary KB for a single host

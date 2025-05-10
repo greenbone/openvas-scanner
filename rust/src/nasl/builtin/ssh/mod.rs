@@ -614,7 +614,7 @@ impl Ssh {
         }
     }
 
-    /// Execute the NETCONF subsystem on the the ssh channel
+    /// Execute the NETCONF subsystem on the ssh channel
     #[nasl_function]
     pub async fn nasl_ssh_execute_netconf_subsystem(
         &self,

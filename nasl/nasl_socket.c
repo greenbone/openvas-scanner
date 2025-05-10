@@ -480,7 +480,7 @@ nasl_open_sock_tcp_bufsz (lex_ctxt *lexic, int bufsz)
  *
  * @naslnparam
  *
- * - @a bufsz An integer with the the size buffer size.  Note that by
+ * - @a bufsz An integer with the size buffer size.  Note that by
  *    default, no buffering is used.
  *
  * - @a timeout An integer with the timeout value in seconds.  The

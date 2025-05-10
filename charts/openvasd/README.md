@@ -72,7 +72,7 @@ helm install --namespace openvasd --create-namespace openvasd openvasd/ --values
 
 ## Accessing the service
 
-When `routing.enabled` is enabled, you can access `openvasd` directly via either `http://localhost` (if you provide the the http-root.yaml values) or via `https://localhost`
+When `routing.enabled` is enabled, you can access `openvasd` directly via either `http://localhost` (if you provide the http-root.yaml values) or via `https://localhost`
 
 For testing, you can use the following command:
 

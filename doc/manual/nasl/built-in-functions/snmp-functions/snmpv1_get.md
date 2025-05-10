@@ -118,7 +118,7 @@ ret = snmpv3_getnext(port:port, protocol:"udp", username:user, oid:oid,
                   privproto:"aes");
 display (ret, "\n");
  
-display("getnext WITHOUT oid (which is optional. Using the last one from teh last call)");
+display("getnext WITHOUT oid (which is optional. Using the last one from the last call)");
 for (i = 0; i< 5; i++)
 {
         ret = snmpv3_getnext(port:port, protocol:"udp", username:user,

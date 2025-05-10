@@ -42,7 +42,7 @@ pub enum VTError {
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 /// The Stage to execute in
 ///
-/// Only scripts within the the same Stage are allowed to be run concurrently
+/// Only scripts within the same Stage are allowed to be run concurrently
 pub enum Stage {
     /// Discovery
     Discovery,
