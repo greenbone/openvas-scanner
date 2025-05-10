@@ -1,6 +1,6 @@
 # How do I calculate a scan progress?
 
-The scan progress is calculated in base of the amount of launched plugins over the total amount of plugins per host. This would be easiest case, when a scan has a single host target.
+The scan progress is calculated based on the amount of launched plugins over the total amount of plugins per host. This would be easiest case, when a scan has a single host target.
 
 Other cases change the equation, like having many hosts, excluded hosts and dead hosts.
 
@@ -14,11 +14,11 @@ Then, the amount of excluded hosts to be used for the progress calculation, is t
 
 ### Total hosts
 
-Is the amount of hosts to be scanned after a clean up. This means, after removing duplicated, excluded, unresolveble and not allowed hosts. I sent once at the beginning of the scan.
+Is the amount of hosts to be scanned after a clean up. This means, after removing duplicated, excluded, unresolvable and not allowed hosts. I sent once at the beginning of the scan.
 
 ### Dead hosts
 
-With `Boreas` it is possible to know at the beginning of the scan, how many alive hosts are in the target and how many are dead. However, this number can change if later a host which is found alive at the scan start, dies during the the scan. 
+With `Boreas` it is possible to know at the beginning of the scan, how many alive hosts are in the target and how many are dead. However, this number can change if later a host which is found alive at the scan start, dies during the scan. 
 
 So, the client receives a message at the beginning with the number of dead hosts, but this number must be updated each time a new dead hosts is found during the scan.
 
@@ -28,7 +28,7 @@ Is the amount of hosts which were already scanned and successfully finished.
 
 ### Current scan hosts
 
-`openvasd` sends to the client a list of the current scanned hosts and its progress. The host progress, as explained above, is the the amount of launched plugins over the total amount of plugins.
+`openvasd` sends to the client a list of the current scanned hosts and its progress. The host progress, as explained above, is the amount of launched plugins over the total amount of plugins.
 
 Once the host progress reaches the 100%, the host is removed from the list and adds +1 to the `alive hosts` counter. 
 
@@ -36,7 +36,7 @@ The same happens with a dead hosts when it is found as dead during the scan. The
 
 ## Example:
 
-Suppose a target with 15 hosts and 3 from the list are excluded. `openvas` found a total of 12 hosts. Also, during the alive test scan with `Boreas`, or even during the scan, 2 hosts where found dead.
+Suppose a target with 15 hosts and 3 from the list are excluded. `openvas` found a total of 12 hosts. Also, during the alive test scan with `Boreas`, or even during the scan, 2 hosts were found dead.
 One hosts is already scanned, and 2 hosts are currently being scanned.
 
 ```json

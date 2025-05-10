@@ -477,7 +477,7 @@ fn open_sock_tcp_vhost(
 /// number as its argument and has various optional named arguments to control encapsulation,
 /// timeout and buffering.
 /// It takes an unnamed integer argument (the port number) and four optional named arguments:
-/// - bufsz: An integer with the the size buffer size.  Note that by default, no buffering is
+/// - bufsz: An integer with the size buffer size.  Note that by default, no buffering is
 ///   used.
 /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled
 ///   by a global value.

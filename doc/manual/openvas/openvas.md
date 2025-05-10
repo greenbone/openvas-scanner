@@ -90,7 +90,7 @@ log_whole_attack
 
 debug_tls
 
-:   This is an scanner-only option which allows you to set the TLS log
+:   This is a scanner-only option which allows you to set the TLS log
     level. The level is an integer between 0 and 9. Higher values mean
     more verbosity and might make openvas fill your disk rather quickly.
     The default value is 0 (disabled).
@@ -176,8 +176,8 @@ open_sock_max_attempts
     retries to open the socket before to set the port as closed. This
     avoids to launch plugins which need the opened port as a mandatory
     key, therefore it avoids an overlong scan duration. If the set value
-    is 0 or a negative value, this option is disabled. It should be take
-    in account that one unsuccessful attempt needs the number of retries
+    is 0 or a negative value, this option is disabled. It should be taken
+    into account that one unsuccessful attempt needs the number of retries
     set in \"timeout_retry\".
 
 time_between_request
@@ -209,7 +209,7 @@ non_simult_ports
 
 allow_simultaneous_ips
 
-:   If set to no, this option prevent openvas to scan more than one
+:   If set to no, this option prevents openvas to scan more than one
     different IPs (e.g. the IPv4 and IPv6 addresses) which belong to the
     same host at the same time. Default, yes.
 
@@ -303,7 +303,7 @@ OpenVAS developers have taken every effort to avoid packet loss
 (including transparently resending UDP packets, waiting for data to be
 received in TCP connections, etc.) so bandwidth use should always be
 closely monitored, with current server hardware, bandwidth is usually
-the bottleneck in a OpenVAS scan. It might not became too apparent in
+the bottleneck in a OpenVAS scan. It might not become too apparent in
 the final reports, scanners will still run, holes might be detected, but
 you will risk to run into *false negatives* (i.e. OpenVAS will not
 report a security hole that is present in a remote host)

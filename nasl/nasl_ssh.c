@@ -1429,7 +1429,7 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
         }
     }
 
-  /* Return the the output.  */
+  /* Return the output.  */
   len = response->len;
   p = g_string_free (response, FALSE);
   if (!p)
@@ -2046,7 +2046,7 @@ write_ret:
  * NASL NETCONF
  */
 /**
- * @brief Excecute the NETCONF subsystem on the the ssh channel
+ * @brief Excecute the NETCONF subsystem on the ssh channel
  *
  * @naslfn{ssh_execute_netconf_subsystem}
  * @nasluparam
