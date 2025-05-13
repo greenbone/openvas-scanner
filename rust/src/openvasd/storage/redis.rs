@@ -89,7 +89,6 @@ impl<T> Storage<T> {
         if !fu.feed_is_outdated(current_feed).await.unwrap() {
             return Ok(());
         }
-        fu.perform_update().await?;
         tracing::debug!("finished nasl feed update");
         Ok(())
     }
