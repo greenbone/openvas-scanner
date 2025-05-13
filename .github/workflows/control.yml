@@ -27,6 +27,10 @@ on:
     # rebuild image every sunday
     - cron: "0 0 * * 0"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Grants rights to push to the Github container registry.
 # The main workflow has to set the permissions.
 permissions:
