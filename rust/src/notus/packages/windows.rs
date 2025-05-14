@@ -8,22 +8,18 @@ use std::cmp::Ordering;
 /// Represent a based Windows package
 #[derive(Debug, PartialEq, Clone)]
 pub struct Windows {
-    full_name: String,
-    build: String,
-    revision: PackageVersion,
+    identifier: String,
+    full_version: String,
+    build: PackageVersion,
 }
 
 impl PartialOrd for Windows {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.build != other.build {
+        if self.identifier != other.identifier {
             return None;
         }
 
-        if self.full_name == other.full_name {
-            return Some(Ordering::Equal);
-        }
-
-        self.revision.partial_cmp(&other.revision)
+        self.build.partial_cmp(&other.build)
     }
 }
 
@@ -35,16 +31,15 @@ impl Package for Windows {
         let full_name = full_name.trim();
 
         // Get all fields
-        let (build, revision) = match full_name.rsplit_once('.') {
+        let (identifier, build) = match full_name.rsplit_once('.') {
             Some((b, r)) => (b, r),
             None => {
                 return None;
             }
         };
         Some(Windows {
-            full_name: full_name.to_string(),
-            build: build.to_string(),
-            revision: PackageVersion(revision.to_string()),
+            identifier: identifier.to_string(),
+            build: PackageVersion(build.to_string()),
         })
     }
 
@@ -53,27 +48,30 @@ impl Package for Windows {
             return None;
         }
 
-        let name = name.trim();
-        let revision = full_version.trim();
+        let version = full_version.trim();
 
-        // Get all fields
-        let mut full_name = name.to_string();
-        full_name.push('.');
-        full_name.push_str(full_version);
+        let (prefix, build) = match version.rsplit_once('.') {
+            Some((b, r)) => (b, r),
+            None => {
+                return None;
+            }
+        };
+
+        let mut name = name.trim().to_string();
+        name.push_str(prefix);
 
         Some(Windows {
-            full_name,
-            build: name.to_string(),
-            revision: PackageVersion(revision.to_string()),
+            identifier: name,
+            build: PackageVersion(build.to_string()),
         })
     }
 
     fn get_name(&self) -> String {
-        self.build.clone()
+        self.identifier.clone()
     }
 
     fn get_version(&self) -> String {
-        self.revision.0.clone()
+        self.build.0.clone()
     }
 }
 
@@ -88,13 +86,17 @@ mod slack_tests {
         let package1 = Windows {
             build: "10.0.22631".to_string(),
             full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            build: PackageVersion("3447".to_string()),
         };
         let package2 = Windows {
             build: "10.0.22631".to_string(),
             full_name: "10.0.22631.3449".to_string(),
-            revision: PackageVersion("3449".to_string()),
+            build: PackageVersion("3449".to_string()),
         };
+        assert!(package2 > package1);
+
+        let package1 = Windows::from_full_name("10.0.26100.0").unwrap();
+        let package2 = Windows::from_full_name("10.0.26100.1").unwrap();
         assert!(package2 > package1);
     }
 
@@ -103,12 +105,12 @@ mod slack_tests {
         let package1 = Windows {
             build: "11.0.22631".to_string(),
             full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            build: PackageVersion("3447".to_string()),
         };
         let package2 = Windows {
             build: "10.0.22631".to_string(),
             full_name: "10.0.22631.3449".to_string(),
-            revision: PackageVersion("3449".to_string()),
+            build: PackageVersion("3449".to_string()),
         };
 
         assert!(package2.partial_cmp(&package1).is_none());
@@ -120,12 +122,12 @@ mod slack_tests {
         let package1 = Windows {
             build: "10.0.22631".to_string(),
             full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            build: PackageVersion("3447".to_string()),
         };
         let package2 = Windows {
             build: "10.0.22631".to_string(),
             full_name: "10.0.22631.3449".to_string(),
-            revision: PackageVersion("3449".to_string()),
+            build: PackageVersion("3449".to_string()),
         };
         assert!(package1 < package2);
     }
@@ -135,12 +137,12 @@ mod slack_tests {
         let package1 = Windows {
             build: "10.0.22631".to_string(),
             full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            build: PackageVersion("3447".to_string()),
         };
         let package2 = Windows {
             build: "10.0.22631".to_string(),
             full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            build: PackageVersion("3447".to_string()),
         };
         assert!(package1 == package2);
     }
@@ -152,7 +154,7 @@ mod slack_tests {
         let package = Windows::from_full_name("10.0.22631.3447").unwrap();
         assert_eq!(package.build, "10.0.22631");
         assert_eq!(package.full_name, "10.0.22631.3447");
-        assert_eq!(package.revision, PackageVersion("3447".to_string()));
+        assert_eq!(package.build, PackageVersion("3447".to_string()));
     }
 
     #[test]
@@ -162,6 +164,6 @@ mod slack_tests {
         let package = Windows::from_name_and_full_version("10.0.22631", "3447").unwrap();
         assert_eq!(package.build, "10.0.22631");
         assert_eq!(package.full_name, "10.0.22631.3447");
-        assert_eq!(package.revision, PackageVersion("3447".to_string()));
+        assert_eq!(package.build, PackageVersion("3447".to_string()));
     }
 }
