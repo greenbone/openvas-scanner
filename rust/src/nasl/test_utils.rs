@@ -22,7 +22,7 @@ use super::{
     nasl_std_functions,
     utils::{
         Executor,
-        context::{ContextStorage, Target},
+        context::{ContextStorage, Ports, Target},
     },
 };
 
@@ -346,7 +346,12 @@ where
             executor: &self.executor,
             scan_id: self.scan_id.clone(),
             target,
+            ports: Ports {
+                tcp: Default::default(),
+                udp: Default::default(),
+            },
             filename: self.filename.clone(),
+            scan_preferences: Vec::default(),
         }
         .build();
         context

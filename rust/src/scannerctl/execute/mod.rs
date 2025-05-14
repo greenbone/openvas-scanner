@@ -41,6 +41,12 @@ struct ScriptArgs {
     /// Target to scan.
     #[clap(short, long)]
     target: Option<String>,
+    /// TCP Ports to scan.
+    #[clap(short, long = "port")]
+    ports: Vec<u16>,
+    /// UDP Ports to scan.
+    #[clap(short, long = "udp-port")]
+    udp_ports: Vec<u16>,
 }
 
 #[derive(clap::Parser)]
@@ -131,6 +137,8 @@ async fn script(args: ScriptArgs) -> Result<(), CliError> {
         args.feed_path,
         &args.script,
         args.target.clone(),
+        args.ports.clone(),
+        args.udp_ports.clone(),
     )
     .await
 }

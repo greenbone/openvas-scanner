@@ -5,9 +5,9 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{Parameter, Protocol, ScanID};
+use crate::models::{Parameter, Protocol, ScanID, ScanPreference};
 use crate::nasl::syntax::{Loader, NaslValue};
-use crate::nasl::utils::context::{ContextStorage, Target};
+use crate::nasl::utils::context::{ContextStorage, Ports, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
@@ -33,10 +33,12 @@ pub struct VTRunner<'a, S: ScannerStack> {
     executor: &'a Executor,
 
     target: &'a Target,
+    ports: &'a Ports,
     vt: &'a Nvt,
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
     scan_id: ScanID,
+    scan_preferences: &'a Vec<ScanPreference>,
 }
 
 impl<'a, Stack: ScannerStack> VTRunner<'a, Stack>
@@ -49,20 +51,24 @@ where
         loader: &'a Stack::Loader,
         executor: &'a Executor,
         target: &'a Target,
+        ports: &'a Ports,
         vt: &'a Nvt,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
         scan_id: ScanID,
+        scan_preferences: &'a Vec<ScanPreference>,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
             storage,
             loader,
             executor,
             target,
+            ports,
             vt,
             stage,
             param,
             scan_id,
+            scan_preferences,
         };
         s.execute().await
     }
@@ -198,10 +204,12 @@ where
         let context = ContextBuilder {
             scan_id: crate::storage::ScanID(self.scan_id.clone()),
             target: self.target.clone(),
+            ports: self.ports.clone(),
             filename,
             storage: self.storage,
             loader: self.loader,
             executor: self.executor,
+            scan_preferences: self.scan_preferences.to_vec(),
         }
         .build();
         context.set_nvt(self.vt.clone());

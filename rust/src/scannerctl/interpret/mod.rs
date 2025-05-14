@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
+    collections::HashSet,
     fs::{self},
     path::{Path, PathBuf},
 };
@@ -14,7 +15,10 @@ use scannerlib::{
         Context,
         interpreter::ForkingInterpreter,
         nasl_std_functions,
-        utils::{context::Target, error::ReturnBehavior},
+        utils::{
+            context::{Ports, Target},
+            error::ReturnBehavior,
+        },
     },
     storage::{ScanID, items::nvt::Oid},
 };
@@ -112,6 +116,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
     storage: S,
     loader: L,
     target: Target,
+    ports: Ports,
     script: &Path,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
@@ -121,8 +126,10 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
         loader: &loader,
         executor: &nasl_std_functions(),
         target,
+        ports,
         scan_id,
         filename,
+        scan_preferences: Vec::new(),
     };
     run_with_context(cb.build(), script).await
 }
@@ -132,6 +139,8 @@ pub async fn run(
     feed: Option<PathBuf>,
     script: &Path,
     target: Option<String>,
+    tcp_ports: Vec<u16>,
+    udp_ports: Vec<u16>,
 ) -> Result<(), CliError> {
     let target = target
         .map(|target| {
@@ -139,12 +148,17 @@ pub async fn run(
                 .unwrap_or_else(|| panic!("Hostname resolution failed for target {target}"))
         })
         .unwrap_or(Target::localhost());
+    let ports = Ports {
+        tcp: HashSet::from_iter(tcp_ports.into_iter()),
+        udp: HashSet::from_iter(udp_ports.into_iter()),
+    };
     let result = match (db, feed) {
         (Db::InMemory, None) => {
             run_on_storage(
                 InMemoryStorage::default(),
                 NoOpLoader::default(),
                 target,
+                ports,
                 script,
             )
             .await
@@ -158,7 +172,7 @@ pub async fn run(
             } else {
                 load_feed_by_exec(&storage, &loader).await?
             }
-            run_on_storage(storage, loader, target, script).await
+            run_on_storage(storage, loader, target, ports, script).await
         }
     };
 

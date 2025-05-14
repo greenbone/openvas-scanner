@@ -45,6 +45,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
     let scan = Scan {
         scan_id: "sid".to_string(),
         targets: vec![Target::do_not_resolve_hostname("test.host")],
+        ports: Default::default(),
         vts: scripts
             .iter()
             .map(|(_, v)| VT {
@@ -52,6 +53,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
                 parameters: vec![],
             })
             .collect(),
+        scan_preferences: Vec::new(),
     };
     let executor = nasl_std_functions();
     ((Arc::new(storage), loader), executor, scan)
@@ -214,17 +216,20 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
 
     let register = Register::root_initial(&initial);
     let target = Target::localhost();
+    let ports = Default::default();
     let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
     let scan_id = ScanID(filename.to_string());
-
+    let scan_preferences = Vec::default();
     let cb = ContextBuilder {
         storage: &storage,
         loader: &loader,
         executor: &executor,
         scan_id,
         target,
+        ports,
         filename,
+        scan_preferences,
     };
     let context = cb.build();
     let interpreter = ForkingInterpreter::new(code, register, &context);
@@ -259,6 +264,7 @@ async fn run(
     let scan = Scan {
         scan_id: "sid".to_string(),
         targets: vec![Target::do_not_resolve_hostname("test.host")],
+        ports: Default::default(),
         vts: scripts
             .iter()
             .map(|(_, v)| VT {
@@ -266,6 +272,7 @@ async fn run(
                 parameters: vec![],
             })
             .collect(),
+        scan_preferences: Vec::new(),
     };
 
     let executor = nasl_std_functions();

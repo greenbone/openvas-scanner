@@ -46,12 +46,18 @@ pub struct PortRange {
 impl IntoIterator for PortRange {
     type Item = u16;
 
-    type IntoIter = std::ops::Range<u16>;
+    type IntoIter = std::ops::RangeInclusive<u16>;
 
     fn into_iter(self) -> Self::IntoIter {
         let start = self.start as u16;
-        let end = self.end.map(|end| end as u16).unwrap_or(u16::MAX);
-        start..end
+        let end = self.end.map(|end| end as u16).unwrap_or(start);
+        start..=end
+    }
+}
+
+impl From<PortRange> for Vec<u16> {
+    fn from(port_range: PortRange) -> Self {
+        port_range.into_iter().collect()
     }
 }
 
