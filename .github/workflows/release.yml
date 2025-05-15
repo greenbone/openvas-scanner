@@ -1,4 +1,5 @@
 name: "release"
+
 on: 
   workflow_call:
     inputs:
@@ -31,7 +32,6 @@ on:
         required: true
       gpg_pass:
         required: true
-
 
 # This job first determines the target branch of the closed pull request. If the target branch is "main",
 # then the latest release tag is used. If no release tag exists, it is set to 0.1.0. If it is a release
