@@ -9,7 +9,7 @@
 *any* **open_sock_tcp**(*int*, bufsz: *int*, timeout: *int*, transport: *ENCPAPS*, priority: *string*);
 
 **open_sock_tcp** takes an unnamed integer argument (the port number) and four optional named arguments:
-- bufsz: An integer with the the size buffer size.  Note that by default, no buffering is used.
+- bufsz: An integer with the size buffer size.  Note that by default, no buffering is used.
 - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
 - transport: One of the ENCAPS_* constants to force a specific encapsulation mode or force trying of all modes (ENCAPS_AUTO). This is for example useful to select a specific TLS or SSL version or use specific TLS connection setup priorities.  See *get_port_transport for a description of the ENCAPS constants.
 - priority A string value with priorities for an TLS encapsulation. For the syntax of the priority string see the GNUTLS manual. This argument is only used in ENCAPS_TLScustom encapsulation.

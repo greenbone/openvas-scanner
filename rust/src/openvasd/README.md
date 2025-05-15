@@ -197,7 +197,7 @@ Options:
 
 ## Feed signature check.
 
-If the signature check is enabled, it is also required to set the the `GNUPGHOME` environment variable with the path to the keyring.
+If the signature check is enabled, it is also required to set the `GNUPGHOME` environment variable with the path to the keyring.
 
 # Options
 

@@ -161,7 +161,7 @@ make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
  * @brief Get the status of table driven lsc from json object
  *
  * Checks for the corresponding status inside the JSON. If the status does not
- * belong the the scan or host, NULL is returned instead. NULL is also returned
+ * belong to the scan or host, NULL is returned instead. NULL is also returned
  * if message JSON cannot be parsed correctly. Return value has to be freed by
  * caller.
  *
@@ -671,7 +671,7 @@ vulnerable_pkg_new (const char *pkg_name, const char *install_version,
  *  @description This is the body string in response get from an openvasd server
  *
  *  @param resp String containing the json object to be processed.
- *  @param len String lenght.
+ *  @param len String length.
  *
  *  @return a advisories_t struct containing all advisories and vulnerable
  *                         packages.
