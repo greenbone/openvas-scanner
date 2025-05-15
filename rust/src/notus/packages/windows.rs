@@ -8,22 +8,18 @@ use std::cmp::Ordering;
 /// Represent a based Windows package
 #[derive(Debug, PartialEq, Clone)]
 pub struct Windows {
-    full_name: String,
-    build: String,
-    revision: PackageVersion,
+    name: String,
+    prefix: String,
+    build: PackageVersion,
 }
 
 impl PartialOrd for Windows {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.build != other.build {
+        if self.prefix != other.prefix || self.name != other.name {
             return None;
         }
 
-        if self.full_name == other.full_name {
-            return Some(Ordering::Equal);
-        }
-
-        self.revision.partial_cmp(&other.revision)
+        self.build.partial_cmp(&other.build)
     }
 }
 
@@ -34,17 +30,14 @@ impl Package for Windows {
         }
         let full_name = full_name.trim();
 
+        let (name, version) = full_name.split_once(';')?;
+
         // Get all fields
-        let (build, revision) = match full_name.rsplit_once('.') {
-            Some((b, r)) => (b, r),
-            None => {
-                return None;
-            }
-        };
+        let (prefix, build) = version.rsplit_once('.')?;
         Some(Windows {
-            full_name: full_name.to_string(),
-            build: build.to_string(),
-            revision: PackageVersion(revision.to_string()),
+            name: name.to_string(),
+            prefix: prefix.to_string(),
+            build: PackageVersion(build.to_string()),
         })
     }
 
@@ -54,26 +47,23 @@ impl Package for Windows {
         }
 
         let name = name.trim();
-        let revision = full_version.trim();
+        let version = full_version.trim();
 
-        // Get all fields
-        let mut full_name = name.to_string();
-        full_name.push('.');
-        full_name.push_str(full_version);
+        let (prefix, build) = version.rsplit_once('.')?;
 
         Some(Windows {
-            full_name,
-            build: name.to_string(),
-            revision: PackageVersion(revision.to_string()),
+            name: name.to_string(),
+            prefix: prefix.to_string(),
+            build: PackageVersion(build.to_string()),
         })
     }
 
     fn get_name(&self) -> String {
-        self.build.clone()
+        self.name.clone()
     }
 
     fn get_version(&self) -> String {
-        self.revision.0.clone()
+        format!("{}.{}", self.prefix, self.build)
     }
 }
 
@@ -86,14 +76,14 @@ mod slack_tests {
     #[test]
     pub fn test_compare_gt() {
         let package1 = Windows {
-            build: "10.0.22631".to_string(),
-            full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            name: "Windows Server 2025 x64".to_string(),
+            prefix: "10.0.26100".to_string(),
+            build: PackageVersion("1".to_string()),
         };
         let package2 = Windows {
-            build: "10.0.22631".to_string(),
-            full_name: "10.0.22631.3449".to_string(),
-            revision: PackageVersion("3449".to_string()),
+            name: "Windows Server 2025 x64".to_string(),
+            prefix: "10.0.26100".to_string(),
+            build: PackageVersion("2".to_string()),
         };
         assert!(package2 > package1);
     }
@@ -101,14 +91,14 @@ mod slack_tests {
     #[test]
     pub fn test_compare_gt_different_name() {
         let package1 = Windows {
-            build: "11.0.22631".to_string(),
-            full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            name: "Windows Server 2025 x64".to_string(),
+            prefix: "10.0.26100".to_string(),
+            build: PackageVersion("1".to_string()),
         };
         let package2 = Windows {
-            build: "10.0.22631".to_string(),
-            full_name: "10.0.22631.3449".to_string(),
-            revision: PackageVersion("3449".to_string()),
+            name: "Windows Server 2024 x64".to_string(),
+            prefix: "10.0.26100".to_string(),
+            build: PackageVersion("1".to_string()),
         };
 
         assert!(package2.partial_cmp(&package1).is_none());
@@ -116,31 +106,33 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_less() {
+    pub fn test_compare_gt_different_prefix() {
         let package1 = Windows {
-            build: "10.0.22631".to_string(),
-            full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            name: "Windows Server 2025 x64".to_string(),
+            prefix: "10.0.26100".to_string(),
+            build: PackageVersion("1".to_string()),
         };
         let package2 = Windows {
-            build: "10.0.22631".to_string(),
-            full_name: "10.0.22631.3449".to_string(),
-            revision: PackageVersion("3449".to_string()),
+            name: "Windows Server 2025 x64".to_string(),
+            prefix: "11.0.26100".to_string(),
+            build: PackageVersion("1".to_string()),
         };
-        assert!(package1 < package2);
+
+        assert!(package2.partial_cmp(&package1).is_none());
+        assert!(package1.partial_cmp(&package2).is_none());
     }
 
     #[test]
     pub fn test_compare_equal() {
         let package1 = Windows {
-            build: "10.0.22631".to_string(),
-            full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            name: "Windows Server 2025 x64".to_string(),
+            prefix: "10.0.26100".to_string(),
+            build: PackageVersion("1".to_string()),
         };
         let package2 = Windows {
-            build: "10.0.22631".to_string(),
-            full_name: "10.0.22631.3447".to_string(),
-            revision: PackageVersion("3447".to_string()),
+            name: "Windows Server 2025 x64".to_string(),
+            prefix: "10.0.26100".to_string(),
+            build: PackageVersion("1".to_string()),
         };
         assert!(package1 == package2);
     }
@@ -149,19 +141,26 @@ mod slack_tests {
     pub fn test_from_full_name() {
         assert!(Windows::from_full_name("").is_none());
 
-        let package = Windows::from_full_name("10.0.22631.3447").unwrap();
-        assert_eq!(package.build, "10.0.22631");
-        assert_eq!(package.full_name, "10.0.22631.3447");
-        assert_eq!(package.revision, PackageVersion("3447".to_string()));
+        let package = Windows::from_full_name("Windows Server 2025 x64;10.0.26100.1000").unwrap();
+        assert_eq!(package.name, "Windows Server 2025 x64");
+        assert_eq!(package.prefix, "10.0.26100");
+        assert_eq!(package.build, PackageVersion("1000".to_string()));
     }
 
     #[test]
     pub fn test_from_name_and_full_version() {
         assert!(Windows::from_name_and_full_version("", "").is_none());
 
-        let package = Windows::from_name_and_full_version("10.0.22631", "3447").unwrap();
-        assert_eq!(package.build, "10.0.22631");
-        assert_eq!(package.full_name, "10.0.22631.3447");
-        assert_eq!(package.revision, PackageVersion("3447".to_string()));
+        let package = Windows::from_name_and_full_version(
+            "Windows Server 2025 (Server Core Installation) x64",
+            "10.0.26100.1001",
+        )
+        .unwrap();
+        assert_eq!(
+            package.name,
+            "Windows Server 2025 (Server Core Installation) x64"
+        );
+        assert_eq!(package.prefix, "10.0.26100");
+        assert_eq!(package.build, PackageVersion("1001".to_string()));
     }
 }
