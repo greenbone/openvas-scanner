@@ -24,4 +24,7 @@ int
 run_table_driven_lsc (const char *, const char *, const char *, const char *,
                       const char *);
 
+char *
+notus_get_response (const char *pkg_list, const char *os);
+
 #endif // MISC_TABLE_DRIVEN_LSC_H
