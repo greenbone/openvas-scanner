@@ -1,8 +1,7 @@
-mod error;
-
 mod assign;
 mod call;
 mod declare;
+mod error;
 mod forking_interpreter;
 mod include;
 mod loop_extension;
@@ -26,14 +25,17 @@ use crate::nasl::{
     },
 };
 
+use InterpreterError as Error;
+use InterpreterErrorKind as ErrorKind;
+
 use super::syntax::{LiteralKind, grammar::UnaryPrefixOperatorKind};
 
-pub use error::{FunctionCallError, InterpretError, InterpretErrorKind};
+pub use error::{FunctionCallError, InterpreterError, InterpreterErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
 pub use nasl_value::NaslValue;
 pub use register::Register;
 
-pub type Result<T = NaslValue, E = InterpretError> = std::result::Result<T, E>;
+pub type Result<T = NaslValue, E = Error> = std::result::Result<T, E>;
 
 #[derive(PartialEq, Eq)]
 enum InterpreterState {
@@ -132,12 +134,12 @@ impl ForkReentryData {
 
     /// If in `Restoring` mode, remove and return the first stored
     /// result from the queue. Otherwise do nothing.
-    pub(crate) fn try_restore(&mut self, span: &Span) -> Result<Option<NaslValue>, InterpretError> {
+    pub(crate) fn try_restore(&mut self, span: &Span) -> Result<Option<NaslValue>, Error> {
         match self {
             Self::Restoring { data } => {
                 if let Some(data) = data.pop_front() {
                     if *span != data.span {
-                        return Err(InterpretErrorKind::InvalidFork.with_span(&data.span));
+                        return Err(ErrorKind::InvalidFork.with_span(&data.span));
                     }
                     Ok(Some(data.value))
                 } else {
@@ -255,14 +257,14 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    pub async fn execute_all(&mut self) -> Result<(), InterpretError> {
+    pub async fn execute_all(&mut self) -> Result<(), Error> {
         while let Some(result) = self.execute_next_statement().await {
             result?;
         }
         Ok(())
     }
 
-    pub async fn execute_next_statement(&mut self) -> Option<Result<NaslValue, InterpretError>> {
+    pub async fn execute_next_statement(&mut self) -> Option<Result<NaslValue, Error>> {
         self.initialize_fork_data();
         match self.ast.next_stmt() {
             Some(stmt) => {
@@ -279,10 +281,7 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    pub(super) async fn resolve(
-        &mut self,
-        statement: &Statement,
-    ) -> Result<NaslValue, InterpretError> {
+    pub(super) async fn resolve(&mut self, statement: &Statement) -> Result<NaslValue, Error> {
         use Statement::*;
         match statement {
             NoOp => Ok(NaslValue::Null),
@@ -426,7 +425,7 @@ impl<'ctx> Interpreter<'ctx> {
         let rc = Box::pin(self.resolve_expr(&exit.expr)).await?;
         match rc {
             NaslValue::Number(rc) => Ok(NaslValue::Exit(rc)),
-            _ => Err(InterpretErrorKind::NonNumericExitCode(rc).with_span(&exit.expr)),
+            _ => Err(ErrorKind::NonNumericExitCode(rc).with_span(&exit.expr)),
         }
     }
 
@@ -445,7 +444,7 @@ impl<'ctx> Interpreter<'ctx> {
             if_branches,
             else_branch,
         }: &If,
-    ) -> Result<NaslValue, InterpretError> {
+    ) -> Result<NaslValue, Error> {
         for (condition, block) in if_branches.iter() {
             let val = self.resolve_expr(condition).await?;
             if val.convert_to_boolean() {
@@ -485,12 +484,12 @@ impl<'ctx> Interpreter<'ctx> {
     async fn resolve_include(&mut self, include: &Include) -> Result {
         let loader = self.context.loader();
         let code = Code::load(loader, &include.path)
-            .map_err(|e| InterpretErrorKind::LoadError(e).with_span(&include.span))?
+            .map_err(|e| ErrorKind::LoadError(e).with_span(&include.span))?
             .parse();
         let file = code.file().clone();
         let ast = code
             .result()
-            .map_err(|errs| InterpretError::include_syntax_error(errs, file))?;
+            .map_err(|errs| Error::include_syntax_error(errs, file))?;
         let mut inter = Interpreter::new(self.register.clone(), ast, self.context);
         Box::pin(inter.execute_all()).await?;
         self.register = inter.register;

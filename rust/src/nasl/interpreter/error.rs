@@ -39,14 +39,14 @@ impl FunctionCallError {
 #[derive(Debug, Error)]
 /// Is used to represent an error while interpreting
 #[error("{} {kind}", self.format_origin())]
-pub struct InterpretError {
+pub struct InterpreterError {
     /// The kind of error that occurred.
     #[source]
-    pub kind: InterpretErrorKind,
+    pub kind: InterpreterErrorKind,
     pub span: Span,
 }
 
-impl InterpretError {
+impl InterpreterError {
     fn format_origin(&self) -> String {
         // TODO
         String::new()
@@ -54,8 +54,8 @@ impl InterpretError {
 
     pub fn retryable(&self) -> bool {
         match &self.kind {
-            InterpretErrorKind::LoadError(LoadError::Retry(_)) => true,
-            InterpretErrorKind::FunctionCallError(e) => e.retryable(),
+            InterpreterErrorKind::LoadError(LoadError::Retry(_)) => true,
+            InterpreterErrorKind::FunctionCallError(e) => e.retryable(),
             _ => false,
         }
     }
@@ -63,7 +63,7 @@ impl InterpretError {
 
 #[derive(Debug, Error)]
 /// Is used to give hints to the user how to react on an error while interpreting
-pub enum InterpretErrorKind {
+pub enum InterpreterErrorKind {
     /// When returned context is a function when a value is required.
     #[error("Expected a value but got a function.")]
     FunctionExpectedValue,
@@ -128,21 +128,21 @@ pub enum InterpretErrorKind {
     NonNumericExitCode(NaslValue),
 }
 
-impl InterpretErrorKind {
-    pub(crate) fn with_span(self, s: &impl Spanned) -> InterpretError {
-        InterpretError {
+impl InterpreterErrorKind {
+    pub(crate) fn with_span(self, s: &impl Spanned) -> InterpreterError {
+        InterpreterError {
             kind: self,
             span: s.span(),
         }
     }
 }
 
-impl InterpretError {
+impl InterpreterError {
     pub(crate) fn syntax_error(errs: Vec<ParseError>) -> Self {
         Self {
             // fake value since we don't need the span in this case
             span: Span::new(CharIndex(usize::MAX - 1), CharIndex(usize::MAX)),
-            kind: InterpretErrorKind::SyntaxError(errs),
+            kind: InterpreterErrorKind::SyntaxError(errs),
         }
     }
 
@@ -153,7 +153,7 @@ impl InterpretError {
         Self {
             // fake value since we don't need the span in this case
             span: Span::new(CharIndex(usize::MAX - 1), CharIndex(usize::MAX)),
-            kind: InterpretErrorKind::IncludeSyntaxError(IncludeSyntaxError { errs, file }),
+            kind: InterpreterErrorKind::IncludeSyntaxError(IncludeSyntaxError { errs, file }),
         }
     }
 }
@@ -174,13 +174,13 @@ impl std::fmt::Display for IncludeSyntaxError {
     }
 }
 
-impl InterpretError {
-    pub(crate) fn new(kind: InterpretErrorKind, span: Span) -> Self {
+impl InterpreterError {
+    pub(crate) fn new(kind: InterpreterErrorKind, span: Span) -> Self {
         Self { kind, span }
     }
 }
 
-impl AsCodespanError for InterpretError {
+impl AsCodespanError for InterpreterError {
     fn span(&self) -> Span {
         self.span
     }

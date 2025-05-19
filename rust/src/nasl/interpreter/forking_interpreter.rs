@@ -105,7 +105,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
 #[cfg(test)]
 mod tests {
     use crate::nasl::{
-        interpreter::{InterpretError, InterpretErrorKind},
+        interpreter::{InterpreterError, InterpreterErrorKind},
         nasl_std_functions,
         test_prelude::*,
     };
@@ -293,8 +293,8 @@ mod tests {
         // Advancing the iterator into the if statement
         // should return an error.
         match results.remove(0) {
-            Err(InterpretError {
-                kind: InterpretErrorKind::InvalidFork,
+            Err(InterpreterError {
+                kind: InterpreterErrorKind::InvalidFork,
                 ..
             }) => {}
             _ => panic!(),

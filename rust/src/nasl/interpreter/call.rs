@@ -8,7 +8,7 @@ use super::{Interpreter, Result, nasl_value::RuntimeValue};
 use crate::nasl::{
     NaslValue,
     error::Spanned,
-    interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
+    interpreter::FunctionCallError,
     syntax::{
         Ident,
         grammar::{FnArg, FnCall},
@@ -16,16 +16,16 @@ use crate::nasl::{
     utils::lookup_keys::FC_ANON_ARGS,
 };
 
+use crate::nasl::interpreter::InterpreterError as Error;
+use crate::nasl::interpreter::InterpreterErrorKind as ErrorKind;
+
 enum ArgumentKind {
     Named(String),
     Positional,
 }
 
 impl Interpreter<'_> {
-    async fn resolve_arg(
-        &mut self,
-        arg: &FnArg,
-    ) -> Result<(ArgumentKind, NaslValue), InterpretError> {
+    async fn resolve_arg(&mut self, arg: &FnArg) -> Result<(ArgumentKind, NaslValue), Error> {
         match arg {
             FnArg::Anonymous(anon) => {
                 let val = self.resolve_expr(&anon.expr).await?;
@@ -41,7 +41,7 @@ impl Interpreter<'_> {
     async fn create_arguments_map(
         &mut self,
         args: &[FnArg],
-    ) -> Result<HashMap<String, RuntimeValue>, InterpretError> {
+    ) -> Result<HashMap<String, RuntimeValue>, Error> {
         let mut positional = vec![];
         let mut named = HashMap::new();
         for arg in args.iter() {
@@ -66,9 +66,7 @@ impl Interpreter<'_> {
         let found = self
             .register
             .named(fn_name.to_str())
-            .ok_or_else(|| {
-                InterpretErrorKind::NotFound(fn_name.to_str().to_owned()).with_span(&fn_name)
-            })?
+            .ok_or_else(|| ErrorKind::NotFound(fn_name.to_str().to_owned()).with_span(&fn_name))?
             .clone();
         match found {
             RuntimeValue::Function(arguments, stmt) => {
@@ -84,9 +82,7 @@ impl Interpreter<'_> {
                     _ => Ok(NaslValue::Null),
                 }
             }
-            RuntimeValue::Value(_) => {
-                Err(InterpretErrorKind::ValueExpectedFunction.with_span(fn_name))
-            }
+            RuntimeValue::Value(_) => Err(ErrorKind::ValueExpectedFunction.with_span(fn_name)),
         }
     }
 
@@ -96,8 +92,8 @@ impl Interpreter<'_> {
             .await
             .map(|o| {
                 o.map_err(|e| {
-                    InterpretError::new(
-                        InterpretErrorKind::FunctionCallError(FunctionCallError::new(
+                    Error::new(
+                        ErrorKind::FunctionCallError(FunctionCallError::new(
                             &call.fn_name.to_str(),
                             e,
                         )),

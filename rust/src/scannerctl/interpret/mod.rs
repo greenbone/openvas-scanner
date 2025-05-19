@@ -22,7 +22,7 @@ use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemo
 use scannerlib::{
     nasl::{
         ContextBuilder, FSPluginLoader, Loader, NaslValue, WithErrorInfo,
-        interpreter::InterpretErrorKind,
+        interpreter::InterpreterErrorKind,
         syntax::{LoadError, load_non_utf8_path},
     },
     storage::items::nvt::Nvt,
@@ -58,7 +58,7 @@ async fn run_with_context(context: Context<'_>, script: &Path) -> Result<(), Cli
         let r = match result {
             Ok(x) => x,
             Err(e) => {
-                if let InterpretErrorKind::FunctionCallError(ref fe) = e.kind {
+                if let InterpreterErrorKind::FunctionCallError(ref fe) = e.kind {
                     match fe.kind.return_behavior() {
                         ReturnBehavior::ExitScript => return Err(e.into()),
                         ReturnBehavior::ReturnValue(val) => {

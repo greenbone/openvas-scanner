@@ -10,7 +10,7 @@ use regex::Regex;
 use crate::nasl::syntax::grammar::{Block, Statement};
 use crate::nasl::utils::function::bytes_to_str;
 use crate::{
-    nasl::interpreter::InterpretErrorKind,
+    nasl::interpreter::InterpreterErrorKind as ErrorKind,
     storage::items::{kb::KbItem, nvt::ACT},
 };
 
@@ -82,10 +82,10 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn as_number(&self) -> Result<i64, InterpretErrorKind> {
+    pub(crate) fn as_number(&self) -> Result<i64, ErrorKind> {
         match self {
             NaslValue::Number(n) => Ok(*n),
-            _ => Err(InterpretErrorKind::ExpectedNumber),
+            _ => Err(ErrorKind::ExpectedNumber),
         }
     }
 
@@ -107,11 +107,11 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn as_string(&self) -> Result<String, InterpretErrorKind> {
+    pub(crate) fn as_string(&self) -> Result<String, ErrorKind> {
         match self {
             NaslValue::String(string) => Ok(string.clone()),
             NaslValue::Data(buffer) => Ok(bytes_to_str(buffer)),
-            _ => Err(InterpretErrorKind::ExpectedString),
+            _ => Err(ErrorKind::ExpectedString),
         }
     }
 
@@ -127,33 +127,31 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn as_dict(&self) -> Result<&HashMap<String, NaslValue>, InterpretErrorKind> {
+    pub(crate) fn as_dict(&self) -> Result<&HashMap<String, NaslValue>, ErrorKind> {
         match self {
             NaslValue::Dict(d) => Ok(d),
-            _ => Err(InterpretErrorKind::ExpectedDict),
+            _ => Err(ErrorKind::ExpectedDict),
         }
     }
 
-    pub(crate) fn as_array(&self) -> Result<&Vec<NaslValue>, InterpretErrorKind> {
+    pub(crate) fn as_array(&self) -> Result<&Vec<NaslValue>, ErrorKind> {
         match self {
             NaslValue::Array(d) => Ok(d),
-            _ => Err(InterpretErrorKind::ExpectedArray),
+            _ => Err(ErrorKind::ExpectedArray),
         }
     }
 
-    pub(crate) fn as_dict_mut(
-        &mut self,
-    ) -> Result<&mut HashMap<String, NaslValue>, InterpretErrorKind> {
+    pub(crate) fn as_dict_mut(&mut self) -> Result<&mut HashMap<String, NaslValue>, ErrorKind> {
         match self {
             NaslValue::Dict(d) => Ok(d),
-            _ => Err(InterpretErrorKind::ExpectedDict),
+            _ => Err(ErrorKind::ExpectedDict),
         }
     }
 
-    pub(crate) fn as_array_mut(&mut self) -> Result<&mut Vec<NaslValue>, InterpretErrorKind> {
+    pub(crate) fn as_array_mut(&mut self) -> Result<&mut Vec<NaslValue>, ErrorKind> {
         match self {
             NaslValue::Array(d) => Ok(d),
-            _ => Err(InterpretErrorKind::ExpectedArray),
+            _ => Err(ErrorKind::ExpectedArray),
         }
     }
 
@@ -176,20 +174,20 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn index(&self, index: NaslValue) -> Result<&NaslValue, InterpretErrorKind> {
+    pub(crate) fn index(&self, index: NaslValue) -> Result<&NaslValue, ErrorKind> {
         if let Ok(arr) = self.as_array() {
             let index = index.as_number()?;
             let index = index
                 .try_into()
-                .map_err(|_| InterpretErrorKind::NegativeIndex(index))?;
+                .map_err(|_| ErrorKind::NegativeIndex(index))?;
             arr.get(index)
-                .ok_or_else(|| InterpretErrorKind::ArrayOutOfRange(index).into())
+                .ok_or_else(|| ErrorKind::ArrayOutOfRange(index).into())
         } else if let Ok(dict) = self.as_dict() {
             let index = index.as_string()?;
             dict.get(&index)
-                .ok_or_else(|| InterpretErrorKind::DictKeyDoesNotExist(index).into())
+                .ok_or_else(|| ErrorKind::DictKeyDoesNotExist(index).into())
         } else {
-            Err(InterpretErrorKind::ArrayOrDictExpected.into())
+            Err(ErrorKind::ArrayOrDictExpected.into())
         }
     }
 
@@ -221,40 +219,40 @@ impl NaslValue {
             .unwrap_or_else(|| (self.convert_to_number() - rhs.convert_to_number()).into())
     }
 
-    pub(crate) fn shr_unsigned(&self, rhs: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
+    pub(crate) fn shr_unsigned(&self, rhs: NaslValue) -> Result<NaslValue, ErrorKind> {
         let lhs = self.as_number()?;
         let rhs = rhs.as_number()?;
         let result = ((lhs as u32) >> rhs) as i32;
         Ok(NaslValue::Number(result as i64))
     }
 
-    pub(crate) fn neg(&self) -> Result<NaslValue, InterpretErrorKind> {
+    pub(crate) fn neg(&self) -> Result<NaslValue, ErrorKind> {
         Ok(NaslValue::Number(-self.as_number()?))
     }
 
-    pub(crate) fn not(&self) -> Result<NaslValue, InterpretErrorKind> {
+    pub(crate) fn not(&self) -> Result<NaslValue, ErrorKind> {
         Ok(NaslValue::Boolean(!self.convert_to_boolean()))
     }
 
-    pub(crate) fn bitwise_not(&self) -> Result<NaslValue, InterpretErrorKind> {
+    pub(crate) fn bitwise_not(&self) -> Result<NaslValue, ErrorKind> {
         Ok(NaslValue::Number(!self.as_number()?))
     }
 
-    pub(crate) fn pow(&self, rhs: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
+    pub(crate) fn pow(&self, rhs: NaslValue) -> Result<NaslValue, ErrorKind> {
         let lhs = self.as_number()?;
         let rhs = rhs.as_number()?;
         Ok(NaslValue::Number((lhs as u32).pow(rhs as u32) as i64))
     }
 
-    pub(crate) fn match_regex(&self, matches: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
+    pub(crate) fn match_regex(&self, matches: NaslValue) -> Result<NaslValue, ErrorKind> {
         let matches = matches.as_string()?;
         match Regex::new(&matches) {
             Ok(c) => Ok(NaslValue::Boolean(c.is_match(&self.to_string()))),
-            Err(_) => Err(InterpretErrorKind::InvalidRegex(matches.to_owned())),
+            Err(_) => Err(ErrorKind::InvalidRegex(matches.to_owned())),
         }
     }
 
-    pub(crate) fn match_string(&self, matches: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
+    pub(crate) fn match_string(&self, matches: NaslValue) -> Result<NaslValue, ErrorKind> {
         let matches = matches.as_string()?;
         Ok(NaslValue::Boolean(self.as_string()?.contains(&matches)))
     }
@@ -370,7 +368,7 @@ impl From<HashMap<String, NaslValue>> for NaslValue {
 macro_rules! impl_number_operator {
     ($ident: ident, $path: expr) => {
         impl NaslValue {
-            pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, InterpretErrorKind> {
+            pub fn $ident(&self, rhs: NaslValue) -> Result<NaslValue, ErrorKind> {
                 let n1 = self.as_number()?;
                 let n2 = rhs.as_number()?;
                 Ok($path(n1.$ident(&n2)))
@@ -436,19 +434,19 @@ impl From<KbItem> for NaslValue {
 }
 
 impl RuntimeValue {
-    pub(crate) fn as_value(&self) -> Result<&NaslValue, InterpretErrorKind> {
+    pub(crate) fn as_value(&self) -> Result<&NaslValue, ErrorKind> {
         if let Self::Value(val) = self {
             Ok(val)
         } else {
-            Err(InterpretErrorKind::FunctionExpectedValue)
+            Err(ErrorKind::FunctionExpectedValue)
         }
     }
 
-    pub(crate) fn as_value_mut(&mut self) -> Result<&mut NaslValue, InterpretErrorKind> {
+    pub(crate) fn as_value_mut(&mut self) -> Result<&mut NaslValue, ErrorKind> {
         if let Self::Value(val) = self {
             Ok(val)
         } else {
-            Err(InterpretErrorKind::FunctionExpectedValue)
+            Err(ErrorKind::FunctionExpectedValue)
         }
     }
 }

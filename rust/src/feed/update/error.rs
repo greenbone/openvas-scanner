@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::interpreter::InterpretError;
+use crate::nasl::interpreter::InterpreterError;
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::ParseError;
 use crate::storage::error::StorageError;
@@ -15,7 +15,7 @@ use crate::feed::{VerifyError, verify};
 pub enum ErrorKind {
     /// An InterpretError occurred while interpreting
     #[error("Interpreter error: {0}")]
-    InterpretError(#[from] InterpretError),
+    InterpretError(#[from] InterpreterError),
     /// NASL script contains SyntaxErrors
     #[error("Encountered syntax errors in scripts.")]
     SyntaxError(Vec<ParseError>),

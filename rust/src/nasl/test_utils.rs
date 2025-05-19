@@ -18,7 +18,7 @@ use crate::storage::{ScanID, inmemory::InMemoryStorage};
 use futures::{Stream, StreamExt};
 
 use super::{
-    interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
+    interpreter::{ForkingInterpreter, InterpreterError, InterpreterErrorKind},
     nasl_std_functions,
     utils::{
         Executor,
@@ -314,7 +314,7 @@ where
         ForkingInterpreter::new(ast, register, context)
     }
 
-    pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpretError>> {
+    pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
         let code = self.code();
         let context = self.context();
         let interpreter = self.interpreter(&code, &context);
@@ -329,7 +329,7 @@ where
         let interpreter = self.interpreter(code, context);
         interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
-                InterpretErrorKind::FunctionCallError(f) => f.kind,
+                InterpreterErrorKind::FunctionCallError(f) => f.kind,
                 e => panic!("Unknown error: {}", e),
             })
         })
