@@ -149,3 +149,8 @@ interpreter_test_ok!(
 );
 
 interpreter_test_err!(nonexistent_variable, "a += 12;");
+
+interpreter_test_err!(function_instead_of_variable, "function foo() { } a = foo;");
+interpreter_test_err!(variable_instead_of_function, "foo = 3; foo();");
+
+interpreter_test_err!(invalid_regex, r#"a = "hello world"; a =~ "[";"#);

@@ -27,6 +27,7 @@ use crate::nasl::{
 
 use InterpreterError as Error;
 use InterpreterErrorKind as ErrorKind;
+use error::ExprLocation;
 
 use super::syntax::{LiteralKind, grammar::UnaryPrefixOperatorKind};
 
@@ -405,14 +406,18 @@ impl<'ctx> Interpreter<'ctx> {
             Caret => lhs.bitxor(rhs),
             AmpersandAmpersand => Ok(lhs.and(rhs)),
             PipePipe => Ok(lhs.or(rhs)),
-            EqualTilde => lhs.match_regex(rhs),
-            BangTilde => lhs.match_regex(rhs)?.not(),
-            GreaterLess => lhs.match_string(rhs),
-            GreaterBangLess => lhs.match_string(rhs)?.not(),
+            EqualTilde => Ok(NaslValue::Boolean(lhs.match_regex(rhs)?)),
+            BangTilde => Ok(NaslValue::Boolean(!lhs.match_regex(rhs)?)),
+            GreaterLess => Ok(NaslValue::Boolean(lhs.match_string(rhs)?)),
+            GreaterBangLess => Ok(NaslValue::Boolean(!lhs.match_string(rhs)?)),
             EqualEqual => Ok(NaslValue::Boolean(lhs == rhs)),
             BangEqual => Ok(NaslValue::Boolean(lhs != rhs)),
         };
-        eval().map_err(|e| e.with_span(&binary.lhs.span().join(binary.rhs.span())))
+        eval().map_err(|err| match err.location {
+            ExprLocation::Lhs => err.kind.with_span(&binary.lhs.span()),
+            ExprLocation::Rhs => err.kind.with_span(&binary.rhs.span()),
+            ExprLocation::Both => unreachable!(),
+        })
     }
 
     async fn resolve_array(&mut self, array: &Array) -> Result {

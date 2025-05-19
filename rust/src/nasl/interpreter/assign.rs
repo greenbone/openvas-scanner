@@ -6,6 +6,8 @@ use std::collections::HashMap;
 
 use super::register::Var;
 use crate::nasl::error::Spanned;
+use crate::nasl::interpreter::ExprLocation;
+use crate::nasl::interpreter::error::ExprError;
 use crate::nasl::interpreter::nasl_value::RuntimeValue;
 use crate::nasl::syntax::grammar::Assignment;
 use crate::nasl::syntax::grammar::AssignmentOperatorKind;
@@ -58,8 +60,8 @@ fn convert_value_to_dict(val: &mut NaslValue, index: &str) {
 fn assign(
     lhs: &mut NaslValue,
     indices: &[NaslValue],
-    modify: impl FnOnce(&mut NaslValue) -> Result<NaslValue, ErrorKind>,
-) -> Result<NaslValue, ErrorKind> {
+    modify: impl FnOnce(&mut NaslValue) -> Result<NaslValue, ExprError>,
+) -> Result<NaslValue, ExprError> {
     match indices.first() {
         Some(index) => {
             // We implicitly convert the lhs into whatever type
@@ -72,7 +74,7 @@ fn assign(
                 let lhs = lhs.as_dict_mut().unwrap().get_mut(&index).unwrap();
                 assign(lhs, &indices[1..], modify)
             } else {
-                let index = index.as_number()? as usize;
+                let index = index.as_number().map_err(ExprError::both)? as usize;
                 convert_value_to_array(lhs, index);
                 let lhs = &mut lhs.as_array_mut().unwrap()[index];
                 assign(lhs, &indices[1..], modify)
@@ -95,7 +97,6 @@ impl Interpreter<'_> {
     pub(crate) async fn resolve_assignment(&mut self, assignment: &Assignment) -> Result {
         let rhs = self.resolve_expr(&assignment.rhs).await?;
         let (var, indices) = self.eval_place_expr(&assignment.lhs).await?;
-        let span = assignment.lhs.ident.span().join(assignment.rhs.span());
         // match instead of unwrap_or to make returning errors easier.
         let var = match var {
             None => {
@@ -124,7 +125,7 @@ impl Interpreter<'_> {
             .as_value_mut()
             .map_err(|e| e.with_span(&assignment.lhs.ident))?;
         use AssignmentOperatorKind::*;
-        let modify = |lhs: &mut NaslValue| -> Result<NaslValue, ErrorKind> {
+        let modify = |lhs: &mut NaslValue| -> Result<NaslValue, ExprError> {
             *lhs = match assignment.op.kind {
                 Equal => Ok(rhs),
                 PlusEqual => Ok(lhs.add(rhs)),
@@ -138,7 +139,14 @@ impl Interpreter<'_> {
             }?;
             Ok(lhs.clone())
         };
-        let val = assign(val_mut, &indices, modify).map_err(|e| e.with_span(&span))?;
+        let val = assign(val_mut, &indices, modify).map_err(|e| {
+            let span = match e.location {
+                ExprLocation::Lhs => assignment.lhs.span(),
+                ExprLocation::Rhs => assignment.rhs.span(),
+                ExprLocation::Both => unreachable!(),
+            };
+            e.kind.with_span(&span)
+        })?;
         if assignment.lhs.negate {
             Ok(val.not().map_err(|e| e.with_span(&*assignment.rhs))?)
         } else {
@@ -157,7 +165,7 @@ impl Interpreter<'_> {
             .get_val_mut(var)
             .as_value_mut()
             .map_err(|e| e.with_span(&increment.expr.ident))?;
-        let modify = |val: &mut NaslValue| -> Result<NaslValue, ErrorKind> {
+        let modify = |val: &mut NaslValue| -> Result<NaslValue, ExprError> {
             let previous_value = val.clone();
             *val = match increment.op.kind {
                 IncrementOperatorKind::PlusPlus => val.add(NaslValue::Number(1)),
@@ -168,7 +176,7 @@ impl Interpreter<'_> {
                 IncrementKind::Postfix => Ok(previous_value),
             }
         };
-        assign(val_mut, &indices, modify).map_err(|e| e.with_span(&increment.expr.ident))
+        assign(val_mut, &indices, modify).map_err(|e| e.kind.with_span(&increment.expr.ident))
     }
 }
 

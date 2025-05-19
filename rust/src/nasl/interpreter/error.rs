@@ -6,7 +6,7 @@ use crate::nasl::NaslValue;
 use crate::nasl::code::SourceFile;
 use crate::nasl::error::{AsCodespanError, Span, Spanned, emit_errors};
 use crate::nasl::syntax::{CharIndex, ParseError};
-use crate::nasl::syntax::{Ident, LoadError, TokenKind};
+use crate::nasl::syntax::{Ident, LoadError};
 use crate::nasl::utils::error::FnError;
 use codespan_reporting::files::SimpleFile;
 use thiserror::Error;
@@ -70,16 +70,9 @@ pub enum InterpreterErrorKind {
     /// When returned context is a value when a function is required.
     #[error("Expected a function but got a value.")]
     ValueExpectedFunction,
-    /// When a specific type is expected
-    #[error("Expected the type {0}")]
-    WrongType(String),
-    /// When a specific token kind is required but not given.
-    #[error("Expected the kind {0}")]
-    WrongCategory(TokenKind),
     /// Regex parsing went wrong.
     #[error("Invalid regular expression: {0}")]
     InvalidRegex(String),
-    // TODO improve this error messages
     /// A SyntaxError while including another script
     #[error("{0}")]
     IncludeSyntaxError(IncludeSyntaxError),
@@ -187,5 +180,39 @@ impl AsCodespanError for InterpreterError {
 
     fn message(&self) -> String {
         self.kind.to_string()
+    }
+}
+
+pub(super) struct ExprError {
+    pub kind: InterpreterErrorKind,
+    pub location: ExprLocation,
+}
+
+pub(super) enum ExprLocation {
+    Lhs,
+    Rhs,
+    Both,
+}
+
+impl ExprError {
+    pub fn lhs(kind: InterpreterErrorKind) -> Self {
+        Self {
+            kind,
+            location: ExprLocation::Lhs,
+        }
+    }
+
+    pub fn rhs(kind: InterpreterErrorKind) -> Self {
+        Self {
+            kind,
+            location: ExprLocation::Rhs,
+        }
+    }
+
+    pub fn both(kind: InterpreterErrorKind) -> Self {
+        Self {
+            kind,
+            location: ExprLocation::Both,
+        }
     }
 }
