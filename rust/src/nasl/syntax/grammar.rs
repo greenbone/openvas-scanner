@@ -2,7 +2,7 @@ use std::vec;
 
 use super::parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind};
 use crate::nasl::{
-    error::Span,
+    error::{Span, Spanned},
     syntax::token::{Ident, Literal, TokenKind},
 };
 
@@ -42,13 +42,15 @@ impl Ast {
 pub struct CommaSeparated<Item, Delim: Default> {
     pub items: Vec<Item>,
     pub delimiter: Delim,
+    pub span: Span,
 }
 
 impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
-    pub fn new(items: Vec<Item>) -> Self {
+    pub fn new(items: Vec<Item>, span: Span) -> Self {
         Self {
             items,
             delimiter: Delim::default(),
+            span,
         }
     }
 }
@@ -247,12 +249,18 @@ pub struct Binary {
 }
 
 macro_rules! make_operator {
-    ($ty: ident, $err: expr, ($($pat: ident$(,)?),*)) => {
+    ($ty: ident, $ty_kind: ident, $err: expr, ($($pat: ident$(,)?),*)) => {
         #[derive(Copy, Debug, Clone, PartialEq)]
-        pub enum $ty {
+        pub enum $ty_kind {
             $(
                 $pat,
             )*
+        }
+
+        #[derive(Copy, Debug, Clone, PartialEq)]
+        pub struct $ty {
+            pub span: Span,
+            pub kind: $ty_kind,
         }
 
         impl super::parser::Matches for $ty {
@@ -274,9 +282,10 @@ macro_rules! make_operator {
         impl super::parser::FromPeek for $ty {
             fn from_peek(p: &impl Peek) -> Option<Self> {
                 let kind = p.peek();
+                let span = p.token_span();
                 match kind {
                     $(
-                        TokenKind::$pat => Some(Self::$pat),
+                        TokenKind::$pat => Some(Self { kind: $ty_kind::$pat, span }),
                     )*
                     _ => None,
                 }
@@ -285,11 +294,17 @@ macro_rules! make_operator {
 
         impl std::fmt::Display for $ty {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                match self {
+                match &self.kind {
                     $(
-                        Self::$pat => write!(f, "{}", TokenKind::$pat),
+                        $ty_kind::$pat => write!(f, "{}", TokenKind::$pat),
                     )*
                 }
+            }
+        }
+
+        impl crate::nasl::error::Spanned for $ty {
+            fn span(&self) -> Span {
+                self.span
             }
         }
     }
@@ -297,6 +312,7 @@ macro_rules! make_operator {
 
 make_operator! {
     UnaryPrefixOperator,
+    UnaryPrefixOperatorKind,
     ErrorKind::ExpectedUnaryOperator,
     (
         Minus,
@@ -308,6 +324,7 @@ make_operator! {
 
 make_operator! {
     UnaryPrefixOperatorWithIncrement,
+    UnaryPrefixOperatorWithIncrementKind,
     ErrorKind::ExpectedUnaryOperator,
     (
         Minus,
@@ -321,32 +338,41 @@ make_operator! {
 
 impl From<UnaryPrefixOperatorWithIncrement> for IncrementOperator {
     fn from(value: UnaryPrefixOperatorWithIncrement) -> Self {
-        match value {
-            UnaryPrefixOperatorWithIncrement::Minus
-            | UnaryPrefixOperatorWithIncrement::Bang
-            | UnaryPrefixOperatorWithIncrement::Plus
-            | UnaryPrefixOperatorWithIncrement::Tilde => unreachable!(),
-            UnaryPrefixOperatorWithIncrement::PlusPlus => IncrementOperator::PlusPlus,
-            UnaryPrefixOperatorWithIncrement::MinusMinus => IncrementOperator::MinusMinus,
+        let kind = match value.kind {
+            UnaryPrefixOperatorWithIncrementKind::Minus
+            | UnaryPrefixOperatorWithIncrementKind::Bang
+            | UnaryPrefixOperatorWithIncrementKind::Plus
+            | UnaryPrefixOperatorWithIncrementKind::Tilde => unreachable!(),
+            UnaryPrefixOperatorWithIncrementKind::PlusPlus => IncrementOperatorKind::PlusPlus,
+            UnaryPrefixOperatorWithIncrementKind::MinusMinus => IncrementOperatorKind::MinusMinus,
+        };
+        IncrementOperator {
+            kind,
+            span: value.span,
         }
     }
 }
 
 impl From<UnaryPrefixOperatorWithIncrement> for UnaryPrefixOperator {
     fn from(value: UnaryPrefixOperatorWithIncrement) -> Self {
-        match value {
-            UnaryPrefixOperatorWithIncrement::Minus => UnaryPrefixOperator::Minus,
-            UnaryPrefixOperatorWithIncrement::Bang => UnaryPrefixOperator::Bang,
-            UnaryPrefixOperatorWithIncrement::Plus => UnaryPrefixOperator::Plus,
-            UnaryPrefixOperatorWithIncrement::Tilde => UnaryPrefixOperator::Tilde,
-            UnaryPrefixOperatorWithIncrement::PlusPlus
-            | UnaryPrefixOperatorWithIncrement::MinusMinus => unreachable!(),
+        let kind = match value.kind {
+            UnaryPrefixOperatorWithIncrementKind::Minus => UnaryPrefixOperatorKind::Minus,
+            UnaryPrefixOperatorWithIncrementKind::Bang => UnaryPrefixOperatorKind::Bang,
+            UnaryPrefixOperatorWithIncrementKind::Plus => UnaryPrefixOperatorKind::Plus,
+            UnaryPrefixOperatorWithIncrementKind::Tilde => UnaryPrefixOperatorKind::Tilde,
+            UnaryPrefixOperatorWithIncrementKind::PlusPlus
+            | UnaryPrefixOperatorWithIncrementKind::MinusMinus => unreachable!(),
+        };
+        UnaryPrefixOperator {
+            kind,
+            span: value.span,
         }
     }
 }
 
 make_operator! {
     UnaryPostfixOperator,
+    UnaryPostfixOperatorKind,
     ErrorKind::ExpectedUnaryOperator,
     (
         // The weird operators of increment/decrement.
@@ -368,6 +394,7 @@ make_operator! {
 
 make_operator! {
     IncrementOperator,
+    IncrementOperatorKind,
     ErrorKind::ExpectedUnaryOperator, // irrelevant
     (
         PlusPlus,
@@ -377,6 +404,7 @@ make_operator! {
 
 make_operator! {
     AssignmentOperator,
+    AssignmentOperatorKind,
     ErrorKind::ExpectedAssignmentOperator,
     (
         Equal,
@@ -393,6 +421,7 @@ make_operator! {
 
 make_operator! {
     BinaryOperator,
+    BinaryOperatorKind,
     ErrorKind::ExpectedBinaryOperator,
     (
         Plus,
@@ -453,8 +482,8 @@ pub fn x_binding_power() -> usize {
 
 impl BinaryOperator {
     pub fn binding_power(&self) -> (usize, usize) {
-        use BinaryOperator::*;
-        match self {
+        use BinaryOperatorKind::*;
+        match self.kind {
             StarStar => (22, 23),
             Star | Slash | Percent => (20, 21),
             Plus | Minus => (18, 19),
@@ -478,8 +507,8 @@ impl AssignmentOperator {
 
 impl UnaryPrefixOperatorWithIncrement {
     pub fn right_binding_power(&self) -> usize {
-        use UnaryPrefixOperatorWithIncrement::*;
-        match self {
+        use UnaryPrefixOperatorWithIncrementKind::*;
+        match self.kind {
             Plus | Minus | Tilde | Bang | PlusPlus | MinusMinus => 21,
         }
     }
@@ -487,8 +516,8 @@ impl UnaryPrefixOperatorWithIncrement {
 
 impl UnaryPostfixOperator {
     pub fn left_binding_power(&self) -> usize {
-        use UnaryPostfixOperator::*;
-        match self {
+        use UnaryPostfixOperatorKind::*;
+        match self.kind {
             PlusPlus => 21,
             MinusMinus => 21,
             LeftBracket => 25,
@@ -517,15 +546,82 @@ macro_rules! make_delimiter {
 make_delimiter!(Paren, LeftParen, RightParen);
 make_delimiter!(Bracket, LeftBracket, RightBracket);
 
-// Just to make things work for now
-macro_rules! impl_dumb_temporary_span_info {
-    ($ty: ty) => {
-        impl crate::nasl::error::Spanned for $ty {
-            fn span(&self) -> crate::nasl::error::Span {
-                crate::nasl::syntax::Token::sentinel().span()
-            }
+impl Spanned for Expr {
+    fn span(&self) -> Span {
+        match self {
+            Expr::Atom(atom) => atom.span(),
+            Expr::Binary(binary) => binary.span(),
+            Expr::Unary(unary) => unary.span(),
+            Expr::Assignment(assignment) => assignment.span(),
         }
-    };
+    }
 }
 
-impl_dumb_temporary_span_info!(Expr);
+impl<Item, Delim: Default> Spanned for CommaSeparated<Item, Delim> {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl Spanned for Atom {
+    fn span(&self) -> Span {
+        match self {
+            Atom::Literal(literal) => literal.span(),
+            Atom::Ident(ident) => ident.span(),
+            Atom::Array(array) => array.items.span(),
+            Atom::ArrayAccess(array_access) => array_access.span(),
+            Atom::FnCall(fn_call) => fn_call.span(),
+            Atom::Increment(increment) => increment.span(),
+        }
+    }
+}
+
+impl Spanned for Binary {
+    fn span(&self) -> Span {
+        self.lhs.span().join(self.rhs.span())
+    }
+}
+
+impl Spanned for Unary {
+    fn span(&self) -> Span {
+        self.rhs.span().join(self.op.span())
+    }
+}
+
+impl Spanned for Assignment {
+    fn span(&self) -> Span {
+        self.lhs.span().join(self.rhs.span())
+    }
+}
+
+impl Spanned for PlaceExpr {
+    fn span(&self) -> Span {
+        let mut span = self.ident.span();
+        for arr in self.array_accesses.iter() {
+            span = span.join(arr.span());
+        }
+        span
+    }
+}
+
+impl Spanned for Increment {
+    fn span(&self) -> Span {
+        self.expr.span().join(self.op.span())
+    }
+}
+
+impl Spanned for ArrayAccess {
+    fn span(&self) -> Span {
+        self.index_expr.span().join(self.lhs_expr.span())
+    }
+}
+
+impl Spanned for FnCall {
+    fn span(&self) -> Span {
+        let mut span = self.fn_name.span().join(self.args.span());
+        if let Some(num_repeats) = &self.num_repeats {
+            span = span.join(num_repeats.span());
+        }
+        span
+    }
+}

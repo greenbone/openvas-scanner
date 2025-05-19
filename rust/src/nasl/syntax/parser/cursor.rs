@@ -8,6 +8,7 @@ use super::{FromPeek, Matches, error::SpannedError};
 pub trait Peek: Sized {
     fn peek(&self) -> &TokenKind;
     fn peek_next(&self) -> &TokenKind;
+    fn token_span(&self) -> Span;
 
     fn matches<T: Matches>(&self) -> bool {
         T::matches(self)
@@ -51,6 +52,10 @@ impl Peek for Cursor {
 
     fn peek(&self) -> &TokenKind {
         &self.current.kind
+    }
+
+    fn token_span(&self) -> Span {
+        self.current.span()
     }
 }
 
@@ -105,20 +110,5 @@ impl Cursor {
             .as_ref()
             .map(|prev| Span::new(prev.span().end(), prev.span().end()))
             .unwrap_or(Span::new(CharIndex(0), CharIndex(0)))
-    }
-}
-
-pub struct Lookahead<'a> {
-    current: &'a TokenKind,
-}
-
-impl Peek for Lookahead<'_> {
-    fn peek(&self) -> &TokenKind {
-        self.current
-    }
-
-    fn peek_next(&self) -> &TokenKind {
-        // We don't need this
-        unimplemented!()
     }
 }

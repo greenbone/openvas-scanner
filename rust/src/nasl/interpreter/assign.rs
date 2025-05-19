@@ -8,10 +8,10 @@ use super::register::Var;
 use crate::nasl::error::Spanned;
 use crate::nasl::interpreter::nasl_value::RuntimeValue;
 use crate::nasl::syntax::grammar::Assignment;
-use crate::nasl::syntax::grammar::AssignmentOperator;
+use crate::nasl::syntax::grammar::AssignmentOperatorKind;
 use crate::nasl::syntax::grammar::Increment;
 use crate::nasl::syntax::grammar::IncrementKind;
-use crate::nasl::syntax::grammar::IncrementOperator;
+use crate::nasl::syntax::grammar::IncrementOperatorKind;
 use crate::nasl::syntax::grammar::PlaceExpr;
 
 use super::InterpretErrorKind;
@@ -101,7 +101,7 @@ impl Interpreter<'_> {
                 // If the variable could not be found in the current scope,
                 // we implicitly declare a new variable in the innermost scope
                 // and leave it uninitialized for now.
-                if let AssignmentOperator::Equal = assignment.op {
+                if let AssignmentOperatorKind::Equal = assignment.op.kind {
                     self.register.add_local(
                         &assignment.lhs.ident.to_str(),
                         RuntimeValue::Value(NaslValue::Null),
@@ -122,9 +122,9 @@ impl Interpreter<'_> {
             .get_val_mut(var)
             .as_value_mut()
             .map_err(|e| e.with_span(&assignment.lhs.ident))?;
-        use AssignmentOperator::*;
+        use AssignmentOperatorKind::*;
         let modify = |lhs: &mut NaslValue| -> Result<NaslValue, InterpretErrorKind> {
-            *lhs = match assignment.op {
+            *lhs = match assignment.op.kind {
                 Equal => Ok(rhs),
                 PlusEqual => Ok(lhs.add(rhs)),
                 MinusEqual => Ok(lhs.sub(rhs)),
@@ -158,9 +158,9 @@ impl Interpreter<'_> {
             .map_err(|e| e.with_span(&increment.expr.ident))?;
         let modify = |val: &mut NaslValue| -> Result<NaslValue, InterpretErrorKind> {
             let previous_value = val.clone();
-            *val = match increment.op {
-                IncrementOperator::PlusPlus => val.add(NaslValue::Number(1)),
-                IncrementOperator::MinusMinus => val.sub(NaslValue::Number(1)),
+            *val = match increment.op.kind {
+                IncrementOperatorKind::PlusPlus => val.add(NaslValue::Number(1)),
+                IncrementOperatorKind::MinusMinus => val.sub(NaslValue::Number(1)),
             };
             match increment.kind {
                 IncrementKind::Prefix => Ok(val.clone()),

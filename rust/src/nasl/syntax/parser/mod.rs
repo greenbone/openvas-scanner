@@ -10,6 +10,7 @@ use error::SpannedError;
 // TODO make this private and the definition pub(super) again.
 pub use error::{Error, ErrorKind};
 
+use super::CharIndex;
 use super::grammar::ArrayAccess;
 use super::grammar::Assignment;
 use super::grammar::AssignmentOperator;
@@ -24,16 +25,20 @@ use super::grammar::IncrementKind;
 use super::grammar::IncrementOperator;
 use super::grammar::PlaceExpr;
 use super::grammar::Repeat;
-use super::grammar::UnaryPrefixOperator;
+use super::grammar::UnaryPostfixOperatorKind;
 use super::grammar::UnaryPrefixOperatorWithIncrement;
+use super::grammar::UnaryPrefixOperatorWithIncrementKind;
 use super::grammar::x_binding_power;
 use super::grammar::{
     AnonymousFnArg, Array, Ast, Atom, Binary, BinaryOperator, Block, CommaSeparated, Expr, FnArg,
     FnDecl, Include, NamedFnArg, Return, Statement, Unary, UnaryPostfixOperator, VarScope,
     VarScopeDecl, While,
 };
+use super::token::LiteralKind;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use crate::nasl::error::Span;
+use crate::nasl::error::Spanned;
+use crate::nasl::syntax::grammar::UnaryPrefixOperatorKind;
 use cursor::Cursor;
 use cursor::Peek;
 
@@ -83,6 +88,14 @@ impl Peek for Parser {
     fn peek_next(&self) -> &TokenKind {
         self.cursor.peek_next()
     }
+
+    fn token_span(&self) -> Span {
+        self.cursor.token_span()
+    }
+}
+
+struct PositionMarker {
+    pos: CharIndex,
 }
 
 impl Parser {
@@ -98,7 +111,7 @@ impl Parser {
         let result = self.parse();
         let pos_after = self.cursor.previous_token_end();
         let span = Span::new(pos_before, pos_after);
-        result.map_err(|err| err.with_span(span))
+        result.map_err(|err| err.with_span(&span))
     }
 
     fn check_tokenizer_errors(&mut self) -> bool {
@@ -184,7 +197,7 @@ impl Parser {
     fn consume(&mut self, expected: TokenKind) -> Result<()> {
         if self.peek() != &expected {
             let err: Error = ErrorKind::TokenExpected(expected).into();
-            Err(err.with_span(self.cursor.span_previous_token_end()))
+            Err(err.with_span(&self.cursor.span_previous_token_end()))
         } else {
             self.advance();
             Ok(())
@@ -206,6 +219,16 @@ impl Parser {
 
     fn is_at_end(&self) -> bool {
         self.peek() == &TokenKind::Eof
+    }
+
+    fn remember_pos(&self) -> PositionMarker {
+        PositionMarker {
+            pos: self.cursor.current_token_start(),
+        }
+    }
+
+    fn make_span(&self, pos: PositionMarker) -> Span {
+        Span::new(pos.pos, self.cursor.previous_token_end())
     }
 }
 
@@ -310,9 +333,9 @@ impl Parse for Include {
         parser.consume(TokenKind::LeftParen)?;
         let path: Literal = parser.parse()?;
         let span = parser.peek_span();
-        if !matches!(path, Literal::String(_) | Literal::Data(_)) {
+        if !matches!(path.kind, LiteralKind::String(_) | LiteralKind::Data(_)) {
             let error: Error = ErrorKind::StringExpected.into();
-            return Err(error.with_span(span));
+            return Err(error.with_span(&span));
         }
         let path = path.as_string().unwrap();
         parser.consume(TokenKind::RightParen)?;
@@ -491,16 +514,16 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
     } else if parser.matches::<UnaryPrefixOperatorWithIncrement>() {
         let op: UnaryPrefixOperatorWithIncrement = parser.parse()?;
         let r_bp = op.right_binding_power();
-        match op {
-            UnaryPrefixOperatorWithIncrement::Minus
-            | UnaryPrefixOperatorWithIncrement::Bang
-            | UnaryPrefixOperatorWithIncrement::Plus
-            | UnaryPrefixOperatorWithIncrement::Tilde => Expr::Unary(Unary {
+        match op.kind {
+            UnaryPrefixOperatorWithIncrementKind::Minus
+            | UnaryPrefixOperatorWithIncrementKind::Bang
+            | UnaryPrefixOperatorWithIncrementKind::Plus
+            | UnaryPrefixOperatorWithIncrementKind::Tilde => Expr::Unary(Unary {
                 op: op.into(),
                 rhs: Box::new(pratt_parse_expr(parser, r_bp)?),
             }),
-            UnaryPrefixOperatorWithIncrement::PlusPlus
-            | UnaryPrefixOperatorWithIncrement::MinusMinus => {
+            UnaryPrefixOperatorWithIncrementKind::PlusPlus
+            | UnaryPrefixOperatorWithIncrementKind::MinusMinus => {
                 let expr = parser.parse_span()?;
                 Expr::Atom(Atom::Increment(Increment {
                     op: op.into(),
@@ -534,8 +557,8 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             // but "short-circuit" to `ArrayAccess`
             // or `FnCall` respectively, since they
             // have maximal precedence
-            lhs = match op {
-                UnaryPostfixOperator::PlusPlus | UnaryPostfixOperator::MinusMinus => {
+            lhs = match op.kind {
+                UnaryPostfixOperatorKind::PlusPlus | UnaryPostfixOperatorKind::MinusMinus => {
                     let lhs = PlaceExpr::from_expr(lhs)?;
                     // Consume the operator token
                     let op = parser.parse::<IncrementOperator>().unwrap();
@@ -545,7 +568,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                         kind: IncrementKind::Postfix,
                     }))
                 }
-                UnaryPostfixOperator::LeftBracket => {
+                UnaryPostfixOperatorKind::LeftBracket => {
                     // Consume the [
                     parser.parse::<UnaryPostfixOperator>().unwrap();
                     let index_expr = parser.parse()?;
@@ -555,7 +578,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
                         lhs_expr: Box::new(lhs),
                     }))
                 }
-                UnaryPostfixOperator::LeftParen => {
+                UnaryPostfixOperatorKind::LeftParen => {
                     // Here, we don't consume the ( since that
                     // is taken care of by CommaSeparated::parse
                     let args = parser.parse()?;
@@ -634,6 +657,11 @@ impl Matches for Atom {
 
 impl PlaceExpr {
     fn from_expr(expr: Expr) -> Result<Self> {
+        let span = expr.span();
+        let make_err = || {
+            let err: Error = ParseErrorKind::NotAllowedInPlaceExpr.into();
+            Err(err.with_span(&span))
+        };
         if let Expr::Atom(Atom::Ident(ident)) = expr {
             Ok(PlaceExpr {
                 ident: ident.clone(),
@@ -648,14 +676,14 @@ impl PlaceExpr {
             Ok(inner)
         } else if let Expr::Unary(unary) = expr {
             let mut place_expr = PlaceExpr::from_expr(*unary.rhs)?;
-            if let UnaryPrefixOperator::Bang = unary.op {
+            if let UnaryPrefixOperatorKind::Bang = unary.op.kind {
                 place_expr.negate = true
             } else {
-                return Err(ParseErrorKind::NotAllowedInPlaceExpr.into());
+                return make_err();
             }
             Ok(place_expr)
         } else {
-            Err(ParseErrorKind::NotAllowedInPlaceExpr.into())
+            make_err()
         }
     }
 }
@@ -669,6 +697,7 @@ impl Parse for PlaceExpr {
 
 impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
     fn parse(parser: &mut Parser) -> Result<Self> {
+        let pos = parser.remember_pos();
         let mut items = vec![];
         parser.consume(Delim::start())?;
         loop {
@@ -687,7 +716,8 @@ impl<Item: Parse, Delim: Delimiter> Parse for CommaSeparated<Item, Delim> {
                 break;
             }
         }
-        Ok(CommaSeparated::new(items))
+        let span = parser.make_span(pos);
+        Ok(CommaSeparated::new(items, span))
     }
 }
 

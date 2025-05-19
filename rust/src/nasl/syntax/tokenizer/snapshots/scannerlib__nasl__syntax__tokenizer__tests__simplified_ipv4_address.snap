@@ -5,9 +5,19 @@ expression: "tokenize_ok(stringify! (simplified_ipv4_address), \"10.187.76.12\")
 [
     Token {
         kind: Literal(
-            IPv4Address(
-                10.187.76.12,
-            ),
+            Literal {
+                kind: IPv4Address(
+                    10.187.76.12,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        12,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(

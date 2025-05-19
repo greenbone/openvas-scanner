@@ -61,9 +61,19 @@ expression: "tokenize_ok(stringify! (repeat_x_times), \"x() x 10;\")"
     },
     Token {
         kind: Literal(
-            Number(
-                10,
-            ),
+            Literal {
+                kind: Number(
+                    10,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        6,
+                    ),
+                    end: CharIndex(
+                        8,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(

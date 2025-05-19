@@ -5,30 +5,40 @@ expression: "tokenize_ok(stringify! (string_quoting), r\"'webapps\\\\\\\\applian
 [
     Token {
         kind: Literal(
-            Data(
-                [
-                    119,
-                    101,
-                    98,
-                    97,
-                    112,
-                    112,
-                    115,
-                    92,
-                    92,
-                    97,
-                    112,
-                    112,
-                    108,
-                    105,
-                    97,
-                    110,
-                    99,
-                    101,
-                    92,
-                    92,
-                ],
-            ),
+            Literal {
+                kind: Data(
+                    [
+                        119,
+                        101,
+                        98,
+                        97,
+                        112,
+                        112,
+                        115,
+                        92,
+                        92,
+                        97,
+                        112,
+                        112,
+                        108,
+                        105,
+                        97,
+                        110,
+                        99,
+                        101,
+                        92,
+                        92,
+                    ],
+                ),
+                span: Span {
+                    start: CharIndex(
+                        1,
+                    ),
+                    end: CharIndex(
+                        26,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(

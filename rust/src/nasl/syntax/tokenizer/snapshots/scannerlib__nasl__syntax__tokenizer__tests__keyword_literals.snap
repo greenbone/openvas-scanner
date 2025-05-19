@@ -5,9 +5,19 @@ expression: "tokenize_ok(stringify! (keyword_literals), \"TRUE FALSE NULL\")"
 [
     Token {
         kind: Literal(
-            Boolean(
-                true,
-            ),
+            Literal {
+                kind: Boolean(
+                    true,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        4,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(
@@ -20,9 +30,19 @@ expression: "tokenize_ok(stringify! (keyword_literals), \"TRUE FALSE NULL\")"
     },
     Token {
         kind: Literal(
-            Boolean(
-                false,
-            ),
+            Literal {
+                kind: Boolean(
+                    false,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        5,
+                    ),
+                    end: CharIndex(
+                        10,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(
@@ -35,7 +55,17 @@ expression: "tokenize_ok(stringify! (keyword_literals), \"TRUE FALSE NULL\")"
     },
     Token {
         kind: Literal(
-            Null,
+            Literal {
+                kind: Null,
+                span: Span {
+                    start: CharIndex(
+                        11,
+                    ),
+                    end: CharIndex(
+                        15,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(

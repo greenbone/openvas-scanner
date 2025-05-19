@@ -6,7 +6,7 @@ use std::ops::{Add, AddAssign, Sub};
 
 use crate::nasl::{error::Span, syntax::token::Literal};
 
-use super::{Ident, Keyword, Token, TokenKind};
+use super::{Ident, Keyword, Token, TokenKind, token::LiteralKind};
 pub use error::{TokenizerError, TokenizerErrorKind};
 
 #[derive(Copy, Default, Clone, Debug, PartialEq, Eq)]
@@ -97,6 +97,10 @@ impl Cursor {
         } else {
             Ok(())
         }
+    }
+
+    fn span_from(&self, start: CharIndex) -> Span {
+        Span::new(start, self.position)
     }
 }
 
@@ -380,7 +384,10 @@ impl Tokenizer {
         } else {
             let result = self.substring(start, self.cursor.position());
             self.cursor.advance();
-            Ok(TokenKind::Literal(Literal::String(result)))
+            Ok(TokenKind::Literal(Literal::new(
+                LiteralKind::String(result),
+                self.cursor.span_from(start),
+            )))
         }
     }
 
@@ -408,8 +415,10 @@ impl Tokenizer {
             raw_str = raw_str.replace(r"\r", "\r");
             raw_str = raw_str.replace(r"\t", "\t");
             self.cursor.advance();
-            Ok(TokenKind::Literal(Literal::Data(
-                raw_str.as_bytes().to_vec(),
+            let span = self.cursor.span_from(start);
+            Ok(TokenKind::Literal(Literal::new(
+                LiteralKind::Data(raw_str.as_bytes().to_vec()),
+                span,
             )))
         }
     }
@@ -434,10 +443,14 @@ impl Tokenizer {
         self.consume('.', InvalidIpv4Address)?;
         self.cursor
             .consume_while(base.verifier(), InvalidIpv4Address)?;
-        Ok(TokenKind::Literal(Literal::IPv4Address(
-            self.substring(start, self.cursor.position())
-                .parse()
-                .map_err(|_| InvalidIpv4Address)?,
+        let span = self.cursor.span_from(start);
+        Ok(TokenKind::Literal(Literal::new(
+            LiteralKind::IPv4Address(
+                self.substring(start, self.cursor.position())
+                    .parse()
+                    .map_err(|_| InvalidIpv4Address)?,
+            ),
+            span,
         )))
     }
 
@@ -487,11 +500,15 @@ impl Tokenizer {
                 self.cursor.advance();
                 Err(self.error(TokenizerErrorKind::InvalidNumberLiteral))
             } else {
+                let span = self.cursor.span_from(start);
                 match i64::from_str_radix(
                     &self.substring(start, self.cursor.position()),
                     base.radix(),
                 ) {
-                    Ok(num) => Ok(TokenKind::Literal(Literal::Number(num))),
+                    Ok(num) => Ok(TokenKind::Literal(Literal::new(
+                        LiteralKind::Number(num),
+                        span,
+                    ))),
                     Err(_) => Err(self.error(TokenizerErrorKind::InvalidNumberLiteral)),
                 }
             }
@@ -506,17 +523,17 @@ impl Tokenizer {
         if lookup != "x" {
             if let Some(keyword) = Keyword::new(&lookup) {
                 TokenKind::Keyword(keyword)
-            } else if let Some(literal) = Literal::from_keyword(&lookup) {
-                TokenKind::Literal(literal)
+            } else if let Some(literal) = LiteralKind::from_keyword(&lookup) {
+                TokenKind::Literal(Literal::new(literal, self.cursor.span_from(start)))
             } else {
-                TokenKind::Ident(Ident::new(lookup, Span::new(start, end)))
+                TokenKind::Ident(Ident::new(lookup, self.cursor.span_from(start)))
             }
         } else {
             self.cursor.skip_while(|c| c.is_whitespace());
             if self.cursor.peek().is_numeric() {
                 TokenKind::X
             } else {
-                TokenKind::Ident(Ident::new(lookup, Span::new(start, end)))
+                TokenKind::Ident(Ident::new(lookup, self.cursor.span_from(start)))
             }
         }
     }

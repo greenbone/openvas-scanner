@@ -5,9 +5,19 @@ expression: "tokenize_ok(stringify! (simple_number), \"1\")"
 [
     Token {
         kind: Literal(
-            Number(
-                1,
-            ),
+            Literal {
+                kind: Number(
+                    1,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        1,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(

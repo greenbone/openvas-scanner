@@ -33,7 +33,7 @@ impl Span {
     pub(crate) fn join(&self, span: Span) -> Span {
         Span::new(
             CharIndex(self.start.0.min(span.start.0)),
-            CharIndex(self.end.0.min(span.end.0)),
+            CharIndex(self.end.0.max(span.end.0)),
         )
     }
 }

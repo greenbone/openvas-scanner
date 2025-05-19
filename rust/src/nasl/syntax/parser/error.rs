@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::nasl::{
-    error::{AsCodespanError, Span},
+    error::{AsCodespanError, Span, Spanned},
     syntax::{Keyword, TokenKind, TokenizerError, tokenizer::TokenizerErrorKind},
 };
 
@@ -43,10 +43,10 @@ impl Error {
     }
 
     /// Add the given span only if no span is present.
-    pub fn with_span(self, span: Span) -> Error {
+    pub fn with_span(self, span: &impl Spanned) -> Error {
         Self {
             kind: self.kind,
-            span: Some(self.span.unwrap_or(span)),
+            span: Some(self.span.unwrap_or(span.span())),
         }
     }
 }

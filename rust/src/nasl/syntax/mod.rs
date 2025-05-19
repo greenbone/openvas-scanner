@@ -13,7 +13,7 @@ pub use loader::*;
 pub use parser::{ParseError, Parser};
 pub(super) use token::Ident;
 pub use token::Keyword;
-pub(super) use token::Literal;
+pub(super) use token::LiteralKind;
 pub use token::Token;
 pub use token::TokenKind;
 pub use tokenizer::CharIndex;

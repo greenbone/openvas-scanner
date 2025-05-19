@@ -74,9 +74,19 @@ expression: "tokenize_ok(stringify! (identifier), \"help_lo _hello _h4llo 4_h4ll
     },
     Token {
         kind: Literal(
-            Number(
-                4,
-            ),
+            Literal {
+                kind: Number(
+                    4,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        22,
+                    ),
+                    end: CharIndex(
+                        23,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(

@@ -5,9 +5,19 @@ expression: "tokenize_ok(stringify! (string), \"\\\"I am a closed string \\\"\")
 [
     Token {
         kind: Literal(
-            String(
-                "I am a closed string ",
-            ),
+            Literal {
+                kind: String(
+                    "I am a closed string ",
+                ),
+                span: Span {
+                    start: CharIndex(
+                        1,
+                    ),
+                    end: CharIndex(
+                        23,
+                    ),
+                },
+            },
         ),
         span: Span {
             start: CharIndex(

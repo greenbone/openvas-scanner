@@ -20,13 +20,13 @@ use crate::nasl::{
     syntax::{
         Ident,
         grammar::{
-            Array, ArrayAccess, Ast, Atom, Binary, BinaryOperator, Block, Exit, Expr, If, Include,
-            Return, Statement, Unary, UnaryPrefixOperator,
+            Array, ArrayAccess, Ast, Atom, Binary, BinaryOperatorKind, Block, Exit, Expr, If,
+            Include, Return, Statement, Unary,
         },
     },
 };
 
-use super::syntax::Literal;
+use super::syntax::{LiteralKind, grammar::UnaryPrefixOperatorKind};
 
 pub use error::{FunctionCallError, InterpretError, InterpretErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
@@ -325,14 +325,14 @@ impl<'ctx> Interpreter<'ctx> {
 
     async fn resolve_atom(&mut self, atom: &Atom) -> Result {
         match atom {
-            Atom::Literal(literal) => Ok(match &literal {
-                Literal::String(s) => NaslValue::String(s.clone()),
-                Literal::Data(data) => NaslValue::Data(data.clone()),
-                Literal::Number(num) => NaslValue::Number(*num),
-                Literal::IPv4Address(ipv4_addr) => NaslValue::String(ipv4_addr.to_string()),
-                Literal::Null => NaslValue::Null,
-                Literal::Boolean(b) => NaslValue::Boolean(*b),
-                Literal::AttackCategory(a) => NaslValue::AttackCategory(*a),
+            Atom::Literal(literal) => Ok(match &literal.kind {
+                LiteralKind::String(s) => NaslValue::String(s.clone()),
+                LiteralKind::Data(data) => NaslValue::Data(data.clone()),
+                LiteralKind::Number(num) => NaslValue::Number(*num),
+                LiteralKind::IPv4Address(ipv4_addr) => NaslValue::String(ipv4_addr.to_string()),
+                LiteralKind::Null => NaslValue::Null,
+                LiteralKind::Boolean(b) => NaslValue::Boolean(*b),
+                LiteralKind::AttackCategory(a) => NaslValue::AttackCategory(*a),
             }),
             Atom::FnCall(call) => self.resolve_fn_call(call).await,
             Atom::Ident(ident) => Ok(self.resolve_var(ident)?.clone()),
@@ -366,27 +366,27 @@ impl<'ctx> Interpreter<'ctx> {
 
     async fn resolve_unary(&mut self, unary: &Unary) -> Result {
         let rhs = self.resolve_expr(&unary.rhs).await?;
-        match unary.op {
-            UnaryPrefixOperator::Plus => Ok(rhs),
-            UnaryPrefixOperator::Minus => rhs.neg(),
-            UnaryPrefixOperator::Bang => rhs.not(),
-            UnaryPrefixOperator::Tilde => rhs.bitwise_not(),
+        match unary.op.kind {
+            UnaryPrefixOperatorKind::Plus => Ok(rhs),
+            UnaryPrefixOperatorKind::Minus => rhs.neg(),
+            UnaryPrefixOperatorKind::Bang => rhs.not(),
+            UnaryPrefixOperatorKind::Tilde => rhs.bitwise_not(),
         }
         .map_err(|e| e.with_span(&*unary.rhs))
     }
 
     async fn resolve_binary(&mut self, binary: &Binary) -> Result {
-        use BinaryOperator::*;
+        use BinaryOperatorKind::*;
         let lhs = self.resolve_expr(&binary.lhs).await?;
         // Short circuit
-        if binary.op == AmpersandAmpersand && !lhs.convert_to_boolean() {
+        if binary.op.kind == AmpersandAmpersand && !lhs.convert_to_boolean() {
             return Ok(NaslValue::Boolean(false));
         }
-        if binary.op == PipePipe && lhs.convert_to_boolean() {
+        if binary.op.kind == PipePipe && lhs.convert_to_boolean() {
             return Ok(NaslValue::Boolean(true));
         }
         let rhs = self.resolve_expr(&binary.rhs).await?;
-        let eval = || match binary.op {
+        let eval = || match binary.op.kind {
             Plus => Ok(lhs.add(rhs)),
             Minus => Ok(lhs.sub(rhs)),
             Star => lhs.mul(rhs),

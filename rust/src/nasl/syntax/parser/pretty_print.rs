@@ -1,5 +1,5 @@
 use crate::nasl::{
-    syntax::{Ident, token::Literal},
+    syntax::{Ident, LiteralKind, token::Literal},
     utils::function::bytes_to_str,
 };
 
@@ -312,14 +312,14 @@ impl Display for Ident {
 
 impl Display for Literal {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            Literal::String(s) => write!(f, "\"{}\"", s),
-            Literal::Data(d) => write!(f, "'{}'", bytes_to_str(d)),
-            Literal::Number(n) => write!(f, "{}", n),
-            Literal::IPv4Address(ip) => write!(f, "{}", ip),
-            Literal::Boolean(b) => write!(f, "{}", if *b { "TRUE" } else { "FALSE" }),
-            Literal::Null => write!(f, "Null"),
-            Literal::AttackCategory(a) => write!(f, "{a}"),
+        match &self.kind {
+            LiteralKind::String(s) => write!(f, "\"{}\"", s),
+            LiteralKind::Data(d) => write!(f, "'{}'", bytes_to_str(d)),
+            LiteralKind::Number(n) => write!(f, "{}", n),
+            LiteralKind::IPv4Address(ip) => write!(f, "{}", ip),
+            LiteralKind::Boolean(b) => write!(f, "{}", if *b { "TRUE" } else { "FALSE" }),
+            LiteralKind::Null => write!(f, "Null"),
+            LiteralKind::AttackCategory(a) => write!(f, "{a}"),
         }
     }
 }

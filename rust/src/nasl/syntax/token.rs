@@ -10,7 +10,6 @@ use crate::{
     storage::items::nvt::ACT,
 };
 
-use super::CharIndex;
 use crate::nasl::error::Spanned;
 
 /// A reserved NASL keyword.
@@ -115,7 +114,7 @@ impl Ident {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Literal {
+pub enum LiteralKind {
     /// A String (")
     ///
     /// Strings can be over multiple lines and are not escapable (`a = "a\";` is valid).
@@ -138,7 +137,7 @@ pub enum Literal {
     Null,
 }
 
-impl Literal {
+impl LiteralKind {
     pub fn from_keyword(lookup: &str) -> Option<Self> {
         match lookup {
             "NULL" => Some(Self::Null),
@@ -159,13 +158,27 @@ impl Literal {
             _ => None,
         }
     }
+}
 
+impl Literal {
     pub(crate) fn as_string(self) -> Option<String> {
-        match self {
-            Literal::String(s) => Some(s),
-            Literal::Data(bytes) => Some(bytes_to_str(&bytes)),
+        match self.kind {
+            LiteralKind::String(s) => Some(s),
+            LiteralKind::Data(bytes) => Some(bytes_to_str(&bytes)),
             _ => None,
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Literal {
+    pub kind: LiteralKind,
+    pub span: Span,
+}
+
+impl Literal {
+    pub(crate) fn new(kind: LiteralKind, span: Span) -> Self {
+        Self { kind, span }
     }
 }
 
@@ -331,13 +344,15 @@ impl Display for TokenKind {
             TokenKind::X => write!(f, "X"),
             TokenKind::Keyword(kw) => write!(f, "{}", kw),
             TokenKind::Ident(ident) => write!(f, "{}", ident),
-            TokenKind::Literal(Literal::Number(num)) => write!(f, "{num}"),
-            TokenKind::Literal(Literal::String(s)) => write!(f, "\"{s}\""),
-            TokenKind::Literal(Literal::Data(data)) => write!(f, "{data:?}"),
-            TokenKind::Literal(Literal::IPv4Address(ip)) => write!(f, "{ip}"),
-            TokenKind::Literal(Literal::Boolean(b)) => write!(f, "{}", b),
-            TokenKind::Literal(Literal::Null) => write!(f, "Null"),
-            TokenKind::Literal(Literal::AttackCategory(c)) => write!(f, "{c}"),
+            TokenKind::Literal(literal) => match &literal.kind {
+                LiteralKind::Number(num) => write!(f, "{num}"),
+                LiteralKind::String(s) => write!(f, "\"{s}\""),
+                LiteralKind::Data(data) => write!(f, "{data:?}"),
+                LiteralKind::IPv4Address(ip) => write!(f, "{ip}"),
+                LiteralKind::Boolean(b) => write!(f, "{}", b),
+                LiteralKind::Null => write!(f, "Null"),
+                LiteralKind::AttackCategory(c) => write!(f, "{c}"),
+            },
             TokenKind::Eof => write!(f, ""),
         }
     }
@@ -354,14 +369,6 @@ pub struct Token {
 impl Token {
     pub fn new(kind: TokenKind, span: Span) -> Self {
         Self { kind, span }
-    }
-
-    // TODO get rid of this
-    pub fn sentinel() -> Token {
-        Self {
-            kind: TokenKind::X,
-            span: Span::new(CharIndex(0), CharIndex(0)),
-        }
     }
 
     pub(crate) fn span(&self) -> Span {
@@ -389,6 +396,18 @@ impl Spanned for Ident {
 }
 
 impl Spanned for &Ident {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl Spanned for Literal {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl Spanned for &Literal {
     fn span(&self) -> Span {
         self.span
     }
