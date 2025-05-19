@@ -137,7 +137,12 @@ impl Interpreter<'_> {
             }?;
             Ok(lhs.clone())
         };
-        assign(val_mut, &indices, modify).map_err(|e| e.with_span(&span))
+        let val = assign(val_mut, &indices, modify).map_err(|e| e.with_span(&span))?;
+        if assignment.lhs.negate {
+            Ok(val.not().map_err(|e| e.with_span(&*assignment.rhs))?)
+        } else {
+            Ok(val)
+        }
     }
 
     pub(crate) async fn resolve_increment(&mut self, increment: &Increment) -> Result {
@@ -226,6 +231,8 @@ mod tests {
     );
 
     interpreter_test_ok!(array_creation, "a = [1, 2, 3];", vec![1, 2, 3]);
+
+    interpreter_test_ok!(assign_negate, "!a = FALSE;", true);
 
     #[test]
     fn multidimensional_array() {
