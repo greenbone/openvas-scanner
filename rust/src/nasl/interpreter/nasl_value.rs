@@ -128,31 +128,31 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn as_dict(&self) -> Result<&HashMap<String, NaslValue>, ErrorKind> {
+    pub(crate) fn as_dict(&self) -> Option<&HashMap<String, NaslValue>> {
         match self {
-            NaslValue::Dict(d) => Ok(d),
-            _ => Err(ErrorKind::ExpectedDict),
+            NaslValue::Dict(d) => Some(d),
+            _ => None,
         }
     }
 
-    pub(crate) fn as_array(&self) -> Result<&Vec<NaslValue>, ErrorKind> {
+    pub(crate) fn as_array(&self) -> Option<&Vec<NaslValue>> {
         match self {
-            NaslValue::Array(d) => Ok(d),
-            _ => Err(ErrorKind::ExpectedArray),
+            NaslValue::Array(d) => Some(d),
+            _ => None,
         }
     }
 
-    pub(crate) fn as_dict_mut(&mut self) -> Result<&mut HashMap<String, NaslValue>, ErrorKind> {
+    pub(crate) fn as_dict_mut(&mut self) -> Option<&mut HashMap<String, NaslValue>> {
         match self {
-            NaslValue::Dict(d) => Ok(d),
-            _ => Err(ErrorKind::ExpectedDict),
+            NaslValue::Dict(d) => Some(d),
+            _ => None,
         }
     }
 
-    pub(crate) fn as_array_mut(&mut self) -> Result<&mut Vec<NaslValue>, ErrorKind> {
+    pub(crate) fn as_array_mut(&mut self) -> Option<&mut Vec<NaslValue>> {
         match self {
-            NaslValue::Array(d) => Ok(d),
-            _ => Err(ErrorKind::ExpectedArray),
+            NaslValue::Array(d) => Some(d),
+            _ => None,
         }
     }
 
@@ -175,20 +175,21 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn index(&self, index: NaslValue) -> Result<&NaslValue, ErrorKind> {
-        if let Ok(arr) = self.as_array() {
-            let index = index.as_number()?;
+    pub(super) fn index(&self, index: NaslValue) -> Result<&NaslValue, ExprError> {
+        if let Some(arr) = self.as_array() {
+            let index = index.as_number().map_err(ExprError::rhs)?;
             let index = index
                 .try_into()
-                .map_err(|_| ErrorKind::NegativeIndex(index))?;
+                .map_err(|_| ErrorKind::NegativeIndex(index))
+                .map_err(ExprError::rhs)?;
             arr.get(index)
-                .ok_or_else(|| ErrorKind::ArrayOutOfRange(index).into())
-        } else if let Ok(dict) = self.as_dict() {
-            let index = index.as_string()?;
+                .ok_or_else(|| ExprError::lhs(ErrorKind::ArrayOutOfRange(index)))
+        } else if let Some(dict) = self.as_dict() {
+            let index = index.as_string().map_err(ExprError::rhs)?;
             dict.get(&index)
-                .ok_or_else(|| ErrorKind::DictKeyDoesNotExist(index).into())
+                .ok_or_else(|| ExprError::lhs(ErrorKind::DictKeyDoesNotExist(index)))
         } else {
-            Err(ErrorKind::ArrayOrDictExpected.into())
+            Err(ExprError::lhs(ErrorKind::ArrayOrDictExpected))
         }
     }
 
@@ -246,7 +247,7 @@ impl NaslValue {
     }
 
     pub(super) fn match_regex(&self, matches: NaslValue) -> Result<bool, ExprError> {
-        let matches = matches.as_string().map_err(ExprError::lhs)?;
+        let matches = matches.as_string().map_err(ExprError::rhs)?;
         match Regex::new(&matches) {
             Ok(c) => Ok(c.is_match(&self.to_string())),
             Err(_) => Err(ExprError::rhs(ErrorKind::InvalidRegex(matches.to_owned()))),

@@ -15,7 +15,7 @@ use std::collections::VecDeque;
 
 use crate::nasl::{
     Code, Context,
-    error::{Span, Spanned},
+    error::Span,
     syntax::{
         Ident,
         grammar::{
@@ -361,7 +361,7 @@ impl<'ctx> Interpreter<'ctx> {
         let lhs = self.resolve_expr(&array_access.lhs_expr).await?;
         let index = self.resolve_expr(&array_access.index_expr).await?;
         lhs.index(index)
-            .map_err(|e| e.with_span(&*array_access.index_expr))
+            .map_err(|e| e.to_error(&array_access.lhs_expr, &array_access.index_expr))
             .map(|val| val.clone())
     }
 
@@ -413,11 +413,7 @@ impl<'ctx> Interpreter<'ctx> {
             EqualEqual => Ok(NaslValue::Boolean(lhs == rhs)),
             BangEqual => Ok(NaslValue::Boolean(lhs != rhs)),
         };
-        eval().map_err(|err| match err.location {
-            ExprLocation::Lhs => err.kind.with_span(&binary.lhs.span()),
-            ExprLocation::Rhs => err.kind.with_span(&binary.rhs.span()),
-            ExprLocation::Both => unreachable!(),
-        })
+        eval().map_err(|err| err.to_error(&binary.lhs, &binary.rhs))
     }
 
     async fn resolve_array(&mut self, array: &Array) -> Result {

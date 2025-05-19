@@ -12,6 +12,7 @@ use scannerlib::{
     feed,
     nasl::{
         Code, Context, Register,
+        error::{Level, emit_errors},
         interpreter::ForkingInterpreter,
         nasl_std_functions,
         utils::{context::Target, error::ReturnBehavior},
@@ -49,9 +50,9 @@ fn load(ctx: &Context, script: &Path) -> Result<String, CliErrorKind> {
 async fn run_with_context(context: Context<'_>, script: &Path) -> Result<(), CliErrorKind> {
     let register = Register::default();
     let code = Code::from_string_filename(&load(&context, script)?, script);
-    let ast = code
+    let (ast, file) = code
         .parse()
-        .emit_errors()
+        .emit_errors_get_ast_and_file()
         .map_err(CliErrorKind::SyntaxError)?;
     let mut results = ForkingInterpreter::new(ast, register, &context).stream();
     while let Some(result) = results.next().await {
@@ -60,13 +61,17 @@ async fn run_with_context(context: Context<'_>, script: &Path) -> Result<(), Cli
             Err(e) => {
                 if let InterpreterErrorKind::FunctionCallError(ref fe) = e.kind {
                     match fe.kind.return_behavior() {
-                        ReturnBehavior::ExitScript => return Err(e.into()),
+                        ReturnBehavior::ExitScript => {
+                            emit_errors(&file, std::iter::once(&e), Level::Error);
+                            return Err(e.into());
+                        }
                         ReturnBehavior::ReturnValue(val) => {
-                            tracing::warn!("{}", e.to_string());
+                            emit_errors(&file, std::iter::once(&e), Level::Warn);
                             val.clone()
                         }
                     }
                 } else {
+                    emit_errors(&file, std::iter::once(&e), Level::Error);
                     return Err(e.into());
                 }
             }

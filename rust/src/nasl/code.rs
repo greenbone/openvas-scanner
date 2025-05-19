@@ -4,6 +4,7 @@ use codespan_reporting::files::SimpleFile;
 
 use super::{
     Loader,
+    error::Level,
     syntax::{LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
@@ -46,7 +47,17 @@ impl ParseResult {
         match self.result {
             Ok(result) => Ok(result),
             Err(errors) => {
-                super::error::emit_errors(&self.file, errors.iter().cloned());
+                super::error::emit_errors(&self.file, errors.iter().cloned(), Level::Error);
+                Err(errors)
+            }
+        }
+    }
+
+    pub fn emit_errors_get_ast_and_file(self) -> Result<(Ast, SourceFile), Vec<ParseError>> {
+        match self.result {
+            Ok(result) => Ok((result, self.file)),
+            Err(errors) => {
+                super::error::emit_errors(&self.file, errors.iter().cloned(), Level::Error);
                 Err(errors)
             }
         }
@@ -120,7 +131,10 @@ mod tokenize {
     use codespan_reporting::files::SimpleFile;
     use itertools::{Either, Itertools};
 
-    use crate::nasl::syntax::{Token, Tokenizer, TokenizerError};
+    use crate::nasl::{
+        error::Level,
+        syntax::{Token, Tokenizer, TokenizerError},
+    };
 
     use super::{super::error, SourceFile};
 
@@ -156,7 +170,7 @@ mod tokenize {
             match self.result {
                 Ok(result) => Some(result),
                 Err(errors) => {
-                    error::emit_errors(&self.file, errors.into_iter());
+                    error::emit_errors(&self.file, errors.into_iter(), Level::Error);
                     None
                 }
             }

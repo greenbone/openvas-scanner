@@ -28,7 +28,7 @@ pub fn interpret_err(file_name: &str, code: &str) -> String {
         .unwrap_err();
     emit_errors_str(
         &SimpleFile::new(file_name.to_string(), code.to_string()),
-        vec![err].into_iter(),
+        std::iter::once(&err),
     )
 }
 
@@ -154,3 +154,12 @@ interpreter_test_err!(function_instead_of_variable, "function foo() { } a = foo;
 interpreter_test_err!(variable_instead_of_function, "foo = 3; foo();");
 
 interpreter_test_err!(invalid_regex, r#"a = "hello world"; a =~ "[";"#);
+
+interpreter_test_err!(undefined_fn, "foo();");
+
+interpreter_test_err!(expected_str, "a =~ 5;");
+interpreter_test_err!(expected_number, "a = [1, 2, 3]; a['hello'];");
+interpreter_test_err!(expected_array, "a = 5; a[3];");
+
+interpreter_test_err!(array_out_of_range, "a = [1, 2, 3]; a[3];");
+interpreter_test_err!(negative_array_index, "a = [1, 2, 3]; a[-3];");

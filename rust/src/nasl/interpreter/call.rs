@@ -66,7 +66,9 @@ impl Interpreter<'_> {
         let found = self
             .register
             .named(fn_name.to_str())
-            .ok_or_else(|| ErrorKind::NotFound(fn_name.to_str().to_owned()).with_span(&fn_name))?
+            .ok_or_else(|| {
+                ErrorKind::UndefinedFunction(fn_name.to_str().to_owned()).with_span(&fn_name)
+            })?
             .clone();
         match found {
             RuntimeValue::Function(arguments, stmt) => {

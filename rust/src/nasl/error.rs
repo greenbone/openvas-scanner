@@ -59,15 +59,26 @@ pub trait AsCodespanError {
     fn message(&self) -> String;
 }
 
-pub fn emit_errors<T: AsCodespanError>(file: &SourceFile, errs: impl Iterator<Item = T>) {
+pub enum Level {
+    Warn,
+    Error,
+}
+
+pub fn emit_errors<T: AsCodespanError>(
+    file: &SourceFile,
+    errs: impl Iterator<Item = T>,
+    level: Level,
+) {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let config = codespan_reporting::term::Config::default();
     for err in errs {
-        let diagnostic = Diagnostic::error()
-            .with_message(err.message())
-            .with_labels(vec![
-                Label::primary((), err.span()).with_message(err.message()),
-            ]);
+        let diagnostic = match level {
+            Level::Warn => Diagnostic::warning(),
+            Level::Error => Diagnostic::error(),
+        };
+        let diagnostic = diagnostic.with_message(err.message()).with_labels(vec![
+            Label::primary((), err.span()).with_message(err.message()),
+        ]);
         term::emit(&mut writer.lock(), &config, file, &diagnostic).unwrap();
     }
 }

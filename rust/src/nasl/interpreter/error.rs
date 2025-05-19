@@ -4,7 +4,8 @@
 
 use crate::nasl::NaslValue;
 use crate::nasl::code::SourceFile;
-use crate::nasl::error::{AsCodespanError, Span, Spanned, emit_errors};
+use crate::nasl::error::{AsCodespanError, Level, Span, Spanned, emit_errors};
+use crate::nasl::syntax::grammar::Expr;
 use crate::nasl::syntax::{CharIndex, ParseError};
 use crate::nasl::syntax::{Ident, LoadError};
 use crate::nasl::utils::error::FnError;
@@ -79,9 +80,9 @@ pub enum InterpreterErrorKind {
     /// Syntax errors in the script.
     #[error("Syntax errors occurred.")]
     SyntaxError(Vec<ParseError>),
-    /// When the given key was not found in the context
-    #[error("Key not found: {0}")]
-    NotFound(String),
+    /// When the given function is undefined.
+    #[error("Undefined function: {0}")]
+    UndefinedFunction(String),
     /// A LoadError occurred
     #[error("{0}")]
     LoadError(LoadError),
@@ -97,16 +98,8 @@ pub enum InterpreterErrorKind {
     InvalidFork,
     #[error("Expected a string.")]
     ExpectedString,
-    #[error("Expected a boolean.")]
-    ExpectedBoolean,
     #[error("Expected a number.")]
     ExpectedNumber,
-    #[error("Expected an array.")]
-    ExpectedArray,
-    #[error("Expected a dict.")]
-    ExpectedDict,
-    #[error("Undefined variable: {0}")]
-    UndefinedVariable(Ident),
     #[error("Assignment to undefined variable: {0}")]
     AssignmentToUndefinedVar(Ident),
     #[error("Array out of range for index: {0}")]
@@ -162,7 +155,7 @@ pub struct IncludeSyntaxError {
 // for InterpreterError as well.
 impl std::fmt::Display for IncludeSyntaxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        emit_errors(&self.file, self.errs.iter().cloned());
+        emit_errors(&self.file, self.errs.iter().cloned(), Level::Error);
         write!(f, "Syntax error while including file.")
     }
 }
@@ -173,7 +166,7 @@ impl InterpreterError {
     }
 }
 
-impl AsCodespanError for InterpreterError {
+impl AsCodespanError for &InterpreterError {
     fn span(&self) -> Span {
         self.span
     }
@@ -214,5 +207,14 @@ impl ExprError {
             kind,
             location: ExprLocation::Both,
         }
+    }
+
+    pub(crate) fn to_error(self, lhs_expr: &Expr, rhs_expr: &Expr) -> InterpreterError {
+        let span = match self.location {
+            ExprLocation::Lhs => lhs_expr.span(),
+            ExprLocation::Rhs => rhs_expr.span(),
+            ExprLocation::Both => lhs_expr.span().join(rhs_expr.span()),
+        };
+        InterpreterError::new(self.kind, span)
     }
 }
