@@ -25,7 +25,7 @@ expression: "tokenize_ok(stringify! (data_escape_quoting), r#\"'version=\\\"1.0\
                 ),
                 span: Span {
                     start: CharIndex(
-                        1,
+                        0,
                     ),
                     end: CharIndex(
                         17,

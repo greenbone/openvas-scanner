@@ -32,7 +32,7 @@ expression: "tokenize_ok(stringify! (string_quoting), r\"'webapps\\\\\\\\applian
                 ),
                 span: Span {
                     start: CharIndex(
-                        1,
+                        0,
                     ),
                     end: CharIndex(
                         26,

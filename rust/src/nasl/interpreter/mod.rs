@@ -333,6 +333,7 @@ impl<'ctx> Interpreter<'ctx> {
                 LiteralKind::Null => NaslValue::Null,
                 LiteralKind::Boolean(b) => NaslValue::Boolean(*b),
                 LiteralKind::AttackCategory(a) => NaslValue::AttackCategory(*a),
+                LiteralKind::FCTAnonArgs => NaslValue::Array(self.register.positional().to_vec()),
             }),
             Atom::FnCall(call) => self.resolve_fn_call(call).await,
             Atom::Ident(ident) => Ok(self.resolve_var(ident)?.clone()),

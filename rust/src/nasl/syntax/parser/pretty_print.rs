@@ -320,6 +320,7 @@ impl Display for Literal {
             LiteralKind::Boolean(b) => write!(f, "{}", if *b { "TRUE" } else { "FALSE" }),
             LiteralKind::Null => write!(f, "Null"),
             LiteralKind::AttackCategory(a) => write!(f, "{a}"),
+            LiteralKind::FCTAnonArgs => write!(f, "_FCT_ANON_ARGS"),
         }
     }
 }

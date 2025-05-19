@@ -484,15 +484,15 @@ impl BinaryOperator {
     pub fn binding_power(&self) -> (usize, usize) {
         use BinaryOperatorKind::*;
         match self.kind {
-            StarStar => (22, 23),
-            Star | Slash | Percent => (20, 21),
-            Plus | Minus => (18, 19),
-            LessLess | GreaterGreater | GreaterGreaterGreater => (16, 17),
-            Ampersand => (14, 15),
-            Caret => (12, 13),
-            Pipe => (10, 11),
+            StarStar => (24, 25),
+            Star | Slash | Percent => (22, 23),
+            Plus | Minus => (20, 21),
+            LessLess | GreaterGreater | GreaterGreaterGreater => (18, 19),
+            Ampersand => (16, 17),
+            Caret => (14, 15),
+            Pipe => (12, 13),
             Less | LessEqual | Greater | GreaterEqual | EqualEqual | BangEqual | GreaterLess
-            | GreaterBangLess | EqualTilde | BangTilde => (8, 9),
+            | GreaterBangLess | EqualTilde | BangTilde => (10, 11),
             AmpersandAmpersand => (6, 7),
             PipePipe => (4, 5),
         }
@@ -501,7 +501,7 @@ impl BinaryOperator {
 
 impl AssignmentOperator {
     pub fn binding_power(&self) -> (usize, usize) {
-        (2, 3)
+        (9, 8)
     }
 }
 
@@ -509,7 +509,7 @@ impl UnaryPrefixOperatorWithIncrement {
     pub fn right_binding_power(&self) -> usize {
         use UnaryPrefixOperatorWithIncrementKind::*;
         match self.kind {
-            Plus | Minus | Tilde | Bang | PlusPlus | MinusMinus => 21,
+            Plus | Minus | Tilde | Bang | PlusPlus | MinusMinus => 29,
         }
     }
 }
@@ -518,10 +518,10 @@ impl UnaryPostfixOperator {
     pub fn left_binding_power(&self) -> usize {
         use UnaryPostfixOperatorKind::*;
         match self.kind {
-            PlusPlus => 21,
-            MinusMinus => 21,
-            LeftBracket => 25,
-            LeftParen => 27,
+            PlusPlus => 23,
+            MinusMinus => 23,
+            LeftBracket => 31,
+            LeftParen => 33,
         }
     }
 }

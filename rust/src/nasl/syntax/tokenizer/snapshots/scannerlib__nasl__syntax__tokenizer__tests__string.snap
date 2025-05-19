@@ -11,7 +11,7 @@ expression: "tokenize_ok(stringify! (string), \"\\\"I am a closed string \\\"\")
                 ),
                 span: Span {
                     start: CharIndex(
-                        1,
+                        0,
                     ),
                     end: CharIndex(
                         23,

@@ -127,7 +127,7 @@ parse_test_err!(
     multiple_declarations_error,
     Program,
     "a = 1;
-     a = b = 3;
+     a = 2
      a = b = 3;"
 );
 parse_test_ok!(
@@ -316,14 +316,20 @@ parse_test_ok!(array_assignment_multi, Statement, "a[1][2][3] = 3;");
 parse_test_err!(assignment_without_place_expr1, Statement, "5 = 3;");
 parse_test_err!(assignment_without_place_expr2, Statement, "5 + 3 = 3;");
 parse_test_err!(assignment_without_place_expr3, Statement, "a(1) = 3;");
+parse_test_err!(assignment_without_place_expr4, Statement, "\"foo\" = 3;");
+parse_test_err!(assignment_without_place_expr5, Statement, "\'foo\' = 3;");
+parse_test_err!(assignment_without_place_expr6, Statement, "[1, 2, 3] = 3;");
 parse_test_err!(increment_without_place_expr1, Expr, "5++");
 parse_test_err!(increment_without_place_expr2, Expr, "(5 + 3)++");
 parse_test_err!(increment_without_place_expr3, Expr, "a(1)++");
 parse_test_err!(increment_without_place_expr4, Expr, "++a(1)");
 
+parse_test_ok!(increment_comparison, Expr, "++foo > bar");
+
 parse_test_err!(multiple_increments, Statement, "x++ ++");
 
-parse_test_err!(multiple_assignments_in_line, Statement, "a[1] = 3 = 5;");
+parse_test_err!(multiple_assignments_invalid, Statement, "a[1] = 3 = 5;");
+parse_test_ok!(multiple_assignments_valid, Statement, "a[1] = b = 5;");
 
 parse_test_ok!(
     wonderful_x_operator,

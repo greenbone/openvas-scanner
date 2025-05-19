@@ -26,7 +26,7 @@ expression: "tokenize_ok(stringify! (data_string), r#\"'Hello \\\\\\'you\\\\\\'!
                 ),
                 span: Span {
                     start: CharIndex(
-                        1,
+                        0,
                     ),
                     end: CharIndex(
                         20,

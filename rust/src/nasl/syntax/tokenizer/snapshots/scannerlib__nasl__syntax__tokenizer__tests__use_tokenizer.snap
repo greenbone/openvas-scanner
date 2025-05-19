@@ -65,7 +65,7 @@ expression: "tokenize_ok(stringify! (use_tokenizer), \"local_var hello = 'World!
                 ),
                 span: Span {
                     start: CharIndex(
-                        19,
+                        18,
                     ),
                     end: CharIndex(
                         26,

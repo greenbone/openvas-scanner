@@ -230,6 +230,11 @@ impl Parser {
     fn make_span(&self, pos: PositionMarker) -> Span {
         Span::new(pos.pos, self.cursor.previous_token_end())
     }
+
+    fn error(&self, start: PositionMarker, kind: ParseErrorKind) -> Error {
+        let err: Error = kind.into();
+        err.with_span(&self.make_span(start))
+    }
 }
 
 fn parse_stmt_without_semicolon(parser: &mut Parser) -> Result<Statement> {
@@ -505,6 +510,7 @@ impl Parse for Expr {
 }
 
 fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
+    let start = parser.remember_pos();
     let mut lhs = if parser.matches::<Atom>() {
         Expr::Atom(parser.parse()?)
     } else if parser.consume_if_matches(TokenKind::LeftParen) {
@@ -524,7 +530,8 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             }),
             UnaryPrefixOperatorWithIncrementKind::PlusPlus
             | UnaryPrefixOperatorWithIncrementKind::MinusMinus => {
-                let expr = parser.parse_span()?;
+                let expr = pratt_parse_expr(parser, r_bp)?;
+                let expr = PlaceExpr::from_expr(expr)?;
                 Expr::Atom(Atom::Increment(Increment {
                     op: op.into(),
                     expr,
@@ -533,7 +540,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
             }
         }
     } else {
-        Err(ErrorKind::ExpressionExpected)?
+        return Err(parser.error(start, ErrorKind::ExpressionExpected));
     };
 
     loop {
@@ -685,13 +692,6 @@ impl PlaceExpr {
         } else {
             make_err()
         }
-    }
-}
-
-impl Parse for PlaceExpr {
-    fn parse(parser: &mut Parser) -> Result<Self> {
-        let expr = Expr::parse(parser)?;
-        Self::from_expr(expr)
     }
 }
 

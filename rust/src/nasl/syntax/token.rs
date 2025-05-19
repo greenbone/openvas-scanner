@@ -17,8 +17,6 @@ use crate::nasl::error::Spanned;
 pub enum Keyword {
     /// function declaration
     Function,
-    /// _FCT_ANON_ARGS
-    FCTAnonArgs,
     /// for
     For,
     /// foreach
@@ -80,7 +78,6 @@ macro_rules! make_keyword_matcher {
 
 make_keyword_matcher! {
     function, Keyword::Function,
-    _FCT_ANON_ARGS, Keyword::FCTAnonArgs,
     for, Keyword::For,
     foreach, Keyword::ForEach,
     if, Keyword::If,
@@ -135,6 +132,8 @@ pub enum LiteralKind {
     AttackCategory(ACT),
     /// Null
     Null,
+    /// Anonymous function args
+    FCTAnonArgs,
 }
 
 impl LiteralKind {
@@ -155,6 +154,7 @@ impl LiteralKind {
             "ACT_MIXED_ATTACK" => Some(Self::AttackCategory(ACT::MixedAttack)),
             "ACT_SCANNER" => Some(Self::AttackCategory(ACT::Scanner)),
             "ACT_SETTINGS" => Some(Self::AttackCategory(ACT::Settings)),
+            "_FCT_ANON_ARGS" => Some(Self::FCTAnonArgs),
             _ => None,
         }
     }
@@ -352,6 +352,7 @@ impl Display for TokenKind {
                 LiteralKind::Boolean(b) => write!(f, "{}", b),
                 LiteralKind::Null => write!(f, "Null"),
                 LiteralKind::AttackCategory(c) => write!(f, "{c}"),
+                LiteralKind::FCTAnonArgs => write!(f, "_FCT_ANON_ARGS"),
             },
             TokenKind::Eof => write!(f, ""),
         }

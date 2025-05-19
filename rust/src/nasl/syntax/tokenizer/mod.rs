@@ -386,7 +386,7 @@ impl Tokenizer {
             self.cursor.advance();
             Ok(TokenKind::Literal(Literal::new(
                 LiteralKind::String(result),
-                self.cursor.span_from(start),
+                self.cursor.span_from(start - 1),
             )))
         }
     }
@@ -415,7 +415,7 @@ impl Tokenizer {
             raw_str = raw_str.replace(r"\r", "\r");
             raw_str = raw_str.replace(r"\t", "\t");
             self.cursor.advance();
-            let span = self.cursor.span_from(start);
+            let span = self.cursor.span_from(start - 1);
             Ok(TokenKind::Literal(Literal::new(
                 LiteralKind::Data(raw_str.as_bytes().to_vec()),
                 span,
