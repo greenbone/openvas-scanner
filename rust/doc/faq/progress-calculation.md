@@ -14,10 +14,16 @@ You get a json object which looks like as following:
     "alive": 1,
     "queued": 0,
     "finished": 1,
-    "scanning": [
-      "127.0.0.1": 12,
-      "127.0.0.3": 75,
-    ]
+    "scanning": {
+      "127.0.0.1": {
+        finished_tests: 10,
+        total_tests: 20
+      },
+      "127.0.0.3": {
+        finished_tests: 12,
+        total_tests: 20
+      }
+    }
   }
 }
 ``` 
@@ -25,13 +31,16 @@ You get a json object which looks like as following:
 Then, with this information you can calculate the scan progress with the following suggested formula:
 
 ```
-scan_progress = (sum_of_scanning_hosts_values + 100 * finished)
+for host in scanning {
+    sum_of_scanning_hosts_progress += 100 * finished_tests / total_tests
+    }
+scan_progress = (sum_of_scanning_hosts_progress + 100 * finished)
           / (all - dead)
 ```
 For the example given above, the progress is:
 
 ```
-scan_progress = (12 + 75 + 100 * 1) / (12 - 2) = 18.7 %
+scan_progress = (50 + 60 + 100 * 1) / (12 - 2) = 18.7 %
 ```
 
 ## Special case for resume task
@@ -54,8 +63,8 @@ At the beginning of the resumed scan you have:
     "alive": 1,
     "queued": 0,
     "finished": 1,
-    "scanning": [
-    ]
+    "scanning": {
+    }
   }
 }
 
