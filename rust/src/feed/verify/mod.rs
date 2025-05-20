@@ -13,7 +13,7 @@
 use std::{
     fs::File,
     io::{self, BufRead, BufReader, Read},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use crate::nasl::syntax::{AsBufReader, LoadError};
@@ -326,10 +326,10 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
 
 /// Contains all information  necessary to do a hash sum check
 pub struct HashSumFileItem<'a> {
-    file_name: String,
-    hashsum: String,
-    hasher: Hasher,
-    reader: &'a FSPluginLoader,
+    pub file_name: String,
+    pub hashsum: String,
+    pub hasher: Hasher,
+    pub reader: &'a FSPluginLoader,
 }
 
 impl HashSumFileItem<'_> {
@@ -442,5 +442,61 @@ impl Iterator for NaslFileFinder {
 impl FileNameLoader for NaslFileFinder {
     fn next_filename(&mut self) -> Option<Result<String, Error>> {
         self.next()
+    }
+}
+
+fn get_all_plugins(loader: &FSPluginLoader) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    if let Ok(rp) = loader.root_path() {
+        for e in walkdir::WalkDir::new(&rp)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            if e.path().extension().map_or(false, |ext| ext == "nasl") {
+                if let Some(p) = e.path().to_str() {
+                    let path_str = p[rp.to_string().len() + 1..].to_string();
+                    let path = Path::new(&path_str).to_owned();
+                    files.push(path);
+                }
+            }
+        }
+    }
+    files
+}
+
+pub struct FakeVerifier<'a> {
+    loader: &'a FSPluginLoader,
+    files: Vec<PathBuf>,
+}
+
+impl<'a> FakeVerifier<'a> {
+    pub fn new(loader: &'a FSPluginLoader) -> Self {
+        Self {
+            loader,
+            files: get_all_plugins(loader),
+        }
+    }
+}
+
+impl<'a> Iterator for FakeVerifier<'a> {
+    type Item = Result<HashSumFileItem<'a>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.files.pop().map(|file| {
+            // Compute the hash sum in advance so that the
+            // check will always succeed.
+            let hasher = Hasher::Sha256;
+            let file_name = file.as_path().to_str().unwrap().to_owned();
+            let hashsum = hasher.hash(
+                &mut self.loader.as_bufreader(&file_name).unwrap(),
+                &file_name,
+            )?;
+            Ok(HashSumFileItem {
+                file_name,
+                hashsum,
+                hasher,
+                reader: self.loader,
+            })
+        })
     }
 }

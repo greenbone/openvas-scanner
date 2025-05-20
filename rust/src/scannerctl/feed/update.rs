@@ -4,6 +4,7 @@
 
 use std::path::Path;
 
+use scannerlib::feed::FakeVerifier;
 use scannerlib::nasl::utils::context::ContextStorage;
 use scannerlib::{feed, nasl::FSPluginLoader};
 
@@ -18,8 +19,14 @@ where
     // needed to strip the root path so that we can build a relative path
     // e.g. 2006/something.nasl
     let loader = FSPluginLoader::new(path);
-    let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
+    let updater = if signature_check {
+        todo!()
+        // let verifier = feed::HashSumNameLoader::sha256(&loader)?;
+        // feed::Update::init("1", 5, &loader, &storage, verifier)
+    } else {
+        let verifier = FakeVerifier::new(&loader);
+        feed::Update::init("1", 5, &loader, &storage, verifier)
+    };
 
     if signature_check {
         match updater.verify_signature() {
