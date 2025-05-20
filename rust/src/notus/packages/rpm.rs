@@ -338,6 +338,15 @@ mod rpm_tests {
         assert_eq!(package.version, PackageVersion("0.60.6.1".to_string()));
         assert_eq!(package.release, PackageVersion("18.3.1".to_string()));
         assert_eq!(package.get_version(), "0.60.6.1-18.3.1.x86_64");
+
+        let package = Rpm::from_full_name("nodejs-1:16.20.2-3.module+el8.8.0+1543+5f4d09d5.x86_64@nodejs:16").unwrap();
+        assert_eq!(package.name, "nodejs");
+        assert_eq!(package.epoch, 1);
+        assert_eq!(package.version, PackageVersion("16.20.2".to_string()));
+        assert_eq!(package.release, PackageVersion("3.module+el8.8.0+1543+5f4d09d5".to_string()));
+        assert_eq!(package.module, Module{name: "nodejs".to_string(), stream: "16".to_string()});
+        assert_eq!(package.arch, "x86_64");
+        assert_eq!(package.get_version(), "1:16.20.2-3.module+el8.8.0+1543+5f4d09d5.x86_64");
     }
 
     #[test]
@@ -397,6 +406,33 @@ mod rpm_tests {
             module: Module {
                 name: "".to_string(),
                 stream: "".to_string(),
+            },
+        };
+        assert!(package2 > package1);
+    }
+
+    #[test]
+    pub fn test_compare_gt_module() {
+        let package1 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: PackageVersion("1.2.3".to_string()),
+            release: PackageVersion("4".to_string()),
+            arch: "x86_64".to_string(),
+            module: Module {
+                name: "bar".to_string(),
+                stream: "1337".to_string(),
+            },
+        };
+        let package2 = Rpm {
+            name: "foo-bar".to_string(),
+            epoch: 0,
+            version: PackageVersion("1.2.4".to_string()),
+            release: PackageVersion("4".to_string()),
+            arch: "x86_64".to_string(),
+            module: Module {
+                name: "bar".to_string(),
+                stream: "1337".to_string(),
             },
         };
         assert!(package2 > package1);
@@ -506,6 +542,59 @@ mod rpm_tests {
             module: Module {
                 name: "".to_string(),
                 stream: "".to_string(),
+            },
+        };
+        assert!(package2.partial_cmp(&package1).is_none());
+        assert!(package1.partial_cmp(&package2).is_none());
+    }
+
+    #[test]
+    pub fn test_compare_different_module() {
+        let package1 = Rpm {
+            name: "foo".to_string(),
+            epoch: 0,
+            version: PackageVersion("1.2.3".to_string()),
+            release: PackageVersion("4".to_string()),
+            arch: "x86_64".to_string(),
+            module: Module {
+                name: "bar".to_string(),
+                stream: "1337".to_string(),
+            },
+        };
+        let package2 = Rpm {
+            name: "foo".to_string(),
+            epoch: 0,
+            version: PackageVersion("1.2.3".to_string()),
+            release: PackageVersion("4".to_string()),
+            arch: "x86_64".to_string(),
+            module: Module {
+                name: "baz".to_string(),
+                stream: "1337".to_string(),
+            },
+        };
+        assert!(package2.partial_cmp(&package1).is_none());
+        assert!(package1.partial_cmp(&package2).is_none());
+
+        let package1 = Rpm {
+            name: "foo".to_string(),
+            epoch: 0,
+            version: PackageVersion("1.2.3".to_string()),
+            release: PackageVersion("4".to_string()),
+            arch: "x86_64".to_string(),
+            module: Module {
+                name: "bar".to_string(),
+                stream: "1337".to_string(),
+            },
+        };
+        let package2 = Rpm {
+            name: "foo".to_string(),
+            epoch: 0,
+            version: PackageVersion("1.2.3".to_string()),
+            release: PackageVersion("4".to_string()),
+            arch: "x86_64".to_string(),
+            module: Module {
+                name: "bar".to_string(),
+                stream: "1338".to_string(),
             },
         };
         assert!(package2.partial_cmp(&package1).is_none());
