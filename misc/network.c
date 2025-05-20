@@ -1968,13 +1968,13 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
             {
               char host_port_ip_str[INET6_ADDRSTRLEN];
 
+              addr6_to_str (args->ip, host_port_ip_str);
               g_snprintf (buffer, sizeof (buffer), "Ports/tcp/%d", port);
               g_message ("open_sock_tcp: %s:%d too many timeouts. "
                          "This port will be set to closed.",
                          host_port_ip_str, port);
               kb_item_set_int_with_main_kb_check (kb, buffer, 0);
 
-              addr6_to_str (args->ip, host_port_ip_str);
               snprintf (
                 buffer, sizeof (buffer),
                 "ERRMSG|||%s|||%s|||%d/tcp||| |||Too many timeouts. The port"
