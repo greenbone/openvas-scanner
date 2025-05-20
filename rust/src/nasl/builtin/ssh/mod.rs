@@ -419,11 +419,10 @@ impl Ssh {
         let channel = session.get_channel().await?;
         channel.ensure_open()?;
 
-        let result = match channel.stdin().write_all(cmd.0.as_bytes()) {
+        match channel.stdin().write_all(cmd.0.as_bytes()) {
             Ok(_) => Ok(0),
             Err(_) => Ok(-1),
-        };
-        result
+        }
     }
 
     /// Close an ssh shell.

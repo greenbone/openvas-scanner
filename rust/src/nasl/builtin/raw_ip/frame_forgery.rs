@@ -588,7 +588,7 @@ mod tests {
     #[test]
     fn get_local_mac() {
         if cfg!(target_os = "macos") {
-            assert!(matches!(get_local_mac_address("lo"), Err(_)));
+            assert!(get_local_mac_address("lo").is_err());
         } else {
             assert_eq!(get_local_mac_address("lo").unwrap(), MacAddr::zero());
         }
