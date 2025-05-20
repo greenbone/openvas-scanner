@@ -911,6 +911,33 @@ impl<'a> ScanCtx<'a> {
         Ok(ret)
     }
 
+    pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+        match protocol {
+            Protocol::TCP => {
+                if !self.target.ports_tcp.contains(&port) {
+                    // TODO: Check for unscanned ports option
+                    return Ok(false);
+                }
+                if self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty() {
+                    // TODO: Check for unscanned ports option
+                    return Ok(false);
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+            }
+            Protocol::UDP => {
+                if !self.target.ports_udp.contains(&port) {
+                    // TODO: Check for unscanned ports option
+                    return Ok(false);
+                }
+                if self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty() {
+                    // TODO: Check for unscanned ports option
+                    return Ok(false);
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
+            }
+        }
+    }
+
     pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
         self.sockets.read().await
     }
