@@ -368,4 +368,17 @@ impl Response {
         };
         self.create(hyper::StatusCode::NOT_ACCEPTABLE, &value)
     }
+
+    pub fn not_accepted_with_reason<T>(&self, got: &T, reason: String) -> Result
+    where
+        T: Serialize + std::fmt::Debug,
+    {
+        #[derive(Serialize, Debug)]
+        struct NotAcceptedWithReason<'a, T> {
+            got: &'a T,
+            reason: String,
+        }
+        let value = NotAcceptedWithReason { got, reason };
+        self.create(hyper::StatusCode::NOT_ACCEPTABLE, &value)
+    }
 }
