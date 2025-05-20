@@ -634,7 +634,7 @@ pub fn check_ftp_response(
 
     line = String::from(line.trim());
 
-    if expected_codes.iter().any(|ec| code == *ec) {
+    if expected_codes.contains(&code) {
         Ok(code)
     } else {
         Err(SocketError::ResponseCodeMismatch(

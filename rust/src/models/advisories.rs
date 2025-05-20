@@ -28,7 +28,6 @@ pub struct ProductsAdvisories {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-
 pub struct Advisory {
     /// The advisory's title.
     pub title: String,
