@@ -177,6 +177,16 @@ fn get_port_transport(context: &Context, port: u16, asstring: bool) -> Result<Na
     Ok(ret)
 }
 
+#[nasl_function]
+fn get_port_state(context: &Context, port: u16) -> Result<bool, FnError> {
+    Ok(context.get_port_state(port, crate::models::Protocol::TCP)?)
+}
+
+#[nasl_function]
+fn get_udp_port_state(context: &Context, port: u16) -> Result<bool, FnError> {
+    Ok(context.get_port_state(port, crate::models::Protocol::UDP)?)
+}
+
 pub struct Network;
 
 function_set! {
@@ -190,6 +200,9 @@ function_set! {
         get_mtu,
         get_host_ip,
         get_host_open_port,
-        get_port_transport
+        get_port_transport,
+        get_port_state,
+        (get_port_state, "get_tcp_port_state"),
+        get_udp_port_state,
     )
 }
