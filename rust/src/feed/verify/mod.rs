@@ -452,7 +452,7 @@ fn get_all_plugins(loader: &FSPluginLoader) -> Vec<PathBuf> {
             .into_iter()
             .filter_map(|e| e.ok())
         {
-            if e.path().extension().map_or(false, |ext| ext == "nasl") {
+            if e.path().extension().is_some_and(|ext| ext == "nasl") {
                 if let Some(p) = e.path().to_str() {
                     let path_str = p[rp.to_string().len() + 1..].to_string();
                     let path = Path::new(&path_str).to_owned();
