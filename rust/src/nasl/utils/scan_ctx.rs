@@ -915,10 +915,7 @@ impl<'a> ScanCtx<'a> {
         self.scan_preferences
             .iter()
             .find(|x| x.id == key)
-            .map(|x| match x.value.as_str() {
-                "true" | "1" | "yes" => true,
-                _ => false,
-            })
+            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
     }
 
     pub fn get_preference_int(&self, key: &str) -> Option<i64> {
@@ -938,24 +935,20 @@ impl<'a> ScanCtx<'a> {
     pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
         match protocol {
             Protocol::TCP => {
-                if !self.target.ports_tcp.contains(&port) {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
-                }
-                if self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty() {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
+                if !self.target.ports_tcp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty()
+                {
+                    return Ok(!self.get_preference_bool("unscanned_closed").unwrap_or(true));
                 }
                 self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
             }
             Protocol::UDP => {
-                if !self.target.ports_udp.contains(&port) {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
-                }
-                if self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty() {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
+                if !self.target.ports_udp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty()
+                {
+                    return Ok(!self
+                        .get_preference_bool("unscanned_closed_udp")
+                        .unwrap_or(true));
                 }
                 self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
             }

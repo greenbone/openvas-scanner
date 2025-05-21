@@ -185,13 +185,13 @@ fn get_port_transport(context: &ScanCtx, port: u16, asstring: bool) -> Result<Na
 }
 
 #[nasl_function]
-fn get_port_state(context: &Context, port: u16) -> Result<bool, FnError> {
-    Ok(context.get_port_state(port, crate::models::Protocol::TCP)?)
+fn get_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
+    context.get_port_state(port, crate::models::Protocol::TCP)
 }
 
 #[nasl_function]
-fn get_udp_port_state(context: &Context, port: u16) -> Result<bool, FnError> {
-    Ok(context.get_port_state(port, crate::models::Protocol::UDP)?)
+fn get_udp_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
+    context.get_port_state(port, crate::models::Protocol::UDP)
 }
 
 pub struct Network;
