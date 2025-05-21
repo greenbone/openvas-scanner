@@ -408,10 +408,10 @@ where
                                 .into_iter()
                                 .any(|i| *i == id)
                             {
-                                tracing::debug!(%id, "Scan ID already exists");
-                                return Ok(ctx.response.not_accepted_with_reason(
-                                    &[id],
-                                    "Scan ID already exists".to_string(),
+                                tracing::debug!(%id, "Scan ID already in use");
+                                return Ok(ctx.response.forbidden_with_reason(
+                                    &id,
+                                    "Scan ID already in use".to_string(),
                                 ));
                             };
 
