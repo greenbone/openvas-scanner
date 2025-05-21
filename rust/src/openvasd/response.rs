@@ -368,4 +368,17 @@ impl Response {
         };
         self.create(hyper::StatusCode::NOT_ACCEPTABLE, &value)
     }
+
+    pub fn forbidden_with_reason<T>(&self, got: &T, reason: String) -> Result
+    where
+        T: Serialize + std::fmt::Debug,
+    {
+        #[derive(Serialize, Debug)]
+        struct ForbiddenWithReason<'a, T> {
+            got: &'a T,
+            reason: String,
+        }
+        let value = ForbiddenWithReason { got, reason };
+        self.create(hyper::StatusCode::FORBIDDEN, &value)
+    }
 }
