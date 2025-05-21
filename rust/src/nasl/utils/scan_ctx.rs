@@ -911,6 +911,30 @@ impl<'a> ScanCtx<'a> {
         Ok(ret)
     }
 
+    pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| match x.value.as_str() {
+                "true" | "1" | "yes" => true,
+                _ => false,
+            })
+    }
+
+    pub fn get_preference_int(&self, key: &str) -> Option<i64> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .and_then(|x| x.value.parse::<i64>().ok())
+    }
+
+    pub fn get_preference_string(&self, key: &str) -> Option<String> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| x.value.clone())
+    }
+
     pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
         match protocol {
             Protocol::TCP => {
