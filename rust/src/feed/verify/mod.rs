@@ -315,7 +315,7 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
                 Some(Ok(HashSumFileItem {
                     file_name: file_name.to_string(),
                     hashsum: hashsum.to_string(),
-                    hasher: self.hasher.clone(),
+                    hasher: Some(self.hasher.clone()),
                     reader: self.reader,
                 }))
             }
@@ -328,23 +328,25 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
 pub struct HashSumFileItem<'a> {
     pub file_name: String,
     pub hashsum: String,
-    pub hasher: Hasher,
+    pub hasher: Option<Hasher>,
     pub reader: &'a FSPluginLoader,
 }
 
 impl HashSumFileItem<'_> {
     /// Verifies Hashsum
     pub fn verify(&self) -> Result<(), Error> {
-        let hashsum = self.hasher.hash(
-            &mut self.reader.as_bufreader(&self.file_name)?,
-            &self.file_name,
-        )?;
-        if self.hashsum != hashsum {
-            return Err(Error::HashInvalid {
-                expected: self.hashsum.clone(),
-                actual: hashsum,
-                key: self.file_name.clone(),
-            });
+        if let Some(hasher) = &self.hasher {
+            let hashsum = hasher.hash(
+                &mut self.reader.as_bufreader(&self.file_name)?,
+                &self.file_name,
+            )?;
+            if self.hashsum != hashsum {
+                return Err(Error::HashInvalid {
+                    expected: self.hashsum.clone(),
+                    actual: hashsum,
+                    key: self.file_name.clone(),
+                });
+            }
         }
         Ok(())
     }
@@ -485,16 +487,11 @@ impl<'a> Iterator for FakeVerifier<'a> {
         self.files.pop().map(|file| {
             // Compute the hash sum in advance so that the
             // check will always succeed.
-            let hasher = Hasher::Sha256;
             let file_name = file.as_path().to_str().unwrap().to_owned();
-            let hashsum = hasher.hash(
-                &mut self.loader.as_bufreader(&file_name).unwrap(),
-                &file_name,
-            )?;
             Ok(HashSumFileItem {
                 file_name,
-                hashsum,
-                hasher,
+                hashsum: String::new(),
+                hasher: None,
                 reader: self.loader,
             })
         })
