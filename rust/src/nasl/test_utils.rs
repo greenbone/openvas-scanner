@@ -340,7 +340,7 @@ where
 
     fn context(&self) -> Context {
         let target = Target::do_not_resolve_hostname(&self.target);
-        let context = ContextBuilder {
+        ContextBuilder {
             storage: &self.storage,
             loader: &self.loader,
             executor: &self.executor,
@@ -353,8 +353,7 @@ where
             filename: self.filename.clone(),
             scan_preferences: Vec::default(),
         }
-        .build();
-        context
+        .build()
     }
 
     /// Check that no errors were returned by any

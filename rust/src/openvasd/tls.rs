@@ -240,7 +240,7 @@ pub fn tls_config(config: &crate::config::Config) -> Result<Option<TlsConfig>, E
 }
 
 fn error(err: String) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, err)
+    io::Error::other(err)
 }
 
 // Load public certificate from file.

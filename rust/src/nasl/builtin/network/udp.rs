@@ -43,14 +43,11 @@ impl Write for UdpConnection {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mtu = mtu(self.socket.peer_addr()?.ip());
         if buf.len() > mtu {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!(
-                    "UDP data of size {} exceeds the maximum length of {}",
-                    buf.len(),
-                    mtu
-                ),
-            ));
+            return Err(io::Error::other(format!(
+                "UDP data of size {} exceeds the maximum length of {}",
+                buf.len(),
+                mtu
+            )));
         }
         let result = unsafe {
             libc::send(
