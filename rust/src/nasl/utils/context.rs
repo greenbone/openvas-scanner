@@ -916,24 +916,20 @@ impl<'a> Context<'a> {
     pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
         match protocol {
             Protocol::TCP => {
-                if !self.target.ports_tcp.contains(&port) {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
-                }
-                if self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty() {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
+                if !self.target.ports_tcp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty()
+                {
+                    return Ok(!self.get_preference_bool("unscanned_ports").unwrap_or(true));
                 }
                 self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
             }
             Protocol::UDP => {
-                if !self.target.ports_udp.contains(&port) {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
-                }
-                if self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty() {
-                    // TODO: Check for unscanned ports option
-                    return Ok(false);
+                if !self.target.ports_udp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty()
+                {
+                    return Ok(!self
+                        .get_preference_bool("unscanned_ports_udp")
+                        .unwrap_or(true));
                 }
                 self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
             }
