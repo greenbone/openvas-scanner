@@ -370,6 +370,34 @@ impl Parse for VarScopeDecl {
     }
 }
 
+impl Parse for VarScope {
+    fn parse(parser: &mut Parser) -> Result<Self> {
+        if parser.consume_if_matches(TokenKind::Keyword(Keyword::LocalVar)) {
+            return Ok(Self::Local);
+        }
+        if parser.consume_if_matches(TokenKind::Keyword(Keyword::GlobalVar)) {
+            return Ok(Self::Global);
+        }
+        Err(ParseErrorKind::TokensExpected(vec![
+            TokenKind::Keyword(Keyword::LocalVar),
+            TokenKind::Keyword(Keyword::GlobalVar),
+        ])
+        .into())
+    }
+}
+impl Matches for VarScope {
+    fn matches(p: &impl Peek) -> bool {
+        let kind = p.peek();
+        if *kind == (TokenKind::Keyword(Keyword::LocalVar)) {
+            return true;
+        }
+        if *kind == (TokenKind::Keyword(Keyword::GlobalVar)) {
+            return true;
+        }
+        false
+    }
+}
+
 impl Parse for FnDecl {
     fn parse(parser: &mut Parser) -> Result<FnDecl> {
         parser.consume(TokenKind::Keyword(Keyword::Function))?;
@@ -780,37 +808,3 @@ impl Ident {
         }
     }
 }
-
-macro_rules! impl_multi_token_parse {
-    ($ty: ty, ($($kind: expr => $expr: expr),*$(,)?)) => {
-        impl Parse for $ty {
-            fn parse(parser: &mut Parser) -> Result<Self> {
-                $(
-                    if parser.consume_if_matches($kind) {
-                        return Ok($expr);
-                    }
-                )*
-                Err(ParseErrorKind::TokensExpected(vec![
-                    $( $kind ),*
-                ]).into())
-            }
-        }
-
-        impl Matches for $ty {
-            fn matches(p: &impl Peek) -> bool {
-                let kind = p.peek();
-                $(
-                    if *kind == $kind {
-                        return true
-                    }
-                )*
-                false
-            }
-        }
-    }
-}
-
-impl_multi_token_parse!(VarScope, (
-    TokenKind::Keyword(Keyword::LocalVar) => Self::Local,
-    TokenKind::Keyword(Keyword::GlobalVar) => Self::Global,
-));
