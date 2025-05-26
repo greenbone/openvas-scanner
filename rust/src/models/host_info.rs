@@ -14,7 +14,7 @@ pub struct HostInfoBuilder {
     pub alive: u64,
     pub queued: u64,
     pub finished: u64,
-    pub scanning: Option<HashMap<String, i32>>,
+    pub scanning: Option<HashMap<String, SingleHostScanInfo>>,
 }
 
 impl HostInfoBuilder {
@@ -29,6 +29,58 @@ impl HostInfoBuilder {
             scanning: self.scanning,
             remaining_vts_per_host: HashMap::new(),
         }
+    }
+}
+
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct SingleHostScanInfo {
+    finished_tests: AmountOfTests,
+    total_tests: AmountOfTests,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+enum AmountOfTests {
+    AmountOfTests(i32),
+    DeadHost,
+}
+
+impl Default for AmountOfTests {
+    fn default() -> Self {
+        AmountOfTests::AmountOfTests(0)
+    }
+}
+
+impl SingleHostScanInfo {
+    pub fn new(finished_tests: i32, total_tests: i32) -> Self {
+        Self {
+            finished_tests: AmountOfTests::AmountOfTests(finished_tests),
+            total_tests: if total_tests == -1 {
+                AmountOfTests::DeadHost
+            } else {
+                AmountOfTests::AmountOfTests(total_tests)
+            },
+        }
+    }
+
+    pub fn is_finished(&self) -> bool {
+        if let AmountOfTests::AmountOfTests(f) = self.finished_tests {
+            if let AmountOfTests::AmountOfTests(t) = self.total_tests {
+                return f == t;
+            }
+        }
+        false
+    }
+
+    pub fn is_dead(&self) -> bool {
+        matches!(self.total_tests, AmountOfTests::DeadHost)
     }
 }
 
@@ -51,9 +103,8 @@ pub struct HostInfo {
         feature = "serde_support",
         serde(skip_serializing_if = "Option::is_none")
     )]
-    scanning: Option<HashMap<String, i32>>,
-    // Hosts that are currently being scanned. The second entry is the number of
-    // remaining VTs for this host.
+    scanning: Option<HashMap<String, SingleHostScanInfo>>,
+    #[cfg_attr(feature = "serde_support", serde(skip))]
     remaining_vts_per_host: HashMap<String, usize>,
 }
 
@@ -118,10 +169,10 @@ impl HostInfo {
         // and never completely replaced.
         let mut hs = other.scanning.clone().unwrap_or_default();
         for (host, progress) in self.scanning.clone().unwrap_or_default().iter() {
-            if *progress == 100 || *progress == -1 {
+            if progress.is_finished() || progress.is_dead() {
                 hs.remove(host);
             } else {
-                hs.insert(host.to_string(), *progress);
+                hs.insert(host.to_string(), progress.clone());
             }
         }
         self.scanning = Some(hs);
