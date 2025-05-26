@@ -1952,7 +1952,15 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_ping(
+    configs: &Context,
+    register: &Register,
+    port: Option<u16>,
+) -> Result<NaslValue, FnError> {
+    if configs.target().ip_addr().is_ipv6() {
+        return _internal_convert_nasl_tcp_v6_ping(register, configs);
+    }
+
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -1981,9 +1989,7 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
     let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
-
-    //TODO!: implement plug_get_host_open_port() to get the default port
-    let port = port.unwrap_or(0u16);
+    let port = port.unwrap_or(configs.get_host_open_port().unwrap_or_default());
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -3151,7 +3157,7 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![

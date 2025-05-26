@@ -113,6 +113,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                         param.as_ref(),
                         scan_id,
                         &self.scan.scan_preferences,
+                        &self.scan.alive_test_methods,
                     )
                     .await;
                     Some((result, data))

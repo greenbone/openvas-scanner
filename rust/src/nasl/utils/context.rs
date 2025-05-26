@@ -6,7 +6,7 @@
 
 use tokio::sync::RwLock;
 
-use crate::models::{Port, PortRange, Protocol, ScanPreference};
+use crate::models::{AliveTestMethods, Port, PortRange, Protocol, ScanPreference};
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
@@ -628,6 +628,8 @@ pub struct Context<'a> {
     sockets: RwLock<NaslSockets>,
     /// Scanner preferences
     scan_preferences: Vec<ScanPreference>,
+    /// Alive test methods
+    alive_test_methods: Vec<AliveTestMethods>,
 }
 
 impl<'a> Context<'a> {
@@ -639,6 +641,7 @@ impl<'a> Context<'a> {
         loader: &'a dyn Loader,
         executor: &'a Executor,
         scan_preferences: Vec<ScanPreference>,
+        alive_test_methods: Vec<AliveTestMethods>,
     ) -> Self {
         Self {
             scan,
@@ -650,6 +653,7 @@ impl<'a> Context<'a> {
             nvt: Mutex::new(None),
             sockets: RwLock::new(NaslSockets::default()),
             scan_preferences,
+            alive_test_methods,
         }
     }
 
@@ -759,6 +763,14 @@ impl<'a> Context<'a> {
 
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
         self.scan_preferences.iter()
+    }
+
+    pub fn set_alive_test_methods(&mut self, methods: Vec<AliveTestMethods>) {
+        self.alive_test_methods = methods;
+    }
+
+    pub fn alive_test_methods(&self) -> Vec<AliveTestMethods> {
+        self.alive_test_methods.clone()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
@@ -925,6 +937,7 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub ports: Ports,
     pub filename: P,
     pub scan_preferences: Vec<ScanPreference>,
+    pub alive_test_methods: Vec<AliveTestMethods>,
 }
 
 impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
@@ -938,6 +951,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.loader,
             self.executor,
             self.scan_preferences,
+            self.alive_test_methods,
         )
     }
 }
