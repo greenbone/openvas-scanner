@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+mod denial;
 mod frame_forgery;
 mod packet_forgery;
 pub mod raw_ip_utils;
@@ -11,6 +12,7 @@ use crate::nasl::{
     FnError,
     utils::{IntoFunctionSet, NaslVars, StoredFunctionSet},
 };
+use denial::Denial;
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;
 use thiserror::Error;
@@ -76,6 +78,7 @@ impl IntoFunctionSet for RawIp {
         let mut set = StoredFunctionSet::new(self);
         set.add_set(PacketForgery);
         set.add_set(FrameForgery);
+        set.add_set(Denial);
         set
     }
 }

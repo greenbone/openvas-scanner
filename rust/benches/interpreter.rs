@@ -22,6 +22,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     executor: &nasl_std_functions(),
                     loader: &NoOpLoader::default(),
                     scan_preferences: Vec::new(),
+                    alive_test_methods: Vec::new(),
                 };
                 let context = cb.build();
                 let parser = ForkingInterpreter::new(code, register, &context);

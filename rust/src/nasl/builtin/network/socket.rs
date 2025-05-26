@@ -113,6 +113,13 @@ impl NaslSocket {
             NaslSocket::Udp(udp_connection) => udp_connection.read(buf),
         }
     }
+
+    pub fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self {
+            NaslSocket::Tcp(tcp_connection) => tcp_connection.write(buf),
+            NaslSocket::Udp(udp_connection) => udp_connection.write(buf),
+        }
+    }
 }
 
 /// The Top level struct storing all NASL sockets, a list of the
