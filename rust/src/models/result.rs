@@ -71,7 +71,6 @@ pub struct Result {
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-
 pub struct Detail {
     /// Descriptive name of a Host Detail
     pub name: String,

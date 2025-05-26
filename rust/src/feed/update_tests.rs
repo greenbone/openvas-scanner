@@ -40,8 +40,8 @@ fn verify_hashsums() {
 async fn verify_feed() {
     let loader = loader();
     let storage: InMemoryStorage = InMemoryStorage::new();
-    let verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
-    let updater = Update::init("1", 1, &loader, &storage, verifier);
+    let mut verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
+    let updater = Update::init("1", 1, &loader, &storage, &mut verifier);
     let files = updater
         .stream()
         .filter_map(|x| async { x.ok() })

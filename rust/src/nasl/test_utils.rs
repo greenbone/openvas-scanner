@@ -22,7 +22,7 @@ use super::{
     nasl_std_functions,
     utils::{
         Executor,
-        context::{ContextStorage, Target},
+        context::{ContextStorage, Ports, Target},
     },
 };
 
@@ -337,17 +337,20 @@ where
 
     fn context(&self) -> Context {
         let target = Target::do_not_resolve_hostname(&self.target);
-        let context = ContextBuilder {
+        ContextBuilder {
             storage: &self.storage,
             loader: &self.loader,
             executor: &self.executor,
             scan_id: self.scan_id.clone(),
             target,
+            ports: Ports {
+                tcp: Default::default(),
+                udp: Default::default(),
+            },
             filename: self.filename.clone(),
             scan_preferences: Vec::default(),
         }
-        .build();
-        context
+        .build()
     }
 
     /// Check that no errors were returned by any

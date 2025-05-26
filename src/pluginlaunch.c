@@ -343,6 +343,8 @@ pluginlaunch_init (const char *host)
 
   num_running_processes = 0;
   bzero (&(processes), sizeof (processes));
+
+  init_kb_usage ();
 }
 
 void

@@ -232,6 +232,8 @@ paths:
                   $ref: "#/components/examples/scan_id"
         "400":
           description: "Bad Request body"
+        "403":
+          description: "ScanID already in use"
 
   /scans/preferences:
     get:

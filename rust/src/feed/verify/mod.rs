@@ -13,7 +13,7 @@
 use std::{
     fs::File,
     io::{self, BufRead, BufReader, Read},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use crate::nasl::syntax::{AsBufReader, LoadError};
@@ -315,7 +315,7 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
                 Some(Ok(HashSumFileItem {
                     file_name: file_name.to_string(),
                     hashsum: hashsum.to_string(),
-                    hasher: self.hasher.clone(),
+                    hasher: Some(self.hasher.clone()),
                     reader: self.reader,
                 }))
             }
@@ -326,25 +326,27 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
 
 /// Contains all information  necessary to do a hash sum check
 pub struct HashSumFileItem<'a> {
-    file_name: String,
-    hashsum: String,
-    hasher: Hasher,
-    reader: &'a FSPluginLoader,
+    pub file_name: String,
+    pub hashsum: String,
+    pub hasher: Option<Hasher>,
+    pub reader: &'a FSPluginLoader,
 }
 
 impl HashSumFileItem<'_> {
     /// Verifies Hashsum
     pub fn verify(&self) -> Result<(), Error> {
-        let hashsum = self.hasher.hash(
-            &mut self.reader.as_bufreader(&self.file_name)?,
-            &self.file_name,
-        )?;
-        if self.hashsum != hashsum {
-            return Err(Error::HashInvalid {
-                expected: self.hashsum.clone(),
-                actual: hashsum,
-                key: self.file_name.clone(),
-            });
+        if let Some(hasher) = &self.hasher {
+            let hashsum = hasher.hash(
+                &mut self.reader.as_bufreader(&self.file_name)?,
+                &self.file_name,
+            )?;
+            if self.hashsum != hashsum {
+                return Err(Error::HashInvalid {
+                    expected: self.hashsum.clone(),
+                    actual: hashsum,
+                    key: self.file_name.clone(),
+                });
+            }
         }
         Ok(())
     }
@@ -442,5 +444,56 @@ impl Iterator for NaslFileFinder {
 impl FileNameLoader for NaslFileFinder {
     fn next_filename(&mut self) -> Option<Result<String, Error>> {
         self.next()
+    }
+}
+
+fn get_all_plugins(loader: &FSPluginLoader) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    if let Ok(rp) = loader.root_path() {
+        for e in walkdir::WalkDir::new(&rp)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            if e.path().extension().is_some_and(|ext| ext == "nasl") {
+                if let Some(p) = e.path().to_str() {
+                    let path_str = p[rp.to_string().len() + 1..].to_string();
+                    let path = Path::new(&path_str).to_owned();
+                    files.push(path);
+                }
+            }
+        }
+    }
+    files
+}
+
+pub struct FakeVerifier<'a> {
+    loader: &'a FSPluginLoader,
+    files: Vec<PathBuf>,
+}
+
+impl<'a> FakeVerifier<'a> {
+    pub fn new(loader: &'a FSPluginLoader) -> Self {
+        Self {
+            loader,
+            files: get_all_plugins(loader),
+        }
+    }
+}
+
+impl<'a> Iterator for FakeVerifier<'a> {
+    type Item = Result<HashSumFileItem<'a>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.files.pop().map(|file| {
+            // Compute the hash sum in advance so that the
+            // check will always succeed.
+            let file_name = file.as_path().to_str().unwrap().to_owned();
+            Ok(HashSumFileItem {
+                file_name,
+                hashsum: String::new(),
+                hasher: None,
+                reader: self.loader,
+            })
+        })
     }
 }

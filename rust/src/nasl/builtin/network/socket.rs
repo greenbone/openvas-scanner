@@ -427,36 +427,49 @@ fn open_sock_tcp_vhost(
     port: u16,
     vhost: &str,
     transport: i64,
-) -> Result<Option<NaslSocket>, SocketError> {
-    if transport < 0 {
-        // TODO: Get port transport and open connection depending on it
-        todo!()
-    }
+) -> Result<Option<NaslSocket>, FnError> {
+    let mut transport = if transport.is_negative() {
+        context.get_port_transport(port)?.unwrap_or(1)
+    } else {
+        transport
+    };
+    let mut set_transport = false;
     let tls = match OpenvasEncaps::from_i64(transport) {
         // Auto Detection
         Some(OpenvasEncaps::Auto) => {
+            set_transport = true;
             // Try SSL/TLS first
-            make_tls_client_connection(context, vhost)
+            let tls = make_tls_client_connection(context, vhost);
+            if tls.is_some() {
+                transport = OpenvasEncaps::TlsCustom as i64;
+            } else {
+                // Try TCP
+                transport = OpenvasEncaps::Ip as i64;
+            }
+            tls
         }
         // IP
         Some(OpenvasEncaps::Ip) => None,
         // Unsupported transport layer
         None | Some(OpenvasEncaps::Max) => {
-            return Err(SocketError::UnsupportedTransportLayerUnknown(transport));
+            return Err(SocketError::UnsupportedTransportLayerUnknown(transport).into());
         }
         // TLS/SSL
         Some(tls_version) => match tls_version {
             OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
                 make_tls_client_connection(context, vhost)
             }
-            _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport)),
+            _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport).into()),
         },
     };
-    Ok(
-        TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
-            .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
-            .ok(),
-    )
+
+    let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
+        .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
+        .ok();
+    if set_transport {
+        context.set_port_transport(port, transport as usize)?;
+    }
+    Ok(conn)
 }
 
 /// Open a TCP socket to the target host.
@@ -621,7 +634,7 @@ pub fn check_ftp_response(
 
     line = String::from(line.trim());
 
-    if expected_codes.iter().any(|ec| code == *ec) {
+    if expected_codes.contains(&code) {
         Ok(code)
     } else {
         Err(SocketError::ResponseCodeMismatch(

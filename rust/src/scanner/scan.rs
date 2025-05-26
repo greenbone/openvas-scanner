@@ -2,12 +2,13 @@ use tracing::error;
 
 use crate::{
     models::{self, ScanID, ScanPreference, VT},
-    nasl::utils::context::Target,
+    nasl::utils::context::{Ports, Target},
 };
 
 #[derive(Debug, Default)]
 pub struct Scan {
     pub targets: Vec<Target>,
+    pub ports: Ports,
     pub scan_id: ScanID,
     pub vts: Vec<VT>,
     pub scan_preferences: Vec<ScanPreference>,
@@ -36,6 +37,7 @@ impl Scan {
             .collect();
         Self {
             targets,
+            ports: scan.target.ports.into(),
             scan_id: scan.scan_id,
             vts: scan.vts,
             scan_preferences: scan.scan_preferences,
@@ -56,6 +58,7 @@ impl Scan {
             .collect();
         Self {
             targets,
+            ports: scan.target.ports.into(),
             scan_id: scan.scan_id,
             vts: scan.vts,
             scan_preferences: scan.scan_preferences,

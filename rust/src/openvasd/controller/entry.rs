@@ -400,6 +400,21 @@ where
                             } else {
                                 uuid::Uuid::new_v4().to_string()
                             };
+
+                            if ctx
+                                .scheduler
+                                .get_scan_ids()
+                                .await?
+                                .into_iter()
+                                .any(|i| *i == id)
+                            {
+                                tracing::debug!(%id, "Scan ID already in use");
+                                return Ok(ctx.response.forbidden_with_reason(
+                                    &id,
+                                    "Scan ID already in use".to_string(),
+                                ));
+                            };
+
                             let resp = ctx.response.created(&id);
                             scan.scan_id.clone_from(&id);
 

@@ -150,7 +150,7 @@ pub async fn update(args: UpdateArgs) -> Result<(), CliError> {
 async fn transform(args: TransformArgs) -> Result<(), CliError> {
     let mut o = ArrayWrapper::new(io::stdout());
     let dispatcher = JsonStorage::new(&mut o);
-    update::run(dispatcher, &args.path, false).await?;
+    update::run_no_verifier(dispatcher, &args.path).await?;
     o.end()
         .map_err(StorageError::from)
         .map_err(|e| CliErrorKind::from(e).into())

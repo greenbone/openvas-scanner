@@ -3,6 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
+// We allow this fow now, since it would require lots of changes
+// but should eventually solve this.
+#![allow(clippy::result_large_err)]
+
 #[cfg(feature = "nasl-builtin-raw-ip")]
 mod alivetest;
 mod error;

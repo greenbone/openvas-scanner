@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::models::{Parameter, Protocol, ScanID, ScanPreference};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
 use crate::nasl::prelude::NaslValue;
-use crate::nasl::utils::context::{ContextStorage, Target};
+use crate::nasl::utils::context::{ContextStorage, Ports, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
@@ -33,6 +33,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
     executor: &'a Executor,
 
     target: &'a Target,
+    ports: &'a Ports,
     vt: &'a Nvt,
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
@@ -50,6 +51,7 @@ where
         loader: &'a Stack::Loader,
         executor: &'a Executor,
         target: &'a Target,
+        ports: &'a Ports,
         vt: &'a Nvt,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
@@ -61,6 +63,7 @@ where
             loader,
             executor,
             target,
+            ports,
             vt,
             stage,
             param,
@@ -201,6 +204,7 @@ where
         let context = ContextBuilder {
             scan_id: crate::storage::ScanID(self.scan_id.clone()),
             target: self.target.clone(),
+            ports: self.ports.clone(),
             filename,
             storage: self.storage,
             loader: self.loader,

@@ -4,6 +4,7 @@
 
 use std::path::Path;
 
+use scannerlib::feed::FakeVerifier;
 use scannerlib::nasl::utils::context::ContextStorage;
 use scannerlib::{feed, nasl::FSPluginLoader};
 
@@ -38,6 +39,22 @@ where
             }
         }
     }
+
+    updater.perform_update().await?;
+
+    Ok(())
+}
+
+pub async fn run_no_verifier<S>(storage: S, path: &Path) -> Result<(), CliError>
+where
+    S: ContextStorage,
+{
+    tracing::debug!("description run syntax in {path:?}.");
+    // needed to strip the root path so that we can build a relative path
+    // e.g. 2006/something.nasl
+    let loader = FSPluginLoader::new(path);
+    let verifier = FakeVerifier::new(&loader);
+    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
 
     updater.perform_update().await?;
 

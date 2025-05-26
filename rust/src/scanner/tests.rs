@@ -46,6 +46,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
     let scan = Scan {
         scan_id: "sid".to_string(),
         targets: vec![Target::do_not_resolve_hostname("test.host")],
+        ports: Default::default(),
         vts: scripts
             .iter()
             .map(|(_, v)| VT {
@@ -216,6 +217,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
 
     let register = Register::from_global_variables(&initial);
     let target = Target::localhost();
+    let ports = Default::default();
     let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
     let scan_id = ScanID(filename.to_string());
@@ -226,6 +228,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         executor: &executor,
         scan_id,
         target,
+        ports,
         filename,
         scan_preferences,
     };
@@ -263,6 +266,7 @@ async fn run(
     let scan = Scan {
         scan_id: "sid".to_string(),
         targets: vec![Target::do_not_resolve_hostname("test.host")],
+        ports: Default::default(),
         vts: scripts
             .iter()
             .map(|(_, v)| VT {
