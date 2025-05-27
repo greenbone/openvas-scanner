@@ -1947,10 +1947,7 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
     })
 }
 
-pub fn nasl_tcp_ping_shared(
-    configs: &Context,
-    port: Option<u16>,
-) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_ping_shared(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
     if configs.target().ip_addr().is_ipv6() {
         return nasl_tcp_v6_ping_shared(configs, port);
     }
@@ -2073,11 +2070,8 @@ pub fn nasl_tcp_ping_shared(
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-pub fn nasl_tcp_ping(
-    configs: &Context,
-    port: Option<u16>,
-) -> Result<NaslValue, FnError> {
-    nasl_tcp_ping_shared (configs, port)
+pub fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+    nasl_tcp_ping_shared(configs, port)
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
@@ -3158,10 +3152,7 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
     Ok(NaslValue::Null)
 }
 
-pub fn nasl_tcp_v6_ping_shared(
-    configs: &Context,
-    port: Option<u16>
-) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_v6_ping_shared(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![

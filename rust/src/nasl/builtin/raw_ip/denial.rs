@@ -40,7 +40,7 @@ fn start_denial(context: &Context, register: &mut Register) -> Result<NaslValue,
 }
 
 #[nasl_function]
-async fn stop_denial(context: &Context<'_>, register: &Register) -> Result<NaslValue, FnError> {
+async fn end_denial(context: &Context<'_>, register: &Register) -> Result<NaslValue, FnError> {
     let retry = if let Some(p) = context
         .scan_params()
         .find(|p| p.id == "checks_read_timeout")
@@ -50,22 +50,22 @@ async fn stop_denial(context: &Context<'_>, register: &Register) -> Result<NaslV
         5
     };
 
-    match register.named(format!("denial_port").as_str()) {
+    match register.named("denial_port") {
         Some(ContextType::Value(NaslValue::Number(port))) => {
-            let vendor_version = match register.named(format!("vendor_version").as_str()) {
+            let vendor_version = match register.named("vendor_version") {
                 Some(ContextType::Value(NaslValue::String(v))) => v.clone(),
                 _ => "".to_string(),
             };
 
             if let Ok(mut soc) = make_tcp_socket(context.target().ip_addr(), *port as u16, retry) {
                 let bogus_data = format!("Network Security Scan by {} in progress", vendor_version);
-                if let Ok(_) = &soc.write(bogus_data.as_bytes()) {
+                if soc.write(bogus_data.as_bytes()).is_ok() {
                     return Ok(NaslValue::Number(1));
                 }
             }
         }
         _ => {
-            match register.named(format!("alive").as_str()) {
+            match register.named("alive") {
                 Some(ContextType::Value(NaslValue::Number(0))) => {
                     return Ok(NaslValue::Number(1));
                 }
@@ -100,6 +100,6 @@ function_set! {
     Denial,
     (
         start_denial,
-        stop_denial,
+        end_denial,
     )
 }

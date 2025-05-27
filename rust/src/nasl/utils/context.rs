@@ -633,6 +633,7 @@ pub struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         scan: ScanID,
         target: CtxTarget,

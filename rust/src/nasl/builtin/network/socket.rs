@@ -114,6 +114,7 @@ impl NaslSocket {
         }
     }
 
+    #[cfg(feature = "nasl-builtin-raw-ip")]
     pub fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.write(buf),
