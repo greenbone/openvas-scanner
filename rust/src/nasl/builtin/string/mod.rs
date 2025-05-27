@@ -133,14 +133,20 @@ fn combine_positionals_to_string(
 fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), StringError> {
     match value {
         NaslValue::Array(x) => {
-            for p in x {
-                write_nasl_string(s, p)?;
+            write!(s, "[")?;
+            for (i, p) in x.iter().enumerate() {
+                write_nasl_string_value(s, p)?;
+                if i+1 != x.len() {
+                    write!(s, ", ")?;
+                }
+
             }
+            write!(s, "]")?;
             Ok(())
         }
         NaslValue::Dict(x) => {
             for p in x.values() {
-                write_nasl_string(s, p)?;
+                write_nasl_string_value(s, p)?;
             }
             Ok(())
         }
