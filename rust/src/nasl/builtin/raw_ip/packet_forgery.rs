@@ -1954,7 +1954,7 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
 #[nasl_function(named(port))]
 pub fn nasl_tcp_ping(
     configs: &Context,
-    register: &Register,
+    register: &mut Register,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
     if configs.target().ip_addr().is_ipv6() {

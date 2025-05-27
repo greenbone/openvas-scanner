@@ -12,7 +12,7 @@ use crate::nasl::utils::Context;
 use nasl_function_proc_macro::nasl_function;
 
 #[nasl_function]
-fn start_denial(context: &Context, register: &Register) -> Result<NaslValue, FnError> {
+fn start_denial(context: &Context, register: &mut Register) -> Result<NaslValue, FnError> {
     let retry = if let Some(p) = context
         .scan_params()
         .find(|p| p.id == "checks_read_timeout")
@@ -25,22 +25,22 @@ fn start_denial(context: &Context, register: &Register) -> Result<NaslValue, FnE
     let port = context.get_host_open_port().unwrap_or_default();
     if port > 0 {
         if let Ok(_soc) = make_tcp_socket(context.target().ip_addr(), port, retry) {
-            //todo!() register.add_global("denial_port", NaslValue::Number(port.into()).into());
+            register.add_global("denial_port", NaslValue::Number(port.into()).into());
 
             return Ok(NaslValue::Null);
         }
     };
 
-    let _p = ContextType::Value(NaslValue::Boolean(
+    let p = ContextType::Value(NaslValue::Boolean(
         _internal_convert_nasl_tcp_ping(register, context)? > NaslValue::Number(0),
     ));
-    //todo!() register.add_global("alive", p);
+    register.add_global("alive", p);
 
     return Ok(NaslValue::Null);
 }
 
 #[nasl_function]
-async fn stop_denial(context: &Context<'_>, register: &Register) -> Result<NaslValue, FnError> {
+async fn stop_denial(context: &Context<'_>, register: &mut Register) -> Result<NaslValue, FnError> {
     let retry = if let Some(p) = context
         .scan_params()
         .find(|p| p.id == "checks_read_timeout")

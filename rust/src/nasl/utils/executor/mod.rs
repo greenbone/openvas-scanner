@@ -60,7 +60,7 @@ impl Executor {
         &self,
         k: &str,
         context: &Context<'_>,
-        register: &Register,
+        register: &mut Register,
     ) -> Option<NaslResult> {
         for set in self.sets.iter() {
             if set.contains(k) {
@@ -90,8 +90,12 @@ impl<State> StoredFunctionSet<State> {
 
     pub fn async_stateful<F>(&mut self, k: &str, v: F)
     where
-        F: for<'a> AsyncTripleArgFn<&'a State, &'a Register, &'a Context<'a>, Output = NaslResult>
-            + Send
+        F: for<'a> AsyncTripleArgFn<
+                &'a State,
+                &'a mut Register,
+                &'a Context<'a>,
+                Output = NaslResult,
+            > + Send
             + Sync
             + 'static,
     {
@@ -99,7 +103,7 @@ impl<State> StoredFunctionSet<State> {
             .insert(k.to_string(), NaslFunction::AsyncStateful(Box::new(v)));
     }
 
-    pub fn sync_stateful(&mut self, k: &str, v: fn(&State, &Register, &Context) -> NaslResult) {
+    pub fn sync_stateful(&mut self, k: &str, v: fn(&State, &mut Register, &Context) -> NaslResult) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStateful(v));
     }
@@ -108,7 +112,7 @@ impl<State> StoredFunctionSet<State> {
     where
         F: for<'a> AsyncTripleArgFn<
                 &'a mut State,
-                &'a Register,
+                &'a mut Register,
                 &'a Context<'a>,
                 Output = NaslResult,
             > + Send
@@ -122,7 +126,7 @@ impl<State> StoredFunctionSet<State> {
     pub fn sync_stateful_mut(
         &mut self,
         k: &str,
-        v: fn(&mut State, &Register, &Context) -> NaslResult,
+        v: fn(&mut State, &mut Register, &Context) -> NaslResult,
     ) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStatefulMut(v));
@@ -130,7 +134,7 @@ impl<State> StoredFunctionSet<State> {
 
     pub fn async_stateless<F>(&mut self, k: &str, v: F)
     where
-        F: for<'a> AsyncDoubleArgFn<&'a Register, &'a Context<'a>, Output = NaslResult>
+        F: for<'a> AsyncDoubleArgFn<&'a mut Register, &'a Context<'a>, Output = NaslResult>
             + Send
             + Sync
             + 'static,
@@ -139,7 +143,7 @@ impl<State> StoredFunctionSet<State> {
             .insert(k.to_string(), NaslFunction::AsyncStateless(Box::new(v)));
     }
 
-    pub fn sync_stateless(&mut self, k: &str, v: fn(&Register, &Context) -> NaslResult) {
+    pub fn sync_stateless(&mut self, k: &str, v: fn(&mut Register, &Context) -> NaslResult) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStateless(v));
     }
@@ -186,7 +190,7 @@ pub trait FunctionSet {
     async fn exec<'a>(
         &'a self,
         k: &'a str,
-        register: &'a Register,
+        register: &'a mut Register,
         context: &'a Context<'_>,
     ) -> NaslResult;
 
@@ -198,7 +202,7 @@ impl<State: Sync + Send> FunctionSet for StoredFunctionSet<State> {
     async fn exec<'a>(
         &'a self,
         k: &'a str,
-        register: &'a Register,
+        register: &'a mut Register,
         context: &'a Context<'_>,
     ) -> NaslResult {
         let f = &self.fns[k];

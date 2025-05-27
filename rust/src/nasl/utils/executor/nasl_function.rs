@@ -61,20 +61,20 @@ pub trait StatefulCallable<State> {
     fn call_stateful<'b>(
         &self,
         state: &'b State,
-        register: &'b Register,
+        register: &'b mut Register,
         context: &'b Context,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F, State> StatefulCallable<State> for F
 where
-    F: for<'a> AsyncTripleArgFn<&'a State, &'a Register, &'a Context<'a>, Output = NaslResult>
+    F: for<'a> AsyncTripleArgFn<&'a State, &'a mut Register, &'a Context<'a>, Output = NaslResult>
         + 'static,
 {
     fn call_stateful<'b>(
         &self,
         state: &'b State,
-        register: &'b Register,
+        register: &'b mut Register,
         context: &'b Context,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
         Box::pin((*self)(state, register, context))
@@ -92,20 +92,24 @@ pub trait StatefulMutCallable<State> {
     fn call_stateful<'b>(
         &self,
         state: &'b mut State,
-        register: &'b Register,
+        register: &'b mut Register,
         context: &'b Context,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F, State> StatefulMutCallable<State> for F
 where
-    F: for<'a> AsyncTripleArgFn<&'a mut State, &'a Register, &'a Context<'a>, Output = NaslResult>
-        + 'static,
+    F: for<'a> AsyncTripleArgFn<
+            &'a mut State,
+            &'a mut Register,
+            &'a Context<'a>,
+            Output = NaslResult,
+        > + 'static,
 {
     fn call_stateful<'b>(
         &self,
         state: &'b mut State,
-        register: &'b Register,
+        register: &'b mut Register,
         context: &'b Context,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
         Box::pin((*self)(state, register, context))
@@ -121,18 +125,18 @@ where
 pub trait StatelessCallable {
     fn call_stateless<'b>(
         &self,
-        register: &'b Register,
+        register: &'b mut Register,
         context: &'b Context,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F> StatelessCallable for F
 where
-    F: for<'a> AsyncDoubleArgFn<&'a Register, &'a Context<'a>, Output = NaslResult> + 'static,
+    F: for<'a> AsyncDoubleArgFn<&'a mut Register, &'a Context<'a>, Output = NaslResult> + 'static,
 {
     fn call_stateless<'b>(
         &self,
-        register: &'b Register,
+        register: &'b mut Register,
         context: &'b Context,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
         Box::pin((*self)(register, context))
@@ -145,9 +149,9 @@ where
 /// a single function set.
 pub enum NaslFunction<State> {
     AsyncStateful(Box<dyn StatefulCallable<State> + Send + Sync>),
-    SyncStateful(fn(&State, &Register, &Context) -> NaslResult),
+    SyncStateful(fn(&State, &mut Register, &Context) -> NaslResult),
     AsyncStatefulMut(Box<dyn StatefulMutCallable<State> + Send + Sync>),
-    SyncStatefulMut(fn(&mut State, &Register, &Context) -> NaslResult),
+    SyncStatefulMut(fn(&mut State, &mut Register, &Context) -> NaslResult),
     AsyncStateless(Box<dyn StatelessCallable + Send + Sync>),
-    SyncStateless(fn(&Register, &Context) -> NaslResult),
+    SyncStateless(fn(&mut Register, &Context) -> NaslResult),
 }
