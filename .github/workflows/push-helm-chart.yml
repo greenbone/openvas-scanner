@@ -12,6 +12,7 @@ on:
       token:
         required: true
 
+
 jobs:
   helm:
     runs-on: self-hosted-generic
