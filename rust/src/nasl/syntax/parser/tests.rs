@@ -598,3 +598,5 @@ parse_test_err!(
 );
 
 parse_test_ok!(negated_assignment, Program, "!a = 1;");
+
+parse_test_err!(unclosed_string, Program, r#""Hello you"#);

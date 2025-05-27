@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (unclosed_string), r#\"\"Hello you\"#)"
+---
+error: Error during tokenization: Unclosed string literal.
+  ┌─ unclosed_string:1:1
+  │
+1 │ "Hello you
+  │ ^^^^^^^^^^ Error during tokenization: Unclosed string literal.

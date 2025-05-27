@@ -116,9 +116,8 @@ impl Parser {
 
     fn check_tokenizer_errors(&mut self) -> bool {
         if self.cursor.has_errors() {
-            for e in self.cursor.drain_errors() {
-                self.errors.push(e.into());
-            }
+            self.errors
+                .extend(self.cursor.drain_all_errors().map(|e| e.into()));
             self.synchronize();
             true
         } else {
@@ -148,7 +147,15 @@ impl Parser {
         if self.errors.is_empty() {
             Ok(Ast::new(stmts))
         } else {
-            Err(self.errors)
+            let mut errors = self.errors;
+            if errors
+                .iter()
+                .any(|e| matches!(e.kind, ErrorKind::Tokenizer(_)))
+            {
+                // Don't show any parsing errors if there were tokenization errors.
+                errors.retain(|e| matches!(e.kind, ErrorKind::Tokenizer(_)));
+            }
+            Err(errors)
         }
     }
 
@@ -187,7 +194,9 @@ impl Parser {
     }
 
     pub fn advance(&mut self) -> Token {
-        self.cursor.advance()
+        let token = self.cursor.advance();
+        self.check_tokenizer_errors();
+        token
     }
 
     fn consume_if_matches(&mut self, expected: TokenKind) -> bool {
@@ -228,7 +237,14 @@ impl Parser {
     }
 
     fn make_span(&self, pos: PositionMarker) -> Span {
-        Span::new(pos.pos, self.cursor.previous_token_end())
+        if pos.pos == self.cursor.current_token_start() {
+            Span::new(
+                self.cursor.current_token_start(),
+                self.cursor.current_token_end(),
+            )
+        } else {
+            Span::new(pos.pos, self.cursor.previous_token_end())
+        }
     }
 
     fn error(&self, start: PositionMarker, kind: ParseErrorKind) -> Error {
@@ -308,7 +324,6 @@ impl<T: Parse> Parse for Block<T> {
             match result {
                 Ok(stmt) => stmts.push(stmt),
                 Err(err) => {
-                    // TODO: verify this unwrap is ok
                     parser.errors.push(err.unwrap_as_spanned());
                     parser.synchronize();
                     if parser.token_matches(TokenKind::Eof) {

@@ -181,23 +181,6 @@ pub struct Tokenizer {
     begin_match_position: CharIndex,
 }
 
-//  TODO remove this eventually
-impl Iterator for Tokenizer {
-    type Item = Result<Token, TokenizerError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.advance()).filter(|token| {
-            !matches!(
-                token,
-                Ok(Token {
-                    kind: TokenKind::Eof,
-                    ..
-                }),
-            )
-        })
-    }
-}
-
 impl Tokenizer {
     /// Creates a new Tokenizer
     pub fn tokenize(code: &str) -> Self {
@@ -536,5 +519,22 @@ impl Tokenizer {
                 TokenKind::Ident(Ident::new(lookup, self.cursor.span_from(start)))
             }
         }
+    }
+}
+
+#[cfg(test)]
+impl Iterator for Tokenizer {
+    type Item = Result<Token, TokenizerError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.advance()).filter(|token| {
+            !matches!(
+                token,
+                Ok(Token {
+                    kind: TokenKind::Eof,
+                    ..
+                }),
+            )
+        })
     }
 }

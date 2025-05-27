@@ -86,6 +86,10 @@ impl Cursor {
         self.current.span().start()
     }
 
+    pub(crate) fn current_token_end(&self) -> CharIndex {
+        self.current.span().end()
+    }
+
     pub(crate) fn previous_token_end(&self) -> CharIndex {
         self.previous
             .clone()
@@ -97,7 +101,8 @@ impl Cursor {
         !self.errors.is_empty()
     }
 
-    pub(crate) fn drain_errors(&mut self) -> impl Iterator<Item = TokenizerError> {
+    pub(crate) fn drain_all_errors(&mut self) -> impl Iterator<Item = TokenizerError> {
+        while next_token(&mut self.tokenizer, &mut self.errors).kind != TokenKind::Eof {}
         self.errors.drain(..)
     }
 
