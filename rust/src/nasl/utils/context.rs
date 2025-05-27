@@ -890,7 +890,7 @@ impl<'a> Context<'a> {
             })
             .collect();
 
-        let ret = if ports.is_empty() {
+        let ret = if !ports.is_empty() {
             *ports.choose(&mut rand::thread_rng()).unwrap()
         } else if open21 {
             21
