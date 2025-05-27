@@ -12,7 +12,7 @@ pub mod lookup_keys;
 
 use std::collections::HashMap;
 
-pub use context::{Context, ContextType, Register};
+pub use context::{Context, ContextType, Register, ScriptInfo};
 pub use error::ArgumentError;
 pub use error::FnError;
 pub use error::InternalError;

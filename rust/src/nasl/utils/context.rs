@@ -664,14 +664,15 @@ impl<'a> Context<'a> {
     pub async fn execute_builtin_fn(
         &self,
         name: &str,
-        register: &mut Register,
+        register: &Register,
+        script_info: &mut ScriptInfo,
     ) -> Option<super::NaslResult> {
         const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
 
         let mut i = 0;
         loop {
             i += 1;
-            let result = self.executor.exec(name, self, register).await;
+            let result = self.executor.exec(name, self, register, script_info).await;
             if let Some(Err(ref e)) = result {
                 if e.retryable() && i < NUM_RETRIES_ON_RETRYABLE_ERROR {
                     continue;
@@ -927,6 +928,12 @@ impl From<&ContextType> for NaslValue {
             ContextType::Value(v) => v.to_owned(),
         }
     }
+}
+
+#[derive(Default)]
+pub struct ScriptInfo {
+    pub alive: bool,
+    pub denial_port: Option<u16>,
 }
 
 pub struct ContextBuilder<'a, P: AsRef<Path>> {
