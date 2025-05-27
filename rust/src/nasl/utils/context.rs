@@ -663,7 +663,7 @@ impl<'a> Context<'a> {
     pub async fn execute_builtin_fn(
         &self,
         name: &str,
-        register: &Register,
+        register: &mut Register,
     ) -> Option<super::NaslResult> {
         const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
 

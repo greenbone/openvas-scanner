@@ -41,7 +41,7 @@ impl<'a> ArgsStruct<'a> {
 
     fn get_args(&self) -> TokenStream {
         self
-            .args.iter().map(|arg| {
+            .args.iter().rev().map(|arg| {
                 let num_required_positional_args = self.num_required_positional();
                 let ident = &arg.ident;
                 let mutability = if arg.mutable { quote! { mut } } else { quote ! {}};
@@ -242,7 +242,7 @@ impl<'a> ArgsStruct<'a> {
         };
         let inputs = quote! {
             #self_arg
-            _register: &crate::nasl::Register,
+            _register: &mut crate::nasl::Register,
             _context: &crate::nasl::Context<'_>,
         };
         let output_ty = match output {

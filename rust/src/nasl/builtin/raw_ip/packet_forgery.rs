@@ -1947,18 +1947,12 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
     })
 }
 
-/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
-///
-/// Its argument is:
-/// - port: port for the ping
-#[nasl_function(named(port))]
-pub fn nasl_tcp_ping(
+pub fn nasl_tcp_ping_shared(
     configs: &Context,
-    register: &Register,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
     if configs.target().ip_addr().is_ipv6() {
-        return _internal_convert_nasl_tcp_v6_ping(register, configs);
+        return nasl_tcp_v6_ping_shared(configs, port);
     }
 
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
@@ -2072,6 +2066,18 @@ pub fn nasl_tcp_ping(
     }
 
     Ok(NaslValue::Null)
+}
+
+/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
+///
+/// Its argument is:
+/// - port: port for the ping
+#[nasl_function(named(port))]
+pub fn nasl_tcp_ping(
+    configs: &Context,
+    port: Option<u16>,
+) -> Result<NaslValue, FnError> {
+    nasl_tcp_ping_shared (configs, port)
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
@@ -3152,12 +3158,10 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
     Ok(NaslValue::Null)
 }
 
-/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
-///
-/// Its argument is:
-/// - port: port for the ping
-#[nasl_function(named(port))]
-pub fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_v6_ping_shared(
+    configs: &Context,
+    port: Option<u16>
+) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -3263,6 +3267,15 @@ pub fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValu
         }
     }
     Ok(NaslValue::Null)
+}
+
+/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
+///
+/// Its argument is:
+/// - port: port for the ping
+#[nasl_function(named(port))]
+pub fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+    nasl_tcp_v6_ping_shared(configs, port)
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
