@@ -456,7 +456,11 @@ fn get_all_plugins(loader: &FSPluginLoader) -> Vec<PathBuf> {
         {
             if e.path().extension().is_some_and(|ext| ext == "nasl") {
                 if let Some(p) = e.path().to_str() {
-                    let path_str = p[rp.to_string().len() + 1..].to_string();
+                    let path_str = if rp.ends_with('/') {
+                        p[rp.to_string().len()..].to_string()
+                    } else {
+                        p[rp.to_string().len() + 1..].to_string()
+                    };
                     let path = Path::new(&path_str).to_owned();
                     files.push(path);
                 }
