@@ -239,17 +239,7 @@ async fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnErro
     Ok(())
 }
 
-/// Send data on a socket.
-/// Args:
-/// takes the following named arguments:
-/// - socket: the socket, of course.
-/// - data: the data block. A string is expected here (pure or impure, this does not matter).
-/// - length: is optional and will be the full data length if not set
-/// - option: is the flags for the send() system call. You should not use a raw numeric value here.
-///
-/// On success the number of sent bytes is returned.
-#[nasl_function(named(socket, data, option, len))]
-async fn send(
+fn send_shared(
     sockets: &mut NaslSockets,
     socket: usize,
     data: &[u8],
@@ -295,6 +285,56 @@ async fn send(
     }
 }
 
+/// Send data on a socket.
+/// Args:
+/// takes the following named arguments:
+/// - socket: the socket, of course.
+/// - data: the data block. A string is expected here (pure or impure, this does not matter).
+/// - length: is optional and will be the full data length if not set
+/// - option: is the flags for the send() system call. You should not use a raw numeric value here.
+///
+/// On success the number of sent bytes is returned.
+#[nasl_function(named(socket, data, option, len))]
+async fn send(
+    sockets: &mut NaslSockets,
+    socket: usize,
+    data: &[u8],
+    option: Option<i64>,
+    len: Option<usize>,
+) -> Result<usize, SocketError> {
+    send_shared(sockets, socket, data, option, len)
+}
+
+fn recv_shared(
+    sockets: &mut NaslSockets,
+    socket: usize,
+    length: usize,
+    min: Option<i64>,
+    timeout: Option<Seconds>,
+) -> Result<Vec<u8>, SocketError> {
+    let min = min
+        .map(|min| if min < 0 { length } else { min as usize })
+        .unwrap_or(length);
+    let mut data = vec![0; length];
+
+    let socket = sockets.get_open_socket_mut(socket)?;
+    let mut pos = match timeout {
+        Some(timeout) => socket.read_with_timeout(&mut data, timeout.as_duration())?,
+        None => socket.read(&mut data)?,
+    };
+    if let NaslSocket::Tcp(conn) = socket {
+        let timeout = Duration::from_secs(1);
+        while pos < min {
+            match conn.read_with_timeout(&mut data[pos..], timeout) {
+                Ok(n) => pos += n,
+                Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
+                Err(e) => return Err(SocketError::from(e)),
+            }
+        }
+    };
+    Ok(data[..pos].to_vec())
+}
+
 /// Receives data from a TCP or UDP socket. For a UDP socket, if it cannot read data, NASL will
 /// suppose that the last sent datagram was lost and will sent it again a couple of time.
 /// Args:
@@ -317,27 +357,9 @@ async fn recv(
     min: Option<i64>,
     timeout: Option<Seconds>,
 ) -> Result<NaslValue, SocketError> {
-    let min = min
-        .map(|min| if min < 0 { length } else { min as usize })
-        .unwrap_or(length);
-    let mut data = vec![0; length];
-
-    let socket = sockets.get_open_socket_mut(socket)?;
-    let mut pos = match timeout {
-        Some(timeout) => socket.read_with_timeout(&mut data, timeout.as_duration())?,
-        None => socket.read(&mut data)?,
-    };
-    if let NaslSocket::Tcp(conn) = socket {
-        let timeout = Duration::from_secs(1);
-        while pos < min {
-            match conn.read_with_timeout(&mut data[pos..], timeout) {
-                Ok(n) => pos += n,
-                Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
-                Err(e) => return Err(SocketError::from(e)),
-            }
-        }
-    };
-    Ok(NaslValue::Data(data[..pos].to_vec()))
+    Ok(NaslValue::Data(recv_shared(
+        sockets, socket, length, min, timeout,
+    )?))
 }
 
 /// Receives a line from a TCP response. Note that this only works for NASL sockets
@@ -712,6 +734,68 @@ async fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u
     Ok((p1 << 8) | p2)
 }
 
+/// This function performs a telnet negotiation on an open socket
+/// Read the data on the socket (more or less the telnet dialog plus the banner).
+/// Args:
+/// - socket: an open socket.
+#[nasl_function]
+async fn telnet_init(sockets: &mut NaslSockets, socket: usize) -> Result<NaslValue, SocketError> {
+    if let NaslSocket::Udp(_) = sockets.get_open_socket_mut(socket)? {
+        return Err(SocketError::SupportedOnlyOnTcp("telnet_init".into()));
+    }
+
+    let mut opts = 0;
+    // buffer[0] is iac, buffer[1] is code and buffer[2] is option
+    let mut buffer: Vec<u8> = vec![0, 0, 0];
+    let mut lm_flag = 0;
+
+    buffer[0] = 255;
+    while buffer[0] == 255 {
+        // todo ()!: the time out should be handled internally,
+        // and take either the one set for the socket or the default from preferences
+        buffer = recv_shared(sockets, socket, 3, Some(3), Some(Seconds(2)))?;
+        if buffer[0] != 255 || buffer.is_empty() || buffer.len() != 3 {
+            break;
+        }
+        if buffer[1] == 251 || buffer[1] == 252 {
+            buffer[1] = 254; /* WILL , WONT -> DON'T */
+        } else if buffer[1] == 253 || buffer[1] == 254 {
+            buffer[1] = 252 /* DO,DONT -> WONT */
+        };
+
+        send_shared(sockets, socket, &buffer, None, Some(3))?;
+        if lm_flag == 0 {
+            buffer[1] = 253;
+            buffer[2] = 0x22;
+            send_shared(sockets, socket, &buffer, None, Some(3))?;
+            lm_flag += 1;
+        }
+
+        opts += 1;
+        if opts > 100 {
+            break;
+        }
+    }
+    if buffer.is_empty() && opts == 0 {
+        return Ok(NaslValue::Null);
+    }
+
+    if opts > 100 {
+        return Err(SocketError::Diagnostic(
+            "More than 100 options received by telnet_init()
+                                           function! exiting telnet_init."
+                .to_string(),
+        ));
+    }
+    let mut buffer2: [u8; 1024] = [0; 1024];
+    let conn = sockets.get_open_socket_mut(socket)?;
+    conn.read(&mut buffer2)?;
+
+    buffer.append(&mut buffer2.to_vec());
+    buffer.push(b'\0');
+    Ok(NaslValue::Data(buffer.to_vec()))
+}
+
 pub struct SocketFns;
 
 function_set! {
@@ -729,5 +813,6 @@ function_set! {
         (get_source_port, "get_source_port"),
         (ftp_log_in, "ftp_log_in"),
         (ftp_get_pasv_port, "ftp_get_pasv_port"),
+        telnet_init,
     )
 }
