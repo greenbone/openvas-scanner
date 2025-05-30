@@ -271,7 +271,7 @@ impl Scanner {
         }
     }
 
-    pub async fn run_alive_test(&self) -> Result<(), AliveTestError> {
+    pub async fn run_alive_test(&self) -> Result<Vec<AliveHostCtl>, AliveTestError> {
         // TODO: Replace with a Storage type to store the alive host list
         let mut alive = Vec::<AliveHostCtl>::new();
 
@@ -283,7 +283,7 @@ impl Scanner {
                 ));
                 println!("{t} via {}", AliveTestMethods::ConsiderAlive)
             }
-            return Ok(());
+            return Ok(alive);
         };
 
         let capture_inactive = Capture::from_device("any")
@@ -312,6 +312,6 @@ impl Scanner {
         send_handle.await.unwrap().unwrap();
         capture_handle.await.unwrap().unwrap();
 
-        Ok(())
+        Ok(alive)
     }
 }

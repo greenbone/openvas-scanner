@@ -6,7 +6,7 @@
 
 use tokio::sync::RwLock;
 
-use crate::models::{Port, PortRange, Protocol, ScanPreference};
+use crate::models::{AliveTestMethods, Port, PortRange, Protocol, ScanPreference};
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
@@ -628,9 +628,12 @@ pub struct Context<'a> {
     sockets: RwLock<NaslSockets>,
     /// Scanner preferences
     scan_preferences: Vec<ScanPreference>,
+    /// Alive test methods
+    alive_test_methods: Vec<AliveTestMethods>,
 }
 
 impl<'a> Context<'a> {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         scan: ScanID,
         target: CtxTarget,
@@ -639,6 +642,7 @@ impl<'a> Context<'a> {
         loader: &'a dyn Loader,
         executor: &'a Executor,
         scan_preferences: Vec<ScanPreference>,
+        alive_test_methods: Vec<AliveTestMethods>,
     ) -> Self {
         Self {
             scan,
@@ -650,6 +654,7 @@ impl<'a> Context<'a> {
             nvt: Mutex::new(None),
             sockets: RwLock::new(NaslSockets::default()),
             scan_preferences,
+            alive_test_methods,
         }
     }
 
@@ -660,13 +665,14 @@ impl<'a> Context<'a> {
         &self,
         name: &str,
         register: &Register,
+        script_info: &mut ScriptInfo,
     ) -> Option<super::NaslResult> {
         const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
 
         let mut i = 0;
         loop {
             i += 1;
-            let result = self.executor.exec(name, self, register).await;
+            let result = self.executor.exec(name, self, register, script_info).await;
             if let Some(Err(ref e)) = result {
                 if e.retryable() && i < NUM_RETRIES_ON_RETRYABLE_ERROR {
                     continue;
@@ -759,6 +765,14 @@ impl<'a> Context<'a> {
 
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
         self.scan_preferences.iter()
+    }
+
+    pub fn set_alive_test_methods(&mut self, methods: Vec<AliveTestMethods>) {
+        self.alive_test_methods = methods;
+    }
+
+    pub fn alive_test_methods(&self) -> Vec<AliveTestMethods> {
+        self.alive_test_methods.clone()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
@@ -877,7 +891,7 @@ impl<'a> Context<'a> {
             })
             .collect();
 
-        let ret = if ports.is_empty() {
+        let ret = if !ports.is_empty() {
             *ports.choose(&mut rand::thread_rng()).unwrap()
         } else if open21 {
             21
@@ -916,6 +930,12 @@ impl From<&ContextType> for NaslValue {
     }
 }
 
+#[derive(Default)]
+pub struct ScriptInfo {
+    pub alive: bool,
+    pub denial_port: Option<u16>,
+}
+
 pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub storage: &'a dyn ContextStorage,
     pub loader: &'a dyn Loader,
@@ -925,6 +945,7 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub ports: Ports,
     pub filename: P,
     pub scan_preferences: Vec<ScanPreference>,
+    pub alive_test_methods: Vec<AliveTestMethods>,
 }
 
 impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
@@ -938,6 +959,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.loader,
             self.executor,
             self.scan_preferences,
+            self.alive_test_methods,
         )
     }
 }

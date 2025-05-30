@@ -352,6 +352,7 @@ where
             },
             filename: self.filename.clone(),
             scan_preferences: Vec::default(),
+            alive_test_methods: Vec::default(),
         }
         .build()
     }

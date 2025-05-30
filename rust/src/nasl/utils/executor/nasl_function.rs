@@ -4,7 +4,7 @@
 
 use std::{future::Future, pin::Pin};
 
-use crate::nasl::{Context, NaslResult, Register};
+use crate::nasl::{Context, NaslResult, Register, ScriptInfo};
 
 /// A wrapper trait to represent a function taking two arguments.
 /// This trait exists to allow attaching the lifetime of the HRTB
@@ -12,16 +12,16 @@ use crate::nasl::{Context, NaslResult, Register};
 /// https://users.rust-lang.org/t/lifetimes-with-async-function-parameters/51338
 /// Unfortunately, this trait needs to be public, but it should
 /// not be implemented on any struct other than two-argument functions.
-pub trait AsyncDoubleArgFn<Arg1, Arg2>:
-    Fn(Arg1, Arg2) -> <Self as AsyncDoubleArgFn<Arg1, Arg2>>::Fut
+pub trait AsyncTripleArgFn<Arg1, Arg2, Arg3>:
+    Fn(Arg1, Arg2, Arg3) -> <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Fut
 {
-    type Fut: Future<Output = <Self as AsyncDoubleArgFn<Arg1, Arg2>>::Output> + Send;
+    type Fut: Future<Output = <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Output> + Send;
     type Output;
 }
 
-impl<Arg1, Arg2, F, Fut> AsyncDoubleArgFn<Arg1, Arg2> for F
+impl<Arg1, Arg2, Arg3, F, Fut> AsyncTripleArgFn<Arg1, Arg2, Arg3> for F
 where
-    F: Fn(Arg1, Arg2) -> Fut,
+    F: Fn(Arg1, Arg2, Arg3) -> Fut,
     Fut: Future + Send,
 {
     type Fut = Fut;
@@ -34,16 +34,16 @@ where
 /// https://users.rust-lang.org/t/lifetimes-with-async-function-parameters/51338
 /// Unfortunately, this trait needs to be public, but it should
 /// not be implemented on any struct other than three-argument functions.
-pub trait AsyncTripleArgFn<Arg1, Arg2, Arg3>:
-    Fn(Arg1, Arg2, Arg3) -> <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Fut + Send
+pub trait AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4>:
+    Fn(Arg1, Arg2, Arg3, Arg4) -> <Self as AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4>>::Fut + Send
 {
-    type Fut: Future<Output = <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Output> + Send;
+    type Fut: Future<Output = <Self as AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4>>::Output> + Send;
     type Output;
 }
 
-impl<Arg1, Arg2, Arg3, F, Fut> AsyncTripleArgFn<Arg1, Arg2, Arg3> for F
+impl<Arg1, Arg2, Arg3, Arg4, F, Fut> AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4> for F
 where
-    F: Fn(Arg1, Arg2, Arg3) -> Fut + Send,
+    F: Fn(Arg1, Arg2, Arg3, Arg4) -> Fut + Send,
     Fut: Future + Send,
 {
     type Fut = Fut;
@@ -63,21 +63,28 @@ pub trait StatefulCallable<State> {
         state: &'b State,
         register: &'b Register,
         context: &'b Context,
+        script_info: &'b mut ScriptInfo,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F, State> StatefulCallable<State> for F
 where
-    F: for<'a> AsyncTripleArgFn<&'a State, &'a Register, &'a Context<'a>, Output = NaslResult>
-        + 'static,
+    F: for<'a> AsyncQuadrupleArgFn<
+            &'a State,
+            &'a Register,
+            &'a Context<'a>,
+            &'a mut ScriptInfo,
+            Output = NaslResult,
+        > + 'static,
 {
     fn call_stateful<'b>(
         &self,
         state: &'b State,
         register: &'b Register,
         context: &'b Context,
+        script_info: &'b mut ScriptInfo,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context))
+        Box::pin((*self)(state, register, context, script_info))
     }
 }
 
@@ -94,21 +101,28 @@ pub trait StatefulMutCallable<State> {
         state: &'b mut State,
         register: &'b Register,
         context: &'b Context,
+        script_info: &'b mut ScriptInfo,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F, State> StatefulMutCallable<State> for F
 where
-    F: for<'a> AsyncTripleArgFn<&'a mut State, &'a Register, &'a Context<'a>, Output = NaslResult>
-        + 'static,
+    F: for<'a> AsyncQuadrupleArgFn<
+            &'a mut State,
+            &'a Register,
+            &'a Context<'a>,
+            &'a mut ScriptInfo,
+            Output = NaslResult,
+        > + 'static,
 {
     fn call_stateful<'b>(
         &self,
         state: &'b mut State,
         register: &'b Register,
         context: &'b Context,
+        script_info: &'b mut ScriptInfo,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context))
+        Box::pin((*self)(state, register, context, script_info))
     }
 }
 
@@ -123,19 +137,26 @@ pub trait StatelessCallable {
         &self,
         register: &'b Register,
         context: &'b Context,
+        script_info: &'b mut ScriptInfo,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
 impl<F> StatelessCallable for F
 where
-    F: for<'a> AsyncDoubleArgFn<&'a Register, &'a Context<'a>, Output = NaslResult> + 'static,
+    F: for<'a> AsyncTripleArgFn<
+            &'a Register,
+            &'a Context<'a>,
+            &'a mut ScriptInfo,
+            Output = NaslResult,
+        > + 'static,
 {
     fn call_stateless<'b>(
         &self,
         register: &'b Register,
         context: &'b Context,
+        script_info: &'b mut ScriptInfo,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(register, context))
+        Box::pin((*self)(register, context, script_info))
     }
 }
 
@@ -145,9 +166,9 @@ where
 /// a single function set.
 pub enum NaslFunction<State> {
     AsyncStateful(Box<dyn StatefulCallable<State> + Send + Sync>),
-    SyncStateful(fn(&State, &Register, &Context) -> NaslResult),
+    SyncStateful(fn(&State, &Register, &Context, &mut ScriptInfo) -> NaslResult),
     AsyncStatefulMut(Box<dyn StatefulMutCallable<State> + Send + Sync>),
-    SyncStatefulMut(fn(&mut State, &Register, &Context) -> NaslResult),
+    SyncStatefulMut(fn(&mut State, &Register, &Context, &mut ScriptInfo) -> NaslResult),
     AsyncStateless(Box<dyn StatelessCallable + Send + Sync>),
-    SyncStateless(fn(&Register, &Context) -> NaslResult),
+    SyncStateless(fn(&Register, &Context, &mut ScriptInfo) -> NaslResult),
 }

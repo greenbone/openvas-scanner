@@ -22,6 +22,14 @@ pub fn ty_is_register(ty: &Type) -> bool {
     }
 }
 
+pub fn ty_is_script_info(ty: &Type) -> bool {
+    if let Type::Reference(TypeReference { elem, .. }) = ty {
+        ty_name_is(elem, "ScriptInfo")
+    } else {
+        false
+    }
+}
+
 pub fn ty_is_nasl_sockets(ty: &Type) -> Option<bool> {
     if let Type::Reference(TypeReference {
         elem, mutability, ..

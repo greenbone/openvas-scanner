@@ -190,6 +190,6 @@ function_set! {
         get_mtu,
         get_host_ip,
         get_host_open_port,
-        get_port_transport
+        get_port_transport,
     )
 }

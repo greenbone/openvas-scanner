@@ -54,6 +54,8 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
             })
             .collect(),
         scan_preferences: Vec::new(),
+        alive_test_methods: Vec::new(),
+        alive_test_ports: Vec::new(),
     };
     let executor = nasl_std_functions();
     ((Arc::new(storage), loader), executor, scan)
@@ -221,6 +223,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     let loader = |_: &str| code.to_string();
     let scan_id = ScanID(filename.to_string());
     let scan_preferences = Vec::default();
+    let alive_test_methods = Vec::default();
     let cb = ContextBuilder {
         storage: &storage,
         loader: &loader,
@@ -230,6 +233,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         ports,
         filename,
         scan_preferences,
+        alive_test_methods,
     };
     let context = cb.build();
     let interpreter = ForkingInterpreter::new(code, register, &context);
@@ -273,6 +277,8 @@ async fn run(
             })
             .collect(),
         scan_preferences: Vec::new(),
+        alive_test_methods: Vec::new(),
+        alive_test_ports: Vec::new(),
     };
 
     let executor = nasl_std_functions();

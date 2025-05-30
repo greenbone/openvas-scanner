@@ -1,7 +1,7 @@
 use tracing::error;
 
 use crate::{
-    models::{self, ScanID, ScanPreference, VT},
+    models::{self, AliveTestMethods, Port, ScanID, ScanPreference, VT},
     nasl::utils::context::{Ports, Target},
 };
 
@@ -12,6 +12,8 @@ pub struct Scan {
     pub scan_id: ScanID,
     pub vts: Vec<VT>,
     pub scan_preferences: Vec<ScanPreference>,
+    pub alive_test_methods: Vec<AliveTestMethods>,
+    pub alive_test_ports: Vec<Port>,
 }
 
 fn try_resolve(host: &str) -> Option<Target> {
@@ -41,6 +43,8 @@ impl Scan {
             scan_id: scan.scan_id,
             vts: scan.vts,
             scan_preferences: scan.scan_preferences,
+            alive_test_methods: scan.target.alive_test_methods,
+            alive_test_ports: scan.target.alive_test_ports,
         }
     }
 
@@ -62,6 +66,8 @@ impl Scan {
             scan_id: scan.scan_id,
             vts: scan.vts,
             scan_preferences: scan.scan_preferences,
+            alive_test_methods: scan.target.alive_test_methods,
+            alive_test_ports: scan.target.alive_test_ports,
         }
     }
 }
