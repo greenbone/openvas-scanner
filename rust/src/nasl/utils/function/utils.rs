@@ -39,19 +39,6 @@ pub fn get_positional_arg<'a, T: FromNaslValue<'a>>(
     <T as FromNaslValue>::from_nasl_value(arg)
 }
 
-fn context_type_as_nasl_value<'a>(
-    context_type: &'a ContextType,
-    arg_name: &str,
-) -> Result<&'a NaslValue, ArgumentError> {
-    match context_type {
-        ContextType::Function(_, _) => Err(ArgumentError::WrongArgument(format!(
-            "Wrong argument for {}, expected a value, found a function.",
-            arg_name
-        ))),
-        ContextType::Value(val) => Ok(val),
-    }
-}
-
 /// A convenience function to obtain an optional, named argument
 /// from the `Register`.
 pub fn get_optional_named_arg<'a, T: FromNaslValue<'a>>(
@@ -59,9 +46,8 @@ pub fn get_optional_named_arg<'a, T: FromNaslValue<'a>>(
     name: &'a str,
 ) -> Result<Option<T>, FnError> {
     register
-        .named(name)
-        .map(|arg| context_type_as_nasl_value(arg, name))
-        .transpose()?
+        .nasl_value(name)
+        .ok()
         .map(|arg| <T as FromNaslValue>::from_nasl_value(arg))
         .transpose()
 }
@@ -72,10 +58,7 @@ pub fn get_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
 ) -> Result<T, FnError> {
-    let arg = register
-        .named(name)
-        .ok_or_else(|| ArgumentError::MissingNamed(vec![name.to_string()]))?;
-    <T as FromNaslValue>::from_nasl_value(context_type_as_nasl_value(arg, name)?)
+    <T as FromNaslValue>::from_nasl_value(register.nasl_value(name)?)
 }
 
 /// A convenience function to obtain an optional, argument

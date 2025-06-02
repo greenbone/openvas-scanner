@@ -5,8 +5,7 @@
 use crate::models::{Product, ProductsAdvisories};
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 
-use crate::feed::check_signature;
-use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError};
+use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError, check_signature};
 use crate::notus::error::{Error, LoadProductErrorKind};
 
 use super::{AdvisoryLoader, FeedStamp, ProductLoader};

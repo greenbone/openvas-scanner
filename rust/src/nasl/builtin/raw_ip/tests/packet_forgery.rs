@@ -4,7 +4,9 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use crate::nasl::test_prelude::*;
+use crate::nasl::{
+    builtin::raw_ip::packet_forgery::PacketForgery, test_prelude::*, utils::DefineGlobalVars,
+};
 
 #[test]
 fn forge_packet() {
@@ -356,4 +358,14 @@ fn forge_tcp_v6() {
         "opt = get_tcp_v6_option(tcp: tcp_packet_opts, option: 3);",
         2,
     );
+}
+
+#[test]
+fn global_variables() {
+    // Make sure all of the variables that this set defines
+    // are available
+    let mut t = TestBuilder::default();
+    for (name, val) in PacketForgery::get_global_vars() {
+        t.ok(format!("{name};"), val);
+    }
 }

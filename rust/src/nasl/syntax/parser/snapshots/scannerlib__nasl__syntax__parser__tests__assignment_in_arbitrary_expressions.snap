@@ -1,0 +1,5 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Stmt >\n(stringify! (assignment_in_arbitrary_expressions), \"(a = 1);\")"
+---
+a = 1;

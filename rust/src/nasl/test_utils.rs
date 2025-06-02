@@ -18,7 +18,7 @@ use crate::storage::{ScanID, inmemory::InMemoryStorage};
 use futures::{Stream, StreamExt};
 
 use super::{
-    interpreter::{ForkingInterpreter, InterpretError, InterpretErrorKind},
+    interpreter::{ForkingInterpreter, InterpreterError, InterpreterErrorKind},
     nasl_std_functions,
     utils::{
         Executor,
@@ -303,21 +303,18 @@ where
         self.lines.join("\n")
     }
 
-    fn interpreter<'code, 'ctx>(
-        &self,
-        code: &'code str,
-        context: &'ctx Context,
-    ) -> ForkingInterpreter<'code, 'ctx> {
+    fn interpreter<'ctx>(&self, code: &str, context: &'ctx Context) -> ForkingInterpreter<'ctx> {
         let variables: Vec<_> = self
             .variables
             .iter()
-            .map(|(k, v)| (k.clone(), ContextType::Value(v.clone())))
+            .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
-        let register = Register::root_initial(&variables);
-        ForkingInterpreter::new(code, register, context)
+        let register = Register::from_global_variables(&variables);
+        let ast = Code::from_string(code).parse().emit_errors().unwrap();
+        ForkingInterpreter::new(ast, register, context)
     }
 
-    pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpretError>> {
+    pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
         let code = self.code();
         let context = self.context();
         let interpreter = self.interpreter(&code, &context);
@@ -332,7 +329,7 @@ where
         let interpreter = self.interpreter(code, context);
         interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
-                InterpretErrorKind::FunctionCallError(f) => f.kind,
+                InterpreterErrorKind::FunctionCallError(f) => f.kind,
                 e => panic!("Unknown error: {}", e),
             })
         })

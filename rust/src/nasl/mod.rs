@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 mod builtin;
+mod code;
+pub mod error;
 pub mod interpreter;
 pub mod syntax;
 pub mod utils;
@@ -17,17 +19,17 @@ pub mod raw_ip_utils {
 
 pub mod prelude {
     pub use super::builtin::BuiltinError;
-    pub use super::builtin::RegisterBuilder;
+    pub use super::code::Code;
+    pub use super::code::ParseResult;
+    pub use super::interpreter::NaslValue;
+    pub use super::interpreter::Register;
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
-    pub use super::syntax::NaslValue;
     pub use super::utils::ArgumentError;
     pub use super::utils::Context;
-    pub use super::utils::ContextType;
     pub use super::utils::FnError;
     pub use super::utils::InternalError;
     pub use super::utils::NaslResult;
-    pub use super::utils::Register;
     pub use super::utils::context::ContextBuilder;
     pub use super::utils::error::FnErrorKind;
     pub use super::utils::error::Retryable;

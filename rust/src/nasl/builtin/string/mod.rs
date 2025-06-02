@@ -82,38 +82,6 @@ fn raw_string(positional: CheckedPositionals<&NaslValue>) -> Vec<u8> {
     data
 }
 
-fn write_nasl_string(s: &mut String, value: &NaslValue) -> Result<(), StringError> {
-    match value {
-        NaslValue::String(x) => write!(s, "{x}"),
-        NaslValue::Data(x) => {
-            let x = x.iter().map(|x| *x as char).collect::<String>();
-            write!(s, "{x}")
-        }
-        NaslValue::Number(x) => {
-            let c = *x as u8 as char;
-            if c.is_ascii_graphic() {
-                write!(s, "{c}")
-            } else {
-                write!(s, ".")
-            }
-        }
-        NaslValue::Array(x) => {
-            for p in x {
-                write_nasl_string(s, p)?;
-            }
-            Ok(())
-        }
-        NaslValue::Dict(x) => {
-            for p in x.values() {
-                write_nasl_string(s, p)?;
-            }
-            Ok(())
-        }
-        _ => write!(s, "."),
-    }
-    .map_err(|e| e.into())
-}
-
 /// NASL function to parse values into string representations
 #[nasl_function]
 fn string(positional: CheckedPositionals<&NaslValue>) -> Result<NaslValue, BuiltinError> {
@@ -133,14 +101,19 @@ fn combine_positionals_to_string(
 fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), StringError> {
     match value {
         NaslValue::Array(x) => {
-            for p in x {
-                write_nasl_string(s, p)?;
+            write!(s, "[")?;
+            for (i, p) in x.iter().enumerate() {
+                write_nasl_string_value(s, p)?;
+                if i + 1 != x.len() {
+                    write!(s, ", ")?;
+                }
             }
+            write!(s, "]")?;
             Ok(())
         }
         NaslValue::Dict(x) => {
             for p in x.values() {
-                write_nasl_string(s, p)?;
+                write_nasl_string_value(s, p)?;
             }
             Ok(())
         }

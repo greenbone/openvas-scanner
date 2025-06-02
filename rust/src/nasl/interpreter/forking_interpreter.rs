@@ -1,49 +1,42 @@
 use futures::{Stream, stream};
 
-use crate::nasl::{
-    Context, Register,
-    syntax::{Lexer, Tokenizer},
-};
+use crate::nasl::{Context, Register, syntax::grammar::Ast};
 
-use super::{interpreter::InterpretResult, interpreter::Interpreter};
+use super::{Interpreter, Result};
 
 /// Handles code execution with forking behavior.
 /// In order to do so, this struct maintains a list of
 /// `Interpreter`s. Whenever a statement that results
 /// in a fork is executed, new interpreters will be added
 /// for each of the forks.
-pub struct ForkingInterpreter<'code, 'ctx> {
-    interpreters: Vec<Interpreter<'code, 'ctx>>,
+pub struct ForkingInterpreter<'ctx> {
+    interpreters: Vec<Interpreter<'ctx>>,
     interpreter_index: usize,
 }
 
-impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
-    pub fn new(code: &'code str, register: Register, context: &'ctx Context<'ctx>) -> Self {
-        let tokenizer = Tokenizer::new(code);
-        let lexer = Lexer::new(tokenizer);
-        let interpreters = vec![Interpreter::new(register, lexer, context)];
+impl<'ctx> ForkingInterpreter<'ctx> {
+    pub fn new(ast: Ast, mut register: Register, context: &'ctx Context<'ctx>) -> Self {
+        context.add_fn_global_vars(&mut register);
+        let interpreters = vec![Interpreter::new(register, ast, context)];
         Self {
             interpreters,
             interpreter_index: 0,
         }
     }
 
-    pub fn stream(self) -> impl Stream<Item = InterpretResult> + 'code
-    where
-        'ctx: 'code,
-    {
+    pub fn stream(self) -> impl Stream<Item = Result> + use<'ctx> {
         Box::pin(stream::unfold(self, |mut s| async move {
             s.next().await.map(|x| (x, s))
         }))
     }
 
-    pub fn iter_blocking(self) -> impl Iterator<Item = InterpretResult> + use<> {
+    pub fn iter_blocking(self) -> impl Iterator<Item = Result> + use<> {
         use futures::StreamExt;
 
         futures::executor::block_on(async { self.stream().collect::<Vec<_>>().await.into_iter() })
     }
 
-    async fn next(&mut self) -> Option<InterpretResult> {
+    async fn next(&mut self) -> Option<Result> {
         while self
             .interpreters
             .iter()
@@ -62,7 +55,7 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
     /// if the current interpreter wanted to fork (in which case we return
     /// `None` once but subsequent calls to `try_next` will begin executing
     /// the same statement for the forks).
-    async fn try_next(&mut self) -> Option<InterpretResult> {
+    async fn try_next(&mut self) -> Option<Result> {
         self.interpreter_index = (self.interpreter_index + 1) % self.interpreters.len();
         let interpreter = &mut self.interpreters[self.interpreter_index];
         if !interpreter.is_finished() {
@@ -112,7 +105,7 @@ impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
 #[cfg(test)]
 mod tests {
     use crate::nasl::{
-        interpreter::{InterpretError, InterpretErrorKind},
+        interpreter::{InterpreterError, InterpreterErrorKind},
         nasl_std_functions,
         test_prelude::*,
     };
@@ -300,8 +293,8 @@ mod tests {
         // Advancing the iterator into the if statement
         // should return an error.
         match results.remove(0) {
-            Err(InterpretError {
-                kind: InterpretErrorKind::InvalidFork,
+            Err(InterpreterError {
+                kind: InterpreterErrorKind::InvalidFork,
                 ..
             }) => {}
             _ => panic!(),

@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (error_in_block), \"{ a =3; b=; }\")"
+---
+error: Expected expression
+  ┌─ error_in_block:1:11
+  │
+1 │ { a =3; b=; }
+  │           ^ Expected expression

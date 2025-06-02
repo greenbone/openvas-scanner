@@ -4,64 +4,39 @@
 
 use std::path::Path;
 
-use scannerlib::nasl::WithErrorInfo;
+use scannerlib::nasl::syntax::LoadError;
+use scannerlib::nasl::syntax::grammar::Statement;
 use scannerlib::nasl::syntax::load_non_utf8_path;
-use scannerlib::nasl::syntax::{Statement, SyntaxError, parse};
+use scannerlib::nasl::{Code, Loader};
 use walkdir::WalkDir;
 
-use crate::{CliError, CliErrorKind, Filename};
+use crate::CliError;
 
-fn print_error(path: &Path, err: &SyntaxError) {
-    if let Some(token) = err.as_token() {
-        eprintln!(
-            "{}:{}:{}: {}",
-            path.to_string_lossy(),
-            token.line(),
-            token.column(),
-            err.kind
-        )
-    } else {
-        eprintln!("{}:{}", path.to_string_lossy(), err)
+struct NonUtf8Loader;
+
+impl Loader for NonUtf8Loader {
+    fn load(&self, key: &str) -> Result<String, LoadError> {
+        load_non_utf8_path(key)
     }
-}
 
-fn print_stmt(path: &Path, stmt: Statement) {
-    println!(
-        "{}:{}:{}: {}",
-        path.to_string_lossy(),
-        stmt.as_token().line(),
-        stmt.as_token().column(),
-        stmt
-    )
-}
-
-fn read<P: AsRef<Path>>(path: P) -> Result<Vec<Result<Statement, SyntaxError>>, CliErrorKind> {
-    let code = load_non_utf8_path(path.as_ref())?;
-    Ok(parse(&code).collect())
+    fn root_path(&self) -> Result<String, LoadError> {
+        Ok(".".to_owned())
+    }
 }
 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut num_errors = 0;
 
-    if verbose {
-        println!("# {path:?}");
-    }
-    let results = read(path).map_err(|e| e.with(Filename(path)))?;
-    for r in results {
-        match r {
-            Ok(stmt) => {
-                if verbose {
-                    print_stmt(path, stmt);
-                }
-            }
-            Err(err) => {
-                // when we run in interactive mode we should print a new line to
-                // not interfere with the count display.
-                if num_errors == 0 {
-                    eprintln!();
-                }
-                num_errors += 1;
-                print_error(path, &err);
+    let print_stmt = |stmt: &Statement| {
+        println!("{}: {}", path.to_string_lossy(), stmt);
+    };
+
+    let results = Code::load(&NonUtf8Loader, path)?.parse();
+    num_errors += results.num_errors();
+    if let Ok(stmts) = results.emit_errors() {
+        if verbose {
+            for stmt in stmts.stmts().iter() {
+                print_stmt(stmt);
             }
         }
     }

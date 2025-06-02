@@ -1,0 +1,9 @@
+---
+source: src/nasl/interpreter/tests/mod.rs
+expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (undefined_fn), \"foo();\")"
+---
+error: Undefined function: foo
+  ┌─ undefined_fn:1:1
+  │
+1 │ foo();
+  │ ^^^ Undefined function: foo

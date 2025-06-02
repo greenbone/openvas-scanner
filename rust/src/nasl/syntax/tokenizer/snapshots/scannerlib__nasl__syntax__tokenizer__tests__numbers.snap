@@ -1,0 +1,181 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (numbers),\n\"0 0b01 1234567890 012345670 0x1234567890ABCDEF 0b02\")"
+---
+[
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    0,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        1,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    1,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        4,
+                    ),
+                    end: CharIndex(
+                        6,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    1234567890,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        7,
+                    ),
+                    end: CharIndex(
+                        17,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                7,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    2739128,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        19,
+                    ),
+                    end: CharIndex(
+                        27,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                18,
+            ),
+            end: CharIndex(
+                27,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    1311768467294899695,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        30,
+                    ),
+                    end: CharIndex(
+                        46,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                28,
+            ),
+            end: CharIndex(
+                46,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    0,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        49,
+                    ),
+                    end: CharIndex(
+                        50,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                47,
+            ),
+            end: CharIndex(
+                50,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    2,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        50,
+                    ),
+                    end: CharIndex(
+                        51,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                50,
+            ),
+            end: CharIndex(
+                51,
+            ),
+        },
+    },
+]

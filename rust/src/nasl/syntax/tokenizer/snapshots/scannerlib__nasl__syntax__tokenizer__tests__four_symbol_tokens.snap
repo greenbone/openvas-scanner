@@ -1,0 +1,17 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (four_symbol_tokens), \">>>=\")"
+---
+[
+    Token {
+        kind: GreaterGreaterGreaterEqual,
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                4,
+            ),
+        },
+    },
+]

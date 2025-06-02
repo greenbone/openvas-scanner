@@ -32,6 +32,10 @@ impl Seconds {
     pub fn as_duration(&self) -> Duration {
         Duration::from_secs(self.0)
     }
+
+    pub fn as_millis(&self) -> u64 {
+        self.0 * 1000
+    }
 }
 
 impl<'a> FromNaslValue<'a> for Seconds {

@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_err :: < Expr >\n(stringify! (increment_without_place_expr3), \"a(1)++\")"
+---
+error: Not a valid assignment target.
+  ┌─ increment_without_place_expr3:1:1
+  │
+1 │ a(1)++
+  │ ^^^^ Not a valid assignment target.

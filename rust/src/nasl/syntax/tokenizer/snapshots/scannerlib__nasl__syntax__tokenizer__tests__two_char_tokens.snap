@@ -1,0 +1,303 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (two_char_tokens),\n\"& && | || ! != !~ = == =~ > >> >= >< < << <= - -- + += ++ / /= * ** *=\")"
+---
+[
+    Token {
+        kind: Ampersand,
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
+    },
+    Token {
+        kind: AmpersandAmpersand,
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                4,
+            ),
+        },
+    },
+    Token {
+        kind: Pipe,
+        span: Span {
+            start: CharIndex(
+                5,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
+    },
+    Token {
+        kind: PipePipe,
+        span: Span {
+            start: CharIndex(
+                7,
+            ),
+            end: CharIndex(
+                9,
+            ),
+        },
+    },
+    Token {
+        kind: Bang,
+        span: Span {
+            start: CharIndex(
+                10,
+            ),
+            end: CharIndex(
+                11,
+            ),
+        },
+    },
+    Token {
+        kind: BangEqual,
+        span: Span {
+            start: CharIndex(
+                12,
+            ),
+            end: CharIndex(
+                14,
+            ),
+        },
+    },
+    Token {
+        kind: BangTilde,
+        span: Span {
+            start: CharIndex(
+                15,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
+    },
+    Token {
+        kind: Equal,
+        span: Span {
+            start: CharIndex(
+                18,
+            ),
+            end: CharIndex(
+                19,
+            ),
+        },
+    },
+    Token {
+        kind: EqualEqual,
+        span: Span {
+            start: CharIndex(
+                20,
+            ),
+            end: CharIndex(
+                22,
+            ),
+        },
+    },
+    Token {
+        kind: EqualTilde,
+        span: Span {
+            start: CharIndex(
+                23,
+            ),
+            end: CharIndex(
+                25,
+            ),
+        },
+    },
+    Token {
+        kind: Greater,
+        span: Span {
+            start: CharIndex(
+                26,
+            ),
+            end: CharIndex(
+                27,
+            ),
+        },
+    },
+    Token {
+        kind: GreaterGreater,
+        span: Span {
+            start: CharIndex(
+                28,
+            ),
+            end: CharIndex(
+                30,
+            ),
+        },
+    },
+    Token {
+        kind: GreaterEqual,
+        span: Span {
+            start: CharIndex(
+                31,
+            ),
+            end: CharIndex(
+                33,
+            ),
+        },
+    },
+    Token {
+        kind: GreaterLess,
+        span: Span {
+            start: CharIndex(
+                34,
+            ),
+            end: CharIndex(
+                36,
+            ),
+        },
+    },
+    Token {
+        kind: Less,
+        span: Span {
+            start: CharIndex(
+                37,
+            ),
+            end: CharIndex(
+                38,
+            ),
+        },
+    },
+    Token {
+        kind: LessLess,
+        span: Span {
+            start: CharIndex(
+                39,
+            ),
+            end: CharIndex(
+                41,
+            ),
+        },
+    },
+    Token {
+        kind: LessEqual,
+        span: Span {
+            start: CharIndex(
+                42,
+            ),
+            end: CharIndex(
+                44,
+            ),
+        },
+    },
+    Token {
+        kind: Minus,
+        span: Span {
+            start: CharIndex(
+                45,
+            ),
+            end: CharIndex(
+                46,
+            ),
+        },
+    },
+    Token {
+        kind: MinusMinus,
+        span: Span {
+            start: CharIndex(
+                47,
+            ),
+            end: CharIndex(
+                49,
+            ),
+        },
+    },
+    Token {
+        kind: Plus,
+        span: Span {
+            start: CharIndex(
+                50,
+            ),
+            end: CharIndex(
+                51,
+            ),
+        },
+    },
+    Token {
+        kind: PlusEqual,
+        span: Span {
+            start: CharIndex(
+                52,
+            ),
+            end: CharIndex(
+                54,
+            ),
+        },
+    },
+    Token {
+        kind: PlusPlus,
+        span: Span {
+            start: CharIndex(
+                55,
+            ),
+            end: CharIndex(
+                57,
+            ),
+        },
+    },
+    Token {
+        kind: Slash,
+        span: Span {
+            start: CharIndex(
+                58,
+            ),
+            end: CharIndex(
+                59,
+            ),
+        },
+    },
+    Token {
+        kind: SlashEqual,
+        span: Span {
+            start: CharIndex(
+                60,
+            ),
+            end: CharIndex(
+                62,
+            ),
+        },
+    },
+    Token {
+        kind: Star,
+        span: Span {
+            start: CharIndex(
+                63,
+            ),
+            end: CharIndex(
+                64,
+            ),
+        },
+    },
+    Token {
+        kind: StarStar,
+        span: Span {
+            start: CharIndex(
+                65,
+            ),
+            end: CharIndex(
+                67,
+            ),
+        },
+    },
+    Token {
+        kind: StarEqual,
+        span: Span {
+            start: CharIndex(
+                68,
+            ),
+            end: CharIndex(
+                70,
+            ),
+        },
+    },
+]

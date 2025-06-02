@@ -1,0 +1,12 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (operator_assignment),\n\"\n    a += 1;\n    a -= 1;\n    a /= 1;\n    a *= 1;\n    a %= 1;\n    a >>= 1;\n    a <<= 1;\n    a >>>= 1;\n    \").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+a += 1;
+a -= 1;
+a /= 1;
+a *= 1;
+a %= 1;
+a >>= 1;
+a <<= 1;
+a >>>= 1;

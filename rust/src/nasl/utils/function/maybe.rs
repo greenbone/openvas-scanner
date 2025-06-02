@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::NaslValue;
+use crate::nasl::prelude::NaslValue;
 
 use crate::nasl::FnError;
 

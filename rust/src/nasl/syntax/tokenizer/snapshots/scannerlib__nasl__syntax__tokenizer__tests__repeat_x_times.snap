@@ -1,0 +1,98 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (repeat_x_times), \"x() x 10;\")"
+---
+[
+    Token {
+        kind: Ident(
+            Ident {
+                ident: "x",
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        1,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
+    },
+    Token {
+        kind: LeftParen,
+        span: Span {
+            start: CharIndex(
+                1,
+            ),
+            end: CharIndex(
+                2,
+            ),
+        },
+    },
+    Token {
+        kind: RightParen,
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                3,
+            ),
+        },
+    },
+    Token {
+        kind: X,
+        span: Span {
+            start: CharIndex(
+                4,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    10,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        6,
+                    ),
+                    end: CharIndex(
+                        8,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                6,
+            ),
+            end: CharIndex(
+                8,
+            ),
+        },
+    },
+    Token {
+        kind: Semicolon,
+        span: Span {
+            start: CharIndex(
+                8,
+            ),
+            end: CharIndex(
+                9,
+            ),
+        },
+    },
+]

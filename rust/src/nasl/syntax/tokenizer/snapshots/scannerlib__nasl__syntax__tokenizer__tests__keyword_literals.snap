@@ -1,0 +1,79 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (keyword_literals), \"TRUE FALSE NULL\")"
+---
+[
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Boolean(
+                    true,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        4,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                4,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Boolean(
+                    false,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        5,
+                    ),
+                    end: CharIndex(
+                        10,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                5,
+            ),
+            end: CharIndex(
+                10,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Null,
+                span: Span {
+                    start: CharIndex(
+                        11,
+                    ),
+                    end: CharIndex(
+                        15,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                11,
+            ),
+            end: CharIndex(
+                15,
+            ),
+        },
+    },
+]

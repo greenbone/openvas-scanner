@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (array_expr),\n\"\n    a[1];\n    a[5 + 3];\n    a[5 + (3 * 4)];\n    a[1] * b[2];\n    a[b[1]];\n\").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+a[1];
+a[(5 + 3)];
+a[(5 + (3 * 4))];
+(a[1] * b[2]);
+a[b[1]];

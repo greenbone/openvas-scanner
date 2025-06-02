@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-mod transpile;
 pub mod update;
 use std::{io, path::PathBuf};
 
@@ -19,9 +18,9 @@ use scannerlib::{
         },
     },
 };
-
 use tracing::warn;
-use transpile::TranspileArgs;
+
+// use scannerlib::feed::{FeedReplacer, ReplaceCommand};
 
 use crate::{CliError, CliErrorKind, get_path_from_openvas, notus_update, read_openvas_config};
 
@@ -36,7 +35,6 @@ pub struct FeedArgs {
 enum Action {
     Update(UpdateArgs),
     Transform(TransformArgs),
-    Transpile(TranspileArgs),
 }
 
 /// Runs nasl scripts in description mode and updates data into Redis
@@ -162,7 +160,6 @@ pub async fn run(args: FeedArgs) -> Result<(), CliError> {
     match args.action {
         Action::Update(args) => update(args).await?,
         Action::Transform(args) => transform(args).await?,
-        Action::Transpile(args) => transpile::run(args).await?,
     }
     Ok(())
 }
