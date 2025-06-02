@@ -112,19 +112,19 @@ impl Ident {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LiteralKind {
-    /// A String (")
+    /// A String (enclosed in ")
     ///
     /// Strings can be over multiple lines and are not escapable (`a = "a\";` is valid).
-    /// A string type will be cast to utf8 string.
+    /// Strings have to be valid UTF8.
     String(String),
-    /// Data is defined Quotable (')
+    /// A raw byte string (enclosed in ')
     ///
     /// Data can be over multiple lines and are escaped (`a = "a\";` is valid).
-    /// Unlike string the data types are stored in bytes.
+    /// Unlike string, the data types are stored in bytes.
     Data(Vec<u8>),
     /// A Number can be either binary (0b), octal (0), base10 (1-9) or hex (0x)
     Number(i64),
-    /// An IP address. We currently just support 127.0.0.1 notation
+    /// An IP V4 address. We currently just support 127.0.0.1 notation
     IPv4Address(Ipv4Addr),
     /// A boolean.
     Boolean(bool),
