@@ -4,7 +4,6 @@
 
 #![doc = include_str!("README.md")]
 mod oid;
-// mod transpile;
 mod update;
 mod verify;
 
