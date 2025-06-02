@@ -437,7 +437,7 @@ fn open_sock_tcp_vhost(
     transport: i64,
 ) -> Result<Option<NaslSocket>, FnError> {
     let mut transport = if transport.is_negative() {
-        context.get_port_transport(port)?.unwrap_or(1)
+        context.get_port_transport(port).unwrap_or(1)
     } else {
         transport
     };
