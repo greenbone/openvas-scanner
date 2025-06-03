@@ -15,7 +15,7 @@ use std::collections::HashMap;
 pub use error::ArgumentError;
 pub use error::FnError;
 pub use error::InternalError;
-pub use scan_context::{ContextType, Register, ScanCtx, ScriptInfo};
+pub use scan_context::{ContextType, Register, ScanCtx, ScriptCtx};
 
 pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 

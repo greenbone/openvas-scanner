@@ -47,7 +47,7 @@ impl Attrs {
             return ArgKind::Register;
         }
         if ty_is_script_info(ty) {
-            return ArgKind::ScriptInfo;
+            return ArgKind::ScriptCtx;
         }
         if let Some(mutable) = ty_is_nasl_sockets(ty) {
             return ArgKind::NaslSockets(NaslSocketsArg { mutable });
