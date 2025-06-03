@@ -10,7 +10,7 @@
 use crate::nasl::{test_prelude::*, utils::Executor};
 
 #[nasl_function]
-fn foo1(_context: &Context, x: usize) -> usize {
+fn foo1(_context: &ScanCtx, x: usize) -> usize {
     x
 }
 

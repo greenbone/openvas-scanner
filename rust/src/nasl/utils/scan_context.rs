@@ -610,7 +610,7 @@ impl<T> ContextStorage for RedisStorage<T> where
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
 /// NASL execution context.
-pub struct Context<'a> {
+pub struct ScanCtx<'a> {
     /// The key for this context.
     scan: ScanID,
     /// Target against which the scan is run.
@@ -632,7 +632,7 @@ pub struct Context<'a> {
     alive_test_methods: Vec<AliveTestMethods>,
 }
 
-impl<'a> Context<'a> {
+impl<'a> ScanCtx<'a> {
     #[allow(clippy::too_many_arguments)]
     fn new(
         scan: ScanID,
@@ -913,7 +913,7 @@ impl<'a> Context<'a> {
     }
 }
 
-impl Drop for Context<'_> {
+impl Drop for ScanCtx<'_> {
     fn drop(&mut self) {
         let mut nvt = self.nvt.lock().unwrap();
         if let Some(nvt) = nvt.take() {
@@ -937,7 +937,7 @@ pub struct ScriptInfo {
     pub denial_port: Option<u16>,
 }
 
-pub struct ContextBuilder<'a, P: AsRef<Path>> {
+pub struct ScanContextBuilder<'a, P: AsRef<Path>> {
     pub storage: &'a dyn ContextStorage,
     pub loader: &'a dyn Loader,
     pub executor: &'a Executor,
@@ -949,10 +949,10 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub alive_test_methods: Vec<AliveTestMethods>,
 }
 
-impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
+impl<'a, P: AsRef<Path>> ScanContextBuilder<'a, P> {
     /// Builds the `Context`.
-    pub fn build(self) -> Context<'a> {
-        Context::new(
+    pub fn build(self) -> ScanCtx<'a> {
+        ScanCtx::new(
             self.scan_id,
             (self.target, self.ports).into(),
             self.filename.as_ref().to_owned(),
@@ -967,7 +967,7 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::utils::context::TargetKind;
+    use crate::nasl::utils::scan_context::TargetKind;
 
     use super::Target;
 

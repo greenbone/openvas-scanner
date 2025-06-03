@@ -9,8 +9,8 @@
 //! 1. Asyncness: Whether the function is async or not.
 //! 2. Statefulness: Whether the function needs state (such as SSH connections)
 //!    to work, or not. From a code perspective, these are differentiated by whether
-//!    the functions take two arguments (`Context` and `Register`), which makes them stateless,
-//!    or three arguments (some `State`, `Context` and `Register`), which makes them stateful.
+//!    the functions take two arguments (`ScanCtx` and `Register`), which makes them stateless,
+//!    or three arguments (some `State`, `ScanCtx` and `Register`), which makes them stateful.
 //!    Typically, stateful functions are implemented as methods on the state struct.
 //!    Stateful functions come in two flavors that differ in whether they take `&mut State` or
 //!    `&State` as the first argument.
@@ -59,7 +59,7 @@ impl Executor {
     pub async fn exec(
         &self,
         k: &str,
-        context: &Context<'_>,
+        context: &ScanCtx<'_>,
         register: &Register,
         script_info: &mut ScriptInfo,
     ) -> Option<NaslResult> {
@@ -94,7 +94,7 @@ impl<State> StoredFunctionSet<State> {
         F: for<'a> AsyncQuadrupleArgFn<
                 &'a State,
                 &'a Register,
-                &'a Context<'a>,
+                &'a ScanCtx<'a>,
                 &'a mut ScriptInfo,
                 Output = NaslResult,
             > + Send
@@ -108,7 +108,7 @@ impl<State> StoredFunctionSet<State> {
     pub fn sync_stateful(
         &mut self,
         k: &str,
-        v: fn(&State, &Register, &Context, &mut ScriptInfo) -> NaslResult,
+        v: fn(&State, &Register, &ScanCtx, &mut ScriptInfo) -> NaslResult,
     ) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStateful(v));
@@ -119,7 +119,7 @@ impl<State> StoredFunctionSet<State> {
         F: for<'a> AsyncQuadrupleArgFn<
                 &'a mut State,
                 &'a Register,
-                &'a Context<'a>,
+                &'a ScanCtx<'a>,
                 &'a mut ScriptInfo,
                 Output = NaslResult,
             > + Send
@@ -133,7 +133,7 @@ impl<State> StoredFunctionSet<State> {
     pub fn sync_stateful_mut(
         &mut self,
         k: &str,
-        v: fn(&mut State, &Register, &Context, &mut ScriptInfo) -> NaslResult,
+        v: fn(&mut State, &Register, &ScanCtx, &mut ScriptInfo) -> NaslResult,
     ) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStatefulMut(v));
@@ -143,7 +143,7 @@ impl<State> StoredFunctionSet<State> {
     where
         F: for<'a> AsyncTripleArgFn<
                 &'a Register,
-                &'a Context<'a>,
+                &'a ScanCtx<'a>,
                 &'a mut ScriptInfo,
                 Output = NaslResult,
             > + Send
@@ -157,7 +157,7 @@ impl<State> StoredFunctionSet<State> {
     pub fn sync_stateless(
         &mut self,
         k: &str,
-        v: fn(&Register, &Context, &mut ScriptInfo) -> NaslResult,
+        v: fn(&Register, &ScanCtx, &mut ScriptInfo) -> NaslResult,
     ) {
         self.fns
             .insert(k.to_string(), NaslFunction::SyncStateless(v));
@@ -206,7 +206,7 @@ pub trait FunctionSet {
         &'a self,
         k: &'a str,
         register: &'a Register,
-        context: &'a Context<'_>,
+        context: &'a ScanCtx<'_>,
         script_info: &'a mut ScriptInfo,
     ) -> NaslResult;
 
@@ -219,7 +219,7 @@ impl<State: Sync + Send> FunctionSet for StoredFunctionSet<State> {
         &'a self,
         k: &'a str,
         register: &'a Register,
-        context: &'a Context<'_>,
+        context: &'a ScanCtx<'_>,
         script_info: &'a mut ScriptInfo,
     ) -> NaslResult {
         let f = &self.fns[k];

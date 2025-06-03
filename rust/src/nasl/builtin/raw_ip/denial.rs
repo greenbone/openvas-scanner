@@ -8,12 +8,12 @@ use crate::function_set;
 use crate::nasl::Register;
 use crate::nasl::builtin::network::socket::make_tcp_socket;
 use crate::nasl::prelude::*;
-use crate::nasl::utils::Context;
+use crate::nasl::utils::ScanCtx;
 use nasl_function_proc_macro::nasl_function;
 
 const DEFAULT_TIMEOUT: u8 = 5;
 
-fn get_timeout(context: &Context) -> u8 {
+fn get_timeout(context: &ScanCtx) -> u8 {
     if let Some(p) = context
         .scan_params()
         .find(|p| p.id == "checks_read_timeout")
@@ -24,7 +24,7 @@ fn get_timeout(context: &Context) -> u8 {
     }
 }
 #[nasl_function]
-fn start_denial(context: &Context, script_info: &mut ScriptInfo) -> Result<NaslValue, FnError> {
+fn start_denial(context: &ScanCtx, script_info: &mut ScriptInfo) -> Result<NaslValue, FnError> {
     let retry = get_timeout(context);
 
     let port = context.get_host_open_port().unwrap_or_default();
@@ -43,7 +43,7 @@ fn start_denial(context: &Context, script_info: &mut ScriptInfo) -> Result<NaslV
 
 #[nasl_function]
 async fn end_denial(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     register: &Register,
     script_info: &ScriptInfo,
 ) -> Result<NaslValue, FnError> {

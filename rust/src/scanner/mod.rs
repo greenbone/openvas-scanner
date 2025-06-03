@@ -43,7 +43,7 @@ use crate::models::scanner::{
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::context::ContextStorage;
+use crate::nasl::utils::scan_context::ContextStorage;
 use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
 use crate::storage::Remover;
