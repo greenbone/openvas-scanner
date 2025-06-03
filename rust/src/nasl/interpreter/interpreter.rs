@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
-    Context, ContextType, Register, ScriptInfo,
+    ContextType, Register, ScanCtx, ScriptInfo,
     interpreter::{
         InterpretError,
         declare::{DeclareFunctionExtension, DeclareVariableExtension},
@@ -215,7 +215,7 @@ fn expand_fork_at(
 
 pub struct Interpreter<'code, 'ctx> {
     pub(super) register: Register,
-    pub(super) context: &'ctx Context<'ctx>,
+    pub(super) context: &'ctx ScanCtx<'ctx>,
     pub(super) script_info: ScriptInfo,
     pub(super) fork_reentry_data: ForkReentryData<'code>,
     lexer: Lexer<'code>,
@@ -226,7 +226,7 @@ pub type InterpretResult = Result<NaslValue, InterpretError>;
 
 impl<'code, 'ctx> Interpreter<'code, 'ctx> {
     /// Creates a new Interpreter
-    pub fn new(register: Register, lexer: Lexer<'code>, context: &'ctx Context) -> Self {
+    pub fn new(register: Register, lexer: Lexer<'code>, context: &'ctx ScanCtx) -> Self {
         Interpreter {
             register,
             lexer,
