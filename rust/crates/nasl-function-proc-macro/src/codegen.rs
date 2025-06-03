@@ -39,10 +39,10 @@ impl<'a> ArgsStruct<'a> {
             .any(|arg| matches!(arg.kind, ArgKind::Register))
     }
 
-    fn has_script_info_arg(&self) -> bool {
+    fn has_script_ctx_arg(&self) -> bool {
         self.args
             .iter()
-            .any(|arg| matches!(arg.kind, ArgKind::ScriptInfo))
+            .any(|arg| matches!(arg.kind, ArgKind::ScriptCtx))
     }
 
     fn get_args(&self) -> TokenStream {
@@ -108,9 +108,9 @@ impl<'a> ArgsStruct<'a> {
                             }
                         }
                     },
-                    ArgKind::ScriptInfo => {
+                    ArgKind::ScriptCtx => {
                         quote! {
-                            _script_info
+                            _script_ctx
                         }
                     },
 
@@ -179,7 +179,7 @@ impl<'a> ArgsStruct<'a> {
         if self.has_register_arg() {
             return quote! {};
         }
-        if self.has_script_info_arg() {
+        if self.has_script_ctx_arg() {
             return quote! {};
         }
         let named_array = self.make_array_of_names(ArgKind::get_named_arg_name);
@@ -259,7 +259,7 @@ impl<'a> ArgsStruct<'a> {
             #self_arg
             _register: &crate::nasl::Register,
             _scan_context: &crate::nasl::ScanCtx<'_>,
-            _script_info: &mut crate::nasl::ScriptInfo,
+            _script_ctx: &mut crate::nasl::ScriptCtx,
         };
         let output_ty = match output {
             syn::ReturnType::Default => quote! { () },

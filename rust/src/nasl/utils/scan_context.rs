@@ -665,14 +665,14 @@ impl<'a> ScanCtx<'a> {
         &self,
         name: &str,
         register: &Register,
-        script_info: &mut ScriptInfo,
+        script_ctx: &mut ScriptCtx,
     ) -> Option<super::NaslResult> {
         const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
 
         let mut i = 0;
         loop {
             i += 1;
-            let result = self.executor.exec(name, self, register, script_info).await;
+            let result = self.executor.exec(name, self, register, script_ctx).await;
             if let Some(Err(ref e)) = result {
                 if e.retryable() && i < NUM_RETRIES_ON_RETRYABLE_ERROR {
                     continue;
@@ -932,7 +932,7 @@ impl From<&ContextType> for NaslValue {
 }
 
 #[derive(Default)]
-pub struct ScriptInfo {
+pub struct ScriptCtx {
     pub alive: bool,
     pub denial_port: Option<u16>,
 }

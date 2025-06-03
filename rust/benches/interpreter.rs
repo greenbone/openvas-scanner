@@ -1,8 +1,8 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use futures::StreamExt;
-use scannerlib::nasl::utils::context::Target;
-use scannerlib::nasl::{ContextBuilder, Register, interpreter::ForkingInterpreter};
+use scannerlib::nasl::utils::scan_context::Target;
 use scannerlib::nasl::{NoOpLoader, nasl_std_functions};
+use scannerlib::nasl::{Register, ScanContextBuilder, interpreter::ForkingInterpreter};
 use scannerlib::storage::ScanID;
 use scannerlib::storage::inmemory::InMemoryStorage;
 
@@ -13,7 +13,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
         b.iter(|| {
             futures::executor::block_on(async {
                 let register = Register::root_initial(&variables);
-                let cb = ContextBuilder {
+                let cb = ScanContextBuilder {
                     scan_id: ScanID("test.nasl".to_string()),
                     filename: "",
                     target: Target::localhost(),

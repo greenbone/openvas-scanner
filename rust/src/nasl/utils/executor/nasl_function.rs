@@ -4,7 +4,7 @@
 
 use std::{future::Future, pin::Pin};
 
-use crate::nasl::{NaslResult, Register, ScanCtx, ScriptInfo};
+use crate::nasl::{NaslResult, Register, ScanCtx, ScriptCtx};
 
 /// A wrapper trait to represent a function taking two arguments.
 /// This trait exists to allow attaching the lifetime of the HRTB
@@ -63,7 +63,7 @@ pub trait StatefulCallable<State> {
         state: &'b State,
         register: &'b Register,
         scan_ctx: &'b ScanCtx,
-        script_info: &'b mut ScriptInfo,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
@@ -73,7 +73,7 @@ where
             &'a State,
             &'a Register,
             &'a ScanCtx<'a>,
-            &'a mut ScriptInfo,
+            &'a mut ScriptCtx,
             Output = NaslResult,
         > + 'static,
 {
@@ -82,9 +82,9 @@ where
         state: &'b State,
         register: &'b Register,
         context: &'b ScanCtx,
-        script_info: &'b mut ScriptInfo,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context, script_info))
+        Box::pin((*self)(state, register, context, script_ctx))
     }
 }
 
@@ -101,7 +101,7 @@ pub trait StatefulMutCallable<State> {
         state: &'b mut State,
         register: &'b Register,
         context: &'b ScanCtx,
-        script_info: &'b mut ScriptInfo,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
@@ -111,7 +111,7 @@ where
             &'a mut State,
             &'a Register,
             &'a ScanCtx<'a>,
-            &'a mut ScriptInfo,
+            &'a mut ScriptCtx,
             Output = NaslResult,
         > + 'static,
 {
@@ -120,9 +120,9 @@ where
         state: &'b mut State,
         register: &'b Register,
         context: &'b ScanCtx,
-        script_info: &'b mut ScriptInfo,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context, script_info))
+        Box::pin((*self)(state, register, context, script_ctx))
     }
 }
 
@@ -137,7 +137,7 @@ pub trait StatelessCallable {
         &self,
         register: &'b Register,
         context: &'b ScanCtx,
-        script_info: &'b mut ScriptInfo,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
@@ -146,7 +146,7 @@ where
     F: for<'a> AsyncTripleArgFn<
             &'a Register,
             &'a ScanCtx<'a>,
-            &'a mut ScriptInfo,
+            &'a mut ScriptCtx,
             Output = NaslResult,
         > + 'static,
 {
@@ -154,9 +154,9 @@ where
         &self,
         register: &'b Register,
         context: &'b ScanCtx,
-        script_info: &'b mut ScriptInfo,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(register, context, script_info))
+        Box::pin((*self)(register, context, script_ctx))
     }
 }
 
@@ -166,9 +166,9 @@ where
 /// a single function set.
 pub enum NaslFunction<State> {
     AsyncStateful(Box<dyn StatefulCallable<State> + Send + Sync>),
-    SyncStateful(fn(&State, &Register, &ScanCtx, &mut ScriptInfo) -> NaslResult),
+    SyncStateful(fn(&State, &Register, &ScanCtx, &mut ScriptCtx) -> NaslResult),
     AsyncStatefulMut(Box<dyn StatefulMutCallable<State> + Send + Sync>),
-    SyncStatefulMut(fn(&mut State, &Register, &ScanCtx, &mut ScriptInfo) -> NaslResult),
+    SyncStatefulMut(fn(&mut State, &Register, &ScanCtx, &mut ScriptCtx) -> NaslResult),
     AsyncStateless(Box<dyn StatelessCallable + Send + Sync>),
-    SyncStateless(fn(&Register, &ScanCtx, &mut ScriptInfo) -> NaslResult),
+    SyncStateless(fn(&Register, &ScanCtx, &mut ScriptCtx) -> NaslResult),
 }

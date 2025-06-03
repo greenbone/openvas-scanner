@@ -24,19 +24,19 @@ fn get_timeout(context: &ScanCtx) -> u8 {
     }
 }
 #[nasl_function]
-fn start_denial(context: &ScanCtx, script_info: &mut ScriptInfo) -> Result<NaslValue, FnError> {
+fn start_denial(context: &ScanCtx, script_ctx: &mut ScriptCtx) -> Result<NaslValue, FnError> {
     let retry = get_timeout(context);
 
     let port = context.get_host_open_port().unwrap_or_default();
     if port > 0 {
         if let Ok(_soc) = make_tcp_socket(context.target().ip_addr(), port, retry) {
-            script_info.denial_port = Some(port);
+            script_ctx.denial_port = Some(port);
 
             return Ok(NaslValue::Null);
         }
     };
 
-    script_info.alive = nasl_tcp_ping_shared(context, None)? > NaslValue::Number(0);
+    script_ctx.alive = nasl_tcp_ping_shared(context, None)? > NaslValue::Number(0);
 
     return Ok(NaslValue::Null);
 }
@@ -45,11 +45,11 @@ fn start_denial(context: &ScanCtx, script_info: &mut ScriptInfo) -> Result<NaslV
 async fn end_denial(
     context: &ScanCtx<'_>,
     register: &Register,
-    script_info: &ScriptInfo,
+    script_ctx: &ScriptCtx,
 ) -> Result<NaslValue, FnError> {
     let retry = get_timeout(context);
 
-    match script_info.denial_port {
+    match script_ctx.denial_port {
         Some(port) => {
             let vendor_version = match register.named("vendor_version") {
                 Some(ContextType::Value(NaslValue::String(v))) => v.clone(),
@@ -64,7 +64,7 @@ async fn end_denial(
             }
         }
         _ => {
-            match script_info.alive {
+            match script_ctx.alive {
                 false => {
                     return Ok(NaslValue::Number(1));
                 }
