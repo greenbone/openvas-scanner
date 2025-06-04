@@ -1121,7 +1121,10 @@ tree_cell *
 table_driven_lsc (lex_ctxt *lexic)
 {
   tree_cell *retc;
+  int ret = 0;
   char *response;
+  advisories_t *advisories = NULL;
+  anon_nasl_var element;
   char *pkg_list = get_str_var_by_name (lexic, "pkg_list");
   char *product = get_str_var_by_name (lexic, "product");
 
@@ -1139,9 +1142,113 @@ table_driven_lsc (lex_ctxt *lexic)
       return NULL;
     }
 
-  retc = alloc_typed_cell (CONST_DATA);
-  retc->x.str_val = g_strdup (response);
-  retc->size = strlen (response);
+  advisories = process_notus_response (response, strlen (response));
+
+  retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+
+  // Process the advisories, generate results and store them in the kb
+  for (size_t i = 0; i < advisories->count; i++)
+    {
+      advisory_t *advisory = advisories->advisories[i];
+      anon_nasl_var vulnerable_pkgs, oid;
+
+      memset (&element, 0, sizeof (element));
+      element.var_type = VAR2_ARRAY;
+
+      memset (&vulnerable_pkgs, 0, sizeof (vulnerable_pkgs));
+      vulnerable_pkgs.var_type = VAR2_ARRAY;
+
+      memset (&oid, 0, sizeof (oid));
+      oid.var_type = VAR2_STRING;
+      oid.v.v_str.s_val = (unsigned char *) g_strdup (advisory->oid);
+      oid.v.v_str.s_siz = strlen (advisory->oid);
+
+      for (size_t j = 0; j < advisory->count; j++)
+        {
+          vuln_pkg_t *pkg = advisory->pkgs[j];
+          anon_nasl_var name, installed, vul_pkg;
+          memset (&name, 0, sizeof (name));
+          memset (&installed, 0, sizeof (installed));
+          memset (&vul_pkg, 0, sizeof (vul_pkg));
+          name.var_type = VAR2_STRING;
+          installed.var_type = VAR2_STRING;
+          vul_pkg.var_type = VAR2_ARRAY;
+          name.v.v_str.s_val = (unsigned char *) g_strdup (pkg->pkg_name);
+          name.v.v_str.s_siz = strlen (pkg->pkg_name);
+          installed.v.v_str.s_val =
+            (unsigned char *) g_strdup (pkg->install_version);
+          installed.v.v_str.s_siz = strlen (pkg->install_version);
+
+          if (pkg->type == RANGE)
+            {
+              anon_nasl_var range, start, end;
+              memset (&range, 0, sizeof (range));
+              range.var_type = VAR2_ARRAY;
+
+              memset (&start, 0, sizeof (start));
+              start.var_type = VAR2_STRING;
+              start.v.v_str.s_val =
+                (unsigned char *) g_strdup (pkg->range->start);
+              start.v.v_str.s_siz = strlen (pkg->range->start);
+              add_var_to_array (&range.v.v_arr, "start", &start);
+
+              memset (&end, 0, sizeof (end));
+              end.var_type = VAR2_STRING;
+              end.v.v_str.s_val = (unsigned char *) g_strdup (pkg->range->stop);
+              add_var_to_array (&range.v.v_arr, "end", &end);
+
+              add_var_to_array (&vul_pkg.v.v_arr, "fixed", &range);
+            }
+          else if (pkg->type == SINGLE)
+            {
+              anon_nasl_var single, version, specifier;
+
+              memset (&single, 0, sizeof (single));
+              single.var_type = VAR2_ARRAY;
+
+              memset (&version, 0, sizeof (version));
+              version.var_type = VAR2_STRING;
+              version.v.v_str.s_val =
+                (unsigned char *) g_strdup (pkg->version->version);
+              version.v.v_str.s_siz = strlen (pkg->version->version);
+              add_var_to_array (&single.v.v_arr, "version", &version);
+
+              memset (&specifier, 0, sizeof (specifier));
+              specifier.var_type = VAR2_STRING;
+              specifier.v.v_str.s_val =
+                (unsigned char *) g_strdup (pkg->version->specifier);
+              specifier.v.v_str.s_siz = strlen (pkg->version->specifier);
+              add_var_to_array (&single.v.v_arr, "specifier", &specifier);
+
+              add_var_to_array (&vul_pkg.v.v_arr, "fixed", &single);
+            }
+          else
+            {
+              g_warning ("%s: Unknown fixed version type for advisory %s",
+                         __func__, advisory->oid);
+              advisories_free (advisories);
+              ret = -1;
+              break;
+            }
+          add_var_to_array (&vul_pkg.v.v_arr, "name", &name);
+          add_var_to_array (&vul_pkg.v.v_arr, "installed", &installed);
+          add_var_to_list (&vulnerable_pkgs.v.v_arr, j, &vul_pkg);
+        }
+
+      add_var_to_array (&element.v.v_arr, "oid", &oid);
+      add_var_to_array (&element.v.v_arr, "vulnerable_packages",
+                        &vulnerable_pkgs);
+      add_var_to_list (retc->x.ref_val, i + 1, &element);
+    }
+
+  // TODO: Set return code accordingly
+  /* Return code */
+  memset (&element, 0, sizeof (element));
+  element.var_type = VAR2_INT;
+  element.v.v_int = ret;
+  add_var_to_list (retc->x.ref_val, 0, &element);
+
   return retc;
 }
 
