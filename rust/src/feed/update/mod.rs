@@ -61,6 +61,7 @@ pub async fn feed_version(
     let filename = "";
     let executor = nasl_std_functions();
     let scan_params = Vec::default();
+    let alive_test_methods = Vec::default();
     let cb = ContextBuilder {
         storage: dispatcher,
         loader,
@@ -70,6 +71,7 @@ pub async fn feed_version(
         filename,
         scan_id,
         scan_preferences: scan_params,
+        alive_test_methods,
     };
     let context = cb.build();
     let mut interpreter = Interpreter::new(register, Lexer::new(Tokenizer::new(&code)), &context);
@@ -165,6 +167,7 @@ where
         let code = self.loader.load(&key.0)?;
         let register = Register::root_initial(&self.initial);
         let scan_params = Vec::default();
+        let alive_test_methods = Vec::default();
         let target = Target::localhost();
         let ports = Default::default();
         let context = ContextBuilder {
@@ -176,6 +179,7 @@ where
             loader: self.loader,
             executor: &self.executor,
             scan_preferences: scan_params,
+            alive_test_methods,
         };
         let context = context.build();
         let mut results = Box::pin(ForkingInterpreter::new(&code, register, &context).stream());

@@ -89,7 +89,7 @@ impl Interpreter<'_, '_> {
         fn_name: &str,
     ) -> Option<InterpretResult> {
         self.context
-            .execute_builtin_fn(fn_name, &self.register)
+            .execute_builtin_fn(fn_name, &self.register, &mut self.script_info)
             .await
             .map(|o| {
                 o.map_err(|e| {

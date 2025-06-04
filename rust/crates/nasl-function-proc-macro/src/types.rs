@@ -45,6 +45,7 @@ pub enum ArgKind {
     MaybeNamed(PositionalArg, NamedArg),
     Context,
     Register,
+    ScriptInfo,
     NaslSockets(NaslSocketsArg),
     PositionalIterator(PositionalsArg),
     CheckedPositionalIterator(PositionalsArg),
@@ -71,6 +72,7 @@ impl ArgKind {
         match self {
             ArgKind::Context => 0,
             ArgKind::Register => 0,
+            ArgKind::ScriptInfo => 0,
             ArgKind::NaslSockets(_) => 1,
             ArgKind::Positional(_) => 2,
             ArgKind::MaybeNamed(_, _) => 3,
@@ -93,6 +95,7 @@ impl ArgKind {
             ArgKind::PositionalIterator(_) => false,
             ArgKind::CheckedPositionalIterator(_) => false,
             ArgKind::NaslSockets(_) => true,
+            ArgKind::ScriptInfo => false,
         }
     }
 }

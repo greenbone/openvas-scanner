@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use crate::error::{Error, ErrorKind, Result};
 use crate::types::*;
 use crate::utils::{
-    get_subty_if_name_is, ty_is_context, ty_is_nasl_sockets, ty_is_register, ty_name_is,
+    get_subty_if_name_is, ty_is_context, ty_is_nasl_sockets, ty_is_register, ty_is_script_info,
+    ty_name_is,
 };
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
@@ -44,6 +45,9 @@ impl Attrs {
         }
         if ty_is_register(ty) {
             return ArgKind::Register;
+        }
+        if ty_is_script_info(ty) {
+            return ArgKind::ScriptInfo;
         }
         if let Some(mutable) = ty_is_nasl_sockets(ty) {
             return ArgKind::NaslSockets(NaslSocketsArg { mutable });

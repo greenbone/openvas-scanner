@@ -130,6 +130,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
         scan_id,
         filename,
         scan_preferences: Vec::new(),
+        alive_test_methods: Vec::new(),
     };
     run_with_context(cb.build(), script).await
 }

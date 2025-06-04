@@ -5,7 +5,7 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{Parameter, Protocol, ScanID, ScanPreference};
+use crate::models::{AliveTestMethods, Parameter, Protocol, ScanID, ScanPreference};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::context::{ContextStorage, Ports, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
@@ -39,6 +39,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
     param: Option<&'a Vec<Parameter>>,
     scan_id: ScanID,
     scan_preferences: &'a Vec<ScanPreference>,
+    alive_test_methods: &'a Vec<AliveTestMethods>,
 }
 
 impl<'a, Stack: ScannerStack> VTRunner<'a, Stack>
@@ -57,6 +58,7 @@ where
         param: Option<&'a Vec<Parameter>>,
         scan_id: ScanID,
         scan_preferences: &'a Vec<ScanPreference>,
+        alive_test_methods: &'a Vec<AliveTestMethods>,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
             storage,
@@ -69,6 +71,7 @@ where
             param,
             scan_id,
             scan_preferences,
+            alive_test_methods,
         };
         s.execute().await
     }
@@ -210,6 +213,7 @@ where
             loader: self.loader,
             executor: self.executor,
             scan_preferences: self.scan_preferences.to_vec(),
+            alive_test_methods: self.alive_test_methods.to_vec(),
         }
         .build();
         context.set_nvt(self.vt.clone());
