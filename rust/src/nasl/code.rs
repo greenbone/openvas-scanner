@@ -5,13 +5,23 @@ use codespan_reporting::files::SimpleFile;
 use super::{
     Loader,
     error::Level,
-    syntax::{LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
+    syntax::{DescriptionBlock, LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
 fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
     let tokenizer = Tokenizer::tokenize(code);
     let parser = Parser::new(tokenizer);
     parser.parse_program()
+}
+
+fn parse_description_block(code: &str) -> Result<Ast, Vec<ParseError>> {
+    let tokenizer = Tokenizer::tokenize(&code);
+    let mut parser = Parser::new(tokenizer);
+    let result: Result<DescriptionBlock, ParseError> =
+        parser.parse_span().map_err(|e| e.unwrap_as_spanned());
+    result
+        .map(|metadata| metadata.to_ast())
+        .map_err(|e| vec![e])
 }
 
 pub type SourceFile = SimpleFile<String, String>;
@@ -23,13 +33,17 @@ pub struct ParseResult {
 
 impl ParseResult {
     pub fn new(code: &str, path: &Path) -> Self {
-        let file = SimpleFile::new(path.to_string_lossy().into(), code.to_owned());
-        let result = parse(code);
-        Self { file, result }
+        Self::new_with_parse_fn(code, path, parse)
     }
 
-    pub fn new_without_file(code: &str) -> Self {
-        Self::new(code, Path::new(""))
+    pub fn new_with_parse_fn(
+        code: &str,
+        path: &Path,
+        f: impl Fn(&str) -> Result<Ast, Vec<ParseError>>,
+    ) -> Self {
+        let file = SimpleFile::new(path.to_string_lossy().into(), code.to_owned());
+        let result = f(code);
+        Self { file, result }
     }
 
     pub fn result(self) -> Result<Ast, Vec<ParseError>> {
@@ -112,8 +126,13 @@ impl Code {
     pub fn parse(self) -> ParseResult {
         match self.path {
             Some(path) => ParseResult::new(&self.code, &path),
-            None => ParseResult::new_without_file(&self.code),
+            None => ParseResult::new(&self.code, Path::new("")),
         }
+    }
+
+    pub fn parse_description_block(self) -> ParseResult {
+        let path = self.path.unwrap_or(Path::new("").to_owned());
+        ParseResult::new_with_parse_fn(&self.code, &path, parse_description_block)
     }
 
     pub fn code(&self) -> &str {

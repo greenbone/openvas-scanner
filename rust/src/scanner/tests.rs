@@ -233,7 +233,10 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         scan_preferences,
     };
     let context = cb.build();
-    let ast = Code::from_string(code).parse().emit_errors().unwrap();
+    let ast = Code::from_string(code)
+        .parse_description_block()
+        .emit_errors()
+        .unwrap();
     let interpreter = ForkingInterpreter::new(ast, register, &context);
     for stmt in interpreter.iter_blocking() {
         if let NaslValue::Exit(_) = stmt.expect("stmt success") {

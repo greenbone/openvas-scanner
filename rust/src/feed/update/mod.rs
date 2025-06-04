@@ -162,6 +162,9 @@ where
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
         let code = Code::load(self.loader, &key.0)?;
 
+        // Technically, we don't need to set the "description" variable
+        // anymore, since the parse_description_block function returns
+        // the statements from within the if.
         let register = Register::from_global_variables(&self.initial);
         let scan_params = Vec::default();
         let target = Target::localhost();
@@ -177,7 +180,10 @@ where
             scan_preferences: scan_params,
         };
         let context = context.build();
-        let ast = code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?;
+        let ast = code
+            .parse_description_block()
+            .emit_errors()
+            .map_err(ErrorKind::SyntaxError)?;
         let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
         while let Some(stmt) = results.next().await {
             match stmt {

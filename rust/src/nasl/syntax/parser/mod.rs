@@ -7,7 +7,6 @@ mod tests;
 pub use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
-// TODO make this private and the definition pub(super) again.
 pub use error::{Error, ErrorKind};
 
 use super::CharIndex;
@@ -42,7 +41,7 @@ use crate::nasl::syntax::grammar::UnaryPrefixOperatorKind;
 use cursor::Cursor;
 use cursor::Peek;
 
-type Result<T, E = Error> = std::result::Result<T, E>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 pub trait Parse: Sized {
     fn parse(parser: &mut Parser) -> Result<Self>;
@@ -106,7 +105,7 @@ impl Parser {
         }
     }
 
-    fn parse_span<T: Parse>(&mut self) -> Result<T> {
+    pub fn parse_span<T: Parse>(&mut self) -> Result<T> {
         let pos_before = self.cursor.current_token_start();
         let result = self.parse();
         let pos_after = self.cursor.previous_token_end();
@@ -189,7 +188,7 @@ impl Parser {
         self.cursor.peek_span()
     }
 
-    fn parse<T: Parse>(&mut self) -> Result<T> {
+    pub fn parse<T: Parse>(&mut self) -> Result<T> {
         T::parse(self)
     }
 

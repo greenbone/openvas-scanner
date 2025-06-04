@@ -32,6 +32,7 @@ pub enum ErrorKind {
     ExpectedUnaryOperator,
     ExpectedBinaryOperator,
     NotAllowedInPlaceExpr,
+    InvalidDescriptionBlock(String),
 }
 
 impl Error {
@@ -98,6 +99,9 @@ impl Display for ErrorKind {
             }
             ErrorKind::NotAllowedInPlaceExpr => {
                 write!(f, "Not a valid assignment target.")
+            }
+            ErrorKind::InvalidDescriptionBlock(s) => {
+                write!(f, "Invalid description block. {s}")
             }
         }
     }

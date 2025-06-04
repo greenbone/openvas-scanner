@@ -24,7 +24,10 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     scan_preferences: Vec::new(),
                 };
                 let context = cb.build();
-                let code = Code::from_string(code).parse().emit_errors().unwrap();
+                let code = Code::from_string(code)
+                    .parse_description_block()
+                    .emit_errors()
+                    .unwrap();
                 let parser = ForkingInterpreter::new(code, register, &context);
                 let _: Vec<_> = black_box(parser.stream().collect().await);
             });

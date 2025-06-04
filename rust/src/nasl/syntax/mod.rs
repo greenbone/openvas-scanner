@@ -5,11 +5,13 @@
 #![doc = include_str!("README.md")]
 pub mod grammar;
 mod loader;
+mod metadata;
 mod parser;
 mod token;
 mod tokenizer;
 
 pub use loader::*;
+pub use metadata::DescriptionBlock;
 pub use parser::{ParseError, Parser};
 pub(super) use token::Ident;
 pub use token::Keyword;
