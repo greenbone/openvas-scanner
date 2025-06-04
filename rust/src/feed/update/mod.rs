@@ -12,7 +12,6 @@ use std::fs::File;
 use tracing::trace;
 
 use crate::nasl::interpreter::ForkingInterpreter;
-use crate::nasl::interpreter::Interpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
@@ -69,9 +68,9 @@ pub async fn feed_version(
         scan_preferences: scan_params,
     };
     let context = cb.build();
-    let mut interpreter = Interpreter::new(
-        register,
+    let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
+        register,
         &context,
     );
     interpreter.execute_all().await?;

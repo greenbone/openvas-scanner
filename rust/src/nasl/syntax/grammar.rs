@@ -9,7 +9,6 @@ use crate::nasl::{
 #[derive(Clone, Debug)]
 pub struct Ast {
     stmts: Vec<Statement>,
-    position: usize,
 }
 
 impl IntoIterator for Ast {
@@ -24,17 +23,15 @@ impl IntoIterator for Ast {
 
 impl Ast {
     pub fn new(stmts: Vec<Statement>) -> Self {
-        Self { stmts, position: 0 }
+        Self { stmts }
     }
 
     pub fn stmts(self) -> Vec<Statement> {
         self.stmts
     }
 
-    pub fn next_stmt(&mut self) -> Option<Statement> {
-        let stmt = self.stmts.get(self.position);
-        self.position += 1;
-        stmt.cloned()
+    pub(crate) fn get(&self, stmt_index: usize) -> Option<&Statement> {
+        self.stmts.get(stmt_index)
     }
 }
 

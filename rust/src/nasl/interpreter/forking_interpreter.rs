@@ -12,15 +12,17 @@ use super::{Interpreter, Result};
 pub struct ForkingInterpreter<'ctx> {
     interpreters: Vec<Interpreter<'ctx>>,
     interpreter_index: usize,
+    ast: Ast,
 }
 
 impl<'ctx> ForkingInterpreter<'ctx> {
     pub fn new(ast: Ast, mut register: Register, context: &'ctx Context<'ctx>) -> Self {
         context.add_fn_global_vars(&mut register);
-        let interpreters = vec![Interpreter::new(register, ast, context)];
+        let interpreters = vec![Interpreter::new(register, context)];
         Self {
             interpreters,
             interpreter_index: 0,
+            ast,
         }
     }
 
@@ -28,6 +30,13 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         Box::pin(stream::unfold(self, |mut s| async move {
             s.next().await.map(|x| (x, s))
         }))
+    }
+
+    pub async fn execute_all(&mut self) -> Result<()> {
+        while let Some(result) = self.next().await {
+            result?;
+        }
+        Ok(())
     }
 
     pub fn iter_blocking(self) -> impl Iterator<Item = Result> + use<> {
@@ -59,7 +68,8 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         self.interpreter_index = (self.interpreter_index + 1) % self.interpreters.len();
         let interpreter = &mut self.interpreters[self.interpreter_index];
         if !interpreter.is_finished() {
-            let result = interpreter.execute_next_statement().await;
+            let stmt = self.ast.get(interpreter.stmt_index);
+            let result = interpreter.execute_statement(stmt).await;
             if self.create_forks_if_necessary() {
                 None
             } else {
@@ -99,6 +109,11 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         } else {
             false
         }
+    }
+
+    /// If there is only one interpreter, get its register.
+    pub fn register(&self) -> &Register {
+        &self.interpreters[0].register
     }
 }
 

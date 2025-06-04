@@ -19,8 +19,8 @@ use crate::nasl::{
     syntax::{
         Ident,
         grammar::{
-            Array, ArrayAccess, Ast, Atom, Binary, BinaryOperatorKind, Block, Exit, Expr, If,
-            Include, Return, Statement, Unary,
+            Array, ArrayAccess, Atom, Binary, BinaryOperatorKind, Block, Exit, Expr, If, Include,
+            Return, Statement, Unary,
         },
     },
 };
@@ -67,23 +67,23 @@ pub struct FunctionCallData {
 /// 1. `Collecting`: This variant is used by any interpreter which is
 ///    currently executing normally.  In this mode, the result of any
 ///    function call performed by the interpreter within a single
-///    top-level statement will be stored along with the `Span` at which
-///    the function call took place (as a safeguard). The variant also
-///    stores the original `Register` and `Ast` in order to be able to "rewind"
-///    into the exact state before the statement that caused the fork.
-/// 2. `Restoring`: This variant is used by all interpreters which were just created due to a fork.
-///    In this mode, the interpreter will not perform normal function
-///    calls, and will instead return the first value in the `data` field
-///    in place of the function call. This is done until the `data` field is
-///    exhausted. At that point, execution proceeds normally.
+///    top-level statement will be stored along with the `Span` at
+///    which the function call took place (as a safeguard). The
+///    variant also stores the original `Register` and statement index
+///    in order to be able to "rewind" into the exact state before the
+///    statement that caused the fork.
+/// 2. `Restoring`: This variant is used by all interpreters which
+///    were just created due to a fork.  In this mode, the interpreter
+///    will not perform normal function calls, and will instead return
+///    the first value in the `data` field in place of the function
+///    call. This is done until the `data` field is exhausted. At that
+///    point, execution proceeds normally.
 #[derive(Clone)]
 pub enum ForkReentryData {
     Collecting {
         data: Vec<FunctionCallData>,
         register: Register,
-        // TODO: make this a cursor or something similar,
-        // since cloning the entire AST seems wasteful.
-        ast: Ast,
+        stmt_index: usize,
     },
     Restoring {
         data: VecDeque<FunctionCallData>,
@@ -105,9 +105,9 @@ impl ForkReentryData {
         }
     }
 
-    fn ast(&self) -> &Ast {
+    fn stmt_index(&self) -> usize {
         match self {
-            Self::Collecting { ast, .. } => ast,
+            Self::Collecting { stmt_index, .. } => *stmt_index,
             _ => unreachable!(),
         }
     }
@@ -171,11 +171,11 @@ impl ForkReentryData {
         }
     }
 
-    fn collecting(register: Register, ast: Ast) -> Self {
+    fn collecting(register: Register, stmt_index: usize) -> Self {
         Self::Collecting {
             data: vec![],
             register,
-            ast,
+            stmt_index,
         }
     }
 
@@ -242,32 +242,29 @@ pub struct Interpreter<'ctx> {
     pub(super) register: Register,
     pub(super) context: &'ctx Context<'ctx>,
     pub(super) fork_reentry_data: ForkReentryData,
-    ast: Ast,
+    stmt_index: usize,
     state: InterpreterState,
 }
 
 impl<'ctx> Interpreter<'ctx> {
     /// Creates a new Interpreter
-    pub fn new(register: Register, ast: Ast, context: &'ctx Context) -> Self {
+    fn new(register: Register, context: &'ctx Context) -> Self {
         Interpreter {
             register,
-            ast,
+            stmt_index: 0,
             context,
             fork_reentry_data: ForkReentryData::new(),
             state: InterpreterState::Running,
         }
     }
 
-    pub async fn execute_all(&mut self) -> Result<(), Error> {
-        while let Some(result) = self.execute_next_statement().await {
-            result?;
-        }
-        Ok(())
-    }
-
-    pub async fn execute_next_statement(&mut self) -> Option<Result<NaslValue, Error>> {
+    pub(super) async fn execute_statement(
+        &mut self,
+        stmt: Option<&Statement>,
+    ) -> Option<Result<NaslValue, Error>> {
         self.initialize_fork_data();
-        match self.ast.next_stmt() {
+        self.stmt_index += 1;
+        match stmt {
             Some(stmt) => {
                 let result = self.resolve(&stmt).await;
                 if matches!(result, Ok(NaslValue::Exit(_))) {
@@ -491,19 +488,19 @@ impl<'ctx> Interpreter<'ctx> {
         let ast = code
             .result()
             .map_err(|errs| Error::include_syntax_error(errs, file))?;
-        let mut inter = Interpreter::new(self.register.clone(), ast, self.context);
+        let mut inter = ForkingInterpreter::new(ast, self.register.clone(), self.context);
         Box::pin(inter.execute_all()).await?;
-        self.register = inter.register;
+        self.register = inter.register().clone();
         Ok(NaslValue::Null)
     }
 
     pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'ctx>> {
         let forks = self.fork_reentry_data.create_forks();
         let register = self.fork_reentry_data.register();
-        let ast = self.fork_reentry_data.ast().clone();
+        let stmt_index = self.fork_reentry_data.stmt_index();
         forks
             .into_iter()
-            .map(|fork| self.make_fork(fork, register, &ast))
+            .map(|fork| self.make_fork(fork, register, stmt_index))
             .collect()
     }
 
@@ -511,11 +508,11 @@ impl<'ctx> Interpreter<'ctx> {
         &self,
         fork_reentry_data: ForkReentryData,
         register: &Register,
-        ast: &Ast,
+        stmt_index: usize,
     ) -> Interpreter<'ctx> {
         Self {
             register: register.clone(),
-            ast: ast.clone(),
+            stmt_index,
             context: self.context,
             fork_reentry_data,
             state: InterpreterState::Running,
@@ -529,7 +526,7 @@ impl<'ctx> Interpreter<'ctx> {
     pub(crate) fn initialize_fork_data(&mut self) {
         if self.fork_reentry_data.is_empty_or_collecting() {
             self.fork_reentry_data =
-                ForkReentryData::collecting(self.register.clone(), self.ast.clone());
+                ForkReentryData::collecting(self.register.clone(), self.stmt_index.clone());
         }
     }
 
