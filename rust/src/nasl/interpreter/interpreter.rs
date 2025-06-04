@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
-    Context, ContextType, Register, ScriptInfo,
+    ContextType, Register, ScanCtx, ScriptCtx,
     interpreter::{
         InterpretError,
         declare::{DeclareFunctionExtension, DeclareVariableExtension},
@@ -215,8 +215,8 @@ fn expand_fork_at(
 
 pub struct Interpreter<'code, 'ctx> {
     pub(super) register: Register,
-    pub(super) context: &'ctx Context<'ctx>,
-    pub(super) script_info: ScriptInfo,
+    pub(super) context: &'ctx ScanCtx<'ctx>,
+    pub(super) script_ctx: ScriptCtx,
     pub(super) fork_reentry_data: ForkReentryData<'code>,
     lexer: Lexer<'code>,
     state: InterpreterState,
@@ -226,12 +226,12 @@ pub type InterpretResult = Result<NaslValue, InterpretError>;
 
 impl<'code, 'ctx> Interpreter<'code, 'ctx> {
     /// Creates a new Interpreter
-    pub fn new(register: Register, lexer: Lexer<'code>, context: &'ctx Context) -> Self {
+    pub fn new(register: Register, lexer: Lexer<'code>, context: &'ctx ScanCtx) -> Self {
         Interpreter {
             register,
             lexer,
             context,
-            script_info: ScriptInfo::default(),
+            script_ctx: ScriptCtx::default(),
             fork_reentry_data: ForkReentryData::new(),
             state: InterpreterState::Running,
         }
@@ -476,7 +476,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
             register: register.clone(),
             lexer: lexer.clone(),
             context: self.context,
-            script_info: ScriptInfo::default(),
+            script_ctx: ScriptCtx::default(),
             fork_reentry_data,
             state: InterpreterState::Running,
         }

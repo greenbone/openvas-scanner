@@ -7,7 +7,7 @@ use crate::scanner::preferences::preference::PREFERENCES;
 #[nasl_function(named(id))]
 fn script_get_preference(
     register: &Register,
-    config: &Context,
+    config: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<NaslValue> {
@@ -44,7 +44,7 @@ fn script_get_preference(
 }
 
 #[nasl_function]
-fn get_preference(config: &Context, name: String) -> Option<NaslValue> {
+fn get_preference(config: &ScanCtx, name: String) -> Option<NaslValue> {
     let val = if let Some(pref) = config.scan_params().find(|p| p.id == name) {
         pref.value.clone()
     } else {

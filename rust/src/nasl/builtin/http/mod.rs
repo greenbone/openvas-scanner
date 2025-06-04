@@ -202,7 +202,7 @@ impl NaslHttp {
     async fn http2_req(
         &self,
         register: &Register,
-        ctx: &Context<'_>,
+        ctx: &ScanCtx<'_>,
         method: Method,
     ) -> Result<NaslValue, FnError> {
         let handle_id = match register.named("handle") {
@@ -275,31 +275,31 @@ impl NaslHttp {
 
     /// Wrapper function for GET request. See http2_req
     #[nasl_function]
-    async fn get(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
+    async fn get(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::GET).await
     }
 
     /// Wrapper function for POST request. See http2_req
     #[nasl_function]
-    async fn post(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
+    async fn post(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::POST).await
     }
 
     /// Wrapper function for PUT request. See http2_req
     #[nasl_function]
-    async fn put(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
+    async fn put(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::PUT).await
     }
 
     /// Wrapper function for HEAD request. See http2_req
     #[nasl_function]
-    async fn head(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
+    async fn head(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::HEAD).await
     }
 
     /// Wrapper function for DELETE request. See http2_req
     #[nasl_function]
-    async fn delete(&self, register: &Register, ctx: &Context<'_>) -> Result<NaslValue, FnError> {
+    async fn delete(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, Method::DELETE).await
     }
 

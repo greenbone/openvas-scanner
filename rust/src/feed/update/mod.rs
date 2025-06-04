@@ -20,8 +20,8 @@ use crate::nasl::syntax::AsBufReader;
 use crate::nasl::syntax::Lexer;
 use crate::nasl::syntax::Tokenizer;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::context::ContextStorage;
-use crate::nasl::utils::context::Target;
+use crate::nasl::utils::scan_context::ContextStorage;
+use crate::nasl::utils::scan_context::Target;
 
 use crate::feed::verify::check_signature;
 use crate::feed::verify::{HashSumFileItem, SignatureChecker};
@@ -62,7 +62,7 @@ pub async fn feed_version(
     let executor = nasl_std_functions();
     let scan_params = Vec::default();
     let alive_test_methods = Vec::default();
-    let cb = ContextBuilder {
+    let cb = ScanContextBuilder {
         storage: dispatcher,
         loader,
         executor: &executor,
@@ -170,7 +170,7 @@ where
         let alive_test_methods = Vec::default();
         let target = Target::localhost();
         let ports = Default::default();
-        let context = ContextBuilder {
+        let context = ScanContextBuilder {
             scan_id: ScanID(key.0.clone()),
             target,
             ports,
