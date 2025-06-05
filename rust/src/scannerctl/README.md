@@ -221,8 +221,7 @@ Usage `scannerctl feed transform [OPTIONS]`
 Options:
 - `-p`, `--path <FILE>`:   Path to the feed.
 
-On `feed transform` it will first read the `sha256sums` file within the feed directory and verify each file with the corresponding sha256sums. When the hash is correct it will execute each mentioned `*.nasl` script within that dir with `description = 1`.
-Optionally, it is possible to perform a signature verification of the sha256sums file before the transformation. To enable the signature check, the environment variable `GNUPGHOME` must be set with the gnupg home directory, where the `pubring.kbx` file is stored.
+On `feed transform` it will create a list of `nasl` files within the feed directory, without verification. Each mentioned `*.nasl` script within that dir will be executed  with `description = 1`.
 
 It will produce a json array in stdout in the format described within [json-storage](../storage/json/README.md)
 
