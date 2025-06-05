@@ -858,9 +858,10 @@ impl<'a> Context<'a> {
         )
     }
 
-    pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
+    pub fn get_port_transport(&self, port: u16) -> Option<i64> {
         self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
-            .map(|x| match x {
+            .ok()
+            .and_then(|item| match item {
                 KbItem::Number(n) => Some(n),
                 _ => None,
             })
