@@ -148,9 +148,7 @@ paths:
           content:
             application/json:
               schema:
-                type: "array"
-                items:
-                  $ref: "#/components/schemas/NotusResult"
+                $ref: "#/components/schemas/NotusResult"
               examples:
                 schema:
                   description: "Schema of a list of results response"
@@ -615,7 +613,7 @@ components:
           $ref: "#/components/schemas/UP"
         krb5:
           $ref: "#/components/schemas/KRB5"
-          
+
         usk:
           $ref: "#/components/schemas/USK"
         snmp:
@@ -640,7 +638,6 @@ components:
       required:
         - username
 
-        
     KRB5:
       description: "Authentication via Kerberos GSA."
       type: "object"
@@ -758,42 +755,53 @@ components:
             $ref: "#/components/schemas/Parameter"
 
     NotusResult:
-      description: "A result for an OID"
+      description: "A dictionary of Notus results, where the key is an OID corresponding to the advisory and the value is a list of found vulnerable packages."
       type: "object"
-      properties:
-        oid:
-          description: "Vulnerability OID"
-          type: "string"
-        vulnerable_packages:
-          description: "List of vulnerable Packages"
-          type: "array"
-          items:
-            $ref: "#/components/schemas/NotusVulnPkgs"
+      additionalProperties:
+        type: "array"
+        items:
+          $ref: "#/components/schemas/NotusVulnPkgs"
 
     NotusVulnPkgs:
       description: "A vulnerable package"
       type: "object"
       properties:
-        package_name:
+        name:
           description: "Name of the vulnerable package"
           type: "string"
         installed_version:
           description: "Version installed of the vulnerable package"
           type: "string"
-        package_fix:
-          description: "List of packages which fix the vulnerability"
-          type: array
-          items:
-            description: "List of package's version which fix the vulnerability"
-            type: "object"
-            properties:
-              version:
-                description: "Version"
-                type: "string"
-              specifier:
-                description: "Specifier"
-                type: "string"
-
+        fixed_version:
+          oneOf:
+            - $ref: "#/components/schemas/FixedPackage"
+            - $ref: "#/components/schemas/FixedRange"
+    FixedPackage:
+      description: "A fixed package"
+      type: "object"
+      properties:
+        version:
+          description: "Version of the fixed package"
+          type: "string"
+        specifier:
+          description: "Specifier of the fixed package"
+          type: "string"
+          enum:
+            - ">"
+            - ">="
+            - "<"
+            - "<="
+            - "="
+    FixedRange:
+      description: "A fixed range. The start version is inclusive and the end version exclusive"
+      type: "object"
+      properties:
+        start:
+          description: "Start version of the fixed range"
+          type: "string"
+        end:
+          description: "End version of the fixed range"
+          type: "string"
     Result:
       description: "A result of a Scan"
       type: "object"
@@ -1002,10 +1010,7 @@ components:
                   "2002::1234:abcd:ffff:c0a8:101/64",
                   "examplehost",
                 ],
-              "excluded_hosts":
-                [
-                  "192.168.0.14"
-                ],
+              "excluded_hosts": ["192.168.0.14"],
               "ports":
                 [
                   {
@@ -1338,18 +1343,17 @@ components:
       value:
         [
           {
-            "oid": "1.2.3",
-            "vulnerable_packages":
+            "1.3.6.1.4.1.25623.1.1.1.2.2022.3200":
               [
                 {
-                  "package_name": "foo",
+                  "name": "foo",
                   "installed_version": "1.2.3",
-                  "fixed_versions": { "start": "1.2.2", "end": "1.2.5" },
+                  "fixed_version": { "start": "1.2.2", "end": "1.2.5" },
                 },
                 {
                   "package_name": "bar",
                   "installed_version": "1.2.4",
-                  "fixed_versions": { "version": "1.2.5", "specifier": ">=" },
+                  "fixed_version": { "version": "1.2.5", "specifier": ">=" },
                 },
               ],
           },
