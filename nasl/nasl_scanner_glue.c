@@ -15,7 +15,8 @@
 
 #include "nasl_scanner_glue.h"
 
-#include "../misc/ipc_openvas.h"      /* for ipc_* */
+#include "../misc/ipc_openvas.h" /* for ipc_* */
+#include "../misc/kb_cache.h"
 #include "../misc/network.h"          /* for getpts */
 #include "../misc/plugutils.h"        /* for plug_set_id */
 #include "../misc/support.h"          /* for the g_memdup2 workaround */
@@ -33,12 +34,13 @@
 #include <fcntl.h> /* for open */
 #include <glib.h>
 #include <gvm/base/logging.h>
-#include <gvm/base/prefs.h> /* for prefs_get */
-#include <gvm/util/kb.h>    /* for KB_TYPE_INT */
-#include <stdlib.h>         /* for atoi */
-#include <string.h>         /* for strcmp */
-#include <sys/stat.h>       /* for stat */
-#include <unistd.h>         /* for close */
+#include <gvm/base/networking.h> /* for addr6_to_str */
+#include <gvm/base/prefs.h>      /* for prefs_get */
+#include <gvm/util/kb.h>         /* for KB_TYPE_INT */
+#include <stdlib.h>              /* for atoi */
+#include <string.h>              /* for strcmp */
+#include <sys/stat.h>            /* for stat */
+#include <unistd.h>              /* for close */
 
 #undef G_LOG_DOMAIN
 /**
@@ -1006,6 +1008,118 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
   return FAKE_CELL;
 }
 
+tree_cell *
+security_lsc (lex_ctxt *lexic)
+{
+  tree_cell *result;
+  named_nasl_var *oid_var, *var, *vul_packages, *name, *version, *fixed,
+    *fixed_version, *specifier, *start, *end;
+  anon_nasl_var *pkg;
+  unsigned char *oid;
+  int i;
+  GString *result_buf, *buf;
+  gchar *kb_result;
+
+  result = get_variable_by_name (lexic, "result");
+  if (result == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: oid or result is NULL\n");
+      return FAKE_CELL;
+    }
+
+  var = (named_nasl_var *) result->x.ref_val;
+
+  oid_var = get_var_by_name (&var->u.v.v_arr, "oid");
+  if (oid_var == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: oid not found\n");
+      return FAKE_CELL;
+    }
+
+  oid = oid_var->u.v.v_str.s_val;
+
+  vul_packages = get_var_by_name (&var->u.v.v_arr, "vulnerable_packages");
+  if (vul_packages == NULL || vul_packages->u.var_type != VAR2_ARRAY)
+    {
+      nasl_perror (lexic, "security_lsc: vul_packages is not an array\n");
+      return FAKE_CELL;
+    }
+  result_buf = g_string_new (NULL);
+  for (i = 0; i < vul_packages->u.v.v_arr.max_idx; i++)
+    {
+      pkg = nasl_get_var_by_num (lexic, &vul_packages->u.v.v_arr, i, 0);
+      if (pkg == NULL)
+        continue;
+
+      name = get_var_by_name (&pkg->v.v_arr, "name");
+      version = get_var_by_name (&pkg->v.v_arr, "installed");
+      fixed = get_var_by_name (&pkg->v.v_arr, "fixed");
+      if (fixed == NULL)
+        continue;
+      fixed_version = get_var_by_name (&fixed->u.v.v_arr, "version");
+      specifier = get_var_by_name (&fixed->u.v.v_arr, "specifier");
+      start = get_var_by_name (&fixed->u.v.v_arr, "start");
+      end = get_var_by_name (&fixed->u.v.v_arr, "end");
+
+      if (name == NULL || version == NULL)
+        {
+          continue;
+        }
+
+      if (fixed_version != NULL && specifier != NULL)
+        {
+          int spec_len = 8 - (int) strlen ((char *) version->u.v.v_str.s_val);
+          buf = g_string_new (NULL);
+          g_string_printf (
+            buf,
+            "\nVulnerable package:%*s%s\n"
+            "Installed version:%*s%s-%s\n"
+            "Fixed version:%*s%s%s-%s\n",
+            3, "", name->u.v.v_str.s_val, 4, "", name->u.v.v_str.s_val,
+            version->u.v.v_str.s_val, spec_len, "", specifier->u.v.v_str.s_val,
+            name->u.v.v_str.s_val, fixed_version->u.v.v_str.s_val);
+        }
+      else if (start != NULL && end != NULL)
+        {
+          buf = g_string_new (NULL);
+          g_string_printf (buf,
+                           "\nVulnerable package: %s\n"
+                           "Installed version:    %s-%s\n"
+                           "Fixed version:      < %s-%s\n"
+                           "Fixed version:      >=%s-%s\n",
+                           name->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           version->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           start->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           end->u.v.v_str.s_val);
+        }
+      else
+        {
+          continue;
+        }
+      g_string_append (result_buf, buf->str);
+      g_string_free (buf, TRUE);
+    }
+
+  if (result_buf == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: No results to publish\n");
+      return FAKE_CELL;
+    }
+
+  gchar ip_str[INET6_ADDRSTRLEN];
+  addr6_to_str (lexic->script_infos->ip, ip_str);
+  // type|||IP|||HOSTNAME|||package|||OID|||the result message|||URI
+  kb_result =
+    g_strdup_printf ("%s|||%s|||%s|||%s|||%s|||%s|||%s", "ALARM", ip_str, " ",
+                     "package", oid, result_buf->str, "");
+  g_string_free (result_buf, TRUE);
+  kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
+                                       kb_result);
+  g_free (kb_result);
+
+  return NULL;
+}
+
 /**
  * @brief Send a security message to the client.
  *
@@ -1025,7 +1139,8 @@ log_message (lex_ctxt *lexic)
   return security_something (lexic, proto_post_log, post_log_with_uri);
 }
 
-// FIXME: the name of the function is too broad, krb5 people also hate prefixes
+// FIXME: the name of the function is too broad, krb5 people also hate
+// prefixes
 tree_cell *
 error_message2 (lex_ctxt *lexic)
 {
@@ -1117,6 +1232,19 @@ nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
   return NULL;
 }
 
+/**
+ * @brief Directly runs a LSC with the given package list and OS release.
+ *
+ * @naslfn{table_driven_lsc}
+ *
+ * @naslnparam
+ * - @a pkg_list String containing the gathered package list.
+ * - @a product The OS release.
+ *
+ * @param[in] lexic  Lexical context of the NASL interpreter.
+ *
+ * @return NULL
+ */
 tree_cell *
 table_driven_lsc (lex_ctxt *lexic)
 {

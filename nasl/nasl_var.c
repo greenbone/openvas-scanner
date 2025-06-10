@@ -71,7 +71,7 @@ nasl_get_var_by_num (void *ctxt, nasl_array *a, int num, int create)
   return v;
 }
 
-static named_nasl_var *
+named_nasl_var *
 get_var_by_name (nasl_array *a, const char *s)
 {
   int h = hash_str (s);
