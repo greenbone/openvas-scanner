@@ -121,4 +121,7 @@ nasl_update_table_driven_lsc_data (lex_ctxt *);
 tree_cell *
 table_driven_lsc (lex_ctxt *);
 
+tree_cell *
+security_lsc (lex_ctxt *lexic);
+
 #endif

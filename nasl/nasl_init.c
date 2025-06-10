@@ -90,6 +90,7 @@ static init_func libfuncs[] = {
   {"get_kb_list", get_kb_list},
   {"get_host_kb_index", get_host_kb_index},
   {"security_message", security_message},
+  {"security_lsc", security_lsc},
   {"log_message", log_message},
   {"error_message", error_message2},
   {"open_sock_tcp", nasl_open_sock_tcp},
