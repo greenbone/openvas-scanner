@@ -26,5 +26,5 @@ install_gnu() {
 [ "$CLEAN" -ne 0 ] && rm -rf "$WORK_DIR"
 [ ! -d "$WORKDIR" ] && mkdir -p "$WORK_DIR"
 
-install_gnu  "libgpg-error" "1.47"
+install_gnu  "libgpg-error" "1.54"
 install_gnu  "libgcrypt" "1.10.2"
