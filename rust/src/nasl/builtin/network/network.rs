@@ -151,7 +151,7 @@ fn get_host_open_port(context: &Context) -> i64 {
 
 #[nasl_function(named(asstring))]
 fn get_port_transport(context: &Context, port: u16, asstring: bool) -> Result<NaslValue, FnError> {
-    let transport = context.get_port_transport(port)?.unwrap_or(1);
+    let transport = context.get_port_transport(port).unwrap_or(1);
     let ret = if asstring {
         let transport_str = match transport {
             0 => "auto".to_string(),
