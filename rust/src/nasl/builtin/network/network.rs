@@ -150,7 +150,7 @@ fn scanner_get_port(context: &Context, idx: u16) -> Result<NaslValue, FnError> {
     if (idx as usize) < ports.len() {
         return Ok(NaslValue::Number(*ports[idx as usize] as i64));
     }
-    
+
     Ok(NaslValue::Null)
 }
 
