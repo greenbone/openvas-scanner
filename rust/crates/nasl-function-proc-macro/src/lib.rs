@@ -17,7 +17,7 @@
 //! arguments.
 //!
 //! To do so, the macro transforms the annotated function into a function
-//! taking `&ScanCtx` and `&Register` as arguments (plus self arguments
+//! taking `&ScanCtx`, `&Scriptctx`" and `&Register` as arguments (plus self arguments
 //! if needed) and then calls the original function from within the transformed
 //! function, deriving each argument from the `FromNaslValue` implementation
 //! of its type and handling optional and named arguments appropriately.
@@ -84,7 +84,7 @@ use types::{ArgsStruct, Attrs};
 /// The input function is a normal rust function with certain restrictions
 /// on the types of the arguments and the return type. The input arguments
 /// need to either be within a selected set of specific, allowed types
-/// (`ScanCtx, `Register`, ...) or be of any type that
+/// (`ScanCtx, `ScriptCtx`, `Register`, ...) or be of any type that
 /// implements the `FromNaslValue` trait.
 ///
 /// Conversely, the return type needs to implement the `ToNaslResult` type.
@@ -155,6 +155,14 @@ use types::{ArgsStruct, Attrs};
 /// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function]
 /// fn foo(scanctx: &ScanCtx, ...) -> ... {
+/// }
+/// ```
+/// # `ScriptCtx`
+/// The `ScriptCtx` can be obtained in a function, simply by adding it as an argument:
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
+/// #[nasl_function]
+/// fn foo(scriptctx: &ScriptCtx, ...) -> ... {
 /// }
 /// ```
 /// In a similar fashion, `&Register` is also an allowed parameter:

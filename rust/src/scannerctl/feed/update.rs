@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use scannerlib::feed::FakeVerifier;
-use scannerlib::nasl::utils::scan_context::ContextStorage;
+use scannerlib::nasl::utils::scan_ctx::ContextStorage;
 use scannerlib::{feed, nasl::FSPluginLoader};
 
 use crate::CliError;

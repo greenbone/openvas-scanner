@@ -9,7 +9,7 @@ use std::{
 
 use scannerlib::{
     feed::{self, HashSumNameLoader},
-    nasl::{FSPluginLoader, utils::scan_context::ContextStorage},
+    nasl::{FSPluginLoader, utils::scan_ctx::ContextStorage},
     scheduling::SchedulerStorage,
     storage::{
         Dispatcher, Remover, Retriever, ScanID,

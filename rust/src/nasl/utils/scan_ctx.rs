@@ -937,7 +937,7 @@ pub struct ScriptCtx {
     pub denial_port: Option<u16>,
 }
 
-pub struct ScanContextBuilder<'a, P: AsRef<Path>> {
+pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
     pub storage: &'a dyn ContextStorage,
     pub loader: &'a dyn Loader,
     pub executor: &'a Executor,
@@ -949,7 +949,7 @@ pub struct ScanContextBuilder<'a, P: AsRef<Path>> {
     pub alive_test_methods: Vec<AliveTestMethods>,
 }
 
-impl<'a, P: AsRef<Path>> ScanContextBuilder<'a, P> {
+impl<'a, P: AsRef<Path>> ScanCtxBuilder<'a, P> {
     /// Builds the `Context`.
     pub fn build(self) -> ScanCtx<'a> {
         ScanCtx::new(
@@ -967,7 +967,7 @@ impl<'a, P: AsRef<Path>> ScanContextBuilder<'a, P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::utils::scan_context::TargetKind;
+    use crate::nasl::utils::scan_ctx::TargetKind;
 
     use super::Target;
 

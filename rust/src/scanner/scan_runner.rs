@@ -4,7 +4,7 @@
 
 use crate::models::HostInfo;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::scan_context::Target;
+use crate::nasl::utils::scan_ctx::Target;
 use futures::{Stream, stream};
 
 use crate::scanner::ScannerStack;

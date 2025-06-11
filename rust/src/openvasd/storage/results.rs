@@ -7,7 +7,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use scannerlib::{
     models::{self, Scan, Status, scanner::ScanResults},
-    nasl::utils::scan_context::ContextStorage,
+    nasl::utils::scan_ctx::ContextStorage,
     scheduling::SchedulerStorage,
     storage::{
         Dispatcher, Remover, Retriever, ScanID,

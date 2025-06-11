@@ -17,15 +17,15 @@ use scannerlib::{
         nasl_std_functions,
         utils::{
             error::ReturnBehavior,
-            scan_context::{Ports, Target},
+            scan_ctx::{Ports, Target},
         },
     },
     storage::{ScanID, items::nvt::Oid},
 };
-use scannerlib::{nasl::utils::scan_context::ContextStorage, storage::inmemory::InMemoryStorage};
+use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
     nasl::{
-        FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder, ScanContextBuilder,
+        FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder, ScanCtxBuilder,
         WithErrorInfo,
         interpreter::InterpretErrorKind,
         syntax::{LoadError, load_non_utf8_path},
@@ -121,7 +121,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
-    let cb = ScanContextBuilder {
+    let cb = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
         executor: &nasl_std_functions(),

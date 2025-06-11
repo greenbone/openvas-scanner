@@ -22,7 +22,7 @@ use super::{
     nasl_std_functions,
     utils::{
         Executor,
-        scan_context::{ContextStorage, Ports, Target},
+        scan_ctx::{ContextStorage, Ports, Target},
     },
 };
 
@@ -340,7 +340,7 @@ where
 
     fn context(&self) -> ScanCtx {
         let target = Target::do_not_resolve_hostname(&self.target);
-        ScanContextBuilder {
+        ScanCtxBuilder {
             storage: &self.storage,
             loader: &self.loader,
             executor: &self.executor,

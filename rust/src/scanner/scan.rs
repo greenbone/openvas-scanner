@@ -2,7 +2,7 @@ use tracing::error;
 
 use crate::{
     models::{self, AliveTestMethods, Port, ScanID, ScanPreference, VT},
-    nasl::utils::scan_context::{Ports, Target},
+    nasl::utils::scan_ctx::{Ports, Target},
 };
 
 #[derive(Debug, Default)]
