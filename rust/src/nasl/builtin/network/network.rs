@@ -145,6 +145,16 @@ fn scanner_add_port(context: &Context, port: Port, proto: Option<&str>) -> Resul
 }
 
 #[nasl_function]
+fn scanner_get_port(context: &Context, idx: u16) -> Result<NaslValue, FnError> {
+    let ports = context.target().ports_tcp().iter().collect::<Vec<&u16>>();
+    if (idx as usize) < ports.len() {
+        return Ok(NaslValue::Number(*ports[idx as usize] as i64));
+    }
+    
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function]
 fn get_host_open_port(context: &Context) -> i64 {
     context.get_host_open_port().unwrap_or_default() as i64
 }
@@ -191,5 +201,6 @@ function_set! {
         get_host_ip,
         get_host_open_port,
         get_port_transport,
+        scanner_get_port,
     )
 }
