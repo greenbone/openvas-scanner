@@ -37,7 +37,7 @@ pub mod prelude {
     pub use super::utils::function::FromNaslValue;
     pub use super::utils::function::Positionals;
     pub use super::utils::function::ToNaslResult;
-    pub use super::utils::scan_context::ScanContextBuilder;
+    pub use super::utils::scan_ctx::ScanCtxBuilder;
     pub use crate::function_set;
     pub use nasl_function_proc_macro::nasl_function;
 }

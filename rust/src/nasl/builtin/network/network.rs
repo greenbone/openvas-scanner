@@ -145,7 +145,7 @@ fn scanner_add_port(context: &ScanCtx, port: Port, proto: Option<&str>) -> Resul
 }
 
 #[nasl_function]
-fn scanner_get_port(context: &Context, idx: u16) -> Result<NaslValue, FnError> {
+fn scanner_get_port(context: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
     let ports = context.target().ports_tcp().iter().collect::<Vec<&u16>>();
     if (idx as usize) < ports.len() {
         return Ok(NaslValue::Number(*ports[idx as usize] as i64));

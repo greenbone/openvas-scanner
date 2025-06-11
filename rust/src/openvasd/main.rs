@@ -16,7 +16,7 @@ use scannerlib::models::scanner::{
     ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner,
 };
 use scannerlib::nasl::FSPluginLoader;
-use scannerlib::nasl::utils::scan_context::ContextStorage;
+use scannerlib::nasl::utils::scan_ctx::ContextStorage;
 use scannerlib::notus::{HashsumProductLoader, Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;

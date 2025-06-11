@@ -215,7 +215,7 @@ fn expand_fork_at(
 
 pub struct Interpreter<'code, 'ctx> {
     pub(super) register: Register,
-    pub(super) context: &'ctx ScanCtx<'ctx>,
+    pub(super) scan_ctx: &'ctx ScanCtx<'ctx>,
     pub(super) script_ctx: ScriptCtx,
     pub(super) fork_reentry_data: ForkReentryData<'code>,
     lexer: Lexer<'code>,
@@ -230,7 +230,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         Interpreter {
             register,
             lexer,
-            context,
+            scan_ctx: context,
             script_ctx: ScriptCtx::default(),
             fork_reentry_data: ForkReentryData::new(),
             state: InterpreterState::Running,
@@ -431,10 +431,10 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
     async fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name).await? {
             NaslValue::String(key) => {
-                let code = self.context.loader().load(&key)?;
+                let code = self.scan_ctx.loader().load(&key)?;
 
                 let mut inter =
-                    Interpreter::new(self.register.clone(), self.lexer.clone(), self.context);
+                    Interpreter::new(self.register.clone(), self.lexer.clone(), self.scan_ctx);
                 for stmt in crate::nasl::syntax::parse(&code) {
                     inter.execute_included_statement(&key, stmt).await?;
                 }
@@ -475,7 +475,7 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
         Self {
             register: register.clone(),
             lexer: lexer.clone(),
-            context: self.context,
+            scan_ctx: self.scan_ctx,
             script_ctx: ScriptCtx::default(),
             fork_reentry_data,
             state: InterpreterState::Running,

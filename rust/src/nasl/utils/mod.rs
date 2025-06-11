@@ -8,14 +8,14 @@ mod executor;
 pub mod function;
 pub mod hosts;
 pub mod lookup_keys;
-pub mod scan_context;
+pub mod scan_ctx;
 
 use std::collections::HashMap;
 
 pub use error::ArgumentError;
 pub use error::FnError;
 pub use error::InternalError;
-pub use scan_context::{ContextType, Register, ScanCtx, ScriptCtx};
+pub use scan_ctx::{ContextType, Register, ScanCtx, ScriptCtx};
 
 pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 

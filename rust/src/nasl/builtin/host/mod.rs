@@ -9,7 +9,7 @@ use dns_lookup::lookup_addr;
 use thiserror::Error;
 
 use crate::nasl::utils::hosts::resolve_hostname;
-use crate::nasl::{prelude::*, utils::scan_context::TargetKind};
+use crate::nasl::{prelude::*, utils::scan_ctx::TargetKind};
 
 #[derive(Debug, Error)]
 pub enum HostError {
