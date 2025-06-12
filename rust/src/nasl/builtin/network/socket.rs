@@ -407,7 +407,7 @@ pub fn make_tcp_socket(ip: IpAddr, port: u16, retry: u8) -> Result<NaslSocket, S
 /// - Secret/kdc_use_tcp
 #[nasl_function]
 async fn open_sock_kdc(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
 ) -> Result<NaslValue, FnError> {
     let hostname: String = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))?;
@@ -436,7 +436,7 @@ async fn open_sock_kdc(
     Ok(NaslValue::Number(ret as i64))
 }
 
-fn make_tls_client_connection(context: &Context<'_>, vhost: &str) -> Option<ClientConnection> {
+fn make_tls_client_connection(context: &ScanCtx<'_>, vhost: &str) -> Option<ClientConnection> {
     get_tls_conf(context).ok().and_then(|conf| {
         create_tls_client(
             vhost,
@@ -450,7 +450,7 @@ fn make_tls_client_connection(context: &Context<'_>, vhost: &str) -> Option<Clie
 }
 
 fn open_sock_tcp_vhost(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     addr: IpAddr,
     timeout: Duration,
     bufsz: Option<usize>,
@@ -520,7 +520,7 @@ fn open_sock_tcp_vhost(
 ///   encapsulation.
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_sock_tcp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -563,7 +563,7 @@ async fn open_sock_tcp(
 
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
-fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
+fn get_tls_conf(context: &ScanCtx) -> Result<TlsConfig, FnError> {
     let cert_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))?;
     let key_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))?;
     let password = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))?;
@@ -580,7 +580,7 @@ fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
 /// Open a UDP socket to the target host
 #[nasl_function]
 async fn open_sock_udp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
 ) -> Result<NaslValue, FnError> {
@@ -600,7 +600,7 @@ async fn open_sock_udp(
 /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_tcp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
@@ -616,7 +616,7 @@ async fn open_priv_sock_tcp(
 ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_udp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,

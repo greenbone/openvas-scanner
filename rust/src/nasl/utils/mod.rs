@@ -3,19 +3,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
-pub mod context;
 pub mod error;
 mod executor;
 pub mod function;
 pub mod hosts;
 pub mod lookup_keys;
+pub mod scan_ctx;
 
 use std::collections::HashMap;
 
-pub use context::{Context, ContextType, Register, ScriptInfo};
 pub use error::ArgumentError;
 pub use error::FnError;
 pub use error::InternalError;
+pub use scan_ctx::{ContextType, Register, ScanCtx, ScriptCtx};
 
 pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 

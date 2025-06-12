@@ -7,8 +7,8 @@ use std::path::PathBuf;
 
 use crate::models::{AliveTestMethods, Parameter, Protocol, ScanID, ScanPreference};
 use crate::nasl::syntax::{Loader, NaslValue};
-use crate::nasl::utils::context::{ContextStorage, Ports, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
+use crate::nasl::utils::scan_ctx::{ContextStorage, Ports, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::Retriever;
@@ -204,7 +204,7 @@ where
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
-        let context = ContextBuilder {
+        let context = ScanCtxBuilder {
             scan_id: crate::storage::ScanID(self.scan_id.clone()),
             target: self.target.clone(),
             ports: self.ports.clone(),

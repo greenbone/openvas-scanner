@@ -141,7 +141,7 @@ impl Ssh {
     #[nasl_function(named(socket, port, keytype, csciphers, scciphers, timeout))]
     pub async fn nasl_ssh_connect(
         &mut self,
-        ctx: &Context<'_>,
+        ctx: &ScanCtx<'_>,
         socket: Option<Socket>,
         port: Option<u16>,
         keytype: Option<CommaSeparated<key::Name>>,

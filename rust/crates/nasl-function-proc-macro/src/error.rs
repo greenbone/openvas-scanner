@@ -45,7 +45,7 @@ impl Error {
                 "Specific type specified in receiver argument. Currently, only `&self` is supported."
             }
             ErrorKind::WrongArgumentOrder => {
-                "Argument in wrong position. Order of arguments should be: Context/Register, Positionals, Named, *Positional list"
+                "Argument in wrong position. Order of arguments should be: ScanCtx/ScriptCtx/Register, Positionals, Named, *Positional list"
             }
             ErrorKind::AsyncArgumentInSyncFn => {
                 "The arguments of this function require the function to be async, but it is declared sync."

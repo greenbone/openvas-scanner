@@ -88,8 +88,8 @@ impl Interpreter<'_, '_> {
         statement: &Statement,
         fn_name: &str,
     ) -> Option<InterpretResult> {
-        self.context
-            .execute_builtin_fn(fn_name, &self.register, &mut self.script_info)
+        self.scan_ctx
+            .execute_builtin_fn(fn_name, &self.register, &mut self.script_ctx)
             .await
             .map(|o| {
                 o.map_err(|e| {

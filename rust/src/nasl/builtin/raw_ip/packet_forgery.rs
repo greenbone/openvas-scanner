@@ -349,7 +349,7 @@ pub fn safe_copy_from_slice(
     data, ip_hl, ip_v, ip_tos, ip_ttl, ip_id, ip_len, ip_off, ip_p, ip_src, ip_dst, ip_sum
 ))]
 fn forge_ip_packet(
-    configs: &Context,
+    configs: &ScanCtx,
     data: Option<PacketPayload>,
     ip_hl: Option<u8>,
     ip_v: Option<u8>,
@@ -1947,7 +1947,7 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
     })
 }
 
-pub fn nasl_tcp_ping_shared(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     if configs.target().ip_addr().is_ipv6() {
         return nasl_tcp_v6_ping_shared(configs, port);
     }
@@ -2070,7 +2070,7 @@ pub fn nasl_tcp_ping_shared(configs: &Context, port: Option<u16>) -> Result<Nasl
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-pub fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     nasl_tcp_ping_shared(configs, port)
 }
 
@@ -2085,7 +2085,7 @@ pub fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, 
 /// - allow_broadcast: default FALSE
 #[nasl_function(named(length, pcap_active, pcap_filter, pcap_timeout, allow_broadcast))]
 fn nasl_send_packet(
-    configs: &Context,
+    configs: &ScanCtx,
     length: Option<i32>,
     pcap_active: Option<bool>,
     pcap_filter: Option<String>,
@@ -2178,7 +2178,7 @@ fn nasl_send_packet(
 /// - timeout: timeout in seconds, 5 by default
 #[nasl_function(named(interface, pcap_filter, timeout))]
 fn nasl_send_capture(
-    configs: &Context,
+    configs: &ScanCtx,
     interface: Option<String>,
     pcap_filter: Option<String>,
     timeout: Option<i32>,
@@ -2236,7 +2236,7 @@ fn nasl_send_capture(
 /// Return an IPv6 datagram or Null on error.
 #[nasl_function(named(data, ip6_v, ip6_tc, ip6_fl, ip6_p, ip6_hlim, ip6_src, ip6_dst))]
 fn forge_ip_v6_packet(
-    configs: &Context,
+    configs: &ScanCtx,
     data: Option<PacketPayload>,
     ip6_v: Option<u8>,
     ip6_tc: Option<u8>,
@@ -3152,7 +3152,7 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
     Ok(NaslValue::Null)
 }
 
-pub fn nasl_tcp_v6_ping_shared(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -3265,7 +3265,7 @@ pub fn nasl_tcp_v6_ping_shared(configs: &Context, port: Option<u16>) -> Result<N
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-pub fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_v6_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     nasl_tcp_v6_ping_shared(configs, port)
 }
 
@@ -3280,7 +3280,7 @@ pub fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValu
 /// - allow_broadcast: default FALSE
 #[nasl_function(named(length, pcap_active, pcap_filter, pcap_timeout))]
 fn nasl_send_v6packet(
-    configs: &Context,
+    configs: &ScanCtx,
     length: Option<i32>,
     pcap_active: Option<bool>,
     pcap_filter: Option<String>,
