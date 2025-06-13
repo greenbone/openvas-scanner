@@ -118,6 +118,7 @@ pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
             list.push(',');
         }
     }
+
     if ports.is_empty() {
         return None;
     }
