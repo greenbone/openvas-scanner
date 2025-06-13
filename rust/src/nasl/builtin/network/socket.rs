@@ -2,20 +2,24 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{
-    io::{self, BufRead, Read, Write},
-    net::{IpAddr, SocketAddr},
-    sync::Mutex,
-    thread::sleep,
-    time::{Duration, SystemTime},
+use crate::nasl::{
+    prelude::*,
+    utils::{context::JmpDesc, function::Seconds},
 };
-
-use crate::nasl::{prelude::*, utils::function::Seconds};
 use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
 use rustls::ClientConnection;
+use socket2::{Domain, Protocol, Socket, Type};
+use std::{
+    io::{self, BufRead, Read, Write},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    str::FromStr,
+    sync::Mutex,
+    thread::sleep,
+    time::{Duration, SystemTime},
+};
 use thiserror::Error;
 
 use super::{
@@ -56,6 +60,12 @@ pub enum SocketError {
     ResponseCodeMismatch(Vec<usize>, String),
     #[error("String is not an IP address: {0}")]
     InvalidIpAddress(String),
+    #[error("String is not a Multicast IP address: {0}")]
+    InvalidMulticastIpAddress(String),
+    #[error("Failed to join to multicast group {0}")]
+    FailedToJoinMulticastGroup(String),
+    #[error("Failed to leave multicast group. Never joined group")]
+    FailedToLeaveMulticastGroup,
     #[error("Failed to bind socket to {1}. {0}")]
     FailedToBindSocket(io::Error, SocketAddr),
     #[error("No route to destination: {0}.")]
@@ -832,6 +842,91 @@ async fn telnet_init(sockets: &mut NaslSockets, socket: usize) -> Result<NaslVal
     Ok(NaslValue::Data(buf.buffer.to_vec()))
 }
 
+fn new_socket(addr: &SocketAddr) -> Result<Socket, FnError> {
+    let domain = if addr.is_ipv4() {
+        Domain::IPV4
+    } else {
+        Domain::IPV6
+    };
+
+    let socket =
+        socket2::Socket::new(domain, Type::DGRAM, Some(Protocol::UDP)).map_err(SocketError::IO)?;
+
+    // we're going to use read timeouts so that we don't hang waiting for packets
+    socket
+        .set_read_timeout(Some(Duration::from_millis(100)))
+        .map_err(SocketError::IO)?;
+
+    Ok(socket)
+}
+fn get_multicast_addr(ip: &str) -> Result<IpAddr, FnError> {
+    let multicast_addr =
+        IpAddr::from_str(ip).map_err(|_| SocketError::InvalidIpAddress(ip.to_string()))?;
+    if !multicast_addr.is_multicast() {
+        return Err(SocketError::InvalidMulticastIpAddress(ip.to_string()).into());
+    };
+    Ok(multicast_addr)
+}
+
+#[nasl_function]
+fn join_multicast_group(script_ctx: &mut ScriptInfo, ip: String) -> Result<NaslValue, FnError> {
+    const PORT: u16 = 32000;
+    let multicast_addr = get_multicast_addr(ip.as_str())?;
+
+    let mut already_in_grp = false;
+    for d in script_ctx.multicast_groups.iter_mut() {
+        if d.in_addr == Some(multicast_addr) && d.count > 0 {
+            d.count += 1;
+            already_in_grp = true;
+            break;
+        }
+    }
+    let sa = SocketAddr::new(multicast_addr, PORT);
+
+    if !already_in_grp {
+        let s = new_socket(&sa)?;
+        match multicast_addr {
+            IpAddr::V4(ref mdns_v4) => {
+                s.join_multicast_v4(mdns_v4, &Ipv4Addr::new(0, 0, 0, 0))
+                    .map_err(|e| SocketError::FailedToJoinMulticastGroup(e.to_string()))?;
+            }
+            IpAddr::V6(ref mdns_v6) => {
+                s.join_multicast_v6(mdns_v6, 0)
+                    .map_err(|e| SocketError::FailedToJoinMulticastGroup(e.to_string()))?;
+            }
+        }
+        let new_jmp = JmpDesc {
+            in_addr: Some(multicast_addr),
+            count: 1,
+            socket: Some(s),
+        };
+        script_ctx.multicast_groups.push(new_jmp);
+    }
+    Ok(NaslValue::Number(1))
+}
+
+#[nasl_function]
+fn leave_multicast_group(script_ctx: &mut ScriptInfo, ip: String) -> Result<NaslValue, FnError> {
+    let multicast_addr = get_multicast_addr(ip.as_str())?;
+
+    let mut to_remove: Option<usize> = None;
+    for (i, jmg_desc) in script_ctx.multicast_groups.iter_mut().enumerate() {
+        if jmg_desc.in_addr == Some(multicast_addr) && jmg_desc.count >= 1 {
+            jmg_desc.count -= 1;
+            if jmg_desc.count == 0 {
+                to_remove = Some(i);
+            }
+            break;
+        }
+    }
+    if let Some(i) = to_remove {
+        script_ctx.multicast_groups.remove(i);
+        return Ok(NaslValue::Null);
+    };
+
+    Err(SocketError::FailedToLeaveMulticastGroup.into())
+}
+
 pub struct SocketFns;
 
 function_set! {
@@ -849,6 +944,8 @@ function_set! {
         (get_source_port, "get_source_port"),
         (ftp_log_in, "ftp_log_in"),
         (ftp_get_pasv_port, "ftp_get_pasv_port"),
+        join_multicast_group,
+        leave_multicast_group,
         telnet_init,
     )
 }
