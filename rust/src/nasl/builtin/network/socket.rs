@@ -4,7 +4,7 @@
 
 use crate::nasl::{
     prelude::*,
-    utils::{context::JmpDesc, function::Seconds},
+    utils::{function::Seconds, scan_ctx::JmpDesc},
 };
 use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
@@ -869,7 +869,7 @@ fn get_multicast_addr(ip: &str) -> Result<IpAddr, FnError> {
 }
 
 #[nasl_function]
-fn join_multicast_group(script_ctx: &mut ScriptInfo, ip: String) -> Result<NaslValue, FnError> {
+fn join_multicast_group(script_ctx: &mut ScriptCtx, ip: String) -> Result<NaslValue, FnError> {
     const PORT: u16 = 32000;
     let multicast_addr = get_multicast_addr(ip.as_str())?;
 
@@ -906,7 +906,7 @@ fn join_multicast_group(script_ctx: &mut ScriptInfo, ip: String) -> Result<NaslV
 }
 
 #[nasl_function]
-fn leave_multicast_group(script_ctx: &mut ScriptInfo, ip: String) -> Result<NaslValue, FnError> {
+fn leave_multicast_group(script_ctx: &mut ScriptCtx, ip: String) -> Result<NaslValue, FnError> {
     let multicast_addr = get_multicast_addr(ip.as_str())?;
 
     let mut to_remove: Option<usize> = None;
