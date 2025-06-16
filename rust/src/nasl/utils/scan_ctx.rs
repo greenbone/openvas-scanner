@@ -335,7 +335,9 @@ impl Default for Register {
         Self::new()
     }
 }
+use socket2;
 use std::collections::{BTreeSet, HashMap};
+
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
@@ -931,10 +933,19 @@ impl From<&ContextType> for NaslValue {
     }
 }
 
+/// Struct to hold joins to multicast groups.
+#[derive(Default)]
+pub struct JmpDesc {
+    pub in_addr: Option<IpAddr>,
+    pub count: usize,
+    pub socket: Option<socket2::Socket>,
+}
+
 #[derive(Default)]
 pub struct ScriptCtx {
     pub alive: bool,
     pub denial_port: Option<u16>,
+    pub multicast_groups: Vec<JmpDesc>,
 }
 
 pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
