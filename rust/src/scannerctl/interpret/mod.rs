@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
-    collections::HashSet,
+    collections::BTreeSet,
     fs::{self},
     path::{Path, PathBuf},
 };
@@ -150,8 +150,8 @@ pub async fn run(
         })
         .unwrap_or(Target::localhost());
     let ports = Ports {
-        tcp: HashSet::from_iter(tcp_ports.into_iter()),
-        udp: HashSet::from_iter(udp_ports.into_iter()),
+        tcp: BTreeSet::from_iter(tcp_ports.into_iter()),
+        udp: BTreeSet::from_iter(udp_ports.into_iter()),
     };
     let result = match (db, feed) {
         (Db::InMemory, None) => {

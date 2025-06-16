@@ -335,7 +335,7 @@ impl Default for Register {
         Self::new()
     }
 }
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
@@ -409,9 +409,9 @@ pub struct Target {
 #[derive(Clone, Debug, Default)]
 pub struct Ports {
     /// The TCP ports to test against.
-    pub tcp: HashSet<u16>,
+    pub tcp: BTreeSet<u16>,
     /// The UDP ports to test against.
-    pub udp: HashSet<u16>,
+    pub udp: BTreeSet<u16>,
 }
 
 impl From<Vec<Port>> for Ports {
@@ -463,9 +463,9 @@ pub struct CtxTarget {
     /// vhost list which resolve to the IP address and their sources.
     vhosts: Mutex<Vec<VHost>>,
     /// The TCP ports to test against.
-    ports_tcp: HashSet<u16>,
+    ports_tcp: BTreeSet<u16>,
     /// The UDP ports to test against.
-    ports_udp: HashSet<u16>,
+    ports_udp: BTreeSet<u16>,
 }
 
 impl Target {
@@ -562,11 +562,11 @@ impl CtxTarget {
         self.vhosts.lock().unwrap()
     }
 
-    pub fn ports_tcp(&self) -> &HashSet<u16> {
+    pub fn ports_tcp(&self) -> &BTreeSet<u16> {
         &self.ports_tcp
     }
 
-    pub fn ports_udp(&self) -> &HashSet<u16> {
+    pub fn ports_udp(&self) -> &BTreeSet<u16> {
         &self.ports_udp
     }
 }
@@ -858,9 +858,10 @@ impl<'a> Context<'a> {
         )
     }
 
-    pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
+    pub fn get_port_transport(&self, port: u16) -> Option<i64> {
         self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
-            .map(|x| match x {
+            .ok()
+            .and_then(|item| match item {
                 KbItem::Number(n) => Some(n),
                 _ => None,
             })
