@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 
-use crate::nasl::utils::context::ContextStorage;
+use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, SchedulerStorage, VTError};
 use crate::storage::inmemory::InMemoryStorage;
 

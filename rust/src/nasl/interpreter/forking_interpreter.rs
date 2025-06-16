@@ -1,7 +1,7 @@
 use futures::{Stream, stream};
 
 use crate::nasl::{
-    Context, Register,
+    Register, ScanCtx,
     syntax::{Lexer, Tokenizer},
 };
 
@@ -18,7 +18,7 @@ pub struct ForkingInterpreter<'code, 'ctx> {
 }
 
 impl<'code, 'ctx> ForkingInterpreter<'code, 'ctx> {
-    pub fn new(code: &'code str, register: Register, context: &'ctx Context<'ctx>) -> Self {
+    pub fn new(code: &'code str, register: Register, context: &'ctx ScanCtx<'ctx>) -> Self {
         let tokenizer = Tokenizer::new(code);
         let lexer = Lexer::new(tokenizer);
         let interpreters = vec![Interpreter::new(register, lexer, context)];

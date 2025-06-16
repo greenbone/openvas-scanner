@@ -39,10 +39,10 @@ impl<'a> ArgsStruct<'a> {
             .any(|arg| matches!(arg.kind, ArgKind::Register))
     }
 
-    fn has_script_info_arg(&self) -> bool {
+    fn has_script_ctx_arg(&self) -> bool {
         self.args
             .iter()
-            .any(|arg| matches!(arg.kind, ArgKind::ScriptInfo))
+            .any(|arg| matches!(arg.kind, ArgKind::ScriptCtx))
     }
 
     fn get_args(&self) -> TokenStream {
@@ -86,9 +86,9 @@ impl<'a> ArgsStruct<'a> {
                             }
                         }
                     }
-                    ArgKind::Context => {
+                    ArgKind::ScanCtx => {
                         quote! {
-                            _context
+                            _scan_context
                         }
                     },
                     ArgKind::Register => {
@@ -99,18 +99,18 @@ impl<'a> ArgsStruct<'a> {
                     ArgKind::NaslSockets(arg) => {
                         if arg.mutable {
                             quote! {
-                                &mut *_context.write_sockets().await
+                                &mut *_scan_context.write_sockets().await
                             }
                         }
                         else {
                             quote! {
-                                &*_context.read_sockets().await
+                                &*_scan_context.read_sockets().await
                             }
                         }
                     },
-                    ArgKind::ScriptInfo => {
+                    ArgKind::ScriptCtx => {
                         quote! {
-                            _script_info
+                            _script_ctx
                         }
                     },
 
@@ -179,7 +179,7 @@ impl<'a> ArgsStruct<'a> {
         if self.has_register_arg() {
             return quote! {};
         }
-        if self.has_script_info_arg() {
+        if self.has_script_ctx_arg() {
             return quote! {};
         }
         let named_array = self.make_array_of_names(ArgKind::get_named_arg_name);
@@ -258,8 +258,8 @@ impl<'a> ArgsStruct<'a> {
         let inputs = quote! {
             #self_arg
             _register: &crate::nasl::Register,
-            _context: &crate::nasl::Context<'_>,
-            _script_info: &mut crate::nasl::ScriptInfo,
+            _scan_context: &crate::nasl::ScanCtx<'_>,
+            _script_ctx: &mut crate::nasl::ScriptCtx,
         };
         let output_ty = match output {
             syn::ReturnType::Default => quote! { () },

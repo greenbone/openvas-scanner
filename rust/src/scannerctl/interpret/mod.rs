@@ -12,20 +12,20 @@ use futures::StreamExt;
 use scannerlib::{
     feed,
     nasl::{
-        Context,
+        ScanCtx,
         interpreter::ForkingInterpreter,
         nasl_std_functions,
         utils::{
-            context::{Ports, Target},
             error::ReturnBehavior,
+            scan_ctx::{Ports, Target},
         },
     },
     storage::{ScanID, items::nvt::Oid},
 };
-use scannerlib::{nasl::utils::context::ContextStorage, storage::inmemory::InMemoryStorage};
+use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
     nasl::{
-        ContextBuilder, FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder,
+        FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder, ScanCtxBuilder,
         WithErrorInfo,
         interpreter::InterpretErrorKind,
         syntax::{LoadError, load_non_utf8_path},
@@ -35,7 +35,7 @@ use scannerlib::{
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 
-fn load(ctx: &Context, script: &Path) -> Result<String, CliErrorKind> {
+fn load(ctx: &ScanCtx, script: &Path) -> Result<String, CliErrorKind> {
     match load_non_utf8_path(&script) {
         Ok(x) => Ok(x),
         Err(LoadError::NotFound(_)) => {
@@ -51,7 +51,7 @@ fn load(ctx: &Context, script: &Path) -> Result<String, CliErrorKind> {
     }
 }
 
-async fn run_with_context(context: Context<'_>, script: &Path) -> Result<(), CliErrorKind> {
+async fn run_with_context(context: ScanCtx<'_>, script: &Path) -> Result<(), CliErrorKind> {
     let register = RegisterBuilder::build();
     let code = load(&context, script)?;
     let mut results = ForkingInterpreter::new(&code, register, &context).stream();
@@ -121,7 +121,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
-    let cb = ContextBuilder {
+    let cb = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
         executor: &nasl_std_functions(),

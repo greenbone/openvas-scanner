@@ -4,7 +4,7 @@
 
 use std::{future::Future, pin::Pin};
 
-use crate::nasl::{Context, NaslResult, Register, ScriptInfo};
+use crate::nasl::{NaslResult, Register, ScanCtx, ScriptCtx};
 
 /// A wrapper trait to represent a function taking two arguments.
 /// This trait exists to allow attaching the lifetime of the HRTB
@@ -53,7 +53,7 @@ where
 /// Something that can be called with
 /// 1. A state of some type (for example, a list of open SSH connections)
 /// 2. A `Register`
-/// 3. A `Context`
+/// 3. A `ScanCtx`
 ///
 /// This trait exists to make it possible to store async functions inside function sets
 /// and is only an internal implementation detail to make the compiler happy.
@@ -62,8 +62,8 @@ pub trait StatefulCallable<State> {
         &self,
         state: &'b State,
         register: &'b Register,
-        context: &'b Context,
-        script_info: &'b mut ScriptInfo,
+        scan_ctx: &'b ScanCtx,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
@@ -72,8 +72,8 @@ where
     F: for<'a> AsyncQuadrupleArgFn<
             &'a State,
             &'a Register,
-            &'a Context<'a>,
-            &'a mut ScriptInfo,
+            &'a ScanCtx<'a>,
+            &'a mut ScriptCtx,
             Output = NaslResult,
         > + 'static,
 {
@@ -81,17 +81,17 @@ where
         &self,
         state: &'b State,
         register: &'b Register,
-        context: &'b Context,
-        script_info: &'b mut ScriptInfo,
+        context: &'b ScanCtx,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context, script_info))
+        Box::pin((*self)(state, register, context, script_ctx))
     }
 }
 
 /// Something that can be called with
 /// 1. A mutable reference to a state of some type (for example, a list of open SSH connections)
 /// 2. A `Register`
-/// 3. A `Context`
+/// 3. A `ScanCtx`
 ///
 /// This trait exists to make it possible to store async functions inside function sets
 /// and is only an internal implementation detail to make the compiler happy.
@@ -100,8 +100,8 @@ pub trait StatefulMutCallable<State> {
         &self,
         state: &'b mut State,
         register: &'b Register,
-        context: &'b Context,
-        script_info: &'b mut ScriptInfo,
+        context: &'b ScanCtx,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
@@ -110,8 +110,8 @@ where
     F: for<'a> AsyncQuadrupleArgFn<
             &'a mut State,
             &'a Register,
-            &'a Context<'a>,
-            &'a mut ScriptInfo,
+            &'a ScanCtx<'a>,
+            &'a mut ScriptCtx,
             Output = NaslResult,
         > + 'static,
 {
@@ -119,16 +119,16 @@ where
         &self,
         state: &'b mut State,
         register: &'b Register,
-        context: &'b Context,
-        script_info: &'b mut ScriptInfo,
+        context: &'b ScanCtx,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context, script_info))
+        Box::pin((*self)(state, register, context, script_ctx))
     }
 }
 
 /// Something that can be called with
 /// 1. A `Register`
-/// 2. A `Context`
+/// 2. A `ScanCtx`
 ///
 /// This trait exists to make it possible to store async functions inside function sets
 /// and is only an internal implementation detail to make the compiler happy.
@@ -136,8 +136,8 @@ pub trait StatelessCallable {
     fn call_stateless<'b>(
         &self,
         register: &'b Register,
-        context: &'b Context,
-        script_info: &'b mut ScriptInfo,
+        context: &'b ScanCtx,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
 
@@ -145,18 +145,18 @@ impl<F> StatelessCallable for F
 where
     F: for<'a> AsyncTripleArgFn<
             &'a Register,
-            &'a Context<'a>,
-            &'a mut ScriptInfo,
+            &'a ScanCtx<'a>,
+            &'a mut ScriptCtx,
             Output = NaslResult,
         > + 'static,
 {
     fn call_stateless<'b>(
         &self,
         register: &'b Register,
-        context: &'b Context,
-        script_info: &'b mut ScriptInfo,
+        context: &'b ScanCtx,
+        script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(register, context, script_info))
+        Box::pin((*self)(register, context, script_ctx))
     }
 }
 
@@ -166,9 +166,9 @@ where
 /// a single function set.
 pub enum NaslFunction<State> {
     AsyncStateful(Box<dyn StatefulCallable<State> + Send + Sync>),
-    SyncStateful(fn(&State, &Register, &Context, &mut ScriptInfo) -> NaslResult),
+    SyncStateful(fn(&State, &Register, &ScanCtx, &mut ScriptCtx) -> NaslResult),
     AsyncStatefulMut(Box<dyn StatefulMutCallable<State> + Send + Sync>),
-    SyncStatefulMut(fn(&mut State, &Register, &Context, &mut ScriptInfo) -> NaslResult),
+    SyncStatefulMut(fn(&mut State, &Register, &ScanCtx, &mut ScriptCtx) -> NaslResult),
     AsyncStateless(Box<dyn StatelessCallable + Send + Sync>),
-    SyncStateless(fn(&Register, &Context, &mut ScriptInfo) -> NaslResult),
+    SyncStateless(fn(&Register, &ScanCtx, &mut ScriptCtx) -> NaslResult),
 }

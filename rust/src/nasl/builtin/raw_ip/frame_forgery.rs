@@ -345,7 +345,7 @@ fn send_frame(
 /// It takes the following argument:
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
 #[nasl_function]
-fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslValue, FnError> {
+fn nasl_send_arp_request(register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
         None => DEFAULT_TIMEOUT,
@@ -458,7 +458,7 @@ fn nasl_forge_frame(register: &Register) -> Result<NaslValue, FnError> {
 /// - pcap_filter: filter for the answer
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
 #[nasl_function]
-fn nasl_send_frame(register: &Register, context: &Context) -> Result<NaslValue, FnError> {
+fn nasl_send_frame(register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
     let frame = match register.named("frame") {
         Some(ContextType::Value(NaslValue::Data(x))) => x,
         _ => return Err(FnError::wrong_unnamed_argument("Data", "Invalid data type")),

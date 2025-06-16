@@ -22,7 +22,7 @@ use super::{
     nasl_std_functions,
     utils::{
         Executor,
-        context::{ContextStorage, Ports, Target},
+        scan_ctx::{ContextStorage, Ports, Target},
     },
 };
 
@@ -278,7 +278,7 @@ where
 
     /// Runs the given lines of code and returns the list of results
     /// along with the `Context` used for evaluating them.
-    pub fn results_and_context(&self) -> (Vec<NaslResult>, Context) {
+    pub fn results_and_context(&self) -> (Vec<NaslResult>, ScanCtx) {
         futures::executor::block_on(async {
             let context = self.context();
             (
@@ -306,7 +306,7 @@ where
     fn interpreter<'code, 'ctx>(
         &self,
         code: &'code str,
-        context: &'ctx Context,
+        context: &'ctx ScanCtx,
     ) -> ForkingInterpreter<'code, 'ctx> {
         let variables: Vec<_> = self
             .variables
@@ -327,7 +327,7 @@ where
     pub fn results_stream<'a>(
         &'a self,
         code: &'a str,
-        context: &'a Context,
+        context: &'a ScanCtx,
     ) -> impl Stream<Item = NaslResult> + 'a {
         let interpreter = self.interpreter(code, context);
         interpreter.stream().map(|res| {
@@ -338,9 +338,9 @@ where
         })
     }
 
-    fn context(&self) -> Context {
+    fn context(&self) -> ScanCtx {
         let target = Target::do_not_resolve_hostname(&self.target);
-        ContextBuilder {
+        ScanCtxBuilder {
             storage: &self.storage,
             loader: &self.loader,
             executor: &self.executor,

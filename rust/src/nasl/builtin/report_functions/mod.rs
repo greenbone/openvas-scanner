@@ -29,7 +29,7 @@ impl Reporting {
         &self,
         typus: ResultType,
         register: &Register,
-        context: &Context,
+        context: &ScanCtx,
     ) -> Result<NaslValue, FnError> {
         let data = register.named("data").map(|x| x.to_string());
         let port = register
@@ -77,7 +77,7 @@ impl Reporting {
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
     #[nasl_function]
-    fn log_message(&self, register: &Register, context: &Context) -> Result<NaslValue, FnError> {
+    fn log_message(&self, register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Log, register, context)
     }
 
@@ -92,7 +92,7 @@ impl Reporting {
     fn security_message(
         &self,
         register: &Register,
-        context: &Context,
+        context: &ScanCtx,
     ) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Alarm, register, context)
     }
@@ -105,7 +105,7 @@ impl Reporting {
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
     #[nasl_function]
-    fn error_message(&self, register: &Register, context: &Context) -> Result<NaslValue, FnError> {
+    fn error_message(&self, register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Error, register, context)
     }
 }

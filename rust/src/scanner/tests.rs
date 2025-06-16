@@ -3,13 +3,13 @@ use crate::models::Phase;
 use crate::models::Protocol;
 use crate::models::VT;
 use crate::models::scanner::{ScanResultFetcher, ScanResults};
-use crate::nasl::ContextBuilder;
+use crate::nasl::ScanCtxBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::Register;
-use crate::nasl::utils::context::Target;
+use crate::nasl::utils::scan_ctx::Target;
 use crate::scanner::Scanner;
 use crate::scanner::{
     error::{ExecuteError, ScriptResult},
@@ -224,7 +224,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     let scan_id = ScanID(filename.to_string());
     let scan_preferences = Vec::default();
     let alive_test_methods = Vec::default();
-    let cb = ContextBuilder {
+    let cb = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
         executor: &executor,
