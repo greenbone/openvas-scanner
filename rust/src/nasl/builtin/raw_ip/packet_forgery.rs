@@ -2027,7 +2027,6 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
     tcp.set_urgent_ptr(0);
 
     for (i, _) in sports.iter().enumerate() {
-        // TODO!: the port is fixed since the function to get open ports is not implemented.
         let mut sport = rnd_tcp_port();
         let mut dport = port;
         if port == 0 {
@@ -3182,7 +3181,7 @@ pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<N
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
-    let port = port.unwrap_or_default();
+    let port = port.unwrap_or(configs.get_host_open_port().unwrap_or_default());
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -3224,7 +3223,6 @@ pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<N
     tcp.set_urgent_ptr(0);
 
     for (i, _) in sports.iter().enumerate() {
-        // TODO!: the port is fixed since the function to get open ports is not implemented.
         let mut sport = rnd_tcp_port();
         let mut dport = port;
         if port == 0 {
