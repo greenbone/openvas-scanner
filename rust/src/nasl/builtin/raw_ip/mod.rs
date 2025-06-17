@@ -26,6 +26,8 @@ pub enum RawIpError {
     FailedToGetLocalMacAddress,
     #[error("Failed to get device list.")]
     FailedToGetDeviceList,
+    #[error("Failed to get device MTU.")]
+    FailedToGetDeviceMTU,
     #[error("Invalid IP address.")]
     InvalidIpAddress,
     #[error("Failed to bind.")]

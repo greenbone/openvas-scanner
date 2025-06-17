@@ -14,7 +14,7 @@ runs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
     - run: sudo apt update || true
       shell: bash
-    - run: sudo apt-get install -y libpcap-dev patchelf
+    - run: sudo apt-get install -y libpcap-dev libclang-dev patchelf
       shell: bash
     - run: rustup update stable && rustup default stable || rustup default stable
       shell: bash

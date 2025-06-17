@@ -4,6 +4,8 @@
 
 use std::{fmt::Display, net::IpAddr};
 
+#[cfg(feature = "nasl-builtin-raw-ip")]
+use crate::nasl::raw_ip_utils::raw_ip_utils;
 use crate::{nasl::prelude::*, storage::items::kb::KbKey};
 
 #[allow(clippy::module_inception)]
@@ -22,9 +24,16 @@ const MTU: usize = 512 - 60 - 8;
 const DEFAULT_PORT: u16 = 33435;
 
 // Get the max MTU possible for network communication
-// TODO: Calculate the MTU dynamically
+#[cfg(not(feature = "nasl-builtin-raw-ip"))]
 pub fn mtu(_: IpAddr) -> usize {
     MTU
+}
+#[cfg(feature = "nasl-builtin-raw-ip")]
+pub fn mtu(target_ip: IpAddr) -> usize {
+    match raw_ip_utils::get_mtu(target_ip) {
+        Ok(mtu) => mtu,
+        Err(_) => MTU,
+    }
 }
 
 pub enum OpenvasEncaps {
