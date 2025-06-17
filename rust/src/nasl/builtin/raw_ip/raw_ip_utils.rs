@@ -71,6 +71,12 @@ pub fn get_interface_by_local_ip(local_address: IpAddr) -> Result<Device, FnErro
         .ok_or(RawIpError::InvalidIpAddress.into())
 }
 
+pub fn get_mtu(target_ip: IpAddr) -> Result<usize, RawIpError> {
+    let (_, mtu): (String, usize) =
+        mtu::interface_and_mtu(target_ip).map_err(|_| RawIpError::FailedToGetDeviceMTU)?;
+    Ok(mtu)
+}
+
 pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0"),

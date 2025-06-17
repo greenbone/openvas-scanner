@@ -96,6 +96,7 @@ openssl = { version = "0.10.72", features = ["vendored"] }
 blowfish = "0.9.1"
 rc4 = "0.1.0"
 dsa = "0.6.3"
+mtu = { version = "0.2.9", optional = true }
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
@@ -116,6 +117,7 @@ default = [
 ]
 
 nasl-builtin-raw-ip = [
+    "mtu",
     "pcap",
     "pnet_base",
     "pnet",
