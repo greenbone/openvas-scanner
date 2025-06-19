@@ -552,8 +552,16 @@ async fn open_sock_tcp(
 
     // TODO: set timeout to global recv timeout * 2 when available
     let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(10));
-    // TODO: for every vhost
-    let vhosts = ["localhost"];
+    let mut vhosts = context
+        .target()
+        .vhosts()
+        .clone()
+        .into_iter()
+        .map(|v| v.hostname().to_string())
+        .collect::<Vec<String>>();
+    if vhosts.is_empty() {
+        vhosts.push(context.target().ip_addr().to_string());
+    };
     let sockets: Vec<Option<NaslSocket>> = vhosts
         .iter()
         .map(|vhost| open_sock_tcp_vhost(context, addr, timeout, bufsz, port.0, vhost, transport))
