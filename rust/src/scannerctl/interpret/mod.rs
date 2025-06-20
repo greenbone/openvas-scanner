@@ -11,6 +11,7 @@ use std::{
 use futures::StreamExt;
 use scannerlib::{
     feed,
+    models::ScanPreference,
     nasl::{
         ScanCtx,
         interpreter::ForkingInterpreter,
@@ -20,6 +21,7 @@ use scannerlib::{
             scan_ctx::{Ports, Target},
         },
     },
+    scanner::preferences::preference::ScanPreferencesHandling,
     storage::{ScanID, items::nvt::Oid},
 };
 use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
@@ -118,6 +120,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
     target: Target,
     ports: Ports,
     script: &Path,
+    scan_preferences: Vec<ScanPreference>,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
@@ -129,7 +132,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
         ports,
         scan_id,
         filename,
-        scan_preferences: Vec::new(),
+        scan_preferences,
         alive_test_methods: Vec::new(),
     };
     run_with_context(cb.build(), script).await
@@ -142,6 +145,7 @@ pub async fn run(
     target: Option<String>,
     tcp_ports: Vec<u16>,
     udp_ports: Vec<u16>,
+    timeout: Option<u32>,
 ) -> Result<(), CliError> {
     let target = target
         .map(|target| {
@@ -153,6 +157,11 @@ pub async fn run(
         tcp: BTreeSet::from_iter(tcp_ports.into_iter()),
         udp: BTreeSet::from_iter(udp_ports.into_iter()),
     };
+
+    // for adding new default preferences, add new methods to the SetScanPreferences trait.
+    let mut scan_preferences: Vec<ScanPreference> = Vec::new();
+    scan_preferences.set_default_recv_timeout(timeout);
+
     let result = match (db, feed) {
         (Db::InMemory, None) => {
             run_on_storage(
@@ -161,6 +170,7 @@ pub async fn run(
                 target,
                 ports,
                 script,
+                scan_preferences,
             )
             .await
         }
@@ -173,7 +183,7 @@ pub async fn run(
             } else {
                 load_feed_by_exec(&storage, &loader).await?
             }
-            run_on_storage(storage, loader, target, ports, script).await
+            run_on_storage(storage, loader, target, ports, script, scan_preferences).await
         }
     };
 
