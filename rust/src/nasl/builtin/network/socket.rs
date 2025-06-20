@@ -6,6 +6,7 @@ use crate::nasl::{
     prelude::*,
     utils::{function::Seconds, scan_ctx::JmpDesc},
 };
+use crate::scanner::preferences::preference::ScanPreferencesHandling;
 use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
@@ -141,6 +142,7 @@ pub struct NaslSockets {
     handles: Vec<Option<NaslSocket>>,
     closed_fd: Vec<usize>,
     interval: Option<Interval>,
+    recv_timeout: Option<Duration>,
 }
 
 impl NaslSockets {
@@ -195,8 +197,8 @@ impl NaslSockets {
         tcp: bool,
     ) -> Result<NaslValue, SocketError> {
         if tcp {
-            // TODO: set timeout to global recv timeout when available
-            let timeout = Duration::from_secs(10);
+            // Default timeout is from C implementation in nasl/exec.c:1681
+            let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(5));
             self.wait_before_next_probe();
             let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
             Ok(NaslValue::Number(
@@ -221,8 +223,8 @@ impl NaslSockets {
 
         for sport in (1..=1023).rev() {
             let fd = if tcp {
-                // TODO: set timeout to global recv timeout when available
-                let timeout = Duration::from_secs(10);
+                // Default timeout is from C implementation in nasl/exec.c:1681
+                let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(5));
                 self.wait_before_next_probe();
                 match TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
                     Ok(tcp) => self.add(NaslSocket::Tcp(Box::new(tcp))),
@@ -241,6 +243,12 @@ impl NaslSockets {
             return Ok(NaslValue::Number(fd as i64));
         }
         Err(SocketError::UnableToOpenPrivSocket(addr).into())
+    }
+
+    pub fn with_recv_timeout(&mut self, timeout: Option<i64>) {
+        if let Some(to) = timeout {
+            self.recv_timeout = Some(Duration::from_secs(to as u64));
+        }
     }
 }
 
@@ -334,7 +342,6 @@ fn recv_shared(
         .map(|min| if min < 0 { length } else { min as usize })
         .unwrap_or(length);
     let mut data = vec![0; length];
-
     let socket = sockets.get_open_socket_mut(socket)?;
     let mut pos = match timeout {
         Some(timeout) => socket.read_with_timeout(&mut data, timeout.as_duration())?,
@@ -550,8 +557,14 @@ async fn open_sock_tcp(
         .filter(|bufsz| *bufsz >= 0)
         .map(|bufsz| bufsz as usize);
 
-    // TODO: set timeout to global recv timeout * 2 when available
-    let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(10));
+    // Default timeout is from C implementation in nasl/exec.c:1681
+    let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(
+        context
+            .scan_preferences
+            .get_preference_int("checks_read_timeout")
+            .unwrap_or(5) as u64
+            * 2,
+    ));
     let mut vhosts = context
         .target()
         .vhosts()
@@ -562,6 +575,7 @@ async fn open_sock_tcp(
     if vhosts.is_empty() {
         vhosts.push(context.target().ip_addr().to_string());
     };
+
     let sockets: Vec<Option<NaslSocket>> = vhosts
         .iter()
         .map(|vhost| open_sock_tcp_vhost(context, addr, timeout, bufsz, port.0, vhost, transport))
@@ -765,7 +779,11 @@ async fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u
 /// Args:
 /// - socket: an open socket.
 #[nasl_function]
-async fn telnet_init(sockets: &mut NaslSockets, socket: usize) -> Result<NaslValue, SocketError> {
+async fn telnet_init(
+    context: &ScanCtx<'_>,
+    sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, SocketError> {
     struct Buffer {
         buffer: Vec<u8>,
     }
@@ -799,9 +817,12 @@ async fn telnet_init(sockets: &mut NaslSockets, socket: usize) -> Result<NaslVal
     let mut lm_flag = 0;
 
     while buf.iac() == 255 {
-        // todo ()!: the time out should be handled internally,
-        // and take either the one set for the socket or the default from preferences
-        buf.buffer = recv_shared(sockets, socket, 3, Some(3), Some(Seconds(2)))?;
+        // Default timeout is from C implementation in nasl/exec.c:1681
+        let to = context
+            .scan_preferences
+            .get_preference_int("checks_read_timeout")
+            .unwrap_or(5) as u64;
+        buf.buffer = recv_shared(sockets, socket, 3, Some(3), Some(Seconds(to)))?;
         if buf.iac() != 255 || buf.buffer.is_empty() || buf.buffer.len() != 3 {
             break;
         }

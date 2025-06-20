@@ -349,3 +349,30 @@ impl ScanPreferences {
         scan.scan_preferences.extend(conf_prefs);
     }
 }
+
+pub trait ScanPreferencesHandling {
+    fn set_default_recv_timeout(&mut self, timeout: Option<u32>);
+    fn get_preference_int(&self, key: &str) -> Option<i64>;
+}
+
+impl ScanPreferencesHandling for Vec<ScanPreference> {
+    fn set_default_recv_timeout(&mut self, timeout: Option<u32>) {
+        if let Some(timeout) = timeout {
+            self.push(ScanPreference {
+                id: String::from("checks_read_timeout"),
+                value: timeout.to_string(),
+            })
+        } else {
+            self.push(ScanPreference {
+                id: String::from("checks_read_timeout"),
+                value: "5".to_string(),
+            });
+        };
+    }
+
+    fn get_preference_int(&self, key: &str) -> Option<i64> {
+        self.iter()
+            .find(|x| x.id == key)
+            .and_then(|x| x.value.parse::<i64>().ok())
+    }
+}
