@@ -37,6 +37,8 @@ pub enum CliErrorKind {
     Corrupt(String),
     #[error("Invalid XML: {0}")]
     InvalidXML(#[from] DeError),
+    #[error("{0}")]
+    InvalidCmdOpt(String),
 }
 
 pub struct Filename<T>(pub T);

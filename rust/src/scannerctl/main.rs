@@ -108,6 +108,10 @@ async fn main() {
                 tracing::warn!("script error, {e}");
                 std::process::exit(1);
             }
+            CliErrorKind::InvalidCmdOpt(_) => {
+                tracing::warn!("Command line option error, {e}");
+                std::process::exit(1);
+            }
             _ => panic!("{e}"),
         },
     }
