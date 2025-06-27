@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Defines NASL functions to perform HTTP/2 request.
-// TODO: implement http functions once socket handling is available
+//! Defines NASL functions to perform HTTP/1 and HTTP/2 request.
 
 mod error;
 
-use crate::nasl::prelude::*;
 use crate::nasl::utils::ContextType;
+use crate::storage::items::kb::KbKey;
+use crate::{nasl::prelude::*, storage::items::kb::KbItem};
 
 pub use error::HttpError;
 use h2::client;
@@ -25,6 +25,14 @@ use tokio::{
 };
 use tokio_rustls::TlsConnector;
 
+use super::{
+    NaslSockets,
+    network::{
+        Port,
+        socket::{close_shared, open_sock_tcp_shared},
+    },
+};
+
 pub struct Handle {
     pub handle_id: i32,
     pub header_items: Vec<(String, String)>,
@@ -32,7 +40,7 @@ pub struct Handle {
 }
 
 #[derive(Default)]
-pub struct NaslHttp {
+pub struct NaslHttp2 {
     handles: Arc<Mutex<Vec<Handle>>>,
 }
 
@@ -125,7 +133,7 @@ impl ServerCertVerifier for NoVerifier {
     }
 }
 
-impl NaslHttp {
+impl NaslHttp2 {
     async fn request(
         &self,
         ip_str: &str,
@@ -409,16 +417,164 @@ impl NaslHttp {
 }
 
 function_set! {
+    NaslHttp2,
+    (
+        (NaslHttp2::handle, "http2_handle"),
+        (NaslHttp2::close_handle, "http2_close_handle"),
+        (NaslHttp2::get_response_code, "http2_get_response_code"),
+        (NaslHttp2::set_custom_header, "http2_set_custom_header"),
+        (NaslHttp2::get, "http2_get"),
+        (NaslHttp2::head, "http2_head"),
+        (NaslHttp2::post, "http2_post"),
+        (NaslHttp2::delete, "http2_delete"),
+        (NaslHttp2::put, "http2_put"),
+    )
+}
+
+// ####### HTTP ##########
+
+pub struct NaslHttp;
+
+#[nasl_function]
+pub async fn close_socket(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
+    close_shared(sockets, socket_fd)
+}
+
+#[nasl_function(named(timeout, transport, bufsz))]
+pub async fn open_socket(
+    context: &ScanCtx<'_>,
+    sockets: &mut NaslSockets,
+    port: Port,
+    timeout: Option<i64>,
+    transport: Option<i64>,
+    bufsz: Option<i64>,
+) -> Result<NaslValue, FnError> {
+    open_sock_tcp_shared(context, sockets, port, timeout, transport, bufsz.or(Some(65535)))
+}
+
+fn build_encode_url(keyword: Method, item: String, httpver: &str) -> String {
+    format!("{} {} {} ", keyword, item, httpver)
+}
+fn http_req_shared(
+    context: &ScanCtx,
+    keyword: Method,
+    port: Port,
+    item: String,
+    data: Option<String>,
+) -> Result<NaslValue, FnError> {
+    let p: u16 = port.into();
+    let tmp_key = format!("http/{}", p);
+    let mut request = match context.get_kb_item(&KbKey::from(tmp_key))?.first() {
+        Some(KbItem::Number(11)) | Some(KbItem::Number(0)) | None => {
+            //TODO: use plug_get_host_fqdn and do it for all vhosts.
+            let hostname = context.target().ip_addr().to_string();
+
+            //TODO:  Gets the User-Agent from the globals_settings.nasl
+            // script preferences. If it is not set, it uses the Vendor version.
+            // In case that there is no Vendor version, it creates one with a fix string
+            // and the nasl library version.
+            let user_agent = String::from("OPENVAS");
+
+            let hostreader = match p {
+                80 | 443 => hostname,
+                _ => format!("{}/{}", hostname, p),
+            };
+
+            let url = build_encode_url(keyword, item, "HTTP/1.1");
+            format!(
+                "{url}\r\n\
+                     Connection: Close\r\n\
+                     Host: {hostreader}\r\n\
+                     Pragma: no-cache\r\n\
+                     Cache-Control: no-cache\r\n\
+                     User-Agent: {user_agent}\r\n\
+                     Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*\r\n\
+                     Accept-Language: en\r\n\
+                     Accept-Charset: iso-8859-1,*,utf-8\r\n"
+            )
+        }
+        _ => build_encode_url(keyword, item, "HTTP/1.0"),
+    };
+
+    let tmp_key = format!("/tmp/http/auth/{}", p);
+    match context.get_kb_item(&KbKey::from(tmp_key))?.first() {
+        Some(KbItem::String(a)) => request.push_str(a),
+        _ => request.push_str("http/auth"),
+    };
+
+    match data {
+        Some(data) => {
+            let content = format!("Content-Length: {}\r\n\r\n", data.len());
+            request.push_str(&content);
+        }
+        None => request.push_str("\r\n"),
+    };
+
+    Ok(NaslValue::Data(request.into()))
+}
+
+#[nasl_function(named(port, item))]
+pub fn get(
+    context: &ScanCtx,
+    port: Port,
+    item: String,
+) -> Result<NaslValue, FnError> {
+    http_req_shared(context, Method::GET, port, item, None)
+}
+
+#[nasl_function]
+pub fn head(
+    context: &ScanCtx,
+    port: Port,
+    item: String,
+    data: Option<String>,
+) -> Result<NaslValue, FnError> {
+    http_req_shared(context, Method::HEAD, port, item, data)
+}
+
+#[nasl_function]
+pub fn post(
+    context: &ScanCtx,
+    port: Port,
+    item: String,
+    data: Option<String>,
+) -> Result<NaslValue, FnError> {
+    http_req_shared(context, Method::POST, port, item, data)
+}
+
+#[nasl_function]
+pub fn delete(
+    context: &ScanCtx,
+    port: Port,
+    item: String,
+    data: Option<String>,
+) -> Result<NaslValue, FnError> {
+    http_req_shared(context, Method::DELETE, port, item, data)
+}
+
+#[nasl_function]
+pub fn put(
+    context: &ScanCtx,
+    port: Port,
+    item: String,
+    data: Option<String>,
+) -> Result<NaslValue, FnError> {
+    http_req_shared(context, Method::PUT, port, item, data)
+}
+
+//#[nasl_function]
+//pub fn cgi_bin(context: &ScanCtx, port: Port, item: String, data: Option<String>) {}
+
+function_set! {
     NaslHttp,
     (
-        (NaslHttp::handle, "http2_handle"),
-        (NaslHttp::close_handle, "http2_close_handle"),
-        (NaslHttp::get_response_code, "http2_get_response_code"),
-        (NaslHttp::set_custom_header, "http2_set_custom_header"),
-        (NaslHttp::get, "http2_get"),
-        (NaslHttp::head, "http2_head"),
-        (NaslHttp::post, "http2_post"),
-        (NaslHttp::delete, "http2_delete"),
-        (NaslHttp::put, "http2_put"),
+        (close_socket, "http_close_socket"),
+        (open_socket, "http_open_socket"),
+        (get, "http_get"),
+        (head, "http_head"),
+        (post, "http_post"),
+        (delete, "http_delete"),
+        (put, "http_put"),
+        //(cgi_bin, "cgibin"),
     )
 }
