@@ -562,8 +562,12 @@ pub fn put(
     http_req_shared(context, Method::PUT, port, item, data)
 }
 
-//#[nasl_function]
-//pub fn cgi_bin(context: &ScanCtx, port: Port, item: String, data: Option<String>) {}
+#[nasl_function]
+pub fn cgi_bin(context: &ScanCtx) -> String {
+    context.scan_params()
+        .find(|x| x.id == "cgi-path")
+        .map_or("/cgi-bin:/scripts".to_string(),|x| x.value.clone())
+}
 
 function_set! {
     NaslHttp,
@@ -575,6 +579,6 @@ function_set! {
         (post, "http_post"),
         (delete, "http_delete"),
         (put, "http_put"),
-        //(cgi_bin, "cgibin"),
+        (cgi_bin, "cgibin"),
     )
 }
