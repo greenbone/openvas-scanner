@@ -88,6 +88,15 @@ log_whole_attack
     monitoring and debugging purpose, however this option might make
     openvas fill your disk rather quickly.
 
+report_scripts
+
+:   Stores in a file the script run duration in json format. This
+    option expects a valid path to store a file with scripts stats.
+    Script run durations are collected only if the log_whole_attack
+    setting is set to 'yes'. This is helpful for monitoring and
+    debugging purpose, however this option might make openvas fill
+    your disk rather quickly.
+
 debug_tls
 
 :   This is an scanner-only option which allows you to set the TLS log
