@@ -148,7 +148,7 @@ impl NaslHttp {
         let server_name = ip_str.to_owned().try_into().unwrap();
 
         let connector = TlsConnector::from(Arc::new(config));
-        let stream = TcpStream::connect(format!("{}:{}", ip_str, port))
+        let stream = TcpStream::connect(format!("{ip_str}:{port}"))
             .await
             .map_err(HttpError::from)?;
         let stream = connector
@@ -247,12 +247,12 @@ impl NaslHttp {
 
         let mut uri: String;
         if port != 80 && port != 443 {
-            uri = format!("{}://{}:{}", schema, target_str, port);
+            uri = format!("{schema}://{target_str}:{port}");
         } else {
-            uri = format!("{}://{}", schema, target_str)
+            uri = format!("{schema}://{target_str}")
         }
 
-        uri = format!("{}{}", uri, item);
+        uri = format!("{uri}{item}");
 
         let (head, body) = self
             .request(target_str, port, uri, data, method, handle)

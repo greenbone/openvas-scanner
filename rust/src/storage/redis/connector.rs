@@ -313,7 +313,7 @@ pub trait RedisGetNvt: RedisWrapper {
 
     #[inline(always)]
     fn get_prefs(&mut self, oid: &str) -> RedisStorageResult<Vec<NvtPreference>> {
-        let keyname = format!("oid:{}:prefs", oid);
+        let keyname = format!("oid:{oid}:prefs");
         let mut prefs_list = self.lrange(&keyname, 0, -1)?;
         let mut prefs: Vec<NvtPreference> = Vec::new();
         for p in prefs_list.iter_mut() {
@@ -355,7 +355,7 @@ pub trait RedisGetNvt: RedisWrapper {
     }
 
     fn redis_get_advisory(&mut self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
-        let keyname = format!("internal/notus/advisories/{}", oid);
+        let keyname = format!("internal/notus/advisories/{oid}");
         let nvt_data = self.lindex(&keyname, 0)?;
         if nvt_data.is_empty() {
             return Ok(None);
@@ -372,7 +372,7 @@ pub trait RedisGetNvt: RedisWrapper {
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
     fn redis_get_vt(&mut self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
-        let keyname = format!("nvt:{}", oid);
+        let keyname = format!("nvt:{oid}");
         let nvt_data = self.lrange(&keyname, 0, -1)?;
 
         if nvt_data.is_empty() {

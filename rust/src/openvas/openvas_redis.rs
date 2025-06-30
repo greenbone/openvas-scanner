@@ -94,7 +94,7 @@ impl KbAccess for RedisHelper<RedisCtx> {
 
     fn scan_status(&mut self, scan_id: String) -> RedisStorageResult<String> {
         self.lock_task_kb()?
-            .lindex(&format!("internal/{}", scan_id), 0)
+            .lindex(&format!("internal/{scan_id}"), 0)
     }
 
     fn results(&mut self) -> RedisStorageResult<Vec<String>> {

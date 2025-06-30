@@ -47,8 +47,8 @@ impl Display for Error {
             Error::ScanAlreadyQueued => write!(f, "scan is already queued"),
             Error::NotFound => write!(f, "scan was not found"),
             Error::QueueFull => write!(f, "unable to queue scan: queue is already full"),
-            Error::Scan(e) => write!(f, "scan error occurred: {}", e),
-            Error::Storage(e) => write!(f, "storage error occurred: {}", e),
+            Error::Scan(e) => write!(f, "scan error occurred: {e}"),
+            Error::Storage(e) => write!(f, "storage error occurred: {e}"),
             Error::UnsupportedResume => {
                 write!(f, "unable to resume scan: operation not supported")
             }
@@ -77,7 +77,7 @@ impl From<StorageError> for Error {
 // yo, dawg I heard you like transforming
 impl From<Error> for ScanError {
     fn from(val: Error) -> Self {
-        ScanError::Unexpected(format!("{}", val))
+        ScanError::Unexpected(format!("{val}"))
     }
 }
 /// Scheduler is a core component of managing scans.

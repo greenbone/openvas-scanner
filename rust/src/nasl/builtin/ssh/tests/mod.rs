@@ -81,21 +81,18 @@ async fn ssh_connect() {
     run_test(
         |t| {
             t.ok(
-                format!(
-                    r#"id = ssh_connect(port:{}, keytype: "ssh-ed25519");"#,
-                    PORT
-                ),
+                format!(r#"id = ssh_connect(port:{PORT}, keytype: "ssh-ed25519");"#),
                 MIN_SESSION_ID,
             );
             check_err_matches!(
                 t,
-                format!(r#"id = ssh_connect(port:{}, keytype: "foo");"#, PORT),
+                format!(r#"id = ssh_connect(port:{PORT}, keytype: "foo");"#),
                 ArgumentError::WrongArgument(_)
             );
             // Without a matching key algorithm, we should not be able to connect
             check_err_matches!(
                 t,
-                format!(r#"id = ssh_connect(port:{}, keytype: "ssh-rsa");"#, PORT),
+                format!(r#"id = ssh_connect(port:{PORT}, keytype: "ssh-rsa");"#),
                 SshError {
                     kind: SshErrorKind::Connect,
                     ..
@@ -111,9 +108,7 @@ fn userauth(t: &mut DefaultTestBuilder) {
     let user = AuthConfig::default().user;
     let password = AuthConfig::default().password;
     t.run(format!(
-        r#"ssh_userauth(session_id, login: "{user}", password: "{password}");"#,
-        user = user,
-        password = password
+        r#"ssh_userauth(session_id, login: "{user}", password: "{password}");"#
     ));
 }
 
@@ -122,10 +117,7 @@ async fn ssh_userauth() {
     run_test(
         |t| {
             t.ok(
-                format!(
-                    r#"session_id = ssh_connect(port: {}, keytype: "ssh-ed25519");"#,
-                    PORT
-                ),
+                format!(r#"session_id = ssh_connect(port: {PORT}, keytype: "ssh-ed25519");"#),
                 MIN_SESSION_ID,
             );
             check_err_matches!(
@@ -155,7 +147,7 @@ async fn ssh_request_exec() {
     run_test(
         |t| {
             t.ok(
-                format!(r#"session_id = ssh_connect(port: {}, keytype: "ssh-ed25519");"#, PORT),
+                format!(r#"session_id = ssh_connect(port: {PORT}, keytype: "ssh-ed25519");"#),
                 MIN_SESSION_ID,
             );
             userauth(t);

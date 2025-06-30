@@ -100,7 +100,7 @@ impl FromNaslValue<'_> for Port {
     fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {
         let port = i64::from_nasl_value(value)?;
         if !(0..=65535).contains(&port) {
-            Err(ArgumentError::WrongArgument(format!("{} is not a valid port number", port)).into())
+            Err(ArgumentError::WrongArgument(format!("{port} is not a valid port number")).into())
         } else {
             Ok(Port(port as u16))
         }

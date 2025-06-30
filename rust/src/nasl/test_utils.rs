@@ -333,7 +333,7 @@ where
         interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpretErrorKind::FunctionCallError(f) => f.kind,
-                e => panic!("Unknown error: {}", e),
+                e => panic!("Unknown error: {e}"),
             })
         })
     }
@@ -362,7 +362,7 @@ where
     pub fn check_no_errors(&self) {
         for result in self.results() {
             if result.is_err() {
-                panic!("Expected no errors, found {:?}", result);
+                panic!("Expected no errors, found {result:?}");
             }
         }
     }
@@ -397,7 +397,7 @@ where
             Err(err) => {
                 // Drop first so we don't call the destructor, which would panic.
                 std::mem::forget(self);
-                panic!("{}", err)
+                panic!("{err}")
             }
             _ => std::mem::forget(self),
         }
@@ -473,7 +473,7 @@ impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
         } else if let Err(err) = futures::executor::block_on(self.verify()) {
-            panic!("{}", err)
+            panic!("{err}")
         }
     }
 }
