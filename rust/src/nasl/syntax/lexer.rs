@@ -577,7 +577,7 @@ mod postfix {
             StatementKind::Assign(operator, AssignOrder::ReturnAssign, _, _) => {
                 assert_eq!(operator, &assign_operator)
             }
-            kind => panic!("expected Assign, but got: {:?}", kind),
+            kind => panic!("expected Assign, but got: {kind:?}"),
         };
         expected(result("a++;"), PlusPlus);
         expected(result("a--;"), MinusMinus);

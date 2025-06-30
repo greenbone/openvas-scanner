@@ -278,8 +278,7 @@ impl ScanDeleter for Scanner {
         match scan_status {
             Phase::Running => {
                 return Err(ScanError::Unexpected(format!(
-                    "Not allowed to delete a running scan {}",
-                    scan_id
+                    "Not allowed to delete a running scan {scan_id}"
                 )));
             }
             _ => match self.remove_running(scan_id) {

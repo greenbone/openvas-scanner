@@ -48,7 +48,7 @@ impl InterpretError {
         if let Some(ref origin) = self.origin {
             let line = self.line();
             let col = self.column();
-            format!("Error in statement '{origin}' at {}:{}.", line, col)
+            format!("Error in statement '{origin}' at {line}:{col}.")
         } else {
             "".into()
         }

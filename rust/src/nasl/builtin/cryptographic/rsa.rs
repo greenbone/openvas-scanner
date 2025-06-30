@@ -57,13 +57,13 @@ fn rsa_private_decrypt(
     ) {
         Ok(val) => Ok(val),
         Err(code) => Err(
-            FnError::from(CryptographicError::Rsa(format!("Error code {}", code))).with(
-                ReturnValue(NaslValue::Array(vec![
+            FnError::from(CryptographicError::Rsa(format!("Error code {code}"))).with(ReturnValue(
+                NaslValue::Array(vec![
                     NaslValue::Data(n.to_vec()),
                     NaslValue::Data(e.to_vec()),
                     NaslValue::Data(d.to_vec()),
-                ])),
-            ),
+                ]),
+            )),
         ),
     }
     .map_err(|e| CryptographicError::Rsa(e.to_string()))?;
@@ -72,11 +72,10 @@ fn rsa_private_decrypt(
     let dec_data = if pad {
         match priv_key.decrypt(Pkcs1v15Encrypt, data) {
             Ok(val) => Ok(val),
-            Err(code) => Err(FnError::from(CryptographicError::Rsa(format!(
-                "Error code {}",
-                code
-            )))
-            .with(ReturnValue(NaslValue::Data(data.to_vec())))),
+            Err(code) => Err(
+                FnError::from(CryptographicError::Rsa(format!("Error code {code}")))
+                    .with(ReturnValue(NaslValue::Data(data.to_vec()))),
+            ),
         }
         .map_err(|e| CryptographicError::Rsa(e.to_string()))?
     } else {

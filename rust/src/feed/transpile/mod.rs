@@ -125,7 +125,7 @@ impl std::fmt::Display for Replace {
         match self {
             Replace::Name(name) => write!(f, "Replace: {name}"),
             Replace::Parameter(p) => {
-                write!(f, "Replace parameter: {}", p)
+                write!(f, "Replace parameter: {p}")
             }
             Replace::Remove => write!(f, "Remove found statement"),
         }

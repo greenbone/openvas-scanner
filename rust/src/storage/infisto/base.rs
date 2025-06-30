@@ -133,7 +133,7 @@ impl IndexedFileStorer {
             end: element.len(),
         }];
         self.store_index(&index, id)?;
-        let fn_name = format!("{}.dat", id);
+        let fn_name = format!("{id}.dat");
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(
             path,
@@ -145,7 +145,7 @@ impl IndexedFileStorer {
     }
 
     fn store_index(&self, index: &[Index], id: &str) -> Result<(), Error> {
-        let fn_name = format!("{}.idx", id);
+        let fn_name = format!("{id}.idx");
         let to_store = serde_json::to_vec(index).map_err(|x| {
             warn!(error=%x, "unable to serialize index for storage");
             Error::Serialize
@@ -162,7 +162,7 @@ impl IndexedFileStorer {
 
     /// Gets the data from the file by using the given index.
     pub fn data_by_index(&self, key: &str, idx: &Index) -> Result<Vec<u8>, Error> {
-        let fn_name = format!("{}.dat", key);
+        let fn_name = format!("{key}.dat");
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(path, OpenOptions::new().read(true))?;
         let mut buffer = vec![0; idx.end - idx.start];
@@ -178,7 +178,7 @@ impl IndexedFileStorer {
     /// This should be rarely used as the index is usually returned when storing data.
     /// The caller should rather cache the index.
     pub fn load_index(&self, key: &str) -> Result<Vec<Index>, Error> {
-        let fn_name = format!("{}.idx", key);
+        let fn_name = format!("{key}.idx");
         let path = Path::new(&self.base).join(&fn_name);
         let mut file = open_file(path, OpenOptions::new().read(true))?;
         let mut buffer = vec![];
@@ -210,7 +210,7 @@ impl IndexedFileStorer {
     where
         T: AsRef<[u8]>,
     {
-        let fn_name = format!("{}.dat", key);
+        let fn_name = format!("{key}.dat");
         trace!(key, idx_len = index.len());
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(path, OpenOptions::new().append(true))?;
@@ -235,8 +235,8 @@ impl IndexedFileStorer {
             let dat_path = Path::new(&self.base).join(path);
             fs::remove_file(dat_path).map_err(|e| Error::IoError(IoErrorKind::Remove, e.kind()))
         };
-        remove_file(format!("{}.dat", key))?;
-        remove_file(format!("{}.idx", key))?;
+        remove_file(format!("{key}.dat"))?;
+        remove_file(format!("{key}.idx"))?;
         Ok(())
     }
 }

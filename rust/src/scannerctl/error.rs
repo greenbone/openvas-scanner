@@ -93,7 +93,7 @@ impl fmt::Display for CliError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind)?;
         if let Some(filename) = &self.filename {
-            write!(f, " filename: {:?}", filename)?;
+            write!(f, " filename: {filename:?}")?;
         }
         Ok(())
     }

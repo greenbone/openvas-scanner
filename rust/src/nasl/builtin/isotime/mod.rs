@@ -54,8 +54,7 @@ fn parse_time(time: &str) -> Result<NaiveDateTime, IsotimeError> {
         return Ok(time);
     }
     Err(IsotimeError(format!(
-        "The given time is not in the correct isotime ({}) or readable time format ({}): {}",
-        ISOFORMAT, READABLEFORMAT, time
+        "The given time is not in the correct isotime ({ISOFORMAT}) or readable time format ({READABLEFORMAT}): {time}"
     )))
 }
 
