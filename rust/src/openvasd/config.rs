@@ -342,7 +342,7 @@ impl Config {
     fn load_user() -> Option<Self> {
         match std::env::var("HOME") {
             Ok(home) => {
-                let path = format!("{}/.config/openvasd/openvasd.toml", home);
+                let path = format!("{home}/.config/openvasd/openvasd.toml");
                 if !std::fs::exists(&path).unwrap_or_default() {
                     return None;
                 }
@@ -371,7 +371,7 @@ impl Config {
             (ScanPrefValue::Bool(_), "bool") => p.clone(),
             (ScanPrefValue::Int(_), "int") => p.clone(),
             (ScanPrefValue::String(_), "string") => p.clone(),
-            _ => panic!("Wrong value type. Expected {} for {}", expected, name),
+            _ => panic!("Wrong value type. Expected {expected} for {name}"),
         }
     }
 

@@ -89,7 +89,7 @@ impl TryFrom<&str> for Protocol {
         match value.to_lowercase().as_str() {
             "udp" => Ok(Protocol::UDP),
             "tcp" => Ok(Protocol::TCP),
-            _ => Err(format!("Invalid protocol: {}", value)),
+            _ => Err(format!("Invalid protocol: {value}")),
         }
     }
 }

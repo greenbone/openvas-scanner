@@ -39,7 +39,7 @@ pub fn read_openvas_config() -> Result<Ini> {
 pub fn get_redis_socket() -> String {
     if let Ok(config) = read_openvas_config() {
         return match config.get("default", "db_address") {
-            Some(setting) => format!("unix://{}", setting),
+            Some(setting) => format!("unix://{setting}"),
             None => String::new(),
         };
     }

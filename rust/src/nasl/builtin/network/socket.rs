@@ -698,12 +698,12 @@ async fn ftp_log_in(
     match sockets.get_open_socket_mut(socket)? {
         NaslSocket::Tcp(conn) => {
             check_ftp_response(&mut *conn, &[220])?;
-            let data = format!("USER {}\r\n", user);
+            let data = format!("USER {user}\r\n");
             conn.write_all(data.as_bytes())?;
 
             let code = check_ftp_response(&mut *conn, &[230, 331])?;
             if code == 331 {
-                let data = format!("PASS {}\r\n", pass);
+                let data = format!("PASS {pass}\r\n");
                 conn.write_all(data.as_bytes())?;
                 check_ftp_response(&mut *conn, &[230])?;
             }
@@ -734,7 +734,7 @@ async fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u
     conn.read_line(&mut data)?;
 
     let captures = FTP_PASV.captures(&data).ok_or_else(|| {
-        SocketError::Diagnostic(format!("Unexpected response from FTP server: {}", data))
+        SocketError::Diagnostic(format!("Unexpected response from FTP server: {data}"))
     })?;
 
     let get_port = |idx: usize| {

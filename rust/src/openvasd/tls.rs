@@ -249,8 +249,8 @@ where
     P: AsRef<Path> + std::fmt::Debug,
 {
     // Open certificate file.
-    let certfile = fs::File::open(filename)
-        .map_err(|e| error(format!("failed to open {:?}: {}", filename, e)))?;
+    let certfile =
+        fs::File::open(filename).map_err(|e| error(format!("failed to open {filename:?}: {e}")))?;
     let mut reader = io::BufReader::new(certfile);
     rustls_pemfile_old::certs(&mut reader)
         .map(|x| x.into_iter().map(CertificateDer::from).collect())
@@ -262,8 +262,8 @@ where
     P: AsRef<Path> + std::fmt::Debug,
 {
     // Open keyfile.
-    let keyfile = fs::File::open(filename)
-        .map_err(|e| error(format!("failed to open {:?}: {}", filename, e)))?;
+    let keyfile =
+        fs::File::open(filename).map_err(|e| error(format!("failed to open {filename:?}: {e}")))?;
     let mut reader = io::BufReader::new(keyfile);
 
     loop {

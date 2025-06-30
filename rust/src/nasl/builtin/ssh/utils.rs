@@ -34,7 +34,7 @@ impl<'a> FromNaslValue<'a> for key::Name {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
         let s = String::from_nasl_value(value)?;
         key::Name::try_from(&*s).map_err(|_| {
-            ArgumentError::WrongArgument(format!("Expected a valid SSH key type, found '{}'", s))
+            ArgumentError::WrongArgument(format!("Expected a valid SSH key type, found '{s}'"))
                 .into()
         })
     }
@@ -44,7 +44,7 @@ impl<'a> FromNaslValue<'a> for cipher::Name {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
         let s = String::from_nasl_value(value)?;
         cipher::Name::try_from(&*s).map_err(|_| {
-            ArgumentError::WrongArgument(format!("Expected a valid SSH cipher type, found '{}'", s))
+            ArgumentError::WrongArgument(format!("Expected a valid SSH cipher type, found '{s}'"))
                 .into()
         })
     }

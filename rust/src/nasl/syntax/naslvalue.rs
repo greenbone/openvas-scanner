@@ -94,7 +94,7 @@ impl Display for NaslValue {
                 "{}",
                 x.iter()
                     .enumerate()
-                    .map(|(i, v)| format!("{}: {}", i, v))
+                    .map(|(i, v)| format!("{i}: {v}"))
                     .collect::<Vec<String>>()
                     .join(",")
             ),
@@ -103,14 +103,14 @@ impl Display for NaslValue {
                 f,
                 "{}",
                 x.iter()
-                    .map(|(k, v)| format!("{}: {}", k, v))
+                    .map(|(k, v)| format!("{k}: {v}"))
                     .collect::<Vec<String>>()
                     .join(",")
             ),
             NaslValue::Boolean(true) => write!(f, "1"),
             NaslValue::Boolean(false) => write!(f, "0"),
             NaslValue::Null => write!(f, "\0"),
-            NaslValue::Exit(rc) => write!(f, "exit({})", rc),
+            NaslValue::Exit(rc) => write!(f, "exit({rc})"),
             NaslValue::AttackCategory(category) => {
                 write!(f, "{}", IdentifierType::ACT(*category))
             }

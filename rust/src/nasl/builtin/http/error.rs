@@ -24,6 +24,6 @@ impl From<io::Error> for HttpError {
 
 impl From<h2::Error> for HttpError {
     fn from(value: h2::Error) -> Self {
-        Self::H2(format!("{}", value))
+        Self::H2(format!("{value}"))
     }
 }

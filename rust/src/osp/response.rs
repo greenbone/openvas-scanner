@@ -734,7 +734,7 @@ mod tests {
                     panic!("no scan");
                 }
             }
-            _ => panic!("wrong type: {:?}", response),
+            _ => panic!("wrong type: {response:?}"),
         }
     }
 
@@ -765,7 +765,7 @@ mod tests {
                     panic!("no scan");
                 }
             }
-            _ => panic!("wrong type: {:?}", response),
+            _ => panic!("wrong type: {response:?}"),
         }
     }
 
@@ -834,7 +834,7 @@ mod tests {
                     panic!("no scan");
                 }
             }
-            _ => panic!("wrong type: {:?}", response),
+            _ => panic!("wrong type: {response:?}"),
         }
     }
 

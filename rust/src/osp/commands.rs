@@ -221,7 +221,7 @@ fn write_target(scan: &Scan, writer: &mut Writer) -> Result<()> {
     let as_comma_list = |x: &[PortRange]| {
         x.iter()
             .map(|x| x.to_string())
-            .reduce(|a, b| format!("{},{}", a, b))
+            .reduce(|a, b| format!("{a},{b}"))
             .unwrap_or_default()
     };
     writer.within_element("targets", &mut |writer| {
@@ -245,10 +245,10 @@ fn write_target(scan: &Scan, writer: &mut Writer) -> Result<()> {
             }
             let ports = {
                 if !tcp.is_empty() {
-                    other.push_str(&format!("T:{}", tcp));
+                    other.push_str(&format!("T:{tcp}"));
                 }
                 if !udp.is_empty() {
-                    other.push_str(&format!("U:{}", udp));
+                    other.push_str(&format!("U:{udp}"));
                 }
                 other.trim_end_matches(',').to_string()
             };

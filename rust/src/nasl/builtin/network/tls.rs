@@ -38,8 +38,8 @@ impl Display for TLSError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             TLSError::Io(err) => write!(f, "{err}"),
-            TLSError::Rustls(err) => write!(f, "Rustls error: {}", err),
-            TLSError::KeyError(err) => write!(f, "Key error: {}", err),
+            TLSError::Rustls(err) => write!(f, "Rustls error: {err}"),
+            TLSError::KeyError(err) => write!(f, "Key error: {err}"),
         }
     }
 }
@@ -60,7 +60,7 @@ fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, TLSError> 
 
     Err(io::Error::new(
         io::ErrorKind::InvalidData,
-        format!("No private key found in {}", filename),
+        format!("No private key found in {filename}"),
     ))?
 }
 
@@ -89,12 +89,9 @@ pub fn create_tls_client(
 
     if !password.is_empty() {
         let encrypted_key = pkcs8::EncryptedPrivateKeyInfo::from_der(key.secret_der())
-            .map_err(|e| TLSError::KeyError(format!("Failed to parse encrypted key: {}", e)))?;
+            .map_err(|e| TLSError::KeyError(format!("Failed to parse encrypted key: {e}")))?;
         let decrypted_key = encrypted_key.decrypt(password).map_err(|e| {
-            TLSError::KeyError(format!(
-                "Failed to decrypt key with provided password: {}",
-                e
-            ))
+            TLSError::KeyError(format!("Failed to decrypt key with provided password: {e}"))
         })?;
 
         key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(

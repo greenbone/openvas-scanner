@@ -171,7 +171,7 @@ mod test {
     fn operations() {
         let expected = |stmt: Statement, category: Category| match stmt.kind() {
             StatementKind::Operator(cat, _) => assert_eq!(cat, &category),
-            kind => panic!("expected Operator, but got: {:?}", kind),
+            kind => panic!("expected Operator, but got: {kind:?}"),
         };
 
         expected(result("-1;"), Category::Minus);
@@ -206,7 +206,7 @@ mod test {
             StatementKind::Assign(operator, AssignOrder::AssignReturn, _, _) => {
                 assert_eq!(operator, &assign_operator)
             }
-            kind => panic!("expected Assign, but got: {:?}", kind),
+            kind => panic!("expected Assign, but got: {kind:?}"),
         };
         expected(result("++a;"), Category::PlusPlus);
         expected(result("--a;"), Category::MinusMinus);

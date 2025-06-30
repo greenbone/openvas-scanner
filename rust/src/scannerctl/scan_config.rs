@@ -101,7 +101,7 @@ async fn execute(
     scan.target.ports = ports;
     let out =
         serde_json::to_string_pretty(&scan).map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?;
-    println!("{}", out);
+    println!("{out}");
     Ok(())
 }
 
@@ -184,8 +184,8 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::ParseError(s) => write!(f, "Parse error: {}", s),
-            Error::StorageError(s) => write!(f, "Storage error: {}", s),
+            Error::ParseError(s) => write!(f, "Parse error: {s}"),
+            Error::StorageError(s) => write!(f, "Storage error: {s}"),
         }
     }
 }
@@ -204,7 +204,7 @@ where
     R: BufRead,
 {
     let result = quick_xml::de::from_reader::<R, PortList>(pl)
-        .map_err(|e| Error::ParseError(format!("Error parsing port list: {}", e)))?;
+        .map_err(|e| Error::ParseError(format!("Error parsing port list: {e}")))?;
     tracing::trace!(
         "transforming portlist {} {} ({}) with {} entries.",
         &result.id,
@@ -273,7 +273,7 @@ where
     R: BufRead,
 {
     let result = quick_xml::de::from_reader::<R, ScanConfig>(sc)
-        .map_err(|e| Error::ParseError(format!("Error parsing vts: {}", e)))?;
+        .map_err(|e| Error::ParseError(format!("Error parsing vts: {e}")))?;
     tracing::debug!(
         "transforming vts {} {} ({}) with {} entries.",
         &result.id,

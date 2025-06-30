@@ -119,7 +119,7 @@ impl Display for SuffixPart {
             return Ok(());
         }
         for suffix in &self.0 {
-            write!(f, "_{}", suffix)?;
+            write!(f, "_{suffix}")?;
         }
         Ok(())
     }
