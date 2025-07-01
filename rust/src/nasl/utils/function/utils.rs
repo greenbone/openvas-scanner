@@ -45,8 +45,7 @@ fn context_type_as_nasl_value<'a>(
 ) -> Result<&'a NaslValue, ArgumentError> {
     match context_type {
         ContextType::Function(_, _) => Err(ArgumentError::WrongArgument(format!(
-            "Wrong argument for {}, expected a value, found a function.",
-            arg_name
+            "Wrong argument for {arg_name}, expected a value, found a function."
         ))),
         ContextType::Value(val) => Ok(val),
     }

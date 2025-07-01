@@ -198,7 +198,7 @@ where
                 continue;
             }
 
-            let key = format!("results_{}", id);
+            let key = format!("results_{id}");
             let storage = Arc::clone(&self.storage);
             tracing::trace!(key, results_len = r.results.len());
 
@@ -251,9 +251,9 @@ where
     }
 
     async fn remove_scan(&self, id: &str) -> Result<(), Error> {
-        let key = format!("scan_{}", id);
-        let status_key = format!("status_{}", id);
-        let results_key = format!("results_{}", id);
+        let key = format!("scan_{id}");
+        let status_key = format!("status_{id}");
+        let results_key = format!("results_{id}");
         let storage = Arc::clone(&self.storage);
         let ids = self.get_scan_ids().await?;
         let ids: Vec<_> = ids
@@ -280,7 +280,7 @@ where
     }
 
     async fn update_status(&self, id: &str, status: Status) -> Result<(), Error> {
-        let key = format!("status_{}", id);
+        let key = format!("status_{id}");
         let storage = Arc::clone(&self.storage);
 
         spawn_blocking(move || {
@@ -438,7 +438,7 @@ where
     {
         tracing::trace!(?key, ?result);
         let store = &mut self.storage.write().unwrap();
-        let key = format!("results_{}", key);
+        let key = format!("results_{key}");
 
         let ilen = match store.indices(&key) {
             Ok(x) => x.len(),
@@ -476,7 +476,7 @@ where
                 "called an unsupported function to delete a result within the file storage, ignoring"
             );
         } else {
-            let key = format!("results_{}", key);
+            let key = format!("results_{key}");
             let store = &mut self.storage.write().unwrap();
             store
                 .remove(&key)
@@ -488,7 +488,7 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::{env::current_dir, fs};
+    use std::fs;
 
     use models::{Phase, Scan, Status};
     use scannerlib::storage::infisto::{CachedIndexFileStorer, IndexedByteStorage};
@@ -502,15 +502,11 @@ pub(crate) mod tests {
     use super::*;
 
     pub async fn nasl_root() -> PathBuf {
-        let base = current_dir().unwrap_or_default();
-
-        let mut tbase = base.parent().unwrap().join("examples");
-        if fs::metadata(&tbase).is_err() {
-            tbase = base.join("examples");
-        }
-        let base_dir = tbase.join("feed");
-
-        base_dir.join("nasl")
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        PathBuf::from(manifest_dir)
+            .join("examples")
+            .join("feed")
+            .join("nasl")
     }
 
     pub async fn example_feeds() -> Vec<FeedHash> {

@@ -417,7 +417,7 @@ impl Iterator for NaslFileFinder {
             match self.paths.next() {
                 Some(result) => {
                     let result = result.map_err(|e| {
-                        Error::LoadError(LoadError::Dirty(format!("Not a valid file: {}", e,)))
+                        Error::LoadError(LoadError::Dirty(format!("Not a valid file: {e}",)))
                     });
 
                     match result {

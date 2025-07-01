@@ -137,17 +137,17 @@ impl KnownPaths {
 impl Display for KnownPaths {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            KnownPaths::Scans(Some(id)) => write!(f, "/scans/{}", id),
+            KnownPaths::Scans(Some(id)) => write!(f, "/scans/{id}"),
             KnownPaths::Scans(None) => write!(f, "/scans"),
             KnownPaths::ScanResults(id, Some(result_id)) => {
-                write!(f, "/scans/{}/results/{}", id, result_id)
+                write!(f, "/scans/{id}/results/{result_id}")
             }
-            KnownPaths::ScanResults(id, None) => write!(f, "/scans/{}/results", id),
-            KnownPaths::ScanStatus(id) => write!(f, "/scans/{}/status", id),
+            KnownPaths::ScanResults(id, None) => write!(f, "/scans/{id}/results"),
+            KnownPaths::ScanStatus(id) => write!(f, "/scans/{id}/status"),
             KnownPaths::Unknown => write!(f, "Unknown"),
             KnownPaths::Vts(None) => write!(f, "/vts"),
             KnownPaths::Vts(Some(oid)) => write!(f, "/vts/{oid}"),
-            KnownPaths::Notus(Some(os)) => write!(f, "/notus/{}", os),
+            KnownPaths::Notus(Some(os)) => write!(f, "/notus/{os}"),
             KnownPaths::Notus(None) => write!(f, "/notus"),
             KnownPaths::Health(HealthOpts::Alive) => write!(f, "/health/alive"),
             KnownPaths::Health(HealthOpts::Ready) => write!(f, "/health/ready"),

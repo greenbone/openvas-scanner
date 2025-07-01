@@ -392,7 +392,7 @@ impl Display for Category {
             Category::IllegalIPv4Address => write!(f, "IllegalIPv4Address"),
             Category::IllegalNumber(_) => write!(f, "IllegalNumber"),
             Category::Comment => write!(f, "Comment"),
-            Category::Identifier(x) => write!(f, "{}", x),
+            Category::Identifier(x) => write!(f, "{x}"),
             Category::Unclosed(x) => write!(f, "Unclosed{x:?}"),
             Category::UnknownBase => write!(f, "UnknownBase"),
             Category::UnknownSymbol => write!(f, "UnknownSymbol"),

@@ -112,7 +112,7 @@ impl Display for Encrypted {
 
         let nonce = Base64Display::new(&self.nonce, &STANDARD);
         let data = Base64Display::new(&self.data, &STANDARD);
-        write!(f, "{} {}", nonce, data)
+        write!(f, "{nonce} {data}")
     }
 }
 

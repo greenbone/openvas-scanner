@@ -310,7 +310,7 @@ impl Register {
 
                 // Print all available information
                 println!("--------<CTXT>--------");
-                println!("number of positional arguments: {}", num_pos);
+                println!("number of positional arguments: {num_pos}");
                 println!();
                 println!("available functions:");
                 for function in funs {

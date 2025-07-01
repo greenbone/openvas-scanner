@@ -174,10 +174,7 @@ fn get_port_transport(context: &ScanCtx, port: u16, asstring: bool) -> Result<Na
             7 => "TLSv12".to_string(),
             8 => "TLSv13".to_string(),
             9 => "TLScustom".to_string(),
-            _ => format!(
-                "[unknown transport layer - code {} (0x{:x})]",
-                transport, transport
-            ),
+            _ => format!("[unknown transport layer - code {transport} (0x{transport:x})]"),
         };
         NaslValue::String(transport_str)
     } else {

@@ -267,9 +267,9 @@ impl<'a> ArgsStruct<'a> {
         };
         let asyncness = sig.asyncness;
         let checks = self.gen_checks();
-        let mangled_ident_original_fn = Ident::new(&format!("_internal_{}", ident), ident.span());
+        let mangled_ident_original_fn = Ident::new(&format!("_internal_{ident}"), ident.span());
         let mangled_ident_transformed_fn =
-            Ident::new(&(format!("_internal_convert_{}", ident)), ident.span());
+            Ident::new(&(format!("_internal_convert_{ident}")), ident.span());
         let inner_call = self.get_inner_call_expr(&mangled_ident_original_fn, asyncness);
         let add_to_set = self.impl_add_to_set(ident, &mangled_ident_transformed_fn, asyncness);
 
