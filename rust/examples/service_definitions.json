@@ -1,0 +1,263 @@
+{
+  "version": "1.0",
+  "description": "Service detection definitions for find_service builtin",
+  "services": [
+    {
+      "name": "http",
+      "description": "HTTP Web Server",
+      "patterns": [
+        {
+          "type": "banner_contains",
+          "value": "HTTP/1.0",
+          "case_sensitive": false
+        },
+        {
+          "type": "banner_contains", 
+          "value": "HTTP/1.1",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [80, 8080, 8000, 3000, 8081],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A web server is running on this port"
+      },
+      "kb_entries": {
+        "Services/www": "{port}/tcp",
+        "Known/tcp/{port}": "www"
+      }
+    },
+    {
+      "name": "https",
+      "description": "HTTPS Web Server (SSL)",
+      "patterns": [
+        {
+          "type": "ssl_detection",
+          "value": "any"
+        }
+      ],
+      "ports": [443, 8443, 9443],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A SSL/TLS web server is running on this port"
+      },
+      "kb_entries": {
+        "Services/www": "{port}/tcp",
+        "Known/tcp/{port}": "www",
+        "Transport/SSL": "{port}"
+      }
+    },
+    {
+      "name": "smtp",
+      "description": "SMTP Mail Server",
+      "patterns": [
+        {
+          "type": "banner_starts_with",
+          "value": "220",
+          "case_sensitive": false
+        },
+        {
+          "type": "banner_contains",
+          "value": "SMTP",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [25, 587, 465],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An SMTP server is running on this port"
+      },
+      "kb_entries": {
+        "Services/smtp": "{port}/tcp",
+        "Known/tcp/{port}": "smtp"
+      }
+    },
+    {
+      "name": "ssh",
+      "description": "SSH Server",
+      "patterns": [
+        {
+          "type": "banner_starts_with",
+          "value": "SSH-",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [22, 2222],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An SSH server is running on this port"
+      },
+      "kb_entries": {
+        "Services/ssh": "{port}/tcp",
+        "Known/tcp/{port}": "ssh"
+      }
+    },
+    {
+      "name": "ftp",
+      "description": "FTP Server",
+      "patterns": [
+        {
+          "type": "banner_starts_with",
+          "value": "220",
+          "case_sensitive": false
+        },
+        {
+          "type": "banner_contains",
+          "value": "FTP",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [21, 2121],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An FTP server is running on this port"
+      },
+      "kb_entries": {
+        "Services/ftp": "{port}/tcp",
+        "Known/tcp/{port}": "ftp"
+      }
+    },
+    {
+      "name": "telnet",
+      "description": "Telnet Server",
+      "patterns": [
+        {
+          "type": "banner_contains_hex",
+          "value": "fffd",
+          "description": "IAC DO command"
+        },
+        {
+          "type": "banner_contains_hex",
+          "value": "fffb",
+          "description": "IAC WILL command"
+        }
+      ],
+      "ports": [23, 2323],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A telnet server is running on this port"
+      },
+      "kb_entries": {
+        "Services/telnet": "{port}/tcp",
+        "Known/tcp/{port}": "telnet"
+      }
+    },
+    {
+      "name": "pop3",
+      "description": "POP3 Mail Server",
+      "patterns": [
+        {
+          "type": "banner_starts_with",
+          "value": "+OK",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [110, 995],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A POP3 server is running on this port"
+      },
+      "kb_entries": {
+        "Services/pop3": "{port}/tcp",
+        "Known/tcp/{port}": "pop3"
+      }
+    },
+    {
+      "name": "imap",
+      "description": "IMAP Mail Server",
+      "patterns": [
+        {
+          "type": "banner_starts_with",
+          "value": "* OK",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [143, 993],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An IMAP server is running on this port"
+      },
+      "kb_entries": {
+        "Services/imap": "{port}/tcp",
+        "Known/tcp/{port}": "imap"
+      }
+    },
+    {
+      "name": "mysql",
+      "description": "MySQL Database Server",
+      "patterns": [
+        {
+          "type": "banner_contains_hex",
+          "value": "0a",
+          "position": 0,
+          "description": "MySQL protocol version"
+        },
+        {
+          "type": "banner_contains",
+          "value": "mysql",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [3306, 3307],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A MySQL server is running on this port"
+      },
+      "kb_entries": {
+        "Services/mysql": "{port}/tcp",
+        "Known/tcp/{port}": "mysql"
+      }
+    },
+    {
+      "name": "netbus",
+      "description": "NetBus Trojan (Security Alert)",
+      "patterns": [
+        {
+          "type": "banner_equals",
+          "value": "NetBus",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [12345, 12346],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": true,
+        "message": "NetBus backdoor is running on this port"
+      },
+      "kb_entries": {
+        "Services/netbus": "{port}/tcp",
+        "Known/tcp/{port}": "netbus"
+      },
+      "special_behavior": "security_alert"
+    }
+  ],
+  "pattern_types": {
+    "banner_contains": "Check if banner contains the specified string",
+    "banner_starts_with": "Check if banner starts with the specified string",
+    "banner_ends_with": "Check if banner ends with the specified string",
+    "banner_equals": "Check if banner exactly equals the specified string",
+    "banner_regex": "Check if banner matches the specified regex pattern",
+    "banner_contains_hex": "Check if banner contains specified hex bytes",
+    "ssl_detection": "Detect SSL/TLS connections",
+    "http_response": "Send HTTP request and check response"
+  }
+}
