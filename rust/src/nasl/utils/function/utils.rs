@@ -8,6 +8,8 @@ use super::super::lookup_keys::FC_ANON_ARGS;
 
 use crate::nasl::prelude::*;
 
+pub const DEFAULT_TIMEOUT: i32 = 5;
+
 /// A convenience function to obtain an optional, positional argument
 /// from the `Register`.
 pub fn get_optional_positional_arg<'a, T: FromNaslValue<'a>>(

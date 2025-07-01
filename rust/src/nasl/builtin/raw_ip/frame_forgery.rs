@@ -17,6 +17,7 @@ use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr
 use tracing::info;
 
 use crate::nasl::prelude::*;
+use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 use crate::nasl::utils::NaslVars;
 
 /// Hardware type ethernet
@@ -31,8 +32,6 @@ pub const ETH_ALEN: u8 = 0x0006;
 pub const ARP_PROTO_LEN: u8 = 0x0004;
 /// ARP operation request
 pub const ARPOP_REQUEST: u16 = 0x0001;
-/// Default Timeout for received
-pub const DEFAULT_TIMEOUT: i32 = 5000;
 
 #[derive(Debug)]
 /// Structure to hold a datalink layer frame
@@ -348,7 +347,7 @@ fn send_frame(
 fn nasl_send_arp_request(register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
-        None => DEFAULT_TIMEOUT,
+        None => DEFAULT_TIMEOUT * 1000,
         _ => {
             return Err(FnError::wrong_unnamed_argument(
                 "Integer",
@@ -488,7 +487,7 @@ fn nasl_send_frame(register: &Register, context: &ScanCtx) -> Result<NaslValue, 
 
     let timeout = match register.named("pcap_timeout") {
         Some(ContextType::Value(NaslValue::Number(x))) => *x as i32 * 1000i32, // to milliseconds
-        None => DEFAULT_TIMEOUT,
+        None => DEFAULT_TIMEOUT * 1000,
         _ => {
             return Err(FnError::wrong_unnamed_argument(
                 "Integer",

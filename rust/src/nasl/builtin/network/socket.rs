@@ -4,7 +4,7 @@
 
 use crate::nasl::{
     prelude::*,
-    utils::{function::Seconds, scan_ctx::JmpDesc},
+    utils::{function::{utils::DEFAULT_TIMEOUT, Seconds}, scan_ctx::JmpDesc},
 };
 use crate::scanner::preferences::preference::ScanPreferencesHandling;
 use crate::storage::items::kb::{self, KbKey};
@@ -197,8 +197,7 @@ impl NaslSockets {
         tcp: bool,
     ) -> Result<NaslValue, SocketError> {
         if tcp {
-            // Default timeout is from C implementation in nasl/exec.c:1681
-            let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(5));
+            let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
             self.wait_before_next_probe();
             let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
             Ok(NaslValue::Number(
@@ -223,8 +222,7 @@ impl NaslSockets {
 
         for sport in (1..=1023).rev() {
             let fd = if tcp {
-                // Default timeout is from C implementation in nasl/exec.c:1681
-                let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(5));
+                let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
                 self.wait_before_next_probe();
                 match TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
                     Ok(tcp) => self.add(NaslSocket::Tcp(Box::new(tcp))),
@@ -557,19 +555,17 @@ async fn open_sock_tcp(
         .filter(|bufsz| *bufsz >= 0)
         .map(|bufsz| bufsz as usize);
 
-    // Default timeout is from C implementation in nasl/exec.c:1681
     let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(
         context
             .scan_preferences
             .get_preference_int("checks_read_timeout")
-            .unwrap_or(5) as u64
+            .unwrap_or(DEFAULT_TIMEOUT.into()) as u64
             * 2,
     ));
     let mut vhosts = context
         .target()
         .vhosts()
-        .clone()
-        .into_iter()
+        .iter()
         .map(|v| v.hostname().to_string())
         .collect::<Vec<String>>();
     if vhosts.is_empty() {
@@ -817,11 +813,10 @@ async fn telnet_init(
     let mut lm_flag = 0;
 
     while buf.iac() == 255 {
-        // Default timeout is from C implementation in nasl/exec.c:1681
         let to = context
             .scan_preferences
             .get_preference_int("checks_read_timeout")
-            .unwrap_or(5) as u64;
+            .unwrap_or(DEFAULT_TIMEOUT.into()) as u64;
         buf.buffer = recv_shared(sockets, socket, 3, Some(3), Some(Seconds(to)))?;
         if buf.iac() != 255 || buf.buffer.is_empty() || buf.buffer.len() != 3 {
             break;

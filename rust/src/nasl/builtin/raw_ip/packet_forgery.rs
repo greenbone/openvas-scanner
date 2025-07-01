@@ -14,7 +14,7 @@ use super::{
     raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
-use crate::nasl::builtin::misc::random_impl;
+use crate::nasl::{builtin::misc::random_impl, utils::function::utils::DEFAULT_TIMEOUT};
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::NaslValue;
 use crate::nasl::utils::NaslVars;
@@ -53,8 +53,6 @@ macro_rules! custom_error {
     };
 }
 
-/// Default Timeout for received
-const DEFAULT_TIMEOUT_SEC: i32 = 5;
 /// Define IPPROTO_RAW
 const IPPROTO_RAW: i32 = 255;
 /// Define IPPROTO_IP for dummy tcp . From rfc3542:
@@ -2094,7 +2092,7 @@ fn nasl_send_packet(
 ) -> Result<NaslValue, FnError> {
     let use_pcap = pcap_active.unwrap_or(true);
     let filter = pcap_filter.unwrap_or_default();
-    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT_SEC) * 1000;
+    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT) * 1000;
     let mut allow_broadcast = allow_broadcast.unwrap_or(false);
 
     if positional.is_empty() {
@@ -2184,7 +2182,7 @@ fn nasl_send_capture(
 ) -> Result<NaslValue, FnError> {
     let interface = interface.unwrap_or_default();
     let filter = pcap_filter.unwrap_or_default();
-    let timeout = timeout.unwrap_or(DEFAULT_TIMEOUT_SEC) * 1000;
+    let timeout = timeout.unwrap_or(DEFAULT_TIMEOUT) * 1000;
 
     // Get the iface name, to set the capture device.
     let target_ip = configs.target().ip_addr();
@@ -3287,7 +3285,7 @@ fn nasl_send_v6packet(
 ) -> Result<NaslValue, FnError> {
     let use_pcap = pcap_active.unwrap_or(true);
     let filter = pcap_filter.unwrap_or_default();
-    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT_SEC) * 1000;
+    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT) * 1000;
 
     if positional.is_empty() {
         return Ok(NaslValue::Null);
