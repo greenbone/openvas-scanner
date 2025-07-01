@@ -488,7 +488,7 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::{env::current_dir, fs};
+    use std::fs;
 
     use models::{Phase, Scan, Status};
     use scannerlib::storage::infisto::{CachedIndexFileStorer, IndexedByteStorage};
@@ -502,15 +502,11 @@ pub(crate) mod tests {
     use super::*;
 
     pub async fn nasl_root() -> PathBuf {
-        let base = current_dir().unwrap_or_default();
-
-        let mut tbase = base.parent().unwrap().join("examples");
-        if fs::metadata(&tbase).is_err() {
-            tbase = base.join("examples");
-        }
-        let base_dir = tbase.join("feed");
-
-        base_dir.join("nasl")
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        PathBuf::from(manifest_dir)
+            .join("examples")
+            .join("feed")
+            .join("nasl")
     }
 
     pub async fn example_feeds() -> Vec<FeedHash> {
