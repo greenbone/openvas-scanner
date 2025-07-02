@@ -309,7 +309,7 @@ fn plugin_run_find_service(context: &ScanCtx<'_>) -> NaslResult {
     let open_ports = context.get_open_tcp_ports()?;
 
     for port in open_ports {
-        match scan_port(dbg!(context.target().ip_addr()), port, &detector) {
+        match scan_port(context.target().ip_addr(), port, &detector) {
             Ok(ScanPortResult::Service(service)) => {
                 if let Err(e) = handle_detected_service(context, &service, port) {
                     tracing::warn!("Error handling detected service on port {}: {}", port, e);
