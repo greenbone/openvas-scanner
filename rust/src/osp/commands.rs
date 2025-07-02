@@ -186,7 +186,7 @@ fn write_vts(scan: &Scan, writer: &mut Writer) -> Result<()> {
 // it is called scanner parameters.
 fn write_scanner_prefs(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::new("scanner_params")))?;
-    for p in &scan.scan_preferences {
+    for p in scan.scan_preferences.iter() {
         writer.write_event(Event::Start(BytesStart::new(&p.id)))?;
         writer.write_event(Event::Text(BytesText::new(&p.value)))?;
         writer.write_event(Event::End(BytesEnd::new(&p.id)))?;

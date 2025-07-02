@@ -1,3 +1,4 @@
+use scannerlib::scanner::preferences::preference::ScanPrefs;
 use serde::ser::SerializeMap;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
@@ -519,6 +520,12 @@ impl<'de> Deserialize<'de> for ScannerParameter {
         }
 
         deserializer.deserialize_map(SPVisitor)
+    }
+}
+
+impl From<ScanPrefs> for ScannerParameter {
+    fn from(value: ScanPrefs) -> Self {
+        Self { values: value.0 }
     }
 }
 

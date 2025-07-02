@@ -10,7 +10,7 @@ use crate::models::{AliveTestMethods, Port, PortRange, Protocol, ScanPreference}
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::{Loader, NaslValue, Statement};
 use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
-use crate::scanner::preferences::preference::ScanPreferencesHandling;
+use crate::scanner::preferences::preference::ScanPrefs;
 use crate::storage::error::StorageError;
 use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
@@ -631,7 +631,7 @@ pub struct ScanCtx<'a> {
     nvt: Mutex<Option<Nvt>>,
     sockets: RwLock<NaslSockets>,
     /// Scanner preferences
-    pub scan_preferences: Vec<ScanPreference>,
+    pub scan_preferences: ScanPrefs,
     /// Alive test methods
     alive_test_methods: Vec<AliveTestMethods>,
 }
@@ -645,7 +645,7 @@ impl<'a> ScanCtx<'a> {
         storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
         executor: &'a Executor,
-        scan_preferences: Vec<ScanPreference>,
+        scan_preferences: ScanPrefs,
         alive_test_methods: Vec<AliveTestMethods>,
     ) -> Self {
         let mut sockets = NaslSockets::default();
@@ -766,7 +766,7 @@ impl<'a> ScanCtx<'a> {
         self.nvt.lock().unwrap()
     }
 
-    pub fn set_scan_params(&mut self, params: Vec<ScanPreference>) {
+    pub fn set_scan_params(&mut self, params: ScanPrefs) {
         self.scan_preferences = params;
     }
 
@@ -961,7 +961,7 @@ pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
     pub target: Target,
     pub ports: Ports,
     pub filename: P,
-    pub scan_preferences: Vec<ScanPreference>,
+    pub scan_preferences: ScanPrefs,
     pub alive_test_methods: Vec<AliveTestMethods>,
 }
 

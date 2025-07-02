@@ -11,7 +11,6 @@ use std::{
 use futures::StreamExt;
 use scannerlib::{
     feed,
-    models::ScanPreference,
     nasl::{
         ScanCtx,
         interpreter::ForkingInterpreter,
@@ -21,6 +20,7 @@ use scannerlib::{
             scan_ctx::{Ports, Target},
         },
     },
+    scanner::preferences::preference::ScanPrefs,
     storage::{
         ScanID,
         items::{kb::KbContextKey, nvt::Oid},
@@ -123,7 +123,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
     kb: Vec<String>,
     ports: Ports,
     script: &Path,
-    scan_preferences: Vec<ScanPreference>,
+    scan_preferences: ScanPrefs,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
@@ -157,6 +157,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
     run_with_context(cb.build(), script).await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     db: &Db,
     feed: Option<PathBuf>,
@@ -179,7 +180,7 @@ pub async fn run(
     };
 
     // for adding new default preferences, add new methods to the SetScanPreferences trait.
-    let mut scan_preferences: Vec<ScanPreference> = Vec::new();
+    let mut scan_preferences = ScanPrefs::new();
     scan_preferences.set_default_recv_timeout(timeout);
 
     let result = match (db, feed) {

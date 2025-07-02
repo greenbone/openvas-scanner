@@ -17,8 +17,8 @@ use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr
 use tracing::info;
 
 use crate::nasl::prelude::*;
-use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 use crate::nasl::utils::NaslVars;
+use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
 /// Hardware type ethernet
 pub const ARPHRD_ETHER: u16 = 0x0001;

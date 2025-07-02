@@ -35,7 +35,7 @@ pub struct ContextBuilder<S, DB, T> {
     scheduler_config: Option<config::Scheduler>,
     mode: config::Mode,
     enable_get_performance: bool,
-    preferences: Option<preference::ScanPreferences>,
+    preferences: Option<preference::FullScanPreferences>,
 }
 
 impl<S>
@@ -95,7 +95,7 @@ impl<S, DB, T> ContextBuilder<S, DB, T> {
 
     /// Set scanner preferences
     pub fn scan_preferences(mut self, prefs: HashMap<String, preference::ScanPrefValue>) -> Self {
-        let mut prefs_bind = preference::ScanPreferences::new();
+        let mut prefs_bind = preference::FullScanPreferences::new();
         prefs_bind.override_default_preferences(prefs);
         self.preferences = Some(prefs_bind);
         self
@@ -276,7 +276,7 @@ pub struct Context<S, DB> {
     /// This allows us to throttle requests per need and gives us control when to start/stop/delete
     /// a scan.
     pub scheduler: scheduling::Scheduler<DB, S>,
-    pub scan_preferences: Option<preference::ScanPreferences>,
+    pub scan_preferences: Option<preference::FullScanPreferences>,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -5,11 +5,11 @@
 use super::packet_forgery::nasl_tcp_ping_shared;
 use crate::alive_test::Scanner;
 use crate::function_set;
-use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 use crate::nasl::Register;
 use crate::nasl::builtin::network::socket::make_tcp_socket;
 use crate::nasl::prelude::*;
 use crate::nasl::utils::ScanCtx;
+use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 use nasl_function_proc_macro::nasl_function;
 
 fn get_timeout(context: &ScanCtx) -> u8 {

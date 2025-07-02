@@ -4,9 +4,12 @@
 
 use crate::nasl::{
     prelude::*,
-    utils::{function::{utils::DEFAULT_TIMEOUT, Seconds}, scan_ctx::JmpDesc},
+    utils::{
+        function::{Seconds, utils::DEFAULT_TIMEOUT},
+        scan_ctx::JmpDesc,
+    },
 };
-use crate::scanner::preferences::preference::ScanPreferencesHandling;
+
 use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
@@ -197,7 +200,9 @@ impl NaslSockets {
         tcp: bool,
     ) -> Result<NaslValue, SocketError> {
         if tcp {
-            let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
+            let timeout = self
+                .recv_timeout
+                .unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
             self.wait_before_next_probe();
             let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
             Ok(NaslValue::Number(
@@ -222,7 +227,9 @@ impl NaslSockets {
 
         for sport in (1..=1023).rev() {
             let fd = if tcp {
-                let timeout = self.recv_timeout.unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
+                let timeout = self
+                    .recv_timeout
+                    .unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
                 self.wait_before_next_probe();
                 match TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
                     Ok(tcp) => self.add(NaslSocket::Tcp(Box::new(tcp))),

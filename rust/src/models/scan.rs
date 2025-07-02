@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use super::{scanner_preference::ScanPreference, target::Target, vt::VT};
+use crate::scanner::preferences::preference::ScanPrefs;
+
+use super::{target::Target, vt::VT};
 
 pub type ScanID = String;
 
@@ -24,7 +26,7 @@ pub struct Scan {
         serde(default, alias = "scanner_preferences")
     )]
     /// Configuration options for a scan
-    pub scan_preferences: Vec<ScanPreference>,
+    pub scan_preferences: ScanPrefs,
     /// List of VTs to execute for the target
     pub vts: Vec<VT>,
 }
