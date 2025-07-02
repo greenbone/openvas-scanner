@@ -34,8 +34,7 @@
       "description": "HTTPS Web Server (SSL)",
       "patterns": [
         {
-          "type": "ssl_detection",
-          "value": "any"
+          "type": "ssl_detection"
         }
       ],
       "ports": [443, 8443, 9443],
@@ -249,15 +248,5 @@
       },
       "special_behavior": "security_alert"
     }
-  ],
-  "pattern_types": {
-    "banner_contains": "Check if banner contains the specified string",
-    "banner_starts_with": "Check if banner starts with the specified string",
-    "banner_ends_with": "Check if banner ends with the specified string",
-    "banner_equals": "Check if banner exactly equals the specified string",
-    "banner_regex": "Check if banner matches the specified regex pattern",
-    "banner_contains_hex": "Check if banner contains specified hex bytes",
-    "ssl_detection": "Detect SSL/TLS connections",
-    "http_response": "Send HTTP request and check response"
-  }
+  ]
 }

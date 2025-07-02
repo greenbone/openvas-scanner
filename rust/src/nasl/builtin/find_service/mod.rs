@@ -4,7 +4,6 @@
 
 use std::{collections::HashMap, io, net::IpAddr, time::Duration};
 
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -13,7 +12,7 @@ use crate::storage::items::kb::{KbItem, KbKey};
 
 use super::network::socket::{SocketError, make_tcp_socket};
 
-const TIMEOUT_MILLIS: u64 = 10000;
+const TIMEOUT_MILLIS: u64 = 5000;
 
 #[derive(Debug, Error)]
 pub enum FindServiceError {
@@ -31,21 +30,21 @@ pub enum FindServiceError {
 pub struct ServiceDefinitions {
     pub version: String,
     pub description: String,
-    pub services: Vec<ServiceDefinition>,
-    pub pattern_types: HashMap<String, String>,
+    pub services: Vec<Service>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ServiceDefinition {
+pub struct Service {
     pub name: String,
     pub description: String,
     pub patterns: Vec<Pattern>,
     pub ports: Vec<u16>,
     pub save_banner: bool,
-    pub generate_result: GenerateResultConfig,
+    pub generate_result: GenerateResult,
     pub kb_entries: HashMap<String, String>,
-    pub special_behavior: Option<String>,
 }
+
+pub type ServiceId = String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -60,68 +59,23 @@ pub enum Pattern {
         #[serde(default)]
         case_sensitive: bool,
     },
-    BannerEndsWith {
-        value: String,
-        #[serde(default)]
-        case_sensitive: bool,
-    },
     BannerEquals {
         value: String,
         #[serde(default)]
         case_sensitive: bool,
-    },
-    BannerRegex {
-        value: String,
     },
     BannerContainsHex {
         value: String,
         position: Option<usize>,
     },
     SslDetection,
-    HttpResponse,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GenerateResultConfig {
+pub struct GenerateResult {
     pub enabled: bool,
     pub is_vulnerability: bool,
     pub message: String,
-}
-
-struct Service {
-    name: String,
-    generate_result: GenerateResult,
-    save_banner: bool,
-    special_behavior: Option<SpecialBehavior>,
-    banner: String,
-    kb_entries: HashMap<String, String>,
-    message: String,
-}
-
-enum GenerateResult {
-    No,
-    Yes { is_vulnerability: bool },
-}
-
-enum SpecialBehavior {
-    HttpProbe,      // Send GET request and parse headers
-    SslDetection,   // Attempt SSL handshake
-    SecurityAlert,  // Generate security alerts for trojans/malware
-    BinaryProtocol, // Handle complex binary protocols like MySQL
-    MultiStep,      // Multi-command protocols requiring multiple exchanges
-}
-
-impl SpecialBehavior {
-    fn from_string(s: &str) -> Option<Self> {
-        match s {
-            "http_probe" => Some(SpecialBehavior::HttpProbe),
-            "ssl_detection" => Some(SpecialBehavior::SslDetection),
-            "security_alert" => Some(SpecialBehavior::SecurityAlert),
-            "binary_protocol" => Some(SpecialBehavior::BinaryProtocol),
-            "multi_step" => Some(SpecialBehavior::MultiStep),
-            _ => None,
-        }
-    }
 }
 
 enum ReadResult {
@@ -129,8 +83,13 @@ enum ReadResult {
     Timeout,
 }
 
+struct DetectedService {
+    id: ServiceId,
+    banner: Vec<u8>,
+}
+
 enum ScanPortResult {
-    Service(Service),
+    Service(DetectedService),
     Timeout,
     NoMatch,
 }
@@ -156,14 +115,6 @@ impl Pattern {
             } else {
                 banner_str.to_lowercase().starts_with(&value.to_lowercase())
             }),
-            Pattern::BannerEndsWith {
-                value,
-                case_sensitive,
-            } => Ok(if *case_sensitive {
-                banner_str.ends_with(value)
-            } else {
-                banner_str.to_lowercase().ends_with(&value.to_lowercase())
-            }),
             Pattern::BannerEquals {
                 value,
                 case_sensitive,
@@ -172,10 +123,6 @@ impl Pattern {
             } else {
                 banner_str.trim().to_lowercase() == value.to_lowercase()
             }),
-            Pattern::BannerRegex { value } => {
-                let regex = Regex::new(value)?;
-                Ok(regex.is_match(&banner_str))
-            }
             Pattern::BannerContainsHex { value, position } => match hex::decode(value) {
                 Ok(hex_bytes) => {
                     if let Some(pos) = position {
@@ -190,80 +137,93 @@ impl Pattern {
                 Err(_) => Ok(false),
             },
             Pattern::SslDetection => {
-                // This should be handled by special behavior
-                Ok(false)
-            }
-            Pattern::HttpResponse => {
-                // This should be handled by special behavior
-                Ok(false)
+                todo!()
             }
         }
     }
 }
 
 struct ServiceDetector {
-    definitions: ServiceDefinitions,
+    services: ServiceDefinitions,
 }
 
 impl ServiceDetector {
     fn new() -> Result<Self, FindServiceError> {
-        let manifest_dir = env!("CARGO_MANIFEST_DIR");
-        let json_path = std::path::PathBuf::from(manifest_dir)
-            .join("examples")
-            .join("service_definitions.json");
-
-        let json_content = std::fs::read_to_string(json_path)?;
+        let json_content = include_str!("../../../../data/service_definitions.json");
         let definitions: ServiceDefinitions = serde_json::from_str(&json_content)?;
-
-        Ok(ServiceDetector { definitions })
+        Ok(ServiceDetector {
+            services: definitions,
+        })
     }
 
     fn detect_service(
         &self,
         banner: &[u8],
         port: u16,
-    ) -> Result<Option<Service>, FindServiceError> {
-        for service_def in &self.definitions.services {
-            // Check if port matches (if specified)
-            if !service_def.ports.is_empty() && !service_def.ports.contains(&port) {
+    ) -> Result<Option<DetectedService>, FindServiceError> {
+        for service in &self.services.services {
+            if !service.ports.is_empty() && !service.ports.contains(&port) {
                 continue;
             }
 
-            // Check if any pattern matches
-            for pattern in &service_def.patterns {
+            for pattern in &service.patterns {
                 if pattern.matches(banner)? {
-                    return Ok(Some(
-                        self.create_service_from_definition(service_def, banner),
-                    ));
+                    return Ok(Some(DetectedService {
+                        id: service.name.clone(),
+                        banner: banner.to_vec(),
+                    }));
                 }
             }
         }
         Ok(None)
     }
 
-    fn create_service_from_definition(&self, def: &ServiceDefinition, banner: &[u8]) -> Service {
-        let special_behavior = def
-            .special_behavior
-            .as_ref()
-            .and_then(|s| SpecialBehavior::from_string(s));
+    fn handle_detected_service(
+        &self,
+        context: &ScanCtx<'_>,
+        service: DetectedService,
+        port: u16,
+    ) -> Result<(), FnError> {
+        let banner = service.banner;
+        // This is O(n^2), but simpler than using a HashMap and performance
+        // should really not matter here.
+        let service = self
+            .services
+            .services
+            .iter()
+            .find(|s| s.name == service.id)
+            .unwrap();
+        for (key_template, value_template) in &service.kb_entries {
+            let key = key_template.replace("{port}", &port.to_string());
+            let value = value_template.replace("{port}", &port.to_string());
 
-        let generate_result = if def.generate_result.enabled {
-            GenerateResult::Yes {
-                is_vulnerability: def.generate_result.is_vulnerability,
-            }
-        } else {
-            GenerateResult::No
-        };
-
-        Service {
-            name: def.name.clone(),
-            generate_result,
-            save_banner: def.save_banner,
-            special_behavior,
-            banner: String::from_utf8_lossy(banner).to_string(),
-            kb_entries: def.kb_entries.clone(),
-            message: def.generate_result.message.clone(),
+            context.set_kb_item(KbKey::Custom(key), KbItem::String(value))?;
         }
+
+        if service.save_banner {
+            let banner_key = format!("Banner/{}", port);
+            context.set_kb_item(KbKey::Custom(banner_key), KbItem::Data(banner.clone()))?;
+        }
+
+        if service.generate_result.enabled {
+            if service.generate_result.is_vulnerability {
+                tracing::warn!(
+                    "Security alert on port {}: {}",
+                    port,
+                    service.generate_result.message
+                );
+                // TODO:
+            } else {
+                tracing::info!(
+                    "Service detected on port {}: {}",
+                    port,
+                    service.generate_result.message
+                );
+                // TODO
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -287,12 +247,10 @@ fn scan_port(
     detector: &ServiceDetector,
 ) -> Result<ScanPortResult, FindServiceError> {
     let result = read_from_tcp_at_port(target, port)?;
-
     let banner = match result {
         ReadResult::Data(data) => data,
         ReadResult::Timeout => return Ok(ScanPortResult::Timeout),
     };
-
     match detector.detect_service(&banner, port)? {
         Some(service) => Ok(ScanPortResult::Service(service)),
         None => Ok(ScanPortResult::NoMatch),
@@ -301,19 +259,12 @@ fn scan_port(
 
 #[nasl_function]
 fn plugin_run_find_service(context: &ScanCtx<'_>) -> NaslResult {
-    let detector = ServiceDetector::new().map_err(|e| {
-        tracing::error!("Failed to initialize service detector: {}", e);
-        FnError::from(e)
-    })?;
-
+    let detector = ServiceDetector::new()?;
     let open_ports = context.get_open_tcp_ports()?;
-
     for port in open_ports {
         match scan_port(context.target().ip_addr(), port, &detector) {
             Ok(ScanPortResult::Service(service)) => {
-                if let Err(e) = handle_detected_service(context, &service, port) {
-                    tracing::warn!("Error handling detected service on port {}: {}", port, e);
-                }
+                detector.handle_detected_service(context, service, port)?;
             }
             Ok(ScanPortResult::Timeout) => {
                 tracing::debug!("Timeout reading from port {}", port);
@@ -328,60 +279,6 @@ fn plugin_run_find_service(context: &ScanCtx<'_>) -> NaslResult {
     }
 
     Ok(NaslValue::Null)
-}
-
-fn handle_detected_service(
-    context: &ScanCtx<'_>,
-    service: &Service,
-    port: u16,
-) -> Result<(), FnError> {
-    for (key_template, value_template) in &service.kb_entries {
-        let key = key_template.replace("{port}", &port.to_string());
-        let value = value_template.replace("{port}", &port.to_string());
-
-        context.set_kb_item(KbKey::Custom(key), KbItem::String(value))?;
-    }
-
-    // Save banner if requested
-    if service.save_banner {
-        let banner_key = format!("Banner/{}", port);
-        context.set_kb_item(
-            KbKey::Custom(banner_key),
-            KbItem::String(service.banner.clone()),
-        )?;
-    }
-
-    // Generate result if configured
-    match &service.generate_result {
-        GenerateResult::Yes { is_vulnerability } => {
-            if *is_vulnerability {
-                // Generate security alert
-                tracing::warn!("Security alert on port {}: {}", port, service.message);
-                // TODO: Use post_alarm() equivalent
-            } else {
-                // Generate info log
-                tracing::info!("Service detected on port {}: {}", port, service.message);
-                // TODO: Use post_log() equivalent
-            }
-        }
-        GenerateResult::No => {
-            // No result generation requested
-        }
-    }
-
-    // Handle special behavior
-    if let Some(ref special) = service.special_behavior {
-        match special {
-            SpecialBehavior::SecurityAlert => {
-                tracing::warn!("Security alert: {} detected on port {}", service.name, port);
-            }
-            _ => {
-                // Other special behaviors already handled in scan_port
-            }
-        }
-    }
-
-    Ok(())
 }
 
 #[derive(Default)]

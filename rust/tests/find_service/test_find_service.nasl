@@ -1,51 +1,3 @@
-function check_kb_results() {
-    display("Checking KB results after find_service.");
-    
-    # Check for Services/* entries
-    services = get_kb_list("Services/*");
-    if (services) {
-        display("Found service entries:");
-        foreach key (keys(services)) {
-            display("  " + key + " = " + services[key]);
-        }
-    } else {
-        display("No Services/* entries found in KB");
-    }
-    
-    # Check for Known/tcp/* entries  
-    known_ports = get_kb_list("Known/tcp/*");
-    if (known_ports) {
-        display("Found known TCP port entries:");
-        foreach key (keys(known_ports)) {
-            display("  " + key + " = " + known_ports[key]);
-        }
-    } else {
-        display("No Known/tcp/* entries found in KB");
-    }
-    
-    # Check for Banner/* entries
-    banners = get_kb_list("Banner/*");
-    if (banners) {
-        display("Found banner entries:");
-        foreach key (keys(banners)) {
-            display("  " + key + " = " + banners[key]);
-        }
-    } else {
-        display("No Banner/* entries found in KB");
-    }
-    
-    # Check for Transport/* entries
-    transports = get_kb_list("Transport/*");
-    if (transports) {
-        display("Found transport entries:");
-        foreach key (keys(transports)) {
-            display("  " + key + " = " + transports[key]);
-        }
-    } else {
-        display("No Transport/* entries found in KB");
-    }
-}
-
 # Function to test specific service detection
 function test_service_detection(port, expected_service) {
     service_key = "Services/" + expected_service;
@@ -87,8 +39,6 @@ display("Target: " + get_host_ip());
 setup_test_ports();
 display("Running find_service...");
 plugin_run_find_service();
-
-check_kb_results();
 
 test_service_detection(port: 21, expected_service: "ftp");
 test_service_detection(port: 22, expected_service: "ssh");
