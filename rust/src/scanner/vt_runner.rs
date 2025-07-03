@@ -5,7 +5,7 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{AliveTestMethods, Parameter, Protocol, ScanID, ScanPreference};
+use crate::models::{AliveTestMethods, Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::scan_ctx::{ContextStorage, Ports, Target};
@@ -21,6 +21,7 @@ use tracing::{error_span, trace, warn};
 use crate::nasl::prelude::*;
 
 use super::ExecuteError;
+use super::preferences::preference::ScanPrefs;
 use super::{
     ScannerStack,
     error::{ScriptResult, ScriptResultKind},
@@ -38,7 +39,7 @@ pub struct VTRunner<'a, S: ScannerStack> {
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
     scan_id: ScanID,
-    scan_preferences: &'a Vec<ScanPreference>,
+    scan_preferences: &'a ScanPrefs,
     alive_test_methods: &'a Vec<AliveTestMethods>,
 }
 
@@ -57,7 +58,7 @@ where
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
         scan_id: ScanID,
-        scan_preferences: &'a Vec<ScanPreference>,
+        scan_preferences: &'a ScanPrefs,
         alive_test_methods: &'a Vec<AliveTestMethods>,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
@@ -212,7 +213,7 @@ where
             storage: self.storage,
             loader: self.loader,
             executor: self.executor,
-            scan_preferences: self.scan_preferences.to_vec(),
+            scan_preferences: self.scan_preferences.clone(),
             alive_test_methods: self.alive_test_methods.to_vec(),
         }
         .build();

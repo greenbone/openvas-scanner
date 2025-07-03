@@ -10,11 +10,14 @@ use std::{
     path::PathBuf,
 };
 
-use crate::nasl::{
-    prelude::*,
-    syntax::{Loader, NoOpLoader},
-};
 use crate::storage::{ScanID, inmemory::InMemoryStorage};
+use crate::{
+    nasl::{
+        prelude::*,
+        syntax::{Loader, NoOpLoader},
+    },
+    scanner::preferences::preference::ScanPrefs,
+};
 use futures::{Stream, StreamExt};
 
 use super::{
@@ -351,7 +354,7 @@ where
                 udp: Default::default(),
             },
             filename: self.filename.clone(),
-            scan_preferences: Vec::default(),
+            scan_preferences: ScanPrefs::new(),
             alive_test_methods: Vec::default(),
         }
         .build()

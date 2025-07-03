@@ -9,18 +9,17 @@ use crate::nasl::Register;
 use crate::nasl::builtin::network::socket::make_tcp_socket;
 use crate::nasl::prelude::*;
 use crate::nasl::utils::ScanCtx;
+use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 use nasl_function_proc_macro::nasl_function;
-
-const DEFAULT_TIMEOUT: u8 = 5;
 
 fn get_timeout(context: &ScanCtx) -> u8 {
     if let Some(p) = context
         .scan_params()
         .find(|p| p.id == "checks_read_timeout")
     {
-        p.value.parse::<u8>().unwrap_or(DEFAULT_TIMEOUT)
+        p.value.parse::<u8>().unwrap_or(DEFAULT_TIMEOUT as u8)
     } else {
-        DEFAULT_TIMEOUT
+        DEFAULT_TIMEOUT as u8
     }
 }
 #[nasl_function]

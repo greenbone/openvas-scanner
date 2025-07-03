@@ -50,6 +50,8 @@ struct ScriptArgs {
     /// UDP Ports to scan.
     #[clap(short, long = "udp-port")]
     udp_ports: Vec<u16>,
+    #[clap(long = "timeout")]
+    timeout: Option<u32>,
 }
 
 #[derive(clap::Parser)]
@@ -143,6 +145,7 @@ async fn script(args: ScriptArgs) -> Result<(), CliError> {
         args.kb.clone(),
         args.ports.clone(),
         args.udp_ports.clone(),
+        args.timeout,
     )
     .await
 }

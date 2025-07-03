@@ -20,6 +20,7 @@ use scannerlib::{
             scan_ctx::{Ports, Target},
         },
     },
+    scanner::preferences::preference::ScanPrefs,
     storage::{
         ScanID,
         items::{kb::KbContextKey, nvt::Oid},
@@ -122,6 +123,7 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
     kb: Vec<String>,
     ports: Ports,
     script: &Path,
+    scan_preferences: ScanPrefs,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
@@ -149,12 +151,13 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
         ports,
         scan_id,
         filename,
-        scan_preferences: Vec::new(),
+        scan_preferences,
         alive_test_methods: Vec::new(),
     };
     run_with_context(cb.build(), script).await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     db: &Db,
     feed: Option<PathBuf>,
@@ -163,6 +166,7 @@ pub async fn run(
     kb: Vec<String>,
     tcp_ports: Vec<u16>,
     udp_ports: Vec<u16>,
+    timeout: Option<u32>,
 ) -> Result<(), CliError> {
     let target = target
         .map(|target| {
@@ -174,6 +178,11 @@ pub async fn run(
         tcp: BTreeSet::from_iter(tcp_ports.into_iter()),
         udp: BTreeSet::from_iter(udp_ports.into_iter()),
     };
+
+    // for adding new default preferences, add new methods to the SetScanPreferences trait.
+    let mut scan_preferences = ScanPrefs::new();
+    scan_preferences.set_default_recv_timeout(timeout);
+
     let result = match (db, feed) {
         (Db::InMemory, None) => {
             run_on_storage(
@@ -183,6 +192,7 @@ pub async fn run(
                 kb,
                 ports,
                 script,
+                scan_preferences,
             )
             .await
         }
@@ -195,7 +205,7 @@ pub async fn run(
             } else {
                 load_feed_by_exec(&storage, &loader).await?
             }
-            run_on_storage(storage, loader, target, kb, ports, script).await
+            run_on_storage(storage, loader, target, kb, ports, script, scan_preferences).await
         }
     };
 

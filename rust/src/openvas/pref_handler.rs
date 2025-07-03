@@ -562,8 +562,11 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::models::{
-        AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan, Service,
+    use crate::{
+        models::{
+            AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan, Service,
+        },
+        scanner::preferences::preference::ScanPrefs,
     };
 
     use super::PreferenceHandler;
@@ -612,7 +615,7 @@ mod tests {
                 },
             ],
         }];
-        scan.scan_preferences = vec![
+        scan.scan_preferences = ScanPrefs(vec![
             crate::models::ScanPreference {
                 id: "testParam1".to_string(),
                 value: "1".to_string(),
@@ -621,7 +624,7 @@ mod tests {
                 id: "testParam2".to_string(),
                 value: "abc".to_string(),
             },
-        ];
+        ]);
         scan.vts = vec![crate::models::VT {
             oid: "123".to_string(),
             parameters: vec![

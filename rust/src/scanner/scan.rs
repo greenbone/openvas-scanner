@@ -1,9 +1,11 @@
 use tracing::error;
 
 use crate::{
-    models::{self, AliveTestMethods, Port, ScanID, ScanPreference, VT},
+    models::{self, AliveTestMethods, Port, ScanID, VT},
     nasl::utils::scan_ctx::{Ports, Target},
 };
+
+use super::preferences::preference::ScanPrefs;
 
 #[derive(Debug, Default)]
 pub struct Scan {
@@ -11,7 +13,7 @@ pub struct Scan {
     pub ports: Ports,
     pub scan_id: ScanID,
     pub vts: Vec<VT>,
-    pub scan_preferences: Vec<ScanPreference>,
+    pub scan_preferences: ScanPrefs,
     pub alive_test_methods: Vec<AliveTestMethods>,
     pub alive_test_ports: Vec<Port>,
 }

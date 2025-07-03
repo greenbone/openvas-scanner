@@ -1,4 +1,5 @@
 use super::Scan;
+use super::preferences::preference::ScanPrefs;
 use crate::models::Phase;
 use crate::models::Protocol;
 use crate::models::VT;
@@ -53,7 +54,7 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
                 parameters: vec![],
             })
             .collect(),
-        scan_preferences: Vec::new(),
+        scan_preferences: ScanPrefs::new(),
         alive_test_methods: Vec::new(),
         alive_test_ports: Vec::new(),
     };
@@ -222,7 +223,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
     let scan_id = ScanID(filename.to_string());
-    let scan_preferences = Vec::default();
+    let scan_preferences = ScanPrefs::new();
     let alive_test_methods = Vec::default();
     let cb = ScanCtxBuilder {
         storage: &storage,
@@ -276,7 +277,7 @@ async fn run(
                 parameters: vec![],
             })
             .collect(),
-        scan_preferences: Vec::new(),
+        scan_preferences: ScanPrefs::new(),
         alive_test_methods: Vec::new(),
         alive_test_ports: Vec::new(),
     };

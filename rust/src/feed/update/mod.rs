@@ -25,6 +25,7 @@ use crate::nasl::utils::scan_ctx::Target;
 
 use crate::feed::verify::check_signature;
 use crate::feed::verify::{HashSumFileItem, SignatureChecker};
+use crate::scanner::preferences::preference::ScanPrefs;
 use crate::storage::ScanID;
 use crate::storage::items::nvt::FeedVersion;
 use crate::storage::items::nvt::FileName;
@@ -60,7 +61,7 @@ pub async fn feed_version(
     let ports = Default::default();
     let filename = "";
     let executor = nasl_std_functions();
-    let scan_params = Vec::default();
+    let scan_params = ScanPrefs::new();
     let alive_test_methods = Vec::default();
     let cb = ScanCtxBuilder {
         storage: dispatcher,
@@ -166,7 +167,7 @@ where
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
         let code = self.loader.load(&key.0)?;
         let register = Register::root_initial(&self.initial);
-        let scan_params = Vec::default();
+        let scan_params = ScanPrefs::new();
         let alive_test_methods = Vec::default();
         let target = Target::localhost();
         let ports = Default::default();
