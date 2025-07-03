@@ -20,7 +20,10 @@ use scannerlib::{
             scan_ctx::{Ports, Target},
         },
     },
-    storage::{ScanID, items::nvt::Oid},
+    storage::{
+        ScanID,
+        items::{kb::KbContextKey, nvt::Oid},
+    },
 };
 use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
@@ -116,11 +119,28 @@ async fn run_on_storage<S: ContextStorage, L: Loader>(
     storage: S,
     loader: L,
     target: Target,
+    kb: Vec<String>,
     ports: Ports,
     script: &Path,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
+    let kbctx = (
+        scan_id.clone(),
+        scannerlib::storage::Target(target.ip_addr().to_string()),
+    );
+    for s in kb.iter() {
+        match s.split_once("=") {
+            Some((k, v)) => {
+                let storage_ctx = KbContextKey(kbctx.clone(), k.into());
+                let _ = storage
+                    .dispatch(storage_ctx, v.into())
+                    .map_err(CliErrorKind::StorageError);
+            }
+            None => return Err(CliErrorKind::InvalidCmdOpt(s.to_string())),
+        }
+    }
+
     let cb = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
@@ -140,6 +160,7 @@ pub async fn run(
     feed: Option<PathBuf>,
     script: &Path,
     target: Option<String>,
+    kb: Vec<String>,
     tcp_ports: Vec<u16>,
     udp_ports: Vec<u16>,
 ) -> Result<(), CliError> {
@@ -159,6 +180,7 @@ pub async fn run(
                 InMemoryStorage::default(),
                 NoOpLoader::default(),
                 target,
+                kb,
                 ports,
                 script,
             )
@@ -173,7 +195,7 @@ pub async fn run(
             } else {
                 load_feed_by_exec(&storage, &loader).await?
             }
-            run_on_storage(storage, loader, target, ports, script).await
+            run_on_storage(storage, loader, target, kb, ports, script).await
         }
     };
 

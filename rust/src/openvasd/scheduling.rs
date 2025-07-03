@@ -189,7 +189,7 @@ where
         Ok(())
     }
 
-    /// Coordinates scan starts, if a feed syncrhonization is taking place it will do nothing.
+    /// Coordinates scan starts, if a feed synchronization is taking place it will do nothing.
     /// Otherwise it start scans within the capacity block from queued list.
     async fn coordinate_scans(&self) -> Result<(), Error> {
         if *self.is_synchronizing_feed.read().await {
