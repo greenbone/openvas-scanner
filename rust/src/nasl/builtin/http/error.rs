@@ -14,6 +14,8 @@ pub enum HttpError {
     H2(String),
     #[error("Handle ID {0} not found.")]
     HandleIdNotFound(i32),
+    #[error("{0}")]
+    Custom(String),
 }
 
 impl From<io::Error> for HttpError {
