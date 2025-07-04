@@ -160,8 +160,10 @@ impl ServerCertVerifier for NoVerifier {
 }
 
 impl NaslHttp2 {
+    #[allow(clippy::too_many_arguments)]
     async fn request(
         &self,
+        ctx: &ScanCtx<'_>,
         ip_str: &str,
         port: u16,
         uri: String,
@@ -196,10 +198,11 @@ impl NaslHttp2 {
         });
 
         let mut h2 = h2.ready().await.map_err(HttpError::from)?;
-
+        let ua = get_user_agent(ctx).map_err(|e| HttpError::Custom(e.to_string()))?;
         // Prepare the HTTP request to send to the server.
         let mut request = Request::builder();
 
+        request = request.header("User-Agent", &ua);
         // add custom headers
         for (k, v) in handle.header_items.iter() {
             request = request.header(k, v);
@@ -289,8 +292,9 @@ impl NaslHttp2 {
         uri = format!("{uri}{item}");
 
         let (head, body) = self
-            .request(target_str, port, uri, data, method, handle)
+            .request(ctx, target_str, port, uri, data, method, handle)
             .await?;
+
         handle.http_code = head.status.as_u16();
         let mut header_str = String::new();
         header_str.push_str(format!("{:?} ", head.version).as_str());
@@ -302,7 +306,7 @@ impl NaslHttp2 {
                 String::from_utf8_lossy(v.as_bytes())
             ))
         }
-        //let _ = head.headers.iter().map(|(k,v)| header_str.push_str(&format!("{}: {}\n", k.as_str(), String::from_utf8_lossy(v.as_bytes()))));
+
         header_str.push_str(&body);
         Ok(NaslValue::String(header_str))
     }
