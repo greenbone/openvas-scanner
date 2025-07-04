@@ -7,6 +7,7 @@
 mod error;
 
 use crate::nasl::utils::ContextType;
+use crate::storage::error::StorageError;
 use crate::storage::items::kb::KbKey;
 use crate::{nasl::prelude::*, storage::items::kb::KbItem};
 
@@ -32,6 +33,31 @@ use super::{
         socket::{close_shared, open_sock_tcp_shared},
     },
 };
+
+fn get_user_agent(context: &ScanCtx) -> Result<String, FnError> {
+    match context.get_single_kb_item(&KbKey::Custom(
+        "global_settings/http_user_agent".to_string(),
+    )) {
+        Ok(ua) => Ok(ua),
+        _ => {
+            let ua = match context
+                .scan_preferences
+                .get_preference_string("vendor_version")
+            {
+                Some(vendor) => format!("Mozilla/5.0 [en] (X11, U; {vendor})"),
+                _ => format!(
+                    "Mozilla/5.0 [en] (X11, U; {}_{}",
+                    env!("CARGO_PKG_NAME"),
+                    env!("CARGO_PKG_VERSION")
+                ),
+            };
+            context
+                .set_single_kb_item("global_settings/http_user_agent".into(), ua.clone())
+                .map_err(|e| StorageError::NotFound(e.to_string()))?;
+            Ok(ua)
+        }
+    }
+}
 
 pub struct Handle {
     pub handle_id: i32,
@@ -449,11 +475,18 @@ pub async fn open_socket(
     transport: Option<i64>,
     bufsz: Option<i64>,
 ) -> Result<NaslValue, FnError> {
-    open_sock_tcp_shared(context, sockets, port, timeout, transport, bufsz.or(Some(65535)))
+    open_sock_tcp_shared(
+        context,
+        sockets,
+        port,
+        timeout,
+        transport,
+        bufsz.or(Some(65535)),
+    )
 }
 
 fn build_encode_url(keyword: Method, item: String, httpver: &str) -> String {
-    format!("{} {} {} ", keyword, item, httpver)
+    format!("{keyword} {item} {httpver} ")
 }
 fn http_req_shared(
     context: &ScanCtx,
@@ -463,21 +496,16 @@ fn http_req_shared(
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
     let p: u16 = port.into();
-    let tmp_key = format!("http/{}", p);
+    let tmp_key = format!("http/{p}");
     let mut request = match context.get_kb_item(&KbKey::from(tmp_key))?.first() {
         Some(KbItem::Number(11)) | Some(KbItem::Number(0)) | None => {
             //TODO: use plug_get_host_fqdn and do it for all vhosts.
             let hostname = context.target().ip_addr().to_string();
 
-            //TODO:  Gets the User-Agent from the globals_settings.nasl
-            // script preferences. If it is not set, it uses the Vendor version.
-            // In case that there is no Vendor version, it creates one with a fix string
-            // and the nasl library version.
-            let user_agent = String::from("OPENVAS");
-
+            let user_agent = get_user_agent(context)?;
             let hostreader = match p {
                 80 | 443 => hostname,
-                _ => format!("{}/{}", hostname, p),
+                _ => format!("{hostname}/{p}"),
             };
 
             let url = build_encode_url(keyword, item, "HTTP/1.1");
@@ -496,7 +524,7 @@ fn http_req_shared(
         _ => build_encode_url(keyword, item, "HTTP/1.0"),
     };
 
-    let tmp_key = format!("/tmp/http/auth/{}", p);
+    let tmp_key = format!("/tmp/http/auth/{p}");
     match context.get_kb_item(&KbKey::from(tmp_key))?.first() {
         Some(KbItem::String(a)) => request.push_str(a),
         _ => request.push_str("http/auth"),
@@ -514,11 +542,7 @@ fn http_req_shared(
 }
 
 #[nasl_function(named(port, item))]
-pub fn get(
-    context: &ScanCtx,
-    port: Port,
-    item: String,
-) -> Result<NaslValue, FnError> {
+pub fn get(context: &ScanCtx, port: Port, item: String) -> Result<NaslValue, FnError> {
     http_req_shared(context, Method::GET, port, item, None)
 }
 
@@ -564,9 +588,10 @@ pub fn put(
 
 #[nasl_function]
 pub fn cgi_bin(context: &ScanCtx) -> String {
-    context.scan_params()
+    context
+        .scan_params()
         .find(|x| x.id == "cgi-path")
-        .map_or("/cgi-bin:/scripts".to_string(),|x| x.value.clone())
+        .map_or("/cgi-bin:/scripts".to_string(), |x| x.value.clone())
 }
 
 function_set! {
