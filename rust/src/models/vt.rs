@@ -5,15 +5,22 @@
 use super::parameter::Parameter;
 
 /// A VT to execute during a scan, including its parameters
-#[derive(Debug, Clone, PartialEq, Eq, Default, PartialOrd, Ord, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Default,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub struct VT {
     /// The ID of the VT to execute
     pub oid: String,
-    #[cfg_attr(feature = "serde_support", serde(default,))]
+    #[serde(default)]
     /// The list of parameters for the VT
     pub parameters: Vec<Parameter>,
 }

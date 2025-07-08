@@ -4,12 +4,8 @@
 
 use std::time::Duration;
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "openvas_serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(deny_unknown_fields)
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     pub max_queued_scans: Option<usize>,
     pub max_running_scans: Option<usize>,

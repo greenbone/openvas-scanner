@@ -8,12 +8,8 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, net::IpAddr};
 
 use crate::storage::{ScanID, Target};
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 /// List defined KbKeys. For all kb keys that are not defined by
 /// a NASL user should use a variant from the enum, that is not
 /// custom.
@@ -56,12 +52,8 @@ pub enum KbKey {
     Custom(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Ssl {
     Cert,
     Key,
@@ -69,57 +61,37 @@ pub enum Ssl {
     Ca,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Port {
     Tcp(String),
     Udp(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Transport {
     Tcp(String),
     Ssl,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Internals {
     Results,
     ScanId,
     Vhosts,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Host {
     Tcp,
     Udp,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Service {
     Wrapped,
     Unknown,
@@ -127,12 +99,8 @@ pub enum Service {
     Custom(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum FindService {
     CnxTime1000(String),
     CnxTime(String),
@@ -142,12 +110,8 @@ pub enum FindService {
     TcpSpontaneous(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Kdc {
     Hostname,
     Port,
@@ -259,12 +223,8 @@ impl From<String> for KbKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(untagged)
-)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
 /// Allowed type definitions
 pub enum KbItem {
     /// String value
