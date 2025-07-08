@@ -314,6 +314,23 @@ max_mem_kb
     tracked. If this value is not set or <= 0, the maximum amount is
     unlimited (Default).
 
+unscanned_closed
+
+:   This defines whether TCP ports that were not scanned should be treated like closed ports.
+    Defaults to "yes".
+
+unscanned_closed_udp
+
+:   This defines whether UDP ports that were not scanned should be treated as closed ports.
+    Defaults to "yes".
+
+table_driven_lsc
+
+:   This option will enable table driven local security Checks (LSC). This means
+    gathered packages are sent to a specialized scanner. This is far more efficient than doing
+    checks via NASL.
+    Defaults to "yes".
+
 The other options in this file can usually be redefined by the client.
 
 ## NETWORK USAGE
