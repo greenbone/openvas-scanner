@@ -197,7 +197,7 @@ pub const PREFERENCES: [ScanPreferenceInformation; 23] = [
         name: "Table Driven LSC",
         default: PreferenceValue::Bool(true),
         description: "This option will enable table driven local security Checks (LSC). This means \
-        gathered packages are sent to an specialized scanner. This is far more efficient than doing \
+        gathered packages are sent to a specialized scanner. This is far more efficient than doing \
         checks via NASL.",
     },
     ScanPreferenceInformation {
