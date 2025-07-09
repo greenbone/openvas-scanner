@@ -366,17 +366,12 @@ impl ScanPrefs {
     }
 
     pub fn set_vendor_version(&mut self, vendor: Option<String>) -> Self {
-        if let Some(vendor) = vendor {
-            self.0.push(ScanPreference {
-                id: String::from("vendor_version"),
-                value: vendor,
-            })
-        } else {
-            self.0.push(ScanPreference {
-                id: String::from("vendor_version"),
-                value: format!("{}_{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
-            });
-        };
+        self.0.push(ScanPreference {
+            id: String::from("vendor_version"),
+            value: vendor.unwrap_or_else(|| {
+                format!("{}_{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
+            }),
+        });
         self.clone()
     }
 

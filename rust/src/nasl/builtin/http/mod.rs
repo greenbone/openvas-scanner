@@ -8,7 +8,7 @@ mod error;
 
 use crate::nasl::utils::ContextType;
 use crate::storage::error::StorageError;
-use crate::storage::items::kb::KbKey;
+use crate::storage::items::kb::{GlobalSettings, KbKey};
 use crate::{nasl::prelude::*, storage::items::kb::KbItem};
 
 pub use error::HttpError;
@@ -35,9 +35,7 @@ use super::{
 };
 
 fn get_user_agent(context: &ScanCtx) -> Result<String, FnError> {
-    match context.get_single_kb_item(&KbKey::Custom(
-        "global_settings/http_user_agent".to_string(),
-    )) {
+    match context.get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent)) {
         Ok(ua) => Ok(ua),
         _ => {
             let ua = match context
@@ -52,7 +50,10 @@ fn get_user_agent(context: &ScanCtx) -> Result<String, FnError> {
                 ),
             };
             context
-                .set_single_kb_item("global_settings/http_user_agent".into(), ua.clone())
+                .set_single_kb_item(
+                    KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
+                    ua.clone(),
+                )
                 .map_err(|e| StorageError::NotFound(e.to_string()))?;
             Ok(ua)
         }
@@ -501,8 +502,8 @@ fn http_req_shared(
 ) -> Result<NaslValue, FnError> {
     let p: u16 = port.into();
     let tmp_key = format!("http/{p}");
-    let mut request = match context.get_kb_item(&KbKey::from(tmp_key))?.first() {
-        Some(KbItem::Number(11)) | Some(KbItem::Number(0)) | None => {
+    let mut request = match context.get_single_kb_item::<i32>(&KbKey::from(tmp_key))? {
+        x if (x == 11 || x <= 0) => {
             //TODO: use plug_get_host_fqdn and do it for all vhosts.
             let hostname = context.target().ip_addr().to_string();
 
