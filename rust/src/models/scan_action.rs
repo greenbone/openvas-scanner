@@ -4,22 +4,14 @@
 use std::fmt::{Display, Formatter};
 
 /// Action to perform on a scan
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScanAction {
     pub action: Action,
 }
 
 /// Enum representing possible actions
-#[derive(Debug, Copy, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
-#[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Action {
     /// Start a scan
     Start,

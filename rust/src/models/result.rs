@@ -9,68 +9,39 @@ use crate::models::Specifier;
 use super::port::Protocol;
 
 /// Scan result
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Result {
     /// Incremental ID of a result
     pub id: usize,
-    #[cfg_attr(feature = "serde_support", serde(rename = "type"))]
+    #[serde(rename = "type")]
     /// Type of the result
     pub r_type: ResultType,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", default)
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// IP address
     pub ip_address: Option<String>,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", default)
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// DNS
     pub hostname: Option<String>,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", default)
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// ID of the VT, which generated the result
     pub oid: Option<String>,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", default)
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Port
     pub port: Option<i16>,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", default)
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Protocol the port corresponds to
     pub protocol: Option<Protocol>,
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", default)
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Additional information
     pub message: Option<String>,
 
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none", default)
-    )]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Details are only set on status and can be ignored
     pub detail: Option<Detail>,
 }
 
 /// Host Details information
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Detail {
     /// Descriptive name of a Host Detail
     pub name: String,
@@ -81,11 +52,7 @@ pub struct Detail {
 }
 
 /// Host details source information
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Source {
     #[serde(rename = "type")]
     /// type of the source
@@ -106,12 +73,8 @@ impl<T: Into<Result>> From<(usize, T)> for Result {
 }
 
 /// Enum of possible types of results
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
-#[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ResultType {
     /// Vulnerability
     Alarm,
@@ -133,16 +96,15 @@ pub enum ResultType {
 /// Notus Results are a Map from OIDs to vulnerable Packages
 pub type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize))]
-#[derive(Debug)]
+#[derive(serde::Serialize, Debug)]
 pub struct VulnerablePackage {
     pub name: String,
     pub installed_version: String,
     pub fixed_version: FixedVersion,
 }
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize), serde(untagged))]
-#[derive(Debug)]
+#[derive(serde::Serialize, Debug)]
+#[serde(untagged)]
 pub enum FixedVersion {
     Single {
         version: String,

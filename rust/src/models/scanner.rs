@@ -11,11 +11,7 @@ use super::{Scan, Status};
 ///
 /// It is usually returned on fetch_results which gets all results of all running scans for further
 /// processing.
-#[derive(Debug, Default, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ScanResults {
     pub id: String,
     pub status: Status,

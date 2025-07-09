@@ -7,11 +7,7 @@ use std::{fmt::Display, str::FromStr};
 use super::host_info::HostInfo;
 
 /// Status information about a scan
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Status {
     /// Timestamp for the start of a scan
     pub start_time: Option<u64>,
@@ -54,12 +50,8 @@ impl Status {
 }
 
 /// Enum of the possible phases of a scan
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
-#[cfg_attr(feature = "serde_support", serde(rename_all = "snake_case"))]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Phase {
     /// A scan has been stored but not started yet
     #[default]

@@ -4,30 +4,27 @@
 
 use std::collections::HashMap;
 
+use serde::Deserialize;
+
 /// Represents an advisory json file for notus product.
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ProductsAdvisories {
     /// Version of the advisory file
     pub version: String,
     /// SPDX license identifier
-    #[cfg_attr(feature = "serde_support", serde(rename = "spdx-license-identifier"))]
+    #[serde(rename = "spdx-license-identifier")]
     pub license_identifier: String,
     /// Copyright
     pub copyright: String,
     /// Vulnerability Family
     pub family: String,
     /// List of Advisories
-    #[cfg_attr(feature = "serde_support", serde(default))]
+    #[serde(default)]
     pub advisories: Vec<Advisory>,
 }
 
 /// Represents an advisory json file for notus product.
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Advisory {
     /// The advisory's title.
     pub title: String,
@@ -42,20 +39,20 @@ pub struct Advisory {
     /// Advisory xref
     pub advisory_xref: String,
     /// Advisory contains a CVE that is listed in the catalog of Known Exploited CVEs from CISA
-    #[cfg_attr(feature = "serde_support", serde(default))]
+    #[serde(default)]
     pub cisa_kev: bool,
     /// List of cves
-    #[cfg_attr(feature = "serde_support", serde(default))]
+    #[serde(default)]
     pub cves: Vec<String>,
     /// Summary
     pub summary: String,
     /// Insight
-    #[cfg_attr(feature = "serde_support", serde(default))]
+    #[serde(default)]
     pub insight: String,
     /// Affected
     pub affected: String,
     /// List of xrefs
-    #[cfg_attr(feature = "serde_support", serde(default))]
+    #[serde(default)]
     pub xrefs: Vec<String>,
     /// Quality of detection
     pub qod_type: String,
@@ -64,11 +61,7 @@ pub struct Advisory {
 }
 
 /// A single vulnerability from an advisory file to be stored
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub struct Vulnerability {
     /// VT Parameters
     pub vt_params: Vec<String>,
@@ -107,27 +100,17 @@ pub struct Vulnerability {
 }
 
 /// Severity
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(serde::Serialize, serde::Deserialize, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Severity {
     /// Origin of the severity
     pub origin: String,
     /// severity date
     pub date: u64,
     /// Cvss version v2
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cvss_v2: Option<String>,
     /// cvss vector v3
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cvss_v3: Option<String>,
 }
 
