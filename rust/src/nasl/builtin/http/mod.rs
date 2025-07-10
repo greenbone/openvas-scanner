@@ -44,7 +44,7 @@ fn get_user_agent(context: &ScanCtx) -> Result<String, FnError> {
             {
                 Some(vendor) => format!("Mozilla/5.0 [en] (X11, U; {vendor})"),
                 _ => format!(
-                    "Mozilla/5.0 [en] (X11, U; {}_{}",
+                    "Mozilla/5.0 [en] (X11, U; {}_{})",
                     env!("CARGO_PKG_NAME"),
                     env!("CARGO_PKG_VERSION")
                 ),
