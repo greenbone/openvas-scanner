@@ -175,7 +175,7 @@ impl NaslSockets {
 
     /// Adds a given NASL socket. It returns the position of the socket within the
     /// list.
-    fn add(&mut self, socket: NaslSocket) -> usize {
+    pub fn add(&mut self, socket: NaslSocket) -> usize {
         if let Some(free) = self.closed_fd.pop() {
             self.handles.insert(free, Some(socket));
             free
@@ -257,9 +257,7 @@ impl NaslSockets {
     }
 }
 
-/// Close a given file descriptor taken as an unnamed argument.
-#[nasl_function]
-async fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
+pub fn close_shared(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
     let socket = sockets.get_socket_mut(socket_fd)?;
     if socket.is_none() {
         return Err(SocketError::SocketClosed(socket_fd).into());
@@ -268,6 +266,12 @@ async fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnErro
     };
     sockets.closed_fd.push(socket_fd);
     Ok(())
+}
+
+/// Close a given file descriptor taken as an unnamed argument.
+#[nasl_function]
+async fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
+    close_shared(sockets, socket_fd)
 }
 
 fn send_shared(
@@ -524,24 +528,7 @@ fn open_sock_tcp_vhost(
     Ok(conn)
 }
 
-/// Open a TCP socket to the target host.
-/// This function is used to create a TCP connection to the target host.  It requires the port
-/// number as its argument and has various optional named arguments to control encapsulation,
-/// timeout and buffering.
-/// It takes an unnamed integer argument (the port number) and four optional named arguments:
-/// - bufsz: An integer with the the size buffer size.  Note that by default, no buffering is
-///   used.
-/// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled
-///   by a global value.
-/// - transport: One of the ENCAPS_* constants to force a specific encapsulation mode or force
-///   trying of all modes (ENCAPS_AUTO). This is for example useful to select a specific TLS or
-///   SSL version or use specific TLS connection setup priorities.  See *get_port_transport for
-///   a description of the ENCAPS constants.
-/// - priority A string value with priorities for an TLS encapsulation. For the syntax of the
-///   priority string see the GNUTLS manual. This argument is only used in ENCAPS_TLScustom
-///   encapsulation.
-#[nasl_function(named(timeout, transport, bufsz))]
-async fn open_sock_tcp(
+pub fn open_sock_tcp_shared(
     context: &ScanCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
@@ -594,6 +581,36 @@ async fn open_sock_tcp(
             })
             .collect(),
     ))
+}
+
+/// Open a TCP socket to the target host.
+/// This function is used to create a TCP connection to the target host.  It requires the port
+/// number as its argument and has various optional named arguments to control encapsulation,
+/// timeout and buffering.
+/// It takes an unnamed integer argument (the port number) and four optional named arguments:
+/// - bufsz: An integer with the the size buffer size.  Note that by default, no buffering is
+///   used.
+/// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled
+///   by a global value.
+/// - transport: One of the ENCAPS_* constants to force a specific encapsulation mode or force
+///   trying of all modes (ENCAPS_AUTO). This is for example useful to select a specific TLS or
+///   SSL version or use specific TLS connection setup priorities.  See *get_port_transport for
+///   a description of the ENCAPS constants.
+/// - priority A string value with priorities for an TLS encapsulation. For the syntax of the
+///   priority string see the GNUTLS manual. This argument is only used in ENCAPS_TLScustom
+///   encapsulation.
+#[nasl_function(named(timeout, transport, bufsz))]
+async fn open_sock_tcp(
+    context: &ScanCtx<'_>,
+    nasl_sockets: &mut NaslSockets,
+    port: Port,
+    timeout: Option<i64>,
+    transport: Option<i64>,
+    bufsz: Option<i64>,
+    // TODO: Extract information from custom priority string
+    // priority: Option<&str>,
+) -> Result<NaslValue, FnError> {
+    open_sock_tcp_shared(context, nasl_sockets, port, timeout, transport, bufsz)
 }
 
 /// Reads the information necessary for a TLS connection from the KB and
