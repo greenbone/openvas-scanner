@@ -3,37 +3,30 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::alive_test::AliveTestError;
+use crate::alive_test::icmp::{
+    FIX_IPV6_HEADER_LENGTH, alive_test_send_icmp_packet, alive_test_send_icmp_v6_packet,
+    forge_icmp, forge_icmp_v6,
+};
 use crate::models::{AliveTestMethods, Host};
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
 use futures::StreamExt;
-use pnet::packet::icmp;
+use pnet::packet::icmpv6::{Icmpv6Packet, Icmpv6Types};
 use pnet::packet::ip::IpNextHeaderProtocols;
+use pnet::packet::ipv6::Ipv6Packet;
 use std::time::Duration;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::time::sleep;
 
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::IpAddr;
 
 use pcap::{Active, Capture, Inactive, PacketCodec, PacketStream};
 use pnet::packet::{
-    Packet,
-    icmp::{IcmpCode, IcmpTypes, MutableIcmpPacket, *},
-    ipv4::{Ipv4Packet, MutableIpv4Packet, checksum},
+    icmp::{IcmpTypes, *},
+    ipv4::Ipv4Packet,
 };
 
-use socket2::{Domain, Protocol, Socket};
-
-const IPPROTO_RAW: i32 = 255;
-
-const ICMP_LENGTH: usize = 8;
-const IP_LENGTH: usize = 20;
-const HEADER_LENGTH: u8 = 5;
-const DEFAULT_TTL: u8 = 255;
 const MIN_ALLOWED_PACKET_LEN: usize = 16;
-// This is the only possible code for an echo request
-const ICMP_ECHO_REQ_CODE: u8 = 0;
-const IP_PPRTO_VERSION_IPV4: u8 = 4;
 
 pub struct AliveTestCtlStop;
 
@@ -48,71 +41,6 @@ impl AliveHostCtl {
             detection_method,
         }
     }
-}
-
-fn new_raw_socket() -> Result<Socket, AliveTestError> {
-    Socket::new_raw(
-        Domain::IPV4,
-        socket2::Type::RAW,
-        Some(Protocol::from(IPPROTO_RAW)),
-    )
-    .map_err(|e| AliveTestError::NoSocket(e.to_string()))
-}
-
-fn forge_icmp_packet() -> Vec<u8> {
-    // Create an icmp packet from a buffer and modify it.
-    let mut buf = vec![0; ICMP_LENGTH];
-    // Since we control the buffer size, we can safely unwrap here.
-    let mut icmp_pkt = MutableIcmpPacket::new(&mut buf).unwrap();
-    icmp_pkt.set_icmp_type(IcmpTypes::EchoRequest);
-    icmp_pkt.set_icmp_code(IcmpCode::new(ICMP_ECHO_REQ_CODE));
-    icmp_pkt.set_checksum(icmp::checksum(&icmp_pkt.to_immutable()));
-    buf
-}
-
-fn forge_ipv4_packet_for_icmp(icmp_buf: &mut Vec<u8>, dst: Ipv4Addr) -> Ipv4Packet<'static> {
-    // We do now the same as above for the IPv4 packet, appending the icmp packet as payload
-    let mut ip_buf = vec![0; IP_LENGTH];
-    ip_buf.append(icmp_buf);
-    let total_length = ip_buf.len();
-    // Since we control the buffer size, we can safely unwrap here.
-    let mut pkt = MutableIpv4Packet::new(&mut ip_buf).unwrap();
-
-    pkt.set_header_length(HEADER_LENGTH);
-    pkt.set_next_level_protocol(IpNextHeaderProtocols::Icmp);
-    pkt.set_ttl(DEFAULT_TTL);
-    pkt.set_destination(dst);
-
-    pkt.set_version(IP_PPRTO_VERSION_IPV4);
-    pkt.set_total_length(total_length as u16);
-    let chksum = checksum(&pkt.to_immutable());
-    pkt.set_checksum(chksum);
-
-    Ipv4Packet::owned(ip_buf).unwrap()
-}
-
-fn forge_icmp(dst: Ipv4Addr) -> Ipv4Packet<'static> {
-    let mut icmp_buf = forge_icmp_packet();
-    forge_ipv4_packet_for_icmp(&mut icmp_buf, dst)
-}
-
-/// Send an icmp packet
-fn alive_test_send_icmp_packet(icmp: Ipv4Packet<'static>) -> Result<(), AliveTestError> {
-    tracing::debug!("starting sending packet");
-    let sock = new_raw_socket()?;
-    sock.set_header_included_v4(true)
-        .map_err(|e| AliveTestError::NoSocket(e.to_string()))?;
-
-    let sockaddr = SocketAddr::new(IpAddr::V4(icmp.get_destination()), 0);
-    match sock.send_to(icmp.packet(), &sockaddr.into()) {
-        Ok(b) => {
-            tracing::debug!("Sent {} bytes", b);
-        }
-        Err(e) => {
-            return Err(AliveTestError::SendPacket(e.to_string()));
-        }
-    };
-    Ok(())
 }
 
 struct PktCodec;
@@ -151,13 +79,13 @@ impl TryFrom<&[u8]> for EtherTypes {
         match *val {
             [0x08, 0x00] => Ok(EtherTypes::EtherTypeIp),
             [0x08, 0x06] => Ok(EtherTypes::EtherTypeArp),
-            [0x08, 0xDD] => Ok(EtherTypes::EtherTypeIp6),
+            [0x86, 0xDD] => Ok(EtherTypes::EtherTypeIp6),
             _ => Err(AliveTestError::InvalidEtherType),
         }
     }
 }
 
-fn process_ip_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
+fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
     let pkt = Ipv4Packet::new(&packet[16..]).ok_or_else(|| {
         AliveTestError::CreateIpPacketFromWrongBufferSize(packet.len() as i64 - 16)
     })?;
@@ -178,6 +106,26 @@ fn process_ip_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestErr
     Ok(None)
 }
 
+fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
+    let pkt = Ipv6Packet::new(&packet[16..])
+        .ok_or_else(|| AliveTestError::CreateIpPacketFromWrongBufferSize(packet.len() as i64))?;
+    if pkt.get_next_header() == IpNextHeaderProtocols::Icmpv6 {
+        let icmp_pkt =
+            Icmpv6Packet::new(&packet[16 + FIX_IPV6_HEADER_LENGTH..]).ok_or_else(|| {
+                AliveTestError::CreateIcmpPacketFromWrongBufferSize(packet[..].len() as i64)
+            })?;
+        if icmp_pkt.get_icmpv6_type() == Icmpv6Types::EchoReply
+            && pkt.get_next_header() == IpNextHeaderProtocols::Icmpv6
+        {
+            return Ok(Some(AliveHostCtl {
+                ip: pkt.get_source().to_string(),
+                detection_method: AliveTestMethods::Icmp,
+            }));
+        }
+    }
+    Ok(None)
+}
+
 fn process_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
     if packet.len() <= MIN_ALLOWED_PACKET_LEN {
         return Err(AliveTestError::WrongPacketLength);
@@ -185,8 +133,8 @@ fn process_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError>
     let ether_type = &packet[14..16];
     let ether_type = EtherTypes::try_from(ether_type)?;
     match ether_type {
-        EtherTypes::EtherTypeIp => process_ip_packet(packet),
-        EtherTypes::EtherTypeIp6 => unimplemented!(),
+        EtherTypes::EtherTypeIp => process_ipv4_packet(packet),
+        EtherTypes::EtherTypeIp6 => process_ipv6_packet(packet),
         EtherTypes::EtherTypeArp => unimplemented!(),
     }
 }
@@ -236,14 +184,20 @@ async fn send_task(
     if methods.contains(&AliveTestMethods::Icmp) {
         for t in trgt.iter() {
             count += 1;
-            let dst_ip = match t.to_string().parse::<Ipv4Addr>() {
-                Ok(ip) => ip,
-                Err(_) => {
-                    continue;
+            match t
+                .to_string()
+                .parse::<IpAddr>()
+                .map_err(|_| AliveTestError::InvalidDestinationAddr)?
+            {
+                IpAddr::V4(ipv4) => {
+                    let icmp = forge_icmp(ipv4);
+                    alive_test_send_icmp_packet(icmp)?;
+                }
+                IpAddr::V6(ipv6) => {
+                    let icmp = forge_icmp_v6(ipv6)?;
+                    alive_test_send_icmp_v6_packet(icmp)?;
                 }
             };
-            let icmp = forge_icmp(dst_ip);
-            alive_test_send_icmp_packet(icmp)?;
         }
     }
     if methods.contains(&AliveTestMethods::TcpSyn) {
