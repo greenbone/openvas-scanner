@@ -98,3 +98,17 @@ pub fn get_source_ip(dst: IpAddr) -> Result<IpAddr, FnError> {
         .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
         .ok_or(RawIpError::NoRouteToDestination.into())
 }
+
+pub fn get_source_ipv6(dst: Ipv6Addr) -> Result<Ipv6Addr, FnError> {
+    match get_source_ip(IpAddr::from(dst)) {
+        Ok(IpAddr::V6(a)) => Ok(a),
+        _ => return Err(RawIpError::NoRouteToDestination.into()),
+    }
+}
+
+pub fn get_source_ipv4(dst: Ipv4Addr) -> Result<Ipv4Addr, FnError> {
+    match get_source_ip(IpAddr::from(dst)) {
+        Ok(IpAddr::V4(a)) => Ok(a),
+        _ => return Err(RawIpError::NoRouteToDestination.into()),
+    }
+}
