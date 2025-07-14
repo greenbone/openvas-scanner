@@ -139,22 +139,3 @@ pub fn forge_icmp_v6(dst: Ipv6Addr) -> Result<Ipv6Packet<'static>, AliveTestErro
     let mut icmp_buf = forge_icmp_v6_packet();
     forge_ipv6_packet_for_icmp(&mut icmp_buf, dst)
 }
-
-/// Send an icmp packet
-pub fn alive_test_send_icmp_v6_packet(icmp: Ipv6Packet<'static>) -> Result<(), AliveTestError> {
-    tracing::debug!("starting sending packet");
-    let sock = common::new_raw_socket_v6()?;
-    sock.set_header_included_v6(true)
-        .map_err(|e| AliveTestError::NoSocket(e.to_string()))?;
-
-    let sockaddr = SocketAddr::new(IpAddr::V6(icmp.get_destination()), 0);
-    match sock.send_to(icmp.packet(), &sockaddr.into()) {
-        Ok(b) => {
-            tracing::debug!("Sent {} bytes", b);
-        }
-        Err(e) => {
-            return Err(AliveTestError::SendPacket(e.to_string()));
-        }
-    };
-    Ok(())
-}
