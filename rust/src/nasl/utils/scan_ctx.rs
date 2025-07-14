@@ -911,6 +911,50 @@ impl<'a> ScanCtx<'a> {
         Ok(ret)
     }
 
+    pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
+    }
+
+    pub fn get_preference_int(&self, key: &str) -> Option<i64> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .and_then(|x| x.value.parse::<i64>().ok())
+    }
+
+    pub fn get_preference_string(&self, key: &str) -> Option<String> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| x.value.clone())
+    }
+
+    pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+        match protocol {
+            Protocol::TCP => {
+                if !self.target.ports_tcp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty()
+                {
+                    return Ok(!self.get_preference_bool("unscanned_closed").unwrap_or(true));
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+            }
+            Protocol::UDP => {
+                if !self.target.ports_udp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty()
+                {
+                    return Ok(!self
+                        .get_preference_bool("unscanned_closed_udp")
+                        .unwrap_or(true));
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
+            }
+        }
+    }
+
     pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
         self.sockets.read().await
     }
