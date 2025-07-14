@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::alive_test::AliveTestError;
-use crate::alive_test::icmp::{
-    FIX_IPV6_HEADER_LENGTH, alive_test_send_icmp_packet, alive_test_send_icmp_v6_packet,
-    forge_icmp, forge_icmp_v6,
-};
+use crate::alive_test::common::{alive_test_send_v4_packet, alive_test_send_v6_packet};
+use crate::alive_test::icmp::{FIX_IPV6_HEADER_LENGTH, forge_icmp, forge_icmp_v6};
+
 use crate::models::{AliveTestMethods, Host};
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
@@ -191,11 +190,11 @@ async fn send_task(
             {
                 IpAddr::V4(ipv4) => {
                     let icmp = forge_icmp(ipv4);
-                    alive_test_send_icmp_packet(icmp)?;
+                    alive_test_send_v4_packet(icmp)?;
                 }
                 IpAddr::V6(ipv6) => {
                     let icmp = forge_icmp_v6(ipv6)?;
-                    alive_test_send_icmp_v6_packet(icmp)?;
+                    alive_test_send_v6_packet(icmp)?;
                 }
             };
         }
