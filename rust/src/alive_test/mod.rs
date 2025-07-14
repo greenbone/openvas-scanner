@@ -4,14 +4,11 @@
 
 #![doc = include_str!("README.md")]
 
-#[cfg(feature = "nasl-builtin-raw-ip")]
 #[allow(clippy::module_inception)]
 mod alive_test;
 mod common;
 mod error;
-#[cfg(feature = "nasl-builtin-raw-ip")]
 mod icmp;
 
-#[cfg(feature = "nasl-builtin-raw-ip")]
 pub use alive_test::Scanner;
 pub use error::Error as AliveTestError;
