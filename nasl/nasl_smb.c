@@ -85,7 +85,7 @@ nasl_smb_connect (lex_ctxt *lexic)
   char *share = get_str_var_by_name (lexic, "share");
 
   tree_cell *retc;
-  SMB_HANDLE handle;
+  SMB_HANDLE handle = 0;
   int value;
 
   if ((host == NULL) || (username == NULL) || (password == NULL)
