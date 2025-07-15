@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::alive_test::tcp_ping::{forge_tcp_ping, TH_SYN};
 use crate::alive_test::AliveTestError;
 use crate::alive_test::common::{alive_test_send_v4_packet, alive_test_send_v6_packet};
 use crate::alive_test::icmp::{FIX_IPV6_HEADER_LENGTH, forge_icmp, forge_icmp_v6};
@@ -24,6 +25,8 @@ use pnet::packet::{
     icmp::{IcmpTypes, *},
     ipv4::Ipv4Packet,
 };
+
+const DEFAULT_PORT_LIST: [u16; 20] = [21,22,23,25,53,80,110,111,135,139,143,443,445,993,995,1723,3306,3389,5900,8080];
 
 const MIN_ALLOWED_PACKET_LEN: usize = 16;
 
@@ -200,7 +203,26 @@ async fn send_task(
         }
     }
     if methods.contains(&AliveTestMethods::TcpSyn) {
-        //unimplemented
+        for t in trgt.iter() {
+            for port in DEFAULT_PORT_LIST.iter() {
+                count += 1;
+                match t
+                    .to_string()
+                    .parse::<IpAddr>()
+                    .map_err(|_| AliveTestError::InvalidDestinationAddr)?
+                {
+                    IpAddr::V4(ipv4) => {
+                        let tcp = forge_tcp_ping(ipv4, port, TH_SYN);
+                        alive_test_send_v4_packet(tcp)?;
+                    }
+                    IpAddr::V6(ipv6) => {
+                        let icmp = forge_icmp_v6(ipv6)?;
+                        alive_test_send_v6_packet(icmp)?;
+                    }
+                };
+                
+            }
+        }
     }
     if methods.contains(&AliveTestMethods::TcpAck) {
         //unimplemented
