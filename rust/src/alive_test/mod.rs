@@ -9,6 +9,7 @@ mod alive_test;
 mod common;
 mod error;
 mod icmp;
+mod tcp_ping;
 
 pub use alive_test::Scanner;
 pub use error::Error as AliveTestError;
