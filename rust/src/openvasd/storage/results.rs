@@ -6,7 +6,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{self, Scan, Status, scanner::ScanResults},
+    models::{
+        self, Scan, Status,
+        scanner::{ScanResultKind, ScanResults},
+    },
     nasl::utils::scan_ctx::ContextStorage,
     scheduling::SchedulerStorage,
     storage::{
@@ -120,8 +123,12 @@ impl<T> AppendFetchResult for ResultCatcher<T>
 where
     T: Storage + ResultHandler + Send + Sync,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
-        self.0.append_fetched_result(results).await
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
+        self.0.append_fetched_result(kind, results).await
     }
 }
 

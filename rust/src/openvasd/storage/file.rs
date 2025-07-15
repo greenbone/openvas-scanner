@@ -189,10 +189,25 @@ impl<S> AppendFetchResult for Storage<S>
 where
     S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
         for r in results {
             let id = &r.id;
-            let status = r.status;
+
+            let status = match kind {
+                ScanResultKind::StatusOverride => r.status,
+                ScanResultKind::StatusAddition => {
+                    let scan_status = self.get_status(&r.id).await?;
+                    let mut status = r.status;
+                    // TODO: change signature
+                    status.update_with(&scan_status);
+                    status
+                }
+            };
+
             self.update_status(id, status).await?;
             if r.results.is_empty() {
                 continue;
@@ -645,7 +660,10 @@ pub(crate) mod tests {
             status,
             results,
         }];
-        storage.append_fetched_result(results).await.unwrap();
+        storage
+            .append_fetched_result(ScanResultKind::StatusOverride, results)
+            .await
+            .unwrap();
 
         let status = Status {
             status: Phase::Running,
@@ -658,7 +676,11 @@ pub(crate) mod tests {
             status: status.clone(),
             results,
         }];
-        storage.append_fetched_result(results).await.unwrap();
+        storage
+            .append_fetched_result(ScanResultKind::StatusOverride, results)
+            .await
+            .unwrap();
+
         let stored_status = storage.get_status("42").await.unwrap();
         assert_eq!(status, stored_status);
         let range: Vec<String> = storage

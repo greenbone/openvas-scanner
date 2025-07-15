@@ -221,15 +221,28 @@ impl<E> AppendFetchResult for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
         let scans = self.scans.clone();
         let crypter = self.crypter.clone();
         tokio::task::spawn_blocking(move || {
             let mut scans = scans.write().unwrap();
-            for r in results {
+            for mut r in results {
                 let id = &r.id;
                 let progress = scans.get_mut(id).ok_or(Error::NotFound)?;
-                progress.status = r.status;
+                // maybe instead of progress.status = r.status we can set it to
+
+                match kind {
+                    ScanResultKind::StatusOverride => progress.status = r.status,
+                    ScanResultKind::StatusAddition => {
+                        // unfortunately the order plays a role
+                        r.status.update_with(&progress.status);
+                        progress.status = r.status;
+                    }
+                };
                 let mut len = progress.results.len();
                 let results = r.results;
                 for mut result in results {
@@ -578,7 +591,7 @@ mod tests {
             ],
         };
         storage
-            .append_fetched_result(vec![fetch_result])
+            .append_fetched_result(ScanResultKind::StatusOverride, vec![fetch_result])
             .await
             .unwrap();
         let results: Vec<_> = storage
@@ -616,7 +629,7 @@ mod tests {
             results: vec![models::Result::default()],
         };
         storage
-            .append_fetched_result(vec![fetch_result])
+            .append_fetched_result(ScanResultKind::StatusOverride, vec![fetch_result])
             .await
             .unwrap();
         let results: Vec<_> = storage
