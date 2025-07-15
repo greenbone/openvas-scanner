@@ -4,12 +4,11 @@
 
 use std::net::Ipv4Addr;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
-use std::str::FromStr;
 
-use crate::nasl::raw_ip_utils::raw_ip_utils::{get_source_ip, get_source_ipv6};
+use crate::nasl::raw_ip_utils::raw_ip_utils::get_source_ipv6;
 
 use super::AliveTestError;
-use super::common;
+use super::common::{self, DEFAULT_TTL, HEADER_LENGTH, IP_PPRTO_VERSION_IPV4, IP_LENGTH};
 use pnet::packet::{
     self, Packet,
     icmp::*,
@@ -23,14 +22,11 @@ use pnet::packet::{
 };
 
 pub const FIX_IPV6_HEADER_LENGTH: usize = 40;
-const DEFAULT_TTL: u8 = 255;
+
 const IPPROTO_IPV6: u8 = 6;
 const ICMP_LENGTH: usize = 8;
-const IP_LENGTH: usize = 20;
-const HEADER_LENGTH: u8 = 5;
 // This is the only possible code for an echo request
 const ICMP_ECHO_REQ_CODE: u8 = 0;
-const IP_PPRTO_VERSION_IPV4: u8 = 4;
 
 // ICMPv4
 
@@ -71,24 +67,6 @@ pub fn forge_icmp(dst: Ipv4Addr) -> Ipv4Packet<'static> {
     forge_ipv4_packet_for_icmp(&mut icmp_buf, dst)
 }
 
-/// Send an icmp packet
-pub fn alive_test_send_icmp_packet(icmp: Ipv4Packet<'static>) -> Result<(), AliveTestError> {
-    tracing::debug!("starting sending packet");
-    let sock = common::new_raw_socket()?;
-    sock.set_header_included_v4(true)
-        .map_err(|e| AliveTestError::NoSocket(e.to_string()))?;
-
-    let sockaddr = SocketAddr::new(IpAddr::V4(icmp.get_destination()), 0);
-    match sock.send_to(icmp.packet(), &sockaddr.into()) {
-        Ok(b) => {
-            tracing::debug!("Sent {} bytes", b);
-        }
-        Err(e) => {
-            return Err(AliveTestError::SendPacket(e.to_string()));
-        }
-    };
-    Ok(())
-}
 
 // ICMPv6
 
