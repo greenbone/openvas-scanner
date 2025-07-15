@@ -2,9 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
+use greenbone_scanner_framework::models::{ACT, NvtRef, TagKey, TagValue, VTData};
 use serde::Deserialize;
+
+use crate::scanner::preferences;
 
 /// Represents an advisory json file for notus product.
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -190,6 +193,91 @@ impl From<VulnerabilityData> for Vulnerability {
             family: data.family,
             name: data.adv.title,
             category: "3".to_string(),
+        }
+    }
+}
+
+impl From<VulnerabilityData> for VTData {
+    fn from(value: VulnerabilityData) -> VTData {
+        fn tag_to_vec(v: &Vulnerability) -> BTreeMap<TagKey, TagValue> {
+            use greenbone_scanner_framework::models::*;
+
+            let mut tags: BTreeMap<TagKey, TagValue> = BTreeMap::new();
+            if !v.affected.is_empty() {
+                tags.insert(TagKey::Affected, TagValue::from(v.affected.as_ref()));
+            }
+            if !v.summary.is_empty() {
+                tags.insert(TagKey::Summary, TagValue::from(v.summary.as_ref()));
+            }
+            if !v.impact.is_empty() {
+                tags.insert(TagKey::Impact, TagValue::from(v.impact.as_ref()));
+            }
+            if !v.insight.is_empty() {
+                tags.insert(TagKey::Insight, TagValue::from(v.insight.as_ref()));
+            }
+            if !v.solution.is_empty() {
+                tags.insert(TagKey::Solution, TagValue::from(v.solution.as_ref()));
+            }
+            if !v.solution_type.is_empty() {
+                tags.insert(
+                    TagKey::SolutionType,
+                    TagValue::from(v.solution_type.as_ref()),
+                );
+            }
+            if !v.vuldetect.is_empty() {
+                tags.insert(TagKey::Vuldetect, TagValue::from(v.vuldetect.as_ref()));
+            }
+            if !v.qod_type.is_empty() {
+                tags.insert(TagKey::QodType, TagValue::from(v.qod_type.as_ref()));
+            }
+            if !v.severity_vector.is_empty() {
+                tags.insert(
+                    TagKey::SeverityVector,
+                    TagValue::from(v.severity_vector.as_ref()),
+                );
+            }
+            if v.creation_date != 0 {
+                tags.insert(TagKey::CreationDate, TagValue::from(v.creation_date as i64));
+            }
+            if v.last_modification != 0 {
+                tags.insert(
+                    TagKey::LastModification,
+                    TagValue::from(v.last_modification as i64),
+                );
+            }
+
+            tags
+        }
+        fn get_refs(references: &HashMap<String, Vec<String>>) -> Vec<NvtRef> {
+            let mut refs: Vec<NvtRef> = Vec::new();
+            for (reftype, vals) in references {
+                let mut t = vals
+                    .iter()
+                    .map(|r| NvtRef::from((reftype.as_str(), r.as_str())))
+                    .collect();
+                refs.append(&mut t);
+            }
+            refs
+        }
+        let oid = value.adv.oid.clone();
+        let vul = value.into();
+        let tag = tag_to_vec(&vul);
+
+        VTData {
+            oid: oid.to_string(),
+            name: vul.name,
+            filename: vul.filename.clone(),
+            tag,
+            dependencies: Vec::new(),
+            required_keys: Vec::new(),
+            mandatory_keys: Vec::new(),
+            excluded_keys: Vec::new(),
+            required_ports: Vec::new(),
+            required_udp_ports: Vec::new(),
+            references: get_refs(&vul.refs),
+            preferences: Vec::new(),
+            category: ACT::GatherInfo,
+            family: vul.family,
         }
     }
 }

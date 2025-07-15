@@ -7,5 +7,3 @@ use crate::{models, storage::ScanID};
 pub type ResultItem = models::Result;
 
 pub type ResultContextKeySingle = (ScanID, usize);
-
-pub type ResultContextKeyAll = ScanID;

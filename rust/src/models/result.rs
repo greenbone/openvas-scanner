@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ffi::os_str::Display};
 
 use crate::models::Specifier;
 
@@ -38,6 +38,45 @@ pub struct Result {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Details are only set on status and can be ignored
     pub detail: Option<Detail>,
+}
+
+impl std::fmt::Display for ResultType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ResultType::Alarm => "alarm",
+                ResultType::Log => "log",
+                ResultType::Error => "error",
+                ResultType::HostStart => "host_start",
+                ResultType::HostEnd => "host_end",
+                ResultType::DeadHost => "dead_host",
+                ResultType::HostDetail => "host_detail",
+            }
+        )
+    }
+}
+
+impl From<&str> for ResultType {
+    fn from(s: &str) -> Self {
+        match s {
+            "alarm" => ResultType::Alarm,
+            "log" => ResultType::Log,
+            "error" => ResultType::Error,
+            "host_start" => ResultType::HostStart,
+            "host_end" => ResultType::HostEnd,
+            "dead_host" => ResultType::DeadHost,
+            "host_detail" => ResultType::HostDetail,
+            _ => ResultType::Log,
+        }
+    }
+}
+
+impl From<String> for ResultType {
+    fn from(value: String) -> Self {
+        ResultType::from(&value as &str)
+    }
 }
 
 /// Host Details information

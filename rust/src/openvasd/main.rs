@@ -5,47 +5,29 @@
 #![doc = include_str!("README.md")]
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
-#![allow(clippy::result_large_err)]
 
-use std::marker::{Send, Sync};
+pub mod config;
+pub mod crypt;
+mod json_stream;
+mod notus;
+mod scans;
+mod vts;
 
-use config::{Config, Mode, ScannerType};
-use controller::{Context, ContextBuilder};
-use notus::NotusWrapper;
-use scannerlib::models::scanner::{
-    ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner,
+use std::{
+    marker::{Send, Sync},
+    str::FromStr,
+    sync::Arc,
 };
-use scannerlib::nasl::FSPluginLoader;
-use scannerlib::nasl::utils::scan_ctx::ContextStorage;
-use scannerlib::notus::{HashsumProductLoader, Notus};
-use scannerlib::openvas::{self, cmd};
-use scannerlib::osp;
-use scannerlib::scanner::{ScannerStackWithStorage, preferences};
-use scannerlib::scheduling::SchedulerStorage;
-use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
-use storage::results::ResultCatcher;
-use storage::{FromConfigAndFeeds, ResultHandler, Storage};
-use tls::tls_config;
-use tracing::{info, metadata::LevelFilter, warn};
+
+use config::Config;
+use greenbone_scanner_framework::RuntimeBuilder;
+use sqlx::{SqlitePool, sqlite::SqliteSynchronous};
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use crate::{
-    config::StorageType,
-    crypt::ChaCha20Crypt,
-    storage::{FeedHash, file, inmemory, redis},
-};
-pub mod config;
-pub mod controller;
-pub mod crypt;
-pub mod feed;
-pub mod notus;
-pub mod request;
-pub mod response;
-mod scheduling;
-pub mod storage;
-pub mod tls;
-
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+// TODO: should be on config
 fn setup_log(config: &Config) {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
@@ -53,168 +35,70 @@ fn setup_log(config: &Config) {
     tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
-fn get_feeds(config: &Config) -> Vec<FeedHash> {
-    match config.mode {
-        Mode::Service => vec![
-            FeedHash::nasl(&config.feed.path),
-            FeedHash::advisories(&config.notus.advisories_path),
-        ],
-        Mode::ServiceNotus => vec![FeedHash::advisories(&config.notus.advisories_path)],
-    }
-}
+// TODO: move to config
+pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
+    use sqlx::{
+        Sqlite,
+        pool::PoolOptions,
+        sqlite::{SqliteConnectOptions, SqliteJournalMode},
+    };
+    use std::time::Duration;
+    fn from_config_to_sqlite_address(config: &Config) -> String {
+        use crate::config::StorageType;
 
-fn check_redis_url(config: &mut Config) -> String {
-    let redis_url = cmd::get_redis_socket();
-    if redis_url != config.storage.redis.url {
-        warn!(
-            openvas_redis = &redis_url,
-            openvasd_redis = &config.storage.redis.url,
-            "openvas and openvasd use different redis connection. Overriding openvasd#storage.redis.url"
-        );
-        config.storage.redis.url = redis_url.clone();
-    }
-    redis_url
-}
-
-fn make_osp_scanner(config: &Config) -> osp::Scanner {
-    if !config.scanner.ospd.socket.exists() && config.mode != Mode::ServiceNotus {
-        warn!(
-            "OSPD socket {} does not exist. Some commands will not work until the socket is created!",
-            config.scanner.ospd.socket.display()
-        );
-    }
-    osp::Scanner::new(
-        config.scanner.ospd.socket.clone(),
-        config.scanner.ospd.read_timeout,
-    )
-}
-
-fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
-    let redis_url = check_redis_url(&mut config);
-    openvas::Scanner::new(
-        config.scheduler.min_free_mem,
-        None,
-        cmd::check_sudo(),
-        redis_url,
-        preferences::preference::PREFERENCES.to_vec(),
-    )
-}
-
-fn make_openvasd_scanner<S>(
-    config: &Config,
-    storage: S,
-) -> scannerlib::scanner::Scanner<ScannerStackWithStorage<S>>
-where
-    S: ContextStorage + SchedulerStorage + Clone + 'static,
-{
-    scannerlib::scanner::Scanner::with_storage(storage, &config.feed.path)
-}
-
-async fn create_context<DB, ScanHandler>(
-    db: DB,
-    sh: ScanHandler,
-    config: &Config,
-) -> Context<ScanHandler, DB>
-where
-    ScanHandler:
-        ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Sync + Send + 'static,
-{
-    let mut ctx_builder = ContextBuilder::new();
-
-    let loader = FSPluginLoader::new(config.notus.products_path.to_string_lossy().to_string());
-    match HashsumProductLoader::new(loader) {
-        Ok(loader) => {
-            let notus = Notus::new(loader, config.feed.signature_check);
-            ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));
-        }
-        Err(e) => warn!("Notus Scanner disabled: {e}"),
-    }
-    tracing::warn!(enable_get_scans = config.endpoints.enable_get_scans);
-
-    ctx_builder
-        .mode(config.mode.clone())
-        .scheduler_config(config.scheduler.clone())
-        .feed_config(config.feed.clone())
-        .await
-        .scanner(sh)
-        .tls_config(tls_config(config).unwrap_or(None))
-        .api_key(config.endpoints.key.clone())
-        .enable_get_performance(config.endpoints.enable_get_performance)
-        .enable_get_scans(config.endpoints.enable_get_scans)
-        .storage(db)
-        .scan_preferences(config.scanner.preferences.clone())
-        .build()
-}
-
-async fn run_with_scanner_and_storage<Sc, St>(
-    scanner: Sc,
-    storage: St,
-    config: &Config,
-) -> Result<()>
-where
-    St: Storage + Send + Sync + 'static,
-    Sc: Scanner + Send + Sync + 'static,
-{
-    let ctx = create_context(storage, scanner, config).await;
-    controller::run(ctx, config).await
-}
-
-async fn run_with_storage<St>(config: &Config) -> Result<()>
-where
-    St: FromConfigAndFeeds + storage::ResultHandler + Storage + Send + 'static + Sync,
-{
-    let feeds = get_feeds(config);
-    let storage = St::from_config_and_feeds(config, feeds)?;
-
-    match config.scanner.scanner_type {
-        ScannerType::OSPD => {
-            let scanner = make_osp_scanner(config);
-            run_with_scanner_and_storage(scanner, storage, config).await
-        }
-        ScannerType::Openvas => {
-            let scanner = make_openvas_scanner(config.clone());
-            run_with_scanner_and_storage(scanner, storage, config).await
-        }
-        ScannerType::Openvasd => {
-            let storage = std::sync::Arc::new(ResultCatcher::new(storage));
-            let scanner = make_openvasd_scanner(config, storage.underlying_storage().clone());
-            run_with_scanner_and_storage(scanner, storage, config).await
-        }
-    }
-}
-
-async fn run(config: &Config) -> Result<()> {
-    info!(mode = ?config.mode, storage_type=?config.storage.storage_type, "Configuring storage devices");
-    match config.storage.storage_type {
-        StorageType::Redis => {
-            info!(url = config.storage.redis.url, "Using redis storage.");
-            run_with_storage::<redis::Storage<inmemory::Storage<ChaCha20Crypt>>>(config).await
-        }
-        StorageType::InMemory => {
-            info!("Using in-memory storage. No sensitive data will be stored on disk.");
-            run_with_storage::<inmemory::Storage<ChaCha20Crypt>>(config).await
-        }
-        StorageType::FileSystem => {
-            if config.storage.fs.key.is_some() {
-                info!("Using in-file storage. Sensitive data will be encrypted stored on disk.");
-                run_with_storage::<file::Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>(
-                    config,
-                )
-                .await
-            } else {
-                warn!(
-                    "Using in-file storage. Sensitive data will be stored on disk without any encryption."
-                );
-                run_with_storage::<file::Storage<IndexedFileStorer>>(config).await
+        match config.storage.storage_type {
+            StorageType::InMemory => "sqlite::memory:?cache=shared".to_owned(),
+            StorageType::FileSystem if config.storage.fs.path.is_dir() => {
+                let mut p = config.storage.fs.path.clone();
+                p.push("openvasd.db");
+                format!("sqlite:{}", p.to_string_lossy())
             }
+            StorageType::FileSystem => {
+                format!("sqlite:{}", config.storage.fs.path.to_string_lossy())
+            }
+            // actually it can when using the openvas scanner mode
+            StorageType::Redis => unreachable!(
+                "Redis configuration should never call storage::sqlite::Storage::from_config_and_feeds"
+            ),
         }
     }
+
+    // TODO: calculate max_connections or change configuration
+    let max_connections = 20;
+    // TODO: make busy_timeout a configuration option
+    let busy_timeout = Duration::from_secs(2);
+
+    let options = SqliteConnectOptions::from_str(&from_config_to_sqlite_address(config))?
+        .journal_mode(SqliteJournalMode::Wal)
+        // Although this can lead to data loss in the case that the application crashes we usually
+        // need to either restart that scan anyway.
+        .synchronous(SqliteSynchronous::Off)
+        .busy_timeout(busy_timeout)
+        .create_if_missing(true);
+    let pool = PoolOptions::<Sqlite>::new()
+        .max_connections(max_connections)
+        .connect_with(options)
+        .await?;
+    sqlx::migrate!().run(&pool).await?;
+    Ok(pool)
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
-    tracing::debug!(key = config.storage.fs.key);
     setup_log(&config);
-    run(&config).await
+    let pool = setup_sqlite(&config).await?;
+    let scan = scans::Endpoints {};
+    let vts = vts::init(pool, &config).await;
+    let (get_notus, post_notus) = notus::init(&config);
+
+    RuntimeBuilder::<greenbone_scanner_framework::End>::new()
+        //TODO: feed version needs to be getable
+        .feed_version("bla".to_owned())
+        .insert_scans(Arc::new(scan))
+        .insert_get_vts(Arc::new(vts))
+        .insert_on_request(get_notus)
+        .insert_on_request(post_notus)
+        .run_blocking()
+        .await
 }

@@ -51,6 +51,8 @@ pub enum AliveTestMethods {
 pub enum AliveTestMethodsError {
     #[error("Invalid value for AliveTestMethods: {0:#04x}")]
     InvalidValue(u8),
+    #[error("Invalid value for AliveTestMethods: {0}")]
+    InvalidStrValue(String),
 }
 
 impl TryFrom<u8> for AliveTestMethods {
@@ -64,6 +66,18 @@ impl TryFrom<u8> for AliveTestMethods {
             0x08 => Ok(AliveTestMethods::ConsiderAlive),
             0x10 => Ok(AliveTestMethods::TcpSyn),
             _ => Err(AliveTestMethodsError::InvalidValue(value)),
+        }
+    }
+}
+
+impl From<&str> for AliveTestMethods {
+    fn from(value: &str) -> Self {
+        match value {
+            "tcp_ack" => AliveTestMethods::TcpAck,
+            "tcp_syn" => AliveTestMethods::TcpSyn,
+            "icmp" => AliveTestMethods::Icmp,
+            "arp" => AliveTestMethods::Arp,
+            _ => AliveTestMethods::ConsiderAlive,
         }
     }
 }

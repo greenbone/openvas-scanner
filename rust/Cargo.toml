@@ -91,6 +91,7 @@ libssh-rs = { version = "0.3.5", features = [
 ], optional = true }
 
 nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
+greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
 nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 openssl = { version = "0.10.72", features = ["vendored"] }
 blowfish = "0.9.1"
@@ -99,8 +100,13 @@ codespan-reporting = "0.11.1"
 dsa = "0.6.3"
 mtu = { version = "0.2.9", optional = true }
 
+sqlx = { version = "0.8.3", features = ["sqlite", "runtime-tokio-rustls" ] }
+tokio-serde-json = "0.3.0"
+tokio-util = "0.7.15"
+
+
 [workspace]
-members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
+members = ["crates/smoketest", "crates/nasl-function-proc-macro", "crates/greenbone-scanner-framework"]
 
 [dev-dependencies]
 tracing-test = "0.2.5"
@@ -142,6 +148,10 @@ codegen-units = 1
 [[bin]]
 name = "openvasd"
 path = "src/openvasd/main.rs"
+[[bin]]
+name = "openvasdold"
+path = "src/openvasdold/main.rs"
+
 
 [[bin]]
 name = "scannerctl"

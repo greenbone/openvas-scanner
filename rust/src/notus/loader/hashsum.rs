@@ -18,8 +18,8 @@ pub struct HashsumProductLoader {
 impl SignatureChecker for HashsumProductLoader {}
 
 impl HashsumProductLoader {
-    pub fn new(loader: FSPluginLoader) -> Result<Self, Error> {
-        Ok(Self { loader })
+    pub fn new(loader: FSPluginLoader) -> Self {
+        Self { loader }
     }
 }
 
