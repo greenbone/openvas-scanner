@@ -8,6 +8,7 @@ pub mod feed;
 pub mod results;
 
 use std::{
+    fmt::Display,
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
@@ -31,6 +32,21 @@ where
         hasher.update(value);
         let hash = hasher.finalize();
         Self(hash.into())
+    }
+}
+
+impl Display for ClientHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .fold(String::with_capacity(self.0.len() * 2), |mut a, x| {
+                    a.push_str(&format!("{x:02x}"));
+                    a
+                })
+        )
     }
 }
 
