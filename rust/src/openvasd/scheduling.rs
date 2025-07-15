@@ -6,7 +6,7 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::storage::{Error as StorageError, FeedHash, Storage};
+use crate::storage::{Error as StorageError, FeedHash, MappedID, Storage};
 use async_trait::async_trait;
 use scannerlib::models::scanner::Error as ScanError;
 use scannerlib::models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
@@ -184,8 +184,9 @@ where
         }
 
         self.db.remove_scan(id).await?;
-        // TODO change from I to &str so that we don't have to clone everywhere
-        self.db.remove_scan_id(id.to_string()).await?;
+        //TODO: why not in remove_scan?
+        self.db.remove_mapped_id(id).await?;
+
         Ok(())
     }
 
@@ -356,36 +357,28 @@ where
     DB: Storage + Sync + Send + 'static,
     S: Send + Sync,
 {
-    async fn add_scan_client_id(
+    async fn generate_mapped_id(
         &self,
+        client: ClientHash,
         scan_id: String,
-        client_id: ClientHash,
-    ) -> Result<(), StorageError> {
-        self.db.add_scan_client_id(scan_id, client_id).await
+    ) -> Result<MappedID, crate::storage::Error> {
+        self.db.generate_mapped_id(client, scan_id).await
     }
-    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), StorageError>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        self.db.remove_scan_id(scan_id).await
-    }
-
-    async fn get_scans_of_client_id(
+    async fn list_mapped_scan_ids(
         &self,
-        client_id: &ClientHash,
-    ) -> Result<Vec<String>, StorageError> {
-        self.db.get_scans_of_client_id(client_id).await
+        client: &ClientHash,
+    ) -> Result<Vec<String>, crate::storage::Error> {
+        self.db.list_mapped_scan_ids(client).await
     }
-
-    async fn is_client_allowed<I>(
+    async fn get_mapped_id(
         &self,
-        scan_id: I,
-        client_id: &ClientHash,
-    ) -> Result<bool, StorageError>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        self.db.is_client_allowed(scan_id, client_id).await
+        client: &ClientHash,
+        scan_id: &str,
+    ) -> Result<MappedID, crate::storage::Error> {
+        self.db.get_mapped_id(client, scan_id).await
+    }
+    async fn remove_mapped_id(&self, id: &str) -> Result<(), crate::storage::Error> {
+        self.db.remove_mapped_id(id).await
     }
 }
 
