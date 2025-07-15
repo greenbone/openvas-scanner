@@ -8,7 +8,7 @@ use std::time::SystemTime;
 
 use crate::storage::{Error as StorageError, FeedHash, MappedID, Storage};
 use async_trait::async_trait;
-use scannerlib::models::scanner::Error as ScanError;
+use scannerlib::models::scanner::{Error as ScanError, ScanResultKind};
 use scannerlib::models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
 use scannerlib::models::{Phase, Scan, Status};
 use scannerlib::storage::items::nvt::Nvt;
@@ -94,9 +94,11 @@ impl From<Error> for ScanError {
 #[derive(Debug)]
 pub struct Scheduler<DB, Scanner> {
     /// Contains the currently queued scan ids.
+    //TODO: remove queued in favor of a function within the stoage to get scans that are stored
     queued: RwLock<Vec<String>>,
 
     /// Contains the currently running scan ids.
+    //TODO: remove running in favor of a function within the stoage to get scans that are requested
     running: RwLock<Vec<String>>,
     /// Is used to retrieve scans and update status.
     db: DB,
@@ -163,6 +165,7 @@ where
         if queued.iter().any(|x| x == id) {
             return Err(Error::ScanAlreadyQueued);
         }
+        //TODO: update_status should not be done this way,
         self.update_status(id, status).await?;
         queued.push(id.to_string());
         Ok(())
@@ -199,6 +202,7 @@ where
         }
         let config = self.config();
         let mut queued = self.queued.write().await;
+        // TODO: add function to storage to count running scans
         let mut running = self.running.write().await;
         let amount_to_start = if let Some(mrs) = config.max_running_scans {
             mrs - running.len()
@@ -257,13 +261,14 @@ where
             match self.fetch_results(scan_id.clone()).await {
                 // using self.append_fetch_result instead of db to keep track of the status
                 // and may remove them from running.
-                Ok(mut results) => {
-                    if self.scanner.do_addition() {
-                        let scan_status = self.db.get_status(&scan_id).await?;
-                        results.status.update_with(&scan_status);
-                    }
-
-                    match self.append_fetched_result(vec![results]).await {
+                Ok(results) => {
+                    match self
+                        .append_fetched_result(
+                            self.scanner.scan_result_status_kind(),
+                            vec![results],
+                        )
+                        .await
+                    {
                         Ok(()) => {
                             tracing::trace!(%scan_id, "fetched and append results");
                         }
@@ -351,6 +356,7 @@ where
     }
 }
 
+//TODO: why are we doing this?
 #[async_trait]
 impl<DB, S> ScanIDClientMapper for Scheduler<DB, S>
 where
@@ -498,7 +504,12 @@ where
     DB: Storage + Sync + Send + 'static,
     S: Sync + Send,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), StorageError> {
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), StorageError> {
+        //TODO: will be done in the stoage instead, this is annoying
         let mut running = self.running.write().await;
         for x in results.iter() {
             match x.status.status {
@@ -513,7 +524,7 @@ where
         drop(running);
 
         tracing::trace!("appending results");
-        self.db.append_fetched_result(results).await
+        self.db.append_fetched_result(kind, results).await
     }
 }
 
