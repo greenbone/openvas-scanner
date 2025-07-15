@@ -12,6 +12,14 @@ use pcap::{Address, Device};
 
 use super::RawIpError;
 
+
+use pnet::packet::{
+    ipv4::Ipv4Packet,
+    ipv6::Ipv6Packet,
+    tcp::*,
+    udp::MutableUdpPacket,
+};
+
 /// Convert a string in a IpAddr
 pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FnError> {
     match IpAddr::from_str(ip_addr) {
@@ -110,5 +118,65 @@ pub fn get_source_ipv4(dst: Ipv4Addr) -> Result<Ipv4Addr, FnError> {
     match get_source_ip(IpAddr::from(dst)) {
         Ok(IpAddr::V4(a)) => Ok(a),
         _ => return Err(RawIpError::NoRouteToDestination.into()),
+    }
+}
+
+pub trait ChecksumCalculator<'a, V: 'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a V) -> u16;
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableUdpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::udp::ipv4_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableTcpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::tcp::ipv4_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableUdpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::udp::ipv6_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableTcpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::tcp::ipv6_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
     }
 }

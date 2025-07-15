@@ -11,7 +11,7 @@ use std::{
 
 use super::{
     PacketForgeryError, RawIpError,
-    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
+    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost, ChecksumCalculator},
 };
 
 use crate::nasl::prelude::*;
@@ -242,65 +242,6 @@ pub fn display_packet(vector: &[u8]) {
     println!("packet = {}", &s);
 }
 
-trait ChecksumCalculator<'a, V: 'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a V) -> u16;
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableUdpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::udp::ipv4_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableTcpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::tcp::ipv4_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableUdpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::udp::ipv6_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableTcpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::tcp::ipv6_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
 
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
 pub fn safe_copy_from_slice(
