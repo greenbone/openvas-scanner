@@ -15,7 +15,10 @@ use std::{
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{self, FeedType, Scan, Status, VulnerabilityData, scanner::ScanResults},
+    models::{
+        self, FeedType, Scan, Status, VulnerabilityData,
+        scanner::{ScanResultKind, ScanResults},
+    },
     storage::{Dispatcher, error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt},
 };
 
@@ -212,15 +215,25 @@ pub trait ScanStorer {
 ///
 /// This is used when a scan is started and the results are fetched from ospd.
 pub trait AppendFetchResult {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error>;
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error>;
 }
 #[async_trait]
 impl<T> AppendFetchResult for Arc<T>
 where
     T: AppendFetchResult + Send + Sync,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
-        self.as_ref().append_fetched_result(results).await
+    async fn append_fetched_result(
+        &self,
+
+        kind: ScanResultKind,
+
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
+        self.as_ref().append_fetched_result(kind, results).await
     }
 }
 

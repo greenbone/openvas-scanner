@@ -23,7 +23,7 @@ use scannerlib::{
 use tokio::{sync::RwLock, task::JoinSet};
 
 use crate::{config::Config, controller::ClientHash, storage::FeedType};
-use scannerlib::models::scanner::ScanResults;
+use scannerlib::models::scanner::{ScanResultKind, ScanResults};
 
 use super::{
     AppendFetchResult, Error, FeedHash, FromConfigAndFeeds, MappedID, NVTStorer, ProgressGetter,
@@ -314,8 +314,12 @@ impl<T> AppendFetchResult for Storage<T>
 where
     T: super::Storage + std::marker::Sync,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
-        self.underlying.append_fetched_result(results).await
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
+        self.underlying.append_fetched_result(kind, results).await
     }
 }
 
