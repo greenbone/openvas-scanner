@@ -14,6 +14,8 @@ pub enum Error {
     CreateIcmpPacketFromWrongBufferSize(i64),
     #[error("Wrong buffer size {0}. Not possible to create an IP packet")]
     CreateIpPacketFromWrongBufferSize(i64),
+    #[error("Wrong buffer size {0}. Not possible to create an TCP packet")]
+    CreateTcpPacketFromWrongBufferSize(i64),
     #[error("It was not possible to parse the destination Address")]
     InvalidDestinationAddr,
     #[error("Error sending a packet: {0}")]
