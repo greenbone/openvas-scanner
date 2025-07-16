@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::alive_test::tcp_ping::{forge_tcp_ping, TH_SYN};
+use crate::alive_test::tcp_ping::{forge_tcp_ping, TcpFlags, FILTER_PORT};
 use crate::alive_test::AliveTestError;
 use crate::alive_test::common::{alive_test_send_v4_packet, alive_test_send_v6_packet};
 use crate::alive_test::icmp::{FIX_IPV6_HEADER_LENGTH, forge_icmp, forge_icmp_v6};
@@ -14,6 +14,7 @@ use futures::StreamExt;
 use pnet::packet::icmpv6::{Icmpv6Packet, Icmpv6Types};
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::ipv6::Ipv6Packet;
+use pnet::packet::tcp::TcpPacket;
 use std::time::Duration;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::time::sleep;
@@ -99,9 +100,23 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestE
         if icmp_pkt.get_icmp_type() == IcmpTypes::EchoReply
             && pkt.get_next_level_protocol() == IpNextHeaderProtocols::Icmp
         {
+            dbg!(&icmp_pkt);
+
             return Ok(Some(AliveHostCtl {
                 ip: pkt.get_source().to_string(),
                 detection_method: AliveTestMethods::Icmp,
+            }));
+        }
+    }
+    if pkt.get_next_level_protocol() == IpNextHeaderProtocols::Tcp {
+        let tcp_packet = TcpPacket::new(&packet[hl..]).ok_or_else(|| {
+            AliveTestError::CreateIcmpPacketFromWrongBufferSize(packet[hl..].len() as i64)
+        })?;
+        if tcp_packet.get_destination() == FILTER_PORT {
+            dbg!(&tcp_packet);
+            return Ok(Some(AliveHostCtl {
+                ip: pkt.get_source().to_string(),
+                detection_method: AliveTestMethods::TcpSyn,
             }));
         }
     }
@@ -194,6 +209,7 @@ async fn send_task(
                 IpAddr::V4(ipv4) => {
                     let icmp = forge_icmp(ipv4);
                     alive_test_send_v4_packet(icmp)?;
+                    dbg!("send ptk");
                 }
                 IpAddr::V6(ipv6) => {
                     let icmp = forge_icmp_v6(ipv6)?;
@@ -212,7 +228,7 @@ async fn send_task(
                     .map_err(|_| AliveTestError::InvalidDestinationAddr)?
                 {
                     IpAddr::V4(ipv4) => {
-                        let tcp = forge_tcp_ping(ipv4, port, TH_SYN);
+                        let tcp = forge_tcp_ping(ipv4, port, pnet::packet::tcp::TcpFlags::SYN)?;
                         alive_test_send_v4_packet(tcp)?;
                     }
                     IpAddr::V6(ipv6) => {
@@ -225,7 +241,26 @@ async fn send_task(
         }
     }
     if methods.contains(&AliveTestMethods::TcpAck) {
-        //unimplemented
+        for t in trgt.iter() {
+            for port in DEFAULT_PORT_LIST.iter() {
+                count += 1;
+                match t
+                    .to_string()
+                    .parse::<IpAddr>()
+                    .map_err(|_| AliveTestError::InvalidDestinationAddr)?
+                {
+                    IpAddr::V4(ipv4) => {
+                        let tcp = forge_tcp_ping(ipv4, port, pnet::packet::tcp::TcpFlags::SYN)?;
+                        alive_test_send_v4_packet(tcp)?;
+                    }
+                    IpAddr::V6(ipv6) => {
+                        let icmp = forge_icmp_v6(ipv6)?;
+                        alive_test_send_v6_packet(icmp)?;
+                    }
+                };
+                
+            }
+        }
     }
     if methods.contains(&AliveTestMethods::Arp) {
         //unimplemented
