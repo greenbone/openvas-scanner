@@ -252,7 +252,7 @@ where
             }
             let cid = cid.unwrap_or_default();
             //TODO: although it is ugly, when moving to greenbone-scanner-framework this test will
-            //be handled differently. Therefore I leave it as is, although it is missleading.
+            //be handled differently. Therefore I leave it as is, although it is misleading.
             let mapped_id = match kp.scan_id() {
                 Some(id) => match ctx.scheduler.get_mapped_id(&cid, id).await {
                     Ok(x) => x,

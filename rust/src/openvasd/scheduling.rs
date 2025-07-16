@@ -94,11 +94,11 @@ impl From<Error> for ScanError {
 #[derive(Debug)]
 pub struct Scheduler<DB, Scanner> {
     /// Contains the currently queued scan ids.
-    //TODO: remove queued in favor of a function within the stoage to get scans that are stored
+    //TODO: remove queued in favor of a function within the storage to get scans that are stored
     queued: RwLock<Vec<String>>,
 
     /// Contains the currently running scan ids.
-    //TODO: remove running in favor of a function within the stoage to get scans that are requested
+    //TODO: remove running in favor of a function within the storage to get scans that are requested
     running: RwLock<Vec<String>>,
     /// Is used to retrieve scans and update status.
     db: DB,
@@ -509,7 +509,7 @@ where
         kind: ScanResultKind,
         results: Vec<ScanResults>,
     ) -> Result<(), StorageError> {
-        //TODO: will be done in the stoage instead, this is annoying
+        //TODO: will be done in the storage instead, this is annoying
         let mut running = self.running.write().await;
         for x in results.iter() {
             match x.status.status {

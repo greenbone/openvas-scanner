@@ -13,7 +13,7 @@ use super::{Scan, Status};
 /// override the status information based on that.  while on OpenVAS scanner the status just
 /// contains the current information, therefore the status has to be updated.
 pub enum ScanResultKind {
-    /// The status must be overriden on append_fetch_results
+    /// The status must be overridden on append_fetch_results
     StatusOverride,
     /// The status must be updated on append_fetch_results
     StatusAddition,
