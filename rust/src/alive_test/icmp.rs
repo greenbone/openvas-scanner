@@ -8,7 +8,9 @@ use std::net::Ipv6Addr;
 use crate::nasl::raw_ip_utils::raw_ip_utils::get_source_ipv6;
 
 use super::AliveTestError;
-use super::common::{DEFAULT_TTL, HEADER_LENGTH, IP_PPRTO_VERSION_IPV4, IP_LENGTH};
+use super::common::FIX_IPV6_HEADER_LENGTH;
+use super::common::IPPROTO_IPV6;
+use super::common::{DEFAULT_TTL, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4};
 use pnet::packet::{
     self,
     icmp::*,
@@ -21,9 +23,6 @@ use pnet::packet::{
     ipv6::{Ipv6Packet, MutableIpv6Packet},
 };
 
-pub const FIX_IPV6_HEADER_LENGTH: usize = 40;
-
-const IPPROTO_IPV6: u8 = 6;
 const ICMP_LENGTH: usize = 8;
 // This is the only possible code for an echo request
 const ICMP_ECHO_REQ_CODE: u8 = 0;
@@ -66,7 +65,6 @@ pub fn forge_icmp(dst: Ipv4Addr) -> Ipv4Packet<'static> {
     let mut icmp_buf = forge_icmp_packet();
     forge_ipv4_packet_for_icmp(&mut icmp_buf, dst)
 }
-
 
 // ICMPv6
 
