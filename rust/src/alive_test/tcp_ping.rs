@@ -14,9 +14,24 @@ use super::common::{DEFAULT_TTL, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4
 use super::AliveTestError;
 
 pub const FILTER_PORT: u16 = 9910;
-pub const TH_SYN: u16 = 0x02;
-pub const TH_ACK: u16 = 0x10;
 pub const TCP_LENGTH: usize = 20;
+
+#[derive(PartialEq, Eq)]
+pub enum TcpFlags {
+    Empty = 0x00,
+    ThSyn = 0x02,
+    ThAck = 0x10,
+}
+
+impl From<u16> for TcpFlags {
+    fn from(value: u16) -> Self {
+        match value {
+            0x02 => Self::ThSyn,
+            0x10 => Self::ThAck,
+            _ => Self::Empty,
+        }
+    }
+}
 
 pub fn tcp_ping(dport: u16, tcp_flag: u16) -> Vec<u8> {
     
@@ -27,14 +42,14 @@ pub fn tcp_ping(dport: u16, tcp_flag: u16) -> Vec<u8> {
     tcp.set_sequence(random_impl().unwrap() as u32);
     tcp.set_acknowledgement(0);
     tcp.set_data_offset(5);
-    tcp.set_window(2048);
+    tcp.set_window(8);
     tcp.set_urgent_ptr(0);
     tcp.set_source(FILTER_PORT);
     tcp.set_destination(dport);
     tcp_buf
 }
 
-fn forge_ipv4_packet_for_tcp(tcp_buf: &mut Vec<u8>, dst: Ipv4Addr) -> Ipv4Packet<'static> {
+fn forge_ipv4_packet_for_tcp(tcp_buf: &mut Vec<u8>, dst: Ipv4Addr) -> Result<Ipv4Packet<'static>, AliveTestError> {
     // We do now the same as above for the IPv4 packet, appending the icmp packet as payload
     let mut ip_buf = vec![0; IP_LENGTH + TCP_LENGTH];
 
@@ -45,6 +60,7 @@ fn forge_ipv4_packet_for_tcp(tcp_buf: &mut Vec<u8>, dst: Ipv4Addr) -> Ipv4Packet
     pkt.set_header_length(HEADER_LENGTH);
     pkt.set_next_level_protocol(IpNextHeaderProtocols::Tcp);
     pkt.set_ttl(0x40);
+    pkt.set_source(get_source_ipv4(dst).map_err(|_| AliveTestError::InvalidDestinationAddr)?);
     pkt.set_destination(dst);
     pkt.set_fragment_offset(0);
     pkt.set_identification(random_impl().unwrap() as u16);
@@ -58,10 +74,10 @@ fn forge_ipv4_packet_for_tcp(tcp_buf: &mut Vec<u8>, dst: Ipv4Addr) -> Ipv4Packet
     tcp.set_checksum(chksum);
     pkt.set_payload(tcp.packet());
 
-    Ipv4Packet::owned(ip_buf).unwrap()
+    Ok(Ipv4Packet::owned(ip_buf).unwrap())
 }
 
-pub fn forge_tcp_ping(dst: Ipv4Addr, dport: &u16, tcp_flag: u16) -> Ipv4Packet<'static> {
+pub fn forge_tcp_ping(dst: Ipv4Addr, dport: &u16, tcp_flag: u16) -> Result<Ipv4Packet<'static>, AliveTestError> {
     let mut tcp_buf = tcp_ping(*dport, tcp_flag);
     forge_ipv4_packet_for_tcp(&mut tcp_buf, dst)
 }
