@@ -11,7 +11,7 @@ use std::{
 
 use super::{
     PacketForgeryError, RawIpError,
-    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost, ChecksumCalculator},
+    raw_ip_utils::{ChecksumCalculator, get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
 use crate::nasl::prelude::*;
@@ -241,7 +241,6 @@ pub fn display_packet(vector: &[u8]) {
     }
     println!("packet = {}", &s);
 }
-
 
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
 pub fn safe_copy_from_slice(

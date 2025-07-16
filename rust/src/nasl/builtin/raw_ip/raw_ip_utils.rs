@@ -12,13 +12,7 @@ use pcap::{Address, Device};
 
 use super::RawIpError;
 
-
-use pnet::packet::{
-    ipv4::Ipv4Packet,
-    ipv6::Ipv6Packet,
-    tcp::*,
-    udp::MutableUdpPacket,
-};
+use pnet::packet::{ipv4::Ipv4Packet, ipv6::Ipv6Packet, tcp::*, udp::MutableUdpPacket};
 
 /// Convert a string in a IpAddr
 pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FnError> {
