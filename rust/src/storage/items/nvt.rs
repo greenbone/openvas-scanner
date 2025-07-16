@@ -490,7 +490,9 @@ impl TagValue {
                 .as_timestamp()
                 .ok_or_else(error)
                 .map(Self::from),
-            // is set to be ignored
+            // CvssBase is obsolete and has been replaced by CvssBaseVector.
+            // It remains handled solely for backward compatibility.
+            // We ignore it, as all current feed entries use CvssBaseVector.
             TagKey::CvssBase => Ok(TagValue::Null),
             TagKey::Deprecated => match value.to_string().as_str() {
                 "TRUE" | "true" | "1" => Ok(TagValue::Boolean(true)),
