@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::net::Ipv4Addr;
-use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+use std::net::Ipv6Addr;
 
 use crate::nasl::raw_ip_utils::raw_ip_utils::get_source_ipv6;
 
 use super::AliveTestError;
-use super::common::{self, DEFAULT_TTL, HEADER_LENGTH, IP_PPRTO_VERSION_IPV4, IP_LENGTH};
+use super::common::{DEFAULT_TTL, HEADER_LENGTH, IP_PPRTO_VERSION_IPV4, IP_LENGTH};
 use pnet::packet::{
-    self, Packet,
+    self,
     icmp::*,
     icmpv6::{
         Icmpv6Types, MutableIcmpv6Packet, echo_reply::Icmpv6Codes,
