@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::alive_test::tcp_ping::{forge_tcp_ping, TcpFlags, FILTER_PORT};
+use crate::alive_test::tcp_ping::{forge_tcp_ping, FILTER_PORT};
 use crate::alive_test::AliveTestError;
 use crate::alive_test::common::{alive_test_send_v4_packet, alive_test_send_v6_packet};
 use crate::alive_test::icmp::{FIX_IPV6_HEADER_LENGTH, forge_icmp, forge_icmp_v6};

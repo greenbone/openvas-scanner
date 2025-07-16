@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::Ipv4Addr;
 
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::ipv4::{checksum, Ipv4Packet, MutableIpv4Packet};
-use pnet::packet::{self, Packet, tcp::MutableTcpPacket};
+use pnet::packet::{Packet, tcp::MutableTcpPacket};
 
-use crate::nasl::raw_ip_utils::raw_ip_utils::{get_source_ip, get_source_ipv4, ChecksumCalculator};
+use crate::nasl::raw_ip_utils::raw_ip_utils::{get_source_ipv4, ChecksumCalculator};
 use crate::nasl::builtin::misc::random_impl;
-use super::common::{DEFAULT_TTL, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4};
+use super::common::{HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4};
 use super::AliveTestError;
 
 pub const FILTER_PORT: u16 = 9910;

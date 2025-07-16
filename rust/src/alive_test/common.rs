@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use pnet::packet::{self, Packet, ipv4::Ipv4Packet, ipv6::Ipv6Packet};
+use pnet::packet::{Packet, ipv4::Ipv4Packet, ipv6::Ipv6Packet};
 use socket2::{Domain, Protocol, Socket};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::net::{IpAddr, SocketAddr};
 
 use super::AliveTestError;
 
