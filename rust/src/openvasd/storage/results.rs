@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2025 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+// TODO: remove this file
 
 use std::sync::Arc;
 
@@ -19,7 +20,7 @@ use scannerlib::{
         items::{
             kb::{GetKbContextKey, KbContextKey, KbItem},
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
-            result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
+            result::{ResultContextKeySingle, ResultItem},
         },
     },
 };
@@ -60,13 +61,6 @@ where
         E: From<StorageError>,
     {
         self.0.handle_result(key, result)
-    }
-
-    fn remove_result<E>(&self, key: &str, idx: Option<usize>) -> Result<Vec<models::Result>, E>
-    where
-        E: From<StorageError>,
-    {
-        self.0.remove_result(key, idx)
     }
 }
 
@@ -126,7 +120,7 @@ where
     async fn append_fetched_result(
         &self,
         kind: ScanResultKind,
-        results: Vec<ScanResults>,
+        results: ScanResults,
     ) -> Result<(), Error> {
         self.0.append_fetched_result(kind, results).await
     }
@@ -211,6 +205,8 @@ where
 {
     type Item = ResultItem;
     fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
+        //TODO: if we just store it immediately as a Result on the interpreter storage
+        // implementation we can actually get rid of ResultCatcher
         self.handle_result(&key.0, item)
     }
 }
@@ -255,12 +251,12 @@ where
     }
 }
 
-impl<T> Retriever<ResultContextKeyAll> for ResultCatcher<T>
+impl<T> Retriever<ScanID> for ResultCatcher<T>
 where
     T: Storage + ResultHandler + Send + Sync,
 {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn retrieve(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         self.underlying_storage().retrieve(key)
     }
 }
@@ -315,31 +311,13 @@ where
     }
 }
 
-impl<T> Remover<ResultContextKeySingle> for ResultCatcher<T>
-where
-    T: Storage + ResultHandler + Send + Sync,
-{
-    type Item = ResultItem;
-    fn remove(&self, key: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
-        let ret = self
-            .0
-            .remove_result::<StorageError>(&key.0.0, Some(key.1))?;
-        if ret.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(ret[0].clone()))
-        }
-    }
-}
-
-impl<T> Remover<ResultContextKeyAll> for ResultCatcher<T>
+impl<T> Remover<ScanID> for ResultCatcher<T>
 where
     T: Storage + ResultHandler + Send + Sync,
 {
     type Item = Vec<ResultItem>;
-    fn remove(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
-        let ret = self.0.remove_result::<StorageError>(&key.0, None)?;
-        Ok(Some(ret))
+    fn remove(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+        self.underlying_storage().remove(key)
     }
 }
 

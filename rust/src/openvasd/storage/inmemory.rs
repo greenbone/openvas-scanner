@@ -224,33 +224,31 @@ where
     async fn append_fetched_result(
         &self,
         kind: ScanResultKind,
-        results: Vec<ScanResults>,
+        mut r: ScanResults,
     ) -> Result<(), Error> {
         let scans = self.scans.clone();
         let crypter = self.crypter.clone();
         tokio::task::spawn_blocking(move || {
             let mut scans = scans.write().unwrap();
-            for mut r in results {
-                let id = &r.id;
-                let progress = scans.get_mut(id).ok_or(Error::NotFound)?;
-                // maybe instead of progress.status = r.status we can set it to
+            let id = &r.id;
+            let progress = scans.get_mut(id).ok_or(Error::NotFound)?;
+            // maybe instead of progress.status = r.status we can set it to
 
-                match kind {
-                    ScanResultKind::StatusOverride => progress.status = r.status,
-                    ScanResultKind::StatusAddition => {
-                        // unfortunately the order plays a role
-                        r.status.update_with(&progress.status);
-                        progress.status = r.status;
-                    }
-                };
-                let mut len = progress.results.len();
-                let results = r.results;
-                for mut result in results {
-                    result.id = len;
-                    len += 1;
-                    let bytes = serde_json::to_vec(&result)?;
-                    progress.results.push(crypter.encrypt_sync(bytes));
+            match kind {
+                ScanResultKind::StatusOverride => progress.status = r.status,
+                ScanResultKind::StatusAddition => {
+                    // unfortunately the order plays a role
+                    r.status.update_with(&progress.status);
+                    progress.status = r.status;
                 }
+            };
+            let mut len = progress.results.len();
+            let results = r.results;
+            for mut result in results {
+                result.id = len;
+                len += 1;
+                let bytes = serde_json::to_vec(&result)?;
+                progress.results.push(crypter.encrypt_sync(bytes));
             }
             Ok(())
         })
@@ -316,7 +314,7 @@ impl<E> FromConfigAndFeeds for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static + Default,
 {
-    fn from_config_and_feeds(
+    async fn from_config_and_feeds(
         _: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
@@ -438,30 +436,6 @@ where
         progress.results.push(self.crypter.encrypt_sync(bytes));
 
         Ok(())
-    }
-
-    fn remove_result<E>(&self, key: &str, idx: Option<usize>) -> Result<Vec<models::Result>, E>
-    where
-        E: From<StorageError>,
-    {
-        let result = self
-            .get_results_sync(key, idx, idx.map(|x| x + 1))
-            .map_err(|_| StorageError::NotFound(key.to_string()))?
-            .filter_map(|b| serde_json::de::from_slice(&b).ok());
-
-        let mut scans = self.scans.write().unwrap();
-        let progress = scans
-            .get_mut(key)
-            .ok_or_else(|| StorageError::UnexpectedData(format!("Expected scan for {key}")))?;
-        if let Some(idx) = idx {
-            if idx < progress.results.len() {
-                progress.results.remove(idx);
-            }
-        } else {
-            progress.results.clear();
-            progress.results.shrink_to_fit();
-        }
-        Ok(result.collect())
     }
 }
 
@@ -591,7 +565,7 @@ mod tests {
             ],
         };
         storage
-            .append_fetched_result(ScanResultKind::StatusOverride, vec![fetch_result])
+            .append_fetched_result(ScanResultKind::StatusOverride, fetch_result)
             .await
             .unwrap();
         let results: Vec<_> = storage
@@ -600,21 +574,6 @@ mod tests {
             .unwrap()
             .collect();
         assert_eq!(results.len(), 5);
-        let ck = id.clone();
-        storage.remove_result::<Error>(&ck, Some(1)).unwrap();
-        let results: Vec<_> = storage
-            .get_results(&id, None, None)
-            .await
-            .unwrap()
-            .collect();
-        assert_eq!(results.len(), 4);
-        storage.remove_result::<Error>(&ck, None).unwrap();
-        let results: Vec<_> = storage
-            .get_results(&id, None, None)
-            .await
-            .unwrap()
-            .collect();
-        assert_eq!(results.len(), 0);
     }
 
     #[tokio::test]
@@ -629,7 +588,7 @@ mod tests {
             results: vec![models::Result::default()],
         };
         storage
-            .append_fetched_result(ScanResultKind::StatusOverride, vec![fetch_result])
+            .append_fetched_result(ScanResultKind::StatusOverride, fetch_result)
             .await
             .unwrap();
         let results: Vec<_> = storage

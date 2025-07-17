@@ -192,50 +192,48 @@ where
     async fn append_fetched_result(
         &self,
         kind: ScanResultKind,
-        results: Vec<ScanResults>,
+        r: ScanResults,
     ) -> Result<(), Error> {
-        for r in results {
-            let id = &r.id;
+        let id = &r.id;
 
-            let status = match kind {
-                ScanResultKind::StatusOverride => r.status,
-                ScanResultKind::StatusAddition => {
-                    let scan_status = self.get_status(&r.id).await?;
-                    let mut status = r.status;
-                    // TODO: change signature
-                    status.update_with(&scan_status);
-                    status
-                }
-            };
-
-            self.update_status(id, status).await?;
-            if r.results.is_empty() {
-                continue;
+        let status = match kind {
+            ScanResultKind::StatusOverride => r.status,
+            ScanResultKind::StatusAddition => {
+                let scan_status = self.get_status(&r.id).await?;
+                let mut status = r.status;
+                // TODO: change signature
+                status.update_with(&scan_status);
+                status
             }
+        };
 
-            let key = format!("results_{id}");
-            let storage = Arc::clone(&self.storage);
-            tracing::trace!(key, results_len = r.results.len());
-
-            spawn_blocking(move || {
-                let storage = &mut storage.write().unwrap();
-                let results = r.results;
-                let mut serialized_results = Vec::with_capacity(results.len());
-                let ilen = match storage.indices(&key) {
-                    Ok(x) => x.len(),
-                    Err(_) => 0,
-                };
-                for (i, mut result) in results.into_iter().enumerate() {
-                    result.id = ilen + i;
-                    let bytes = serde_json::to_vec(&result)?;
-                    serialized_results.push(bytes);
-                }
-                storage.append_all(&key, &serialized_results)?;
-                Ok::<_, Error>(())
-            })
-            .await
-            .unwrap()?
+        self.update_status(id, status).await?;
+        if r.results.is_empty() {
+            return Ok(());
         }
+
+        let key = format!("results_{id}");
+        let storage = Arc::clone(&self.storage);
+        tracing::trace!(key, results_len = r.results.len());
+
+        spawn_blocking(move || {
+            let storage = &mut storage.write().unwrap();
+            let results = r.results;
+            let mut serialized_results = Vec::with_capacity(results.len());
+            let ilen = match storage.indices(&key) {
+                Ok(x) => x.len(),
+                Err(_) => 0,
+            };
+            for (i, mut result) in results.into_iter().enumerate() {
+                result.id = ilen + i;
+                let bytes = serde_json::to_vec(&result)?;
+                serialized_results.push(bytes);
+            }
+            storage.append_all(&key, &serialized_results)?;
+            Ok::<_, Error>(())
+        })
+        .await
+        .unwrap()?;
         Ok(())
     }
 }
@@ -434,7 +432,7 @@ where
 }
 
 impl FromConfigAndFeeds for Storage<ChaCha20IndexFileStorer<IndexedFileStorer>> {
-    fn from_config_and_feeds(
+    async fn from_config_and_feeds(
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
@@ -445,7 +443,7 @@ impl FromConfigAndFeeds for Storage<ChaCha20IndexFileStorer<IndexedFileStorer>> 
 }
 
 impl FromConfigAndFeeds for Storage<IndexedFileStorer> {
-    fn from_config_and_feeds(
+    async fn from_config_and_feeds(
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
@@ -486,32 +484,6 @@ where
             .append_all(&key, &serialized_results)
             .map_err(|x| StorageError::Dirty(format!("Unable to store to disk: {x}")))?;
         Ok(())
-    }
-
-    fn remove_result<E>(&self, key: &str, idx: Option<usize>) -> Result<Vec<models::Result>, E>
-    where
-        E: From<StorageError>,
-    {
-        let deleted_results = self
-            .get_results_sync(key, idx, idx.map(|x| x + 1))
-            .map_err(|x| StorageError::Dirty(x.to_string()))?
-            .filter_map(|x| serde_json::de::from_slice(&x).ok())
-            .collect();
-        if let Some(_idx) = idx {
-            // is unsupported as then the result index wouldn't match tyhye file index anymore
-            // which could have side effects for get results in the openvasd api as we store the
-            // json as is.
-            tracing::warn!(
-                "called an unsupported function to delete a result within the file storage, ignoring"
-            );
-        } else {
-            let key = format!("results_{key}");
-            let store = &mut self.storage.write().unwrap();
-            store
-                .remove(&key)
-                .map_err(|_| StorageError::NotFound(key))?;
-        }
-        Ok(deleted_results)
     }
 }
 
@@ -655,11 +627,11 @@ pub(crate) mod tests {
         assert_eq!(scans.len(), ids.len());
         let status = Status::default();
         let results = vec![models::Result::default()];
-        let results = vec![ScanResults {
+        let results = ScanResults {
             id: "42".to_string(),
             status,
             results,
-        }];
+        };
         storage
             .append_fetched_result(ScanResultKind::StatusOverride, results)
             .await
@@ -671,11 +643,11 @@ pub(crate) mod tests {
         };
 
         let results = vec![models::Result::default()];
-        let results = vec![ScanResults {
+        let results = ScanResults {
             id: "42".to_string(),
             status: status.clone(),
             results,
-        }];
+        };
         storage
             .append_fetched_result(ScanResultKind::StatusOverride, results)
             .await
@@ -691,17 +663,6 @@ pub(crate) mod tests {
             .filter_map(|x| x.ok())
             .collect();
         assert_eq!(2, range.len());
-        let deleted_results = storage.remove_result::<Error>("42", None).unwrap();
-        assert_eq!(deleted_results.len(), range.len());
-        let range: Vec<String> = storage
-            .get_results("42", None, None)
-            .await
-            .unwrap()
-            .map(String::from_utf8)
-            .filter_map(|x| x.ok())
-            .collect();
-        assert_eq!(0, range.len());
-
         for s in scans {
             let _ = storage.remove_scan(&s.scan_id).await;
         }

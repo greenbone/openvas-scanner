@@ -104,10 +104,30 @@ impl FromStr for ACT {
     }
 }
 
+// Although I think the name would be better following the above just for consistency
+impl AsRef<str> for ACT {
+    fn as_ref(&self) -> &str {
+        match self {
+            ACT::Init => "0",
+            ACT::Scanner => "1",
+            ACT::Settings => "2",
+            ACT::GatherInfo => "3",
+            ACT::Attack => "4",
+            ACT::MixedAttack => "5",
+            ACT::DestructiveAttack => "6",
+            ACT::Denial => "7",
+            ACT::KillHost => "8",
+            ACT::Flood => "9",
+            ACT::End => "10",
+        }
+    }
+}
+
 macro_rules! make_str_lookup_enum {
     ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord,PartialOrd, Hash, serde::Serialize, serde::Deserialize)]
+        #[serde(rename_all = "snake_case")]
         pub enum $enum_name {
             $(
              #[doc = concat!(stringify!($matcher))]

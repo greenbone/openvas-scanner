@@ -263,10 +263,7 @@ where
                 // and may remove them from running.
                 Ok(results) => {
                     match self
-                        .append_fetched_result(
-                            self.scanner.scan_result_status_kind(),
-                            vec![results],
-                        )
+                        .append_fetched_result(self.scanner.scan_result_status_kind(), results)
                         .await
                     {
                         Ok(()) => {
@@ -507,20 +504,18 @@ where
     async fn append_fetched_result(
         &self,
         kind: ScanResultKind,
-        results: Vec<ScanResults>,
+        results: ScanResults,
     ) -> Result<(), StorageError> {
         //TODO: will be done in the storage instead, this is annoying
         let mut running = self.running.write().await;
-        for x in results.iter() {
-            match x.status.status {
-                Phase::Stored | Phase::Requested | Phase::Running => {}
-                Phase::Stopped | Phase::Failed | Phase::Succeeded => {
-                    if let Some(idx) = running.iter().position(|y| y == &x.id) {
-                        running.swap_remove(idx);
-                    }
+        match results.status.status {
+            Phase::Stored | Phase::Requested | Phase::Running => {}
+            Phase::Stopped | Phase::Failed | Phase::Succeeded => {
+                if let Some(idx) = running.iter().position(|y| y == &results.id) {
+                    running.swap_remove(idx);
                 }
-            };
-        }
+            }
+        };
         drop(running);
 
         tracing::trace!("appending results");

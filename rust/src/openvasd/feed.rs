@@ -17,7 +17,7 @@ use scannerlib::{
         items::{
             kb::{GetKbContextKey, KbContextKey, KbItem},
             nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
-            result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
+            result::{ResultContextKeySingle, ResultItem},
         },
     },
 };
@@ -152,9 +152,9 @@ impl Retriever<ResultContextKeySingle> for FeedIdentifier {
     }
 }
 
-impl Retriever<ResultContextKeyAll> for FeedIdentifier {
+impl Retriever<ScanID> for FeedIdentifier {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         Ok(None)
     }
 }
@@ -201,9 +201,9 @@ impl Remover<ResultContextKeySingle> for FeedIdentifier {
     }
 }
 
-impl Remover<ResultContextKeyAll> for FeedIdentifier {
+impl Remover<ScanID> for FeedIdentifier {
     type Item = Vec<ResultItem>;
-    fn remove(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         Ok(None)
     }
 }

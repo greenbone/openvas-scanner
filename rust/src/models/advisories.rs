@@ -6,6 +6,8 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
+use crate::storage::items::nvt::Nvt;
+
 /// Represents an advisory json file for notus product.
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ProductsAdvisories {

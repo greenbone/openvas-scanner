@@ -18,7 +18,7 @@ use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
 use crate::storage::items::nvt::{Feed, FeedVersion, FileName, Nvt};
 use crate::storage::items::nvt::{NvtField, Oid};
-use crate::storage::items::result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem};
+use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::redis::{
     RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper,
 };
@@ -586,9 +586,8 @@ pub trait ContextStorage:
     // results
     + Dispatcher<ScanID, Item = ResultItem>
     + Retriever<ResultContextKeySingle, Item = ResultItem>
-    + Retriever<ResultContextKeyAll, Item = Vec<ResultItem>>
-    + Remover<ResultContextKeySingle, Item = ResultItem>
-    + Remover<ResultContextKeyAll, Item = Vec<ResultItem>>
+    + Retriever<ScanID, Item = Vec<ResultItem>>
+    + Remover<ScanID, Item = Vec<ResultItem>>
     // nvt
     + Dispatcher<FileName, Item = Nvt>
     + Dispatcher<FeedVersion, Item = String>

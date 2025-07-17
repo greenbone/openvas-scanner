@@ -317,7 +317,7 @@ where
     async fn append_fetched_result(
         &self,
         kind: ScanResultKind,
-        results: Vec<ScanResults>,
+        results: ScanResults,
     ) -> Result<(), Error> {
         self.underlying.append_fetched_result(kind, results).await
     }
@@ -327,12 +327,12 @@ impl<T> FromConfigAndFeeds for Storage<T>
 where
     T: FromConfigAndFeeds + std::marker::Sync + 'static,
 {
-    fn from_config_and_feeds(
+    async fn from_config_and_feeds(
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         Ok(Self::new(
-            T::from_config_and_feeds(config, feeds.clone())?,
+            T::from_config_and_feeds(config, feeds.clone()).await?,
             config.storage.redis.url.clone(),
             feeds,
         ))
@@ -352,12 +352,5 @@ where
         E: From<StorageError>,
     {
         self.underlying.handle_result(key, result)
-    }
-
-    fn remove_result<E>(&self, key: &str, idx: Option<usize>) -> Result<Vec<models::Result>, E>
-    where
-        E: From<StorageError>,
-    {
-        self.underlying.remove_result(key, idx)
     }
 }

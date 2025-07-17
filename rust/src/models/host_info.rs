@@ -35,19 +35,19 @@ impl HostInfoBuilder {
 /// Information about hosts of a running scan
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostInfo {
-    all: u64,
-    excluded: u64,
-    dead: u64,
-    alive: u64,
-    queued: u64,
-    finished: u64,
+    pub all: u64,
+    pub excluded: u64,
+    pub dead: u64,
+    pub alive: u64,
+    pub queued: u64,
+    pub finished: u64,
     // Hosts that are currently being scanned. The second entry is the host
     // scan progress. Required for Openvas Scanner type
     #[serde(skip_serializing_if = "Option::is_none")]
-    scanning: Option<HashMap<String, i32>>,
+    pub scanning: Option<HashMap<String, i32>>,
     // Hosts that are currently being scanned. The second entry is the number of
     // remaining VTs for this host.
-    remaining_vts_per_host: HashMap<String, usize>,
+    pub remaining_vts_per_host: HashMap<String, usize>,
 }
 
 impl HostInfo {
@@ -80,14 +80,6 @@ impl HostInfo {
     pub fn finish(&mut self) {
         self.remaining_vts_per_host.clear();
         assert_eq!(self.queued, 0);
-    }
-
-    pub fn queued(&self) -> u64 {
-        self.queued
-    }
-
-    pub fn finished(&self) -> u64 {
-        self.finished
     }
 
     pub fn update_with(mut self, other: &HostInfo) -> Self {

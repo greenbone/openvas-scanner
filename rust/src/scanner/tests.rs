@@ -461,8 +461,8 @@ async fn start_scan_failure() {
         "host_info should be set"
     );
     let host_info = scan_results.status.host_info.unwrap();
-    assert_eq!(host_info.finished(), 1);
-    assert_eq!(host_info.queued(), 0);
+    assert_eq!(host_info.finished, 1);
+    assert_eq!(host_info.queued, 0);
 }
 
 #[tokio::test]
@@ -490,6 +490,6 @@ async fn start_scan_success() {
         "host_info should be set"
     );
     let host_info = scan_results.status.host_info.unwrap();
-    assert_eq!(host_info.finished(), 2);
-    assert_eq!(host_info.queued(), 0);
+    assert_eq!(host_info.finished, 2);
+    assert_eq!(host_info.queued, 0);
 }

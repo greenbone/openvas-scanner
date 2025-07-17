@@ -64,6 +64,7 @@ where
             };
             let last_hash = ctx.scheduler.feed_hash().await;
             if let Ok(nh) = changed_hash(signature_check, &last_hash).await {
+                tracing::debug!("moep");
                 if !nh.is_empty() {
                     if let Err(err) = ctx.scheduler.synchronize_feeds(nh).await {
                         tracing::warn!(%err, "Unable to sync feed")

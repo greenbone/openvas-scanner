@@ -24,7 +24,7 @@ use scannerlib::scanner::{ScannerStackWithStorage, preferences};
 use scannerlib::scheduling::SchedulerStorage;
 use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
 use storage::results::ResultCatcher;
-use storage::{FromConfigAndFeeds, ResultHandler, Storage};
+use storage::{FromConfigAndFeeds, Storage, sqlite};
 use tls::tls_config;
 use tracing::{info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
@@ -164,7 +164,7 @@ where
     St: FromConfigAndFeeds + storage::ResultHandler + Storage + Send + 'static + Sync,
 {
     let feeds = get_feeds(config);
-    let storage = St::from_config_and_feeds(config, feeds)?;
+    let storage = St::from_config_and_feeds(config, feeds).await?;
 
     match config.scanner.scanner_type {
         ScannerType::OSPD => {
@@ -177,7 +177,7 @@ where
         }
         ScannerType::Openvasd => {
             let storage = std::sync::Arc::new(ResultCatcher::new(storage));
-            let scanner = make_openvasd_scanner(config, storage.underlying_storage().clone());
+            let scanner = make_openvasd_scanner(config, storage.clone());
             run_with_scanner_and_storage(scanner, storage, config).await
         }
     }
@@ -190,24 +190,24 @@ async fn run(config: &Config) -> Result<()> {
             info!(url = config.storage.redis.url, "Using redis storage.");
             run_with_storage::<redis::Storage<inmemory::Storage<ChaCha20Crypt>>>(config).await
         }
-        StorageType::InMemory => {
+        StorageType::InMemory | StorageType::FileSystem => {
             info!("Using in-memory storage. No sensitive data will be stored on disk.");
-            run_with_storage::<inmemory::Storage<ChaCha20Crypt>>(config).await
-        }
-        StorageType::FileSystem => {
-            if config.storage.fs.key.is_some() {
-                info!("Using in-file storage. Sensitive data will be encrypted stored on disk.");
-                run_with_storage::<file::Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>(
-                    config,
-                )
-                .await
-            } else {
-                warn!(
-                    "Using in-file storage. Sensitive data will be stored on disk without any encryption."
-                );
-                run_with_storage::<file::Storage<IndexedFileStorer>>(config).await
-            }
-        }
+            run_with_storage::<sqlite::Storage<ChaCha20Crypt>>(config).await
+        } //
+          // StorageType::FileSystem => {
+          //     if config.storage.fs.key.is_some() {
+          //         info!("Using in-file storage. Sensitive data will be encrypted stored on disk.");
+          //         run_with_storage::<file::Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>(
+          //             config,
+          //         )
+          //         .await
+          //     } else {
+          //         warn!(
+          //             "Using in-file storage. Sensitive data will be stored on disk without any encryption."
+          //         );
+          //         run_with_storage::<file::Storage<IndexedFileStorer>>(config).await
+          //     }
+          // }
     }
 }
 

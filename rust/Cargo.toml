@@ -98,6 +98,11 @@ rc4 = "0.1.0"
 dsa = "0.6.3"
 mtu = { version = "0.2.9", optional = true }
 
+sqlx = { version = "0.8.3", features = ["sqlite", "runtime-tokio-rustls" ] }
+tokio-serde-json = "0.3.0"
+tokio-util = "0.7.15"
+
+
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
 

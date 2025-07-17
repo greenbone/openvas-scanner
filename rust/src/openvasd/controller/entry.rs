@@ -406,6 +406,7 @@ where
                                 uuid::Uuid::new_v4().to_string()
                             };
 
+                            //TODO: do the validation in storage
                             if ctx
                                 .scheduler
                                 .get_scan_ids()

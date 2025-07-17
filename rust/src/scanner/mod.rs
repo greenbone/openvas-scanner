@@ -174,6 +174,7 @@ impl<S: ScannerStack> ScanResultFetcher for Scanner<S> {
         Ok(ScanResults {
             id: id.to_string(),
             status,
+            // TODO: verify
             // The results are directly stored by the storage implementation:
             // inmemory.rs
             // file.rs

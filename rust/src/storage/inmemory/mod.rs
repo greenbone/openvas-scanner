@@ -16,7 +16,7 @@ use super::{
         kb::{GetKbContextKey, KbContextKey, KbItem},
         notus_advisory::NotusAdvisory,
         nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
-        result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
+        result::{ResultContextKeySingle, ResultItem},
     },
 };
 
@@ -279,18 +279,18 @@ impl Retriever<ResultContextKeySingle> for InMemoryStorage {
     }
 }
 
-impl Retriever<ResultContextKeyAll> for InMemoryStorage {
+impl Retriever<ScanID> for InMemoryStorage {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn retrieve(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         let results = self.results.read()?;
 
         Ok(results.get(key).cloned())
     }
 }
 
-impl Remover<ResultContextKeyAll> for InMemoryStorage {
+impl Remover<ScanID> for InMemoryStorage {
     type Item = Vec<ResultItem>;
-    fn remove(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn remove(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         let mut results = self.results.write()?;
         Ok(results.remove(key))
     }

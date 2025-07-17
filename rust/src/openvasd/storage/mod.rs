@@ -4,8 +4,10 @@
 
 pub mod file;
 pub mod inmemory;
+pub(crate) mod json_stream;
 pub mod redis;
 pub mod results;
+pub mod sqlite;
 
 use std::{
     collections::HashMap,
@@ -218,7 +220,7 @@ pub trait AppendFetchResult {
     async fn append_fetched_result(
         &self,
         kind: ScanResultKind,
-        results: Vec<ScanResults>,
+        results: ScanResults,
     ) -> Result<(), Error>;
 }
 #[async_trait]
@@ -231,7 +233,7 @@ where
 
         kind: ScanResultKind,
 
-        results: Vec<ScanResults>,
+        results: ScanResults,
     ) -> Result<(), Error> {
         self.as_ref().append_fetched_result(kind, results).await
     }
@@ -353,7 +355,7 @@ impl<T> Storage for T where
 
 /// A storage type that can be created from a Config and a list of feeds.
 pub trait FromConfigAndFeeds: ResultHandler + Storage + Sized {
-    fn from_config_and_feeds(
+    async fn from_config_and_feeds(
         config: &Config,
         feeds: Vec<FeedHash>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>;
@@ -405,9 +407,6 @@ async fn update_nasl_feed(p: PathBuf, store: Arc<InMemoryStorage>) -> Result<(),
 pub trait ResultHandler {
     fn underlying_storage(&self) -> &Arc<InMemoryStorage>;
     fn handle_result<E>(&self, key: &str, result: models::Result) -> Result<(), E>
-    where
-        E: From<StorageError>;
-    fn remove_result<E>(&self, key: &str, idx: Option<usize>) -> Result<Vec<models::Result>, E>
     where
         E: From<StorageError>;
 }
