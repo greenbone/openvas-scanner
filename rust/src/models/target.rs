@@ -71,11 +71,11 @@ impl TryFrom<u8> for AliveTestMethods {
 impl Display for AliveTestMethods {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            AliveTestMethods::TcpAck => write!(f, "tcp_ack"),
+            AliveTestMethods::TcpAck => write!(f, "tcp_ping"),
             AliveTestMethods::Icmp => write!(f, "icmp"),
             AliveTestMethods::Arp => write!(f, "arp"),
             AliveTestMethods::ConsiderAlive => write!(f, "consider_alive"),
-            AliveTestMethods::TcpSyn => write!(f, "tcp_syn"),
+            AliveTestMethods::TcpSyn => write!(f, "tcp_ping"),
         }
     }
 }

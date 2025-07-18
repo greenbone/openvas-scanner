@@ -11,8 +11,11 @@ use super::AliveTestError;
 use super::common::FIX_IPV6_HEADER_LENGTH;
 use super::common::IPPROTO_IPV6;
 use super::common::{DEFAULT_TTL, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4};
+use pnet::packet::icmpv6::Icmpv6Code;
+use pnet::packet::icmpv6::Icmpv6Type;
+use pnet::packet::icmpv6::ndp::MutableNeighborSolicitPacket;
 use pnet::packet::{
-    self,
+    self, Packet,
     icmp::*,
     icmpv6::{
         Icmpv6Types, MutableIcmpv6Packet, echo_reply::Icmpv6Codes,
@@ -109,6 +112,18 @@ fn forge_ipv6_packet_for_icmp(
 
     //we know the buffer size. So, it never fails
     Ok(Ipv6Packet::owned(ip_buf).unwrap())
+}
+
+pub fn forge_neighbor_solicit(dst_ip: Ipv6Addr) -> Result<Ipv6Packet<'static>, AliveTestError> {
+    let mut icmp_buf = vec![0; MutableNeighborSolicitPacket::minimum_packet_size()];
+    let mut icmp_pkt = MutableNeighborSolicitPacket::new(&mut icmp_buf).unwrap();
+    let icmp_type = Icmpv6Type::new(Icmpv6Types::NeighborSolicit.0);
+
+    icmp_pkt.set_icmpv6_type(icmp_type);
+    icmp_pkt.set_icmpv6_code(Icmpv6Code::new(0u8));
+    icmp_pkt.set_target_addr(dst_ip);
+
+    forge_ipv6_packet_for_icmp(&mut icmp_pkt.packet().to_vec(), dst_ip)
 }
 
 pub fn forge_icmp_v6(dst: Ipv6Addr) -> Result<Ipv6Packet<'static>, AliveTestError> {
