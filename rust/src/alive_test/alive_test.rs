@@ -3,14 +3,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::alive_test::AliveTestError;
+use crate::alive_test::arp::forge_arp_request;
 use crate::alive_test::common::{alive_test_send_v4_packet, alive_test_send_v6_packet};
-use crate::alive_test::icmp::{forge_icmp, forge_icmp_v6};
+use crate::alive_test::icmp::{forge_icmp, forge_icmp_v6, forge_neighbor_solicit};
 use crate::alive_test::tcp_ping::{FILTER_PORT, forge_tcp_ping, forge_tcp_ping_ipv6};
 
 use crate::models::{AliveTestMethods, Host};
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
 use futures::StreamExt;
+use pnet::packet::arp::{ArpOperations, ArpPacket};
 use pnet::packet::icmpv6::{Icmpv6Packet, Icmpv6Types};
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::ipv6::Ipv6Packet;
@@ -134,12 +136,15 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestE
             Icmpv6Packet::new(&packet[16 + FIX_IPV6_HEADER_LENGTH..]).ok_or_else(|| {
                 AliveTestError::CreateIcmpPacketFromWrongBufferSize(packet[..].len() as i64)
             })?;
-        if icmp_pkt.get_icmpv6_type() == Icmpv6Types::EchoReply
-            && pkt.get_next_header() == IpNextHeaderProtocols::Icmpv6
-        {
+        if icmp_pkt.get_icmpv6_type() == Icmpv6Types::EchoReply {
             return Ok(Some(AliveHostCtl {
                 ip: pkt.get_source().to_string(),
                 detection_method: AliveTestMethods::Icmp,
+            }));
+        } else if icmp_pkt.get_icmpv6_type() == Icmpv6Types::NeighborAdvert {
+            return Ok(Some(AliveHostCtl {
+                ip: pkt.get_source().to_string(),
+                detection_method: AliveTestMethods::Arp,
             }));
         }
     }
@@ -160,6 +165,18 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestE
     Ok(None)
 }
 
+fn process_arp_frame(frame: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
+    let arp = ArpPacket::new(&frame[16..])
+        .ok_or_else(|| AliveTestError::CreateIpPacketFromWrongBufferSize(frame.len() as i64))?;
+    if arp.get_operation() == ArpOperations::Reply {
+        return Ok(Some(AliveHostCtl {
+            ip: arp.get_sender_proto_addr().to_string(),
+            detection_method: AliveTestMethods::Arp,
+        }));
+    }
+    Ok(None)
+}
+
 fn process_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
     if packet.len() <= MIN_ALLOWED_PACKET_LEN {
         return Err(AliveTestError::WrongPacketLength);
@@ -169,7 +186,7 @@ fn process_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError>
     match ether_type {
         EtherTypes::EtherTypeIp => process_ipv4_packet(packet),
         EtherTypes::EtherTypeIp6 => process_ipv6_packet(packet),
-        EtherTypes::EtherTypeArp => unimplemented!(),
+        EtherTypes::EtherTypeArp => process_arp_frame(packet),
     }
 }
 
@@ -270,7 +287,8 @@ async fn send_task(
                         alive_test_send_v4_packet(tcp)?;
                     }
                     IpAddr::V6(ipv6) => {
-                        let tcp = forge_tcp_ping_ipv6(ipv6, port, pnet::packet::tcp::TcpFlags::ACK)?;
+                        let tcp =
+                            forge_tcp_ping_ipv6(ipv6, port, pnet::packet::tcp::TcpFlags::ACK)?;
                         alive_test_send_v6_packet(tcp)?;
                     }
                 };
@@ -278,7 +296,22 @@ async fn send_task(
         }
     }
     if methods.contains(&AliveTestMethods::Arp) {
-        //unimplemented
+        for t in trgt.iter() {
+            count += 1;
+            match t
+                .to_string()
+                .parse::<IpAddr>()
+                .map_err(|_| AliveTestError::InvalidDestinationAddr)?
+            {
+                IpAddr::V4(ipv4) => {
+                    forge_arp_request(ipv4)?;
+                }
+                IpAddr::V6(ipv6) => {
+                    let ndp = forge_neighbor_solicit(ipv6)?;
+                    alive_test_send_v6_packet(ndp)?;
+                }
+            };
+        }
     }
 
     tracing::debug!("Finished sending {count} packets");
