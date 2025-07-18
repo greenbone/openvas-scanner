@@ -53,7 +53,15 @@ The elements can be accessed by using the normal NASL array handling. For more i
 
 ## RETURN VALUE
 
-This function returns nothing.
+This function returns an array of results, where the first element is the number of results or an error code in case of failure.
+
+## ERRORS
+
+In case of an error, a negative code is returned:
+
+-1: Missing function parameter
+-2: Unable to get result from Notus
+-3: Error while parsing Notus results
 
 ## EXAMPLE
 

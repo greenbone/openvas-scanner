@@ -1256,10 +1256,14 @@ table_driven_lsc (lex_ctxt *lexic)
   char *pkg_list = get_str_var_by_name (lexic, "pkg_list");
   char *product = get_str_var_by_name (lexic, "product");
 
+  retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+
   if (product == NULL || pkg_list == NULL)
     {
       g_warning ("%s: Missing data for running LSC", __func__);
-      return NULL;
+      ret = -1;
+      goto lsc_end;
     }
 
   response = notus_get_response (pkg_list, product);
@@ -1267,13 +1271,11 @@ table_driven_lsc (lex_ctxt *lexic)
   if (!response)
     {
       g_warning ("%s: Unable to get the response", __func__);
-      return NULL;
+      ret = -2;
+      goto lsc_end;
     }
 
   advisories = process_notus_response (response, strlen (response));
-
-  retc = alloc_typed_cell (DYN_ARRAY);
-  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
 
   // Process the advisories, generate results and store them in the kb
   for (size_t i = 0; i < advisories->count; i++)
@@ -1356,8 +1358,8 @@ table_driven_lsc (lex_ctxt *lexic)
               g_warning ("%s: Unknown fixed version type for advisory %s",
                          __func__, advisory->oid);
               advisories_free (advisories);
-              ret = -1;
-              break;
+              ret = -3;
+              goto lsc_end;
             }
           add_var_to_array (&vul_pkg.v.v_arr, "name", &name);
           add_var_to_array (&vul_pkg.v.v_arr, "installed", &installed);
@@ -1370,7 +1372,9 @@ table_driven_lsc (lex_ctxt *lexic)
       add_var_to_list (retc->x.ref_val, i + 1, &element);
     }
 
-  // TODO: Set return code accordingly
+  advisories_free (advisories);
+
+lsc_end:
   /* Return code */
   memset (&element, 0, sizeof (element));
   element.var_type = VAR2_INT;
