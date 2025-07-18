@@ -14,10 +14,14 @@ pub enum Error {
     CreateIcmpPacketFromWrongBufferSize(i64),
     #[error("Wrong buffer size {0}. Not possible to create an IP packet")]
     CreateIpPacketFromWrongBufferSize(i64),
+    #[error("Wrong buffer size {0}. Not possible to create an TCP packet")]
+    CreateTcpPacketFromWrongBufferSize(i64),
     #[error("It was not possible to parse the destination Address")]
     InvalidDestinationAddr,
     #[error("Error sending a packet: {0}")]
     SendPacket(String),
+    #[error("Error sending ARP request")]
+    SendArpRequest,
     #[error("Invalid EtherType")]
     InvalidEtherType,
     #[error("Wrong packet length")]
@@ -26,4 +30,8 @@ pub enum Error {
     NoValidInterface(String),
     #[error("Fail spawning the task {0}")]
     JoinError(String),
+    #[error("Fail to get device list")]
+    GetDeviceList,
+    #[error("Fail to get local MAC address")]
+    GetMacAddress,
 }
