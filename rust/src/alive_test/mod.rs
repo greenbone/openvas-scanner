@@ -6,6 +6,7 @@
 
 #[allow(clippy::module_inception)]
 mod alive_test;
+mod arp;
 mod common;
 mod error;
 mod icmp;

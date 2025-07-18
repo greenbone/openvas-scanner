@@ -20,6 +20,8 @@ pub enum Error {
     InvalidDestinationAddr,
     #[error("Error sending a packet: {0}")]
     SendPacket(String),
+    #[error("Error sending ARP request")]
+    SendArpRequest,
     #[error("Invalid EtherType")]
     InvalidEtherType,
     #[error("Wrong packet length")]
@@ -28,4 +30,8 @@ pub enum Error {
     NoValidInterface(String),
     #[error("Fail spawning the task {0}")]
     JoinError(String),
+    #[error("Fail to get device list")]
+    GetDeviceList,
+    #[error("Fail to get local MAC address")]
+    GetMacAddress,
 }
