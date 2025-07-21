@@ -209,7 +209,7 @@ impl ExprError {
         }
     }
 
-    pub(crate) fn to_error(self, lhs_expr: &Expr, rhs_expr: &Expr) -> InterpreterError {
+    pub(crate) fn into_error(self, lhs_expr: &Expr, rhs_expr: &Expr) -> InterpreterError {
         let span = match self.location {
             ExprLocation::Lhs => lhs_expr.span(),
             ExprLocation::Rhs => rhs_expr.span(),

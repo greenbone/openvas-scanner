@@ -13,7 +13,7 @@ pub struct DescriptionBlock {
 }
 
 impl DescriptionBlock {
-    pub(crate) fn to_ast(self) -> Ast {
+    pub(crate) fn into_ast(self) -> Ast {
         Ast::new(self.stmts)
     }
 }

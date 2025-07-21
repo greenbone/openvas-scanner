@@ -90,13 +90,13 @@ impl Interpreter<'_> {
 
     async fn execute_builtin_fn(&mut self, call: &FnCall) -> Option<Result> {
         self.scan_ctx
-            .execute_builtin_fn(&call.fn_name.to_str(), &self.register, &mut self.script_ctx)
+            .execute_builtin_fn(call.fn_name.to_str(), &self.register, &mut self.script_ctx)
             .await
             .map(|o| {
                 o.map_err(|e| {
                     Error::new(
                         ErrorKind::FunctionCallError(FunctionCallError::new(
-                            &call.fn_name.to_str(),
+                            call.fn_name.to_str(),
                             e,
                         )),
                         call.fn_name.span(),
@@ -107,7 +107,7 @@ impl Interpreter<'_> {
 
     pub(crate) async fn resolve_fn_call(&mut self, call: &FnCall) -> Result {
         let num_repeats = if let Some(ref num_repeats) = call.num_repeats {
-            self.resolve_expr(&num_repeats)
+            self.resolve_expr(num_repeats)
                 .await?
                 .as_number()
                 .map_err(|e| e.with_span(&**num_repeats))?

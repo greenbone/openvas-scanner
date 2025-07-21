@@ -128,10 +128,9 @@ impl ForkReentryData {
     /// do nothing.
     pub(crate) fn try_collect(&mut self, value: NaslValue, span: &Span) {
         match self {
-            ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
-                value,
-                span: span.clone(),
-            }),
+            ForkReentryData::Collecting { data, .. } => {
+                data.push(FunctionCallData { value, span: *span })
+            }
             ForkReentryData::Restoring { data: _ } => {}
         }
     }
@@ -206,7 +205,7 @@ fn expand_first_fork(
         .filter_map(|(index, data)| {
             let FunctionCallData { value, span } = data;
             if let NaslValue::Fork(vals) = value {
-                Some((index, vals.clone(), span.clone()))
+                Some((index, vals.clone(), *span))
             } else {
                 None
             }
@@ -218,7 +217,7 @@ fn expand_first_fork(
     let first_fork = first_fork.unwrap();
     let data = data
         .into_iter()
-        .flat_map(|d| expand_fork_at(d, first_fork.0, first_fork.1.clone(), first_fork.2.clone()))
+        .flat_map(|d| expand_fork_at(d, first_fork.0, first_fork.1.clone(), first_fork.2))
         .collect();
     (true, data)
 }
@@ -234,7 +233,7 @@ fn expand_fork_at(
             let mut data = data.clone();
             data[index] = FunctionCallData {
                 value: val.clone(),
-                span: span.clone(),
+                span,
             };
             data
         })
@@ -271,7 +270,7 @@ impl<'ctx> Interpreter<'ctx> {
         self.stmt_index += 1;
         match stmt {
             Some(stmt) => {
-                let result = self.resolve(&stmt).await;
+                let result = self.resolve(stmt).await;
                 if matches!(result, Ok(NaslValue::Exit(_))) {
                     self.state = InterpreterState::Finished;
                 }
@@ -346,7 +345,7 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     fn resolve_var(&self, ident: &Ident) -> Result {
-        let var = self.register.get(&ident.to_str());
+        let var = self.register.get(ident.to_str());
         if let Some(var) = var {
             Ok(self
                 .register
@@ -363,8 +362,8 @@ impl<'ctx> Interpreter<'ctx> {
         let lhs = self.resolve_expr(&array_access.lhs_expr).await?;
         let index = self.resolve_expr(&array_access.index_expr).await?;
         lhs.index(index)
-            .map_err(|e| e.to_error(&array_access.lhs_expr, &array_access.index_expr))
-            .map(|val| val.clone())
+            .map_err(|e| e.into_error(&array_access.lhs_expr, &array_access.index_expr))
+            .cloned()
     }
 
     async fn resolve_unary(&mut self, unary: &Unary) -> Result {
@@ -415,7 +414,7 @@ impl<'ctx> Interpreter<'ctx> {
             EqualEqual => Ok(NaslValue::Boolean(lhs == rhs)),
             BangEqual => Ok(NaslValue::Boolean(lhs != rhs)),
         };
-        eval().map_err(|err| err.to_error(&binary.lhs, &binary.rhs))
+        eval().map_err(|err| err.into_error(&binary.lhs, &binary.rhs))
     }
 
     async fn resolve_array(&mut self, array: &Array) -> Result {
@@ -532,7 +531,7 @@ impl<'ctx> Interpreter<'ctx> {
     pub(crate) fn initialize_fork_data(&mut self) {
         if self.fork_reentry_data.is_empty_or_collecting() {
             self.fork_reentry_data =
-                ForkReentryData::collecting(self.register.clone(), self.stmt_index.clone());
+                ForkReentryData::collecting(self.register.clone(), self.stmt_index);
         }
     }
 

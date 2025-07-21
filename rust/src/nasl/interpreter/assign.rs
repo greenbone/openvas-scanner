@@ -105,7 +105,7 @@ impl Interpreter<'_> {
                 // and leave it uninitialized for now.
                 if let AssignmentOperatorKind::Equal = assignment.op.kind {
                     self.register.add_local(
-                        &assignment.lhs.ident.to_str(),
+                        assignment.lhs.ident.to_str(),
                         RuntimeValue::Value(NaslValue::Null),
                     )
                 }

@@ -12,7 +12,7 @@ use super::{Interpreter, Result, nasl_value::RuntimeValue};
 impl Interpreter<'_> {
     pub(crate) fn resolve_fn_decl(&mut self, fn_decl: &FnDecl) -> Result {
         self.register.add_global(
-            &fn_decl.fn_name.to_str(),
+            fn_decl.fn_name.to_str(),
             RuntimeValue::Function(
                 fn_decl
                     .args
@@ -31,10 +31,10 @@ impl Interpreter<'_> {
             let value = RuntimeValue::Value(NaslValue::Null);
             match scope_decl.scope {
                 VarScope::Local => {
-                    self.register.add_local(&ident.to_str(), value);
+                    self.register.add_local(ident.to_str(), value);
                 }
                 VarScope::Global => {
-                    self.register.add_global(&ident.to_str(), value);
+                    self.register.add_global(ident.to_str(), value);
                 }
             }
         }

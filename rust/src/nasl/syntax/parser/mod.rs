@@ -356,7 +356,7 @@ impl Parse for Include {
             let error: Error = ErrorKind::StringExpected.into();
             return Err(error.with_span(&span));
         }
-        let path = path.as_string().unwrap();
+        let path = path.into_string().unwrap();
         parser.consume(TokenKind::RightParen)?;
         Ok(Include { path, span })
     }

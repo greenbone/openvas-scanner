@@ -53,7 +53,7 @@ impl Error {
 }
 
 impl ErrorKind {
-    pub fn to_error(self, span: Span) -> SpannedError {
+    pub fn into_error(self, span: Span) -> SpannedError {
         SpannedError { span, kind: self }
     }
 }
@@ -78,7 +78,7 @@ impl Display for ErrorKind {
             ErrorKind::StringExpected => {
                 write!(f, "Expected string.")
             }
-            ErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{}'", token_kind),
+            ErrorKind::TokenExpected(token_kind) => write!(f, "Expected '{token_kind}'"),
             ErrorKind::TokensExpected(token_kinds) => write!(
                 f,
                 "Expected one of '{}'",
@@ -118,7 +118,7 @@ impl From<TokenizerError> for SpannedError {
 
 impl AsCodespanError for SpannedError {
     fn span(&self) -> Span {
-        self.span.clone()
+        self.span
     }
 
     fn message(&self) -> String {

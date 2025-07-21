@@ -161,7 +161,7 @@ impl LiteralKind {
 }
 
 impl Literal {
-    pub(crate) fn as_string(self) -> Option<String> {
+    pub(crate) fn into_string(self) -> Option<String> {
         match self.kind {
             LiteralKind::String(s) => Some(s),
             LiteralKind::Data(bytes) => Some(bytes_to_str(&bytes)),
@@ -342,14 +342,14 @@ impl Display for TokenKind {
             TokenKind::GreaterBangLess => write!(f, ">!<"),
             TokenKind::GreaterGreaterGreaterEqual => write!(f, ">>>="),
             TokenKind::X => write!(f, "X"),
-            TokenKind::Keyword(kw) => write!(f, "{}", kw),
-            TokenKind::Ident(ident) => write!(f, "{}", ident),
+            TokenKind::Keyword(kw) => write!(f, "{kw}"),
+            TokenKind::Ident(ident) => write!(f, "{ident}"),
             TokenKind::Literal(literal) => match &literal.kind {
                 LiteralKind::Number(num) => write!(f, "{num}"),
                 LiteralKind::String(s) => write!(f, "\"{s}\""),
                 LiteralKind::Data(data) => write!(f, "{data:?}"),
                 LiteralKind::IPv4Address(ip) => write!(f, "{ip}"),
-                LiteralKind::Boolean(b) => write!(f, "{}", b),
+                LiteralKind::Boolean(b) => write!(f, "{b}"),
                 LiteralKind::Null => write!(f, "Null"),
                 LiteralKind::AttackCategory(c) => write!(f, "{c}"),
                 LiteralKind::FCTAnonArgs => write!(f, "_FCT_ANON_ARGS"),

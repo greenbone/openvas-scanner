@@ -64,7 +64,7 @@ impl Register {
     /// Creates a global scope based on the given initial values
     pub fn from_global_variables(initial: &[(String, NaslValue)]) -> Self {
         let defined = initial
-            .into_iter()
+            .iter()
             .cloned()
             .map(|(k, v)| (k, RuntimeValue::Value(v)))
             .collect();
@@ -248,7 +248,7 @@ impl Register {
 
                 // Print all available information
                 println!("--------<CTXT>--------");
-                println!("number of positional arguments: {}", num_pos);
+                println!("number of positional arguments: {num_pos}");
                 println!();
                 println!("available functions:");
                 for function in funs {

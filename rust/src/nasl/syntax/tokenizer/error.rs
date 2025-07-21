@@ -24,7 +24,7 @@ pub enum TokenizerErrorKind {
 
 impl AsCodespanError for TokenizerError {
     fn span(&self) -> Span {
-        self.span.clone()
+        self.span
     }
 
     fn message(&self) -> String {

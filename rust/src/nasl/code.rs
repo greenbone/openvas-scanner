@@ -15,12 +15,12 @@ fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
 }
 
 fn parse_description_block(code: &str) -> Result<Ast, Vec<ParseError>> {
-    let tokenizer = Tokenizer::tokenize(&code);
+    let tokenizer = Tokenizer::tokenize(code);
     let mut parser = Parser::new(tokenizer);
     let result: Result<DescriptionBlock, ParseError> =
         parser.parse_span().map_err(|e| e.unwrap_as_spanned());
     result
-        .map(|metadata| metadata.to_ast())
+        .map(|metadata| metadata.into_ast())
         .map_err(|e| vec![e])
 }
 

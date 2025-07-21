@@ -38,7 +38,7 @@ macro_rules! interpreter_test_ok {
     ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
         #[test]
         fn $name() {
-            let mut results = crate::nasl::interpreter::tests::interpret($code);
+            let mut results = $crate::nasl::interpreter::tests::interpret($code);
             $(
                 let result = results.remove(0).unwrap();
                 assert_eq!(result, $expected.to_nasl_result().unwrap());
@@ -53,7 +53,7 @@ macro_rules! interpreter_test_err {
     ($name: ident, $code: literal) => {
         #[test]
         fn $name() {
-            insta::assert_snapshot!(crate::nasl::interpreter::tests::interpret_err(
+            insta::assert_snapshot!($crate::nasl::interpreter::tests::interpret_err(
                 stringify!($name),
                 $code
             ));
