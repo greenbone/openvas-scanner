@@ -20,6 +20,7 @@ use scannerlib::notus::NotusError;
 use scannerlib::scanner::preferences::preference;
 use tokio::process::Command;
 
+use crate::storage::{self, MappedID};
 use crate::{
     config,
     controller::ClientHash,
@@ -250,22 +251,26 @@ where
                 return Ok(ctx.response.unauthorized());
             }
             let cid = cid.unwrap_or_default();
-            if let Some(scan_id) = kp.scan_id() {
-                if !ctx
-                    .scheduler
-                    .is_client_allowed(scan_id.to_owned(), &cid)
-                    .await
-                    .unwrap()
-                {
-                    tracing::debug!(
-                        "client {:x?} is not allowed to operate on scan {} ",
-                        &cid.0,
-                        scan_id
-                    );
-                    // we return 404 instead of 401 to not leak any ids
-                    return Ok(ctx.response.not_found("scans", scan_id));
-                }
-            }
+            //TODO: although it is ugly, when moving to greenbone-scanner-framework this test will
+            //be handled differently. Therefore I leave it as is, although it is misleading.
+            let mapped_id = match kp.scan_id() {
+                Some(id) => match ctx.scheduler.get_mapped_id(&cid, id).await {
+                    Ok(x) => x,
+                    Err(storage::Error::NotFound) => {
+                        tracing::debug!(
+                            scan_id=id,
+                            client=%cid,
+                            "Not allowed.",
+                        );
+                        // we return 404 instead of 401 to not leak any ids
+                        return Ok(ctx.response.not_found("scans", id));
+                    }
+                    Err(error) => {
+                        return Ok(ctx.response.internal_server_error(&error));
+                    }
+                },
+                None => MappedID::default(),
+            };
 
             tracing::debug!(
                 method=%req.method(),
@@ -423,8 +428,9 @@ where
                             }
 
                             ctx.scheduler.insert_scan(scan).await?;
-                            ctx.scheduler.add_scan_client_id(id.clone(), cid).await?;
-                            tracing::debug!(%id, "Scan created");
+                            let mapped_id =
+                                ctx.scheduler.generate_mapped_id(cid, id.clone()).await?;
+                            tracing::debug!(%id, ?mapped_id, "Scan created");
                             Ok(resp)
                         }
                         Err(resp) => Ok(resp),
@@ -467,7 +473,7 @@ where
                 }
                 (&Method::GET, Scans(None)) => {
                     if ctx.enable_get_scans {
-                        match ctx.scheduler.get_scans_of_client_id(&cid).await {
+                        match ctx.scheduler.list_mapped_scan_ids(&cid).await {
                             Ok(scans) => Ok(ctx.response.ok(&scans)),
                             Err(e) => Ok(ctx.response.internal_server_error(&e)),
                         }
@@ -486,7 +492,7 @@ where
                             .ok_static(preference::PREFERENCES_JSON.as_bytes()))
                     }
                 }
-                (&Method::GET, Scans(Some(id))) => match ctx.scheduler.get_scan(&id).await {
+                (&Method::GET, Scans(Some(_))) => match ctx.scheduler.get_scan(&mapped_id).await {
                     Ok((mut scan, _)) => {
                         let credentials = scan
                             .target
@@ -501,29 +507,29 @@ where
                         Ok(ctx.response.ok(&scan))
                     }
                     Err(crate::storage::Error::NotFound) => {
-                        Ok(ctx.response.not_found("scans", &id))
+                        Ok(ctx.response.not_found("scans", &mapped_id))
                     }
                     Err(e) => Ok(ctx.response.internal_server_error(&e)),
                 },
-                (&Method::GET, ScanStatus(id)) => match ctx.scheduler.get_scan(&id).await {
+                (&Method::GET, ScanStatus(_)) => match ctx.scheduler.get_scan(&mapped_id).await {
                     Ok((_, status)) => Ok(ctx.response.ok(&status)),
                     Err(crate::storage::Error::NotFound) => {
-                        Ok(ctx.response.not_found("scans/status", &id))
+                        Ok(ctx.response.not_found("scans/status", &mapped_id))
                     }
                     Err(e) => Ok(ctx.response.internal_server_error(&e)),
                 },
-                (&Method::DELETE, Scans(Some(id))) => {
-                    match ctx.scheduler.delete_scan_by_id(&id).await {
+                (&Method::DELETE, Scans(Some(_))) => {
+                    match ctx.scheduler.delete_scan_by_id(&mapped_id).await {
                         Ok(_) => Ok(ctx.response.no_content()),
                         Err(crate::scheduling::Error::NotFound) => {
-                            Ok(ctx.response.not_found("scans", &id))
+                            Ok(ctx.response.not_found("scans", &mapped_id))
                         }
                         Err(e) => Err(e.into()),
                     }
                 }
-                (&Method::GET, ScanResults(id, rid)) => {
+                (&Method::GET, ScanResults(_, index)) => {
                     let (begin, end) = {
-                        if let Some(id) = rid {
+                        if let Some(id) = index {
                             match id.parse::<usize>() {
                                 Ok(id) => (Some(id), Some(id + 1)),
                                 Err(_) => (None, None),
@@ -546,10 +552,10 @@ where
                         }
                     };
 
-                    match ctx.scheduler.get_results(&id, begin, end).await {
+                    match ctx.scheduler.get_results(&mapped_id, begin, end).await {
                         Ok(results) => Ok(ctx.response.byte_stream(StatusCode::OK, results).await),
                         Err(crate::storage::Error::NotFound) => {
-                            Ok(ctx.response.not_found("scans/results", &id))
+                            Ok(ctx.response.not_found("scans/results", &mapped_id))
                         }
                         Err(e) => Ok(ctx.response.internal_server_error(&e)),
                     }

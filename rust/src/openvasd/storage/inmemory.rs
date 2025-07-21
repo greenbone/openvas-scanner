@@ -123,26 +123,22 @@ impl<E> ScanIDClientMapper for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    async fn add_scan_client_id(
+    async fn generate_mapped_id(
         &self,
-        scan_id: String,
         client_id: ClientHash,
-    ) -> Result<(), Error> {
+        scan_id: String,
+    ) -> Result<MappedID, Error> {
         let mut ids = self.client_id.write().unwrap();
-        ids.push((client_id, scan_id));
+        ids.push((client_id, scan_id.clone()));
 
-        Ok(())
+        Ok(scan_id)
     }
 
-    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
+    async fn remove_mapped_id(&self, scan_id: &str) -> Result<(), Error> {
         let mut ids = self.client_id.write().unwrap();
-        let ssid = scan_id.as_ref();
         let mut to_remove = vec![];
         for (i, (_, sid)) in ids.iter().enumerate().rev() {
-            if sid == ssid {
+            if sid == scan_id {
                 to_remove.push(i);
             }
         }
@@ -154,13 +150,29 @@ where
         Ok(())
     }
 
-    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
+    async fn list_mapped_scan_ids(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
         let ids = self.client_id.read().unwrap();
         Ok(ids
             .iter()
             .filter(|(cid, _)| cid == client_id)
             .map(|(_, s)| s.to_owned())
             .collect())
+    }
+
+    async fn get_mapped_id(
+        &self,
+        client: &ClientHash,
+        scan_id: &str,
+    ) -> Result<MappedID, crate::storage::Error> {
+        match self
+            .list_mapped_scan_ids(client)
+            .await?
+            .into_iter()
+            .find(|x| x == scan_id)
+        {
+            Some(x) => Ok(x),
+            None => Err(crate::storage::Error::NotFound),
+        }
     }
 }
 #[async_trait]
@@ -209,15 +221,28 @@ impl<E> AppendFetchResult for Storage<E>
 where
     E: crate::crypt::Crypt + Send + Sync + 'static,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
         let scans = self.scans.clone();
         let crypter = self.crypter.clone();
         tokio::task::spawn_blocking(move || {
             let mut scans = scans.write().unwrap();
-            for r in results {
+            for mut r in results {
                 let id = &r.id;
                 let progress = scans.get_mut(id).ok_or(Error::NotFound)?;
-                progress.status = r.status;
+                // maybe instead of progress.status = r.status we can set it to
+
+                match kind {
+                    ScanResultKind::StatusOverride => progress.status = r.status,
+                    ScanResultKind::StatusAddition => {
+                        // unfortunately the order plays a role
+                        r.status.update_with(&progress.status);
+                        progress.status = r.status;
+                    }
+                };
                 let mut len = progress.results.len();
                 let results = r.results;
                 for mut result in results {
@@ -451,32 +476,32 @@ mod tests {
     async fn id_mapper() {
         let storage = Storage::default();
         storage
-            .add_scan_client_id("s1".to_owned(), "0".into())
+            .generate_mapped_id("0".into(), "s1".to_owned())
+            .await
+            .unwrap();
+        let id = storage
+            .generate_mapped_id("0".into(), "s2".to_owned())
             .await
             .unwrap();
         storage
-            .add_scan_client_id("s2".to_owned(), "0".into())
+            .generate_mapped_id("0".into(), "s3".to_owned())
             .await
             .unwrap();
         storage
-            .add_scan_client_id("s3".to_owned(), "0".into())
-            .await
-            .unwrap();
-        storage
-            .add_scan_client_id("s4".to_owned(), "1".into())
+            .generate_mapped_id("1".into(), "s4".to_owned())
             .await
             .unwrap();
         assert_eq!(
-            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            storage.list_mapped_scan_ids(&"0".into()).await.unwrap(),
             vec!["s1", "s2", "s3"]
         );
         assert_eq!(
-            storage.get_scans_of_client_id(&"1".into()).await.unwrap(),
+            storage.list_mapped_scan_ids(&"1".into()).await.unwrap(),
             vec!["s4"]
         );
-        storage.remove_scan_id("s2").await.unwrap();
+        storage.remove_mapped_id(&id).await.unwrap();
         assert_eq!(
-            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            storage.list_mapped_scan_ids(&"0".into()).await.unwrap(),
             vec!["s1", "s3"]
         );
     }
@@ -566,7 +591,7 @@ mod tests {
             ],
         };
         storage
-            .append_fetched_result(vec![fetch_result])
+            .append_fetched_result(ScanResultKind::StatusOverride, vec![fetch_result])
             .await
             .unwrap();
         let results: Vec<_> = storage
@@ -604,7 +629,7 @@ mod tests {
             results: vec![models::Result::default()],
         };
         storage
-            .append_fetched_result(vec![fetch_result])
+            .append_fetched_result(ScanResultKind::StatusOverride, vec![fetch_result])
             .await
             .unwrap();
         let results: Vec<_> = storage
