@@ -14,9 +14,9 @@ use super::{
     raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
+use crate::nasl::NaslValue;
 use crate::nasl::prelude::*;
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::NaslVars;
+use crate::nasl::utils::DefineGlobalVars;
 use crate::nasl::{builtin::misc::random_impl, utils::function::utils::DEFAULT_TIMEOUT};
 
 use pcap::Capture;

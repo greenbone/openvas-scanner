@@ -17,7 +17,8 @@ use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr
 use tracing::info;
 
 use crate::nasl::prelude::*;
-use crate::nasl::utils::NaslVars;
+use crate::nasl::utils::DefineGlobalVars;
+use crate::nasl::utils::function::Seconds;
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
 /// Hardware type ethernet
@@ -344,7 +345,7 @@ fn send_frame(
 /// It takes the following argument:
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
 #[nasl_function]
-fn nasl_send_arp_request(register: &Register, context: &Context) -> Result<NaslValue, FnError> {
+fn nasl_send_arp_request(register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
     let timeout = match register.nasl_value("pcap_timeout") {
         Ok(NaslValue::Number(x)) => *x as i32 * 1000i32, // to milliseconds
         Ok(_) => {
