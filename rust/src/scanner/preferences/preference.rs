@@ -350,7 +350,7 @@ impl ScanPrefs {
         ScanPrefs(Vec::new())
     }
 
-    pub fn set_default_recv_timeout(&mut self, timeout: Option<u32>) {
+    pub fn set_default_recv_timeout(&mut self, timeout: Option<u32>) -> Self {
         if let Some(timeout) = timeout {
             self.0.push(ScanPreference {
                 id: String::from("checks_read_timeout"),
@@ -362,6 +362,17 @@ impl ScanPrefs {
                 value: "5".to_string(),
             });
         };
+        self.clone()
+    }
+
+    pub fn set_vendor_version(&mut self, vendor: Option<String>) -> Self {
+        self.0.push(ScanPreference {
+            id: String::from("vendor_version"),
+            value: vendor.unwrap_or_else(|| {
+                format!("{}_{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
+            }),
+        });
+        self.clone()
     }
 
     pub fn get_preference_int(&self, key: &str) -> Option<i64> {
