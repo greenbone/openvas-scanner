@@ -105,6 +105,12 @@ pub fn get_retry(context: &ScanCtx) -> u8 {
 
 pub struct Port(u16);
 
+impl From<Port> for u16 {
+    fn from(value: Port) -> Self {
+        value.0
+    }
+}
+
 impl FromNaslValue<'_> for Port {
     fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {
         let port = i64::from_nasl_value(value)?;
