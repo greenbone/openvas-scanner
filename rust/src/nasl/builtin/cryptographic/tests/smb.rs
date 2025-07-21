@@ -32,8 +32,7 @@ mod tests {
     }
     #[test]
     fn smb3kdf() {
-        let mut t: TestBuilder<crate::nasl::NoOpLoader, crate::storage::DefaultDispatcher> =
-            TestBuilder::default();
+        let mut t = TestBuilder::default();
         t.run(r#"key = "jfehfiuhf497hfiuhwf497g74gf97wh4u97hg";"#);
         t.run(r#"label = "1274637383948293";"#);
         t.run(r#"ctx = "28374928";"#);
