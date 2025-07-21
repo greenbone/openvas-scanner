@@ -3,8 +3,8 @@
 
 // SPDX-License-Identifier: GPL-2.0-or-later
 use crate::function_set;
-use crate::nasl::FunctionErrorKind;
-use crate::nasl::NaslValue;
+use crate::nasl::builtin::cryptographic::CryptographicError;
+use crate::nasl::{FnError, NaslValue};
 use aes::Aes128;
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes128Gcm, Nonce};
@@ -16,18 +16,18 @@ use nasl_function_proc_macro::nasl_function;
 use sha2::Sha256;
 
 #[nasl_function(named(key, buf))]
-fn smb_cmac_aes_signature(key: &str, buf: &str) -> Result<NaslValue, FunctionErrorKind> {
+fn smb_cmac_aes_signature(key: &str, buf: &str) -> Result<NaslValue, FnError> {
     let key_bytes = key.as_bytes();
     let buf_bytes = buf.as_bytes();
     let mut cmac_obj = <Cmac<Aes128> as KeyInit>::new_from_slice(key_bytes)
-        .map_err(|e| FunctionErrorKind::Diagnostic(e.to_string(), None))?;
+        .map_err(|e| CryptographicError::Smb(e.to_string()))?;
     Mac::update(&mut cmac_obj, buf_bytes);
     let finish = cmac::Mac::finalize(cmac_obj).into_bytes();
     Ok(finish.to_vec().into())
 }
 
 #[nasl_function(named(key, buf, iv))]
-fn smb_gmac_aes_signature(key: &str, buf: &str, iv: &str) -> Result<NaslValue, FunctionErrorKind> {
+fn smb_gmac_aes_signature(key: &str, buf: &str, iv: &str) -> Result<NaslValue, FnError> {
     let key_bytes = key.as_bytes();
     let buf_bytes = buf.as_bytes();
     let iv_bytes = iv.as_bytes();
@@ -42,27 +42,23 @@ fn smb3kdf(
     label: &str,
     ctx: &str,
     lvalue: usize,
-) -> Result<NaslValue, FunctionErrorKind> {
+) -> Result<NaslValue, CryptographicError> {
     let key_bytes = key.as_bytes();
     let label_bytes = label.as_bytes();
     let ctx_bytes = ctx.as_bytes();
     let mut mac_obj = match <Hmac<Sha256> as KeyInit>::new_from_slice(key_bytes) {
         Ok(x) => x,
         Err(InvalidLength) => {
-            return Err(FunctionErrorKind::wrong_unnamed_argument(
-                "valid size key",
-                "invalid size key",
-            ))
+            return Err(CryptographicError::Smb("invalid key length".into()));
         }
     };
     if lvalue != 128 && lvalue != 256 {
-        return Err(FunctionErrorKind::wrong_argument(
-            "valid size key",
-            format!("{:?}", "128 or 256").as_str(),
-            lvalue.to_string().as_str(),
-        ));
+        return Err(CryptographicError::Smb(format!(
+            "invalid key length: expected 128 or 256, got {}",
+            lvalue
+        )));
     }
-    let buflen = 4 + label_bytes.len() + 1 + ctx_bytes.len();
+    let buflen = 4 + label_bytes.len() + 1 + ctx_bytes.len() + 4;
     let mut buf = Vec::with_capacity(buflen);
 
     buf.extend_from_slice(&1u32.to_be_bytes());
@@ -79,7 +75,6 @@ fn smb3kdf(
 pub struct Smb;
 function_set! {
     Smb,
-    sync_stateless,
     (
         (smb_gmac_aes_signature, "smb_gmac_aes_signature"),
         (smb_cmac_aes_signature, "smb_cmac_aes_signature"),

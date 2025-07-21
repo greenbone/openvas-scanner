@@ -41,6 +41,8 @@ pub enum CryptographicError {
     Rsa(String),
     #[error("Error in RC4: {0}.")]
     Rc4(String),
+    #[error("Error in SMB: {0}.")]
+    Smb(String),
 }
 
 enum Crypt {
