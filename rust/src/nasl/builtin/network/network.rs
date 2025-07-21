@@ -11,19 +11,19 @@ use super::{
 };
 use super::{NaslValue, Port, mtu};
 use crate::function_set;
-use crate::nasl::utils::{Context, FnError};
+use crate::nasl::utils::{FnError, ScanCtx};
 use crate::storage::items::kb::{self, KbItem, KbKey};
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
 #[nasl_function]
-fn get_host_ip(context: &Context) -> String {
+fn get_host_ip(context: &ScanCtx) -> String {
     context.target().ip_addr().to_string()
 }
 
 /// Get the IP address of the current (attacking) machine depending on which network device is used
 #[nasl_function]
-fn this_host(context: &Context) -> Result<String, SocketError> {
+fn this_host(context: &ScanCtx) -> Result<String, SocketError> {
     let dst = context.target().ip_addr();
 
     let port: u16 = DEFAULT_PORT;
@@ -45,20 +45,20 @@ fn this_host_name() -> String {
 
 /// get the maximum transition unit for the scanned host
 #[nasl_function]
-fn get_mtu(context: &Context) -> Result<i64, SocketError> {
+fn get_mtu(context: &ScanCtx) -> Result<i64, SocketError> {
     Ok(mtu(context.target().ip_addr()) as i64)
 }
 
 /// check if the currently scanned host is the localhost
 #[nasl_function]
-fn nasl_islocalhost(context: &Context) -> Result<bool, SocketError> {
+fn nasl_islocalhost(context: &ScanCtx) -> Result<bool, SocketError> {
     let host_ip = context.target().ip_addr();
     Ok(islocalhost(host_ip))
 }
 
 /// Check if the target host is on the same network as the attacking host
 #[nasl_function]
-fn islocalnet(context: &Context) -> Result<bool, SocketError> {
+fn islocalnet(context: &ScanCtx) -> Result<bool, SocketError> {
     let dst = context.target().ip_addr();
     let src = get_source_ip(dst, DEFAULT_PORT)?;
     let netmask = match get_netmask_by_local_ip(src)? {
@@ -133,7 +133,7 @@ fn islocalnet(context: &Context) -> Result<bool, SocketError> {
 
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
-fn scanner_add_port(context: &Context, port: Port, proto: Option<&str>) -> Result<(), FnError> {
+fn scanner_add_port(context: &ScanCtx, port: Port, proto: Option<&str>) -> Result<(), FnError> {
     let kb_key = match proto {
         Some("udp") => KbKey::Port(kb::Port::Udp(port.0.to_string())),
         _ => KbKey::Port(kb::Port::Tcp(port.0.to_string())),
@@ -145,13 +145,23 @@ fn scanner_add_port(context: &Context, port: Port, proto: Option<&str>) -> Resul
 }
 
 #[nasl_function]
-fn get_host_open_port(context: &Context) -> i64 {
+fn scanner_get_port(context: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
+    let ports = context.target().ports_tcp().iter().collect::<Vec<&u16>>();
+    if (idx as usize) < ports.len() {
+        return Ok(NaslValue::Number(*ports[idx as usize] as i64));
+    }
+
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function]
+fn get_host_open_port(context: &ScanCtx) -> i64 {
     context.get_host_open_port().unwrap_or_default() as i64
 }
 
 #[nasl_function(named(asstring))]
-fn get_port_transport(context: &Context, port: u16, asstring: bool) -> Result<NaslValue, FnError> {
-    let transport = context.get_port_transport(port)?.unwrap_or(1);
+fn get_port_transport(context: &ScanCtx, port: u16, asstring: bool) -> Result<NaslValue, FnError> {
+    let transport = context.get_port_transport(port).unwrap_or(1);
     let ret = if asstring {
         let transport_str = match transport {
             0 => "auto".to_string(),
@@ -164,10 +174,7 @@ fn get_port_transport(context: &Context, port: u16, asstring: bool) -> Result<Na
             7 => "TLSv12".to_string(),
             8 => "TLSv13".to_string(),
             9 => "TLScustom".to_string(),
-            _ => format!(
-                "[unknown transport layer - code {} (0x{:x})]",
-                transport, transport
-            ),
+            _ => format!("[unknown transport layer - code {transport} (0x{transport:x})]"),
         };
         NaslValue::String(transport_str)
     } else {
@@ -175,6 +182,16 @@ fn get_port_transport(context: &Context, port: u16, asstring: bool) -> Result<Na
     };
 
     Ok(ret)
+}
+
+#[nasl_function]
+fn get_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
+    context.get_port_state(port, crate::models::Protocol::TCP)
+}
+
+#[nasl_function]
+fn get_udp_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
+    context.get_port_state(port, crate::models::Protocol::UDP)
 }
 
 pub struct Network;
@@ -190,6 +207,10 @@ function_set! {
         get_mtu,
         get_host_ip,
         get_host_open_port,
-        get_port_transport
+        get_port_transport,
+        scanner_get_port,
+        get_port_state,
+        (get_port_state, "get_tcp_port_state"),
+        get_udp_port_state,
     )
 }

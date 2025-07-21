@@ -97,6 +97,7 @@ blowfish = "0.9.1"
 rc4 = "0.1.0"
 codespan-reporting = "0.11.1"
 dsa = "0.6.3"
+mtu = { version = "0.2.9", optional = true }
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
@@ -108,15 +109,12 @@ once_cell = "1.20.1"
 insta = { version = "1.41.1", features = ["ron"] }
 
 [features]
-openvas_serde_support = []
-serde_support = []
 default = [
-    "openvas_serde_support",
     "enforce-no-trailing-arguments",
-    "serde_support",
 ]
 
 nasl-builtin-raw-ip = [
+    "mtu",
     "pcap",
     "pnet_base",
     "pnet",
@@ -135,6 +133,11 @@ tokio = { version = "1.39.3", features = ["full"] }
 version = "0.1.0"
 edition = "2024"
 license = "GPL-2.0-or-later"
+
+[profile.release-lto]
+inherits = "release"
+lto = true
+codegen-units = 1
 
 [[bin]]
 name = "openvasd"

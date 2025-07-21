@@ -41,12 +41,20 @@ use super::kb::KbItem;
 /// - End
 ///
 /// It is defined as a numeric value instead of string representations due to downwards compatible reasons.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Ord,
+    PartialOrd,
+    Default,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
 )]
+#[serde(rename_all = "snake_case")]
 pub enum ACT {
     /// Defines a initializer
     Init,
@@ -99,11 +107,7 @@ impl FromStr for ACT {
 macro_rules! make_str_lookup_enum {
     ($enum_name:ident: $doc:expr => { $($matcher:ident => $key:ident),+ }) => {
         #[doc = $doc]
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord,PartialOrd, Hash)]
-        #[cfg_attr(feature = "serde_support",
-                   derive(serde::Serialize, serde::Deserialize),
-                   serde(rename_all = "snake_case")
-        )]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord,PartialOrd, Hash, serde::Serialize, serde::Deserialize)]
         pub enum $enum_name {
             $(
              #[doc = concat!(stringify!($matcher))]
@@ -199,12 +203,10 @@ make_str_lookup_enum! {
 }
 
 /// Allowed types for preferences
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "lowercase")
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Serialize, serde::Deserialize,
 )]
+#[serde(rename_all = "lowercase")]
 pub enum PreferenceType {
     #[doc = "checkbox"]
     CheckBox,
@@ -347,12 +349,8 @@ pub struct Feed;
 pub type FeedFilter = Vec<NvtField>;
 
 /// Preferences that can be set by a user when running a script.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct NvtPreference {
     /// Preference ID
     pub id: Option<i32>,
@@ -365,12 +363,8 @@ pub struct NvtPreference {
 }
 
 /// References defines where the information for that vulnerability attack is from.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
     pub class: String,
@@ -496,7 +490,9 @@ impl TagValue {
                 .as_timestamp()
                 .ok_or_else(error)
                 .map(Self::from),
-            // is set to be ignored
+            // CvssBase is obsolete and has been replaced by CvssBaseVector.
+            // It remains handled solely for backward compatibility.
+            // We ignore it, as all current feed entries use CvssBaseVector.
             TagKey::CvssBase => Ok(TagValue::Null),
             TagKey::Deprecated => match value.to_string().as_str() {
                 "TRUE" | "true" | "1" => Ok(TagValue::Boolean(true)),
@@ -518,12 +514,8 @@ impl TagValue {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 /// Structure to hold a NVT
 pub struct Nvt {
     /// The ID of the nvt.

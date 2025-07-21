@@ -17,7 +17,7 @@
 //! arguments.
 //!
 //! To do so, the macro transforms the annotated function into a function
-//! taking `&Context` and `&Register` as arguments (plus self arguments
+//! taking `&ScanCtx`, `&Scriptctx`" and `&Register` as arguments (plus self arguments
 //! if needed) and then calls the original function from within the transformed
 //! function, deriving each argument from the `FromNaslValue` implementation
 //! of its type and handling optional and named arguments appropriately.
@@ -48,8 +48,8 @@
 //! the 6 variants which builtin functions come in (sync_stateless,
 //! async_stateless, sync_stateful, ... ) into their corresponding
 //! variant of `NaslFunction`. On the surface, this problem sounds
-//! simple: Simply implement `Into<NaslFunction>` for `Fn(&Context,
-//! &Register) -> NaslResult` as well as for `Fn(&Context, &Register)
+//! simple: Simply implement `Into<NaslFunction>` for `Fn(&ScanCtx,
+//! &Register) -> NaslResult` as well as for `Fn(&ScanCtx, &Register)
 //! -> Future<NaslResult>`, as well as for the other 4 variants. Then
 //! provide a `add_function` method on `StoredFunctionSet` that takes
 //! any `impl Into<NaslFunction>` as argument. The problem with this
@@ -84,7 +84,7 @@ use types::{ArgsStruct, Attrs};
 /// The input function is a normal rust function with certain restrictions
 /// on the types of the arguments and the return type. The input arguments
 /// need to either be within a selected set of specific, allowed types
-/// (`Context`, `Register`, ...) or be of any type that
+/// (`ScanCtx, `ScriptCtx`, `Register`, ...) or be of any type that
 /// implements the `FromNaslValue` trait.
 ///
 /// Conversely, the return type needs to implement the `ToNaslResult` type.
@@ -149,12 +149,20 @@ use types::{ArgsStruct, Attrs};
 /// }
 /// ```
 ///
-/// # `Context`
-/// The `Context` can be obtained in a function, simply by adding it as an argument:
+/// # `ScanCtx`
+/// The `ScanCtx` can be obtained in a function, simply by adding it as an argument:
 /// ```rust ignore
 /// # use nasl_function_proc_macro::nasl_function;
 /// #[nasl_function]
-/// fn foo(context: &Context, ...) -> ... {
+/// fn foo(scanctx: &ScanCtx, ...) -> ... {
+/// }
+/// ```
+/// # `ScriptCtx`
+/// The `ScriptCtx` can be obtained in a function, simply by adding it as an argument:
+/// ```rust ignore
+/// # use nasl_function_proc_macro::nasl_function;
+/// #[nasl_function]
+/// fn foo(scriptctx: &ScriptCtx, ...) -> ... {
 /// }
 /// ```
 /// In a similar fashion, `&Register` is also an allowed parameter:

@@ -5,16 +5,9 @@ use core::iter::IntoIterator;
 use std::fmt::Display;
 
 /// Represents a port representation for scanning.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Port {
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Protocol for the given port range. If empty, prot range applies to UDP and TCP
     pub protocol: Option<Protocol>,
     /// Range for ports to scan.
@@ -22,11 +15,7 @@ pub struct Port {
 }
 
 /// Range for ports to scan.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PortRange {
     /// The required start port.
     ///
@@ -36,10 +25,7 @@ pub struct PortRange {
     ///
     /// It is an inclusive range.
     /// When the end port is not set, only the start port is used.
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<usize>,
 }
 
@@ -71,12 +57,8 @@ impl Display for PortRange {
 }
 
 /// Enum representing the protocol used for scanning a port.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
-#[cfg_attr(feature = "serde_support", serde(rename_all = "lowercase"))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Protocol {
     UDP,
     TCP,
@@ -89,7 +71,7 @@ impl TryFrom<&str> for Protocol {
         match value.to_lowercase().as_str() {
             "udp" => Ok(Protocol::UDP),
             "tcp" => Ok(Protocol::TCP),
-            _ => Err(format!("Invalid protocol: {}", value)),
+            _ => Err(format!("Invalid protocol: {value}")),
         }
     }
 }
@@ -118,6 +100,7 @@ pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
             list.push(',');
         }
     }
+
     if ports.is_empty() {
         return None;
     }

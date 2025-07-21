@@ -189,16 +189,31 @@ impl<S> AppendFetchResult for Storage<S>
 where
     S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
         for r in results {
             let id = &r.id;
-            let status = r.status;
+
+            let status = match kind {
+                ScanResultKind::StatusOverride => r.status,
+                ScanResultKind::StatusAddition => {
+                    let scan_status = self.get_status(&r.id).await?;
+                    let mut status = r.status;
+                    // TODO: change signature
+                    status.update_with(&scan_status);
+                    status
+                }
+            };
+
             self.update_status(id, status).await?;
             if r.results.is_empty() {
                 continue;
             }
 
-            let key = format!("results_{}", id);
+            let key = format!("results_{id}");
             let storage = Arc::clone(&self.storage);
             tracing::trace!(key, results_len = r.results.len());
 
@@ -251,9 +266,9 @@ where
     }
 
     async fn remove_scan(&self, id: &str) -> Result<(), Error> {
-        let key = format!("scan_{}", id);
-        let status_key = format!("status_{}", id);
-        let results_key = format!("results_{}", id);
+        let key = format!("scan_{id}");
+        let status_key = format!("status_{id}");
+        let results_key = format!("results_{id}");
         let storage = Arc::clone(&self.storage);
         let ids = self.get_scan_ids().await?;
         let ids: Vec<_> = ids
@@ -280,7 +295,7 @@ where
     }
 
     async fn update_status(&self, id: &str, status: Status) -> Result<(), Error> {
-        let key = format!("status_{}", id);
+        let key = format!("status_{id}");
         let storage = Arc::clone(&self.storage);
 
         spawn_blocking(move || {
@@ -299,59 +314,13 @@ impl<S> ScanIDClientMapper for Storage<S>
 where
     S: IndexedByteStorage + Sync + Send + Clone + 'static,
 {
-    async fn add_scan_client_id(
+    async fn list_mapped_scan_ids(
         &self,
-        scan_id: String,
-        client_id: ClientHash,
-    ) -> Result<(), Error> {
+        client: &ClientHash,
+    ) -> Result<Vec<String>, crate::storage::Error> {
         let key = "idmap";
         let storage = Arc::clone(&self.storage);
-
-        spawn_blocking(move || {
-            let idt = Serialization::serialize((client_id, scan_id))?;
-            let mut storage = storage.write().unwrap();
-            storage.append(key, idt)?;
-            Ok(())
-        })
-        .await
-        .unwrap()
-    }
-
-    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        let key = "idmap";
-        let storage = Arc::clone(&self.storage);
-
-        spawn_blocking(move || {
-            use scannerlib::storage::infisto::Serialization;
-            let mut storage = storage.write().unwrap();
-            let sid = scan_id.as_ref();
-
-            let ids: Vec<Serialization<(ClientHash, String)>> =
-                storage.by_range(key, scannerlib::storage::infisto::Range::All)?;
-            let new: Vec<Serialization<(ClientHash, String)>> = ids
-                .into_iter()
-                .map(|x| x.deserialize())
-                .filter_map(|x| x.ok())
-                .filter(|(_, x)| x != sid)
-                .map(Serialization::serialize)
-                .filter_map(|x| x.ok())
-                .collect();
-
-            storage.remove(key)?;
-            storage.append_all(key, &new)?;
-            Ok(())
-        })
-        .await
-        .unwrap()
-    }
-
-    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
-        let key = "idmap";
-        let storage = Arc::clone(&self.storage);
-        let client_id = client_id.clone();
+        let client_id = client.clone();
 
         spawn_blocking(move || {
             use scannerlib::storage::infisto::Serialization;
@@ -368,6 +337,66 @@ where
                 .map(|(_, x)| x)
                 .collect();
             Ok(new)
+        })
+        .await
+        .unwrap()
+    }
+    async fn get_mapped_id(
+        &self,
+        client: &ClientHash,
+        scan_id: &str,
+    ) -> Result<MappedID, crate::storage::Error> {
+        match self
+            .list_mapped_scan_ids(client)
+            .await?
+            .into_iter()
+            .find(|x| x == scan_id)
+        {
+            Some(x) => Ok(x),
+            None => Err(crate::storage::Error::NotFound),
+        }
+    }
+    async fn generate_mapped_id(
+        &self,
+        client_id: ClientHash,
+        scan_id: String,
+    ) -> Result<MappedID, Error> {
+        let key = "idmap";
+        let storage = Arc::clone(&self.storage);
+
+        spawn_blocking(move || {
+            let idt = Serialization::serialize((client_id, scan_id.clone()))?;
+            let mut storage = storage.write().unwrap();
+            storage.append(key, idt)?;
+            Ok(scan_id)
+        })
+        .await
+        .unwrap()
+    }
+
+    async fn remove_mapped_id(&self, scan_id: &str) -> Result<(), Error> {
+        let key = "idmap";
+        let storage = Arc::clone(&self.storage);
+        let sid = scan_id.to_owned();
+
+        spawn_blocking(move || {
+            use scannerlib::storage::infisto::Serialization;
+            let mut storage = storage.write().unwrap();
+
+            let ids: Vec<Serialization<(ClientHash, String)>> =
+                storage.by_range(key, scannerlib::storage::infisto::Range::All)?;
+            let new: Vec<Serialization<(ClientHash, String)>> = ids
+                .into_iter()
+                .map(|x| x.deserialize())
+                .filter_map(|x| x.ok())
+                .filter(|(_, x)| x != &sid)
+                .map(Serialization::serialize)
+                .filter_map(|x| x.ok())
+                .collect();
+
+            storage.remove(key)?;
+            storage.append_all(key, &new)?;
+            Ok(())
         })
         .await
         .unwrap()
@@ -438,7 +467,7 @@ where
     {
         tracing::trace!(?key, ?result);
         let store = &mut self.storage.write().unwrap();
-        let key = format!("results_{}", key);
+        let key = format!("results_{key}");
 
         let ilen = match store.indices(&key) {
             Ok(x) => x.len(),
@@ -476,7 +505,7 @@ where
                 "called an unsupported function to delete a result within the file storage, ignoring"
             );
         } else {
-            let key = format!("results_{}", key);
+            let key = format!("results_{key}");
             let store = &mut self.storage.write().unwrap();
             store
                 .remove(&key)
@@ -488,7 +517,7 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::{env::current_dir, fs};
+    use std::fs;
 
     use models::{Phase, Scan, Status};
     use scannerlib::storage::infisto::{CachedIndexFileStorer, IndexedByteStorage};
@@ -502,15 +531,11 @@ pub(crate) mod tests {
     use super::*;
 
     pub async fn nasl_root() -> PathBuf {
-        let base = current_dir().unwrap_or_default();
-
-        let mut tbase = base.parent().unwrap().join("examples");
-        if fs::metadata(&tbase).is_err() {
-            tbase = base.join("examples");
-        }
-        let base_dir = tbase.join("feed");
-
-        base_dir.join("nasl")
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        PathBuf::from(manifest_dir)
+            .join("examples")
+            .join("feed")
+            .join("nasl")
     }
 
     pub async fn example_feeds() -> Vec<FeedHash> {
@@ -635,7 +660,10 @@ pub(crate) mod tests {
             status,
             results,
         }];
-        storage.append_fetched_result(results).await.unwrap();
+        storage
+            .append_fetched_result(ScanResultKind::StatusOverride, results)
+            .await
+            .unwrap();
 
         let status = Status {
             status: Phase::Running,
@@ -648,7 +676,11 @@ pub(crate) mod tests {
             status: status.clone(),
             results,
         }];
-        storage.append_fetched_result(results).await.unwrap();
+        storage
+            .append_fetched_result(ScanResultKind::StatusOverride, results)
+            .await
+            .unwrap();
+
         let stored_status = storage.get_status("42").await.unwrap();
         assert_eq!(status, stored_status);
         let range: Vec<String> = storage
@@ -682,36 +714,42 @@ pub(crate) mod tests {
     async fn id_mapper() {
         let storage = example_feed_file_storage("/tmp/openvasd/file_storage_id_mapper_test").await;
         storage
-            .add_scan_client_id("s1".to_owned(), "0".into())
+            .generate_mapped_id("0".into(), "s1".to_owned())
+            .await
+            .unwrap();
+        let id = storage
+            .generate_mapped_id("0".into(), "s2".to_owned())
             .await
             .unwrap();
         storage
-            .add_scan_client_id("s2".to_owned(), "0".into())
+            .generate_mapped_id("0".into(), "s3".to_owned())
             .await
             .unwrap();
         storage
-            .add_scan_client_id("s3".to_owned(), "0".into())
-            .await
-            .unwrap();
-        storage
-            .add_scan_client_id("s4".to_owned(), "1".into())
+            .generate_mapped_id("1".into(), "s4".to_owned())
             .await
             .unwrap();
         assert_eq!(
-            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            storage.list_mapped_scan_ids(&"0".into()).await.unwrap(),
             vec!["s1", "s2", "s3"]
         );
         assert_eq!(
-            storage.get_scans_of_client_id(&"1".into()).await.unwrap(),
+            storage.list_mapped_scan_ids(&"1".into()).await.unwrap(),
             vec!["s4"]
         );
-        storage.remove_scan_id("s2").await.unwrap();
+        storage.remove_mapped_id(&id).await.unwrap();
         assert_eq!(
-            storage.get_scans_of_client_id(&"0".into()).await.unwrap(),
+            storage.list_mapped_scan_ids(&"0".into()).await.unwrap(),
             vec!["s1", "s3"]
         );
-        assert!(!storage.is_client_allowed("s1", &"1".into()).await.unwrap());
-        assert!(storage.is_client_allowed("s4", &"1".into()).await.unwrap());
+        assert_eq!(
+            storage.get_mapped_id(&"0".into(), "s1").await.unwrap(),
+            "s1",
+        );
+        assert_eq!(
+            storage.get_mapped_id(&"1".into(), "s4").await.unwrap(),
+            "s4"
+        );
 
         let mut storage = scannerlib::storage::infisto::IndexedFileStorer::init(
             "/tmp/openvasd/file_storage_id_mapper_test",

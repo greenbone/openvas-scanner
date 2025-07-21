@@ -107,6 +107,10 @@ async fn main() {
             CliErrorKind::InterpretError(_) | CliErrorKind::SyntaxError(_) => {
                 std::process::exit(1);
             }
+            CliErrorKind::InvalidCmdOpt(_) => {
+                tracing::warn!("Command line option error, {e}");
+                std::process::exit(1);
+            }
             _ => panic!("{e}"),
         },
     }

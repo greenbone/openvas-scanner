@@ -56,7 +56,7 @@ macro_rules! make_storage_function {
         #[nasl_function]
         pub fn $name(
             registrat: &Register,
-            ctxconfigs: &Context,
+            ctxconfigs: &ScanCtx,
         ) -> Result<NaslValue, FnError> {
             let mut variables = vec![];
             $(

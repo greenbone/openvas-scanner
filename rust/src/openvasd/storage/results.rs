@@ -6,8 +6,11 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{self, Scan, Status, scanner::ScanResults},
-    nasl::utils::context::ContextStorage,
+    models::{
+        self, Scan, Status,
+        scanner::{ScanResultKind, ScanResults},
+    },
+    nasl::utils::scan_ctx::ContextStorage,
     scheduling::SchedulerStorage,
     storage::{
         Dispatcher, Remover, Retriever, ScanID,
@@ -24,7 +27,7 @@ use scannerlib::{
 use crate::controller::ClientHash;
 
 use super::{
-    AppendFetchResult, Error, FeedHash, NVTStorer, ProgressGetter, ResultHandler,
+    AppendFetchResult, Error, FeedHash, MappedID, NVTStorer, ProgressGetter, ResultHandler,
     ScanIDClientMapper, ScanStorer, Storage,
 };
 
@@ -120,8 +123,12 @@ impl<T> AppendFetchResult for ResultCatcher<T>
 where
     T: Storage + ResultHandler + Send + Sync,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
-        self.0.append_fetched_result(results).await
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
+        self.0.append_fetched_result(kind, results).await
     }
 }
 
@@ -160,29 +167,21 @@ impl<T> ScanIDClientMapper for ResultCatcher<T>
 where
     T: Storage + ResultHandler + Send + Sync,
 {
-    async fn add_scan_client_id(
+    async fn generate_mapped_id(
         &self,
+        client: ClientHash,
         scan_id: String,
-        client_id: ClientHash,
-    ) -> Result<(), Error> {
-        self.0.add_scan_client_id(scan_id, client_id).await
+    ) -> Result<MappedID, Error> {
+        self.0.generate_mapped_id(client, scan_id).await
     }
-    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        self.0.remove_scan_id(scan_id).await
+    async fn list_mapped_scan_ids(&self, client: &ClientHash) -> Result<Vec<String>, Error> {
+        self.0.list_mapped_scan_ids(client).await
     }
-
-    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
-        self.0.get_scans_of_client_id(client_id).await
+    async fn get_mapped_id(&self, client: &ClientHash, scan_id: &str) -> Result<MappedID, Error> {
+        self.0.get_mapped_id(client, scan_id).await
     }
-
-    async fn is_client_allowed<I>(&self, scan_id: I, client_id: &ClientHash) -> Result<bool, Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        self.0.is_client_allowed(scan_id, client_id).await
+    async fn remove_mapped_id(&self, id: &str) -> Result<(), Error> {
+        self.0.remove_mapped_id(id).await
     }
 }
 

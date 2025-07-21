@@ -3,17 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 /// Represents a set of credentials to be used for scanning to access a host.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Credential {
     /// Service to use for accessing a host
     pub service: Service,
     /// Port used for getting access. If missing a standard port is used
     pub port: Option<u16>,
-    #[cfg_attr(feature = "serde_support", serde(flatten))]
+    #[serde(flatten)]
     /// Type of the credential to get access. Different services support different types.
     pub credential_type: CredentialType,
 }
@@ -46,38 +42,30 @@ impl Default for Credential {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PrivilegeInformation {
-    #[cfg_attr(feature = "serde_support", serde(rename = "privilege_username"))]
+    #[serde(rename = "privilege_username")]
     pub username: String,
-    #[cfg_attr(feature = "serde_support", serde(rename = "privilege_password"))]
+    #[serde(rename = "privilege_password")]
     pub password: String,
 }
 
 /// Enum of available services
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Service {
-    #[cfg_attr(feature = "serde_support", serde(rename = "ssh"))]
+    #[serde(rename = "ssh")]
     /// SSH, supports [UP](CredentialType::UP) and [USK](CredentialType::USK) as credential types
     SSH,
-    #[cfg_attr(feature = "serde_support", serde(rename = "smb"))]
+    #[serde(rename = "smb")]
     /// SMB, supports [UP](CredentialType::UP)
     SMB,
-    #[cfg_attr(feature = "serde_support", serde(rename = "esxi"))]
+    #[serde(rename = "esxi")]
     /// ESXi, supports [UP](CredentialType::UP)
     ESXi,
-    #[cfg_attr(feature = "serde_support", serde(rename = "snmp"))]
+    #[serde(rename = "snmp")]
     /// SNMP, supports [SNMP](CredentialType::SNMP)
     SNMP,
-    #[cfg_attr(feature = "serde_support", serde(rename = "krb5"))]
+    #[serde(rename = "krb5")]
     /// SNMP, supports [SNMP](CredentialType::SNMP)
     KRB5,
 }
@@ -109,14 +97,10 @@ impl TryFrom<&str> for Service {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Enum representing the type of credentials.
 pub enum CredentialType {
-    #[cfg_attr(feature = "serde_support", serde(rename = "up"))]
+    #[serde(rename = "up")]
     /// User/password credentials.
     UP {
         /// The username for authentication.
@@ -124,35 +108,26 @@ pub enum CredentialType {
         /// The password for authentication.
         password: String,
         /// privilege credential only use for SSH service
-        #[cfg_attr(
-            feature = "serde_support",
-            serde(default, flatten, skip_serializing_if = "Option::is_none")
-        )]
+        #[serde(default, flatten, skip_serializing_if = "Option::is_none")]
         privilege: Option<PrivilegeInformation>,
     },
-    #[cfg_attr(feature = "serde_support", serde(rename = "usk"))]
+    #[serde(rename = "usk")]
     /// User/ssh-key credentials.
     USK {
         /// The username for authentication.
         username: String,
         /// The password for authentication.
         // A key without passphrase can be expected
-        #[cfg_attr(
-            feature = "serde_support",
-            serde(default, skip_serializing_if = "Option::is_none")
-        )]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         password: Option<String>,
-        #[cfg_attr(feature = "serde_support", serde(rename = "private"))]
+        #[serde(rename = "private")]
         /// The private key for authentication.
         private_key: String,
         /// privilege credential only use for SSH service
-        #[cfg_attr(
-            feature = "serde_support",
-            serde(default, flatten, skip_serializing_if = "Option::is_none")
-        )]
+        #[serde(default, flatten, skip_serializing_if = "Option::is_none")]
         privilege: Option<PrivilegeInformation>,
     },
-    #[cfg_attr(feature = "serde_support", serde(rename = "snmp"))]
+    #[serde(rename = "snmp")]
     /// SNMP credentials.
     SNMP {
         /// The SNMP username.

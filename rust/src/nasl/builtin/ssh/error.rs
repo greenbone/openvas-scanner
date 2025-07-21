@@ -25,7 +25,7 @@ impl From<libssh_rs::Error> for LibError {
 #[cfg(not(feature = "nasl-builtin-libssh"))]
 impl From<russh::Error> for LibError {
     fn from(e: russh::Error) -> Self {
-        Self(format!("{}", e))
+        Self(format!("{e}"))
     }
 }
 
@@ -43,10 +43,10 @@ impl fmt::Display for SshError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind)?;
         if let Some(id) = self.id {
-            write!(f, " Session ID: {0}.", id)?;
+            write!(f, " Session ID: {id}.")?;
         }
         if let Some(ref source) = self.source {
-            write!(f, " {}", source)?;
+            write!(f, " {source}")?;
         }
         Ok(())
     }

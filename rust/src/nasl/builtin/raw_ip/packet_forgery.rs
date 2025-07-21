@@ -14,9 +14,10 @@ use super::{
     raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
-use crate::nasl::builtin::misc::random_impl;
 use crate::nasl::prelude::*;
-use crate::nasl::utils::DefineGlobalVars;
+use crate::nasl::syntax::NaslValue;
+use crate::nasl::utils::NaslVars;
+use crate::nasl::{builtin::misc::random_impl, utils::function::utils::DEFAULT_TIMEOUT};
 
 use pcap::Capture;
 use pnet::packet::{
@@ -52,8 +53,6 @@ macro_rules! custom_error {
     };
 }
 
-/// Default Timeout for received
-const DEFAULT_TIMEOUT_SEC: i32 = 5;
 /// Define IPPROTO_RAW
 const IPPROTO_RAW: i32 = 255;
 /// Define IPPROTO_IP for dummy tcp . From rfc3542:
@@ -348,7 +347,7 @@ pub fn safe_copy_from_slice(
     data, ip_hl, ip_v, ip_tos, ip_ttl, ip_id, ip_len, ip_off, ip_p, ip_src, ip_dst, ip_sum
 ))]
 fn forge_ip_packet(
-    configs: &Context,
+    configs: &ScanCtx,
     data: Option<PacketPayload>,
     ip_hl: Option<u8>,
     ip_v: Option<u8>,
@@ -1944,12 +1943,11 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
     })
 }
 
-/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
-///
-/// Its argument is:
-/// - port: port for the ping
-#[nasl_function(named(port))]
-fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+    if configs.target().ip_addr().is_ipv6() {
+        return nasl_tcp_v6_ping_shared(configs, port);
+    }
+
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -1978,9 +1976,7 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
     let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
-
-    //TODO!: implement plug_get_host_open_port() to get the default port
-    let port = port.unwrap_or(0u16);
+    let port = port.unwrap_or(configs.get_host_open_port().unwrap_or_default());
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -2027,7 +2023,6 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
     tcp.set_urgent_ptr(0);
 
     for (i, _) in sports.iter().enumerate() {
-        // TODO!: the port is fixed since the function to get open ports is not implemented.
         let mut sport = rnd_tcp_port();
         let mut dport = port;
         if port == 0 {
@@ -2065,6 +2060,15 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
     Ok(NaslValue::Null)
 }
 
+/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
+///
+/// Its argument is:
+/// - port: port for the ping
+#[nasl_function(named(port))]
+pub fn nasl_tcp_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+    nasl_tcp_ping_shared(configs, port)
+}
+
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
 ///
 /// The arguments are:
@@ -2076,7 +2080,7 @@ fn nasl_tcp_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnEr
 /// - allow_broadcast: default FALSE
 #[nasl_function(named(length, pcap_active, pcap_filter, pcap_timeout, allow_broadcast))]
 fn nasl_send_packet(
-    configs: &Context,
+    configs: &ScanCtx,
     length: Option<i32>,
     pcap_active: Option<bool>,
     pcap_filter: Option<String>,
@@ -2086,7 +2090,7 @@ fn nasl_send_packet(
 ) -> Result<NaslValue, FnError> {
     let use_pcap = pcap_active.unwrap_or(true);
     let filter = pcap_filter.unwrap_or_default();
-    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT_SEC) * 1000;
+    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT) * 1000;
     let mut allow_broadcast = allow_broadcast.unwrap_or(false);
 
     if positional.is_empty() {
@@ -2169,14 +2173,14 @@ fn nasl_send_packet(
 /// - timeout: timeout in seconds, 5 by default
 #[nasl_function(named(interface, pcap_filter, timeout))]
 fn nasl_send_capture(
-    configs: &Context,
+    configs: &ScanCtx,
     interface: Option<String>,
     pcap_filter: Option<String>,
     timeout: Option<i32>,
 ) -> Result<NaslValue, FnError> {
     let interface = interface.unwrap_or_default();
     let filter = pcap_filter.unwrap_or_default();
-    let timeout = timeout.unwrap_or(DEFAULT_TIMEOUT_SEC) * 1000;
+    let timeout = timeout.unwrap_or(DEFAULT_TIMEOUT) * 1000;
 
     // Get the iface name, to set the capture device.
     let target_ip = configs.target().ip_addr();
@@ -2227,7 +2231,7 @@ fn nasl_send_capture(
 /// Return an IPv6 datagram or Null on error.
 #[nasl_function(named(data, ip6_v, ip6_tc, ip6_fl, ip6_p, ip6_hlim, ip6_src, ip6_dst))]
 fn forge_ip_v6_packet(
-    configs: &Context,
+    configs: &ScanCtx,
     data: Option<PacketPayload>,
     ip6_v: Option<u8>,
     ip6_tc: Option<u8>,
@@ -3143,12 +3147,7 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
     Ok(NaslValue::Null)
 }
 
-/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
-///
-/// Its argument is:
-/// - port: port for the ping
-#[nasl_function(named(port))]
-fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -3178,7 +3177,7 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
-    let port = port.unwrap_or_default();
+    let port = port.unwrap_or(configs.get_host_open_port().unwrap_or_default());
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -3220,7 +3219,6 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
     tcp.set_urgent_ptr(0);
 
     for (i, _) in sports.iter().enumerate() {
-        // TODO!: the port is fixed since the function to get open ports is not implemented.
         let mut sport = rnd_tcp_port();
         let mut dport = port;
         if port == 0 {
@@ -3256,6 +3254,15 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
     Ok(NaslValue::Null)
 }
 
+/// This function tries to open a TCP connection and sees if anything comes back (SYN/ACK or RST).
+///
+/// Its argument is:
+/// - port: port for the ping
+#[nasl_function(named(port))]
+pub fn nasl_tcp_v6_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+    nasl_tcp_v6_ping_shared(configs, port)
+}
+
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
 ///
 /// The arguments are:
@@ -3267,7 +3274,7 @@ fn nasl_tcp_v6_ping(configs: &Context, port: Option<u16>) -> Result<NaslValue, F
 /// - allow_broadcast: default FALSE
 #[nasl_function(named(length, pcap_active, pcap_filter, pcap_timeout))]
 fn nasl_send_v6packet(
-    configs: &Context,
+    configs: &ScanCtx,
     length: Option<i32>,
     pcap_active: Option<bool>,
     pcap_filter: Option<String>,
@@ -3276,7 +3283,7 @@ fn nasl_send_v6packet(
 ) -> Result<NaslValue, FnError> {
     let use_pcap = pcap_active.unwrap_or(true);
     let filter = pcap_filter.unwrap_or_default();
-    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT_SEC) * 1000;
+    let timeout = pcap_timeout.unwrap_or(DEFAULT_TIMEOUT) * 1000;
 
     if positional.is_empty() {
         return Ok(NaslValue::Null);

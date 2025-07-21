@@ -159,7 +159,7 @@ where
     async fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
         let mut items: Vec<String> = vec![];
         for (k, v) in self.nvt_params.iter() {
-            items.push(format!("{}|||{}", k, v))
+            items.push(format!("{k}|||{v}"))
         }
 
         if items.is_empty() {
@@ -274,7 +274,7 @@ where
         if (1..=31).contains(&alive_test) {
             self.redis_connector.push_kb_item(
                 format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-                format!("{BOREAS_ALIVE_TEST}|||{}", alive_test),
+                format!("{BOREAS_ALIVE_TEST}|||{alive_test}"),
             )?;
         };
 
@@ -289,7 +289,7 @@ where
         if let Some(ports) = ports_to_openvas_port_list(alive_test_ports) {
             self.redis_connector.push_kb_item(
                 format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-                format!("{BOREAS_ALIVE_TEST_PORTS}|||{}", ports),
+                format!("{BOREAS_ALIVE_TEST_PORTS}|||{ports}"),
             )?;
         };
 
@@ -330,7 +330,7 @@ where
         let target = self.scan_config.target.hosts.join(",");
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-            format!("TARGET|||{}", target),
+            format!("TARGET|||{target}"),
         )
     }
 
@@ -339,7 +339,7 @@ where
         if let Some(ports) = ports_to_openvas_port_list(ports) {
             self.redis_connector.push_kb_item(
                 format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-                format!("port_range|||{}", ports),
+                format!("port_range|||{ports}"),
             )?;
         };
 
@@ -354,7 +354,7 @@ where
 
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
-            format!("exclude_hosts|||{}", excluded_hosts),
+            format!("exclude_hosts|||{excluded_hosts}"),
         )
     }
 
@@ -395,7 +395,7 @@ where
             match credential.service {
                 Service::KRB5 => {
                     if let Some(port) = credential.port {
-                        credential_preferences.push(format!("auth_port_krb5|||{}", port));
+                        credential_preferences.push(format!("auth_port_krb5|||{port}"));
                     } else {
                         credential_preferences.push("auth_port_krb5|||445".to_string());
                     };
@@ -407,17 +407,16 @@ where
                     } = credential.credential_type
                     {
                         credential_preferences
-                            .push(format!("{OID_KRB5_AUTH}:1:entry::|||{}", username));
+                            .push(format!("{OID_KRB5_AUTH}:1:entry::|||{username}"));
                         credential_preferences
-                            .push(format!("{OID_KRB5_AUTH}:2:password::|||{}", password));
-                        credential_preferences
-                            .push(format!("{OID_KRB5_AUTH}:3:entry::|||{}", realm));
-                        credential_preferences.push(format!("{OID_KRB5_AUTH}:4:entry::|||{}", kdc));
+                            .push(format!("{OID_KRB5_AUTH}:2:password::|||{password}"));
+                        credential_preferences.push(format!("{OID_KRB5_AUTH}:3:entry::|||{realm}"));
+                        credential_preferences.push(format!("{OID_KRB5_AUTH}:4:entry::|||{kdc}"));
                     }
                 }
                 Service::SSH => {
                     if let Some(port) = credential.port {
-                        credential_preferences.push(format!("auth_port_ssh|||{}", port));
+                        credential_preferences.push(format!("auth_port_ssh|||{port}"));
                     } else {
                         credential_preferences.push("auth_port_ssh|||22".to_string());
                     };
@@ -429,12 +428,10 @@ where
                     } = credential.credential_type.clone()
                     {
                         credential_preferences.push(format!(
-                            "{OID_SSH_AUTH}:3:password:SSH password (unsafe!):|||{}",
-                            password
+                            "{OID_SSH_AUTH}:3:password:SSH password (unsafe!):|||{password}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SSH_AUTH}:1:entry:SSH login name:|||{}",
-                            username
+                            "{OID_SSH_AUTH}:1:entry:SSH login name:|||{username}"
                         ));
                         if let Some(p) = privilege {
                             credential_preferences.push(format!(
@@ -455,16 +452,14 @@ where
                     } = credential.credential_type
                     {
                         credential_preferences.push(format!(
-                            "{OID_SSH_AUTH}:1:entry:SSH login name:|||{}",
-                            username
+                            "{OID_SSH_AUTH}:1:entry:SSH login name:|||{username}"
                         ));
                         credential_preferences.push(format!(
                             "{OID_SSH_AUTH}:2:password:SSH key passphrase:|||{}",
                             password.unwrap_or_default()
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SSH_AUTH}:4:file:SSH private key:|||{}",
-                            private_key
+                            "{OID_SSH_AUTH}:4:file:SSH private key:|||{private_key}"
                         ));
                         if let Some(p) = privilege {
                             credential_preferences.push(format!(
@@ -485,10 +480,9 @@ where
                     } = credential.credential_type.clone()
                     {
                         credential_preferences
-                            .push(format!("{OID_SMB_AUTH}:1:entry:SMB login:|||{}", username));
+                            .push(format!("{OID_SMB_AUTH}:1:entry:SMB login:|||{username}"));
                         credential_preferences.push(format!(
-                            "{OID_SMB_AUTH}:2:password:SMB password:|||{}",
-                            password
+                            "{OID_SMB_AUTH}:2:password:SMB password:|||{password}"
                         ));
                     };
                 }
@@ -499,12 +493,10 @@ where
                     } = credential.credential_type.clone()
                     {
                         credential_preferences.push(format!(
-                            "{OID_ESXI_AUTH}:1:entry:ESXi login name:|||{}",
-                            username
+                            "{OID_ESXI_AUTH}:1:entry:ESXi login name:|||{username}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_ESXI_AUTH}:2:password:ESXi login password:|||{}",
-                            password
+                            "{OID_ESXI_AUTH}:2:password:ESXi login password:|||{password}"
                         ));
                     };
                 }
@@ -534,28 +526,22 @@ where
                         };
 
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:1:password:SNMP Community:|||{}",
-                            community
+                            "{OID_SNMP_AUTH}:1:password:SNMP Community:|||{community}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:2:entry:SNMPv3 Username:|||{}",
-                            username
+                            "{OID_SNMP_AUTH}:2:entry:SNMPv3 Username:|||{username}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:3:password:SNMPv3 Password:|||{}",
-                            password
+                            "{OID_SNMP_AUTH}:3:password:SNMPv3 Password:|||{password}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:4:radio:SNMPv3 Authentication Algorithm:|||{}",
-                            auth_algorithm
+                            "{OID_SNMP_AUTH}:4:radio:SNMPv3 Authentication Algorithm:|||{auth_algorithm}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:5:password:SNMPv3 Privacy Password:|||{}",
-                            privacy_password
+                            "{OID_SNMP_AUTH}:5:password:SNMPv3 Privacy Password:|||{privacy_password}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:6:radio:SNMPv3 Privacy Algorithm:|||{}",
-                            privacy_algorithm
+                            "{OID_SNMP_AUTH}:6:radio:SNMPv3 Privacy Algorithm:|||{privacy_algorithm}"
                         ));
                     }
                 }
@@ -576,8 +562,11 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::models::{
-        AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan, Service,
+    use crate::{
+        models::{
+            AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan, Service,
+        },
+        scanner::preferences::preference::ScanPrefs,
     };
 
     use super::PreferenceHandler;
@@ -626,7 +615,7 @@ mod tests {
                 },
             ],
         }];
-        scan.scan_preferences = vec![
+        scan.scan_preferences = ScanPrefs(vec![
             crate::models::ScanPreference {
                 id: "testParam1".to_string(),
                 value: "1".to_string(),
@@ -635,7 +624,7 @@ mod tests {
                 id: "testParam2".to_string(),
                 value: "abc".to_string(),
             },
-        ];
+        ]);
         scan.vts = vec![crate::models::VT {
             oid: "123".to_string(),
             parameters: vec![

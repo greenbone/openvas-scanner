@@ -1,16 +1,17 @@
 use super::Scan;
+use super::preferences::preference::ScanPrefs;
 use crate::models::Phase;
 use crate::models::Protocol;
 use crate::models::VT;
 use crate::models::scanner::{ScanResultFetcher, ScanResults};
 use crate::nasl::Code;
-use crate::nasl::ContextBuilder;
+use crate::nasl::ScanCtxBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::interpreter::Register;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::NaslValue;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::context::Target;
+use crate::nasl::utils::scan_ctx::Target;
 use crate::scanner::Scanner;
 use crate::scanner::{
     error::{ExecuteError, ScriptResult},
@@ -54,7 +55,9 @@ pub fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
                 parameters: vec![],
             })
             .collect(),
-        scan_preferences: Vec::new(),
+        scan_preferences: ScanPrefs::new(),
+        alive_test_methods: Vec::new(),
+        alive_test_ports: Vec::new(),
     };
     let executor = nasl_std_functions();
     ((Arc::new(storage), loader), executor, scan)
@@ -221,8 +224,9 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
     let executor = nasl_std_functions();
     let loader = |_: &str| code.to_string();
     let scan_id = ScanID(filename.to_string());
-    let scan_preferences = Vec::default();
-    let cb = ContextBuilder {
+    let scan_preferences = ScanPrefs::new();
+    let alive_test_methods = Vec::default();
+    let cb = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
         executor: &executor,
@@ -231,6 +235,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         ports,
         filename,
         scan_preferences,
+        alive_test_methods,
     };
     let context = cb.build();
     let ast = Code::from_string(code)
@@ -277,7 +282,9 @@ async fn run(
                 parameters: vec![],
             })
             .collect(),
-        scan_preferences: Vec::new(),
+        scan_preferences: ScanPrefs::new(),
+        alive_test_methods: Vec::new(),
+        alive_test_ports: Vec::new(),
     };
 
     let executor = nasl_std_functions();

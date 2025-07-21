@@ -2,40 +2,39 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use serde::Deserialize;
+
 /// Represents an product json file for notus
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Product {
     /// Version of the file, some version might not be supported by notus
     pub version: String,
     /// Package type, important for parsing the corresponding package
     pub package_type: PackageType,
     /// List of vulnerability tests for product
-    #[cfg_attr(feature = "serde_support", serde(rename = "advisories"))]
+    #[serde(rename = "advisories")]
     pub vulnerability_tests: Vec<VulnerabilityTest>,
 }
 
 /// Enum of supported package types
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub enum PackageType {
-    #[cfg_attr(feature = "serde_support", serde(rename = "deb"))]
+    #[serde(rename = "deb")]
     DEB,
-    #[cfg_attr(feature = "serde_support", serde(rename = "ebuild"))]
+    #[serde(rename = "ebuild")]
     EBUILD,
-    #[cfg_attr(feature = "serde_support", serde(rename = "rpm"))]
+    #[serde(rename = "rpm")]
     RPM,
-    #[cfg_attr(feature = "serde_support", serde(rename = "slack"))]
+    #[serde(rename = "slack")]
     SLACK,
-    #[cfg_attr(feature = "serde_support", serde(rename = "msp"))]
+    #[serde(rename = "msp")]
     MSP,
-    #[cfg_attr(feature = "serde_support", serde(rename = "alpm"))]
+    #[serde(rename = "alpm")]
     ALPM,
 }
 
 /// Representing a single Vulnerability Test entry
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct VulnerabilityTest {
     /// OID to identify vulnerability
     pub oid: String,
@@ -44,8 +43,8 @@ pub struct VulnerabilityTest {
 }
 
 /// Version entry
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize), serde(untagged))]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
+#[serde(untagged)]
 pub enum FixedPackage {
     ByFullName {
         full_name: String,
@@ -63,32 +62,27 @@ pub enum FixedPackage {
 }
 
 /// A specifier can be one of: >, <, >=, <=, =
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Deserialize, serde::Serialize)
-)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum Specifier {
     /// >
-    #[cfg_attr(feature = "serde_support", serde(rename = ">"))]
+    #[serde(rename = ">")]
     GT,
     /// <
-    #[cfg_attr(feature = "serde_support", serde(rename = "<"))]
+    #[serde(rename = "<")]
     LT,
     /// >=
-    #[cfg_attr(feature = "serde_support", serde(rename = ">="))]
+    #[serde(rename = ">=")]
     GE,
     /// <=
-    #[cfg_attr(feature = "serde_support", serde(rename = "<="))]
+    #[serde(rename = "<=")]
     LE,
     /// =
-    #[cfg_attr(feature = "serde_support", serde(rename = "="))]
+    #[serde(rename = "=")]
     EQ,
 }
 
 /// Version range
-#[cfg_attr(feature = "serde_support", derive(serde::Deserialize))]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Range {
     pub start: String,
     pub end: String,

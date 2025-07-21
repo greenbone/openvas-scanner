@@ -61,7 +61,7 @@ fn get_required_named_data<'a>(
         Ok(x) => Err(ArgumentError::wrong_argument(
             key,
             "a String or Data Value",
-            format!("{:?}", x).as_str(),
+            format!("{x:?}").as_str(),
         )),
         _ => Err(ArgumentError::MissingNamed(vec![key.into()])),
     }
@@ -77,7 +77,7 @@ fn get_optional_named_number(register: &Register, key: &str) -> Result<Option<i6
         Ok(x) => Err(ArgumentError::wrong_argument(
             key,
             "a Number Value",
-            format!("{:?}", x).as_str(),
+            format!("{x:?}").as_str(),
         )),
         _ => Ok(None),
     }

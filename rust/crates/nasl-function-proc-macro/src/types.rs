@@ -43,8 +43,9 @@ pub enum ArgKind {
     Positional(PositionalArg),
     Named(NamedArg),
     MaybeNamed(PositionalArg, NamedArg),
-    Context,
+    ScanCtx,
     Register,
+    ScriptCtx,
     NaslSockets(NaslSocketsArg),
     PositionalIterator(PositionalsArg),
     CheckedPositionalIterator(PositionalsArg),
@@ -69,8 +70,9 @@ impl ArgKind {
 
     pub fn order(&self) -> usize {
         match self {
-            ArgKind::Context => 0,
+            ArgKind::ScanCtx => 0,
             ArgKind::Register => 0,
+            ArgKind::ScriptCtx => 0,
             ArgKind::NaslSockets(_) => 1,
             ArgKind::Positional(_) => 2,
             ArgKind::MaybeNamed(_, _) => 3,
@@ -88,11 +90,12 @@ impl ArgKind {
             ArgKind::Positional(_) => false,
             ArgKind::Named(_) => false,
             ArgKind::MaybeNamed(_, _) => false,
-            ArgKind::Context => false,
+            ArgKind::ScanCtx => false,
             ArgKind::Register => false,
             ArgKind::PositionalIterator(_) => false,
             ArgKind::CheckedPositionalIterator(_) => false,
             ArgKind::NaslSockets(_) => true,
+            ArgKind::ScriptCtx => false,
         }
     }
 }

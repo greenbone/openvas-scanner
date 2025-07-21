@@ -4,7 +4,7 @@
 
 use crate::models::HostInfo;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::context::Target;
+use crate::nasl::utils::scan_ctx::Target;
 use futures::{Stream, stream};
 
 use crate::scanner::ScannerStack;
@@ -113,6 +113,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
                         param.as_ref(),
                         scan_id,
                         &self.scan.scan_preferences,
+                        &self.scan.alive_test_methods,
                     )
                     .await;
                     Some((result, data))

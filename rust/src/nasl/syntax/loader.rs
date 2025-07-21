@@ -127,9 +127,9 @@ impl From<(&str, std::io::Error)> for LoadError {
         match value.kind() {
             std::io::ErrorKind::NotFound => LoadError::NotFound(pstr.to_owned()),
             std::io::ErrorKind::PermissionDenied => LoadError::PermissionDenied(pstr.to_owned()),
-            std::io::ErrorKind::TimedOut => LoadError::Retry(format!("{} timed out.", pstr)),
-            std::io::ErrorKind::Interrupted => LoadError::Retry(format!("{} interrupted.", pstr)),
-            _ => LoadError::Dirty(format!("{}: {:?}", pstr, value)),
+            std::io::ErrorKind::TimedOut => LoadError::Retry(format!("{pstr} timed out.")),
+            std::io::ErrorKind::Interrupted => LoadError::Retry(format!("{pstr} interrupted.")),
+            _ => LoadError::Dirty(format!("{pstr}: {value:?}")),
         }
     }
 }

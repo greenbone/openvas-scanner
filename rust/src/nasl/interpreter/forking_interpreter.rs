@@ -1,6 +1,6 @@
 use futures::{Stream, stream};
 
-use crate::nasl::{Context, Register, syntax::grammar::Ast};
+use crate::nasl::{Register, ScanCtx, syntax::grammar::Ast};
 
 use super::{Interpreter, Result};
 
@@ -16,7 +16,7 @@ pub struct ForkingInterpreter<'ctx> {
 }
 
 impl<'ctx> ForkingInterpreter<'ctx> {
-    pub fn new(ast: Ast, mut register: Register, context: &'ctx Context<'ctx>) -> Self {
+    pub fn new(ast: Ast, mut register: Register, context: &'ctx ScanCtx<'ctx>) -> Self {
         context.add_fn_global_vars(&mut register);
         let interpreters = vec![Interpreter::new(register, context)];
         Self {

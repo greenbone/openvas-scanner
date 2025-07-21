@@ -16,8 +16,7 @@ serde_json = "1"
 scannerlib = { path = "../.." }
 
 [features]
-default = ["serde_support"]
-serde_support = ["serde"]
+default = []
 smoketest = []
 
 [dev-dependencies]

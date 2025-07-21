@@ -14,7 +14,7 @@ mod tests;
 use std::collections::VecDeque;
 
 use crate::nasl::{
-    Code, Context,
+    Code,
     error::Span,
     syntax::{
         Ident,
@@ -29,7 +29,10 @@ use InterpreterError as Error;
 use InterpreterErrorKind as ErrorKind;
 use error::ExprLocation;
 
-use super::syntax::{LiteralKind, grammar::UnaryPrefixOperatorKind};
+use super::{
+    ScanCtx, ScriptCtx,
+    syntax::{LiteralKind, grammar::UnaryPrefixOperatorKind},
+};
 
 pub use error::{FunctionCallError, InterpreterError, InterpreterErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
@@ -240,7 +243,8 @@ fn expand_fork_at(
 
 pub struct Interpreter<'ctx> {
     pub(super) register: Register,
-    pub(super) context: &'ctx Context<'ctx>,
+    pub(super) scan_ctx: &'ctx ScanCtx<'ctx>,
+    pub(super) script_ctx: ScriptCtx,
     pub(super) fork_reentry_data: ForkReentryData,
     stmt_index: usize,
     state: InterpreterState,
@@ -248,11 +252,12 @@ pub struct Interpreter<'ctx> {
 
 impl<'ctx> Interpreter<'ctx> {
     /// Creates a new Interpreter
-    fn new(register: Register, context: &'ctx Context) -> Self {
+    fn new(register: Register, scan_ctx: &'ctx ScanCtx) -> Self {
         Interpreter {
             register,
             stmt_index: 0,
-            context,
+            scan_ctx,
+            script_ctx: ScriptCtx::default(),
             fork_reentry_data: ForkReentryData::new(),
             state: InterpreterState::Running,
         }
@@ -480,7 +485,7 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     async fn resolve_include(&mut self, include: &Include) -> Result {
-        let loader = self.context.loader();
+        let loader = self.scan_ctx.loader();
         let code = Code::load(loader, &include.path)
             .map_err(|e| ErrorKind::LoadError(e).with_span(&include.span))?
             .parse();
@@ -488,7 +493,7 @@ impl<'ctx> Interpreter<'ctx> {
         let ast = code
             .result()
             .map_err(|errs| Error::include_syntax_error(errs, file))?;
-        let mut inter = ForkingInterpreter::new(ast, self.register.clone(), self.context);
+        let mut inter = ForkingInterpreter::new(ast, self.register.clone(), self.scan_ctx);
         Box::pin(inter.execute_all()).await?;
         self.register = inter.register().clone();
         Ok(NaslValue::Null)
@@ -513,7 +518,8 @@ impl<'ctx> Interpreter<'ctx> {
         Self {
             register: register.clone(),
             stmt_index,
-            context: self.context,
+            scan_ctx: self.scan_ctx,
+            script_ctx: ScriptCtx::default(),
             fork_reentry_data,
             state: InterpreterState::Running,
         }

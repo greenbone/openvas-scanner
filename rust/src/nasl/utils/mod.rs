@@ -3,18 +3,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 #![doc = include_str!("README.md")]
-pub mod context;
 pub mod error;
 mod executor;
 pub mod function;
 pub mod hosts;
 pub mod lookup_keys;
+pub mod scan_ctx;
 
 pub use super::interpreter::Register;
-pub use context::Context;
 pub use error::ArgumentError;
 pub use error::FnError;
 pub use error::InternalError;
+pub use scan_ctx::{ScanCtx, ScriptCtx};
 
 pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 

@@ -4,6 +4,7 @@
 
 use crate::alive_test::AliveTestError;
 use crate::models::{AliveTestMethods, Host};
+use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
 use futures::StreamExt;
 use pnet::packet::icmp;
@@ -24,7 +25,7 @@ use pnet::packet::{
 use socket2::{Domain, Protocol, Socket};
 
 const IPPROTO_RAW: i32 = 255;
-const DEFAULT_TIMEOUT_MS: u64 = 5000;
+
 const ICMP_LENGTH: usize = 8;
 const IP_LENGTH: usize = 20;
 const HEADER_LENGTH: u8 = 5;
@@ -130,7 +131,7 @@ fn pkt_stream(
     let cap = capture_inactive
         .promisc(true)
         .immediate_mode(true)
-        .timeout(DEFAULT_TIMEOUT_MS as i32)
+        .timeout(DEFAULT_TIMEOUT * 1000)
         .immediate_mode(true)
         .open()?
         .setnonblock()?;
@@ -271,7 +272,7 @@ impl Scanner {
         }
     }
 
-    pub async fn run_alive_test(&self) -> Result<(), AliveTestError> {
+    pub async fn run_alive_test(&self) -> Result<Vec<AliveHostCtl>, AliveTestError> {
         // TODO: Replace with a Storage type to store the alive host list
         let mut alive = Vec::<AliveHostCtl>::new();
 
@@ -283,7 +284,7 @@ impl Scanner {
                 ));
                 println!("{t} via {}", AliveTestMethods::ConsiderAlive)
             }
-            return Ok(());
+            return Ok(alive);
         };
 
         let capture_inactive = Capture::from_device("any")
@@ -296,7 +297,7 @@ impl Scanner {
 
         let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg));
 
-        let timeout = self.timeout.unwrap_or(DEFAULT_TIMEOUT_MS);
+        let timeout = self.timeout.unwrap_or((DEFAULT_TIMEOUT * 1000) as u64);
         let methods = self.methods.clone();
         let send_handle = tokio::spawn(send_task(methods, trgt, timeout, tx_ctl));
 
@@ -312,6 +313,6 @@ impl Scanner {
         send_handle.await.unwrap().unwrap();
         capture_handle.await.unwrap().unwrap();
 
-        Ok(())
+        Ok(alive)
     }
 }

@@ -16,11 +16,12 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::context::ContextStorage;
-use crate::nasl::utils::context::Target;
+use crate::nasl::utils::scan_ctx::ContextStorage;
+use crate::nasl::utils::scan_ctx::Target;
 
 use crate::feed::verify::check_signature;
 use crate::feed::verify::{HashSumFileItem, SignatureChecker};
+use crate::scanner::preferences::preference::ScanPrefs;
 use crate::storage::ScanID;
 use crate::storage::items::nvt::FeedVersion;
 use crate::storage::items::nvt::FileName;
@@ -56,8 +57,9 @@ pub async fn feed_version(
     let ports = Default::default();
     let filename = "";
     let executor = nasl_std_functions();
-    let scan_params = Vec::default();
-    let cb = ContextBuilder {
+    let scan_params = ScanPrefs::new();
+    let alive_test_methods = Vec::default();
+    let cb = ScanCtxBuilder {
         storage: dispatcher,
         loader,
         executor: &executor,
@@ -66,6 +68,7 @@ pub async fn feed_version(
         filename,
         scan_id,
         scan_preferences: scan_params,
+        alive_test_methods,
     };
     let context = cb.build();
     let mut interpreter = ForkingInterpreter::new(
@@ -165,10 +168,11 @@ where
         // anymore, since the parse_description_block function returns
         // the statements from within the if.
         let register = Register::from_global_variables(&self.initial);
-        let scan_params = Vec::default();
+        let scan_params = ScanPrefs(Vec::default());
+        let alive_test_methods = Vec::default();
         let target = Target::localhost();
         let ports = Default::default();
-        let context = ContextBuilder {
+        let context = ScanCtxBuilder {
             scan_id: ScanID(key.0.clone()),
             target,
             ports,
@@ -177,6 +181,7 @@ where
             loader: self.loader,
             executor: &self.executor,
             scan_preferences: scan_params,
+            alive_test_methods,
         };
         let context = context.build();
         let ast = code

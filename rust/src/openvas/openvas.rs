@@ -12,7 +12,8 @@ use super::{
 use crate::models::{
     HostInfoBuilder, Phase, Status,
     scanner::{
-        Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
+        Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanResults,
+        ScanStarter, ScanStopper,
     },
 };
 use crate::{
@@ -278,8 +279,7 @@ impl ScanDeleter for Scanner {
         match scan_status {
             Phase::Running => {
                 return Err(ScanError::Unexpected(format!(
-                    "Not allowed to delete a running scan {}",
-                    scan_id
+                    "Not allowed to delete a running scan {scan_id}"
                 )));
             }
             _ => match self.remove_running(scan_id) {
@@ -417,7 +417,7 @@ impl ScanResultFetcher for Scanner {
         };
     }
 
-    fn do_addition(&self) -> bool {
-        true
+    fn scan_result_status_kind(&self) -> ScanResultKind {
+        ScanResultKind::StatusAddition
     }
 }

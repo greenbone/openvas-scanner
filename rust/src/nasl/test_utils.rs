@@ -10,19 +10,22 @@ use std::{
     path::PathBuf,
 };
 
-use crate::nasl::{
-    prelude::*,
-    syntax::{Loader, NoOpLoader},
-};
 use crate::storage::{ScanID, inmemory::InMemoryStorage};
+use crate::{
+    nasl::{
+        prelude::*,
+        syntax::{Loader, NoOpLoader},
+    },
+    scanner::preferences::preference::ScanPrefs,
+};
 use futures::{Stream, StreamExt};
 
 use super::{
     interpreter::{ForkingInterpreter, InterpreterError, InterpreterErrorKind},
     nasl_std_functions,
     utils::{
-        Executor,
-        context::{ContextStorage, Ports, Target},
+        Executor, ScanCtx,
+        scan_ctx::{ContextStorage, Ports, Target},
     },
 };
 
@@ -277,8 +280,8 @@ where
     }
 
     /// Runs the given lines of code and returns the list of results
-    /// along with the `Context` used for evaluating them.
-    pub fn results_and_context(&self) -> (Vec<NaslResult>, Context) {
+    /// along with the `ScanCtx` used for evaluating them.
+    pub fn results_and_context(&self) -> (Vec<NaslResult>, ScanCtx) {
         futures::executor::block_on(async {
             let context = self.context();
             (
@@ -303,7 +306,7 @@ where
         self.lines.join("\n")
     }
 
-    fn interpreter<'ctx>(&self, code: &str, context: &'ctx Context) -> ForkingInterpreter<'ctx> {
+    fn interpreter<'ctx>(&self, code: &str, context: &'ctx ScanCtx) -> ForkingInterpreter<'ctx> {
         let variables: Vec<_> = self
             .variables
             .iter()
@@ -324,20 +327,20 @@ where
     pub fn results_stream<'a>(
         &'a self,
         code: &'a str,
-        context: &'a Context,
+        context: &'a ScanCtx,
     ) -> impl Stream<Item = NaslResult> + 'a {
         let interpreter = self.interpreter(code, context);
         interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpreterErrorKind::FunctionCallError(f) => f.kind,
-                e => panic!("Unknown error: {}", e),
+                e => panic!("Unknown error: {e}"),
             })
         })
     }
 
-    fn context(&self) -> Context {
+    fn context(&self) -> ScanCtx {
         let target = Target::do_not_resolve_hostname(&self.target);
-        ContextBuilder {
+        ScanCtxBuilder {
             storage: &self.storage,
             loader: &self.loader,
             executor: &self.executor,
@@ -348,7 +351,8 @@ where
                 udp: Default::default(),
             },
             filename: self.filename.clone(),
-            scan_preferences: Vec::default(),
+            scan_preferences: ScanPrefs::new(),
+            alive_test_methods: Vec::default(),
         }
         .build()
     }
@@ -358,7 +362,7 @@ where
     pub fn check_no_errors(&self) {
         for result in self.results() {
             if result.is_err() {
-                panic!("Expected no errors, found {:?}", result);
+                panic!("Expected no errors, found {result:?}");
             }
         }
     }
@@ -393,7 +397,7 @@ where
             Err(err) => {
                 // Drop first so we don't call the destructor, which would panic.
                 std::mem::forget(self);
-                panic!("{}", err)
+                panic!("{err}")
             }
             _ => std::mem::forget(self),
         }
@@ -469,7 +473,7 @@ impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
         } else if let Err(err) = futures::executor::block_on(self.verify()) {
-            panic!("{}", err)
+            panic!("{err}")
         }
     }
 }

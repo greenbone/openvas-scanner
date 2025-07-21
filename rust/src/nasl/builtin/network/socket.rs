@@ -2,20 +2,28 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::{
-    io::{self, BufRead, Read, Write},
-    net::{IpAddr, SocketAddr},
-    sync::Mutex,
-    thread::sleep,
-    time::{Duration, SystemTime},
+use crate::nasl::{
+    prelude::*,
+    utils::{
+        function::{Seconds, utils::DEFAULT_TIMEOUT},
+        scan_ctx::JmpDesc,
+    },
 };
 
-use crate::nasl::{prelude::*, utils::function::Seconds};
 use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
 use rustls::ClientConnection;
+use socket2::{Domain, Protocol, Socket, Type};
+use std::{
+    io::{self, BufRead, Read, Write},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    str::FromStr,
+    sync::Mutex,
+    thread::sleep,
+    time::{Duration, SystemTime},
+};
 use thiserror::Error;
 
 use super::{
@@ -56,6 +64,12 @@ pub enum SocketError {
     ResponseCodeMismatch(Vec<usize>, String),
     #[error("String is not an IP address: {0}")]
     InvalidIpAddress(String),
+    #[error("String is not a Multicast IP address: {0}")]
+    InvalidMulticastIpAddress(String),
+    #[error("Failed to join to multicast group {0}")]
+    FailedToJoinMulticastGroup(String),
+    #[error("Failed to leave multicast group. Never joined group")]
+    FailedToLeaveMulticastGroup,
     #[error("Failed to bind socket to {1}. {0}")]
     FailedToBindSocket(io::Error, SocketAddr),
     #[error("No route to destination: {0}.")]
@@ -113,6 +127,14 @@ impl NaslSocket {
             NaslSocket::Udp(udp_connection) => udp_connection.read(buf),
         }
     }
+
+    #[cfg(feature = "nasl-builtin-raw-ip")]
+    pub fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self {
+            NaslSocket::Tcp(tcp_connection) => tcp_connection.write(buf),
+            NaslSocket::Udp(udp_connection) => udp_connection.write(buf),
+        }
+    }
 }
 
 /// The Top level struct storing all NASL sockets, a list of the
@@ -123,6 +145,7 @@ pub struct NaslSockets {
     handles: Vec<Option<NaslSocket>>,
     closed_fd: Vec<usize>,
     interval: Option<Interval>,
+    recv_timeout: Option<Duration>,
 }
 
 impl NaslSockets {
@@ -177,8 +200,9 @@ impl NaslSockets {
         tcp: bool,
     ) -> Result<NaslValue, SocketError> {
         if tcp {
-            // TODO: set timeout to global recv timeout when available
-            let timeout = Duration::from_secs(10);
+            let timeout = self
+                .recv_timeout
+                .unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
             self.wait_before_next_probe();
             let tcp = TcpConnection::connect_priv(addr, sport, dport, timeout)?;
             Ok(NaslValue::Number(
@@ -203,8 +227,9 @@ impl NaslSockets {
 
         for sport in (1..=1023).rev() {
             let fd = if tcp {
-                // TODO: set timeout to global recv timeout when available
-                let timeout = Duration::from_secs(10);
+                let timeout = self
+                    .recv_timeout
+                    .unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT as u64));
                 self.wait_before_next_probe();
                 match TcpConnection::connect_priv(addr, sport, dport.0, timeout) {
                     Ok(tcp) => self.add(NaslSocket::Tcp(Box::new(tcp))),
@@ -224,6 +249,12 @@ impl NaslSockets {
         }
         Err(SocketError::UnableToOpenPrivSocket(addr).into())
     }
+
+    pub fn with_recv_timeout(&mut self, timeout: Option<i64>) {
+        if let Some(to) = timeout {
+            self.recv_timeout = Some(Duration::from_secs(to as u64));
+        }
+    }
 }
 
 /// Close a given file descriptor taken as an unnamed argument.
@@ -239,17 +270,7 @@ async fn close(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnErro
     Ok(())
 }
 
-/// Send data on a socket.
-/// Args:
-/// takes the following named arguments:
-/// - socket: the socket, of course.
-/// - data: the data block. A string is expected here (pure or impure, this does not matter).
-/// - length: is optional and will be the full data length if not set
-/// - option: is the flags for the send() system call. You should not use a raw numeric value here.
-///
-/// On success the number of sent bytes is returned.
-#[nasl_function(named(socket, data, option, len))]
-async fn send(
+fn send_shared(
     sockets: &mut NaslSockets,
     socket: usize,
     data: &[u8],
@@ -295,6 +316,55 @@ async fn send(
     }
 }
 
+/// Send data on a socket.
+/// Args:
+/// takes the following named arguments:
+/// - socket: the socket, of course.
+/// - data: the data block. A string is expected here (pure or impure, this does not matter).
+/// - length: is optional and will be the full data length if not set
+/// - option: is the flags for the send() system call. You should not use a raw numeric value here.
+///
+/// On success the number of sent bytes is returned.
+#[nasl_function(named(socket, data, option, len))]
+async fn send(
+    sockets: &mut NaslSockets,
+    socket: usize,
+    data: &[u8],
+    option: Option<i64>,
+    len: Option<usize>,
+) -> Result<usize, SocketError> {
+    send_shared(sockets, socket, data, option, len)
+}
+
+fn recv_shared(
+    sockets: &mut NaslSockets,
+    socket: usize,
+    length: usize,
+    min: Option<i64>,
+    timeout: Option<Seconds>,
+) -> Result<Vec<u8>, SocketError> {
+    let min = min
+        .map(|min| if min < 0 { length } else { min as usize })
+        .unwrap_or(length);
+    let mut data = vec![0; length];
+    let socket = sockets.get_open_socket_mut(socket)?;
+    let mut pos = match timeout {
+        Some(timeout) => socket.read_with_timeout(&mut data, timeout.as_duration())?,
+        None => socket.read(&mut data)?,
+    };
+    if let NaslSocket::Tcp(conn) = socket {
+        let timeout = Duration::from_secs(1);
+        while pos < min {
+            match conn.read_with_timeout(&mut data[pos..], timeout) {
+                Ok(n) => pos += n,
+                Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
+                Err(e) => return Err(SocketError::from(e)),
+            }
+        }
+    };
+    Ok(data[..pos].to_vec())
+}
+
 /// Receives data from a TCP or UDP socket. For a UDP socket, if it cannot read data, NASL will
 /// suppose that the last sent datagram was lost and will sent it again a couple of time.
 /// Args:
@@ -317,27 +387,9 @@ async fn recv(
     min: Option<i64>,
     timeout: Option<Seconds>,
 ) -> Result<NaslValue, SocketError> {
-    let min = min
-        .map(|min| if min < 0 { length } else { min as usize })
-        .unwrap_or(length);
-    let mut data = vec![0; length];
-
-    let socket = sockets.get_open_socket_mut(socket)?;
-    let mut pos = match timeout {
-        Some(timeout) => socket.read_with_timeout(&mut data, timeout.as_duration())?,
-        None => socket.read(&mut data)?,
-    };
-    if let NaslSocket::Tcp(conn) = socket {
-        let timeout = Duration::from_secs(1);
-        while pos < min {
-            match conn.read_with_timeout(&mut data[pos..], timeout) {
-                Ok(n) => pos += n,
-                Err(e) if e.kind() == io::ErrorKind::TimedOut => break,
-                Err(e) => return Err(SocketError::from(e)),
-            }
-        }
-    };
-    Ok(NaslValue::Data(data[..pos].to_vec()))
+    Ok(NaslValue::Data(recv_shared(
+        sockets, socket, length, min, timeout,
+    )?))
 }
 
 /// Receives a line from a TCP response. Note that this only works for NASL sockets
@@ -377,7 +429,7 @@ pub fn make_tcp_socket(ip: IpAddr, port: u16, retry: u8) -> Result<NaslSocket, S
 /// - Secret/kdc_use_tcp
 #[nasl_function]
 async fn open_sock_kdc(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
 ) -> Result<NaslValue, FnError> {
     let hostname: String = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))?;
@@ -406,7 +458,7 @@ async fn open_sock_kdc(
     Ok(NaslValue::Number(ret as i64))
 }
 
-fn make_tls_client_connection(context: &Context<'_>, vhost: &str) -> Option<ClientConnection> {
+fn make_tls_client_connection(context: &ScanCtx<'_>, vhost: &str) -> Option<ClientConnection> {
     get_tls_conf(context).ok().and_then(|conf| {
         create_tls_client(
             vhost,
@@ -420,7 +472,7 @@ fn make_tls_client_connection(context: &Context<'_>, vhost: &str) -> Option<Clie
 }
 
 fn open_sock_tcp_vhost(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     addr: IpAddr,
     timeout: Duration,
     bufsz: Option<usize>,
@@ -429,7 +481,7 @@ fn open_sock_tcp_vhost(
     transport: i64,
 ) -> Result<Option<NaslSocket>, FnError> {
     let mut transport = if transport.is_negative() {
-        context.get_port_transport(port)?.unwrap_or(1)
+        context.get_port_transport(port).unwrap_or(1)
     } else {
         transport
     };
@@ -490,7 +542,7 @@ fn open_sock_tcp_vhost(
 ///   encapsulation.
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_sock_tcp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -510,10 +562,23 @@ async fn open_sock_tcp(
         .filter(|bufsz| *bufsz >= 0)
         .map(|bufsz| bufsz as usize);
 
-    // TODO: set timeout to global recv timeout * 2 when available
-    let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(10));
-    // TODO: for every vhost
-    let vhosts = ["localhost"];
+    let timeout = convert_timeout(timeout).unwrap_or(Duration::from_secs(
+        context
+            .scan_preferences
+            .get_preference_int("checks_read_timeout")
+            .unwrap_or(DEFAULT_TIMEOUT.into()) as u64
+            * 2,
+    ));
+    let mut vhosts = context
+        .target()
+        .vhosts()
+        .iter()
+        .map(|v| v.hostname().to_string())
+        .collect::<Vec<String>>();
+    if vhosts.is_empty() {
+        vhosts.push(context.target().ip_addr().to_string());
+    };
+
     let sockets: Vec<Option<NaslSocket>> = vhosts
         .iter()
         .map(|vhost| open_sock_tcp_vhost(context, addr, timeout, bufsz, port.0, vhost, transport))
@@ -533,7 +598,7 @@ async fn open_sock_tcp(
 
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
-fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
+fn get_tls_conf(context: &ScanCtx) -> Result<TlsConfig, FnError> {
     let cert_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))?;
     let key_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))?;
     let password = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))?;
@@ -550,7 +615,7 @@ fn get_tls_conf(context: &Context) -> Result<TlsConfig, FnError> {
 /// Open a UDP socket to the target host
 #[nasl_function]
 async fn open_sock_udp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
 ) -> Result<NaslValue, FnError> {
@@ -570,7 +635,7 @@ async fn open_sock_udp(
 /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_tcp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
@@ -586,7 +651,7 @@ async fn open_priv_sock_tcp(
 ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_udp(
-    context: &Context<'_>,
+    context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
@@ -658,12 +723,12 @@ async fn ftp_log_in(
     match sockets.get_open_socket_mut(socket)? {
         NaslSocket::Tcp(conn) => {
             check_ftp_response(&mut *conn, &[220])?;
-            let data = format!("USER {}\r\n", user);
+            let data = format!("USER {user}\r\n");
             conn.write_all(data.as_bytes())?;
 
             let code = check_ftp_response(&mut *conn, &[230, 331])?;
             if code == 331 {
-                let data = format!("PASS {}\r\n", pass);
+                let data = format!("PASS {pass}\r\n");
                 conn.write_all(data.as_bytes())?;
                 check_ftp_response(&mut *conn, &[230])?;
             }
@@ -694,7 +759,7 @@ async fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u
     conn.read_line(&mut data)?;
 
     let captures = FTP_PASV.captures(&data).ok_or_else(|| {
-        SocketError::Diagnostic(format!("Unexpected response from FTP server: {}", data))
+        SocketError::Diagnostic(format!("Unexpected response from FTP server: {data}"))
     })?;
 
     let get_port = |idx: usize| {
@@ -710,6 +775,187 @@ async fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u
     let p1 = get_port(1)?;
     let p2 = get_port(2)?;
     Ok((p1 << 8) | p2)
+}
+
+/// This function performs a telnet negotiation on an open socket
+/// Read the data on the socket (more or less the telnet dialog plus the banner).
+/// Args:
+/// - socket: an open socket.
+#[nasl_function]
+async fn telnet_init(
+    context: &ScanCtx<'_>,
+    sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, SocketError> {
+    struct Buffer {
+        buffer: Vec<u8>,
+    }
+
+    impl Buffer {
+        fn new() -> Self {
+            Self {
+                buffer: vec![255, 0, 0],
+            }
+        }
+
+        fn iac(&self) -> u8 {
+            self.buffer[0]
+        }
+        fn set_code(&mut self, val: u8) {
+            self.buffer[1] = val;
+        }
+        fn code(&self) -> u8 {
+            self.buffer[1]
+        }
+        fn set_option(&mut self, val: u8) {
+            self.buffer[2] = val;
+        }
+    }
+
+    if let NaslSocket::Udp(_) = sockets.get_open_socket_mut(socket)? {
+        return Err(SocketError::SupportedOnlyOnTcp("telnet_init".into()));
+    }
+    let mut buf = Buffer::new();
+    let mut opts = 0;
+    let mut lm_flag = 0;
+
+    while buf.iac() == 255 {
+        let to = context
+            .scan_preferences
+            .get_preference_int("checks_read_timeout")
+            .unwrap_or(DEFAULT_TIMEOUT.into()) as u64;
+        buf.buffer = recv_shared(sockets, socket, 3, Some(3), Some(Seconds(to)))?;
+        if buf.iac() != 255 || buf.buffer.is_empty() || buf.buffer.len() != 3 {
+            break;
+        }
+        // In the Telnet protocol specification, "WILL," "WON'T," "DO," and "DON'T"
+        // are commands used for negotiating options between a client and a server.
+        // "WILL" indicates a desire to start using an option, while "WON'T" indicates
+        // a refusal to use it. Conversely, "DO" indicates a request for the other
+        // party to start using an option, and "DON'T" indicates a request for them
+        // to stop using it.
+        if buf.code() == 251 || buf.code() == 252 {
+            buf.set_code(254); /* WILL , WONT -> DON'T */
+        } else if buf.code() == 253 || buf.code() == 254 {
+            buf.set_code(252); /* DO,DONT -> WONT */
+        };
+
+        send_shared(sockets, socket, &buf.buffer, None, Some(3))?;
+        if lm_flag == 0 {
+            buf.set_code(253);
+            buf.set_option(0x22);
+            send_shared(sockets, socket, &buf.buffer, None, Some(3))?;
+            lm_flag += 1;
+        }
+
+        opts += 1;
+        if opts > 100 {
+            break;
+        }
+    }
+    if buf.buffer.is_empty() && opts == 0 {
+        return Ok(NaslValue::Null);
+    }
+
+    if opts > 100 {
+        return Err(SocketError::Diagnostic(
+            "More than 100 options received by telnet_init()
+                                           function! exiting telnet_init."
+                .to_string(),
+        ));
+    }
+    let mut buffer2: [u8; 1024] = [0; 1024];
+    let conn = sockets.get_open_socket_mut(socket)?;
+    conn.read(&mut buffer2)?;
+
+    buf.buffer.append(&mut buffer2.to_vec());
+    buf.buffer.push(b'\0');
+    Ok(NaslValue::Data(buf.buffer.to_vec()))
+}
+
+fn new_socket(addr: &SocketAddr) -> Result<Socket, FnError> {
+    let domain = if addr.is_ipv4() {
+        Domain::IPV4
+    } else {
+        Domain::IPV6
+    };
+
+    let socket =
+        socket2::Socket::new(domain, Type::DGRAM, Some(Protocol::UDP)).map_err(SocketError::IO)?;
+
+    // we're going to use read timeouts so that we don't hang waiting for packets
+    socket
+        .set_read_timeout(Some(Duration::from_millis(100)))
+        .map_err(SocketError::IO)?;
+
+    Ok(socket)
+}
+fn get_multicast_addr(ip: &str) -> Result<IpAddr, FnError> {
+    let multicast_addr =
+        IpAddr::from_str(ip).map_err(|_| SocketError::InvalidIpAddress(ip.to_string()))?;
+    if !multicast_addr.is_multicast() {
+        return Err(SocketError::InvalidMulticastIpAddress(ip.to_string()).into());
+    };
+    Ok(multicast_addr)
+}
+
+#[nasl_function]
+fn join_multicast_group(script_ctx: &mut ScriptCtx, ip: String) -> Result<NaslValue, FnError> {
+    const PORT: u16 = 32000;
+    let multicast_addr = get_multicast_addr(ip.as_str())?;
+
+    let mut already_in_grp = false;
+    for d in script_ctx.multicast_groups.iter_mut() {
+        if d.in_addr == Some(multicast_addr) && d.count > 0 {
+            d.count += 1;
+            already_in_grp = true;
+            break;
+        }
+    }
+    let sa = SocketAddr::new(multicast_addr, PORT);
+
+    if !already_in_grp {
+        let s = new_socket(&sa)?;
+        match multicast_addr {
+            IpAddr::V4(ref mdns_v4) => {
+                s.join_multicast_v4(mdns_v4, &Ipv4Addr::new(0, 0, 0, 0))
+                    .map_err(|e| SocketError::FailedToJoinMulticastGroup(e.to_string()))?;
+            }
+            IpAddr::V6(ref mdns_v6) => {
+                s.join_multicast_v6(mdns_v6, 0)
+                    .map_err(|e| SocketError::FailedToJoinMulticastGroup(e.to_string()))?;
+            }
+        }
+        let new_jmp = JmpDesc {
+            in_addr: Some(multicast_addr),
+            count: 1,
+            socket: Some(s),
+        };
+        script_ctx.multicast_groups.push(new_jmp);
+    }
+    Ok(NaslValue::Number(1))
+}
+
+#[nasl_function]
+fn leave_multicast_group(script_ctx: &mut ScriptCtx, ip: String) -> Result<NaslValue, FnError> {
+    let multicast_addr = get_multicast_addr(ip.as_str())?;
+
+    let mut to_remove: Option<usize> = None;
+    for (i, jmg_desc) in script_ctx.multicast_groups.iter_mut().enumerate() {
+        if jmg_desc.in_addr == Some(multicast_addr) && jmg_desc.count >= 1 {
+            jmg_desc.count -= 1;
+            if jmg_desc.count == 0 {
+                to_remove = Some(i);
+            }
+            break;
+        }
+    }
+    if let Some(i) = to_remove {
+        script_ctx.multicast_groups.remove(i);
+        return Ok(NaslValue::Null);
+    };
+
+    Err(SocketError::FailedToLeaveMulticastGroup.into())
 }
 
 pub struct SocketFns;
@@ -729,5 +975,8 @@ function_set! {
         (get_source_port, "get_source_port"),
         (ftp_log_in, "ftp_log_in"),
         (ftp_get_pasv_port, "ftp_get_pasv_port"),
+        join_multicast_group,
+        leave_multicast_group,
+        telnet_init,
     )
 }

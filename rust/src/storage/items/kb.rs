@@ -8,12 +8,8 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, net::IpAddr};
 
 use crate::storage::{ScanID, Target};
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 /// List defined KbKeys. For all kb keys that are not defined by
 /// a NASL user should use a variant from the enum, that is not
 /// custom.
@@ -56,12 +52,8 @@ pub enum KbKey {
     Custom(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Ssl {
     Cert,
     Key,
@@ -69,57 +61,37 @@ pub enum Ssl {
     Ca,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Port {
     Tcp(String),
     Udp(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Transport {
     Tcp(String),
     Ssl,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Internals {
     Results,
     ScanId,
     Vhosts,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Host {
     Tcp,
     Udp,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Service {
     Wrapped,
     Unknown,
@@ -127,12 +99,8 @@ pub enum Service {
     Custom(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum FindService {
     CnxTime1000(String),
     CnxTime(String),
@@ -142,12 +110,8 @@ pub enum FindService {
     TcpSpontaneous(String),
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Kdc {
     Hostname,
     Port,
@@ -187,26 +151,26 @@ impl Display for KbKey {
             KbKey::Service(Service::Custom(service)) => write!(f, "Services/{service}"),
 
             KbKey::FindService(FindService::CnxTime(port)) => {
-                write!(f, "FindService/CnxTime1000/{}", port)
+                write!(f, "FindService/CnxTime1000/{port}")
             }
             KbKey::FindService(FindService::CnxTime1000(port)) => {
-                write!(f, "FindService/CnxTime/{}", port)
+                write!(f, "FindService/CnxTime/{port}")
             }
             KbKey::FindService(FindService::RwTime1000(port)) => {
-                write!(f, "FindService/RwTime1000/{}", port)
+                write!(f, "FindService/RwTime1000/{port}")
             }
             KbKey::FindService(FindService::RwTime(port)) => {
-                write!(f, "FindService/RwTime/{}", port)
+                write!(f, "FindService/RwTime/{port}")
             }
             KbKey::FindService(FindService::TcpGetHttp(port)) => {
-                write!(f, "FindService/tcp/{}/get_http", port)
+                write!(f, "FindService/tcp/{port}/get_http")
             }
             KbKey::FindService(FindService::TcpSpontaneous(port)) => {
-                write!(f, "FindService/tcp/{}/spontaneous", port)
+                write!(f, "FindService/tcp/{port}/spontaneous")
             }
-            KbKey::KnownTcp(port) => write!(f, "Known/tcp/{}", port),
+            KbKey::KnownTcp(port) => write!(f, "Known/tcp/{port}"),
 
-            KbKey::ConnectTimeout(ip, port) => write!(f, "ConnectTimeout/{}/{}", ip, port),
+            KbKey::ConnectTimeout(ip, port) => write!(f, "ConnectTimeout/{ip}/{port}"),
 
             KbKey::Kdc(Kdc::Hostname) => write!(f, "Secret/kdc_hostname"),
             KbKey::Kdc(Kdc::Port) => write!(f, "Secret/kdc_port"),
@@ -214,7 +178,7 @@ impl Display for KbKey {
 
             KbKey::TimeoutRetry => write!(f, "timeout_retry"),
 
-            KbKey::Custom(key) => write!(f, "{}", key),
+            KbKey::Custom(key) => write!(f, "{key}"),
         }
     }
 }
@@ -259,12 +223,8 @@ impl From<String> for KbKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(untagged)
-)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
 /// Allowed type definitions
 pub enum KbItem {
     /// String value
@@ -393,7 +353,7 @@ impl std::fmt::Display for KbItem {
                 "{}",
                 x.iter()
                     .enumerate()
-                    .map(|(i, v)| format!("{}: {}", i, v))
+                    .map(|(i, v)| format!("{i}: {v}"))
                     .collect::<Vec<String>>()
                     .join(",")
             ),
@@ -404,7 +364,7 @@ impl std::fmt::Display for KbItem {
                 f,
                 "{}",
                 x.iter()
-                    .map(|(k, v)| format!("{}: {}", k, v))
+                    .map(|(k, v)| format!("{k}: {v}"))
                     .collect::<Vec<String>>()
                     .join(",")
             ),

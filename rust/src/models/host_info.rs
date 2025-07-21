@@ -33,11 +33,7 @@ impl HostInfoBuilder {
 }
 
 /// Information about hosts of a running scan
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostInfo {
     all: u64,
     excluded: u64,
@@ -47,10 +43,7 @@ pub struct HostInfo {
     finished: u64,
     // Hosts that are currently being scanned. The second entry is the host
     // scan progress. Required for Openvas Scanner type
-    #[cfg_attr(
-        feature = "serde_support",
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     scanning: Option<HashMap<String, i32>>,
     // Hosts that are currently being scanned. The second entry is the number of
     // remaining VTs for this host.

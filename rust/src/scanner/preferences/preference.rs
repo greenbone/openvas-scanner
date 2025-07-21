@@ -197,7 +197,7 @@ pub const PREFERENCES: [ScanPreferenceInformation; 23] = [
         name: "Table Driven LSC",
         default: PreferenceValue::Bool(true),
         description: "This option will enable table driven local security Checks (LSC). This means \
-        gathered packages are sent to an specialized scanner. This is far more efficient than doing \
+        gathered packages are sent to a specialized scanner. This is far more efficient than doing \
         checks via NASL.",
     },
     ScanPreferenceInformation {
@@ -257,21 +257,13 @@ impl Default for ScanPrefValue {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
-pub struct ScanPreferences {
+#[derive(Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct FullScanPreferences {
     pub scan_preferences: Vec<FullScanPreference>,
 }
 
 /// Configuration preference information for a scan. The type can be derived from the default value.
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FullScanPreference {
     /// The ID of the scan preference
     pub id: String,
@@ -311,7 +303,7 @@ impl From<&FullScanPreference> for ScanPreference {
     }
 }
 
-impl ScanPreferences {
+impl FullScanPreferences {
     pub fn new() -> Self {
         let mut scan_preferences = Vec::new();
         for pref in PREFERENCES.iter() {
@@ -346,6 +338,51 @@ impl ScanPreferences {
 
         let conf_prefs: Vec<ScanPreference> =
             config_prefs_copy.iter().map(ScanPreference::from).collect();
-        scan.scan_preferences.extend(conf_prefs);
+        scan.scan_preferences.0.extend(conf_prefs);
+    }
+}
+
+#[derive(Default, Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ScanPrefs(pub Vec<ScanPreference>);
+
+impl ScanPrefs {
+    pub fn new() -> Self {
+        ScanPrefs(Vec::new())
+    }
+
+    pub fn set_default_recv_timeout(&mut self, timeout: Option<u32>) {
+        if let Some(timeout) = timeout {
+            self.0.push(ScanPreference {
+                id: String::from("checks_read_timeout"),
+                value: timeout.to_string(),
+            })
+        } else {
+            self.0.push(ScanPreference {
+                id: String::from("checks_read_timeout"),
+                value: "5".to_string(),
+            });
+        };
+    }
+
+    pub fn get_preference_int(&self, key: &str) -> Option<i64> {
+        self.0
+            .iter()
+            .find(|x| x.id == key)
+            .and_then(|x| x.value.parse::<i64>().ok())
+    }
+
+    pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
+        self.0
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
+    }
+
+    pub fn get_preference_string(&self, key: &str) -> Option<String> {
+        self.0.iter().find(|x| x.id == key).map(|x| x.value.clone())
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &ScanPreference> {
+        self.0.iter()
     }
 }

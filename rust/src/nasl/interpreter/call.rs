@@ -89,8 +89,8 @@ impl Interpreter<'_> {
     }
 
     async fn execute_builtin_fn(&mut self, call: &FnCall) -> Option<Result> {
-        self.context
-            .execute_builtin_fn(&call.fn_name.to_str(), &self.register)
+        self.scan_ctx
+            .execute_builtin_fn(&call.fn_name.to_str(), &self.register, &mut self.script_ctx)
             .await
             .map(|o| {
                 o.map_err(|e| {

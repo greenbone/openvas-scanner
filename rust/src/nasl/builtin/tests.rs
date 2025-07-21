@@ -7,10 +7,13 @@
 //! but testing proc_macros comes with a lot of difficulties and the tests
 //! are very easy to do here.
 
-use crate::nasl::{test_prelude::*, utils::Executor};
+use crate::nasl::{
+    test_prelude::*,
+    utils::{Executor, ScanCtx},
+};
 
 #[nasl_function]
-fn foo1(_context: &Context, x: usize) -> usize {
+fn foo1(_context: &ScanCtx, x: usize) -> usize {
     x
 }
 

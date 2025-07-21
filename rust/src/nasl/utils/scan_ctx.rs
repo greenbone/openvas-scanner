@@ -6,10 +6,11 @@
 
 use tokio::sync::RwLock;
 
-use crate::models::{Port, PortRange, Protocol, ScanPreference};
+use crate::models::{AliveTestMethods, Port, PortRange, Protocol, ScanPreference};
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
-use crate::nasl::{FromNaslValue, Register, WithErrorInfo};
+use crate::nasl::{FromNaslValue, WithErrorInfo};
+use crate::scanner::preferences::preference::ScanPrefs;
 use crate::storage::error::StorageError;
 use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
@@ -24,13 +25,13 @@ use crate::storage::redis::{
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
 use rand::seq::SliceRandom;
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::sync::MutexGuard;
 
-use super::FnError;
 use super::error::ReturnBehavior;
 use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
+use super::{FnError, Register};
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
@@ -65,9 +66,9 @@ pub struct Target {
 #[derive(Clone, Debug, Default)]
 pub struct Ports {
     /// The TCP ports to test against.
-    pub tcp: HashSet<u16>,
+    pub tcp: BTreeSet<u16>,
     /// The UDP ports to test against.
-    pub udp: HashSet<u16>,
+    pub udp: BTreeSet<u16>,
 }
 
 impl From<Vec<Port>> for Ports {
@@ -119,9 +120,9 @@ pub struct CtxTarget {
     /// vhost list which resolve to the IP address and their sources.
     vhosts: Mutex<Vec<VHost>>,
     /// The TCP ports to test against.
-    ports_tcp: HashSet<u16>,
+    ports_tcp: BTreeSet<u16>,
     /// The UDP ports to test against.
-    ports_udp: HashSet<u16>,
+    ports_udp: BTreeSet<u16>,
 }
 
 impl Target {
@@ -218,11 +219,11 @@ impl CtxTarget {
         self.vhosts.lock().unwrap()
     }
 
-    pub fn ports_tcp(&self) -> &HashSet<u16> {
+    pub fn ports_tcp(&self) -> &BTreeSet<u16> {
         &self.ports_tcp
     }
 
-    pub fn ports_udp(&self) -> &HashSet<u16> {
+    pub fn ports_udp(&self) -> &BTreeSet<u16> {
         &self.ports_udp
     }
 }
@@ -266,7 +267,7 @@ impl<T> ContextStorage for RedisStorage<T> where
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
 /// NASL execution context.
-pub struct Context<'a> {
+pub struct ScanCtx<'a> {
     /// The key for this context.
     scan: ScanID,
     /// Target against which the scan is run.
@@ -283,10 +284,13 @@ pub struct Context<'a> {
     nvt: Mutex<Option<Nvt>>,
     sockets: RwLock<NaslSockets>,
     /// Scanner preferences
-    scan_preferences: Vec<ScanPreference>,
+    pub scan_preferences: ScanPrefs,
+    /// Alive test methods
+    alive_test_methods: Vec<AliveTestMethods>,
 }
 
-impl<'a> Context<'a> {
+impl<'a> ScanCtx<'a> {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         scan: ScanID,
         target: CtxTarget,
@@ -294,8 +298,12 @@ impl<'a> Context<'a> {
         storage: &'a dyn ContextStorage,
         loader: &'a dyn Loader,
         executor: &'a Executor,
-        scan_preferences: Vec<ScanPreference>,
+        scan_preferences: ScanPrefs,
+        alive_test_methods: Vec<AliveTestMethods>,
     ) -> Self {
+        let mut sockets = NaslSockets::default();
+        sockets.with_recv_timeout(scan_preferences.get_preference_int("checks_read_timeout"));
+
         Self {
             scan,
             target,
@@ -304,8 +312,9 @@ impl<'a> Context<'a> {
             loader,
             executor,
             nvt: Mutex::new(None),
-            sockets: RwLock::new(NaslSockets::default()),
+            sockets: RwLock::new(sockets),
             scan_preferences,
+            alive_test_methods,
         }
     }
 
@@ -316,13 +325,14 @@ impl<'a> Context<'a> {
         &self,
         name: &str,
         register: &Register,
+        script_ctx: &mut ScriptCtx,
     ) -> Option<super::NaslResult> {
         const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
 
         let mut i = 0;
         loop {
             i += 1;
-            let result = self.executor.exec(name, self, register).await;
+            let result = self.executor.exec(name, self, register, script_ctx).await;
             if let Some(Err(ref e)) = result {
                 if e.retryable() && i < NUM_RETRIES_ON_RETRYABLE_ERROR {
                     continue;
@@ -409,12 +419,20 @@ impl<'a> Context<'a> {
         self.nvt.lock().unwrap()
     }
 
-    pub fn set_scan_params(&mut self, params: Vec<ScanPreference>) {
+    pub fn set_scan_params(&mut self, params: ScanPrefs) {
         self.scan_preferences = params;
     }
 
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
         self.scan_preferences.iter()
+    }
+
+    pub fn set_alive_test_methods(&mut self, methods: Vec<AliveTestMethods>) {
+        self.alive_test_methods = methods;
+    }
+
+    pub fn alive_test_methods(&self) -> Vec<AliveTestMethods> {
+        self.alive_test_methods.clone()
     }
 
     fn kb_key(&self, key: KbKey) -> KbContextKey {
@@ -500,9 +518,10 @@ impl<'a> Context<'a> {
         )
     }
 
-    pub fn get_port_transport(&self, port: u16) -> Result<Option<i64>, FnError> {
+    pub fn get_port_transport(&self, port: u16) -> Option<i64> {
         self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
-            .map(|x| match x {
+            .ok()
+            .and_then(|item| match item {
                 KbItem::Number(n) => Some(n),
                 _ => None,
             })
@@ -533,7 +552,7 @@ impl<'a> Context<'a> {
             })
             .collect();
 
-        let ret = if ports.is_empty() {
+        let ret = if !ports.is_empty() {
             *ports.choose(&mut rand::thread_rng()).unwrap()
         } else if open21 {
             21
@@ -543,6 +562,50 @@ impl<'a> Context<'a> {
             0
         };
         Ok(ret)
+    }
+
+    pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
+    }
+
+    pub fn get_preference_int(&self, key: &str) -> Option<i64> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .and_then(|x| x.value.parse::<i64>().ok())
+    }
+
+    pub fn get_preference_string(&self, key: &str) -> Option<String> {
+        self.scan_preferences
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| x.value.clone())
+    }
+
+    pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+        match protocol {
+            Protocol::TCP => {
+                if !self.target.ports_tcp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty()
+                {
+                    return Ok(!self.get_preference_bool("unscanned_closed").unwrap_or(true));
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+            }
+            Protocol::UDP => {
+                if !self.target.ports_udp.contains(&port)
+                    || self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty()
+                {
+                    return Ok(!self
+                        .get_preference_bool("unscanned_closed_udp")
+                        .unwrap_or(true));
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
+            }
+        }
     }
 
     pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
@@ -560,7 +623,7 @@ impl<'a> Context<'a> {
     }
 }
 
-impl Drop for Context<'_> {
+impl Drop for ScanCtx<'_> {
     fn drop(&mut self) {
         let mut nvt = self.nvt.lock().unwrap();
         if let Some(nvt) = nvt.take() {
@@ -569,7 +632,22 @@ impl Drop for Context<'_> {
     }
 }
 
-pub struct ContextBuilder<'a, P: AsRef<Path>> {
+/// Struct to hold joins to multicast groups.
+#[derive(Default)]
+pub struct JmpDesc {
+    pub in_addr: Option<IpAddr>,
+    pub count: usize,
+    pub socket: Option<socket2::Socket>,
+}
+
+#[derive(Default)]
+pub struct ScriptCtx {
+    pub alive: bool,
+    pub denial_port: Option<u16>,
+    pub multicast_groups: Vec<JmpDesc>,
+}
+
+pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
     pub storage: &'a dyn ContextStorage,
     pub loader: &'a dyn Loader,
     pub executor: &'a Executor,
@@ -577,13 +655,14 @@ pub struct ContextBuilder<'a, P: AsRef<Path>> {
     pub target: Target,
     pub ports: Ports,
     pub filename: P,
-    pub scan_preferences: Vec<ScanPreference>,
+    pub scan_preferences: ScanPrefs,
+    pub alive_test_methods: Vec<AliveTestMethods>,
 }
 
-impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
+impl<'a, P: AsRef<Path>> ScanCtxBuilder<'a, P> {
     /// Builds the `Context`.
-    pub fn build(self) -> Context<'a> {
-        Context::new(
+    pub fn build(self) -> ScanCtx<'a> {
+        ScanCtx::new(
             self.scan_id,
             (self.target, self.ports).into(),
             self.filename.as_ref().to_owned(),
@@ -591,13 +670,14 @@ impl<'a, P: AsRef<Path>> ContextBuilder<'a, P> {
             self.loader,
             self.executor,
             self.scan_preferences,
+            self.alive_test_methods,
         )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::utils::context::TargetKind;
+    use crate::nasl::utils::scan_ctx::TargetKind;
 
     use super::Target;
 

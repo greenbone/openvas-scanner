@@ -69,7 +69,7 @@ impl CipherHandlers {
                 handlers.remove(i);
                 Ok(NaslValue::Number(0))
             }
-            _ => Err(CryptographicError::Rc4(format!("Handler ID {} not found", hd)).into()),
+            _ => Err(CryptographicError::Rc4(format!("Handler ID {hd} not found")).into()),
         }
     }
 

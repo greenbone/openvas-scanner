@@ -17,8 +17,8 @@ use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr
 use tracing::info;
 
 use crate::nasl::prelude::*;
-use crate::nasl::utils::DefineGlobalVars;
-use crate::nasl::utils::function::Seconds;
+use crate::nasl::utils::NaslVars;
+use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
 /// Hardware type ethernet
 pub const ARPHRD_ETHER: u16 = 0x0001;
@@ -32,8 +32,6 @@ pub const ETH_ALEN: u8 = 0x0006;
 pub const ARP_PROTO_LEN: u8 = 0x0004;
 /// ARP operation request
 pub const ARPOP_REQUEST: u16 = 0x0001;
-/// Default Timeout for received
-pub const DEFAULT_TIMEOUT: i32 = 5000;
 
 #[derive(Debug)]
 /// Structure to hold a datalink layer frame
@@ -460,7 +458,7 @@ fn nasl_forge_frame(register: &Register) -> Result<NaslValue, FnError> {
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
 #[nasl_function(named(frame, pcap_active, pcap_filter, timeout))]
 fn nasl_send_frame(
-    context: &Context,
+    context: &ScanCtx,
     frame: &[u8],
     pcap_active: Option<bool>,
     pcap_filter: Option<&str>,
@@ -469,7 +467,7 @@ fn nasl_send_frame(
     let pcap_active = pcap_active.unwrap_or(true);
     let timeout = timeout
         .map(|secs| secs.as_millis() as i32)
-        .unwrap_or(DEFAULT_TIMEOUT);
+        .unwrap_or(DEFAULT_TIMEOUT * 1000);
 
     let target_ip = context.target().ip_addr();
 

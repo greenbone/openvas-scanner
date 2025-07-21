@@ -7,15 +7,23 @@ use thiserror::Error;
 
 use super::{Scan, Status};
 
+/// ScanResults can differ in kind.
+///
+/// For an example OSPD scanner includes all information of the status therefore we need to
+/// override the status information based on that.  while on OpenVAS scanner the status just
+/// contains the current information, therefore the status has to be updated.
+pub enum ScanResultKind {
+    /// The status must be overridden on append_fetch_results
+    StatusOverride,
+    /// The status must be updated on append_fetch_results
+    StatusAddition,
+}
+
 /// Contains results of a scan as well as identification factors and statuses.
 ///
 /// It is usually returned on fetch_results which gets all results of all running scans for further
 /// processing.
-#[derive(Debug, Default, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde_support",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[derive(Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ScanResults {
     pub id: String,
     pub status: Status,
@@ -58,8 +66,8 @@ pub trait ScanResultFetcher {
     where
         I: AsRef<str> + Send + 'static;
 
-    fn do_addition(&self) -> bool {
-        false
+    fn scan_result_status_kind(&self) -> ScanResultKind {
+        ScanResultKind::StatusOverride
     }
 }
 

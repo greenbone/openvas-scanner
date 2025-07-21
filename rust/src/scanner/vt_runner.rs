@@ -4,11 +4,10 @@
 
 use std::path::PathBuf;
 
-use crate::models::{Parameter, Protocol, ScanID, ScanPreference};
+use crate::models::{AliveTestMethods, Parameter, Protocol, ScanID};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
-use crate::nasl::prelude::NaslValue;
-use crate::nasl::utils::context::{ContextStorage, Ports, Target};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
+use crate::nasl::utils::scan_ctx::{ContextStorage, Ports, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::Retriever;
@@ -21,6 +20,7 @@ use tracing::{error_span, trace, warn};
 use crate::nasl::prelude::*;
 
 use super::ExecuteError;
+use super::preferences::preference::ScanPrefs;
 use super::{
     ScannerStack,
     error::{ScriptResult, ScriptResultKind},
@@ -38,7 +38,8 @@ pub struct VTRunner<'a, S: ScannerStack> {
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
     scan_id: ScanID,
-    scan_preferences: &'a Vec<ScanPreference>,
+    scan_preferences: &'a ScanPrefs,
+    alive_test_methods: &'a Vec<AliveTestMethods>,
 }
 
 impl<'a, Stack: ScannerStack> VTRunner<'a, Stack>
@@ -56,7 +57,8 @@ where
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
         scan_id: ScanID,
-        scan_preferences: &'a Vec<ScanPreference>,
+        scan_preferences: &'a ScanPrefs,
+        alive_test_methods: &'a Vec<AliveTestMethods>,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
             storage,
@@ -69,6 +71,7 @@ where
             param,
             scan_id,
             scan_preferences,
+            alive_test_methods,
         };
         s.execute().await
     }
@@ -201,7 +204,7 @@ where
         if let Err(e) = self.check_keys(self.vt) {
             return e;
         }
-        let context = ContextBuilder {
+        let context = ScanCtxBuilder {
             scan_id: crate::storage::ScanID(self.scan_id.clone()),
             target: self.target.clone(),
             ports: self.ports.clone(),
@@ -209,7 +212,8 @@ where
             storage: self.storage,
             loader: self.loader,
             executor: self.executor,
-            scan_preferences: self.scan_preferences.to_vec(),
+            scan_preferences: self.scan_preferences.clone(),
+            alive_test_methods: self.alive_test_methods.to_vec(),
         }
         .build();
         context.set_nvt(self.vt.clone());

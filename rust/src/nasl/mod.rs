@@ -26,11 +26,9 @@ pub mod prelude {
     pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
     pub use super::utils::ArgumentError;
-    pub use super::utils::Context;
     pub use super::utils::FnError;
     pub use super::utils::InternalError;
     pub use super::utils::NaslResult;
-    pub use super::utils::context::ContextBuilder;
     pub use super::utils::error::FnErrorKind;
     pub use super::utils::error::Retryable;
     pub use super::utils::error::ReturnValue;
@@ -39,6 +37,9 @@ pub mod prelude {
     pub use super::utils::function::FromNaslValue;
     pub use super::utils::function::Positionals;
     pub use super::utils::function::ToNaslResult;
+    pub use super::utils::scan_ctx::ScanCtx;
+    pub use super::utils::scan_ctx::ScanCtxBuilder;
+    pub use super::utils::scan_ctx::ScriptCtx;
     pub use crate::function_set;
     pub use nasl_function_proc_macro::nasl_function;
 }

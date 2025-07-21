@@ -6,9 +6,9 @@ pub fn ty_name_is(ty: &Type, name: &str) -> bool {
         .unwrap_or(false)
 }
 
-pub fn ty_is_context(ty: &Type) -> bool {
+pub fn ty_is_scan_ctx(ty: &Type) -> bool {
     if let Type::Reference(TypeReference { elem, .. }) = ty {
-        ty_name_is(elem, "Context")
+        ty_name_is(elem, "ScanCtx")
     } else {
         false
     }
@@ -17,6 +17,14 @@ pub fn ty_is_context(ty: &Type) -> bool {
 pub fn ty_is_register(ty: &Type) -> bool {
     if let Type::Reference(TypeReference { elem, .. }) = ty {
         ty_name_is(elem, "Register")
+    } else {
+        false
+    }
+}
+
+pub fn ty_is_script_ctx(ty: &Type) -> bool {
+    if let Type::Reference(TypeReference { elem, .. }) = ty {
+        ty_name_is(elem, "ScriptCtx")
     } else {
         false
     }

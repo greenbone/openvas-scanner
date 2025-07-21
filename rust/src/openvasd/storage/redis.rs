@@ -23,10 +23,10 @@ use scannerlib::{
 use tokio::{sync::RwLock, task::JoinSet};
 
 use crate::{config::Config, controller::ClientHash, storage::FeedType};
-use scannerlib::models::scanner::ScanResults;
+use scannerlib::models::scanner::{ScanResultKind, ScanResults};
 
 use super::{
-    AppendFetchResult, Error, FeedHash, FromConfigAndFeeds, NVTStorer, ProgressGetter,
+    AppendFetchResult, Error, FeedHash, FromConfigAndFeeds, MappedID, NVTStorer, ProgressGetter,
     ScanIDClientMapper, ScanStorer,
 };
 
@@ -100,22 +100,21 @@ impl<T> ScanIDClientMapper for Storage<T>
 where
     T: super::Storage + std::marker::Sync,
 {
-    async fn add_scan_client_id(
+    async fn generate_mapped_id(
         &self,
+        client: ClientHash,
         scan_id: String,
-        client_id: ClientHash,
-    ) -> Result<(), Error> {
-        self.underlying.add_scan_client_id(scan_id, client_id).await
+    ) -> Result<MappedID, Error> {
+        self.underlying.generate_mapped_id(client, scan_id).await
     }
-    async fn remove_scan_id<I>(&self, scan_id: I) -> Result<(), Error>
-    where
-        I: AsRef<str> + Send + 'static,
-    {
-        self.underlying.remove_scan_id(scan_id).await
+    async fn list_mapped_scan_ids(&self, client: &ClientHash) -> Result<Vec<String>, Error> {
+        self.underlying.list_mapped_scan_ids(client).await
     }
-
-    async fn get_scans_of_client_id(&self, client_id: &ClientHash) -> Result<Vec<String>, Error> {
-        self.underlying.get_scans_of_client_id(client_id).await
+    async fn get_mapped_id(&self, client: &ClientHash, scan_id: &str) -> Result<MappedID, Error> {
+        self.underlying.get_mapped_id(client, scan_id).await
+    }
+    async fn remove_mapped_id(&self, id: &str) -> Result<(), Error> {
+        self.underlying.remove_mapped_id(id).await
     }
 }
 
@@ -315,8 +314,12 @@ impl<T> AppendFetchResult for Storage<T>
 where
     T: super::Storage + std::marker::Sync,
 {
-    async fn append_fetched_result(&self, results: Vec<ScanResults>) -> Result<(), Error> {
-        self.underlying.append_fetched_result(results).await
+    async fn append_fetched_result(
+        &self,
+        kind: ScanResultKind,
+        results: Vec<ScanResults>,
+    ) -> Result<(), Error> {
+        self.underlying.append_fetched_result(kind, results).await
     }
 }
 

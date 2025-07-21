@@ -31,7 +31,7 @@ pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, SocketError> {
 /// Return the source IP address given the destination IP address
 pub fn get_source_ip(dst: IpAddr, port: u16) -> Result<IpAddr, SocketError> {
     let socket = SocketAddr::new(dst, port);
-    let sd = format!("{}:{}", dst, port);
+    let sd = format!("{dst}:{port}");
     let local_socket = bind_local_socket(&socket)?;
     local_socket
         .connect(sd)
