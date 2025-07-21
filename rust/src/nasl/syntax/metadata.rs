@@ -21,18 +21,6 @@ impl DescriptionBlock {
 impl Parse for DescriptionBlock {
     fn parse(parser: &mut super::Parser) -> Result<Self> {
         let mut if_: If = parser.parse()?;
-        if if_.else_branch.is_some() {
-            return Err(ErrorKind::InvalidDescriptionBlock(
-                "Description block has else.".to_string(),
-            )
-            .into());
-        }
-        if if_.if_branches.len() > 1 {
-            return Err(ErrorKind::InvalidDescriptionBlock(
-                "Description block has else ifs".to_string(),
-            )
-            .into());
-        }
         let (condition, block) = if_.if_branches.remove(0);
         check_condition(condition)?;
         Ok(Self { stmts: block.items })
