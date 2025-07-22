@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::collections::HashSet;
+
 use super::packet_forgery::nasl_tcp_ping_shared;
 use crate::alive_test::Scanner;
 use crate::function_set;
@@ -77,7 +79,7 @@ async fn end_denial(
     // Services seem to not respond.
     // Last test with boreas
     if let Ok(alive_test_result) = Scanner::new(
-        vec![context.target().ip_addr().to_string()],
+        HashSet::from([context.target().ip_addr().to_string()]),
         context.alive_test_methods(),
         Some(retry as u64),
     )

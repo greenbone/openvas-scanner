@@ -4,6 +4,8 @@
 
 //pub mod alivetest;
 
+use std::collections::HashSet;
+
 use clap::ArgAction;
 // re-export to work around name conflict
 
@@ -44,7 +46,7 @@ pub async fn run(args: AliveTestArgs) -> Result<(), CliError> {
         .target
         .split(',')
         .map(|x| x.to_string())
-        .collect::<Vec<_>>();
+        .collect::<HashSet<_>>();
 
     // TODO: implement parse port list.
     let _ports = args.ports.unwrap_or("80,137,587,3128,8081".to_string());
@@ -68,7 +70,7 @@ pub async fn run(args: AliveTestArgs) -> Result<(), CliError> {
 }
 
 async fn execute(
-    target: Vec<Host>,
+    target: HashSet<Host>,
     timeout: Option<u64>,
     methods: Vec<AliveTestMethods>,
 ) -> Result<(), CliError> {

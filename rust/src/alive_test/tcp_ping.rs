@@ -41,7 +41,7 @@ impl From<u16> for TcpFlags {
 
 pub fn tcp_ping(dport: u16, tcp_flag: u16) -> Vec<u8> {
     let mut tcp_buf = vec![0u8; TCP_LENGTH];
-    // knwon buffer size.
+    // known buffer size.
     let mut tcp = MutableTcpPacket::new(&mut tcp_buf).unwrap();
     tcp.set_flags(tcp_flag); //TH_SYN: 0x02, TH_ACK: 0x10
     tcp.set_sequence(random_impl().unwrap() as u32);
