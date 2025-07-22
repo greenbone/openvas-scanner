@@ -229,8 +229,11 @@ impl ServiceDetector {
         port: u16,
     ) -> Result<(), FnError> {
         let banner = service.banner;
-        // This is O(n^2), but simpler than using a HashMap and performance
-        // should really not matter here.
+        // The following lookup is in O(n^2). However, since the
+        // number of services is likely to be small, this is very
+        // unlikely to become a performance problem, so that I prefer
+        // the simplicity of this approach (as opposed to using a
+        // HashMap).
         let service = self
             .services
             .services
