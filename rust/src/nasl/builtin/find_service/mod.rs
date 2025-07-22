@@ -193,7 +193,10 @@ struct ServiceDetector {
 
 impl ServiceDetector {
     fn new() -> Result<Self, FindServiceError> {
-        let json_content = include_str!("../../../../data/service_definitions.json");
+        let json_content = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/service_definitions.json"
+        ));
         let definitions: ServiceDefinitions = serde_json::from_str(&json_content)?;
         Ok(ServiceDetector {
             services: definitions,
