@@ -161,6 +161,60 @@ interpreter_test_ok!(
     2
 );
 
+interpreter_test_ok!(
+    null_boolean,
+    "a = 1; if (b) { a = 2; }; a;",
+    1,
+    NaslValue::Null,
+    NaslValue::Null,
+    1
+);
+
+interpreter_test_ok!(
+    integer_boolean,
+    "a = 1; if (a) { a = 2; }; a;",
+    1,
+    NaslValue::Null,
+    NaslValue::Null,
+    2
+);
+
+interpreter_test_ok!(
+    integer_boolean_zero,
+    "a = 0; if (a) { a = 2; }; a;",
+    0,
+    NaslValue::Null,
+    NaslValue::Null,
+    0
+);
+
+interpreter_test_ok!(
+    string_boolean,
+    "a = \"foo\"; if (a) { a = 2; }; a;",
+    "foo",
+    NaslValue::Null,
+    NaslValue::Null,
+    2
+);
+
+interpreter_test_ok!(
+    string_boolean_empty,
+    "a = \"\"; if (a) { a = 2; }; a;",
+    "",
+    NaslValue::Null,
+    NaslValue::Null,
+    "",
+);
+
+interpreter_test_ok!(
+    string_boolean_zero,
+    "a = \"0\"; if (a) { a = 2; }; a;",
+    "0",
+    NaslValue::Null,
+    NaslValue::Null,
+    "0",
+);
+
 interpreter_test_err!(nonexistent_variable, "a += 12;");
 
 interpreter_test_err!(function_instead_of_variable, "function foo() { } a = foo;");
