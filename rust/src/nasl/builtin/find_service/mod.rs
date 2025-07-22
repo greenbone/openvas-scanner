@@ -314,7 +314,6 @@ fn try_http_request(target: IpAddr, port: u16) -> Result<Vec<u8>, FindServiceErr
                 .write_all(http_request)
                 .map_err(|e| SocketError::IO(e))?;
 
-            // Read response
             let mut buf = vec![0; 1024];
             let result =
                 tcp_conn.read_with_timeout(&mut buf, Duration::from_millis(TIMEOUT_MILLIS));
@@ -335,7 +334,6 @@ fn scan_port(
     target: IpAddr,
     port: u16,
 ) -> Result<ScanPortResult, FindServiceError> {
-    // Check if any service on this port needs HTTP request detection
     let needs_http_request = detector.services.services.iter().any(|service| {
         (service.ports.is_empty() || service.ports.contains(&port))
             && service
@@ -344,20 +342,10 @@ fn scan_port(
                 .any(|d| matches!(d, Detection::Http))
     });
 
-    let banner = if needs_http_request {
-        // For services that need HTTP request, try HTTP first, then fallback to banner
-        match try_http_request(target, port) {
-            Ok(http_response) => http_response,
-            Err(_) => {
-                // Fallback to regular banner reading
-                match read_from_tcp_at_port(target, port)? {
-                    ReadResult::Data(data) => data,
-                    ReadResult::Timeout => return Ok(ScanPortResult::Timeout),
-                }
-            }
-        }
+    // For services that need HTTP request, try HTTP first, then fallback to banner
+    let banner = if needs_http_request && let Ok(http_response) = try_http_request(target, port) {
+        http_response
     } else {
-        // Regular banner reading for non-HTTP services
         match read_from_tcp_at_port(target, port)? {
             ReadResult::Data(data) => data,
             ReadResult::Timeout => return Ok(ScanPortResult::Timeout),
