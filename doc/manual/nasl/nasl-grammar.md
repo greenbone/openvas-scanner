@@ -149,7 +149,7 @@ which will first assign the result of the `foo()` call to `x`, and then negate t
 
 ## Loops and Control Flow
 ### If
-If statements are written in the usual way as
+If statements are written as
 `if (condition) block` where `block` is either a single statement (in which case enclosing braces may be omitted) or multiple statements (in which case the braces are necessary).
 
 ### Loops
