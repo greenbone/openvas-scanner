@@ -17,6 +17,7 @@ use pnet::packet::icmpv6::{Icmpv6Packet, Icmpv6Types};
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::ipv6::Ipv6Packet;
 use pnet::packet::tcp::TcpPacket;
+use std::collections::HashSet;
 use std::time::Duration;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::time::sleep;
@@ -40,17 +41,10 @@ const MIN_ALLOWED_PACKET_LEN: usize = 16;
 
 pub struct AliveTestCtlStop;
 
+#[derive(Clone)]
 pub struct AliveHostCtl {
     ip: String,
     detection_method: AliveTestMethods,
-}
-impl AliveHostCtl {
-    fn new(ip: String, detection_method: AliveTestMethods) -> Self {
-        Self {
-            ip,
-            detection_method,
-        }
-    }
 }
 
 struct PktCodec;
@@ -191,7 +185,7 @@ fn process_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError>
 }
 
 pub struct Scanner {
-    target: Vec<Host>,
+    target: HashSet<Host>,
     methods: Vec<AliveTestMethods>,
     timeout: Option<u64>,
 }
@@ -226,14 +220,14 @@ async fn capture_task(
 
 async fn send_task(
     methods: Vec<AliveTestMethods>,
-    trgt: Vec<String>,
+    target: HashSet<String>,
     timeout: u64,
     tx_ctl: Sender<AliveTestCtlStop>,
 ) -> Result<(), AliveTestError> {
     let mut count = 0;
 
     if methods.contains(&AliveTestMethods::Icmp) {
-        for t in trgt.iter() {
+        for t in target.iter() {
             count += 1;
             match t
                 .to_string()
@@ -252,7 +246,7 @@ async fn send_task(
         }
     }
     if methods.contains(&AliveTestMethods::TcpSyn) {
-        for t in trgt.iter() {
+        for t in target.iter() {
             for port in DEFAULT_PORT_LIST.iter() {
                 count += 1;
                 match t
@@ -274,7 +268,7 @@ async fn send_task(
         }
     }
     if methods.contains(&AliveTestMethods::TcpAck) {
-        for t in trgt.iter() {
+        for t in target.iter() {
             for port in DEFAULT_PORT_LIST.iter() {
                 count += 1;
                 match t
@@ -296,7 +290,7 @@ async fn send_task(
         }
     }
     if methods.contains(&AliveTestMethods::Arp) {
-        for t in trgt.iter() {
+        for t in target.iter() {
             count += 1;
             match t
                 .to_string()
@@ -322,7 +316,11 @@ async fn send_task(
 }
 
 impl Scanner {
-    pub fn new(target: Vec<Host>, methods: Vec<AliveTestMethods>, timeout: Option<u64>) -> Self {
+    pub fn new(
+        target: HashSet<Host>,
+        methods: Vec<AliveTestMethods>,
+        timeout: Option<u64>,
+    ) -> Self {
         Self {
             target,
             methods,
@@ -330,16 +328,13 @@ impl Scanner {
         }
     }
 
-    pub async fn run_alive_test(&self) -> Result<Vec<AliveHostCtl>, AliveTestError> {
+    pub async fn run_alive_test(&self) -> Result<HashSet<String>, AliveTestError> {
         // TODO: Replace with a Storage type to store the alive host list
-        let mut alive = Vec::<AliveHostCtl>::new();
+        let mut alive = HashSet::<String>::new();
 
         if self.methods.contains(&AliveTestMethods::ConsiderAlive) {
             for t in self.target.iter() {
-                alive.push(AliveHostCtl::new(
-                    t.clone(),
-                    AliveTestMethods::ConsiderAlive,
-                ));
+                alive.insert(t.clone());
                 println!("{t} via {}", AliveTestMethods::ConsiderAlive)
             }
             return Ok(alive);
@@ -359,13 +354,11 @@ impl Scanner {
         let methods = self.methods.clone();
         let send_handle = tokio::spawn(send_task(methods, trgt, timeout, tx_ctl));
 
-        while let Some(AliveHostCtl {
-            ip: addr,
-            detection_method: method,
-        }) = rx_msg.recv().await
-        {
-            alive.push(AliveHostCtl::new(addr.clone(), method.clone()));
-            println!("{addr} via {method:?}");
+        while let Some(alivehost) = rx_msg.recv().await {
+            if self.target.contains(&alivehost.ip) && !alive.contains(&alivehost.ip) {
+                alive.insert(alivehost.ip.clone());
+                println!("{} via {:?}", &alivehost.ip, &alivehost.detection_method);
+            }
         }
 
         send_handle.await.unwrap().unwrap();
