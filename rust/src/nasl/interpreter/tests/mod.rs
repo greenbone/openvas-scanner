@@ -39,9 +39,12 @@ macro_rules! interpreter_test_ok {
         #[test]
         fn $name() {
             let mut results = $crate::nasl::interpreter::tests::interpret($code);
+            let mut count = 0;
             $(
+                count += 1;
                 let result = results.remove(0).unwrap();
-                assert_eq!(result, $expected.to_nasl_result().unwrap());
+                let expected = $expected.to_nasl_result().unwrap();
+                assert_eq!(expected, result, "mismatch in result #{count}. Expected: {expected:?}, found {result:?}.");
             )*
             assert_eq!(results.len(), 0);
         }
@@ -147,6 +150,15 @@ interpreter_test_ok!(
     NaslValue::Null,
     1,
     4,
+);
+
+interpreter_test_ok!(
+    array_boolean,
+    "a = 1; if ([]) { a = 2; }; a;",
+    1,
+    NaslValue::Null,
+    NaslValue::Null,
+    2
 );
 
 interpreter_test_err!(nonexistent_variable, "a += 12;");

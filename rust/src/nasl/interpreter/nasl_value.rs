@@ -122,7 +122,7 @@ impl NaslValue {
             NaslValue::Number(n) => *n != 0,
             NaslValue::String(s) => !s.is_empty() && s != "0",
             NaslValue::Data(d) => !d.is_empty(),
-            NaslValue::Array(v) => !v.is_empty(),
+            NaslValue::Array(_) => true,
             NaslValue::Null => false,
             _ => true,
         }
