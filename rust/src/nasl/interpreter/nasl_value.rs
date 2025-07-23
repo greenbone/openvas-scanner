@@ -128,14 +128,14 @@ impl NaslValue {
         }
     }
 
-    pub(crate) fn as_dict(&self) -> Option<&HashMap<String, NaslValue>> {
+    fn as_dict(&self) -> Option<&HashMap<String, NaslValue>> {
         match self {
             NaslValue::Dict(d) => Some(d),
             _ => None,
         }
     }
 
-    pub(crate) fn as_array(&self) -> Option<&Vec<NaslValue>> {
+    fn as_array(&self) -> Option<&Vec<NaslValue>> {
         match self {
             NaslValue::Array(d) => Some(d),
             _ => None,

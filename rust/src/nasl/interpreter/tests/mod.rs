@@ -18,7 +18,7 @@ pub fn interpret(code: &str) -> Vec<NaslResult> {
     t.results()
 }
 
-pub fn interpret_err(file_name: &str, code: &str) -> String {
+fn interpret_err(file_name: &str, code: &str) -> String {
     let mut t = TestBuilder::default();
     t.run_all(code);
     let err = t

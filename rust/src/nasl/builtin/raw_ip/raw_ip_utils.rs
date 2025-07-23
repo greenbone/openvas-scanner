@@ -77,7 +77,7 @@ pub fn get_mtu(target_ip: IpAddr) -> Result<usize, RawIpError> {
     Ok(mtu)
 }
 
-pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
+fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0"),
         SocketAddr::V6(_) => UdpSocket::bind("[0:0:0:0:0:0:0:0]:0"),

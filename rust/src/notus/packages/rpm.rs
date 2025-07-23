@@ -197,7 +197,7 @@ mod rpm_tests {
     use super::Rpm;
 
     #[test]
-    pub fn test_from_full_name() {
+    fn test_from_full_name() {
         assert!(Rpm::from_full_name("").is_none());
 
         assert_eq!(
@@ -309,7 +309,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_exceptions() {
+    fn test_exceptions() {
         let package1 = Rpm::from_full_name("gnutls-3.6.16-4.el8.x86_64").unwrap();
         let package2 = Rpm::from_full_name("gnutls-3.6.16-4.0.1.el8_fips.x86_64").unwrap();
 
@@ -331,7 +331,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_compare_gt() {
+    fn test_compare_gt() {
         let package1 = Rpm {
             name: "foo-bar".to_string(),
             epoch: 0,
@@ -359,7 +359,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_architecture() {
+    fn test_compare_gt_different_architecture() {
         let package1 = Rpm {
             name: "foo-bar".to_string(),
             epoch: 0,
@@ -398,7 +398,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_epoch() {
+    fn test_compare_gt_different_epoch() {
         let package1 = Rpm {
             name: "foo-bar".to_string(),
             epoch: 0,
@@ -417,7 +417,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_name() {
+    fn test_compare_gt_different_name() {
         let package1 = Rpm {
             name: "foo".to_string(),
             epoch: 0,
@@ -437,7 +437,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_compare_less() {
+    fn test_compare_less() {
         let package1 = Rpm {
             name: "foo-bar".to_string(),
             epoch: 0,
@@ -491,7 +491,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_compare_equal() {
+    fn test_compare_equal() {
         let package1 = Rpm {
             name: "docker-engine".to_string(),
             epoch: 0,
@@ -511,7 +511,7 @@ mod rpm_tests {
     }
 
     #[test]
-    pub fn test_from_name_and_full_version() {
+    fn test_from_name_and_full_version() {
         assert!(Rpm::from_name_and_full_version("", "").is_none());
 
         let package = Rpm::from_name_and_full_version("cups-libs", "1.6.3-26.h1.x86_64").unwrap();

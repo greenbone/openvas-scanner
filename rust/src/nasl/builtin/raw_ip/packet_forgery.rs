@@ -303,7 +303,7 @@ impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableTcpPacket<'a> {
 }
 
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
-pub fn safe_copy_from_slice(
+fn safe_copy_from_slice(
     d_buf: &mut [u8],
     d_init: usize,
     d_fin: usize,
@@ -404,7 +404,7 @@ fn forge_ip_packet(
     Ok(NaslValue::Data(buf))
 }
 
-pub enum IpElement {
+enum IpElement {
     HeaderLength,
     Id,
     IpLen,
@@ -1796,7 +1796,7 @@ fn dump_icmp_packet(positional: CheckedPositionals<Ipv4Packet>) -> Result<NaslVa
 // here should be reasonably safe.
 // https://github.com/libpnet/libpnet/blob/a01aa493e2ecead4c45e7322b6c5f7ab29e8a985/pnet_macros/src/decorator.rs#L1138
 #[allow(unexpected_cfgs)]
-pub mod igmp {
+mod igmp {
     use std::net::Ipv4Addr;
 
     use pnet::packet::{Packet, PrimitiveValues};
@@ -1808,7 +1808,7 @@ pub mod igmp {
 
     /// Represents the "IGMP type" header field.
     #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct IgmpType(pub u8);
+    pub struct IgmpType(u8);
 
     impl IgmpType {
         /// Create a new `IgmpType` instance.
@@ -1830,14 +1830,14 @@ pub mod igmp {
     #[derive()]
     pub struct Igmp {
         #[construct_with(u8)]
-        pub igmp_type: IgmpType,
+        igmp_type: IgmpType,
         #[construct_with(u8)]
-        pub igmp_timeout: u8,
-        pub checksum: u16be,
+        igmp_timeout: u8,
+        checksum: u16be,
         #[construct_with(u8, u8, u8, u8)]
-        pub group_address: Ipv4Addr,
+        group_address: Ipv4Addr,
         #[payload]
-        pub payload: Vec<u8>,
+        payload: Vec<u8>,
     }
 
     /// The enumeration of the recognized IGMP types.
@@ -1847,15 +1847,15 @@ pub mod igmp {
     pub mod IgmpTypes {
         use super::IgmpType;
         /// IGMP type for "Membership Query"
-        pub const MembershipQuery: IgmpType = IgmpType(0x11);
+        const MembershipQuery: IgmpType = IgmpType(0x11);
         /// IGMP type for "IGMPv1 Membership Report"
-        pub const IGMPv1MembershipReport: IgmpType = IgmpType(0x12);
+        const IGMPv1MembershipReport: IgmpType = IgmpType(0x12);
         /// IGMP type for "IGMPv2 Membership Report"
-        pub const IGMPv2MembershipReport: IgmpType = IgmpType(0x16);
+        const IGMPv2MembershipReport: IgmpType = IgmpType(0x16);
         /// IGMP type for "IGMPv3 Membership Report"
-        pub const IGMPv3MembershipReport: IgmpType = IgmpType(0x22);
+        const IGMPv3MembershipReport: IgmpType = IgmpType(0x22);
         /// IGMP type for Leave Group"
-        pub const LeaveGroup: IgmpType = IgmpType(0x17);
+        const LeaveGroup: IgmpType = IgmpType(0x17);
         /// OpenVAS IGMP default type
         pub const Default: IgmpType = IgmpType(0x00);
     }
@@ -2065,7 +2065,7 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-pub fn nasl_tcp_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+fn nasl_tcp_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     nasl_tcp_ping_shared(configs, port)
 }
 
@@ -3147,7 +3147,7 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
     Ok(NaslValue::Null)
 }
 
-pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -3259,7 +3259,7 @@ pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<N
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-pub fn nasl_tcp_v6_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+fn nasl_tcp_v6_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     nasl_tcp_v6_ping_shared(configs, port)
 }
 

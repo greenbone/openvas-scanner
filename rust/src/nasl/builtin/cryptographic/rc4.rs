@@ -13,9 +13,9 @@ use super::{CryptographicError, get_data, get_key};
 /// Structure to hold a Cipher Handler
 pub struct CipherHandler {
     /// Handler ID
-    pub id: i32,
+    id: i32,
     /// Handler
-    pub handler: Rc4Key,
+    handler: Rc4Key,
 }
 
 fn lock_handlers(
@@ -57,7 +57,7 @@ pub struct CipherHandlers {
 impl CipherHandlers {
     /// Closes a stream cipher.
     #[nasl_function]
-    pub fn close_stream_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
+    fn close_stream_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
         let hd = match register.nasl_value("hd") {
             Ok(NaslValue::Number(x)) => *x as i32,
             _ => return Err(CryptographicError::Rc4("Handler ID not found".to_string()).into()),
@@ -80,7 +80,7 @@ impl CipherHandlers {
     ///  
     /// Returns the id of the encrypted data cipher handler on success.
     #[nasl_function]
-    pub fn open_rc4_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
+    fn open_rc4_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
         // Get Arguments
 
         let key = match get_key(register) {
@@ -110,7 +110,7 @@ impl CipherHandlers {
     ///  -iv: string Initialization vector (mandatory if no handler is given).
     ///  -key: string key (mandatory if no handler is given).
     #[nasl_function]
-    pub fn rc4_encrypt(&self, register: &Register) -> Result<NaslValue, FnError> {
+    fn rc4_encrypt(&self, register: &Register) -> Result<NaslValue, FnError> {
         let data = match get_data(register) {
             Ok(d) if !d.is_empty() => d.to_vec(),
             _ => return Err(CryptographicError::Rc4("Missing data argument".to_string()).into()),

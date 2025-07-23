@@ -36,7 +36,7 @@ pub struct Results {
 }
 
 pub struct ResultHelper<'a, H> {
-    pub redis_connector: &'a mut H,
+    redis_connector: &'a mut H,
     pub results: Arc<Mutex<Results>>,
 }
 

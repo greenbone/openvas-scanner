@@ -16,7 +16,7 @@ unsafe extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn nasl_get_aes_mac_gcm_len() -> ::std::os::raw::c_uint;
+    fn nasl_get_aes_mac_gcm_len() -> ::std::os::raw::c_uint;
 }
 
 pub fn aes_gmac(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, &'static str> {

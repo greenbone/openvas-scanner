@@ -1,4 +1,4 @@
-use std::vec;
+use std::{marker::PhantomData, vec};
 
 use super::parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind};
 use crate::nasl::{
@@ -38,15 +38,15 @@ impl Ast {
 #[derive(Clone, Debug)]
 pub struct CommaSeparated<Item, Delim: Default> {
     pub items: Vec<Item>,
-    pub delimiter: Delim,
-    pub span: Span,
+    delimiter: PhantomData<Delim>,
+    span: Span,
 }
 
 impl<Item, Delim: Default> CommaSeparated<Item, Delim> {
     pub fn new(items: Vec<Item>, span: Span) -> Self {
         Self {
             items,
-            delimiter: Delim::default(),
+            delimiter: PhantomData,
             span,
         }
     }
@@ -478,7 +478,7 @@ pub fn x_binding_power() -> usize {
 }
 
 impl BinaryOperator {
-    pub fn binding_power(&self) -> (usize, usize) {
+    fn binding_power(&self) -> (usize, usize) {
         use BinaryOperatorKind::*;
         match self.kind {
             StarStar => (24, 25),
@@ -497,7 +497,7 @@ impl BinaryOperator {
 }
 
 impl AssignmentOperator {
-    pub fn binding_power(&self) -> (usize, usize) {
+    fn binding_power(&self) -> (usize, usize) {
         (9, 8)
     }
 }

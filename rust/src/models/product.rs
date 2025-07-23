@@ -8,7 +8,8 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 pub struct Product {
     /// Version of the file, some version might not be supported by notus
-    pub version: String,
+    #[allow(unused)]
+    version: String,
     /// Package type, important for parsing the corresponding package
     pub package_type: PackageType,
     /// List of vulnerability tests for product

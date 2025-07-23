@@ -16,15 +16,15 @@ use crate::nasl::utils::error::WithErrorInfo;
 /// Structure to hold an SSH Session
 pub struct SshSession {
     /// Session ID
-    pub id: SessionId,
+    id: SessionId,
     /// Ssh Session
-    pub session: Session,
+    session: Session,
     /// Hold the available authentication methods
-    pub authmethods: Option<AuthMethods>,
+    authmethods: Option<AuthMethods>,
     /// Set if a user has been set for the session
-    pub user_set: bool,
+    user_set: bool,
     /// Channel
-    pub channel: Option<Mutex<Channel>>,
+    channel: Option<Mutex<Channel>>,
 }
 
 impl SshSession {

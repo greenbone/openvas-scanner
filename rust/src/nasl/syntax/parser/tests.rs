@@ -51,7 +51,7 @@ pub fn parse_ok<T: Parse>(file_name: &str, code: &str) -> T {
     parse::<T>(file_name, code).unwrap()
 }
 
-pub fn parse_err<T: Parse + Debug>(file_name: &str, code: &str) -> String {
+fn parse_err<T: Parse + Debug>(file_name: &str, code: &str) -> String {
     error::emit_errors_str(
         &SimpleFile::new(file_name.to_string(), code.to_string()),
         vec![parse::<T>(file_name, code).unwrap_err()].into_iter(),

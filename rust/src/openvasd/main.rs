@@ -35,15 +35,15 @@ use crate::{
     storage::{FeedHash, file, inmemory, redis},
 };
 pub mod config;
-pub mod controller;
-pub mod crypt;
-pub mod feed;
-pub mod notus;
-pub mod request;
-pub mod response;
+mod controller;
+mod crypt;
+mod feed;
+mod notus;
+mod request;
+mod response;
 mod scheduling;
-pub mod storage;
-pub mod tls;
+mod storage;
+mod tls;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 fn setup_log(config: &Config) {

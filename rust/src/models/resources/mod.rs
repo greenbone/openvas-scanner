@@ -5,15 +5,15 @@
 pub mod check;
 
 #[derive(Debug)]
-pub struct AvailableResources {
+struct AvailableResources {
     /// Available memory in bytes
-    pub memory: u64,
+    memory: u64,
     /// Percentage of CPU usage
-    pub cpu: f32,
+    cpu: f32,
 }
 
 /// Returns available resources
-pub fn available() -> AvailableResources {
+fn available() -> AvailableResources {
     let system = sysinfo::System::new_all();
     let cpu = system.global_cpu_info().cpu_usage();
     let memory = system.available_memory();

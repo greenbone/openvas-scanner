@@ -133,14 +133,14 @@ pub trait ProgressGetter {
     ) -> Result<Box<dyn Iterator<Item = Vec<u8>> + Send>, Error>;
 }
 
-pub type Hash = String;
+type Hash = String;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the hash values of the sha256sums for specific feeds
 pub struct FeedHash {
     pub hash: Hash,
     pub path: PathBuf,
-    pub typus: FeedType,
+    typus: FeedType,
 }
 
 impl FeedHash {

@@ -10,12 +10,12 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ProductsAdvisories {
     /// Version of the advisory file
-    pub version: String,
+    version: String,
     /// SPDX license identifier
     #[serde(rename = "spdx-license-identifier")]
-    pub license_identifier: String,
+    license_identifier: String,
     /// Copyright
-    pub copyright: String,
+    copyright: String,
     /// Vulnerability Family
     pub family: String,
     /// List of Advisories
@@ -27,44 +27,44 @@ pub struct ProductsAdvisories {
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Advisory {
     /// The advisory's title.
-    pub title: String,
+    title: String,
     /// The advisory's ID.
     pub oid: String,
     /// Creation Date
-    pub creation_date: u64,
+    creation_date: u64,
     /// Last modification date
-    pub last_modification: u64,
+    last_modification: u64,
     /// Advisory ID
-    pub advisory_id: String,
+    advisory_id: String,
     /// Advisory xref
-    pub advisory_xref: String,
+    advisory_xref: String,
     /// Advisory contains a CVE that is listed in the catalog of Known Exploited CVEs from CISA
     #[serde(default)]
-    pub cisa_kev: bool,
+    cisa_kev: bool,
     /// List of cves
     #[serde(default)]
-    pub cves: Vec<String>,
+    cves: Vec<String>,
     /// Summary
-    pub summary: String,
+    summary: String,
     /// Insight
     #[serde(default)]
-    pub insight: String,
+    insight: String,
     /// Affected
-    pub affected: String,
+    affected: String,
     /// List of xrefs
     #[serde(default)]
-    pub xrefs: Vec<String>,
+    xrefs: Vec<String>,
     /// Quality of detection
-    pub qod_type: String,
+    qod_type: String,
     /// Severity
-    pub severity: Severity,
+    severity: Severity,
 }
 
 /// A single vulnerability from an advisory file to be stored
 #[derive(serde::Serialize, serde::Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub struct Vulnerability {
     /// VT Parameters
-    pub vt_params: Vec<String>,
+    vt_params: Vec<String>,
     /// Creation Date
     pub creation_date: u64,
     /// Last modification date
@@ -96,50 +96,22 @@ pub struct Vulnerability {
     /// Title
     pub name: String,
     /// Category
-    pub category: String,
+    category: String,
 }
 
 /// Severity
 #[derive(serde::Serialize, serde::Deserialize, Default, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Severity {
+struct Severity {
     /// Origin of the severity
-    pub origin: String,
+    origin: String,
     /// severity date
-    pub date: u64,
+    date: u64,
     /// Cvss version v2
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cvss_v2: Option<String>,
+    cvss_v2: Option<String>,
     /// cvss vector v3
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cvss_v3: Option<String>,
-}
-
-pub struct ProductsAdvisoriesIterator<'a> {
-    products_advisories: &'a ProductsAdvisories,
-    index: usize,
-}
-
-impl<'a> Iterator for ProductsAdvisoriesIterator<'a> {
-    type Item = &'a Advisory;
-
-    fn next(&mut self) -> Option<&'a Advisory> {
-        if self.index < self.products_advisories.advisories.len() {
-            let result = Some(&self.products_advisories.advisories[self.index]);
-            self.index += 1;
-            result
-        } else {
-            None
-        }
-    }
-}
-
-impl ProductsAdvisories {
-    pub fn iter(&self) -> ProductsAdvisoriesIterator {
-        ProductsAdvisoriesIterator {
-            products_advisories: self,
-            index: 0,
-        }
-    }
+    cvss_v3: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

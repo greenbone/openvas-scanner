@@ -73,7 +73,7 @@ fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (Scanner<TestStack>, Scan
     (Scanner::new(storage, loader, executor), scan)
 }
 
-pub fn only_success() -> [(String, Nvt); 3] {
+fn only_success() -> [(String, Nvt); 3] {
     [
         GenerateScript::with_dependencies("0", &[]).generate(),
         GenerateScript::with_dependencies("1", &["0.nasl"]).generate(),
@@ -88,19 +88,19 @@ fn loader(s: &str) -> String {
 }
 
 #[derive(Debug, Default)]
-pub struct GenerateScript {
-    pub id: String,
-    pub rc: usize,
-    pub dependencies: Vec<String>,
-    pub required_keys: Vec<String>,
-    pub mandatory_keys: Vec<String>,
-    pub required_tcp_ports: Vec<String>,
-    pub required_udp_ports: Vec<String>,
-    pub exclude: Vec<String>,
+struct GenerateScript {
+    id: String,
+    rc: usize,
+    dependencies: Vec<String>,
+    required_keys: Vec<String>,
+    mandatory_keys: Vec<String>,
+    required_tcp_ports: Vec<String>,
+    required_udp_ports: Vec<String>,
+    exclude: Vec<String>,
 }
 
 impl GenerateScript {
-    pub fn with_dependencies(id: &str, dependencies: &[&str]) -> GenerateScript {
+    fn with_dependencies(id: &str, dependencies: &[&str]) -> GenerateScript {
         let dependencies = dependencies.iter().map(|x| x.to_string()).collect();
 
         GenerateScript {
@@ -110,7 +110,7 @@ impl GenerateScript {
         }
     }
 
-    pub fn with_required_keys(id: &str, required_keys: &[&str]) -> GenerateScript {
+    fn with_required_keys(id: &str, required_keys: &[&str]) -> GenerateScript {
         let required_keys = required_keys.iter().map(|x| x.to_string()).collect();
         GenerateScript {
             id: id.to_string(),
@@ -119,7 +119,7 @@ impl GenerateScript {
         }
     }
 
-    pub fn with_mandatory_keys(id: &str, mandatory_keys: &[&str]) -> GenerateScript {
+    fn with_mandatory_keys(id: &str, mandatory_keys: &[&str]) -> GenerateScript {
         let mandatory_keys = mandatory_keys.iter().map(|x| x.to_string()).collect();
         GenerateScript {
             id: id.to_string(),
@@ -128,7 +128,7 @@ impl GenerateScript {
         }
     }
 
-    pub fn with_excluded_keys(id: &str, exclude_keys: &[&str]) -> GenerateScript {
+    fn with_excluded_keys(id: &str, exclude_keys: &[&str]) -> GenerateScript {
         let exclude = exclude_keys.iter().map(|x| x.to_string()).collect();
         GenerateScript {
             id: id.to_string(),
@@ -137,7 +137,7 @@ impl GenerateScript {
         }
     }
 
-    pub fn with_required_ports(id: &str, ports: &[(Protocol, &str)]) -> GenerateScript {
+    fn with_required_ports(id: &str, ports: &[(Protocol, &str)]) -> GenerateScript {
         let required_tcp_ports = ports
             .iter()
             .filter(|(p, _)| matches!(p, Protocol::TCP))
@@ -158,7 +158,7 @@ impl GenerateScript {
         }
     }
 
-    pub fn generate(&self) -> (String, Nvt) {
+    fn generate(&self) -> (String, Nvt) {
         let keys = |x: &[String]| -> String {
             x.iter().fold(String::default(), |acc, e| {
                 let acc = if acc.is_empty() {

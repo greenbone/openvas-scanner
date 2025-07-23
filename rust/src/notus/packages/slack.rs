@@ -133,7 +133,7 @@ mod slack_tests {
     use super::Slack;
 
     #[test]
-    pub fn test_compare_gt() {
+    fn test_compare_gt() {
         let package1 = Slack {
             name: "foo-bar".to_string(),
             version: PackageVersion("1.2.3".to_string()),
@@ -170,7 +170,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_architecture() {
+    fn test_compare_gt_different_architecture() {
         let package1 = Slack {
             name: "foo-bar".to_string(),
             version: PackageVersion("1.2.3".to_string()),
@@ -218,7 +218,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_name() {
+    fn test_compare_gt_different_name() {
         let package1 = Slack {
             name: "foo".to_string(),
             version: PackageVersion("1.2.3".to_string()),
@@ -239,7 +239,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_less() {
+    fn test_compare_less() {
         let package1 = Slack {
             name: "foo-bar".to_string(),
             version: PackageVersion("1.2.3".to_string()),
@@ -276,7 +276,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_equal() {
+    fn test_compare_equal() {
         let package1 = Slack {
             name: "foo-bar".to_string(),
             version: PackageVersion("1.2.3".to_string()),
@@ -295,7 +295,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_from_full_name() {
+    fn test_from_full_name() {
         assert!(Slack::from_full_name("").is_none());
 
         let package = Slack::from_full_name("flac-1.3.4-foo-1_slack15.0").unwrap();
@@ -341,7 +341,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_from_name_and_full_version() {
+    fn test_from_name_and_full_version() {
         assert!(Slack::from_name_and_full_version("", "").is_none());
 
         let package =

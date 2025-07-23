@@ -12,7 +12,7 @@ pub fn simple_parse_benchmark(c: &mut Criterion) {
     });
 }
 
-pub fn parse_large_benchmark(c: &mut Criterion) {
+fn parse_large_benchmark(c: &mut Criterion) {
     let code = include_str!("../data/nasl_syntax/smb_nt.inc");
     c.bench_function(&format!("smb_nt.inc {}", code.len()), |b| {
         b.iter(|| Code::from_string(black_box(code)).parse())

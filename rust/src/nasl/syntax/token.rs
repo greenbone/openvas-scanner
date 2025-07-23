@@ -173,7 +173,7 @@ impl Literal {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Literal {
     pub kind: LiteralKind,
-    pub span: Span,
+    span: Span,
 }
 
 impl Literal {
@@ -381,12 +381,6 @@ impl Token {
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "'{}'", self.kind,)
-    }
-}
-
-impl Token {
-    pub fn kind(&self) -> &TokenKind {
-        &self.kind
     }
 }
 

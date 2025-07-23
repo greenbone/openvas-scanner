@@ -17,7 +17,7 @@ use thiserror::Error;
 #[error("Error while calling function '{function}': {kind}")]
 pub struct FunctionCallError {
     /// Name of the function
-    pub function: String,
+    function: String,
     /// Kind of error
     #[source]
     pub kind: FnError,
@@ -31,10 +31,6 @@ impl FunctionCallError {
             kind,
         }
     }
-
-    fn retryable(&self) -> bool {
-        self.kind.retryable()
-    }
 }
 
 #[derive(Debug, Error)]
@@ -44,21 +40,13 @@ pub struct InterpreterError {
     /// The kind of error that occurred.
     #[source]
     pub kind: InterpreterErrorKind,
-    pub span: Span,
+    span: Span,
 }
 
 impl InterpreterError {
     fn format_origin(&self) -> String {
         // TODO
         String::new()
-    }
-
-    pub fn retryable(&self) -> bool {
-        match &self.kind {
-            InterpreterErrorKind::LoadError(LoadError::Retry(_)) => true,
-            InterpreterErrorKind::FunctionCallError(e) => e.retryable(),
-            _ => false,
-        }
     }
 }
 
@@ -147,8 +135,8 @@ impl InterpreterError {
 #[derive(Debug)]
 // TODO
 pub struct IncludeSyntaxError {
-    pub file: SourceFile,
-    pub errs: Vec<ParseError>,
+    file: SourceFile,
+    errs: Vec<ParseError>,
 }
 
 // TODO Get rid of this once we have a proper implementation of spans

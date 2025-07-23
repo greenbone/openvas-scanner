@@ -35,37 +35,37 @@ pub fn hash_md2(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
 
 /// NASL function to get MD4 hash
 #[nasl_function]
-pub fn hash_md4(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
+fn hash_md4(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
     nasl_hash::<Md4>(data)
 }
 
 /// NASL function to get MD5 hash
 #[nasl_function]
-pub fn hash_md5(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
+fn hash_md5(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
     nasl_hash::<Md5>(data)
 }
 
 /// NASL function to get SHA1 hash
 #[nasl_function]
-pub fn hash_sha1(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
+fn hash_sha1(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
     nasl_hash::<Sha1>(data)
 }
 
 /// NASL function to get SHA256 hash
 #[nasl_function]
-pub fn hash_sha256(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
+fn hash_sha256(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
     nasl_hash::<Sha256>(data)
 }
 
 /// NASL function to get SHA512 hash
 #[nasl_function]
-pub fn hash_sha512(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
+fn hash_sha512(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
     nasl_hash::<Sha512>(data)
 }
 
 /// NASL function to get RIPemd160 hash
 #[nasl_function]
-pub fn hash_ripemd160(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
+fn hash_ripemd160(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
     nasl_hash::<Ripemd160>(data)
 }
 

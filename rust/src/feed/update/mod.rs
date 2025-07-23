@@ -130,7 +130,7 @@ where
     }
 
     /// Loads the plugin_feed_info and returns the feed version
-    pub async fn feed_version(&self) -> Result<String, ErrorKind> {
+    async fn feed_version(&self) -> Result<String, ErrorKind> {
         feed_version(self.loader, self.storage).await
     }
 

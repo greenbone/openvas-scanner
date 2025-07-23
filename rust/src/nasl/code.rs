@@ -32,11 +32,11 @@ pub struct ParseResult {
 }
 
 impl ParseResult {
-    pub fn new(code: &str, path: &Path) -> Self {
+    fn new(code: &str, path: &Path) -> Self {
         Self::new_with_parse_fn(code, path, parse)
     }
 
-    pub fn new_with_parse_fn(
+    fn new_with_parse_fn(
         code: &str,
         path: &Path,
         f: impl Fn(&str) -> Result<Ast, Vec<ParseError>>,
@@ -75,12 +75,6 @@ impl ParseResult {
                 Err(errors)
             }
         }
-    }
-
-    #[cfg(test)]
-    pub fn unwrap_errors_str(self) -> String {
-        let errs = self.result.unwrap_err();
-        super::error::emit_errors_str(&self.file, errs.into_iter())
     }
 
     pub fn file(&self) -> &SourceFile {
@@ -141,7 +135,7 @@ impl Code {
 }
 
 #[cfg(test)]
-pub use tokenize::TokenizeResult;
+use tokenize::TokenizeResult;
 
 #[cfg(test)]
 mod tokenize {
@@ -179,10 +173,6 @@ mod tokenize {
             let file = SimpleFile::new(path.to_string_lossy().into(), code.to_owned());
             let result = split_tokens_and_errors(Tokenizer::tokenize(code));
             Self { file, result }
-        }
-
-        pub fn result(self) -> Result<Vec<Token>, Vec<TokenizerError>> {
-            self.result
         }
 
         pub fn emit_errors(self) -> Option<Vec<Token>> {

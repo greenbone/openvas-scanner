@@ -4,8 +4,8 @@
 
 mod context;
 pub mod entry;
-pub mod feed;
-pub mod results;
+mod feed;
+mod results;
 
 use std::{
     fmt::Display,
@@ -14,7 +14,7 @@ use std::{
 };
 
 use crate::config;
-pub use context::{Context, ContextBuilder, NoOpScanner};
+pub use context::{Context, ContextBuilder};
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use scannerlib::models;
 use tokio::net::TcpListener;

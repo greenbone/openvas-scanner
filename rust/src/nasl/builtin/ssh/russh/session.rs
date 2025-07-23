@@ -126,7 +126,7 @@ impl SshSession {
         Ok(Output { stdout, stderr })
     }
 
-    pub async fn call(&self, command: &str) -> Result<(String, String), russh::Error> {
+    async fn call(&self, command: &str) -> Result<(String, String), russh::Error> {
         let mut channel = self.session.channel_open_session().await?;
         channel.exec(true, command).await?;
 

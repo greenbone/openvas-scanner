@@ -26,13 +26,13 @@ impl PackageList {
 pub struct NotusUpdateArgs {
     /// Path to the product feed.
     #[clap(long)]
-    pub path: PathBuf,
+    path: PathBuf,
     /// A comma separated list of packages.
     /// If '-' is given, the list will be read from stdin instead.
     #[clap(long)]
-    pub pkg_list: ArgOrStdin<String>,
+    pkg_list: ArgOrStdin<String>,
     /// The OS to use.
-    pub os: String,
+    os: String,
 }
 
 pub async fn run(args: NotusUpdateArgs) -> Result<(), CliError> {

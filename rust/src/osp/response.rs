@@ -265,7 +265,7 @@ impl From<Response> for Status {
 
 impl Response {
     /// Get the status of the response
-    pub fn status(self) -> Status {
+    fn status(self) -> Status {
         match self {
             Response::Failure { status } => status,
             Response::StartScan { status, .. } => status,
@@ -281,17 +281,10 @@ impl Response {
 pub struct Status {
     #[serde(rename = "@status_text")]
     /// Status text
-    pub text: String,
+    text: String,
     #[serde(rename = "@status")]
     /// Status code
-    pub code: StringU64,
-}
-
-impl Status {
-    /// Check if the status is OK
-    pub fn is_ok(&self) -> bool {
-        self.code.0 == 200
-    }
+    code: StringU64,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -396,7 +389,7 @@ struct HostDetail {
 }
 
 impl HostDetail {
-    pub fn extract(&self) -> Option<crate::models::Detail> {
+    fn extract(&self) -> Option<crate::models::Detail> {
         self.detail.first().cloned()
     }
 }
@@ -446,19 +439,7 @@ impl From<&ScanResult> for crate::models::Result {
 pub struct Results {
     /// Results
     #[serde(default)]
-    pub result: Vec<ScanResult>,
-}
-
-impl Results {
-    /// Push a result to the results
-    pub fn push(&mut self, result: ScanResult) {
-        self.result.push(result);
-    }
-
-    /// Extend the results with another results
-    pub fn extend(&mut self, results: Results) {
-        self.result.extend(results.result);
-    }
+    result: Vec<ScanResult>,
 }
 
 impl From<Results> for Vec<crate::models::Result> {
@@ -521,16 +502,16 @@ pub struct Scan {
     pub id: String,
     #[serde(rename = "@target")]
     /// Target IP
-    pub target: String,
+    target: String,
     #[serde(rename = "@start_time")]
     /// Start time
-    pub start_time: Option<StringU64>,
+    start_time: Option<StringU64>,
     #[serde(rename = "@end_time")]
     /// End time
-    pub end_time: Option<StringU64>,
+    end_time: Option<StringU64>,
     #[serde(rename = "@progress")]
     /// Progress
-    pub progress: StringU64,
+    progress: StringU64,
     #[serde(rename = "@status")]
     /// Status
     pub status: ScanStatus,
@@ -538,45 +519,45 @@ pub struct Scan {
     pub results: Results,
     #[serde(rename = "progress")]
     /// HostInfo
-    pub host_info: Option<HostInfo>,
+    host_info: Option<HostInfo>,
 }
 
 /// Information about the scan progress
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub struct HostInfo {
+struct HostInfo {
     #[serde(default)]
     /// Currently scanned hosts
-    pub host: Vec<Host>,
+    host: Vec<Host>,
     /// Overall progress
-    pub overall: ElementU64,
+    overall: ElementU64,
     /// Number of alive hosts finished
     // TODO: Consider divide into alive and finished
-    pub count_alive: ElementU64,
+    count_alive: ElementU64,
     /// Number of dead hosts
-    pub count_dead: ElementU64,
+    count_dead: ElementU64,
     /// Number of excluded hosts
-    pub count_excluded: ElementU64,
+    count_excluded: ElementU64,
     /// Total number of hosts
-    pub count_total: ElementU64,
+    count_total: ElementU64,
 }
 
 /// An StringU32 element
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub struct ElementU64 {
+struct ElementU64 {
     #[serde(rename = "$text")]
     /// Content of the element
-    pub content: StringU64,
+    content: StringU64,
 }
 
 /// Progress information for a single host
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub struct Host {
+struct Host {
     #[serde(rename = "@name")]
     /// IP of the host
-    pub name: String,
+    name: String,
     #[serde(rename = "$text")]
     /// Current progress for the host
-    pub progress: StringU64,
+    progress: StringU64,
 }
 
 impl Default for Scan {

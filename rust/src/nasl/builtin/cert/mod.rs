@@ -107,7 +107,7 @@ fn subject_oid_to_name(oid: &str) -> &str {
     }
 }
 
-pub enum CertCommands {
+enum CertCommands {
     Serial,
     Issuer,
     Subject,

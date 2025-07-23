@@ -7,7 +7,7 @@ pub fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
     results.emit_errors().unwrap()
 }
 
-pub fn tokenize_err(file_name: &str, code: &str) -> String {
+fn tokenize_err(file_name: &str, code: &str) -> String {
     let results = Code::from_string_filename(code, file_name).tokenize();
     results.unwrap_errors_str()
 }

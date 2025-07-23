@@ -14,7 +14,7 @@ pub use libssh::{AuthMethods, SessionId, Socket, SshSession};
 #[cfg(not(feature = "nasl-builtin-libssh"))]
 mod russh;
 #[cfg(not(feature = "nasl-builtin-libssh"))]
-pub use russh::{AuthMethods, SessionId, Socket, SshSession};
+use russh::{AuthMethods, SessionId, Socket, SshSession};
 
 #[cfg(test)]
 mod tests;
@@ -41,7 +41,7 @@ mod libssh_uses {
 }
 
 #[cfg(feature = "nasl-builtin-libssh")]
-pub use libssh_uses::*;
+use libssh_uses::*;
 
 type Result<T> = std::result::Result<T, FnError>;
 
@@ -139,7 +139,7 @@ impl Ssh {
     ///
     /// nasl return An integer to identify the ssh session. Zero on error.
     #[nasl_function(named(socket, port, keytype, csciphers, scciphers, timeout))]
-    pub async fn nasl_ssh_connect(
+    async fn nasl_ssh_connect(
         &mut self,
         ctx: &ScanCtx<'_>,
         socket: Option<Socket>,
@@ -197,7 +197,7 @@ impl Ssh {
     /// If the named parameters @a stdout and @a stderr are not given, the
     /// function acts exactly as if only @a stdout has been set to 1.
     #[nasl_function(named(cmd, stdout, stderr))]
-    pub async fn nasl_ssh_request_exec(
+    async fn nasl_ssh_request_exec(
         &self,
         session_id: SessionId,
         cmd: &str,
@@ -271,7 +271,7 @@ impl Ssh {
     ///
     /// return An integer as status value; 0 indicates success.
     #[nasl_function(named(login, password, privatekey, passphrase))]
-    pub async fn nasl_ssh_userauth(
+    async fn nasl_ssh_userauth(
         &self,
         session_id: SessionId,
         login: Option<&str>,
@@ -318,7 +318,7 @@ impl Ssh {
     /// channels they are closed as well and their ids will be marked as
     /// invalid.
     #[nasl_function]
-    pub async fn nasl_ssh_disconnect(&mut self, session_id: SessionId) -> Result<()> {
+    async fn nasl_ssh_disconnect(&mut self, session_id: SessionId) -> Result<()> {
         if session_id != 0 {
             self.disconnect_and_remove(session_id).await?;
         }
@@ -330,7 +330,7 @@ impl Ssh {
 impl Ssh {
     /// Given a socket, return the corresponding session id if available.
     #[nasl_function]
-    pub async fn nasl_ssh_session_id_from_sock(&self, socket: Socket) -> Result<Option<SessionId>> {
+    async fn nasl_ssh_session_id_from_sock(&self, socket: Socket) -> Result<Option<SessionId>> {
         Ok(self
             .find_id(|session| session.get_socket() == socket)
             .await?)
@@ -346,7 +346,7 @@ impl Ssh {
     ///
     /// return An integer representing the socket or -1 on error.
     #[nasl_function]
-    pub async fn nasl_ssh_get_sock(&self, session_id: SessionId) -> Result<Socket> {
+    async fn nasl_ssh_get_sock(&self, session_id: SessionId) -> Result<Socket> {
         let session = self.get_by_id(session_id).await?;
         Ok(session.get_socket())
     }
@@ -364,18 +364,14 @@ impl Ssh {
     /// for an established connection, the "login" parameter is silently
     /// ignored on all further calls.
     #[nasl_function(named(login))]
-    pub async fn nasl_ssh_set_login(
-        &self,
-        session_id: SessionId,
-        login: Option<&str>,
-    ) -> Result<()> {
+    async fn nasl_ssh_set_login(&self, session_id: SessionId, login: Option<&str>) -> Result<()> {
         let mut session = self.get_by_id(session_id).await?;
         Ok(session.set_opt_user(login)?)
     }
 
     /// Open a new ssh shell.
     #[nasl_function(named(pty))]
-    pub async fn nasl_ssh_shell_open(
+    async fn nasl_ssh_shell_open(
         &self,
         session_id: SessionId,
         pty: Option<bool>,
@@ -391,7 +387,7 @@ impl Ssh {
     /// there are no more bytes left to read. Otherwise use non_blocking
     /// read mode.
     #[nasl_function]
-    pub async fn nasl_ssh_shell_read(
+    async fn nasl_ssh_shell_read(
         &self,
         session_id: SessionId,
         timeout: Option<Maybe<u64>>,
@@ -410,11 +406,7 @@ impl Ssh {
 
     /// Write the string `cmd` to an ssh shell.
     #[nasl_function]
-    pub async fn nasl_ssh_shell_write(
-        &self,
-        session_id: SessionId,
-        cmd: StringOrData,
-    ) -> Result<i32> {
+    async fn nasl_ssh_shell_write(&self, session_id: SessionId, cmd: StringOrData) -> Result<i32> {
         let session = self.get_by_id(session_id).await?;
         let channel = session.get_channel().await?;
         channel.ensure_open()?;
@@ -427,7 +419,7 @@ impl Ssh {
 
     /// Close an ssh shell.
     #[nasl_function]
-    pub async fn nasl_ssh_shell_close(&self, session_id: SessionId) -> Result<()> {
+    async fn nasl_ssh_shell_close(&self, session_id: SessionId) -> Result<()> {
         let mut session = self.get_by_id(session_id).await?;
         session.close().await;
         Ok(())
@@ -441,7 +433,7 @@ impl Ssh {
     /// The first time this function is called for a session id, the named
     /// argument "login" is also expected.
     #[nasl_function(named(login))]
-    pub async fn nasl_ssh_login_interactive(
+    async fn nasl_ssh_login_interactive(
         &self,
         session_id: SessionId,
         login: Option<&str>,
@@ -491,7 +483,7 @@ impl Ssh {
     /// The function finishes the authentication process started by
     /// ssh_login_interactive.
     #[nasl_function(named(password))]
-    pub async fn nasl_ssh_login_interactive_pass(
+    async fn nasl_ssh_login_interactive_pass(
         &self,
         session_id: SessionId,
         password: &str,
@@ -537,7 +529,7 @@ impl Ssh {
     /// The function returns a string with the issue banner.  This is
     /// usually displayed before authentication.
     #[nasl_function]
-    pub async fn nasl_ssh_get_issue_banner(&self, session_id: SessionId) -> Result<Option<String>> {
+    async fn nasl_ssh_get_issue_banner(&self, session_id: SessionId) -> Result<Option<String>> {
         let mut session = self.get_by_id(session_id).await?;
         session.ensure_user_set(None)?;
         session.get_authmethods_cached()?;
@@ -547,10 +539,7 @@ impl Ssh {
     /// The function returns a string with the server banner.  This is
     /// usually the first data sent by the server.
     #[nasl_function]
-    pub async fn nasl_ssh_get_server_banner(
-        &self,
-        session_id: SessionId,
-    ) -> Result<Option<String>> {
+    async fn nasl_ssh_get_server_banner(&self, session_id: SessionId) -> Result<Option<String>> {
         let session = self.get_by_id(session_id).await?;
         // TODO: Check with openvas-nasl why the outputs doesn't match
         Ok(session.get_server_banner().ok())
@@ -561,7 +550,7 @@ impl Ssh {
     /// SSH_MSG_USERAUTH_FAILURE protocol element; however, it has been
     /// screened and put into a definitive order.
     #[nasl_function]
-    pub async fn nasl_ssh_get_auth_methods(&self, session_id: SessionId) -> Result<Option<String>> {
+    async fn nasl_ssh_get_auth_methods(&self, session_id: SessionId) -> Result<Option<String>> {
         let mut session = self.get_by_id(session_id).await?;
         session.ensure_user_set(None)?;
         let authmethods = session.get_authmethods_cached()?;
@@ -591,7 +580,7 @@ impl Ssh {
 
     /// Return the MD5 host key.
     #[nasl_function]
-    pub async fn nasl_ssh_get_host_key(&self, session_id: SessionId) -> Result<Option<String>> {
+    async fn nasl_ssh_get_host_key(&self, session_id: SessionId) -> Result<Option<String>> {
         let session = self.get_by_id(session_id).await?;
         let key = session.get_server_public_key()?;
         match key.get_public_key_hash_hexa(PublicKeyHashType::Md5) {
@@ -602,7 +591,7 @@ impl Ssh {
 
     /// Check if the SFTP subsystem is enabled on the remote SSH server.
     #[nasl_function]
-    pub async fn nasl_sftp_enabled_check(&self, session_id: SessionId) -> Result<i32> {
+    async fn nasl_sftp_enabled_check(&self, session_id: SessionId) -> Result<i32> {
         let session = self.get_by_id(session_id).await?;
         match session.sftp() {
             Ok(_) => Ok(0),
@@ -615,10 +604,7 @@ impl Ssh {
 
     /// Execute the NETCONF subsystem on the the ssh channel
     #[nasl_function]
-    pub async fn nasl_ssh_execute_netconf_subsystem(
-        &self,
-        session_id: SessionId,
-    ) -> Result<SessionId> {
+    async fn nasl_ssh_execute_netconf_subsystem(&self, session_id: SessionId) -> Result<SessionId> {
         let mut session = self.get_by_id(session_id).await?;
         let channel = session.new_channel()?;
         channel.open_session()?;

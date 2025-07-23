@@ -324,7 +324,7 @@ where
         futures::executor::block_on(async { interpreter.stream().collect().await })
     }
 
-    pub fn results_stream<'a>(
+    fn results_stream<'a>(
         &'a self,
         code: &'a str,
         context: &'a ScanCtx,
@@ -450,6 +450,7 @@ where
         self
     }
 
+    #[cfg(feature = "experimental")]
     /// Return a new `TestBuilder` with the given `target`.
     pub fn with_target(mut self, target: String) -> Self {
         self.target = target;

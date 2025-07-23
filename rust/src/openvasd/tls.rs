@@ -44,14 +44,14 @@ use crate::controller::ClientIdentifier;
 #[derive(Debug)]
 pub struct ClientSnitch {
     inner: Arc<dyn ClientCertVerifier>,
-    pub client_identifier: Arc<RwLock<ClientIdentifier>>,
+    client_identifier: Arc<RwLock<ClientIdentifier>>,
 }
 
 impl ClientSnitch {
     /// Construct a new `AllowAnyAnonymousOrAuthenticatedClient`.
     ///
     /// `roots` is the list of trust anchors to use for certificate validation.
-    pub fn new(
+    fn new(
         inner: Arc<dyn ClientCertVerifier>,
         client_identifier: Arc<RwLock<ClientIdentifier>>,
     ) -> Self {
@@ -63,7 +63,7 @@ impl ClientSnitch {
 
     /// Wrap this verifier in an [`Arc`] and coerce it to `dyn ClientCertVerifier`
     #[inline(always)]
-    pub fn boxed(self) -> Arc<dyn ClientCertVerifier> {
+    fn boxed(self) -> Arc<dyn ClientCertVerifier> {
         // This function is needed to keep it functioning like the original verifier.
         Arc::new(self)
     }
@@ -123,7 +123,7 @@ impl ClientCertVerifier for ClientSnitch {
 /// Data required to create a TlsConfig
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
-pub fn config_to_tls_paths(
+fn config_to_tls_paths(
     config: &crate::config::Config,
 ) -> Result<Option<(PathBuf, PathBuf, Vec<PathBuf>)>, Error> {
     let key_path = match &config.tls.key {

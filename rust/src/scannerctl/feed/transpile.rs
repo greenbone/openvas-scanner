@@ -23,7 +23,7 @@ struct Wrapper {
     cmds: Vec<ReplaceCommand>,
 }
 
-pub async fn run(args: TranspileArgs) -> Result<(), CliError> {
+ async fn run(args: TranspileArgs) -> Result<(), CliError> {
     let rules = std::fs::read_to_string(args.rules).unwrap();
     let rules: Wrapper = toml::from_str(&rules).unwrap();
     let rules = rules.cmds;

@@ -39,7 +39,7 @@ pub use forking_interpreter::ForkingInterpreter;
 pub use nasl_value::NaslValue;
 pub use register::Register;
 
-pub type Result<T = NaslValue, E = Error> = std::result::Result<T, E>;
+type Result<T = NaslValue, E = Error> = std::result::Result<T, E>;
 
 #[derive(PartialEq, Eq)]
 enum InterpreterState {
@@ -57,7 +57,7 @@ impl InterpreterState {
 /// the `Span` pointing to the identifier of the function that
 /// resulted in this value originally.
 #[derive(Clone)]
-pub struct FunctionCallData {
+struct FunctionCallData {
     value: NaslValue,
     span: Span,
 }
@@ -82,7 +82,7 @@ pub struct FunctionCallData {
 ///    call. This is done until the `data` field is exhausted. At that
 ///    point, execution proceeds normally.
 #[derive(Clone)]
-pub enum ForkReentryData {
+enum ForkReentryData {
     Collecting {
         data: Vec<FunctionCallData>,
         register: Register,
@@ -137,7 +137,7 @@ impl ForkReentryData {
 
     /// If in `Restoring` mode, remove and return the first stored
     /// result from the queue. Otherwise do nothing.
-    pub(crate) fn try_restore(&mut self, span: &Span) -> Result<Option<NaslValue>, Error> {
+    fn try_restore(&mut self, span: &Span) -> Result<Option<NaslValue>, Error> {
         match self {
             Self::Restoring { data } => {
                 if let Some(data) = data.pop_front() {
@@ -240,7 +240,7 @@ fn expand_fork_at(
         .collect()
 }
 
-pub struct Interpreter<'ctx> {
+struct Interpreter<'ctx> {
     pub(super) register: Register,
     pub(super) scan_ctx: &'ctx ScanCtx<'ctx>,
     pub(super) script_ctx: ScriptCtx,
@@ -313,7 +313,7 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    pub async fn collect_exprs(
+    async fn collect_exprs(
         &mut self,
         exprs: impl Iterator<Item = &Expr>,
     ) -> Result<Vec<NaslValue>> {
@@ -458,7 +458,7 @@ impl<'ctx> Interpreter<'ctx> {
         Ok(NaslValue::Null)
     }
 
-    pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
+    async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
         self.register.create_child();
         for stmt in block.items.iter() {
             match Box::pin(self.resolve(stmt)).await {
@@ -497,7 +497,7 @@ impl<'ctx> Interpreter<'ctx> {
         Ok(NaslValue::Null)
     }
 
-    pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'ctx>> {
+    fn make_forks(mut self) -> Vec<Interpreter<'ctx>> {
         let forks = self.fork_reentry_data.create_forks();
         let register = self.fork_reentry_data.register();
         let stmt_index = self.fork_reentry_data.stmt_index();
@@ -523,22 +523,18 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    pub(crate) fn wants_to_fork(&self) -> bool {
+    fn wants_to_fork(&self) -> bool {
         self.fork_reentry_data.contains_fork()
     }
 
-    pub(crate) fn initialize_fork_data(&mut self) {
+    fn initialize_fork_data(&mut self) {
         if self.fork_reentry_data.is_empty_or_collecting() {
             self.fork_reentry_data =
                 ForkReentryData::collecting(self.register.clone(), self.stmt_index);
         }
     }
 
-    pub(crate) fn is_finished(&self) -> bool {
+    fn is_finished(&self) -> bool {
         self.state.is_finished()
-    }
-
-    pub fn register(&self) -> &Register {
-        &self.register
     }
 }

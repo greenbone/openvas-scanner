@@ -10,11 +10,11 @@ use crate::{nasl::prelude::*, storage::items::kb::KbKey};
 
 #[allow(clippy::module_inception)]
 pub mod network;
-pub mod network_utils;
+mod network_utils;
 pub mod socket;
-pub mod tcp;
-pub mod tls;
-pub mod udp;
+mod tcp;
+mod tls;
+mod udp;
 
 // 512 Bytes are typically supported by network devices. The ip header maximum size is 60 and a UDP
 // header contains 8 bytes, which must be subtracted from the max size for UDP packages.
@@ -25,18 +25,18 @@ const DEFAULT_PORT: u16 = 33435;
 
 // Get the max MTU possible for network communication
 #[cfg(not(feature = "nasl-builtin-raw-ip"))]
-pub fn mtu(_: IpAddr) -> usize {
+fn mtu(_: IpAddr) -> usize {
     MTU
 }
 #[cfg(feature = "nasl-builtin-raw-ip")]
-pub fn mtu(target_ip: IpAddr) -> usize {
+fn mtu(target_ip: IpAddr) -> usize {
     match raw_ip_utils::get_mtu(target_ip) {
         Ok(mtu) => mtu,
         Err(_) => MTU,
     }
 }
 
-pub enum OpenvasEncaps {
+enum OpenvasEncaps {
     Auto = 0, /* Request auto detection.  */
     Ip,
     Ssl23, /* Ask for compatibility options */
@@ -51,7 +51,7 @@ pub enum OpenvasEncaps {
 }
 
 impl OpenvasEncaps {
-    pub fn from_i64(val: i64) -> Option<Self> {
+    fn from_i64(val: i64) -> Option<Self> {
         match val {
             0 => Some(Self::Auto),
             1 => Some(Self::Ip),
@@ -85,7 +85,7 @@ impl Display for OpenvasEncaps {
     }
 }
 
-pub fn get_retry(context: &ScanCtx) -> u8 {
+fn get_retry(context: &ScanCtx) -> u8 {
     if let Ok(val) = context.get_single_kb_item(&KbKey::TimeoutRetry) {
         match val {
             NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
@@ -103,7 +103,7 @@ pub fn get_retry(context: &ScanCtx) -> u8 {
     }
 }
 
-pub struct Port(u16);
+struct Port(u16);
 
 impl FromNaslValue<'_> for Port {
     fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {

@@ -24,10 +24,10 @@ use tokio::{
 };
 use tokio_rustls::TlsConnector;
 
-pub struct Handle {
-    pub handle_id: i32,
-    pub header_items: Vec<(String, String)>,
-    pub http_code: u16,
+struct Handle {
+    handle_id: i32,
+    header_items: Vec<(String, String)>,
+    http_code: u16,
 }
 
 #[derive(Default)]
@@ -72,7 +72,7 @@ fn next_handle_id(handles: &MutexGuard<Vec<Handle>>) -> i32 {
 
 /// NoVerifier is to allow insecure connections
 #[derive(Debug)]
-pub struct NoVerifier;
+struct NoVerifier;
 
 /// DANGER: This custom implementation of the SeverCertVerifier
 /// is really dangerous and return success for all and everything.

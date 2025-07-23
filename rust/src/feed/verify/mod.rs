@@ -248,7 +248,7 @@ impl Hasher {
     }
 
     /// Returns the hash of a given reader and key
-    pub fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
+    fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
     where
         R: Read,
     {
@@ -295,12 +295,6 @@ impl<'a> HashSumNameLoader<'a> {
     }
 }
 
-/// Defines a file name loader to load filenames
-pub trait FileNameLoader {
-    /// Returns the next filename
-    fn next_filename(&mut self) -> Option<Result<String, Error>>;
-}
-
 impl<'a> Iterator for HashSumNameLoader<'a> {
     type Item = Result<HashSumFileItem<'a>, Error>;
 
@@ -326,10 +320,10 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
 
 /// Contains all information  necessary to do a hash sum check
 pub struct HashSumFileItem<'a> {
-    pub file_name: String,
-    pub hashsum: String,
-    pub hasher: Option<Hasher>,
-    pub reader: &'a FSPluginLoader,
+    file_name: String,
+    hashsum: String,
+    hasher: Option<Hasher>,
+    reader: &'a FSPluginLoader,
 }
 
 impl HashSumFileItem<'_> {
@@ -369,24 +363,6 @@ impl HashSumFileItem<'_> {
 pub struct NaslFileFinder {
     base: Option<String>,
     paths: glob::Paths,
-}
-
-impl NaslFileFinder {
-    /// Initializes NaslFileFinder based on a base path.
-    pub fn new<P>(base: P, relative: bool) -> Self
-    where
-        P: AsRef<str>,
-    {
-        let paths = glob::glob(&format!("{}/**/*", base.as_ref())).expect("valid glob pattern");
-        Self {
-            base: if relative {
-                Some(base.as_ref().to_string())
-            } else {
-                None
-            },
-            paths,
-        }
-    }
 }
 
 impl Loader for NaslFileFinder {
@@ -438,12 +414,6 @@ impl Iterator for NaslFileFinder {
                 None => return None,
             }
         }
-    }
-}
-
-impl FileNameLoader for NaslFileFinder {
-    fn next_filename(&mut self) -> Option<Result<String, Error>> {
-        self.next()
     }
 }
 

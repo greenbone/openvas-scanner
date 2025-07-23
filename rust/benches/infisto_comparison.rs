@@ -84,7 +84,7 @@ pub fn reading(c: &mut Criterion) {
     clean_up_store.remove(&uncached_name).unwrap();
     clean_up_store.remove(&cached_name).unwrap();
 }
-pub fn storing(c: &mut Criterion) {
+fn storing(c: &mut Criterion) {
     let amount = 100000;
     fn random_data() -> Vec<u8> {
         use rand::RngCore;

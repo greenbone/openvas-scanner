@@ -299,11 +299,6 @@ where
         rr?;
         Ok(())
     }
-
-    pub async fn has_running_scans(&self) -> bool {
-        let running = self.running.read().await;
-        !running.is_empty()
-    }
 }
 
 #[async_trait]

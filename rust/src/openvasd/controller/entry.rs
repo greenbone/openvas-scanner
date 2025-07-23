@@ -160,8 +160,8 @@ impl Display for KnownPaths {
 }
 
 pub struct EntryPoint<S, DB, R> {
-    pub ctx: Arc<Context<S, DB>>,
-    pub cid: Arc<ClientIdentifier>,
+    ctx: Arc<Context<S, DB>>,
+    cid: Arc<ClientIdentifier>,
     _phantom: PhantomData<R>,
 }
 
@@ -599,9 +599,7 @@ pub mod client {
     };
     use scannerlib::models::{self, Action, Scan, ScanAction, Status};
     use scannerlib::nasl::FSPluginLoader;
-    use scannerlib::storage::infisto::{
-        CachedIndexFileStorer, ChaCha20IndexFileStorer, IndexedFileStorer,
-    };
+    use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
     use serde::Deserialize;
 
     use crate::storage::inmemory;
@@ -623,7 +621,7 @@ pub mod client {
     /// A fake implementation of the ScannerStack trait.
     ///
     /// This is useful for testing the Scanner implementation.
-    pub struct LambdaScannerBuilder {
+    struct LambdaScannerBuilder {
         start_scan: StartScan,
         can_start_scan: CanStartScan,
         stop_scan: StopScan,
@@ -638,7 +636,7 @@ pub mod client {
     }
 
     impl LambdaScannerBuilder {
-        pub fn new() -> Self {
+        fn new() -> Self {
             Self {
                 start_scan: Arc::new(Box::new(|_| Ok(()))),
                 can_start_scan: Arc::new(Box::new(|_| true)),
@@ -648,39 +646,7 @@ pub mod client {
             }
         }
 
-        pub fn with_start_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(Scan) -> Result<(), Error> + Send + Sync + 'static,
-        {
-            self.start_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_can_start_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(&Scan) -> bool + Send + Sync + 'static,
-        {
-            self.can_start_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_stop_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(&str) -> Result<(), Error> + Send + Sync + 'static,
-        {
-            self.stop_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_delete_scan<F>(mut self, f: F) -> Self
-        where
-            F: Fn(&str) -> Result<(), Error> + Send + Sync + 'static,
-        {
-            self.delete_scan = Arc::new(Box::new(f));
-            self
-        }
-
-        pub fn with_fetch_results<F>(mut self, f: F) -> Self
+        fn with_fetch_results<F>(mut self, f: F) -> Self
         where
             F: Fn(&str) -> Result<super::ScanResults, Error> + Send + Sync + 'static,
         {
@@ -688,7 +654,7 @@ pub mod client {
             self
         }
 
-        pub fn build(self) -> LambdaScanner {
+        fn build(self) -> LambdaScanner {
             LambdaScanner {
                 start_scan: self.start_scan,
                 can_start_scan: self.can_start_scan,
@@ -839,30 +805,12 @@ pub mod client {
         Client::authenticated(scanner, storage)
     }
 
-    pub async fn file_based_example_feed(
-        prefix: &str,
-    ) -> Client<
-        scannerlib::scanner::Scanner<(
-            Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
-            FSPluginLoader,
-        )>,
-        Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
-    > {
-        use crate::file::tests::{example_feed_file_storage, nasl_root};
-        let storage_dir = format!("/tmp/openvasd/{prefix}_{}", uuid::Uuid::new_v4());
-        let store = example_feed_file_storage(&storage_dir).await;
-        let store = Arc::new(ResultCatcher::new(store));
-        let nasl_feed_path = nasl_root().await;
-        let scanner = scannerlib::scanner::Scanner::with_storage(store.clone(), &nasl_feed_path);
-        Client::authenticated(scanner, store)
-    }
-
     impl<S, DB> Client<S, DB>
     where
         S: Scanner + 'static + std::marker::Send + std::marker::Sync,
         DB: crate::storage::Storage + 'static + std::marker::Send + std::marker::Sync,
     {
-        pub fn authenticated(scanner: S, db: DB) -> Self {
+        fn authenticated(scanner: S, db: DB) -> Self {
             let ns = crate::config::Scheduler {
                 check_interval: std::time::Duration::from_nanos(10),
                 ..Default::default()
@@ -932,7 +880,7 @@ pub mod client {
             self.entrypoint(req).await
         }
 
-        pub async fn scan_status(&self, id: &str) -> TypeResult<Status> {
+        async fn scan_status(&self, id: &str) -> TypeResult<Status> {
             let result = self
                 .request_empty(Method::GET, KnownPaths::ScanStatus(id.to_string()))
                 .await;
@@ -970,7 +918,7 @@ pub mod client {
             self.no_content(result).await
         }
 
-        pub async fn scan_action(&self, id: &str, action: Action) -> TypeResult<()> {
+        async fn scan_action(&self, id: &str, action: Action) -> TypeResult<()> {
             let action: ScanAction = action.into();
             let result = self
                 .request_json(
@@ -982,7 +930,7 @@ pub mod client {
             self.no_content(result).await
         }
 
-        pub async fn no_content(&self, result: HttpResult) -> TypeResult<()> {
+        async fn no_content(&self, result: HttpResult) -> TypeResult<()> {
             let resp = result?;
             if resp.status() != 204 {
                 return Err(scanner::Error::Unexpected(format!(
@@ -991,13 +939,6 @@ pub mod client {
                 )));
             }
             Ok(())
-        }
-
-        pub async fn scans(&self) -> TypeResult<Vec<Scan>> {
-            let result = self
-                .request_empty(Method::GET, KnownPaths::Scans(None))
-                .await;
-            self.parsed(result, StatusCode::OK).await
         }
 
         // TODO: deal with that static stuff that prevents deserializiation based on Bytes
@@ -1062,7 +1003,7 @@ pub mod client {
             }
         }
 
-        pub async fn parsed<'a, T>(
+        async fn parsed<'a, T>(
             &self,
             result: HttpResult,
             expected_status: StatusCode,

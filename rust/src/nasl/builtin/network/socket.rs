@@ -85,7 +85,7 @@ struct Interval {
 
 impl Interval {
     /// Check the time since the last tick and wait if necessary.
-    pub fn tick(&self) {
+    fn tick(&self) {
         let mut last_tick = self.last_tick.lock().unwrap();
         if let Ok(since) = SystemTime::now().duration_since(*last_tick) {
             if since < self.interval {
@@ -114,14 +114,14 @@ pub enum NaslSocket {
 }
 
 impl NaslSocket {
-    pub fn read_with_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> io::Result<usize> {
+    fn read_with_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> io::Result<usize> {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.read_with_timeout(buf, timeout),
             NaslSocket::Udp(udp_connection) => udp_connection.read_with_timeout(buf, timeout),
         }
     }
 
-    pub fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.read(buf),
             NaslSocket::Udp(udp_connection) => udp_connection.read(buf),
@@ -674,7 +674,7 @@ async fn get_source_port(sockets: &NaslSockets, socket: usize) -> Result<NaslVal
 /// Receive a response of a FTP server and checks the status code of it.
 /// This status code is compared to a list of expected status codes and
 /// returned, if it is contained in that list.
-pub fn check_ftp_response(
+fn check_ftp_response(
     mut conn: impl BufRead,
     expected_codes: &[usize],
 ) -> Result<usize, SocketError> {

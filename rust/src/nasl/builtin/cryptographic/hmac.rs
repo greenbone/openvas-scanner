@@ -54,37 +54,37 @@ pub fn hmac_md2(key: &str, data: &str) -> Result<NaslValue, FnError> {
 
 /// NASL function to get HMAC MD5 string
 #[nasl_function(named(key, data))]
-pub fn hmac_md5(key: &str, data: &str) -> Result<NaslValue, FnError> {
+fn hmac_md5(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Md5>(key, data)
 }
 
 /// NASL function to get HMAC RIPEMD160 string
 #[nasl_function(named(key, data))]
-pub fn hmac_ripemd160(key: &str, data: &str) -> Result<NaslValue, FnError> {
+fn hmac_ripemd160(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Ripemd160>(key, data)
 }
 
 /// NASL function to get HMAC SHA1 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha1(key: &str, data: &str) -> Result<NaslValue, FnError> {
+fn hmac_sha1(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha1>(key, data)
 }
 
 /// NASL function to get HMAC SHA256 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha256(key: &str, data: &str) -> Result<NaslValue, FnError> {
+fn hmac_sha256(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha256>(key, data)
 }
 
 /// NASL function to get HMAC SHA384 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha384(key: &str, data: &str) -> Result<NaslValue, FnError> {
+fn hmac_sha384(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha384>(key, data)
 }
 
 /// NASL function to get HMAC SHA512 string
 #[nasl_function(named(key, data))]
-pub fn hmac_sha512(key: &str, data: &str) -> Result<NaslValue, FnError> {
+fn hmac_sha512(key: &str, data: &str) -> Result<NaslValue, FnError> {
     hmac::<Sha512>(key, data)
 }
 

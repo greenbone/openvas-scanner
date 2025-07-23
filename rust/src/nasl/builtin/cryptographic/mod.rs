@@ -10,18 +10,18 @@ use crate::nasl::prelude::*;
 use crate::nasl::utils::{IntoFunctionSet, Register, StoredFunctionSet};
 
 pub mod aes_cbc;
-pub mod aes_ccm;
-pub mod aes_cmac;
-pub mod aes_ctr;
-pub mod aes_gcm;
-pub mod aes_gmac;
-pub mod bf_cbc;
-pub mod des;
-pub mod hash;
-pub mod hmac;
-pub mod pem_to;
+mod aes_ccm;
+mod aes_cmac;
+mod aes_ctr;
+mod aes_gcm;
+mod aes_gmac;
+mod bf_cbc;
+mod des;
+mod hash;
+mod hmac;
+mod pem_to;
 pub mod rc4;
-pub mod rsa;
+mod rsa;
 
 #[cfg(test)]
 mod tests;

@@ -259,20 +259,20 @@ impl Default for ScanPrefValue {
 
 #[derive(Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FullScanPreferences {
-    pub scan_preferences: Vec<FullScanPreference>,
+    scan_preferences: Vec<FullScanPreference>,
 }
 
 /// Configuration preference information for a scan. The type can be derived from the default value.
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FullScanPreference {
+struct FullScanPreference {
     /// The ID of the scan preference
-    pub id: String,
+    id: String,
     /// Display name of the scan preference
-    pub name: String,
+    name: String,
     /// The value of the scan preference
-    pub default: ScanPrefValue,
+    default: ScanPrefValue,
     /// Description of the scan preference
-    pub description: String,
+    description: String,
 }
 
 impl From<&ScanPreferenceInformation> for FullScanPreference {

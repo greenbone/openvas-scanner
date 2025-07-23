@@ -7,14 +7,14 @@ use crate::nasl::{
 
 #[derive(Debug)]
 pub struct Error {
-    pub kind: ErrorKind,
-    pub span: Option<Span>,
+    kind: ErrorKind,
+    span: Option<Span>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SpannedError {
     pub kind: ErrorKind,
-    pub span: Span,
+    span: Span,
 }
 
 #[derive(Debug, Clone)]
@@ -49,12 +49,6 @@ impl Error {
             kind: self.kind,
             span: Some(self.span.unwrap_or(span.span())),
         }
-    }
-}
-
-impl ErrorKind {
-    pub fn into_error(self, span: Span) -> SpannedError {
-        SpannedError { span, kind: self }
     }
 }
 
