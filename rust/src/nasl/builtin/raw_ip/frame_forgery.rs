@@ -4,15 +4,15 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
 use std::{net::Ipv4Addr, str::FromStr};
 
 use pcap::{Capture, Device};
 
-use super::RawIpError;
-use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
+use super::raw_ip_utils::{
+    forge_arp_frame, get_interface_by_local_ip, get_local_mac_address, get_source_ip, ipstr2ipaddr,
+};
 
 use tracing::info;
 
@@ -235,23 +235,6 @@ impl From<ArpFrame> for Vec<u8> {
     }
 }
 
-/// Forge a data link layer frame with an ARP request in the payload
-fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<u8> {
-    let mut frame = Frame::new();
-    frame.set_srchaddr(eth_src);
-    frame.set_dsthaddr(MacAddr::broadcast());
-    frame.set_ethertype(ETHERTYPE_ARP.to_le());
-
-    let mut arp_frame = ArpFrame::new();
-    arp_frame.set_srchaddr(eth_src);
-    arp_frame.set_srcip(src_ip);
-    arp_frame.set_dsthaddr(MacAddr::zero());
-    arp_frame.set_dstip(dst_ip);
-
-    frame.set_payload(arp_frame.into());
-    frame.into()
-}
-
 /// Forge a datalink layer frame with data in the payload
 fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -> Vec<u8> {
     let mut frame = Frame::new();
@@ -277,15 +260,6 @@ fn validate_mac_address(v: Option<&ContextType>) -> Result<MacAddr, FnError> {
         _ => None,
     };
     mac_addr.ok_or_else(|| FnError::wrong_unnamed_argument("mac address", "invalid mac address"))
-}
-
-/// Return the MAC address, given the interface name
-fn get_local_mac_address(name: &str) -> Result<MacAddr, FnError> {
-    interfaces()
-        .into_iter()
-        .find(|x| x.name == *name)
-        .and_then(|dev| dev.mac)
-        .ok_or_else(|| RawIpError::FailedToGetLocalMacAddress.into())
 }
 
 /// Return a frame given a capture device and a filter. It returns an empty frame in case
