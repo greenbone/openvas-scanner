@@ -18,8 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
-      - run: cargo clippy --all-targets -- -D warnings
       - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo clippy --all-targets --features experimental -- -D warnings
   Rust-Typos:
     runs-on: self-hosted-generic
     defaults:
