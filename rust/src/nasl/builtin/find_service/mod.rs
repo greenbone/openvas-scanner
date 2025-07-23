@@ -309,6 +309,8 @@ fn read_from_tcp_at_port(target: IpAddr, port: u16) -> Result<ReadResult, FindSe
 }
 
 fn try_http_request(target: IpAddr, port: u16) -> Result<Vec<u8>, FindServiceError> {
+    // TODO: Use a more robust approach that also takes HTTP2 into
+    // account (such as using h2)
     let mut socket = make_tcp_socket(target, port, 0)?;
     let http_request = b"GET / HTTP/1.0\r\n\r\n";
     match socket {
