@@ -138,7 +138,7 @@ impl fmt::Display for Frame {
                 s.push('\n');
             }
         }
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -387,7 +387,7 @@ fn nasl_send_arp_request(register: &Register, context: &ScanCtx) -> Result<NaslV
     };
 
     let arp_frame = forge_arp_frame(local_mac_address, src_ip, dst_ip);
-    let filter = format!("arp and src host {}", target_ip);
+    let filter = format!("arp and src host {target_ip}");
     // send the frame and get a response if pcap_active enabled
     match send_frame(&arp_frame, &iface, &true, Some(&filter), timeout)? {
         Some(f) => Ok(NaslValue::String(format!("{}", f.srchaddr))),
