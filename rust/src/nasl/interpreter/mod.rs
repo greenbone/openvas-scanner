@@ -363,7 +363,6 @@ impl<'ctx> Interpreter<'ctx> {
         let index = self.resolve_expr(&array_access.index_expr).await?;
         lhs.index(index)
             .map_err(|e| e.into_error(&array_access.lhs_expr, &array_access.index_expr))
-            .cloned()
     }
 
     async fn resolve_unary(&mut self, unary: &Unary) -> Result {

@@ -215,6 +215,13 @@ interpreter_test_ok!(
     "0",
 );
 
+interpreter_test_ok!(
+    non_int_array_index,
+    "a = [1, 2, 3]; a['hello'];",
+    NaslValue::Array(vec![1.into(), 2.into(), 3.into()]),
+    NaslValue::Null,
+);
+
 interpreter_test_err!(nonexistent_variable, "a += 12;");
 
 interpreter_test_err!(function_instead_of_variable, "function foo() { } a = foo;");
@@ -225,7 +232,6 @@ interpreter_test_err!(invalid_regex, r#"a = "hello world"; a =~ "[";"#);
 interpreter_test_err!(undefined_fn, "foo();");
 
 interpreter_test_err!(expected_str, "a =~ 5;");
-interpreter_test_err!(expected_number, "a = [1, 2, 3]; a['hello'];");
 interpreter_test_err!(expected_array, "a = 5; a[3];");
 
 interpreter_test_err!(array_out_of_range, "a = [1, 2, 3]; a[3];");

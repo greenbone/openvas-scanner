@@ -175,19 +175,29 @@ impl NaslValue {
         }
     }
 
-    pub(super) fn index(&self, index: NaslValue) -> Result<&NaslValue, ExprError> {
+    pub(super) fn index(&self, index: NaslValue) -> Result<NaslValue, ExprError> {
         if let Some(arr) = self.as_array() {
-            let index = index.as_number().map_err(ExprError::rhs)?;
-            let index = index
-                .try_into()
-                .map_err(|_| ErrorKind::NegativeIndex(index))
-                .map_err(ExprError::rhs)?;
-            arr.get(index)
-                .ok_or_else(|| ExprError::lhs(ErrorKind::ArrayOutOfRange(index)))
+            // Backwards compatibility:
+            // Indexing into an array with a non-integer value yields
+            // Null (the array is interpreted as a dictionary with the
+            // array indices as keys, so the non-number key does not
+            // exist).
+            if let Ok(index) = index.as_number() {
+                let index = index
+                    .try_into()
+                    .map_err(|_| ErrorKind::NegativeIndex(index))
+                    .map_err(ExprError::rhs)?;
+                arr.get(index)
+                    .ok_or_else(|| ExprError::lhs(ErrorKind::ArrayOutOfRange(index)))
+                    .cloned()
+            } else {
+                Ok(NaslValue::Null)
+            }
         } else if let Some(dict) = self.as_dict() {
             let index = index.as_string().map_err(ExprError::rhs)?;
             dict.get(&index)
                 .ok_or_else(|| ExprError::lhs(ErrorKind::DictKeyDoesNotExist(index)))
+                .cloned()
         } else {
             Err(ExprError::lhs(ErrorKind::ArrayOrDictExpected))
         }
