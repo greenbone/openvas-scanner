@@ -18,7 +18,7 @@ pub struct LibError(String);
 #[cfg(feature = "nasl-builtin-libssh")]
 impl From<libssh_rs::Error> for LibError {
     fn from(e: libssh_rs::Error) -> Self {
-        Self(format!("{}", e))
+        Self(format!("{e}"))
     }
 }
 

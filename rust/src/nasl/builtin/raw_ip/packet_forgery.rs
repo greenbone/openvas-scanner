@@ -204,7 +204,7 @@ impl<'a> FromNaslValue<'a> for Ipv4Addr {
         match addr.parse::<Ipv4Addr>() {
             Ok(ip_addr) => Ok(ip_addr),
             Err(e) => Err(ArgumentError::WrongArgument(
-                format!("Expected a valid IPv4 address. {}.", e).to_string(),
+                format!("Expected a valid IPv4 address. {e}.").to_string(),
             )
             .into()),
         }
@@ -217,7 +217,7 @@ impl<'a> FromNaslValue<'a> for Ipv6Addr {
         match addr.parse::<Ipv6Addr>() {
             Ok(ip_addr) => Ok(ip_addr),
             Err(e) => Err(ArgumentError::WrongArgument(
-                format!("Expected a valid IPv6 address. {}.", e).to_string(),
+                format!("Expected a valid IPv6 address. {e}.").to_string(),
             )
             .into()),
         }
@@ -434,8 +434,7 @@ impl FromStr for IpElement {
             "ip_src" => Ok(IpElement::SourceAddress),
             "ip_dst" => Ok(IpElement::DestinationAddress),
             s => Err(ArgumentError::WrongArgument(format!(
-                "Invalid element for IP packet: {}",
-                s
+                "Invalid element for IP packet: {s}"
             ))),
         }
     }
@@ -535,7 +534,7 @@ fn set_ip_elements(
                 pkt.set_source(ip);
             }
             Err(e) => {
-                return Err(ArgumentError::WrongArgument(format!("Invalid ip_src: {}", e)).into());
+                return Err(ArgumentError::WrongArgument(format!("Invalid ip_src: {e}")).into());
             }
         };
     };
@@ -576,7 +575,7 @@ fn dump_protocol(pkt: &Ipv4Packet) -> String {
         IpNextHeaderProtocols::Udp => "IPPROTO_UDP",
         _ => "IPPROTO_ICMP",
     };
-    format!("{} ({})", protocol_name, byte)
+    format!("{protocol_name} ({byte})")
 }
 
 /// Receive a list of IP packets and print them in a readable format in the screen.
@@ -812,8 +811,7 @@ impl FromStr for TcpElement {
             "th_urp" => Ok(Self::Urp),
             "data" => Ok(Self::Data),
             s => Err(ArgumentError::WrongArgument(format!(
-                "Invalid element for TCP packet: {}",
-                s
+                "Invalid element for TCP packet: {s}"
             ))),
         }
     }
@@ -887,8 +885,7 @@ impl TryFrom<i64> for TcpOpt {
             4 => Ok(Self::SackPermitted),
             8 => Ok(Self::Timestamp),
             opt => Err(ArgumentError::WrongArgument(format!(
-                "Invalid TCP Option value: {}",
-                opt
+                "Invalid TCP Option value: {opt}"
             ))),
         }
     }
@@ -1301,7 +1298,7 @@ fn display_opts(pkt: &TcpPacket) {
             _ => None,
         };
         if let Some(name) = name {
-            println!("\t\t{}: {:?}", name, p);
+            println!("\t\t{name}: {p:?}");
         }
     }
 }
@@ -1336,7 +1333,7 @@ fn print_tcp_packet(tcp: &TcpPacket) {
     println!("\tth_ack = {}", tcp.get_acknowledgement());
     println!("\tth_x2 = {}", tcp.get_reserved());
     println!("\tth_off = {}", tcp.get_data_offset());
-    println!("\tth_flags = {}", th_flags);
+    println!("\tth_flags = {th_flags}");
     println!("\tth_win = {}", tcp.get_window());
     println!("\tth_sum = {}", tcp.get_checksum());
     println!("\tth_urp = {}", tcp.get_urgent_ptr());
@@ -1549,8 +1546,7 @@ impl FromStr for UdpElement {
             "uh_sum" => Ok(Self::Checksum),
             "data" => Ok(Self::Data),
             s => Err(ArgumentError::WrongArgument(format!(
-                "Invalid element for UDP packet: {}",
-                s
+                "Invalid element for UDP packet: {s}"
             ))),
         }
     }
@@ -1697,8 +1693,7 @@ impl FromStr for IcmpElement {
             "icmp_chsum" => Ok(Self::CheckSum),
             "icmp_data" => Ok(Self::Data),
             s => Err(ArgumentError::WrongArgument(format!(
-                "Invalid element for ICMP packet: {}",
-                s
+                "Invalid element for ICMP packet: {s}"
             ))),
         }
     }
@@ -1927,7 +1922,7 @@ fn new_raw_socket() -> Result<Socket, FnError> {
         Some(Protocol::from(IPPROTO_RAW)),
     ) {
         Ok(s) => Ok(s),
-        Err(e) => Err(error(format!("Not possible to create a raw socket: {}", e))),
+        Err(e) => Err(error(format!("Not possible to create a raw socket: {e}"))),
     }
 }
 
@@ -1939,8 +1934,7 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
     )
     .map_err(|e| {
         error(format!(
-            "new_raw_ipv6_socket: Not possible to create a raw socket: {}",
-            e
+            "new_raw_ipv6_socket: Not possible to create a raw socket: {e}"
         ))
     })
 }
@@ -1971,7 +1965,7 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
 
     let soc = new_raw_socket()?;
     if let Err(e) = soc.set_header_included_v4(true) {
-        return Err(error(format!("Not possible to create a raw socket: {}", e)));
+        return Err(error(format!("Not possible to create a raw socket: {e}")));
     };
 
     // Get the iface name, to set the capture device.
@@ -1991,7 +1985,7 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
         },
         Err(e) => return custom_error!("send_packet: {}", e),
     };
-    let filter = format!("ip and src host {}", target_ip);
+    let filter = format!("ip and src host {target_ip}");
 
     let mut ip_buf = [0u8; 40];
     let mut ip = MutableIpv4Packet::new(&mut ip_buf)
@@ -2045,7 +2039,7 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
                 debug!("Sent {} bytes", b);
             }
             Err(e) => {
-                return Err(error(format!("send_packet: {}", e)));
+                return Err(error(format!("send_packet: {e}")));
             }
         }
 
@@ -2102,7 +2096,7 @@ fn nasl_send_packet(
     let soc = new_raw_socket()?;
 
     if let Err(e) = soc.set_header_included_v4(true) {
-        return Err(error(format!("Not possible to create a raw socket: {}", e)));
+        return Err(error(format!("Not possible to create a raw socket: {e}")));
     };
 
     let _dflt_packet_sz = length.unwrap_or_default();
@@ -2279,7 +2273,7 @@ fn forge_ip_v6_packet(
                 pkt.set_destination(ip);
             }
             Err(e) => {
-                return Err(ArgumentError::WrongArgument(format!("Invalid ip: {}", e)).into());
+                return Err(ArgumentError::WrongArgument(format!("Invalid ip: {e}")).into());
             }
         };
     };
@@ -2313,8 +2307,7 @@ impl FromStr for Ipv6Element {
             "ip6_src" => Ok(Ipv6Element::Source),
             "ip6_dst" => Ok(Ipv6Element::Destination),
             s => Err(ArgumentError::WrongArgument(format!(
-                "Invalid element for IPv6 packet: {}",
-                s
+                "Invalid element for IPv6 packet: {s}"
             ))),
         }
     }
@@ -3038,8 +3031,7 @@ impl FromStr for Icmpv6Element {
             "icmp_chsum" => Ok(Self::CheckSum),
             "icmp_data" => Ok(Self::Data),
             s => Err(ArgumentError::WrongArgument(format!(
-                "Invalid element for ICMP packet: {}",
-                s
+                "Invalid element for ICMP packet: {s}"
             ))),
         }
     }
@@ -3171,7 +3163,7 @@ pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<N
 
     let soc = new_raw_ipv6_socket()?;
     if let Err(e) = soc.set_header_included_v6(true) {
-        return Err(error(format!("Not possible to create a raw socket: {}", e)));
+        return Err(error(format!("Not possible to create a raw socket: {e}")));
     };
 
     // Get the iface name, to set the capture device.
@@ -3192,7 +3184,7 @@ pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<N
         },
         Err(e) => return custom_error!("send_packet: {}", e),
     };
-    let filter = format!("ip and src host {}", target_ip);
+    let filter = format!("ip and src host {target_ip}");
 
     let mut ip_buf = [0u8; FIX_IPV6_HEADER_LENGTH];
     let mut ip = MutableIpv6Packet::new(&mut ip_buf)
@@ -3240,7 +3232,7 @@ pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<N
                 debug!("Sent {} bytes", b);
             }
             Err(e) => {
-                return Err(error(format!("send_packet: {}", e)));
+                return Err(error(format!("send_packet: {e}")));
             }
         }
 
@@ -3295,8 +3287,7 @@ fn nasl_send_v6packet(
 
     if let Err(e) = soc.set_header_included_v6(true) {
         return Err(error(format!(
-            "send_v6packet: Not possible to create a raw socket: {}",
-            e
+            "send_v6packet: Not possible to create a raw socket: {e}"
         )));
     };
 
@@ -3330,7 +3321,7 @@ fn nasl_send_v6packet(
         let sockaddr = match SocketAddr::from_str(&sock_str) {
             Ok(addr) => socket2::SockAddr::from(addr),
             Err(e) => {
-                return Err(error(format!("send_packet: {}", e)));
+                return Err(error(format!("send_packet: {e}")));
             }
         };
 
@@ -3339,7 +3330,7 @@ fn nasl_send_v6packet(
                 debug!("Sent {} bytes", b);
             }
             Err(e) => {
-                return Err(error(format!("send_packet: {}", e)));
+                return Err(error(format!("send_packet: {e}")));
             }
         }
 
