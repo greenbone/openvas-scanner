@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/statement.rs
-expression: stmt
-snapshot_kind: text
----
-if (a) b else c

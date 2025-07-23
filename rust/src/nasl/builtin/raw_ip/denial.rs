@@ -50,8 +50,8 @@ async fn end_denial(
 
     match script_ctx.denial_port {
         Some(port) => {
-            let vendor_version = match register.named("vendor_version") {
-                Some(ContextType::Value(NaslValue::String(v))) => v.clone(),
+            let vendor_version = match register.nasl_value("vendor_version")? {
+                NaslValue::String(v) => v.clone(),
                 _ => "".to_string(),
             };
 

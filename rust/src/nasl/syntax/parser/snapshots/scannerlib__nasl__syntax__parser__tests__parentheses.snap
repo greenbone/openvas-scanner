@@ -1,0 +1,5 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_ok :: < Expr >\n(stringify! (parentheses), \"(3 + 4) * 5\")"
+---
+((3 + 4) * 5)

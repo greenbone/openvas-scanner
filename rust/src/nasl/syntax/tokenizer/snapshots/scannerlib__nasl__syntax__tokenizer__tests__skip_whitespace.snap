@@ -1,0 +1,17 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (skip_whitespace), \"     (       \")"
+---
+[
+    Token {
+        kind: LeftParen,
+        span: Span {
+            start: CharIndex(
+                5,
+            ),
+            end: CharIndex(
+                6,
+            ),
+        },
+    },
+]

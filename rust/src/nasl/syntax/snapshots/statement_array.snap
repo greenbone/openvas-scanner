@@ -1,6 +1,0 @@
----
-source: src/nasl/syntax/statement.rs
-expression: stmt
-snapshot_kind: text
----
-a[1]

@@ -4,122 +4,132 @@
 
 use std::collections::HashMap;
 
-use super::interpreter::{InterpretResult, Interpreter};
+use super::{Interpreter, Result, nasl_value::RuntimeValue};
 use crate::nasl::{
-    ContextType, NaslValue,
-    interpreter::{FunctionCallError, InterpretError, InterpretErrorKind},
-    syntax::{Statement, StatementKind},
+    NaslValue,
+    error::Spanned,
+    interpreter::FunctionCallError,
+    syntax::{
+        Ident,
+        grammar::{FnArg, FnCall},
+    },
     utils::lookup_keys::FC_ANON_ARGS,
 };
+
+use crate::nasl::interpreter::InterpreterError as Error;
+use crate::nasl::interpreter::InterpreterErrorKind as ErrorKind;
 
 enum ArgumentKind {
     Named(String),
     Positional,
 }
 
-impl Interpreter<'_, '_> {
-    async fn resolve_argument(
-        &mut self,
-        arg: &Statement,
-    ) -> Result<(ArgumentKind, NaslValue), InterpretError> {
-        match arg.kind() {
-            StatementKind::NamedParameter(val) => {
-                let name = arg.as_token().identifier()?;
-                let val = self.resolve(val).await?;
-                Ok((ArgumentKind::Named(name), val))
-            }
-            _ => {
-                let val = self.resolve(arg).await?;
+impl Interpreter<'_> {
+    async fn resolve_arg(&mut self, arg: &FnArg) -> Result<(ArgumentKind, NaslValue), Error> {
+        match arg {
+            FnArg::Anonymous(anon) => {
+                let val = self.resolve_expr(&anon.expr).await?;
                 Ok((ArgumentKind::Positional, val))
+            }
+            FnArg::Named(named) => {
+                let val = self.resolve_expr(&named.expr).await?;
+                Ok((ArgumentKind::Named(named.ident.to_string()), val))
             }
         }
     }
 
     async fn create_arguments_map(
         &mut self,
-        args: &[Statement],
-    ) -> Result<HashMap<String, ContextType>, InterpretError> {
+        args: &[FnArg],
+    ) -> Result<HashMap<String, RuntimeValue>, Error> {
         let mut positional = vec![];
         let mut named = HashMap::new();
         for arg in args.iter() {
-            let (kind, value) = self.resolve_argument(arg).await?;
+            let (kind, value) = self.resolve_arg(arg).await?;
             match kind {
                 ArgumentKind::Positional => {
                     positional.push(value);
                 }
                 ArgumentKind::Named(name) => {
-                    named.insert(name, value.into());
+                    named.insert(name, RuntimeValue::Value(value));
                 }
             }
         }
         named.insert(
             FC_ANON_ARGS.to_owned(),
-            ContextType::Value(NaslValue::Array(positional)),
+            RuntimeValue::Value(NaslValue::Array(positional)),
         );
         Ok(named)
     }
 
-    async fn execute_user_defined_fn(&mut self, fn_name: &str) -> InterpretResult {
+    async fn execute_user_defined_fn(&mut self, fn_name: &Ident) -> Result {
         let found = self
             .register
-            .named(fn_name)
-            .ok_or_else(|| InterpretError::not_found(fn_name))?
+            .named(fn_name.to_str())
+            .ok_or_else(|| {
+                ErrorKind::UndefinedFunction(fn_name.to_str().to_owned()).with_span(&fn_name)
+            })?
             .clone();
         match found {
-            ContextType::Function(arguments, stmt) => {
+            RuntimeValue::Function(arguments, stmt) => {
                 for arg in arguments {
                     if self.register.named(&arg).is_none() {
                         // Add default NaslValue::Null for each defined argument
                         self.register
-                            .add_local(&arg, ContextType::Value(NaslValue::Null));
+                            .add_local(&arg, RuntimeValue::Value(NaslValue::Null));
                     }
                 }
-                match self.resolve(&stmt).await? {
+                match self.resolve_block(&stmt).await? {
                     NaslValue::Return(x) => Ok(*x),
                     _ => Ok(NaslValue::Null),
                 }
             }
-            ContextType::Value(_) => Err(InterpretError::expected_function()),
+            RuntimeValue::Value(_) => Err(ErrorKind::ValueExpectedFunction.with_span(fn_name)),
         }
     }
 
-    async fn execute_builtin_fn(
-        &mut self,
-        statement: &Statement,
-        fn_name: &str,
-    ) -> Option<InterpretResult> {
+    async fn execute_builtin_fn(&mut self, call: &FnCall) -> Option<Result> {
         self.scan_ctx
-            .execute_builtin_fn(fn_name, &self.register, &mut self.script_ctx)
+            .execute_builtin_fn(call.fn_name.to_str(), &self.register, &mut self.script_ctx)
             .await
             .map(|o| {
                 o.map_err(|e| {
-                    InterpretError::new(
-                        InterpretErrorKind::FunctionCallError(FunctionCallError::new(fn_name, e)),
-                        Some(statement.clone()),
+                    Error::new(
+                        ErrorKind::FunctionCallError(FunctionCallError::new(
+                            call.fn_name.to_str(),
+                            e,
+                        )),
+                        call.fn_name.span(),
                     )
                 })
             })
     }
 
-    pub async fn call(
-        &mut self,
-        statement: &Statement,
-        arguments: &[Statement],
-    ) -> InterpretResult {
-        if let Some(val) = self.fork_reentry_data.try_restore(statement.as_token())? {
-            return Ok(val);
+    pub(crate) async fn resolve_fn_call(&mut self, call: &FnCall) -> Result {
+        let num_repeats = if let Some(ref num_repeats) = call.num_repeats {
+            self.resolve_expr(num_repeats)
+                .await?
+                .as_number()
+                .map_err(|e| e.with_span(&**num_repeats))?
+        } else {
+            1
+        };
+        let mut val = NaslValue::Null;
+        for _ in 0..num_repeats {
+            let span = call.fn_name.span();
+            if let Some(val) = self.fork_reentry_data.try_restore(&span)? {
+                return Ok(val);
+            }
+            let arguments = self.create_arguments_map(call.args.as_ref()).await?;
+            self.register.create_global_child(arguments);
+            val = match self.execute_builtin_fn(call).await {
+                Some(result) => result,
+                _ => self.execute_user_defined_fn(&call.fn_name).await,
+            }?;
+            self.register.drop_last();
+            val = replace_empty_or_identity_fork(val);
+            self.fork_reentry_data.try_collect(val.clone(), &span);
         }
-        let fn_name = statement.as_token().identifier()?;
-        let arguments = self.create_arguments_map(arguments).await?;
-        self.register.create_root_child(arguments);
-        let val = match self.execute_builtin_fn(statement, &fn_name).await {
-            Some(result) => result,
-            _ => self.execute_user_defined_fn(&fn_name).await,
-        }?;
-        self.register.drop_last();
-        let val = replace_empty_or_identity_fork(val);
-        self.fork_reentry_data
-            .try_collect(val.clone(), statement.as_token());
         Ok(val)
     }
 }

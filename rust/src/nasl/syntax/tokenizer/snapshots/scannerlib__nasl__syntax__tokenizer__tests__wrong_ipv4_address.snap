@@ -1,0 +1,22 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_err(stringify! (wrong_ipv4_address), \"10.0x 10.0.x 10.0.0.x\")"
+snapshot_kind: text
+---
+error: Invalid IPv4 address.
+  ┌─ wrong_ipv4_address:1:1
+  │
+1 │ 10.0x 10.0.x 10.0.0.x
+  │ ^^^^^ Invalid IPv4 address.
+
+error: Invalid IPv4 address.
+  ┌─ wrong_ipv4_address:1:7
+  │
+1 │ 10.0x 10.0.x 10.0.0.x
+  │       ^^^^^^ Invalid IPv4 address.
+
+error: Invalid IPv4 address.
+  ┌─ wrong_ipv4_address:1:14
+  │
+1 │ 10.0x 10.0.x 10.0.0.x
+  │              ^^^^^^^^ Invalid IPv4 address.

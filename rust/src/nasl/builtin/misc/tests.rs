@@ -135,15 +135,15 @@ fn localtime() {
     let min_d: i64;
     match date_c {
         NaslValue::Dict(x) => {
-            hour_c = i64::from(x["hour"].to_owned());
-            min_c = i64::from(x["min"].to_owned());
+            hour_c = (x["hour"].to_owned()).convert_to_number();
+            min_c = (x["min"].to_owned()).convert_to_number();
         }
         _ => panic!("NO DICT"),
     }
     match date_d {
         NaslValue::Dict(x) => {
-            hour_d = i64::from(x["hour"].to_owned());
-            min_d = i64::from(x["min"].to_owned());
+            hour_d = (x["hour"].to_owned()).convert_to_number();
+            min_d = (x["min"].to_owned()).convert_to_number();
         }
         _ => panic!("NO DICT"),
     }

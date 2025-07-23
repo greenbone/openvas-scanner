@@ -1,0 +1,17 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (single_line_comments), \"# this is a comment\\n;\")"
+---
+[
+    Token {
+        kind: Semicolon,
+        span: Span {
+            start: CharIndex(
+                20,
+            ),
+            end: CharIndex(
+                21,
+            ),
+        },
+    },
+]

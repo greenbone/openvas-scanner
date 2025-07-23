@@ -9,8 +9,8 @@ pub mod raw_ip_utils;
 use std::io;
 
 use crate::nasl::{
-    FnError,
-    utils::{IntoFunctionSet, NaslVars, StoredFunctionSet},
+    FnError, NaslValue,
+    utils::{DefineGlobalVars, IntoFunctionSet, StoredFunctionSet},
 };
 use denial::Denial;
 use frame_forgery::FrameForgery;
@@ -63,15 +63,8 @@ impl From<PacketForgeryError> for FnError {
         RawIpError::PacketForgery(e).into()
     }
 }
-pub struct RawIp;
 
-impl crate::nasl::utils::NaslVarDefiner for RawIp {
-    fn nasl_var_define(&self) -> NaslVars {
-        let mut raw_ip_vars = packet_forgery::expose_vars();
-        raw_ip_vars.extend(frame_forgery::expose_vars());
-        raw_ip_vars
-    }
-}
+pub struct RawIp;
 
 impl IntoFunctionSet for RawIp {
     type State = RawIp;
@@ -82,5 +75,14 @@ impl IntoFunctionSet for RawIp {
         set.add_set(FrameForgery);
         set.add_set(Denial);
         set
+    }
+}
+
+impl DefineGlobalVars for RawIp {
+    fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
+        PacketForgery::get_global_vars()
+            .into_iter()
+            .chain(FrameForgery::get_global_vars())
+            .collect()
     }
 }

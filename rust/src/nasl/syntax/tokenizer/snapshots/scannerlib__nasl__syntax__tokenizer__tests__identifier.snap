@@ -1,0 +1,123 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (identifier), \"help_lo _hello _h4llo 4_h4llo\")"
+---
+[
+    Token {
+        kind: Ident(
+            Ident {
+                ident: "help_lo",
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        7,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                7,
+            ),
+        },
+    },
+    Token {
+        kind: Ident(
+            Ident {
+                ident: "_hello",
+                span: Span {
+                    start: CharIndex(
+                        8,
+                    ),
+                    end: CharIndex(
+                        14,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                8,
+            ),
+            end: CharIndex(
+                14,
+            ),
+        },
+    },
+    Token {
+        kind: Ident(
+            Ident {
+                ident: "_h4llo",
+                span: Span {
+                    start: CharIndex(
+                        15,
+                    ),
+                    end: CharIndex(
+                        21,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                15,
+            ),
+            end: CharIndex(
+                21,
+            ),
+        },
+    },
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Number(
+                    4,
+                ),
+                span: Span {
+                    start: CharIndex(
+                        22,
+                    ),
+                    end: CharIndex(
+                        23,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                22,
+            ),
+            end: CharIndex(
+                23,
+            ),
+        },
+    },
+    Token {
+        kind: Ident(
+            Ident {
+                ident: "_h4llo",
+                span: Span {
+                    start: CharIndex(
+                        23,
+                    ),
+                    end: CharIndex(
+                        29,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                23,
+            ),
+            end: CharIndex(
+                29,
+            ),
+        },
+    },
+]

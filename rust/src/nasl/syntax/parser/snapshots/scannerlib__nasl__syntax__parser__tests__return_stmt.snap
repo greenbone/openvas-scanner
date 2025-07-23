@@ -1,0 +1,7 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (return_stmt),\n\"function a(b) { return 0; }\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+function a (b) {
+  return (0);
+}

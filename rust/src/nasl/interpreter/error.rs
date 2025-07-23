@@ -2,9 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::LoadError;
-use crate::nasl::syntax::{Statement, SyntaxError, TokenCategory};
+use crate::nasl::NaslValue;
+use crate::nasl::code::SourceFile;
+use crate::nasl::error::{AsCodespanError, Level, Span, Spanned, emit_errors};
+use crate::nasl::syntax::grammar::Expr;
+use crate::nasl::syntax::{CharIndex, ParseError};
+use crate::nasl::syntax::{Ident, LoadError};
 use crate::nasl::utils::error::FnError;
+use codespan_reporting::files::SimpleFile;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -35,29 +40,23 @@ impl FunctionCallError {
 #[derive(Debug, Error)]
 /// Is used to represent an error while interpreting
 #[error("{} {kind}", self.format_origin())]
-pub struct InterpretError {
-    /// Defined the type of error that occurred.
+pub struct InterpreterError {
+    /// The kind of error that occurred.
     #[source]
-    pub kind: InterpretErrorKind,
-    /// The statement on which this error occurred.
-    pub origin: Option<Statement>,
+    pub kind: InterpreterErrorKind,
+    pub span: Span,
 }
 
-impl InterpretError {
+impl InterpreterError {
     fn format_origin(&self) -> String {
-        if let Some(ref origin) = self.origin {
-            let line = self.line();
-            let col = self.column();
-            format!("Error in statement '{origin}' at {line}:{col}.")
-        } else {
-            "".into()
-        }
+        // TODO
+        String::new()
     }
 
     pub fn retryable(&self) -> bool {
         match &self.kind {
-            InterpretErrorKind::LoadError(LoadError::Retry(_)) => true,
-            InterpretErrorKind::FunctionCallError(e) => e.retryable(),
+            InterpreterErrorKind::LoadError(LoadError::Retry(_)) => true,
+            InterpreterErrorKind::FunctionCallError(e) => e.retryable(),
             _ => false,
         }
     }
@@ -65,36 +64,25 @@ impl InterpretError {
 
 #[derive(Debug, Error)]
 /// Is used to give hints to the user how to react on an error while interpreting
-pub enum InterpretErrorKind {
+pub enum InterpreterErrorKind {
     /// When returned context is a function when a value is required.
     #[error("Expected a value but got a function.")]
     FunctionExpectedValue,
     /// When returned context is a value when a function is required.
     #[error("Expected a function but got a value.")]
     ValueExpectedFunction,
-    /// When a specific type is expected
-    #[error("Expected the type {0}")]
-    WrongType(String),
-    /// When a specific token category is required but not given.
-    #[error("Expected the category {0}")]
-    WrongCategory(TokenCategory),
     /// Regex parsing went wrong.
     #[error("Invalid regular expression: {0}")]
     InvalidRegex(String),
     /// A SyntaxError while including another script
-    #[error("Error while including file {filename}{}: {err}", {err}.as_token() .map(|t| format!(", line: {}, col: {}", t.position.0, t.position.1)) .unwrap_or_default())]
-    IncludeSyntaxError {
-        /// The name of the file trying to include
-        filename: String,
-        /// The syntactical error that occurred
-        err: SyntaxError,
-    },
-    /// SyntaxError
     #[error("{0}")]
-    SyntaxError(SyntaxError),
-    /// When the given key was not found in the context
-    #[error("Key not found: {0}")]
-    NotFound(String),
+    IncludeSyntaxError(IncludeSyntaxError),
+    /// Syntax errors in the script.
+    #[error("Syntax errors occurred.")]
+    SyntaxError(Vec<ParseError>),
+    /// When the given function is undefined.
+    #[error("Undefined function: {0}")]
+    UndefinedFunction(String),
     /// A LoadError occurred
     #[error("{0}")]
     LoadError(LoadError),
@@ -108,121 +96,125 @@ pub enum InterpretErrorKind {
         "Invalid fork. The interpreter forked in a position which was not reached by the created forks."
     )]
     InvalidFork,
+    #[error("Expected a string.")]
+    ExpectedString,
+    #[error("Expected a number.")]
+    ExpectedNumber,
+    #[error("Assignment to undefined variable: {0}")]
+    AssignmentToUndefinedVar(Ident),
+    #[error("Array out of range for index: {0}")]
+    ArrayOutOfRange(usize),
+    #[error("Negative index into array: {0}")]
+    NegativeIndex(i64),
+    #[error("Dict key does not exist: {0}")]
+    DictKeyDoesNotExist(String),
+    #[error("Expected array or dict.")]
+    ArrayOrDictExpected,
+    #[error("Tried to exit with non-numeric exit code {0}.")]
+    NonNumericExitCode(NaslValue),
 }
 
-impl InterpretError {
-    /// Creates a new Error with line and col set to 0
-    ///
-    /// Use this only when there is no statement available.
-    /// If the line as well as col is null Interpreter::resolve will replace it
-    /// with the line and col number based on the root statement.
-    pub fn new(kind: InterpretErrorKind, origin: Option<Statement>) -> Self {
-        Self { kind, origin }
+impl InterpreterErrorKind {
+    pub(crate) fn with_span(self, s: &impl Spanned) -> InterpreterError {
+        InterpreterError {
+            kind: self,
+            span: s.span(),
+        }
     }
+}
 
-    /// Creates a new Error based on a given statement and reason
-    pub fn from_statement(stmt: &Statement, kind: InterpretErrorKind) -> Self {
-        InterpretError {
-            kind,
-            origin: Some(stmt.clone()),
+impl InterpreterError {
+    pub(crate) fn syntax_error(errs: Vec<ParseError>) -> Self {
+        Self {
+            // fake value since we don't need the span in this case
+            span: Span::new(CharIndex(usize::MAX - 1), CharIndex(usize::MAX)),
+            kind: InterpreterErrorKind::SyntaxError(errs),
         }
     }
 
-    /// Returns the column number
-    pub fn column(&self) -> usize {
-        let (_, col) = self.line_column();
-        col
-    }
-
-    /// Returns the line number
-    pub fn line(&self) -> usize {
-        let (line, _) = self.line_column();
-        line
-    }
-
-    /// Returns the line and column number
-    ///
-    /// Based on the stored statement the line and column number are retained.
-    /// That start both at 1 the only occurrence when there is no such number is when either
-    /// no statement is stored in this error or when the given statement is either a
-    /// - Statement::EoF,
-    /// - Statement::AttackCategory,
-    /// - Statement::Continue,
-    /// - Statement::Break
-    ///
-    /// On resolve of an interpreter that should be an map_err adding a origin when there is none so the
-    /// case of returning 0,0 is in most cases a bug.
-    pub fn line_column(&self) -> (usize, usize) {
-        self.origin
-            .as_ref()
-            .map(|stmt| stmt.as_token())
-            .map(|x| x.line_column)
-            .unwrap_or_default()
-    }
-
-    /// Creates a InterpreterError for an unsupported statement
-    ///
-    /// It produces the reason {root}: {statement} is not supported
-    pub fn unsupported(stmt: &Statement, expected: &str) -> Self {
-        Self::from_statement(stmt, InterpretErrorKind::WrongType(expected.to_string()))
-    }
-
-    /// Creates an InterpreterError if the found context is a function although a value is required
-    pub fn expected_value() -> Self {
-        Self::new(InterpretErrorKind::FunctionExpectedValue, None)
-    }
-
-    /// Creates an InterpreterError if the found context is a value although a function is required
-    pub fn expected_function() -> Self {
-        Self::new(InterpretErrorKind::ValueExpectedFunction, None)
-    }
-
-    /// Creates an error if the TokenCategory is wrong
-    pub fn wrong_category(cat: &TokenCategory) -> Self {
-        Self::new(InterpretErrorKind::WrongCategory(cat.clone()), None)
-    }
-
-    /// When something was not found
-    pub fn not_found(name: &str) -> Self {
-        Self::new(InterpretErrorKind::NotFound(name.to_owned()), None)
-    }
-
-    /// When a include file has syntactical errors
-    pub fn include_syntax_error(file: &str, se: SyntaxError) -> Self {
-        Self::new(
-            InterpretErrorKind::IncludeSyntaxError {
-                filename: file.to_owned(),
-                err: se,
-            },
-            None,
-        )
-    }
-    /// When a given regex is not parseable
-    pub fn unparse_regex(rx: &str) -> Self {
-        Self::new(InterpretErrorKind::InvalidRegex(rx.to_owned()), None)
+    pub(crate) fn include_syntax_error(
+        errs: Vec<ParseError>,
+        file: SimpleFile<String, String>,
+    ) -> Self {
+        Self {
+            // fake value since we don't need the span in this case
+            span: Span::new(CharIndex(usize::MAX - 1), CharIndex(usize::MAX)),
+            kind: InterpreterErrorKind::IncludeSyntaxError(IncludeSyntaxError { errs, file }),
+        }
     }
 }
 
-impl From<TokenCategory> for InterpretError {
-    fn from(cat: TokenCategory) -> Self {
-        Self::new(InterpretErrorKind::WrongCategory(cat), None)
+#[derive(Debug)]
+// TODO
+pub struct IncludeSyntaxError {
+    pub file: SourceFile,
+    pub errs: Vec<ParseError>,
+}
+
+// TODO Get rid of this once we have a proper implementation of spans
+// for InterpreterError as well.
+impl std::fmt::Display for IncludeSyntaxError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        emit_errors(&self.file, self.errs.iter().cloned(), Level::Error);
+        write!(f, "Syntax error while including file.")
     }
 }
 
-impl From<SyntaxError> for InterpretError {
-    fn from(err: SyntaxError) -> Self {
-        Self::new(InterpretErrorKind::SyntaxError(err), None)
+impl InterpreterError {
+    pub(crate) fn new(kind: InterpreterErrorKind, span: Span) -> Self {
+        Self { kind, span }
     }
 }
 
-impl From<LoadError> for InterpretError {
-    fn from(le: LoadError) -> Self {
-        Self::new(InterpretErrorKind::LoadError(le), None)
+impl AsCodespanError for &InterpreterError {
+    fn span(&self) -> Span {
+        self.span
+    }
+
+    fn message(&self) -> String {
+        self.kind.to_string()
     }
 }
 
-impl From<FunctionCallError> for InterpretError {
-    fn from(fe: FunctionCallError) -> Self {
-        Self::new(InterpretErrorKind::FunctionCallError(fe), None)
+pub(super) struct ExprError {
+    pub kind: InterpreterErrorKind,
+    pub location: ExprLocation,
+}
+
+pub(super) enum ExprLocation {
+    Lhs,
+    Rhs,
+    Both,
+}
+
+impl ExprError {
+    pub fn lhs(kind: InterpreterErrorKind) -> Self {
+        Self {
+            kind,
+            location: ExprLocation::Lhs,
+        }
+    }
+
+    pub fn rhs(kind: InterpreterErrorKind) -> Self {
+        Self {
+            kind,
+            location: ExprLocation::Rhs,
+        }
+    }
+
+    pub fn both(kind: InterpreterErrorKind) -> Self {
+        Self {
+            kind,
+            location: ExprLocation::Both,
+        }
+    }
+
+    pub(crate) fn into_error(self, lhs_expr: &Expr, rhs_expr: &Expr) -> InterpreterError {
+        let span = match self.location {
+            ExprLocation::Lhs => lhs_expr.span(),
+            ExprLocation::Rhs => rhs_expr.span(),
+            ExprLocation::Both => lhs_expr.span().join(rhs_expr.span()),
+        };
+        InterpreterError::new(self.kind, span)
     }
 }

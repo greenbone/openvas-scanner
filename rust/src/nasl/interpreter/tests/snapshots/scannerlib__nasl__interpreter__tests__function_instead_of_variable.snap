@@ -1,0 +1,9 @@
+---
+source: src/nasl/interpreter/tests/mod.rs
+expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (function_instead_of_variable),\n\"function foo() { } a = foo;\")"
+---
+error: Expected a value but got a function.
+  ┌─ function_instead_of_variable:1:24
+  │
+1 │ function foo() { } a = foo;
+  │                        ^^^ Expected a value but got a function.

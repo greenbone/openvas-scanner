@@ -2,19 +2,7 @@
 
 `nasl-syntax` is a library to provide structured representation of NASL code.
 
-It will return an Iterator with either a [statement](./statement.rs) for further execution or an [error](./error.rs) if the given code was incorrect.
-
-Each statement is self contained and it is expected to be executed iteratively and therefore there is no visitor implementation.
-
-
-## Usage
-
-```rust
-use scannerlib::nasl::syntax::{Statement, SyntaxError};
-let statements =
-scannerlib::nasl::syntax::parse("a = 23;b = 1;")
-  .collect::<Vec<Result<Statement, SyntaxError>>>();
-```
+It will return a Vec<Statement> for further execution or a list of [SyntaxError](./error.rs)s if the given code was incorrect.
 
 ## Build
 

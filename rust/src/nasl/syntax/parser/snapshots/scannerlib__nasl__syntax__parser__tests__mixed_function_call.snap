@@ -1,0 +1,5 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (mixed_function_call),\n\"script_tag(\\\"foo\\\", name:\\\"cvss_base\\\", value:1 + 1 % 2);\").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+script_tag("foo", name: "cvss_base", value: (1 + (1 % 2)));

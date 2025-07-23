@@ -1,0 +1,204 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (one_char_tokens),\n\"( ) [ ] { } . - + % ; / * : ~ & | ^\")"
+---
+[
+    Token {
+        kind: LeftParen,
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                1,
+            ),
+        },
+    },
+    Token {
+        kind: RightParen,
+        span: Span {
+            start: CharIndex(
+                2,
+            ),
+            end: CharIndex(
+                3,
+            ),
+        },
+    },
+    Token {
+        kind: LeftBracket,
+        span: Span {
+            start: CharIndex(
+                4,
+            ),
+            end: CharIndex(
+                5,
+            ),
+        },
+    },
+    Token {
+        kind: RightBracket,
+        span: Span {
+            start: CharIndex(
+                6,
+            ),
+            end: CharIndex(
+                7,
+            ),
+        },
+    },
+    Token {
+        kind: LeftBrace,
+        span: Span {
+            start: CharIndex(
+                8,
+            ),
+            end: CharIndex(
+                9,
+            ),
+        },
+    },
+    Token {
+        kind: RightBrace,
+        span: Span {
+            start: CharIndex(
+                10,
+            ),
+            end: CharIndex(
+                11,
+            ),
+        },
+    },
+    Token {
+        kind: Dot,
+        span: Span {
+            start: CharIndex(
+                12,
+            ),
+            end: CharIndex(
+                13,
+            ),
+        },
+    },
+    Token {
+        kind: Minus,
+        span: Span {
+            start: CharIndex(
+                14,
+            ),
+            end: CharIndex(
+                15,
+            ),
+        },
+    },
+    Token {
+        kind: Plus,
+        span: Span {
+            start: CharIndex(
+                16,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
+    },
+    Token {
+        kind: Percent,
+        span: Span {
+            start: CharIndex(
+                18,
+            ),
+            end: CharIndex(
+                19,
+            ),
+        },
+    },
+    Token {
+        kind: Semicolon,
+        span: Span {
+            start: CharIndex(
+                20,
+            ),
+            end: CharIndex(
+                21,
+            ),
+        },
+    },
+    Token {
+        kind: Slash,
+        span: Span {
+            start: CharIndex(
+                22,
+            ),
+            end: CharIndex(
+                23,
+            ),
+        },
+    },
+    Token {
+        kind: Star,
+        span: Span {
+            start: CharIndex(
+                24,
+            ),
+            end: CharIndex(
+                25,
+            ),
+        },
+    },
+    Token {
+        kind: Colon,
+        span: Span {
+            start: CharIndex(
+                26,
+            ),
+            end: CharIndex(
+                27,
+            ),
+        },
+    },
+    Token {
+        kind: Tilde,
+        span: Span {
+            start: CharIndex(
+                28,
+            ),
+            end: CharIndex(
+                29,
+            ),
+        },
+    },
+    Token {
+        kind: Ampersand,
+        span: Span {
+            start: CharIndex(
+                30,
+            ),
+            end: CharIndex(
+                31,
+            ),
+        },
+    },
+    Token {
+        kind: Pipe,
+        span: Span {
+            start: CharIndex(
+                32,
+            ),
+            end: CharIndex(
+                33,
+            ),
+        },
+    },
+    Token {
+        kind: Caret,
+        span: Span {
+            start: CharIndex(
+                34,
+            ),
+            end: CharIndex(
+                35,
+            ),
+        },
+    },
+]

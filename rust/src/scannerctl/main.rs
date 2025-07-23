@@ -105,7 +105,6 @@ async fn main() {
                 _ => panic!("Unexpected data within dispatcher: {x}"),
             },
             CliErrorKind::InterpretError(_) | CliErrorKind::SyntaxError(_) => {
-                tracing::warn!("script error, {e}");
                 std::process::exit(1);
             }
             CliErrorKind::InvalidCmdOpt(_) => {

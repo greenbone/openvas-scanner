@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (if_stmt_else_no_braces),\n\"if (a) { b; } else c;\").into_iter().map(| stmt | stmt.to_string()).collect ::\n< Vec < _ >> ().join(\"\\n\")"
+---
+if (a) {
+  b;
+} else {
+  c;
+}
