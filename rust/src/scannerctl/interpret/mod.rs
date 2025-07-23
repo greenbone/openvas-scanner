@@ -174,7 +174,7 @@ pub async fn run(
     kb: Vec<String>,
     tcp_ports: Vec<u16>,
     udp_ports: Vec<u16>,
-    timeout: Option<u32>,
+    scan_preferences: ScanPrefs,
 ) -> Result<(), CliError> {
     let target = target
         .map(|target| {
@@ -186,10 +186,6 @@ pub async fn run(
         tcp: BTreeSet::from_iter(tcp_ports.into_iter()),
         udp: BTreeSet::from_iter(udp_ports.into_iter()),
     };
-
-    // for adding new default preferences, add new methods to the SetScanPreferences trait.
-    let mut scan_preferences = ScanPrefs::new();
-    scan_preferences.set_default_recv_timeout(timeout);
 
     let result = match (db, feed) {
         (Db::InMemory, None) => {

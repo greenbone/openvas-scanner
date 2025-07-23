@@ -268,6 +268,19 @@ fn dump_ctxt(register: &Register) {
     register.dump();
 }
 
+/// Is a debug function to print the keys available within the called context. It does not take any
+/// nor returns any arguments.
+#[nasl_function]
+fn vendor_version(context: &ScanCtx<'_>) -> Result<NaslValue, MiscError> {
+    match context
+        .scan_preferences
+        .get_preference_string("vendor_version")
+    {
+        Some(v) => Ok(NaslValue::String(v)),
+        None => Ok(NaslValue::Null),
+    }
+}
+
 pub struct Misc;
 
 function_set! {
@@ -288,5 +301,6 @@ function_set! {
         defined_func,
         gettimeofday,
         dump_ctxt,
+        vendor_version,
     )
 }
