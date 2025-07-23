@@ -98,6 +98,7 @@ impl TcpConnection {
         bufsz: Option<usize>,
         retry: u8,
     ) -> io::Result<Self> {
+        let retry = if retry == 0 { 1 } else { retry };
         let mut i = 0;
         let sock = match addr {
             IpAddr::V4(_) => Socket::new(
