@@ -1,9 +1,9 @@
 mod all_builtins;
 
 use all_builtins::ALL_BUILTINS;
-use regex::Regex;
 use scannerlib::models::{Scan, VT};
-use scannerlib::nasl::nasl_std_functions;
+use scannerlib::nasl::syntax::grammar::{Ast, Atom, Expr, FnCall, Statement};
+use scannerlib::nasl::{Code, FSPluginLoader, nasl_std_functions};
 use std::io::{self};
 use std::path::PathBuf;
 use std::{
@@ -11,7 +11,6 @@ use std::{
     fs,
     path::Path,
 };
-use tracing::error;
 use walkdir::WalkDir;
 
 use crate::CliError;
@@ -51,10 +50,14 @@ impl Builtins {
         }
     }
 
-    fn script_is_runnable(&mut self, contents: &str) -> bool {
+    fn script_is_runnable(&mut self, ast: &Ast) -> bool {
         let mut is_runnable = true;
+        let fn_calls: Vec<&FnCall> = iter_fn_calls(ast).collect();
         for builtin in self.builtins.iter() {
-            if contents.contains(builtin) {
+            if fn_calls
+                .iter()
+                .any(|fn_call| fn_call.fn_name.to_string() == *builtin)
+            {
                 is_runnable = false;
                 *self.counts.get_mut(builtin).unwrap() += 1;
             }
@@ -71,22 +74,77 @@ impl Builtins {
     }
 }
 
+fn iter_fn_calls(ast: &Ast) -> impl Iterator<Item = &FnCall> {
+    ast.iter_exprs().filter_map(|expr| {
+        if let Expr::Atom(Atom::FnCall(fn_call)) = expr {
+            Some(fn_call)
+        } else {
+            None
+        }
+    })
+}
+
+// poor mans TQDM
+fn progress<T>(x: Vec<T>) -> impl Iterator<Item = T> {
+    let num = x.len();
+    let mut percentages: Vec<_> = (0..100).step_by(5).map(|x| x as f64).collect();
+    x.into_iter().enumerate().map(move |(i, x)| {
+        let completed_fraction = i as f64 / num as f64;
+        let next_percentage = percentages.first().cloned().unwrap_or(100.0);
+        if completed_fraction * 100.0 > next_percentage {
+            percentages.remove(0);
+            println!("{next_percentage}%.");
+        }
+        x
+    })
+}
+
 type Scripts = HashMap<ScriptPath, Script>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum Script {
+enum ScriptKind {
     Runnable,
     NotRunnable,
     Dependencies(Vec<ScriptPath>),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Script {
+    kind: ScriptKind,
+    oid: Option<String>,
+}
+
 impl Script {
+    fn new(kind: ScriptKind, oid: Option<String>) -> Self {
+        Self { kind, oid }
+    }
+
+    fn runnable(oid: Option<String>) -> Self {
+        Self::new(ScriptKind::Runnable, oid)
+    }
+
+    fn not_runnable(oid: Option<String>) -> Self {
+        Self::new(ScriptKind::NotRunnable, oid)
+    }
+
+    fn dependencies(deps: Vec<ScriptPath>, oid: Option<String>) -> Self {
+        Self::new(ScriptKind::Dependencies(deps), oid)
+    }
+
     fn iter_dependencies(&self) -> impl Iterator<Item = &ScriptPath> {
-        if let Self::Dependencies(dependencies) = self {
+        if let ScriptKind::Dependencies(dependencies) = &self.kind {
             dependencies.iter()
         } else {
             panic!("iter_dependencies() called on non-dependencies variant")
         }
+    }
+
+    fn is_runnable(&self) -> bool {
+        matches!(self.kind, ScriptKind::Runnable)
+    }
+
+    fn is_not_runnable(&self) -> bool {
+        matches!(self.kind, ScriptKind::NotRunnable)
     }
 }
 
@@ -103,21 +161,17 @@ impl ScriptPath {
 struct ScriptReader {
     builtins: Builtins,
     feed_path: PathBuf,
-    script_dependencies_regex: Regex,
-    include_regex: Regex,
+    loader: FSPluginLoader,
 }
 
 impl ScriptReader {
     fn read_scripts_from_path(feed_path: PathBuf) -> Scripts {
         let builtins = Builtins::unimplemented();
-        let include_regex = Regex::new(r#"\binclude\("([^"]+)"\)"#).unwrap();
-        let script_dependencies_regex =
-            Regex::new(r#"\bscript_dependencies\("([^"]+)"\)"#).unwrap();
+        let loader = FSPluginLoader::new(&feed_path);
         let mut reader = Self {
             builtins,
             feed_path,
-            script_dependencies_regex,
-            include_regex,
+            loader,
         };
         let scripts = reader.read_scripts();
         reader.builtins.print_counts();
@@ -126,17 +180,24 @@ impl ScriptReader {
 
     fn read_scripts(&mut self) -> Scripts {
         let mut scripts = HashMap::default();
-        for entry in WalkDir::new(&self.feed_path).into_iter() {
+        let entries: Vec<_> = WalkDir::new(&self.feed_path).into_iter().collect();
+        for entry in progress(entries) {
             let entry = entry.unwrap();
             if entry.file_type().is_file() {
                 let path = entry.path();
+                if path
+                    .extension()
+                    .is_none_or(|ext| ext != "nasl" && ext != "inc")
+                {
+                    continue;
+                }
                 let script_path = ScriptPath::new(&self.feed_path, path);
                 if let Some(script) = self.script_from_path(path) {
                     scripts.insert(script_path, script);
                 } else {
-                    // If a script cant be read due to non-utf8, we assume
-                    // its not runnable.
-                    scripts.insert(script_path, Script::NotRunnable);
+                    // If a script cannot be read, we assume
+                    // it's not runnable.
+                    scripts.insert(script_path, Script::not_runnable(None));
                 }
             }
         }
@@ -144,53 +205,41 @@ impl ScriptReader {
     }
 
     fn script_from_path(&mut self, path: &Path) -> Option<Script> {
-        let contents = fs::read_to_string(path);
-        match contents {
-            Err(e) => {
-                error!("Error reading file {path:?}: {e:?}");
-                None
-            }
-            Ok(contents) => Some(self.script_from_contents(&contents)),
-        }
+        let code = Code::load(&self.loader, path).unwrap();
+        let ast = code.parse().emit_errors().unwrap();
+        let script = self.script_from_ast(&ast);
+        Some(script)
     }
 
-    pub fn script_from_contents(&mut self, contents: &str) -> Script {
-        let is_runnable = self.builtins.script_is_runnable(contents);
-        let includes = self.get_dependencies(contents);
+    fn script_from_ast(&mut self, ast: &Ast) -> Script {
+        let oid = self.oid_from_ast(&ast);
+        let is_runnable = self.builtins.script_is_runnable(ast);
+        let dependencies = self.get_dependencies(ast);
         if !is_runnable {
-            Script::NotRunnable
-        } else if includes.is_empty() {
-            Script::Runnable
+            Script::not_runnable(oid)
+        } else if dependencies.is_empty() {
+            Script::runnable(oid)
         } else {
-            Script::Dependencies(includes)
+            Script::dependencies(dependencies, oid)
         }
     }
 
-    fn get_dependency(&self, line: &str, fn_str: &str, regex: &Regex) -> Option<ScriptPath> {
-        if !line.contains(fn_str) {
-            return None;
-        }
-        if let Some(capture) = regex.captures_iter(line).next() {
-            if let Some(match_) = capture.get(1) {
-                return Some(ScriptPath(match_.as_str().to_string()));
-            }
-        }
-        None
+    fn oid_from_ast(&self, ast: &Ast) -> Option<String> {
+        iter_fn_calls(ast)
+            .find(|call| call.fn_name.to_string() == "script_oid")
+            .map(|call| call.args.items.first().unwrap().to_string())
     }
 
-    fn get_dependencies(&self, contents: &str) -> Vec<ScriptPath> {
-        let mut dependencies = vec![];
-        for line in contents.lines() {
-            if let Some(dep) = self.get_dependency(line, "include", &self.include_regex) {
-                dependencies.push(dep);
-            }
-            if let Some(dep) =
-                self.get_dependency(line, "script_dependencies", &self.script_dependencies_regex)
-            {
-                dependencies.push(dep);
-            }
-        }
-        dependencies
+    fn get_dependencies(&self, ast: &Ast) -> Vec<ScriptPath> {
+        ast.iter_stmts()
+            .filter_map(|stmt| {
+                if let Statement::Include(include) = stmt {
+                    Some(ScriptPath(include.path.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -202,7 +251,7 @@ impl RunnableScripts {
         Self(
             resolved
                 .into_iter()
-                .filter(|(_, script)| matches!(script, Script::Runnable))
+                .filter(|(_, script)| script.is_runnable())
                 .collect(),
         )
     }
@@ -213,7 +262,7 @@ impl RunnableScripts {
             let (newly_resolved, newly_unresolved) = unresolved
                 .into_iter()
                 .partition::<HashMap<_, _>, _>(|(_, script)| {
-                    matches!(script, Script::Runnable | Script::NotRunnable)
+                    script.is_runnable() || script.is_not_runnable()
                 });
             unresolved = newly_unresolved;
             let new_length = newly_resolved.len();
@@ -222,23 +271,30 @@ impl RunnableScripts {
                 return resolved;
             }
             if new_length == 0 {
-                panic!("Unresolvable.");
+                for (k, v) in unresolved.iter() {
+                    for dep in v.iter_dependencies() {
+                        assert!(
+                            resolved.keys().any(|k| k.0 == dep.0)
+                                || unresolved.keys().any(|k| k.0 == dep.0),
+                            "Reference to non-existent file: {}",
+                            k.0
+                        );
+                    }
+                }
             }
             for v in unresolved.values_mut() {
                 let any_not_runnable = v
                     .iter_dependencies()
-                    .any(|include| matches!(resolved.get(include), Some(Script::NotRunnable)));
+                    .any(|dep| resolved.get(dep).is_some_and(|s| s.is_not_runnable()));
                 if any_not_runnable {
-                    *v = Script::NotRunnable;
+                    v.kind = ScriptKind::NotRunnable;
                     continue;
                 }
-                let all_resolved = v
-                    .iter_dependencies()
-                    .all(|include| resolved.contains_key(include));
+                let all_resolved = v.iter_dependencies().all(|dep| resolved.contains_key(dep));
                 if !all_resolved {
                     continue;
                 }
-                *v = Script::Runnable;
+                v.kind = ScriptKind::Runnable;
             }
         }
     }
@@ -246,18 +302,6 @@ impl RunnableScripts {
     fn iter(&self) -> impl Iterator<Item = (&ScriptPath, &Script)> {
         self.0.iter()
     }
-}
-
-fn read_oid(feed_path: &Path, path: &ScriptPath) -> Option<String> {
-    // We already read this file at this point, so it's utf8, so
-    // unwrapping feels like the correct choice.
-    let oid_regex = Regex::new(r#"\bscript_oid\("([^"]+)"\)"#).unwrap();
-    let contents = fs::read_to_string(feed_path.join(&path.0)).unwrap();
-    let mut captures = oid_regex.captures_iter(&contents);
-    captures
-        .next()
-        .and_then(|capture| capture.get(1))
-        .map(|match_| match_.as_str().to_string())
 }
 
 fn copy_feed(
@@ -290,12 +334,12 @@ fn write_scan_config(
     fs::write(scan_config, serde_json::to_string(&scan).unwrap())
 }
 
-fn get_scan_config(feed_path: &Path, runnable: &RunnableScripts) -> Scan {
+fn get_scan_config(_feed_path: &Path, runnable: &RunnableScripts) -> Scan {
     let vts: Vec<_> = runnable
         .iter()
-        .filter_map(|(path, _)| {
-            read_oid(feed_path, path).map(|oid| VT {
-                oid,
+        .filter_map(|(_, script)| {
+            script.oid.as_ref().map(|oid| VT {
+                oid: oid.clone(),
                 parameters: vec![],
             })
         })
@@ -324,15 +368,22 @@ pub fn run(args: FilterArgs) -> Result<(), CliError> {
 mod tests {
     use crate::feed::filter::{RunnableScripts, ScriptPath};
 
-    use super::Script::*;
     use super::{Script, Scripts};
 
     fn path(path_str: &str) -> ScriptPath {
         ScriptPath(path_str.to_string())
     }
 
-    fn includes(paths: &[&str]) -> Script {
-        Dependencies(paths.into_iter().map(|p| path(p)).collect())
+    fn dependencies(paths: &[&str]) -> Script {
+        Script::dependencies(paths.into_iter().map(|p| path(p)).collect(), None)
+    }
+
+    fn runnable() -> Script {
+        Script::runnable(None)
+    }
+
+    fn not_runnable() -> Script {
+        Script::not_runnable(None)
     }
 
     fn make_scripts(scripts: &[(&str, Script)]) -> Scripts {
@@ -345,38 +396,38 @@ mod tests {
     #[test]
     fn resolution() {
         let scripts = [
-            ("a", Runnable),
-            ("b", Runnable),
-            ("c", NotRunnable),
-            ("d", includes(&["a", "b", "c"])),
+            ("a", runnable()),
+            ("b", runnable()),
+            ("c", not_runnable()),
+            ("d", dependencies(&["a", "b", "c"])),
         ];
         let resolved = RunnableScripts::resolve(make_scripts(&scripts));
-        assert_eq!(resolved[&path("a")], Runnable);
-        assert_eq!(resolved[&path("b")], Runnable);
-        assert_eq!(resolved[&path("c")], NotRunnable);
-        assert_eq!(resolved[&path("d")], NotRunnable);
+        assert!(resolved[&path("a")].is_runnable());
+        assert!(resolved[&path("b")].is_runnable());
+        assert!(resolved[&path("c")].is_not_runnable());
+        assert!(resolved[&path("d")].is_not_runnable());
     }
 
     #[test]
     fn transitive_resolution() {
         let scripts = [
-            ("a1", Runnable),
-            ("b1", Dependencies(vec![path("a1")])),
-            ("c1", Dependencies(vec![path("b1")])),
-            ("d1", Dependencies(vec![path("c1")])),
-            ("a2", NotRunnable),
-            ("b2", Dependencies(vec![path("a2")])),
-            ("c2", Dependencies(vec![path("b2")])),
-            ("d2", Dependencies(vec![path("c2")])),
+            ("a1", runnable()),
+            ("b1", Script::dependencies(vec![path("a1")], None)),
+            ("c1", Script::dependencies(vec![path("b1")], None)),
+            ("d1", Script::dependencies(vec![path("c1")], None)),
+            ("a2", not_runnable()),
+            ("b2", Script::dependencies(vec![path("a2")], None)),
+            ("c2", Script::dependencies(vec![path("b2")], None)),
+            ("d2", Script::dependencies(vec![path("c2")], None)),
         ];
         let resolved = RunnableScripts::resolve(make_scripts(&scripts));
-        assert_eq!(resolved[&path("a1")], Runnable);
-        assert_eq!(resolved[&path("b1")], Runnable);
-        assert_eq!(resolved[&path("c1")], Runnable);
-        assert_eq!(resolved[&path("d1")], Runnable);
-        assert_eq!(resolved[&path("a2")], NotRunnable);
-        assert_eq!(resolved[&path("b2")], NotRunnable);
-        assert_eq!(resolved[&path("c2")], NotRunnable);
-        assert_eq!(resolved[&path("d2")], NotRunnable);
+        assert!(resolved[&path("a1")].is_runnable());
+        assert!(resolved[&path("b1")].is_runnable());
+        assert!(resolved[&path("c1")].is_runnable());
+        assert!(resolved[&path("d1")].is_runnable());
+        assert!(resolved[&path("a2")].is_not_runnable());
+        assert!(resolved[&path("b2")].is_not_runnable());
+        assert!(resolved[&path("c2")].is_not_runnable());
+        assert!(resolved[&path("d2")].is_not_runnable());
     }
 }
