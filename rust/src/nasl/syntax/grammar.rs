@@ -1,6 +1,9 @@
 use std::vec;
 
-use super::parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind};
+use super::{
+    parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind},
+    traversal::{ExprIterator, StmtIterator},
+};
 use crate::nasl::{
     error::{Span, Spanned},
     syntax::token::{Ident, Literal, TokenKind},
@@ -28,6 +31,18 @@ impl Ast {
 
     pub fn stmts(self) -> Vec<Statement> {
         self.stmts
+    }
+
+    pub fn iter_root_stmts(&self) -> impl Iterator<Item = &Statement> {
+        self.stmts.iter()
+    }
+
+    pub fn iter_exprs(&self) -> impl Iterator<Item = &Expr> {
+        ExprIterator::new(self)
+    }
+
+    pub fn iter_stmts(&self) -> impl Iterator<Item = &Statement> {
+        StmtIterator::new(self)
     }
 
     pub(crate) fn get(&self, stmt_index: usize) -> Option<&Statement> {
