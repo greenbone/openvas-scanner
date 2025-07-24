@@ -24,7 +24,7 @@ fn smb_gmac_aes_signature(key: &[u8], buf: &[u8], iv: &[u8]) -> Result<NaslValue
 }
 
 #[nasl_function(named(key, label, ctx, lvalue))]
-fn smb3kdf(key: &[u8], label: &[u8], ctx: &[u8], lvalue: usize) -> Result<NaslValue, FnError> {
+fn smb3kdf(key: &str, label: &str, ctx: &str, lvalue: i32) -> Result<Vec<u8>, FnError> {
     if lvalue != 128 && lvalue != 256 {
         return Err(CryptographicError::Smb(format!(
             "invalid key length: expected 128 or 256, got {}",
@@ -32,7 +32,11 @@ fn smb3kdf(key: &[u8], label: &[u8], ctx: &[u8], lvalue: usize) -> Result<NaslVa
         ))
         .into());
     }
+    let key = key.as_bytes();
+    let label = label.as_bytes();
+    let ctx = ctx.as_bytes();
     let buflen = 4 + label.len() + 1 + ctx.len() + 4;
+    let resultlen = lvalue / 8;
     let mut buf = Vec::with_capacity(buflen);
 
     buf.extend_from_slice(&1u32.to_be_bytes());
@@ -40,7 +44,9 @@ fn smb3kdf(key: &[u8], label: &[u8], ctx: &[u8], lvalue: usize) -> Result<NaslVa
     buf.push(0u8);
     buf.extend_from_slice(ctx);
     buf.extend_from_slice(&lvalue.to_be_bytes());
-    hmac::<Sha256>(key, &buf)
+    println!("buf: {:?}", buf);
+    let result = hmac::<Sha256>(key, &buf)?;
+    Ok(result[..resultlen as usize].to_vec())
 }
 
 pub struct Smb;
