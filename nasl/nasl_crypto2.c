@@ -2115,7 +2115,7 @@ nasl_smb3kdf (lex_ctxt *lexic)
   void *result, *key, *label, *context, *buf;
   u_char *tmp;
   size_t resultlen, keylen, labellen, contextlen, buflen, r = 4;
-  long lvalue;
+  u_int32_t lvalue;
   int i = 1;
   tree_cell *retc;
 
@@ -2125,7 +2125,7 @@ nasl_smb3kdf (lex_ctxt *lexic)
   labellen = get_var_size_by_name (lexic, "label");
   context = get_str_var_by_name (lexic, "ctx");
   contextlen = get_var_size_by_name (lexic, "ctx");
-  lvalue = get_int_var_by_name (lexic, "lvalue", 0);
+  lvalue = (u_int32_t) get_int_var_by_name (lexic, "lvalue", 0);
 
   if (!key || keylen <= 0 || !label || labellen <= 0 || !context
       || contextlen <= 0)
