@@ -3,7 +3,8 @@ mod all_builtins;
 use all_builtins::ALL_BUILTINS;
 use regex::Regex;
 use scannerlib::models::{Scan, VT};
-use scannerlib::nasl::nasl_std_functions;
+use scannerlib::nasl::syntax::grammar::{Ast, Atom, Expr, FnCall, Statement};
+use scannerlib::nasl::{Code, FSPluginLoader, nasl_std_functions};
 use std::io::{self};
 use std::path::PathBuf;
 use std::{
@@ -11,7 +12,6 @@ use std::{
     fs,
     path::Path,
 };
-use tracing::error;
 use walkdir::WalkDir;
 
 use crate::CliError;
@@ -51,10 +51,14 @@ impl Builtins {
         }
     }
 
-    fn script_is_runnable(&mut self, contents: &str) -> bool {
+    fn script_is_runnable(&mut self, ast: &Ast) -> bool {
         let mut is_runnable = true;
+        let fn_calls: Vec<&FnCall> = get_fn_calls(ast).collect();
         for builtin in self.builtins.iter() {
-            if contents.contains(builtin) {
+            if fn_calls
+                .iter()
+                .any(|fn_call| fn_call.fn_name.to_string() == *builtin)
+            {
                 is_runnable = false;
                 *self.counts.get_mut(builtin).unwrap() += 1;
             }
@@ -69,6 +73,31 @@ impl Builtins {
             println!("{builtin} {count}");
         }
     }
+}
+
+fn get_fn_calls(ast: &Ast) -> impl Iterator<Item = &FnCall> {
+    ast.iter_exprs().filter_map(|stmt| {
+        if let Expr::Atom(Atom::FnCall(fn_call)) = stmt {
+            Some(fn_call)
+        } else {
+            None
+        }
+    })
+}
+
+// poor mans TQDM
+fn progress<T>(x: Vec<T>) -> impl Iterator<Item = T> {
+    let num = x.len();
+    let mut percentages: Vec<_> = (0..100).step_by(5).map(|x| x as f64).collect();
+    x.into_iter().enumerate().map(move |(i, x)| {
+        let completed_fraction = i as f64 / num as f64;
+        let next_percentage = percentages.first().cloned().unwrap_or(100.0);
+        if completed_fraction * 100.0 > next_percentage {
+            percentages.remove(0);
+            println!("{next_percentage}%.");
+        }
+        x
+    })
 }
 
 type Scripts = HashMap<ScriptPath, Script>;
@@ -103,21 +132,17 @@ impl ScriptPath {
 struct ScriptReader {
     builtins: Builtins,
     feed_path: PathBuf,
-    script_dependencies_regex: Regex,
-    include_regex: Regex,
+    loader: FSPluginLoader,
 }
 
 impl ScriptReader {
     fn read_scripts_from_path(feed_path: PathBuf) -> Scripts {
         let builtins = Builtins::unimplemented();
-        let include_regex = Regex::new(r#"\binclude\("([^"]+)"\)"#).unwrap();
-        let script_dependencies_regex =
-            Regex::new(r#"\bscript_dependencies\("([^"]+)"\)"#).unwrap();
+        let loader = FSPluginLoader::new(&feed_path);
         let mut reader = Self {
             builtins,
             feed_path,
-            script_dependencies_regex,
-            include_regex,
+            loader,
         };
         let scripts = reader.read_scripts();
         reader.builtins.print_counts();
@@ -126,10 +151,17 @@ impl ScriptReader {
 
     fn read_scripts(&mut self) -> Scripts {
         let mut scripts = HashMap::default();
-        for entry in WalkDir::new(&self.feed_path).into_iter() {
+        let entries: Vec<_> = WalkDir::new(&self.feed_path).into_iter().collect();
+        for entry in progress(entries) {
             let entry = entry.unwrap();
             if entry.file_type().is_file() {
                 let path = entry.path();
+                if path
+                    .extension()
+                    .map_or(true, |ext| ext != "nasl" && ext != "inc")
+                {
+                    continue;
+                }
                 let script_path = ScriptPath::new(&self.feed_path, path);
                 if let Some(script) = self.script_from_path(path) {
                     scripts.insert(script_path, script);
@@ -144,19 +176,14 @@ impl ScriptReader {
     }
 
     fn script_from_path(&mut self, path: &Path) -> Option<Script> {
-        let contents = fs::read_to_string(path);
-        match contents {
-            Err(e) => {
-                error!("Error reading file {path:?}: {e:?}");
-                None
-            }
-            Ok(contents) => Some(self.script_from_contents(&contents)),
-        }
+        let code = Code::load(&self.loader, path).unwrap();
+        let ast = code.parse().emit_errors().unwrap();
+        Some(self.script_from_ast(ast))
     }
 
-    pub fn script_from_contents(&mut self, contents: &str) -> Script {
-        let is_runnable = self.builtins.script_is_runnable(contents);
-        let includes = self.get_dependencies(contents);
+    fn script_from_ast(&mut self, ast: Ast) -> Script {
+        let is_runnable = self.builtins.script_is_runnable(&ast);
+        let includes = self.get_dependencies(&ast);
         if !is_runnable {
             Script::NotRunnable
         } else if includes.is_empty() {
@@ -166,31 +193,16 @@ impl ScriptReader {
         }
     }
 
-    fn get_dependency(&self, line: &str, fn_str: &str, regex: &Regex) -> Option<ScriptPath> {
-        if !line.contains(fn_str) {
-            return None;
-        }
-        if let Some(capture) = regex.captures_iter(line).next() {
-            if let Some(match_) = capture.get(1) {
-                return Some(ScriptPath(match_.as_str().to_string()));
-            }
-        }
-        None
-    }
-
-    fn get_dependencies(&self, contents: &str) -> Vec<ScriptPath> {
-        let mut dependencies = vec![];
-        for line in contents.lines() {
-            if let Some(dep) = self.get_dependency(line, "include", &self.include_regex) {
-                dependencies.push(dep);
-            }
-            if let Some(dep) =
-                self.get_dependency(line, "script_dependencies", &self.script_dependencies_regex)
-            {
-                dependencies.push(dep);
-            }
-        }
-        dependencies
+    fn get_dependencies(&self, ast: &Ast) -> Vec<ScriptPath> {
+        ast.iter_stmts()
+            .filter_map(|stmt| {
+                if let Statement::Include(include) = stmt {
+                    Some(ScriptPath(include.path.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -222,7 +234,16 @@ impl RunnableScripts {
                 return resolved;
             }
             if new_length == 0 {
-                panic!("Unresolvable.");
+                for (k, v) in unresolved.iter() {
+                    for dep in v.iter_dependencies() {
+                        assert!(
+                            resolved.keys().find(|k| k.0 == dep.0).is_some()
+                                || unresolved.keys().find(|k| k.0 == dep.0).is_some(),
+                            "Reference to non-existent file: {}",
+                            k.0
+                        );
+                    }
+                }
             }
             for v in unresolved.values_mut() {
                 let any_not_runnable = v
