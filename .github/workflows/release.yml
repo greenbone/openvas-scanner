@@ -87,6 +87,7 @@ jobs:
       - run: mv assets/linux/amd64/openvasd assets/openvasd-x86_64-unknown-linux-gnu
       - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
       - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
+      - run: cp rust/Cargo.lock assets/
       - run: rm -rf assets/linux
       - run: ls -las assets/
       # create branch of version
