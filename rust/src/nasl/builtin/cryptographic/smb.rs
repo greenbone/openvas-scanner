@@ -27,8 +27,7 @@ fn smb_gmac_aes_signature(key: &[u8], buf: &[u8], iv: &[u8]) -> Result<NaslValue
 fn smb3kdf(key: &str, label: &str, ctx: &str, lvalue: i32) -> Result<Vec<u8>, FnError> {
     if lvalue != 128 && lvalue != 256 {
         return Err(CryptographicError::Smb(format!(
-            "invalid key length: expected 128 or 256, got {}",
-            lvalue
+            "invalid key length: expected 128 or 256, got {lvalue}",
         ))
         .into());
     }
