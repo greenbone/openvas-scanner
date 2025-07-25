@@ -15,3 +15,4 @@ mod hmac;
 mod pem_to;
 mod rc4;
 mod rsa;
+mod smb;
