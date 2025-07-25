@@ -48,6 +48,9 @@ pub enum KbKey {
     // Constants
     TimeoutRetry,
 
+    // Global Settings
+    GlobalSettings(GlobalSettings),
+
     /// This is used for a completely custom key
     Custom(String),
 }
@@ -81,6 +84,12 @@ pub enum Internals {
     Results,
     ScanId,
     Vhosts,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GlobalSettings {
+    HttpUserAgent,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -177,6 +186,10 @@ impl Display for KbKey {
             KbKey::Kdc(Kdc::Protocol) => write!(f, "Secret/kdc_use_tcp"),
 
             KbKey::TimeoutRetry => write!(f, "timeout_retry"),
+
+            KbKey::GlobalSettings(GlobalSettings::HttpUserAgent) => {
+                write!(f, "global_settings/http_user_agent")
+            }
 
             KbKey::Custom(key) => write!(f, "{key}"),
         }

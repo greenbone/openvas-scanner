@@ -94,7 +94,7 @@ impl SshSession {
     pub fn set_option(&self, option: SshOption) -> Result<()> {
         // We have to format this before we set it, even if we might
         // not need it, since SshOption does implement Clone
-        let formatted = format!("{:?}", option);
+        let formatted = format!("{option:?}");
         self.session()
             .set_option(option)
             .map_err(|e| SshErrorKind::SetOption(formatted).with(self.id()).with(e))
