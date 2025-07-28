@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 pub const ALL_BUILTINS: &[&str] = &[
     "plugin_run_find_service",
     "plugin_run_openvas_tcp_scanner",

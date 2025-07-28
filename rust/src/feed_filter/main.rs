@@ -1,6 +1,12 @@
+// SPDX-FileCopyrightText: 2024 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 mod all_builtins;
+mod error;
 
 use all_builtins::ALL_BUILTINS;
+use clap::Parser;
 use scannerlib::models::{Scan, VT};
 use scannerlib::nasl::syntax::grammar::{Ast, Atom, Expr, FnCall, Statement};
 use scannerlib::nasl::{Code, FSPluginLoader, nasl_std_functions};
@@ -11,11 +17,24 @@ use std::{
     fs,
     path::Path,
 };
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use walkdir::WalkDir;
 
-use crate::CliError;
+use crate::error::CliError;
+
+fn init_logging() {
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .init();
+}
 
 #[derive(clap::Parser)]
+#[command(
+    name = "feed-filter",
+    about = "Filters scripts from the feed which aren't runnable with the current set of builtins in the openvasd implementation.",
+    version = env!("CARGO_PKG_VERSION")
+)]
 pub struct FilterArgs {
     /// Path to the feed that should be read and filtered.
     feed_path: PathBuf,
@@ -212,7 +231,7 @@ impl ScriptReader {
     }
 
     fn script_from_ast(&mut self, ast: &Ast) -> Script {
-        let oid = self.oid_from_ast(&ast);
+        let oid = self.oid_from_ast(ast);
         let is_runnable = self.builtins.script_is_runnable(ast);
         let dependencies = self.get_dependencies(ast);
         if !is_runnable {
@@ -350,7 +369,7 @@ fn get_scan_config(_feed_path: &Path, runnable: &RunnableScripts) -> Scan {
     }
 }
 
-pub fn run(args: FilterArgs) -> Result<(), CliError> {
+fn run(args: FilterArgs) -> Result<(), CliError> {
     let scripts = ScriptReader::read_scripts_from_path(args.feed_path.to_owned());
     let runnable = RunnableScripts::new(scripts);
     if let Some(ref output_path) = args.output_path {
@@ -364,9 +383,15 @@ pub fn run(args: FilterArgs) -> Result<(), CliError> {
     Ok(())
 }
 
+fn main() -> Result<(), CliError> {
+    init_logging();
+    let cli = FilterArgs::parse();
+    run(cli)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::feed::filter::{RunnableScripts, ScriptPath};
+    use super::{RunnableScripts, ScriptPath};
 
     use super::{Script, Scripts};
 
@@ -375,7 +400,7 @@ mod tests {
     }
 
     fn dependencies(paths: &[&str]) -> Script {
-        Script::dependencies(paths.into_iter().map(|p| path(p)).collect(), None)
+        Script::dependencies(paths.iter().map(|p| path(p)).collect(), None)
     }
 
     fn runnable() -> Script {
@@ -388,7 +413,7 @@ mod tests {
 
     fn make_scripts(scripts: &[(&str, Script)]) -> Scripts {
         scripts
-            .into_iter()
+            .iter()
             .map(|(name, script)| (ScriptPath(name.to_string()), script.clone()))
             .collect()
     }

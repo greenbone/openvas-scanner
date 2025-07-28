@@ -152,6 +152,10 @@ path = "src/scannerctl/main.rs"
 name = "feed-verifier"
 path = "src/feed_verifier/main.rs"
 
+[[bin]]
+name = "feed-filter"
+path = "src/feed_filter/main.rs"
+
 [[bench]]
 name = "infisto_comparison"
 harness = false
