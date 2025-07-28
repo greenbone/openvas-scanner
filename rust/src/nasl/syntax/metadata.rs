@@ -1,11 +1,14 @@
 use crate::nasl::syntax::parser::ErrorKind;
 use crate::nasl::syntax::parser::Result;
 
+use super::Keyword;
+use super::TokenKind;
 use super::grammar::Ast;
 use super::grammar::Atom;
 use super::grammar::Expr;
 use super::grammar::Statement;
 use super::parser::Error;
+use super::parser::cursor::Peek;
 use super::{grammar::If, parser::Parse};
 
 pub struct DescriptionBlock {
@@ -20,6 +23,9 @@ impl DescriptionBlock {
 
 impl Parse for DescriptionBlock {
     fn parse(parser: &mut super::Parser) -> Result<Self> {
+        while !parser.token_matches(TokenKind::Keyword(Keyword::If)) {
+            parser.advance();
+        }
         let mut if_: If = parser.parse()?;
         let (condition, block) = if_.if_branches.remove(0);
         check_condition(condition)?;
