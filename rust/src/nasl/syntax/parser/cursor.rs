@@ -94,7 +94,7 @@ impl Cursor {
         self.previous
             .clone()
             .map(|prev| prev.span().end())
-            .unwrap_or(CharIndex(0))
+            .unwrap_or(self.current.span().end())
     }
 
     pub(crate) fn has_errors(&self) -> bool {
@@ -113,7 +113,10 @@ impl Cursor {
     pub(crate) fn span_previous_token_end(&self) -> Span {
         self.previous
             .as_ref()
-            .map(|prev| Span::new(prev.span().end(), prev.span().end()))
-            .unwrap_or(Span::new(CharIndex(0), CharIndex(0)))
+            .map(|prev| Span::new(prev.span().start(), prev.span().end()))
+            .unwrap_or(Span::new(
+                self.current.span().start(),
+                self.current.span().end(),
+            ))
     }
 }

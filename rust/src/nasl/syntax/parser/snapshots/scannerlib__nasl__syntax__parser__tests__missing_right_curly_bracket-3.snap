@@ -9,7 +9,7 @@ error: Expected expression
   │         ^ Expected expression
 
 error: Expected '}'
-  ┌─ missing_right_curly_bracket:1:9
+  ┌─ missing_right_curly_bracket:1:8
   │
 1 │ { a = 2;
-  │         ^ Expected '}'
+  │        ^ Expected '}'

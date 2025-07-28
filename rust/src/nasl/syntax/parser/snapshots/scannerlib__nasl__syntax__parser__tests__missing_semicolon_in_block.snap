@@ -3,7 +3,7 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (missing_semicolon_in_block),\n\"{\n        foo\n    }\")"
 ---
 error: Expected ';'
-  ┌─ missing_semicolon_in_block:2:12
+  ┌─ missing_semicolon_in_block:2:9
   │
 2 │         foo
-  │            ^ Expected ';'
+  │         ^^^ Expected ';'

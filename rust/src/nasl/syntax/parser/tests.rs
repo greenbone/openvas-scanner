@@ -5,7 +5,10 @@ use codespan_reporting::files::SimpleFile;
 use crate::nasl::{
     Code,
     error::{self, Level, emit_errors},
-    syntax::{Tokenizer, grammar::Expr},
+    syntax::{
+        Tokenizer,
+        grammar::{Expr, If},
+    },
 };
 
 use super::{super::grammar::Statement, Parse, Parser, error::SpannedError};
@@ -600,3 +603,11 @@ parse_test_err!(
 parse_test_ok!(negated_assignment, Program, "!a = 1;");
 
 parse_test_err!(unclosed_string, Program, r#""Hello you"#);
+
+parse_test_err!(
+    first_token_newline_regression,
+    If,
+    r#"
+foo = "bar";
+"#
+);

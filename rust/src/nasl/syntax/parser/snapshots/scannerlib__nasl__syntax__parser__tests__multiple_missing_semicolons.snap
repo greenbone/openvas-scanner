@@ -3,13 +3,13 @@ source: src/nasl/syntax/parser/tests.rs
 expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (multiple_missing_semicolons),\n\"foo\n    {\n        foo\n    }\")"
 ---
 error: Expected ';'
-  ┌─ multiple_missing_semicolons:1:4
+  ┌─ multiple_missing_semicolons:1:1
   │
 1 │ foo
-  │    ^ Expected ';'
+  │ ^^^ Expected ';'
 
 error: Expected ';'
-  ┌─ multiple_missing_semicolons:3:12
+  ┌─ multiple_missing_semicolons:3:9
   │
 3 │         foo
-  │            ^ Expected ';'
+  │         ^^^ Expected ';'

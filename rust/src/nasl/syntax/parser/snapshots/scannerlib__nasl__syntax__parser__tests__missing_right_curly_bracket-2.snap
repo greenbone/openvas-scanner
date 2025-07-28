@@ -9,7 +9,7 @@ error: Expected expression
   │                      ^ Expected expression
 
 error: Expected '}'
-  ┌─ missing_right_curly_bracket:1:22
+  ┌─ missing_right_curly_bracket:1:21
   │
 1 │ foreach a(x) { a = 2;
-  │                      ^ Expected '}'
+  │                     ^ Expected '}'
