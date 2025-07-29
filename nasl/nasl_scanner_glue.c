@@ -1009,7 +1009,7 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
 }
 
 tree_cell *
-security_lsc (lex_ctxt *lexic)
+security_notus (lex_ctxt *lexic)
 {
   tree_cell *result;
   named_nasl_var *oid_var, *var, *vul_packages, *name, *version, *fixed,
@@ -1233,6 +1233,13 @@ nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
 }
 
 /**
+ * @brief Error code for Notus.
+ *
+ * The last occurred error code is stored in this variable.
+ */
+static int notus_err = 0;
+
+/**
  * @brief Directly runs a LSC with the given package list and OS release.
  *
  * @naslfn{table_driven_lsc}
@@ -1243,10 +1250,11 @@ nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
  *
  * @param[in] lexic  Lexical context of the NASL interpreter.
  *
- * @return NULL
+ * @return List of Notus results in a JSON-like format, where the first
+ *         element is always a return code.
  */
 tree_cell *
-table_driven_lsc (lex_ctxt *lexic)
+nasl_notus (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int ret = 0;
@@ -1262,8 +1270,8 @@ table_driven_lsc (lex_ctxt *lexic)
   if (product == NULL || pkg_list == NULL)
     {
       g_warning ("%s: Missing data for running LSC", __func__);
-      ret = -1;
-      goto lsc_end;
+      notus_err = -1;
+      return NULL;
     }
 
   response = notus_get_response (pkg_list, product);
@@ -1271,8 +1279,8 @@ table_driven_lsc (lex_ctxt *lexic)
   if (!response)
     {
       g_warning ("%s: Unable to get the response", __func__);
-      ret = -2;
-      goto lsc_end;
+      notus_err = -2;
+      return NULL;
     }
 
   advisories = process_notus_response (response, strlen (response));
@@ -1358,8 +1366,8 @@ table_driven_lsc (lex_ctxt *lexic)
               g_warning ("%s: Unknown fixed version type for advisory %s",
                          __func__, advisory->oid);
               advisories_free (advisories);
-              ret = -3;
-              goto lsc_end;
+              notus_err = -3;
+              return NULL;
             }
           add_var_to_array (&vul_pkg.v.v_arr, "name", &name);
           add_var_to_array (&vul_pkg.v.v_arr, "installed", &installed);
@@ -1369,21 +1377,42 @@ table_driven_lsc (lex_ctxt *lexic)
       add_var_to_array (&element.v.v_arr, "oid", &oid);
       add_var_to_array (&element.v.v_arr, "vulnerable_packages",
                         &vulnerable_pkgs);
-      add_var_to_list (retc->x.ref_val, i + 1, &element);
+      add_var_to_list (retc->x.ref_val, i, &element);
     }
 
   advisories_free (advisories);
 
-lsc_end:
-  /* Return code */
-  memset (&element, 0, sizeof (element));
-  element.var_type = VAR2_INT;
-  element.v.v_int = ret;
-  add_var_to_list (retc->x.ref_val, 0, &element);
-
   return retc;
 }
 
+tree_cell *
+nasl_notus_error (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  char *notus_err_str;
+  (void) lexic;
+
+  switch
+    notus_err
+    {
+    case -1:
+      notus_err_str = "Missing data for running LSC";
+      break;
+    case -2:
+      notus_err_str = "Unable to get the response";
+      break;
+    case -3:
+      notus_err_str = "Unknown fixed version type for advisory";
+      break;
+    default:
+      return NULL;
+    }
+
+  retc = alloc_typed_cell (CONST_STR);
+  retc->x.str_val = notus_err_str;
+
+  return retc;
+}
 /*-------------------------[ Reporting an open port ]---------------------*/
 
 /**
