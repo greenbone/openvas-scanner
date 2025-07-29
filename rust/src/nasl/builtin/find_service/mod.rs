@@ -22,13 +22,13 @@ const TIMEOUT_MILLIS: u64 = 5000;
 #[derive(Debug, Error)]
 pub enum FindServiceError {
     #[error("{0}")]
-    SocketError(#[from] SocketError),
+    Socket(#[from] SocketError),
     #[error("JSON parsing error: {0}")]
-    JsonError(#[from] serde_json::Error),
+    Json(#[from] serde_json::Error),
     #[error("IO error: {0}")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
     #[error("Regex error: {0}")]
-    RegexError(#[from] regex::Error),
+    Regex(#[from] regex::Error),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,22 +69,22 @@ pub enum Detection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "banner_detection_type", rename_all = "snake_case")]
 pub enum BannerDetection {
-    BannerContains {
+    Contains {
         value: String,
         #[serde(default)]
         case_sensitive: bool,
     },
-    BannerStartsWith {
+    StartsWith {
         value: String,
         #[serde(default)]
         case_sensitive: bool,
     },
-    BannerEquals {
+    Equals {
         value: String,
         #[serde(default)]
         case_sensitive: bool,
     },
-    BannerContainsHex {
+    ContainsHex {
         value: String,
         position: Option<usize>,
     },
@@ -117,7 +117,7 @@ impl BannerDetection {
     fn matches(&self, banner: &[u8]) -> bool {
         let banner_str = String::from_utf8_lossy(banner);
         match self {
-            BannerDetection::BannerContains {
+            BannerDetection::Contains {
                 value,
                 case_sensitive,
             } => {
@@ -127,7 +127,7 @@ impl BannerDetection {
                     banner_str.to_lowercase().contains(&value.to_lowercase())
                 }
             }
-            BannerDetection::BannerStartsWith {
+            BannerDetection::StartsWith {
                 value,
                 case_sensitive,
             } => {
@@ -137,7 +137,7 @@ impl BannerDetection {
                     banner_str.to_lowercase().starts_with(&value.to_lowercase())
                 }
             }
-            BannerDetection::BannerEquals {
+            BannerDetection::Equals {
                 value,
                 case_sensitive,
             } => {
@@ -147,7 +147,7 @@ impl BannerDetection {
                     banner_str.trim().to_lowercase() == value.to_lowercase()
                 }
             }
-            BannerDetection::BannerContainsHex { value, position } => match hex::decode(value) {
+            BannerDetection::ContainsHex { value, position } => match hex::decode(value) {
                 Ok(hex_bytes) => {
                     if let Some(pos) = position {
                         banner.len() > pos + hex_bytes.len()
@@ -197,7 +197,7 @@ impl ServiceDetector {
             env!("CARGO_MANIFEST_DIR"),
             "/data/service_definitions.json"
         ));
-        let definitions: ServiceDefinitions = serde_json::from_str(&json_content)?;
+        let definitions: ServiceDefinitions = serde_json::from_str(json_content)?;
         Ok(ServiceDetector {
             services: definitions,
         })
@@ -281,13 +281,13 @@ fn add_kb_entries(
 
     context.set_kb_item(
         KbKey::Service(kb::Service::Custom(service.key())),
-        KbItem::String(format!("{}/tcp", port)),
+        KbItem::String(format!("{port}/tcp")),
     )?;
 
     context.set_kb_item(KbKey::KnownTcp(port), KbItem::String(service.key()))?;
 
     if service.save_banner {
-        let banner_key = format!("Banner/{}", port);
+        let banner_key = format!("Banner/{port}");
         context.set_kb_item(KbKey::Custom(banner_key), KbItem::Data(banner))?;
     }
 
@@ -315,9 +315,7 @@ fn try_http_request(target: IpAddr, port: u16) -> Result<Vec<u8>, FindServiceErr
     let http_request = b"GET / HTTP/1.0\r\n\r\n";
     match socket {
         NaslSocket::Tcp(ref mut tcp_conn) => {
-            tcp_conn
-                .write_all(http_request)
-                .map_err(|e| SocketError::IO(e))?;
+            tcp_conn.write_all(http_request).map_err(SocketError::IO)?;
 
             let mut buf = vec![0; 1024];
             let result =

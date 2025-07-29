@@ -884,7 +884,7 @@ impl<'a> ScanCtx<'a> {
             .filter_map(|(key, _values)| {
                 // Key format is "Ports/tcp/{port}"
                 key.split('/')
-                    .last()
+                    .next_back()
                     .and_then(|port_str| port_str.parse().ok())
             })
             .collect();

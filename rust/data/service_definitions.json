@@ -46,13 +46,13 @@
       "detections": [
         {
           "type": "banner",
-          "banner_detection_type": "banner_starts_with",
+          "banner_detection_type": "starts_with",
           "value": "220",
           "case_sensitive": false
         },
         {
           "type": "banner",
-          "banner_detection_type": "banner_contains",
+          "banner_detection_type": "contains",
           "value": "SMTP",
           "case_sensitive": false
         }
@@ -72,7 +72,7 @@
       "detections": [
         {
           "type": "banner",
-          "banner_detection_type": "banner_starts_with",
+          "banner_detection_type": "starts_with",
           "value": "SSH-",
           "case_sensitive": false
         }
@@ -92,13 +92,13 @@
       "detections": [
         {
           "type": "banner",
-          "banner_detection_type": "banner_starts_with",
+          "banner_detection_type": "starts_with",
           "value": "220",
           "case_sensitive": false
         },
         {
           "type": "banner",
-          "banner_detection_type": "banner_contains",
+          "banner_detection_type": "contains",
           "value": "FTP",
           "case_sensitive": false
         }
@@ -118,12 +118,12 @@
       "detections": [
         {
           "type": "banner",
-          "banner_detection_type": "banner_contains_hex",
+          "banner_detection_type": "contains_hex",
           "value": "fffd"
         },
         {
           "type": "banner",
-          "banner_detection_type": "banner_contains_hex",
+          "banner_detection_type": "contains_hex",
           "value": "fffb"
         }
       ],
@@ -142,7 +142,7 @@
       "detections": [
         {
           "type": "banner",
-          "banner_detection_type": "banner_starts_with",
+          "banner_detection_type": "starts_with",
           "value": "+OK",
           "case_sensitive": false
         }
@@ -162,7 +162,7 @@
       "detections": [
         {
           "type": "banner",
-          "banner_detection_type": "banner_starts_with",
+          "banner_detection_type": "starts_with",
           "value": "* OK",
           "case_sensitive": false
         }
@@ -182,7 +182,7 @@
       "detections": [
         {
           "type": "banner",
-          "banner_detection_type": "banner_equals",
+          "banner_detection_type": "equals",
           "value": "NetBus",
           "case_sensitive": false
         }
