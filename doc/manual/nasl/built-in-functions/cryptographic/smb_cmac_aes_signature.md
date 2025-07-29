@@ -13,6 +13,7 @@
 ## DESCRIPTION
 
 smb_cmac_aes_signature gets the cmac aes signature based on the given arguments.
+This function is basically the same as **[aes_mac_cbc(3)](aes_mac_cbc.md)**
 
 
 ## RETURN VALUE
@@ -25,4 +26,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[smb_gmac_aes_signature(3)](smb_gmac_aes_signature.md)**,
+**[smb_gmac_aes_signature(3)](smb_gmac_aes_signature.md)**, **[aes_mac_cbc(3)](aes_mac_cbc.md)**
