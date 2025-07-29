@@ -521,8 +521,7 @@ impl Ssh {
                 AuthStatus::Success => break,
                 status => {
                     return Err(SshErrorKind::UnexpectedAuthenticationStatus(format!(
-                        "{:?}",
-                        status
+                        "{status:?}"
                     ))
                     .with(session_id)
                     .with(ReturnValue(-1)));

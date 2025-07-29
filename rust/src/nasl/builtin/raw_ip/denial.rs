@@ -55,8 +55,8 @@ async fn end_denial(
                 _ => "".to_string(),
             };
 
-            if let Ok(mut soc) = make_tcp_socket(context.target().ip_addr(), port as u16, retry) {
-                let bogus_data = format!("Network Security Scan by {} in progress", vendor_version);
+            if let Ok(mut soc) = make_tcp_socket(context.target().ip_addr(), port, retry) {
+                let bogus_data = format!("Network Security Scan by {vendor_version} in progress");
                 if soc.write(bogus_data.as_bytes()).is_ok() {
                     return Ok(NaslValue::Number(1));
                 }
