@@ -115,6 +115,15 @@ impl Code {
         }
     }
 
+    pub fn source_file(&self) -> SourceFile {
+        let path_str = self
+            .path
+            .as_ref()
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or("".to_string());
+        SimpleFile::new(path_str, self.code().to_owned())
+    }
+
     #[cfg(test)]
     pub fn tokenize(self) -> TokenizeResult {
         match self.path {

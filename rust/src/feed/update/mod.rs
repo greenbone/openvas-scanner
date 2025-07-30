@@ -11,6 +11,8 @@ use futures::{Stream, StreamExt, stream};
 use std::fs::File;
 use tracing::trace;
 
+use crate::nasl::error::Level;
+use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
@@ -184,6 +186,7 @@ where
             alive_test_methods,
         };
         let context = context.build();
+        let file = code.source_file();
         let ast = code
             .parse_description_block()
             .emit_errors()
@@ -195,7 +198,10 @@ where
                     return Ok(i);
                 }
                 Ok(_) => {}
-                Err(e) => return Err(e.into()),
+                Err(e) => {
+                    emit_errors(&file, std::iter::once(&e), Level::Error);
+                    return Err(e.into());
+                }
             }
         }
         Err(ErrorKind::MissingExit(key.0.clone()))
