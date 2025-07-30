@@ -1350,7 +1350,7 @@ components:
                 "fixed_version": { "start": "1.2.2", "end": "1.2.5" },
               },
               {
-                "package_name": "bar",
+                "name": "bar",
                 "installed_version": "1.2.4",
                 "fixed_version": { "version": "1.2.5", "specifier": ">=" },
               },
