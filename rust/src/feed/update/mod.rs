@@ -238,9 +238,12 @@ where
                 self.single(&k)
                     .await
                     .map(|_| k.0.clone())
-                    .map_err(|kind| Error {
-                        kind,
-                        key: k.0.clone(),
+                    .map_err(|kind| {
+                        println!("INNER: {kind:?}");
+                        Error {
+                            kind,
+                            key: k.0.clone(),
+                        }
                     })
                     .into()
             }

@@ -431,11 +431,14 @@ impl<'code, 'ctx> Interpreter<'code, 'ctx> {
     async fn include(&mut self, name: &Statement) -> InterpretResult {
         match self.resolve(name).await? {
             NaslValue::String(key) => {
+                println!("IN INCLUDE");
                 let code = self.scan_ctx.loader().load(&key)?;
+                println!("CODE: {code}");
 
                 let mut inter =
                     Interpreter::new(self.register.clone(), self.lexer.clone(), self.scan_ctx);
                 for stmt in crate::nasl::syntax::parse(&code) {
+                    println!("STMT: {stmt:?}");
                     inter.execute_included_statement(&key, stmt).await?;
                 }
                 self.register = inter.register;
