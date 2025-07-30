@@ -38,7 +38,7 @@ pub use get_scans_id_status::{GetScansIDStatus, GetScansIDStatusError};
 mod get_scans_preferences;
 pub use get_scans_preferences::GetScansPreferences;
 mod get_vts;
-pub use get_vts::{GetVTs, GetVTsError};
+pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
 pub use get_health::{GetHealthAlive, GetHealthAliveIncomingRequest};
 pub use get_health::{GetHealthReady, GetHealthReadyIncomingRequest};
@@ -67,9 +67,9 @@ pub mod prelude {
     pub use std::pin::Pin;
 
     pub use crate::{
-        ClientHash, GetScans, GetScansError, GetScansID, GetScansIDError, GetScansIDResults,
-        GetScansIDResultsError, GetScansIDResultsID, GetScansIDResultsIDError, GetScansIDStatus,
-        GetScansIDStatusError, PostScans, PostScansError,
+        ClientHash, ContainsScanID, GetScans, GetScansError, GetScansID, GetScansIDError,
+        GetScansIDResults, GetScansIDResultsError, GetScansIDResultsID, GetScansIDResultsIDError,
+        GetScansIDStatus, GetScansIDStatusError, PostScans, PostScansError,
         delete_scans_id::{DeleteScansID, DeleteScansIDError},
         models,
         post_scans_id::PostScansID,
@@ -283,6 +283,42 @@ impl<T> RuntimeBuilder<T> {
 }
 
 impl RuntimeBuilder<runtime_builder_states::Start> {
+    pub fn insert_scans<T>(
+        self,
+        value: Arc<T>,
+    ) -> RuntimeBuilder<runtime_builder_states::DeleteScanIDSet>
+    where
+        T: PostScans
+            + GetScans
+            + GetScansID
+            + GetScansIDResults
+            + GetScansIDResultsID
+            + GetScansIDStatus
+            + PostScansID
+            + DeleteScansID
+            + 'static,
+    {
+        let ior = self
+            .insert_on_request(PostScansIncomingRequest::from(value.clone()))
+            .insert_on_request(GetScansIncomingRequest::from(value.clone()))
+            .insert_on_request(GetScansIDIncomingRequest::from(value.clone()))
+            .insert_on_request(GetScansIDResultsIncomingRequest::from(value.clone()))
+            .insert_on_request(GetScansIDStatusIncomingRequest::from(value.clone()))
+            .insert_on_request(PostScansIDIncomingRequest::from(value.clone()))
+            .insert_on_request(DeleteScansIDIncomingRequest::from(value));
+        RuntimeBuilder {
+            api_version: ior.api_version,
+            feed_version: ior.feed_version,
+            listener_address: ior.listener_address,
+            tls: ior.tls,
+            api_keys: ior.api_keys,
+            incoming_request: ior.incoming_request,
+            _phanton: PhantomData,
+        }
+    }
+}
+
+impl RuntimeBuilder<runtime_builder_states::Start> {
     pub fn insert_post_scans<T>(
         self,
         value: Arc<T>,
@@ -452,7 +488,7 @@ impl RuntimeBuilder<runtime_builder_states::PostScanIDSet> {
 impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     pub fn insert_get_vts<T>(self, value: Arc<T>) -> RuntimeBuilder<runtime_builder_states::End>
     where
-        T: GetVTs + 'static,
+        T: GetVts + 'static,
     {
         let ior = self.insert_on_request(GetVTsIncomingRequest::from(value));
         RuntimeBuilder {

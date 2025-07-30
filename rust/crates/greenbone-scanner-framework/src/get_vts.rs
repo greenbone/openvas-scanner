@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::ExternalError;
+use crate::{ExternalError, StreamResult, models::VTData};
 use hyper::StatusCode;
 
 use crate::{
@@ -9,11 +9,16 @@ use crate::{
     internal_server_error,
 };
 
-pub trait GetVTs: Send + Sync {
+pub trait GetVts: Send + Sync {
+    fn get_oids(
+        &self,
+        client_id: Arc<entry::ClientIdentifier>,
+    ) -> StreamResult<'static, String, GetVTsError>;
+
     fn get_vts(
         &self,
         client_id: Arc<entry::ClientIdentifier>,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<Vec<String>, GetVTsError>> + Send>>;
+    ) -> StreamResult<'static, VTData, GetVTsError>;
 }
 
 pub struct GetVTsIncomingRequest<T> {
@@ -22,7 +27,7 @@ pub struct GetVTsIncomingRequest<T> {
 
 impl<S> OnRequest for GetVTsIncomingRequest<S>
 where
-    S: GetVTs + 'static,
+    S: GetVts + 'static,
 {
     define_authentication_paths!(
         authenticated: false,
@@ -41,7 +46,7 @@ where
     {
         let gsp = self.get_scans.clone();
         Box::pin(async move {
-            match gsp.get_vts(client_id).await {
+            match gsp.get_oids(client_id).await {
                 Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
                 Err(e) => e.into(),
             }
@@ -51,7 +56,7 @@ where
 
 impl<T> From<T> for GetVTsIncomingRequest<T>
 where
-    T: GetVTs + 'static,
+    T: GetVts + 'static,
 {
     fn from(value: T) -> Self {
         GetVTsIncomingRequest {
@@ -62,7 +67,7 @@ where
 
 impl<T> From<Arc<T>> for GetVTsIncomingRequest<T>
 where
-    T: GetVTs + 'static,
+    T: GetVts + 'static,
 {
     fn from(value: Arc<T>) -> Self {
         GetVTsIncomingRequest { get_scans: value }
@@ -104,8 +109,8 @@ mod tests {
 
     struct Test {}
 
-    impl GetVTs for Test {
-        fn get_vts(
+    impl GetVts for Test {
+        fn get_oids(
             &self,
             client_id: Arc<ClientIdentifier>,
         ) -> std::pin::Pin<Box<dyn Future<Output = Result<Vec<String>, GetVTsError>> + Send>>
