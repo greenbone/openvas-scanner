@@ -68,7 +68,9 @@ fn forge_ipv4_packet_for_tcp(
     pkt.set_header_length(HEADER_LENGTH);
     pkt.set_next_level_protocol(IpNextHeaderProtocols::Tcp);
     pkt.set_ttl(0x40);
-    pkt.set_source(get_source_ipv4(dst).map_err(|_| AliveTestError::InvalidDestinationAddr)?);
+    pkt.set_source(
+        get_source_ipv4(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?,
+    );
     pkt.set_destination(dst);
     pkt.set_fragment_offset(0);
     pkt.set_identification(random_impl().unwrap() as u16);
@@ -85,7 +87,7 @@ fn forge_ipv4_packet_for_tcp(
     Ok(Ipv4Packet::owned(ip_buf).unwrap())
 }
 
-pub fn forge_tcp_ping(
+pub fn forge_tcp_ping_ipv4(
     dst: Ipv4Addr,
     dport: &u16,
     tcp_flag: u16,
@@ -106,7 +108,9 @@ fn forge_ipv6_packet_for_tcp(
 
     pkt.set_next_header(IpNextHeaderProtocols::Tcp);
     pkt.set_hop_limit(DEFAULT_TTL);
-    pkt.set_source(get_source_ipv6(dst).map_err(|_| AliveTestError::InvalidDestinationAddr)?);
+    pkt.set_source(
+        get_source_ipv6(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?,
+    );
     pkt.set_destination(dst);
     pkt.set_version(IPPROTO_IPV6);
 
