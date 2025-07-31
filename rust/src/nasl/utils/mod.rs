@@ -23,22 +23,6 @@ use crate::nasl::interpreter::NaslValue;
 /// The result of a function call.
 pub type NaslResult = Result<NaslValue, FnError>;
 
-/// Resolves positional arguments from the register.
-pub fn resolve_positional_arguments(register: &Register) -> Vec<NaslValue> {
-    match register.nasl_value(lookup_keys::FC_ANON_ARGS) {
-        Ok(NaslValue::Array(arr)) => arr.to_vec(),
-        Ok(unexpected) => {
-            tracing::warn!(
-                "expected array but got: {:?}. Maybe {} was overridden. Ignoring.",
-                unexpected,
-                lookup_keys::FC_ANON_ARGS
-            );
-            vec![]
-        }
-        Err(_) => vec![],
-    }
-}
-
 /// Allows the definition of global variables
 /// belonging to certain builtin functions.
 // This is currently only used with `experimental` feature,

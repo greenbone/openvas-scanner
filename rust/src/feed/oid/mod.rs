@@ -27,19 +27,6 @@ where
     L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>>,
 {
-    /// Creates an oid finder. Returns a tuple of (filename, oid).
-    ///
-    /// It will iterate through the filenames retrieved by the verifier and execute each found
-    /// `.nasl` script in description mode to return the OID set in script_oid.
-    ///
-    /// It is used to find all oids within a feed.
-    pub fn init(
-        loader: L,
-        verifier: V,
-    ) -> impl Iterator<Item = Result<(String, String), update::Error>> + use<L, V> {
-        Self { loader, verifier }
-    }
-
     fn script_oid(stmt: &Statement) -> Option<String> {
         if let Statement::ExprStmt(Expr::Atom(Atom::FnCall(call))) = stmt {
             if call.fn_name.to_str() == "script_oid" {

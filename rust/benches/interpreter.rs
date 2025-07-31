@@ -7,7 +7,7 @@ use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::storage::ScanID;
 use scannerlib::storage::inmemory::InMemoryStorage;
 
-pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
+fn run_interpreter_in_description_mode(c: &mut Criterion) {
     let code = include_str!("../data/nasl_syntax/simple_parse.nasl");
     let variables = vec![("description".to_owned(), true.into())];
     c.bench_function("interpreter", |b| {

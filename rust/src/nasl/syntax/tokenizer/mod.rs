@@ -106,7 +106,7 @@ impl Cursor {
 
 /// Identifies if number is base10, base 8, hex or binary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NumberBase {
+enum NumberBase {
     /// Base 2: contains 01 is defined by 0b e.g.: `0b010101`
     Binary,
     /// Base 8: contains 0-8 is defined by a starting 0 e.g.: `0123456780`
@@ -144,7 +144,7 @@ impl NumberBase {
     }
 
     /// Returns the radix
-    pub fn radix(&self) -> u32 {
+    fn radix(&self) -> u32 {
         match self {
             NumberBase::Binary => 2,
             NumberBase::Octal => 8,
@@ -274,7 +274,7 @@ impl Tokenizer {
         )))
     }
 
-    pub fn error(&self, kind: TokenizerErrorKind) -> TokenizerError {
+    fn error(&self, kind: TokenizerErrorKind) -> TokenizerError {
         TokenizerError {
             kind,
             span: Span::new(self.begin_match_position - 1, self.cursor.position()),

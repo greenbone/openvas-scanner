@@ -248,7 +248,7 @@ impl Hasher {
     }
 
     /// Returns the hash of a given reader and key
-    pub fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
+    fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
     where
         R: Read,
     {
@@ -293,12 +293,6 @@ impl<'a> HashSumNameLoader<'a> {
             self.hasher.sum_file(),
         )
     }
-}
-
-/// Defines a file name loader to load filenames
-pub trait FileNameLoader {
-    /// Returns the next filename
-    fn next_filename(&mut self) -> Option<Result<String, Error>>;
 }
 
 impl<'a> Iterator for HashSumNameLoader<'a> {
@@ -371,24 +365,6 @@ pub struct NaslFileFinder {
     paths: glob::Paths,
 }
 
-impl NaslFileFinder {
-    /// Initializes NaslFileFinder based on a base path.
-    pub fn new<P>(base: P, relative: bool) -> Self
-    where
-        P: AsRef<str>,
-    {
-        let paths = glob::glob(&format!("{}/**/*", base.as_ref())).expect("valid glob pattern");
-        Self {
-            base: if relative {
-                Some(base.as_ref().to_string())
-            } else {
-                None
-            },
-            paths,
-        }
-    }
-}
-
 impl Loader for NaslFileFinder {
     fn load(&self, key: &str) -> Result<String, LoadError> {
         let path = if let Some(base) = &self.base {
@@ -438,12 +414,6 @@ impl Iterator for NaslFileFinder {
                 None => return None,
             }
         }
-    }
-}
-
-impl FileNameLoader for NaslFileFinder {
-    fn next_filename(&mut self) -> Option<Result<String, Error>> {
-        self.next()
     }
 }
 

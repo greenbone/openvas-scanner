@@ -237,7 +237,7 @@ mod deb_tests {
     use super::{Deb, Package};
 
     #[test]
-    pub fn test_compare_gt() {
+    fn test_compare_gt() {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
@@ -262,7 +262,7 @@ mod deb_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_name() {
+    fn test_compare_gt_different_name() {
         let package1 = Deb {
             name: "foo".to_string(),
             epoch: 1,
@@ -279,7 +279,7 @@ mod deb_tests {
     }
 
     #[test]
-    pub fn test_compare_less() {
+    fn test_compare_less() {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
@@ -312,7 +312,7 @@ mod deb_tests {
     }
 
     #[test]
-    pub fn test_compare_equal() {
+    fn test_compare_equal() {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
@@ -329,7 +329,7 @@ mod deb_tests {
     }
 
     #[test]
-    pub fn test_from_full_name() {
+    fn test_from_full_name() {
         assert!(Deb::from_full_name("").is_none());
 
         let package = Deb::from_full_name("mesa-libgbm-2:11.2.2-2.20160614").unwrap();
@@ -420,7 +420,7 @@ mod deb_tests {
         assert_eq!(package.get_version(), "1:10.6.18+maria~ubu2204");
     }
     #[test]
-    pub fn from_name_and_full_version() {
+    fn from_name_and_full_version() {
         assert!(Deb::from_name_and_full_version("", "").is_none());
 
         let package =

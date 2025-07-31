@@ -29,7 +29,7 @@ pub struct OspArgs {
     print_back: bool,
 }
 
-pub async fn may_transform_start_scan<R, S>(
+async fn may_transform_start_scan<R, S>(
     print_back: bool,
     feed: Option<S>,
     reader: R,
