@@ -19,6 +19,7 @@ pub mod bf_cbc;
 pub mod des;
 pub mod hash;
 pub mod hmac;
+pub mod misc;
 pub mod pem_to;
 pub mod rc4;
 pub mod rsa;
@@ -143,6 +144,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(bf_cbc::BfCbc);
         set.add_set(pem_to::PemTo);
         set.add_set(smb::Smb);
+        set.add_set(misc::Misc);
         set
     }
 }
