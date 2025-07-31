@@ -15,21 +15,22 @@ use super::AliveTestError;
 use pcap::Capture;
 
 pub fn forge_arp_request(dst_ip: Ipv4Addr) -> Result<(), AliveTestError> {
-    let src_ip = get_source_ipv4(dst_ip).map_err(|_| AliveTestError::InvalidDestinationAddr)?;
-    let iface =
-        get_interface_by_local_ip(src_ip.into()).map_err(|_| AliveTestError::GetDeviceList)?;
-    let local_mac_address =
-        get_local_mac_address(&iface.name).map_err(|_| AliveTestError::GetMacAddress)?;
+    let src_ip = get_source_ipv4(dst_ip)
+        .map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?;
+    let iface = get_interface_by_local_ip(src_ip.into())
+        .map_err(|e| AliveTestError::GetDeviceList(e.to_string()))?;
+    let local_mac_address = get_local_mac_address(&iface.name)
+        .map_err(|e| AliveTestError::GetMacAddress(e.to_string()))?;
 
     let arp_frame = forge_arp_frame(local_mac_address, src_ip, dst_ip);
 
-    if let Ok(capture) = Capture::from_device(iface.clone()) {
-        if let Ok(mut capture) = capture.timeout(DEFAULT_TIMEOUT).open() {
-            if let Ok(_) = capture.sendpacket(arp_frame) {
-                return Ok(());
-            }
-        };
-    };
-
-    Err(AliveTestError::SendArpRequest)
+    let capture = Capture::from_device(iface.clone())
+        .map_err(|e| AliveTestError::NoValidInterface(e.to_string()))?;
+    let mut capture = capture
+        .timeout(DEFAULT_TIMEOUT)
+        .open()
+        .map_err(|e| AliveTestError::OpenCapture(e.to_string()))?;
+    capture
+        .sendpacket(arp_frame)
+        .map_err(|e| AliveTestError::SendArpRequest(e.to_string()))
 }

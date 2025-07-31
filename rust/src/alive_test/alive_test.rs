@@ -5,8 +5,8 @@
 use crate::alive_test::AliveTestError;
 use crate::alive_test::arp::forge_arp_request;
 use crate::alive_test::common::{alive_test_send_v4_packet, alive_test_send_v6_packet};
-use crate::alive_test::icmp::{forge_icmp, forge_icmp_v6, forge_neighbor_solicit};
-use crate::alive_test::tcp_ping::{FILTER_PORT, forge_tcp_ping, forge_tcp_ping_ipv6};
+use crate::alive_test::icmp::{forge_icmp_v4, forge_icmp_v6, forge_neighbor_solicit};
+use crate::alive_test::tcp_ping::{FILTER_PORT, forge_tcp_ping_ipv4, forge_tcp_ping_ipv6};
 
 use crate::models::{AliveTestMethods, Host};
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
@@ -38,11 +38,15 @@ const DEFAULT_PORT_LIST: [u16; 20] = [
 ];
 
 const MIN_ALLOWED_PACKET_LEN: usize = 16;
+/// Layer 2 frame offset where the interesting payload start
+const L2_FRAME_OFFSET: usize = 16;
+const BITS_PER_WORD_IP_HEADER_LEN_INCREMENT: usize = 32;
+const BITS_PER_BYTE: usize = 8;
 
 pub struct AliveTestCtlStop;
 
 #[derive(Clone)]
-pub struct AliveHostCtl {
+pub struct AliveHostInfo {
     ip: String,
     detection_method: AliveTestMethods,
 }
@@ -71,8 +75,8 @@ fn pkt_stream(
 }
 
 enum EtherTypes {
-    EtherTypeIp,
-    EtherTypeIp6,
+    EtherTypeIpv4,
+    EtherTypeIpv6,
     EtherTypeArp,
 }
 
@@ -81,39 +85,46 @@ impl TryFrom<&[u8]> for EtherTypes {
 
     fn try_from(val: &[u8]) -> Result<Self, Self::Error> {
         match *val {
-            [0x08, 0x00] => Ok(EtherTypes::EtherTypeIp),
+            [0x08, 0x00] => Ok(EtherTypes::EtherTypeIpv4),
             [0x08, 0x06] => Ok(EtherTypes::EtherTypeArp),
-            [0x86, 0xDD] => Ok(EtherTypes::EtherTypeIp6),
+            [0x86, 0xDD] => Ok(EtherTypes::EtherTypeIpv6),
             _ => Err(AliveTestError::InvalidEtherType),
         }
     }
 }
 
-fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
-    let pkt = Ipv4Packet::new(&packet[16..]).ok_or_else(|| {
-        AliveTestError::CreateIpPacketFromWrongBufferSize(packet.len() as i64 - 16)
+fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestError> {
+    let pkt = Ipv4Packet::new(&packet[L2_FRAME_OFFSET..]).ok_or_else(|| {
+        AliveTestError::CreateIpPacketFromWrongBufferSize((packet.len() - L2_FRAME_OFFSET) as i64)
     })?;
-
-    let hl = pkt.get_header_length() as usize * 4 + 16; // in bytes: hl *32 bits words / 8bits per byte
+    // IP header length is given in increments of 32 bits
+    // Then, the header lenght in bytes is = hl * 32 bits per words / 8bits per byte;
+    let header_len =
+        pkt.get_header_length() as usize * BITS_PER_WORD_IP_HEADER_LEN_INCREMENT / BITS_PER_BYTE;
+    let l2_and_ip_header = header_len + L2_FRAME_OFFSET;
     if pkt.get_next_level_protocol() == IpNextHeaderProtocols::Icmp {
-        let icmp_pkt = IcmpPacket::new(&packet[hl..]).ok_or_else(|| {
-            AliveTestError::CreateIcmpPacketFromWrongBufferSize(packet[hl..].len() as i64)
+        let icmp_pkt = IcmpPacket::new(&packet[l2_and_ip_header..]).ok_or_else(|| {
+            AliveTestError::CreateIcmpPacketFromWrongBufferSize(
+                packet[l2_and_ip_header..].len() as i64
+            )
         })?;
         if icmp_pkt.get_icmp_type() == IcmpTypes::EchoReply
             && pkt.get_next_level_protocol() == IpNextHeaderProtocols::Icmp
         {
-            return Ok(Some(AliveHostCtl {
+            return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
                 detection_method: AliveTestMethods::Icmp,
             }));
         }
     }
     if pkt.get_next_level_protocol() == IpNextHeaderProtocols::Tcp {
-        let tcp_packet = TcpPacket::new(&packet[hl..]).ok_or_else(|| {
-            AliveTestError::CreateIcmpPacketFromWrongBufferSize(packet[hl..].len() as i64)
+        let tcp_packet = TcpPacket::new(&packet[l2_and_ip_header..]).ok_or_else(|| {
+            AliveTestError::CreateIcmpPacketFromWrongBufferSize(
+                packet[l2_and_ip_header..].len() as i64
+            )
         })?;
         if tcp_packet.get_destination() == FILTER_PORT {
-            return Ok(Some(AliveHostCtl {
+            return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
                 detection_method: AliveTestMethods::TcpSyn,
             }));
@@ -122,35 +133,36 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestE
     Ok(None)
 }
 
-fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
-    let pkt = Ipv6Packet::new(&packet[16..])
+fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestError> {
+    let pkt = Ipv6Packet::new(&packet[L2_FRAME_OFFSET..])
         .ok_or_else(|| AliveTestError::CreateIpPacketFromWrongBufferSize(packet.len() as i64))?;
     if pkt.get_next_header() == IpNextHeaderProtocols::Icmpv6 {
-        let icmp_pkt =
-            Icmpv6Packet::new(&packet[16 + FIX_IPV6_HEADER_LENGTH..]).ok_or_else(|| {
+        let icmp_pkt = Icmpv6Packet::new(&packet[L2_FRAME_OFFSET + FIX_IPV6_HEADER_LENGTH..])
+            .ok_or_else(|| {
                 AliveTestError::CreateIcmpPacketFromWrongBufferSize(packet[..].len() as i64)
             })?;
-        if icmp_pkt.get_icmpv6_type() == Icmpv6Types::EchoReply {
-            return Ok(Some(AliveHostCtl {
+
+        let make_alive_host_ctl = |pkt: Ipv6Packet<'_>, method| {
+            Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detection_method: AliveTestMethods::Icmp,
-            }));
-        } else if icmp_pkt.get_icmpv6_type() == Icmpv6Types::NeighborAdvert {
-            return Ok(Some(AliveHostCtl {
-                ip: pkt.get_source().to_string(),
-                detection_method: AliveTestMethods::Arp,
-            }));
+                detection_method: method,
+            }))
+        };
+        match icmp_pkt.get_icmpv6_type() {
+            Icmpv6Types::EchoReply => return make_alive_host_ctl(pkt, AliveTestMethods::Icmp),
+            Icmpv6Types::NeighborAdvert => return make_alive_host_ctl(pkt, AliveTestMethods::Arp),
+            _ => {}
         }
     }
     if pkt.get_next_header() == IpNextHeaderProtocols::Tcp {
-        let tcp_packet =
-            TcpPacket::new(&packet[16 + FIX_IPV6_HEADER_LENGTH..]).ok_or_else(|| {
+        let tcp_packet = TcpPacket::new(&packet[L2_FRAME_OFFSET + FIX_IPV6_HEADER_LENGTH..])
+            .ok_or_else(|| {
                 AliveTestError::CreateTcpPacketFromWrongBufferSize(
-                    packet[16 + FIX_IPV6_HEADER_LENGTH..].len() as i64,
+                    packet[L2_FRAME_OFFSET + FIX_IPV6_HEADER_LENGTH..].len() as i64,
                 )
             })?;
         if tcp_packet.get_destination() == FILTER_PORT {
-            return Ok(Some(AliveHostCtl {
+            return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
                 detection_method: AliveTestMethods::TcpSyn,
             }));
@@ -159,11 +171,11 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestE
     Ok(None)
 }
 
-fn process_arp_frame(frame: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
-    let arp = ArpPacket::new(&frame[16..])
+fn process_arp_frame(frame: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestError> {
+    let arp = ArpPacket::new(&frame[L2_FRAME_OFFSET..])
         .ok_or_else(|| AliveTestError::CreateIpPacketFromWrongBufferSize(frame.len() as i64))?;
     if arp.get_operation() == ArpOperations::Reply {
-        return Ok(Some(AliveHostCtl {
+        return Ok(Some(AliveHostInfo {
             ip: arp.get_sender_proto_addr().to_string(),
             detection_method: AliveTestMethods::Arp,
         }));
@@ -171,15 +183,16 @@ fn process_arp_frame(frame: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestErro
     Ok(None)
 }
 
-fn process_packet(packet: &[u8]) -> Result<Option<AliveHostCtl>, AliveTestError> {
+fn process_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestError> {
     if packet.len() <= MIN_ALLOWED_PACKET_LEN {
         return Err(AliveTestError::WrongPacketLength);
     };
+    // 2 last bytes in the data link layer of ether2 is the ether type (the protocol contained in the payload)
     let ether_type = &packet[14..16];
     let ether_type = EtherTypes::try_from(ether_type)?;
     match ether_type {
-        EtherTypes::EtherTypeIp => process_ipv4_packet(packet),
-        EtherTypes::EtherTypeIp6 => process_ipv6_packet(packet),
+        EtherTypes::EtherTypeIpv4 => process_ipv4_packet(packet),
+        EtherTypes::EtherTypeIpv6 => process_ipv6_packet(packet),
         EtherTypes::EtherTypeArp => process_arp_frame(packet),
     }
 }
@@ -193,7 +206,7 @@ pub struct Scanner {
 async fn capture_task(
     capture_inactive: Capture<Inactive>,
     mut rx_ctl: Receiver<AliveTestCtlStop>,
-    tx_msg: Sender<AliveHostCtl>,
+    tx_msg: Sender<AliveHostInfo>,
 ) -> Result<(), AliveTestError> {
     let mut stream = pkt_stream(capture_inactive).expect("Failed to create stream");
     tracing::debug!("Start capture loop");
@@ -226,41 +239,42 @@ async fn send_task(
 ) -> Result<(), AliveTestError> {
     let mut count = 0;
 
+    let target: HashSet<IpAddr> = target
+        .into_iter()
+        .map(|val| {
+            val.parse::<IpAddr>()
+                .map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))
+        })
+        .collect::<Result<_, _>>()?;
+
     if methods.contains(&AliveTestMethods::Icmp) {
         for t in target.iter() {
             count += 1;
-            match t
-                .to_string()
-                .parse::<IpAddr>()
-                .map_err(|_| AliveTestError::InvalidDestinationAddr)?
-            {
+            match t {
                 IpAddr::V4(ipv4) => {
-                    let icmp = forge_icmp(ipv4);
+                    let icmp = forge_icmp_v4(*ipv4);
                     alive_test_send_v4_packet(icmp)?;
                 }
                 IpAddr::V6(ipv6) => {
-                    let icmp = forge_icmp_v6(ipv6)?;
+                    let icmp = forge_icmp_v6(*ipv6)?;
                     alive_test_send_v6_packet(icmp)?;
                 }
-            };
+            }
         }
     }
     if methods.contains(&AliveTestMethods::TcpSyn) {
         for t in target.iter() {
             for port in DEFAULT_PORT_LIST.iter() {
                 count += 1;
-                match t
-                    .to_string()
-                    .parse::<IpAddr>()
-                    .map_err(|_| AliveTestError::InvalidDestinationAddr)?
-                {
+                match t {
                     IpAddr::V4(ipv4) => {
-                        let tcp = forge_tcp_ping(ipv4, port, pnet::packet::tcp::TcpFlags::SYN)?;
+                        let tcp =
+                            forge_tcp_ping_ipv4(*ipv4, port, pnet::packet::tcp::TcpFlags::SYN)?;
                         alive_test_send_v4_packet(tcp)?;
                     }
                     IpAddr::V6(ipv6) => {
                         let tcp =
-                            forge_tcp_ping_ipv6(ipv6, port, pnet::packet::tcp::TcpFlags::SYN)?;
+                            forge_tcp_ping_ipv6(*ipv6, port, pnet::packet::tcp::TcpFlags::SYN)?;
                         alive_test_send_v6_packet(tcp)?;
                     }
                 };
@@ -271,18 +285,15 @@ async fn send_task(
         for t in target.iter() {
             for port in DEFAULT_PORT_LIST.iter() {
                 count += 1;
-                match t
-                    .to_string()
-                    .parse::<IpAddr>()
-                    .map_err(|_| AliveTestError::InvalidDestinationAddr)?
-                {
+                match t {
                     IpAddr::V4(ipv4) => {
-                        let tcp = forge_tcp_ping(ipv4, port, pnet::packet::tcp::TcpFlags::ACK)?;
+                        let tcp =
+                            forge_tcp_ping_ipv4(*ipv4, port, pnet::packet::tcp::TcpFlags::ACK)?;
                         alive_test_send_v4_packet(tcp)?;
                     }
                     IpAddr::V6(ipv6) => {
                         let tcp =
-                            forge_tcp_ping_ipv6(ipv6, port, pnet::packet::tcp::TcpFlags::ACK)?;
+                            forge_tcp_ping_ipv6(*ipv6, port, pnet::packet::tcp::TcpFlags::ACK)?;
                         alive_test_send_v6_packet(tcp)?;
                     }
                 };
@@ -292,16 +303,12 @@ async fn send_task(
     if methods.contains(&AliveTestMethods::Arp) {
         for t in target.iter() {
             count += 1;
-            match t
-                .to_string()
-                .parse::<IpAddr>()
-                .map_err(|_| AliveTestError::InvalidDestinationAddr)?
-            {
+            match t {
                 IpAddr::V4(ipv4) => {
-                    forge_arp_request(ipv4)?;
+                    forge_arp_request(*ipv4)?;
                 }
                 IpAddr::V6(ipv6) => {
-                    let ndp = forge_neighbor_solicit(ipv6)?;
+                    let ndp = forge_neighbor_solicit(*ipv6)?;
                     alive_test_send_v6_packet(ndp)?;
                 }
             };
@@ -345,7 +352,7 @@ impl Scanner {
         let trgt = self.target.clone();
         let (tx_ctl, rx_ctl): (Sender<AliveTestCtlStop>, Receiver<AliveTestCtlStop>) =
             mpsc::channel(1024);
-        let (tx_msg, mut rx_msg): (Sender<AliveHostCtl>, Receiver<AliveHostCtl>) =
+        let (tx_msg, mut rx_msg): (Sender<AliveHostInfo>, Receiver<AliveHostInfo>) =
             mpsc::channel(1024);
 
         let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg));

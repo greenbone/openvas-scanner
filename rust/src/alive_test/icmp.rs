@@ -64,7 +64,7 @@ fn forge_ipv4_packet_for_icmp(icmp_buf: &mut Vec<u8>, dst: Ipv4Addr) -> Ipv4Pack
     Ipv4Packet::owned(ip_buf).unwrap()
 }
 
-pub fn forge_icmp(dst: Ipv4Addr) -> Ipv4Packet<'static> {
+pub fn forge_icmp_v4(dst: Ipv4Addr) -> Ipv4Packet<'static> {
     let mut icmp_buf = forge_icmp_packet();
     forge_ipv4_packet_for_icmp(&mut icmp_buf, dst)
 }
@@ -93,7 +93,9 @@ fn forge_ipv6_packet_for_icmp(
 
     pkt.set_next_header(IpNextHeaderProtocols::Icmpv6);
     pkt.set_hop_limit(DEFAULT_TTL);
-    pkt.set_source(get_source_ipv6(dst).map_err(|_| AliveTestError::InvalidDestinationAddr)?);
+    pkt.set_source(
+        get_source_ipv6(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?,
+    );
     pkt.set_destination(dst);
     pkt.set_version(IPPROTO_IPV6);
     let icmp_buf_len = icmp_buf.len() as i64;

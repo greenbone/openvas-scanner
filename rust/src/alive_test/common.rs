@@ -16,7 +16,7 @@ pub const HEADER_LENGTH: u8 = 5;
 pub const FIX_IPV6_HEADER_LENGTH: usize = 40;
 pub const IPPROTO_IPV6: u8 = 6;
 
-pub fn new_raw_socket() -> Result<Socket, AliveTestError> {
+pub fn new_raw_socket_v4() -> Result<Socket, AliveTestError> {
     Socket::new_raw(
         Domain::IPV4,
         socket2::Type::RAW,
@@ -56,7 +56,7 @@ pub fn alive_test_send_v6_packet(pkt: Ipv6Packet<'static>) -> Result<(), AliveTe
 // Send ipv4 packet
 pub fn alive_test_send_v4_packet(pkt: Ipv4Packet<'static>) -> Result<(), AliveTestError> {
     tracing::debug!("starting sending packet");
-    let sock = new_raw_socket()?;
+    let sock = new_raw_socket_v4()?;
     sock.set_header_included_v4(true)
         .map_err(|e| AliveTestError::NoSocket(e.to_string()))?;
 
