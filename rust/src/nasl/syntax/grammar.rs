@@ -478,7 +478,7 @@ pub fn x_binding_power() -> usize {
 }
 
 impl BinaryOperator {
-    pub fn binding_power(&self) -> (usize, usize) {
+    fn binding_power(&self) -> (usize, usize) {
         use BinaryOperatorKind::*;
         match self.kind {
             StarStar => (24, 25),
@@ -497,7 +497,7 @@ impl BinaryOperator {
 }
 
 impl AssignmentOperator {
-    pub fn binding_power(&self) -> (usize, usize) {
+    fn binding_power(&self) -> (usize, usize) {
         (9, 8)
     }
 }

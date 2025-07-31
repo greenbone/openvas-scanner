@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::CliError;
 
-pub mod check;
+mod check;
 
 #[derive(clap::Parser)]
 pub struct SyntaxArgs {

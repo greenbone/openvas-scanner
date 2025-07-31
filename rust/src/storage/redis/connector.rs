@@ -106,8 +106,8 @@ pub enum NameSpaceSelector {
 }
 
 pub const CACHE_KEY: &str = "nvticache";
-pub const NOTUS_KEY: &str = "notuscache";
-pub const DB_INDEX: &str = "GVM.__GlobalDBIndex";
+const NOTUS_KEY: &str = "notuscache";
+const DB_INDEX: &str = "GVM.__GlobalDBIndex";
 
 impl NameSpaceSelector {
     fn max_db(kb: &mut redis::Connection) -> RedisStorageResult<u32> {
@@ -618,20 +618,5 @@ impl RedisCtx {
             .arg("FLUSHDB")
             .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
         Ok(())
-    }
-
-    //Wrapper function to avoid accessing kb member directly.
-    pub fn set_value<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
-        () = self
-            .kb
-            .as_mut()
-            .expect("Valid redis connection")
-            .set(key, val)?;
-        Ok(())
-    }
-
-    pub fn value(&mut self, key: &str) -> RedisStorageResult<String> {
-        let ret: RedisValueHandler = self.kb.as_mut().expect("Valid redis connection").get(key)?;
-        Ok(ret.v)
     }
 }

@@ -265,7 +265,7 @@ impl From<Response> for Status {
 
 impl Response {
     /// Get the status of the response
-    pub fn status(self) -> Status {
+    fn status(self) -> Status {
         match self {
             Response::Failure { status } => status,
             Response::StartScan { status, .. } => status,
@@ -285,13 +285,6 @@ pub struct Status {
     #[serde(rename = "@status")]
     /// Status code
     pub code: StringU64,
-}
-
-impl Status {
-    /// Check if the status is OK
-    pub fn is_ok(&self) -> bool {
-        self.code.0 == 200
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -396,7 +389,7 @@ struct HostDetail {
 }
 
 impl HostDetail {
-    pub fn extract(&self) -> Option<crate::models::Detail> {
+    fn extract(&self) -> Option<crate::models::Detail> {
         self.detail.first().cloned()
     }
 }
@@ -447,18 +440,6 @@ pub struct Results {
     /// Results
     #[serde(default)]
     pub result: Vec<ScanResult>,
-}
-
-impl Results {
-    /// Push a result to the results
-    pub fn push(&mut self, result: ScanResult) {
-        self.result.push(result);
-    }
-
-    /// Extend the results with another results
-    pub fn extend(&mut self, results: Results) {
-        self.result.extend(results.result);
-    }
 }
 
 impl From<Results> for Vec<crate::models::Result> {

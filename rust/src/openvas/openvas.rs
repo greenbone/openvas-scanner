@@ -94,21 +94,6 @@ impl From<OpenvasPhase> for Phase {
 }
 
 impl Scanner {
-    pub fn with_relative_memory(
-        memory: f32,
-        sudo: bool,
-        url: String,
-        default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
-    ) -> Self {
-        Self {
-            running: Default::default(),
-            sudo,
-            redis_socket: url,
-            resource_checker: Some(Checker::new_relative_memory(memory, None)),
-            default_scanner_preferences,
-        }
-    }
-
     pub fn new(
         memory: Option<u64>,
         cpu: Option<f32>,

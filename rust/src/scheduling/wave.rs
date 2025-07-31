@@ -159,7 +159,7 @@ mod tests {
     }
 
     impl OidGenerator {
-        pub fn generate(&mut self, level: usize) -> String {
+        fn generate(&mut self, level: usize) -> String {
             let result = match level {
                 0 => format!("0.0.0.0.0.0.{}", self.latest_number),
                 1 => format!("0.0.0.0.0.{}.0", self.latest_number),
@@ -223,7 +223,7 @@ mod tests {
                 })
                 .collect::<Vec<_>>()
         }
-        pub fn generate(&self) -> Vec<Nvt> {
+        fn generate(&self) -> Vec<Nvt> {
             let mut oid_gen = OidGenerator { latest_number: 0 };
             let mut results =
                 Self::generate_stage(&mut oid_gen, self.discovery, &Self::pick_discovery_stage);
@@ -265,7 +265,7 @@ mod tests {
             results
         }
 
-        pub fn generate_pyramid(&self) -> Vec<Nvt> {
+        fn generate_pyramid(&self) -> Vec<Nvt> {
             let mut oid_gen = OidGenerator { latest_number: 0 };
             let mut results = Self::generate_pyramid_stage(
                 &mut oid_gen,

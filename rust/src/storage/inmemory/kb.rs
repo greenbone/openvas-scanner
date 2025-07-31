@@ -10,7 +10,7 @@ use crate::storage::{
     items::kb::{GetKbContextKey, KbContext, KbContextKey, KbItem, KbKey},
 };
 
-pub type Kb = HashMap<KbKey, Vec<KbItem>>;
+type Kb = HashMap<KbKey, Vec<KbItem>>;
 
 /// Kbs are bound to a scan_id and a kb_key.
 ///

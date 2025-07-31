@@ -34,12 +34,12 @@ pub type Socket = std::os::raw::c_int;
 // the test passes.  To make sure this doesn't happen, we set
 // `NoLogging` in all test runs.
 #[cfg(test)]
-pub fn get_log_level() -> LogLevel {
+fn get_log_level() -> LogLevel {
     LogLevel::NoLogging
 }
 
 #[cfg(not(test))]
-pub fn get_log_level() -> LogLevel {
+fn get_log_level() -> LogLevel {
     use tracing::Level;
     use tracing_subscriber::filter::LevelFilter;
     let log_level = LevelFilter::current().into_level();
@@ -115,7 +115,7 @@ impl Ssh {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub async fn try_connect(
+    async fn try_connect(
         &mut self,
         session: &mut BorrowedSession<'_>,
         socket: Option<Socket>,

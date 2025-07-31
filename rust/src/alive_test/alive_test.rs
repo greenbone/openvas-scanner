@@ -35,7 +35,7 @@ const MIN_ALLOWED_PACKET_LEN: usize = 16;
 const ICMP_ECHO_REQ_CODE: u8 = 0;
 const IP_PPRTO_VERSION_IPV4: u8 = 4;
 
-pub struct AliveTestCtlStop;
+struct AliveTestCtlStop;
 
 pub struct AliveHostCtl {
     ip: String,

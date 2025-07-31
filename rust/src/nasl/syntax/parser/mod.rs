@@ -4,7 +4,7 @@ mod pretty_print;
 #[cfg(test)]
 mod tests;
 
-pub use error::ErrorKind as ParseErrorKind;
+use error::ErrorKind as ParseErrorKind;
 pub use error::SpannedError as ParseError;
 use error::SpannedError;
 pub use error::{Error, ErrorKind};
@@ -60,7 +60,7 @@ pub trait Delimiter: Default {
     fn end() -> TokenKind;
 }
 
-pub enum OptionalBlock<T> {
+enum OptionalBlock<T> {
     Single(T),
     Block(Block<T>),
 }

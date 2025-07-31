@@ -34,7 +34,7 @@ pub struct Storage<S> {
     underlying: inmemory::Storage<crypt::ChaCha20Crypt>,
 }
 
-pub fn unencrypted<P>(path: P, feeds: Vec<FeedHash>) -> Result<Storage<IndexedFileStorer>, Error>
+fn unencrypted<P>(path: P, feeds: Vec<FeedHash>) -> Result<Storage<IndexedFileStorer>, Error>
 where
     P: AsRef<Path>,
 {
@@ -57,7 +57,7 @@ where
 }
 
 impl<S> Storage<S> {
-    pub fn new(s: S, feeds: Vec<FeedHash>) -> Self {
+    fn new(s: S, feeds: Vec<FeedHash>) -> Self {
         Storage {
             storage: Arc::new(s.into()),
             underlying: inmemory::Storage::new(ChaCha20Crypt::default(), feeds),

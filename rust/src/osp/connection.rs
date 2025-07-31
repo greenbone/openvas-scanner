@@ -19,7 +19,7 @@ use super::{
 };
 
 /// Sends a command to the unix socket and returns the response
-pub fn send_command<T: AsRef<Path>>(
+fn send_command<T: AsRef<Path>>(
     address: T,
     r_timeout: Option<Duration>,
     cmd: ScanCommand,

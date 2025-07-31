@@ -117,7 +117,7 @@ impl SshSession {
         Ok(Self { session, id })
     }
 
-    pub async fn exec_ssh_cmd(&self, command: &str) -> Result<Output, SshError> {
+    pub(crate) async fn exec_ssh_cmd(&self, command: &str) -> Result<Output, SshError> {
         let (stdout, stderr) = self.call(command).await.map_err(|e| {
             SshErrorKind::RequestExec(command.to_string())
                 .with(self.id)
@@ -126,7 +126,7 @@ impl SshSession {
         Ok(Output { stdout, stderr })
     }
 
-    pub async fn call(&self, command: &str) -> Result<(String, String), russh::Error> {
+    async fn call(&self, command: &str) -> Result<(String, String), russh::Error> {
         let mut channel = self.session.channel_open_session().await?;
         channel.exec(true, command).await?;
 

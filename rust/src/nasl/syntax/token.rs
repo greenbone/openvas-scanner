@@ -384,12 +384,6 @@ impl Display for Token {
     }
 }
 
-impl Token {
-    pub fn kind(&self) -> &TokenKind {
-        &self.kind
-    }
-}
-
 impl Spanned for Ident {
     fn span(&self) -> Span {
         self.span

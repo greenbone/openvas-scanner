@@ -53,7 +53,7 @@ fn get_host_names(context: &ScanCtx) -> Result<NaslValue, FnError> {
 ///The mandatory parameter hostname is of type string. It contains the hostname which should be added to the list of vHosts
 ///Additionally a source, how the hostname was detected can be added with the named argument source as a string. If it is not given, the value NASL is set as default.
 #[nasl_function(named(hostname, source))]
-pub fn add_host_name(
+fn add_host_name(
     context: &ScanCtx,
     hostname: Hostname,
     source: Option<&str>,
@@ -65,7 +65,7 @@ pub fn add_host_name(
 
 /// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
 #[nasl_function]
-pub fn get_host_name(_register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
+fn get_host_name(_register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
     let vh = context.target().vhosts();
     let v = if !vh.is_empty() {
         vh.iter()
@@ -100,7 +100,7 @@ pub fn get_host_name(_register: &Register, context: &ScanCtx) -> Result<NaslValu
 /// When no hostname is given, the current scanned host is taken.
 /// If no virtual hosts are found yet this function always returns IP-address.
 #[nasl_function(named(hostname))]
-pub fn get_host_name_source(context: &ScanCtx, hostname: Hostname) -> String {
+fn get_host_name_source(context: &ScanCtx, hostname: Hostname) -> String {
     let vh = context.target().vhosts();
     if !vh.is_empty() {
         if let Some(vhost) = vh.iter().find(|vhost| vhost.hostname() == hostname.0) {

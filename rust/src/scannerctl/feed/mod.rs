@@ -39,7 +39,7 @@ enum Action {
 
 /// Runs nasl scripts in description mode and updates data into Redis
 #[derive(clap::Parser)]
-pub struct UpdateArgs {
+struct UpdateArgs {
     /// Path to the feed.
     #[clap(long)]
     vts_path: Option<PathBuf>,
@@ -62,7 +62,7 @@ pub struct UpdateArgs {
 }
 
 #[derive(clap::Parser)]
-pub struct TransformArgs {
+struct TransformArgs {
     /// Path to the feed.
     #[clap(short, long)]
     path: PathBuf,
@@ -75,7 +75,7 @@ fn make_redis_storage(
     Ok(RedisStorage::init(redis, selector).map_err(StorageError::from)?)
 }
 
-pub async fn update_vts(
+async fn update_vts(
     redis: &str,
     vts_path: Option<PathBuf>,
     signature_check: bool,
@@ -88,7 +88,7 @@ pub async fn update_vts(
     update::run(redis_storage, &path, signature_check).await
 }
 
-pub async fn update_notus(
+async fn update_notus(
     redis: &str,
     notus_path: Option<PathBuf>,
     signature_check: bool,
@@ -126,7 +126,7 @@ fn get_redis_url_from_openvas_config() -> String {
     }
 }
 
-pub async fn update(args: UpdateArgs) -> Result<(), CliError> {
+async fn update(args: UpdateArgs) -> Result<(), CliError> {
     let redis = args.redis.unwrap_or_else(|| {
         warn!("--redis not specified, trying to obtain Redis url from openvas config");
         get_redis_url_from_openvas_config()

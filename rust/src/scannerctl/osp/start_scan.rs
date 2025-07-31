@@ -359,14 +359,15 @@ impl<'de> Deserialize<'de> for Target {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 // TODO: replace kind, username and password with enum
 pub struct Credentials {
-    pub credential: Option<Vec<Credential>>,
+    credential: Option<Vec<Credential>>,
 }
+
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 // TODO: replace kind, username and password with enum
-pub struct Credential {
-    pub kind: String,
-    pub service: String,
-    pub port: Option<String>,
+struct Credential {
+    kind: String,
+    service: String,
+    port: Option<String>,
     /// Contains all fields
     ///
     /// ```xml
@@ -383,7 +384,7 @@ pub struct Credential {
     /// This is done so that we don't have to explicitly create fields for all
     /// credential types as there is an explicit verification later on when we
     /// transform it to models::Credential
-    pub credentials: Vec<(String, String)>,
+    credentials: Vec<(String, String)>,
 }
 
 impl Serialize for Credential {
@@ -533,7 +534,7 @@ impl From<ScanPrefs> for ScannerParameter {
 #[serde(rename = "start_scan")]
 pub struct StartScan {
     #[serde(rename = "@parallel")]
-    pub parallel: Option<String>,
+    parallel: Option<String>,
     #[serde(rename = "@scan_id")]
     pub id: Option<String>,
     pub targets: Targets,

@@ -8,14 +8,6 @@ use std::{
     process::{Child, Command},
 };
 
-/// This module provides functions to call the openvas executable for different
-/// purposes, e.g. start or stopping a scan.
-///
-/// Check if it is possible to start openvas.
-pub fn check() -> bool {
-    Command::new("openvas").spawn().is_ok()
-}
-
 /// Check if it is possible to start openvas with the sudo command. In most
 /// environments it is necessary to start openvas as sudo, as it is not possible
 /// to use all functionalities.
