@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (unary_operators),\n\"\n    -a;\n    !a;\n    - - -a;\n    - - !a;\n    ! ! !a;\n    \").into_iter().map(|\nstmt | stmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+(-a);
+(!a);
+(-(-(-a)));
+(-(-(!a)));
+(!(!(!a)));

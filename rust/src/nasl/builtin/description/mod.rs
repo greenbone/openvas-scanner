@@ -6,7 +6,6 @@ use std::str::FromStr;
 
 use crate::nasl::prelude::*;
 
-use crate::nasl::utils::get_named_parameter;
 use crate::storage::items::nvt::{
     NvtField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue,
 };
@@ -73,14 +72,13 @@ macro_rules! make_storage_function {
             )?
             $(
             $(
-            let value = get_named_parameter(registrat, stringify!($value), true)?;
+            let value = registrat.nasl_value(stringify!($value))?;
             variables.push(value);
             )+
             )?
             $(
             $(
-            let value = get_named_parameter(registrat, stringify!($optional_value), false)?;
-            if !matches!(value, &NaslValue::Exit(0)) {
+            if let Ok(value) = registrat.nasl_value(stringify!($optional_value)) {
                variables.push(value);
             }
             )+

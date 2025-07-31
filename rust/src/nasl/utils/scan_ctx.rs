@@ -8,8 +8,8 @@ use tokio::sync::RwLock;
 
 use crate::models::{AliveTestMethods, Port, PortRange, Protocol, ScanPreference};
 use crate::nasl::builtin::{KBError, NaslSockets};
-use crate::nasl::syntax::{Loader, NaslValue, Statement};
-use crate::nasl::{ArgumentError, FromNaslValue, WithErrorInfo};
+use crate::nasl::syntax::Loader;
+use crate::nasl::{FromNaslValue, WithErrorInfo};
 use crate::scanner::preferences::preference::ScanPrefs;
 use crate::storage::error::StorageError;
 use crate::storage::infisto::json::JsonStorage;
@@ -25,364 +25,17 @@ use crate::storage::redis::{
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
 use rand::seq::SliceRandom;
+use std::collections::BTreeSet;
 use std::sync::MutexGuard;
 
-use super::FnError;
 use super::error::ReturnBehavior;
+use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
-use super::{
-    executor::Executor,
-    lookup_keys::{FC_ANON_ARGS, SCRIPT_PARAMS},
-};
-
-/// Contexts are responsible to locate, add and delete everything that is declared within a NASL plugin
-///
-/// Represents a Value within the NaslContext
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ContextType {
-    /// Represents a Function definition
-    Function(Vec<String>, Statement),
-    /// Represents a Variable or Parameter
-    Value(NaslValue),
-}
-
-impl std::fmt::Display for ContextType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ContextType::Function(_, _) => write!(f, ""),
-            ContextType::Value(v) => write!(f, "{v}"),
-        }
-    }
-}
-
-impl From<NaslValue> for ContextType {
-    fn from(value: NaslValue) -> Self {
-        Self::Value(value)
-    }
-}
-
-impl From<Vec<u8>> for ContextType {
-    fn from(s: Vec<u8>) -> Self {
-        Self::Value(s.into())
-    }
-}
-
-impl From<bool> for ContextType {
-    fn from(b: bool) -> Self {
-        Self::Value(b.into())
-    }
-}
-
-impl From<&str> for ContextType {
-    fn from(s: &str) -> Self {
-        Self::Value(s.into())
-    }
-}
-
-impl From<String> for ContextType {
-    fn from(s: String) -> Self {
-        Self::Value(s.into())
-    }
-}
-
-impl From<i32> for ContextType {
-    fn from(n: i32) -> Self {
-        Self::Value(n.into())
-    }
-}
-
-impl From<i64> for ContextType {
-    fn from(n: i64) -> Self {
-        Self::Value(n.into())
-    }
-}
-
-impl From<usize> for ContextType {
-    fn from(n: usize) -> Self {
-        Self::Value(n.into())
-    }
-}
-
-impl From<&ContextType> for i64 {
-    fn from(ct: &ContextType) -> i64 {
-        match ct {
-            ContextType::Value(NaslValue::Number(i)) => *i,
-            _ => i64::default(),
-        }
-    }
-}
-
-impl From<&ContextType> for String {
-    fn from(ct: &ContextType) -> String {
-        match ct {
-            ContextType::Value(NaslValue::String(s)) => s.to_string(),
-            _ => String::default(),
-        }
-    }
-}
-
-impl From<&ContextType> for bool {
-    fn from(ct: &ContextType) -> bool {
-        match ct {
-            ContextType::Value(NaslValue::Boolean(b)) => *b,
-            _ => bool::default(),
-        }
-    }
-}
-
-impl From<HashMap<String, NaslValue>> for ContextType {
-    fn from(x: HashMap<String, NaslValue>) -> Self {
-        Self::Value(x.into())
-    }
-}
-
-/// Registers all NaslContext
-///
-/// When creating a new context call a corresponding create method.
-/// Warning since those will be stored within a vector each context must be manually
-/// deleted by calling drop_last when the context runs out of scope.
-#[derive(Clone, Debug)]
-pub struct Register {
-    blocks: Vec<NaslContext>,
-}
-
-impl Register {
-    /// Creates an empty register
-    pub fn new() -> Self {
-        Self {
-            blocks: vec![NaslContext::default()],
-        }
-    }
-
-    /// Creates a root Register based on the given initial values
-    pub fn root_initial(initial: &[(String, ContextType)]) -> Self {
-        let mut defined = HashMap::with_capacity(initial.len());
-        for (k, v) in initial {
-            defined.insert(k.to_owned(), v.to_owned());
-        }
-        let root = NaslContext {
-            defined,
-            ..Default::default()
-        };
-        Self { blocks: vec![root] }
-    }
-
-    /// Returns the next index
-    pub fn index(&self) -> usize {
-        self.blocks.len()
-    }
-
-    /// Creates a child context using the last context as a parent
-    pub fn create_child(&mut self, defined: Named) {
-        let parent_id = self.blocks.last().map(|x| x.id).unwrap_or_default();
-        let result = NaslContext {
-            parent: Some(parent_id),
-            id: self.index(),
-            defined,
-        };
-        self.blocks.push(result);
-    }
-
-    /// Creates a child context for the root context.
-    ///
-    /// This is used to function calls to prevent that the called function can access the
-    /// context of the caller.
-    pub fn create_root_child(&mut self, defined: Named) {
-        let result = NaslContext {
-            parent: Some(0),
-            id: self.index(),
-            defined,
-        };
-        self.blocks.push(result);
-    }
-
-    /// Finds a named ContextType
-    pub fn named<'a>(&'a self, name: &'a str) -> Option<&'a ContextType> {
-        self.blocks
-            .last()
-            .and_then(|x| x.named(self, name))
-            .map(|(_, val)| val)
-    }
-
-    /// Finds a named ContextType with index
-    pub fn index_named<'a>(&'a self, name: &'a str) -> Option<(usize, &'a ContextType)> {
-        self.blocks.last().and_then(|x| x.named(self, name))
-    }
-
-    /// Return an iterator over the names of the named arguments.
-    pub fn iter_named_args(&self) -> Option<impl Iterator<Item = &str>> {
-        self.blocks
-            .last()
-            .map(|x| x.defined.keys().map(|x| x.as_str()))
-    }
-
-    /// Find a named argument and return its value as a variable
-    /// or an error otherwise
-    pub(crate) fn nasl_value<'a>(&'a self, arg: &'a str) -> Result<&'a NaslValue, ArgumentError> {
-        match self.named(arg) {
-            Some(ContextType::Value(val)) => Ok(val),
-            Some(_) => Err(ArgumentError::WrongArgument(format!(
-                "Argument {arg} is a function but should be a value."
-            ))),
-            None => Err(ArgumentError::MissingNamed(vec![arg.to_string()])),
-        }
-    }
-
-    /// Adds a named parameter to the root context
-    pub fn add_global(&mut self, name: &str, value: ContextType) {
-        let global = &mut self.blocks[0];
-        global.add_named(name, value);
-    }
-
-    /// Adds a named parameter to a specified context
-    pub fn add_to_index(&mut self, idx: usize, name: &str, value: ContextType) {
-        if idx >= self.blocks.len() {
-            panic!(
-                "The given index should be retrieved by named_value. Therefore this should not happen."
-            );
-        } else {
-            let ctx = &mut self.blocks[idx];
-            ctx.add_named(name, value);
-        }
-    }
-    /// Adds a named parameter to the last context
-    pub fn add_local(&mut self, name: &str, value: ContextType) {
-        if let Some(last) = self.blocks.last_mut() {
-            last.add_named(name, value);
-        }
-    }
-
-    /// Retrieves all positional definitions
-    pub fn positional(&self) -> &[NaslValue] {
-        match self.named(FC_ANON_ARGS) {
-            Some(ContextType::Value(NaslValue::Array(arr))) => arr,
-            _ => &[],
-        }
-    }
-
-    /// Retrieves a script parameter by id
-    pub fn script_param(&self, id: usize) -> Option<NaslValue> {
-        match self.named(format!("{SCRIPT_PARAMS}_{id}").as_str()) {
-            Some(ContextType::Value(v)) => Some(v.clone()),
-            _ => None,
-        }
-    }
-
-    /// Destroys the current context.
-    ///
-    /// This must be called when a context vanishes.
-    /// E.g. after a block statement is proceed or a function call is finished.
-    pub fn drop_last(&mut self) {
-        self.blocks.pop();
-    }
-
-    /// This function extracts number of positional arguments, available functions and variables
-    /// and prints them. This function is used as a debugging tool.
-    pub fn dump(&self, index: usize) {
-        match self.blocks.get(index) {
-            Some(mut current) => {
-                let mut vars = vec![];
-                let mut funs = vec![];
-
-                // Get number of positional arguments
-                let num_pos = match current.named(self, FC_ANON_ARGS).map(|(_, val)| val) {
-                    Some(ContextType::Value(NaslValue::Array(arr))) => arr.len(),
-                    _ => 0,
-                };
-
-                // collect all available functions and variables available in current and parent
-                // context recursively
-                loop {
-                    for (name, ctype) in current.defined.clone() {
-                        if vars.contains(&name) || funs.contains(&name) || name == FC_ANON_ARGS {
-                            continue;
-                        }
-
-                        match ctype {
-                            ContextType::Function(_, _) => funs.push(name),
-                            ContextType::Value(_) => vars.push(name),
-                        };
-                    }
-                    if let Some(parent) = current.parent {
-                        current = &self.blocks[parent];
-                    } else {
-                        break;
-                    }
-                }
-
-                // Print all available information
-                println!("--------<CTXT>--------");
-                println!("number of positional arguments: {num_pos}");
-                println!();
-                println!("available functions:");
-                for function in funs {
-                    print!("{function}\t");
-                }
-                println!();
-                println!();
-                println!("available variables:");
-                for var in vars {
-                    print!("{var}\t");
-                }
-                println!();
-                println!("----------------------");
-            }
-            None => println!("No context available"),
-        };
-    }
-}
-
-impl Default for Register {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-use socket2;
-use std::collections::{BTreeSet, HashMap};
-
+use super::{FnError, Register};
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-
-type Named = HashMap<String, ContextType>;
-
-/// NaslContext is a struct to contain variables and if root declared functions
-///
-/// A context should never be created directly but via a Register.
-/// The reason for that is that a Registrat contains all blocks and a block must be registered to ensure that each Block must be created via an Registrat.
-#[derive(Default, Clone, Debug)]
-pub struct NaslContext {
-    /// Parent id within the register
-    parent: Option<usize>,
-    /// Own id within the register
-    id: usize,
-    /// The defined values/ functions.
-    defined: Named,
-}
-
-impl NaslContext {
-    /// Adds a named parameter to the context
-    fn add_named(&mut self, name: &str, value: ContextType) {
-        self.defined.insert(name.to_owned(), value);
-    }
-
-    /// Retrieves a definition by name
-    fn named<'a>(
-        &'a self,
-        registrat: &'a Register,
-        name: &'a str,
-    ) -> Option<(usize, &'a ContextType)> {
-        // first check local
-        match self.defined.get(name) {
-            Some(ctx) => Some((self.id, ctx)),
-            None => match self.parent {
-                Some(parent) => registrat.blocks[parent].named(registrat, name),
-                None => None,
-            },
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct VHost {
@@ -962,6 +615,12 @@ impl<'a> ScanCtx<'a> {
     pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
         self.sockets.write().await
     }
+
+    pub(crate) fn add_fn_global_vars(&self, register: &mut Register) {
+        for (name, val) in self.executor.iter_fn_global_vars() {
+            register.add_global_var(name, val);
+        }
+    }
 }
 
 impl Drop for ScanCtx<'_> {
@@ -969,15 +628,6 @@ impl Drop for ScanCtx<'_> {
         let mut nvt = self.nvt.lock().unwrap();
         if let Some(nvt) = nvt.take() {
             self.dispatch_nvt(nvt);
-        }
-    }
-}
-
-impl From<&ContextType> for NaslValue {
-    fn from(value: &ContextType) -> Self {
-        match value {
-            ContextType::Function(_, _) => NaslValue::Null,
-            ContextType::Value(v) => v.to_owned(),
         }
     }
 }

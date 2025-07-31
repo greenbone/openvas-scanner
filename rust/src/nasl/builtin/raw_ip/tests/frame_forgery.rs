@@ -54,7 +54,7 @@ fn send_frame() {
         NaslValue::Null,
     );
     t.ok(
-        r#"send_frame(frame: a, pcap_active: TRUE, filter: "arp", timeout: 2);"#,
+        r#"send_frame(frame: a, pcap_active: TRUE, pcap_filter: "arp", timeout: 2);"#,
         NaslValue::Null,
     );
 }

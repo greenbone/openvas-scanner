@@ -9,11 +9,11 @@ use std::{
     time::SystemTime,
 };
 
-use crate::models::Product;
+use crate::{feed::check_signature, models::Product};
 
 use crate::feed::SignatureChecker;
 use crate::{
-    feed::{VerifyError, check_signature},
+    feed::VerifyError,
     notus::error::{Error, LoadProductErrorKind},
 };
 

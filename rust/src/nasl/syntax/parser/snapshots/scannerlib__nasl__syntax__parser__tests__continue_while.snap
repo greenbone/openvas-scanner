@@ -1,0 +1,8 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (continue_while),\n\"while (a) { b = 2; continue; }\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+while (a) {
+  b = 2;
+  continue;
+}

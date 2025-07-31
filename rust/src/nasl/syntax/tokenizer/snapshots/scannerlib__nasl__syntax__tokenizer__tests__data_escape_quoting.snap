@@ -1,0 +1,45 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (data_escape_quoting), r#\"'version=\\\"1.0\\\"'\"#)"
+---
+[
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Data(
+                    [
+                        118,
+                        101,
+                        114,
+                        115,
+                        105,
+                        111,
+                        110,
+                        61,
+                        34,
+                        49,
+                        46,
+                        48,
+                        34,
+                    ],
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        17,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                17,
+            ),
+        },
+    },
+]

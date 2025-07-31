@@ -1,0 +1,10 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_err(stringify! (invalid_hex_characters), \"0x123h\")"
+snapshot_kind: text
+---
+error: Invalid number literal.
+  ┌─ invalid_hex_characters:1:1
+  │
+1 │ 0x123h
+  │ ^^^^^^ Invalid number literal.

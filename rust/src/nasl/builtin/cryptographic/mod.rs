@@ -7,7 +7,7 @@ use thiserror::Error;
 // use crate::nasl::utils::combine_function_sets;
 use crate::nasl::prelude::*;
 
-use crate::nasl::utils::{ContextType, IntoFunctionSet, Register, StoredFunctionSet};
+use crate::nasl::utils::{IntoFunctionSet, Register, StoredFunctionSet};
 
 pub mod aes_cbc;
 pub mod aes_ccm;
@@ -59,10 +59,10 @@ fn get_required_named_data<'a>(
     register: &'a Register,
     key: &'a str,
 ) -> Result<&'a [u8], ArgumentError> {
-    match register.named(key) {
-        Some(ContextType::Value(NaslValue::Data(x))) => Ok(x.as_slice()),
-        Some(ContextType::Value(NaslValue::String(x))) => Ok(x.as_bytes()),
-        Some(x) => Err(ArgumentError::wrong_argument(
+    match register.nasl_value(key) {
+        Ok(NaslValue::Data(x)) => Ok(x.as_slice()),
+        Ok(NaslValue::String(x)) => Ok(x.as_bytes()),
+        Ok(x) => Err(ArgumentError::wrong_argument(
             key,
             "a String or Data Value",
             format!("{x:?}").as_str(),
@@ -76,9 +76,9 @@ fn get_required_named_data<'a>(
 /// set to Some value. If it is false, no error will be returned but the Option can be either Some
 /// or None.
 fn get_optional_named_number(register: &Register, key: &str) -> Result<Option<i64>, ArgumentError> {
-    match register.named(key) {
-        Some(ContextType::Value(NaslValue::Number(x))) => Ok(Some(*x)),
-        Some(x) => Err(ArgumentError::wrong_argument(
+    match register.nasl_value(key) {
+        Ok(NaslValue::Number(x)) => Ok(Some(*x)),
+        Ok(x) => Err(ArgumentError::wrong_argument(
             key,
             "a Number Value",
             format!("{x:?}").as_str(),

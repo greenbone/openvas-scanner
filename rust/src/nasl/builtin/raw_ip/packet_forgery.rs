@@ -14,9 +14,9 @@ use super::{
     raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
+use crate::nasl::NaslValue;
 use crate::nasl::prelude::*;
-use crate::nasl::syntax::NaslValue;
-use crate::nasl::utils::NaslVars;
+use crate::nasl::utils::DefineGlobalVars;
 use crate::nasl::{builtin::misc::random_impl, utils::function::utils::DEFAULT_TIMEOUT};
 
 use pcap::Capture;
@@ -1885,10 +1885,8 @@ fn forge_igmp_packet(
     let mut igmp_pkt = igmp::MutableIgmpPacket::new(&mut buf).unwrap();
 
     // use register since type is codeword
-    match register.named("type") {
-        Some(ContextType::Value(NaslValue::Number(x))) => {
-            igmp_pkt.set_igmp_type(igmp::IgmpType::new(*x as u8))
-        }
+    match register.nasl_value("type") {
+        Ok(NaslValue::Number(x)) => igmp_pkt.set_igmp_type(igmp::IgmpType::new(*x as u8)),
         _ => igmp_pkt.set_igmp_type(igmp::IgmpTypes::Default),
     };
     igmp_pkt.set_igmp_timeout(code.unwrap_or(0u8));
@@ -3349,59 +3347,6 @@ fn nasl_send_v6packet(
     Ok(NaslValue::Null)
 }
 
-/// Returns a NaslVars with all predefined variables which must be expose to nasl script
-pub fn expose_vars() -> NaslVars<'static> {
-    let builtin_vars: NaslVars = [
-        (
-            "IPPROTO_TCP",
-            NaslValue::Number(IpNextHeaderProtocols::Tcp.to_primitive_values().0.into()),
-        ),
-        (
-            "IPPROTO_UDP",
-            NaslValue::Number(IpNextHeaderProtocols::Udp.to_primitive_values().0.into()),
-        ),
-        (
-            "IPPROTO_ICMP",
-            NaslValue::Number(IpNextHeaderProtocols::Icmp.to_primitive_values().0.into()),
-        ),
-        (
-            "IPPROTO_IGMP",
-            NaslValue::Number(IpNextHeaderProtocols::Igmp.to_primitive_values().0.into()),
-        ),
-        ("IPPROTO_IP", NaslValue::Number(IPPROTO_IP.into())),
-        ("TH_FIN", NaslValue::Number(TcpFlags::FIN.into())),
-        ("TH_SYN", NaslValue::Number(TcpFlags::SYN.into())),
-        ("TH_RST", NaslValue::Number(TcpFlags::RST.into())),
-        ("TH_PUSH", NaslValue::Number(TcpFlags::PSH.into())),
-        ("TH_ACK", NaslValue::Number(TcpFlags::ACK.into())),
-        ("TH_URG", NaslValue::Number(TcpFlags::URG.into())),
-        ("IP_RF", NaslValue::Number(IP_RF)),
-        ("IP_DF", NaslValue::Number(IP_DF)),
-        ("IP_MF", NaslValue::Number(IP_MF)),
-        ("IP_OFFMASK", NaslValue::Number(IP_OFFMASK)),
-        (
-            "TCPOPT_MAXSEG",
-            NaslValue::Number(TcpOptionNumbers::MSS.to_primitive_values().0 as i64),
-        ),
-        (
-            "TCPOPT_WINDOW",
-            NaslValue::Number(TcpOptionNumbers::WSCALE.to_primitive_values().0 as i64),
-        ),
-        (
-            "TCPOPT_SACK_PERMITTED",
-            NaslValue::Number(TcpOptionNumbers::SACK_PERMITTED.to_primitive_values().0 as i64),
-        ),
-        (
-            "TCPOPT_TIMESTAMP",
-            NaslValue::Number(TcpOptionNumbers::TIMESTAMPS.to_primitive_values().0 as i64),
-        ),
-    ]
-    .iter()
-    .cloned()
-    .collect();
-    builtin_vars
-}
-
 pub struct PacketForgery;
 
 function_set! {
@@ -3455,4 +3400,54 @@ function_set! {
         forge_igmp_v6_packet,
         (nasl_send_v6packet, "send_v6packet"),
     )
+}
+
+impl DefineGlobalVars for PacketForgery {
+    fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
+        vec![
+            (
+                "IPPROTO_TCP",
+                NaslValue::Number(IpNextHeaderProtocols::Tcp.to_primitive_values().0.into()),
+            ),
+            (
+                "IPPROTO_UDP",
+                NaslValue::Number(IpNextHeaderProtocols::Udp.to_primitive_values().0.into()),
+            ),
+            (
+                "IPPROTO_ICMP",
+                NaslValue::Number(IpNextHeaderProtocols::Icmp.to_primitive_values().0.into()),
+            ),
+            (
+                "IPPROTO_IGMP",
+                NaslValue::Number(IpNextHeaderProtocols::Igmp.to_primitive_values().0.into()),
+            ),
+            ("IPPROTO_IP", NaslValue::Number(IPPROTO_IP.into())),
+            ("TH_FIN", NaslValue::Number(TcpFlags::FIN.into())),
+            ("TH_SYN", NaslValue::Number(TcpFlags::SYN.into())),
+            ("TH_RST", NaslValue::Number(TcpFlags::RST.into())),
+            ("TH_PUSH", NaslValue::Number(TcpFlags::PSH.into())),
+            ("TH_ACK", NaslValue::Number(TcpFlags::ACK.into())),
+            ("TH_URG", NaslValue::Number(TcpFlags::URG.into())),
+            ("IP_RF", NaslValue::Number(IP_RF)),
+            ("IP_DF", NaslValue::Number(IP_DF)),
+            ("IP_MF", NaslValue::Number(IP_MF)),
+            ("IP_OFFMASK", NaslValue::Number(IP_OFFMASK)),
+            (
+                "TCPOPT_MAXSEG",
+                NaslValue::Number(TcpOptionNumbers::MSS.to_primitive_values().0 as i64),
+            ),
+            (
+                "TCPOPT_WINDOW",
+                NaslValue::Number(TcpOptionNumbers::WSCALE.to_primitive_values().0 as i64),
+            ),
+            (
+                "TCPOPT_SACK_PERMITTED",
+                NaslValue::Number(TcpOptionNumbers::SACK_PERMITTED.to_primitive_values().0 as i64),
+            ),
+            (
+                "TCPOPT_TIMESTAMP",
+                NaslValue::Number(TcpOptionNumbers::TIMESTAMPS.to_primitive_values().0 as i64),
+            ),
+        ]
+    }
 }

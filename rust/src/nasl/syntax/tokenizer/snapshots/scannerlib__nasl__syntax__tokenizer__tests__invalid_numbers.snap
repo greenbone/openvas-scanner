@@ -1,0 +1,22 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_err(stringify! (invalid_numbers), \"0x 0b 0b2\")"
+snapshot_kind: text
+---
+error: Invalid number literal.
+  ┌─ invalid_numbers:1:1
+  │
+1 │ 0x 0b 0b2
+  │ ^^ Invalid number literal.
+
+error: Invalid number literal.
+  ┌─ invalid_numbers:1:4
+  │
+1 │ 0x 0b 0b2
+  │    ^^ Invalid number literal.
+
+error: Invalid number literal.
+  ┌─ invalid_numbers:1:7
+  │
+1 │ 0x 0b 0b2
+  │       ^^ Invalid number literal.

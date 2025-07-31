@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use scannerlib::{
-    feed::{FeedReplacer, ReplaceCommand},
     nasl::WithErrorInfo,
 };
 use tracing::info;

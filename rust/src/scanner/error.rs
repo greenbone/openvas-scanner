@@ -4,7 +4,7 @@
 
 use crate::models::{Host, Protocol};
 
-use crate::nasl::interpreter::InterpretError;
+use crate::nasl::interpreter::InterpreterError;
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
 
@@ -48,7 +48,7 @@ pub enum ScriptResultKind {
     /// It contains the first not found key.
     MissingMandatoryKey(String),
     /// Contains the error the script returned
-    Error(InterpretError),
+    Error(InterpreterError),
 }
 
 impl From<StorageError> for ScriptResultKind {

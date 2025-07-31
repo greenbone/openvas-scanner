@@ -27,14 +27,18 @@ use tokio::sync::RwLock;
 
 use crate::nasl::prelude::*;
 
+use super::DefineGlobalVars;
+
 #[derive(Default)]
 /// The executor. This is the main outward facing type of this module
 /// and fulfills two main roles:
-/// 1. Keeping track of all the registered, builtin NASL functions.
+/// 1. Keeping track of all the registered, builtin NASL functions along with
+///    their required global variables.
 /// 2. Storing the required state to call those functions, if necessary. This
 ///    includes things such as open SSH or HTTP connections, mutexes, etc.
 pub struct Executor {
     sets: Vec<Box<dyn FunctionSet + Send + Sync>>,
+    fn_global_vars: Vec<(&'static str, NaslValue)>,
 }
 
 impl Executor {
@@ -73,6 +77,15 @@ impl Executor {
 
     pub fn contains(&self, k: &str) -> bool {
         self.sets.iter().any(|set| set.contains(k))
+    }
+
+    pub fn add_global_vars<S: DefineGlobalVars>(&mut self, _: S) -> &mut Self {
+        self.fn_global_vars.extend(S::get_global_vars());
+        self
+    }
+
+    pub(crate) fn iter_fn_global_vars(&self) -> impl Iterator<Item = (&'static str, NaslValue)> {
+        self.fn_global_vars.iter().cloned()
     }
 }
 

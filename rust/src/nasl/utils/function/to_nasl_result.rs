@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::nasl::syntax::NaslValue;
+use crate::nasl::prelude::NaslValue;
 use crate::nasl::{ArgumentError, FnError, NaslResult};
 
 /// A type that can be converted to a NaslResult.

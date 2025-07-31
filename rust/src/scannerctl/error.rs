@@ -8,10 +8,11 @@ use std::path::{Path, PathBuf};
 use feed::VerifyError;
 use quick_xml::DeError;
 use scannerlib::nasl::WithErrorInfo;
-use scannerlib::nasl::{interpreter::InterpretError, syntax::LoadError};
+use scannerlib::nasl::syntax::ParseError;
+use scannerlib::nasl::{interpreter::InterpreterError, syntax::LoadError};
+use scannerlib::scanner::ExecuteError;
 use scannerlib::storage::error::StorageError;
 use scannerlib::{feed, notus};
-use scannerlib::{nasl::syntax::SyntaxError, scanner::ExecuteError};
 
 #[derive(Debug, thiserror::Error)]
 
@@ -22,7 +23,7 @@ pub enum CliErrorKind {
         err_msg: String,
     },
     #[error("{0}")]
-    InterpretError(InterpretError),
+    InterpretError(InterpreterError),
     #[error("{0}")]
     ExecuteError(#[from] ExecuteError),
     #[error("{0}")]
@@ -31,8 +32,9 @@ pub enum CliErrorKind {
     LoadError(LoadError),
     #[error("{0}")]
     StorageError(StorageError),
-    #[error("{0}")]
-    SyntaxError(SyntaxError),
+    // TODO fix this error message.
+    #[error("Encountered syntax errors.")]
+    SyntaxError(Vec<ParseError>),
     #[error("{0}")]
     Corrupt(String),
     #[error("Invalid XML: {0}")]
@@ -158,8 +160,8 @@ impl From<LoadError> for CliErrorKind {
     }
 }
 
-impl From<InterpretError> for CliErrorKind {
-    fn from(value: InterpretError) -> Self {
+impl From<InterpreterError> for CliErrorKind {
+    fn from(value: InterpreterError) -> Self {
         Self::InterpretError(value)
     }
 }
@@ -167,12 +169,6 @@ impl From<InterpretError> for CliErrorKind {
 impl From<StorageError> for CliErrorKind {
     fn from(value: StorageError) -> Self {
         Self::StorageError(value)
-    }
-}
-
-impl From<SyntaxError> for CliErrorKind {
-    fn from(value: SyntaxError) -> Self {
-        Self::SyntaxError(value)
     }
 }
 

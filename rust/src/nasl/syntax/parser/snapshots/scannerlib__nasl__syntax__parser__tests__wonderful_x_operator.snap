@@ -1,0 +1,5 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (wonderful_x_operator),\n\"send_packet( udp, pcap_active:FALSE ) x 200;\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+send_packet(udp, pcap_active: FALSE) x 200;

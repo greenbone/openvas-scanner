@@ -1,0 +1,15 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (missing_right_curly_bracket), \"{ a = 2;\")"
+---
+error: Expected expression
+  ┌─ missing_right_curly_bracket:1:9
+  │
+1 │ { a = 2;
+  │         ^ Expected expression
+
+error: Expected '}'
+  ┌─ missing_right_curly_bracket:1:8
+  │
+1 │ { a = 2;
+  │        ^ Expected '}'
