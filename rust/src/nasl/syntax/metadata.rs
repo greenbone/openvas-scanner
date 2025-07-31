@@ -1,15 +1,10 @@
-use crate::nasl::syntax::parser::ErrorKind;
 use crate::nasl::syntax::parser::Result;
 
-use super::Keyword;
-use super::TokenKind;
 use super::grammar::Ast;
 use super::grammar::Atom;
 use super::grammar::Expr;
 use super::grammar::Statement;
-use super::parser::Error;
-use super::parser::cursor::Peek;
-use super::{grammar::If, parser::Parse};
+use super::parser::Parse;
 
 pub struct DescriptionBlock {
     stmts: Vec<Statement>,
@@ -23,25 +18,26 @@ impl DescriptionBlock {
 
 impl Parse for DescriptionBlock {
     fn parse(parser: &mut super::Parser) -> Result<Self> {
-        while !parser.token_matches(TokenKind::Keyword(Keyword::If)) {
-            parser.advance();
+        let mut stmts = vec![];
+        loop {
+            let stmt = parser.parse()?;
+            stmts.push(stmt);
+            if let Statement::If(if_) = stmts.last().unwrap() {
+                let (condition, _) = if_.if_branches.first().unwrap();
+                if check_condition(condition) {
+                    break;
+                }
+            }
         }
-        let mut if_: If = parser.parse()?;
-        let (condition, block) = if_.if_branches.remove(0);
-        check_condition(condition)?;
-        Ok(Self { stmts: block.items })
+        Ok(Self { stmts })
     }
 }
 
-fn check_condition(condition: Expr) -> Result<()> {
-    if let Expr::Atom(Atom::Ident(ref ident)) = condition {
+fn check_condition(condition: &Expr) -> bool {
+    if let Expr::Atom(Atom::Ident(ident)) = condition {
         if ident.to_string() == "description" {
-            return Ok(());
+            return true;
         }
     }
-    let err: Error = ErrorKind::InvalidDescriptionBlock(
-        "Invalid condition. Expected if (description) { ... }.".to_string(),
-    )
-    .into();
-    Err(err.with_span(&condition))
+    false
 }
