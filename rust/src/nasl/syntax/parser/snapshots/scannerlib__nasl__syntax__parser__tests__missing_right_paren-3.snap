@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (missing_right_paren),\n\"for (i = 0; i < 10; i++ ;\")"
+---
+error: Expected ')'
+  ┌─ missing_right_paren:1:22
+  │
+1 │ for (i = 0; i < 10; i++ ;
+  │                      ^^ Expected ')'

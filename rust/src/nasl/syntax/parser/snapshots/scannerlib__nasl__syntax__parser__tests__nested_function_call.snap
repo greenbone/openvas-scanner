@@ -1,0 +1,5 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (nested_function_call),\n\"foo(bar(3), 4);\").into_iter().map(| stmt | stmt.to_string()).collect :: < Vec\n< _ >> ().join(\"\\n\")"
+---
+foo(bar(3), 4);

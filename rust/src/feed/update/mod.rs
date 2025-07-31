@@ -11,14 +11,12 @@ use futures::{Stream, StreamExt, stream};
 use std::fs::File;
 use tracing::trace;
 
-use crate::nasl::ContextType;
+use crate::nasl::error::Level;
+use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
-use crate::nasl::interpreter::Interpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::AsBufReader;
-use crate::nasl::syntax::Lexer;
-use crate::nasl::syntax::Tokenizer;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::nasl::utils::scan_ctx::Target;
@@ -40,7 +38,7 @@ pub struct Update<'a, S, L, V> {
     /// Is used to load nasl plugins by a relative path
     loader: &'a L,
     /// Initial data, usually set in new.
-    initial: Vec<(String, ContextType)>,
+    initial: Vec<(String, NaslValue)>,
     /// How often loader or storage should retry before giving up when a retryable error occurs.
     max_retry: usize,
     verifier: V,
@@ -53,8 +51,8 @@ pub async fn feed_version(
     loader: &dyn Loader,
     dispatcher: &dyn ContextStorage,
 ) -> Result<String, ErrorKind> {
-    let feed_info_key = "plugin_feed_info.inc";
-    let code = loader.load(feed_info_key)?;
+    let feed_info_filename = "plugin_feed_info.inc";
+    let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
     let target = Target::localhost();
@@ -75,17 +73,18 @@ pub async fn feed_version(
         alive_test_methods,
     };
     let context = cb.build();
-    let mut interpreter = Interpreter::new(register, Lexer::new(Tokenizer::new(&code)), &context);
-    for stmt in crate::nasl::syntax::parse(&code) {
-        let stmt = stmt?;
-        interpreter.resolve(&stmt).await?;
-    }
+    let mut interpreter = ForkingInterpreter::new(
+        code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
+        register,
+        &context,
+    );
+    interpreter.execute_all().await?;
 
     let feed_version = interpreter
         .register()
-        .named("PLUGIN_SET")
+        .nasl_value("PLUGIN_SET")
         .map(|x| x.to_string())
-        .unwrap_or_else(|| "0".to_owned());
+        .unwrap_or_else(|_| "0".to_owned());
     Ok(feed_version)
 }
 
@@ -165,9 +164,13 @@ where
 
     /// Runs a single plugin in description mode.
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
-        let code = self.loader.load(&key.0)?;
-        let register = Register::root_initial(&self.initial);
-        let scan_params = ScanPrefs::new();
+        let code = Code::load(self.loader, &key.0)?;
+
+        // Technically, we don't need to set the "description" variable
+        // anymore, since the parse_description_block function returns
+        // the statements from within the if.
+        let register = Register::from_global_variables(&self.initial);
+        let scan_params = ScanPrefs(Vec::default());
         let alive_test_methods = Vec::default();
         let target = Target::localhost();
         let ports = Default::default();
@@ -183,14 +186,22 @@ where
             alive_test_methods,
         };
         let context = context.build();
-        let mut results = Box::pin(ForkingInterpreter::new(&code, register, &context).stream());
+        let file = code.source_file();
+        let ast = code
+            .parse_description_block()
+            .emit_errors()
+            .map_err(ErrorKind::SyntaxError)?;
+        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
         while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
                     return Ok(i);
                 }
                 Ok(_) => {}
-                Err(e) => return Err(e.into()),
+                Err(e) => {
+                    emit_errors(&file, std::iter::once(&e), Level::Error);
+                    return Err(e.into());
+                }
             }
         }
         Err(ErrorKind::MissingExit(key.0.clone()))

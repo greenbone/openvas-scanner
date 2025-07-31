@@ -73,6 +73,7 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - smb3kdf
 - smb_cmac_aes_signature
 - smb_gmac_aes_signature
+- insert_hexzeros
 
 ## Not yet implemented
 
@@ -90,8 +91,6 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - dsa_do_verify
 - get_signature
 - get_smb2_signature
-- index
-- insert_hexzeros
 - key_exchange
 - lm_owf_gen
 - nt_owf_gen

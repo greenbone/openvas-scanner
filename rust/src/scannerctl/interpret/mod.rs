@@ -12,7 +12,8 @@ use futures::StreamExt;
 use scannerlib::{
     feed,
     nasl::{
-        ScanCtx,
+        Code, Register, ScanCtx, ScanCtxBuilder,
+        error::{Level, emit_errors},
         interpreter::ForkingInterpreter,
         nasl_std_functions,
         utils::{
@@ -29,9 +30,8 @@ use scannerlib::{
 use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 use scannerlib::{
     nasl::{
-        FSPluginLoader, Loader, NaslValue, NoOpLoader, RegisterBuilder, ScanCtxBuilder,
-        WithErrorInfo,
-        interpreter::InterpretErrorKind,
+        FSPluginLoader, Loader, NaslValue, WithErrorInfo,
+        interpreter::InterpreterErrorKind,
         syntax::{LoadError, load_non_utf8_path},
     },
     storage::items::nvt::Nvt,
@@ -56,22 +56,30 @@ fn load(ctx: &ScanCtx, script: &Path) -> Result<String, CliErrorKind> {
 }
 
 async fn run_with_context(context: ScanCtx<'_>, script: &Path) -> Result<(), CliErrorKind> {
-    let register = RegisterBuilder::build();
-    let code = load(&context, script)?;
-    let mut results = ForkingInterpreter::new(&code, register, &context).stream();
+    let register = Register::default();
+    let code = Code::from_string_filename(&load(&context, script)?, script);
+    let (ast, file) = code
+        .parse()
+        .emit_errors_get_ast_and_file()
+        .map_err(CliErrorKind::SyntaxError)?;
+    let mut results = ForkingInterpreter::new(ast, register, &context).stream();
     while let Some(result) = results.next().await {
         let r = match result {
             Ok(x) => x,
             Err(e) => {
-                if let InterpretErrorKind::FunctionCallError(ref fe) = e.kind {
+                if let InterpreterErrorKind::FunctionCallError(ref fe) = e.kind {
                     match fe.kind.return_behavior() {
-                        ReturnBehavior::ExitScript => return Err(e.into()),
+                        ReturnBehavior::ExitScript => {
+                            emit_errors(&file, std::iter::once(&e), Level::Error);
+                            return Err(e.into());
+                        }
                         ReturnBehavior::ReturnValue(val) => {
-                            tracing::warn!("{}", e.to_string());
+                            emit_errors(&file, std::iter::once(&e), Level::Warn);
                             val.clone()
                         }
                     }
                 } else {
+                    emit_errors(&file, std::iter::once(&e), Level::Error);
                     return Err(e.into());
                 }
             }
@@ -183,7 +191,7 @@ pub async fn run(
         (Db::InMemory, None) => {
             run_on_storage(
                 InMemoryStorage::default(),
-                NoOpLoader::default(),
+                FSPluginLoader::new(script.parent().unwrap()),
                 target,
                 kb,
                 ports,

@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (missing_semicolon_newlines), \"foo\n\n\n\n    \")"
+---
+error: Expected ';'
+  ┌─ missing_semicolon_newlines:1:1
+  │
+1 │ foo
+  │ ^^^ Expected ';'

@@ -1,0 +1,15 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (multiple_missing_semicolons_2),\n\"{\n        a  = 1\n        b  = 1;\n        c  = 1;\n        d = 1\n    }\")"
+---
+error: Expected ';'
+  ┌─ multiple_missing_semicolons_2:2:14
+  │
+2 │         a  = 1
+  │              ^ Expected ';'
+
+error: Expected ';'
+  ┌─ multiple_missing_semicolons_2:5:13
+  │
+5 │         d = 1
+  │             ^ Expected ';'

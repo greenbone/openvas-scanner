@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (function_call_unclosed), \"a(1, 2, 3\")"
+---
+error: Expected ')'
+  ┌─ function_call_unclosed:1:9
+  │
+1 │ a(1, 2, 3
+  │         ^ Expected ')'

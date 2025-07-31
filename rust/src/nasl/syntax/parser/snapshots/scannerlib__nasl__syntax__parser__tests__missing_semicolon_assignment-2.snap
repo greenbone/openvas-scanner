@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_err(stringify! (missing_semicolon_assignment), \"a = [1, 2, 4]\")"
+---
+error: Expected ';'
+  ┌─ missing_semicolon_assignment:1:13
+  │
+1 │ a = [1, 2, 4]
+  │             ^ Expected ';'

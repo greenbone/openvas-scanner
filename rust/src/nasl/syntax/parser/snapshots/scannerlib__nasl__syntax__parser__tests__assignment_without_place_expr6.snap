@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_err :: < Statement >\n(stringify! (assignment_without_place_expr6), \"[1, 2, 3] = 3;\")"
+---
+error: Not a valid assignment target.
+  ┌─ assignment_without_place_expr6:1:1
+  │
+1 │ [1, 2, 3] = 3;
+  │ ^^^^^^^^^ Not a valid assignment target.

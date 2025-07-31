@@ -1,0 +1,46 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (data_string), r#\"'Hello \\\\\\'you\\\\\\'!'\"#)"
+---
+[
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Data(
+                    [
+                        72,
+                        101,
+                        108,
+                        108,
+                        111,
+                        32,
+                        92,
+                        39,
+                        121,
+                        111,
+                        117,
+                        92,
+                        39,
+                        33,
+                    ],
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        20,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                20,
+            ),
+        },
+    },
+]

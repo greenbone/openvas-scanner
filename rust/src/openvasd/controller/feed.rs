@@ -11,7 +11,7 @@ use crate::{
     storage::{FeedHash, NVTStorer as _},
 };
 
-use super::context::Context;
+use super::Context;
 
 async fn changed_hash(signature_check: bool, feeds: &[FeedHash]) -> Result<Vec<FeedHash>, ()> {
     let mut result = Vec::with_capacity(feeds.len());

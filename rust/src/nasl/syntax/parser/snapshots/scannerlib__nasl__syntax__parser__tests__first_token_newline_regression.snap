@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_err :: < If >\n(stringify! (first_token_newline_regression), r#\"\nfoo = \"bar\";\n\"#)"
+---
+error: Expected 'if'
+  ┌─ first_token_newline_regression:2:1
+  │
+2 │ foo = "bar";
+  │ ^^^ Expected 'if'

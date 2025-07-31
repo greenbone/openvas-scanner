@@ -31,17 +31,16 @@ impl Reporting {
         register: &Register,
         context: &ScanCtx,
     ) -> Result<NaslValue, FnError> {
-        let data = register.named("data").map(|x| x.to_string());
+        let data = register.nasl_value("data").ok().map(|x| x.to_string());
         let port = register
-            .named("port")
-            .and_then(|x| match x {
-                ContextType::Value(x) => Some(x.into()),
-                _ => None,
-            })
+            .nasl_value("port")
+            .ok()
+            .map(|x| x.convert_to_number())
             .map(|x: i64| x as i16);
 
         let protocol = match register
-            .named("proto")
+            .nasl_value("proto")
+            .ok()
             .map(|x| x.to_string())
             .as_ref()
             .map(|x| x as &str)

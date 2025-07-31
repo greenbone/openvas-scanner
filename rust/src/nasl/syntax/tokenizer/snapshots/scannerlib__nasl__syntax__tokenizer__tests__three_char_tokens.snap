@@ -1,0 +1,50 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (three_char_tokens), \">>> >>= >!< <<=\")"
+---
+[
+    Token {
+        kind: GreaterGreaterGreater,
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                3,
+            ),
+        },
+    },
+    Token {
+        kind: GreaterGreaterEqual,
+        span: Span {
+            start: CharIndex(
+                4,
+            ),
+            end: CharIndex(
+                7,
+            ),
+        },
+    },
+    Token {
+        kind: GreaterBangLess,
+        span: Span {
+            start: CharIndex(
+                8,
+            ),
+            end: CharIndex(
+                11,
+            ),
+        },
+    },
+    Token {
+        kind: LessLessEqual,
+        span: Span {
+            start: CharIndex(
+                12,
+            ),
+            end: CharIndex(
+                15,
+            ),
+        },
+    },
+]

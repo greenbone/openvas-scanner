@@ -1,0 +1,9 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_err :: < Statement >\n(stringify! (multiple_assignments_invalid), \"a[1] = 3 = 5;\")"
+---
+error: Not a valid assignment target.
+  ┌─ multiple_assignments_invalid:1:8
+  │
+1 │ a[1] = 3 = 5;
+  │        ^ Not a valid assignment target.

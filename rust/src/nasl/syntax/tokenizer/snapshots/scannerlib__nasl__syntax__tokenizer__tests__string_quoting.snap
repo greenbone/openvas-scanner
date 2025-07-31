@@ -1,0 +1,52 @@
+---
+source: src/nasl/syntax/tokenizer/tests.rs
+expression: "tokenize_ok(stringify! (string_quoting), r\"'webapps\\\\\\\\appliance\\\\\\\\'\")"
+---
+[
+    Token {
+        kind: Literal(
+            Literal {
+                kind: Data(
+                    [
+                        119,
+                        101,
+                        98,
+                        97,
+                        112,
+                        112,
+                        115,
+                        92,
+                        92,
+                        97,
+                        112,
+                        112,
+                        108,
+                        105,
+                        97,
+                        110,
+                        99,
+                        101,
+                        92,
+                        92,
+                    ],
+                ),
+                span: Span {
+                    start: CharIndex(
+                        0,
+                    ),
+                    end: CharIndex(
+                        26,
+                    ),
+                },
+            },
+        ),
+        span: Span {
+            start: CharIndex(
+                0,
+            ),
+            end: CharIndex(
+                26,
+            ),
+        },
+    },
+]

@@ -1,0 +1,8 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (foreach_loop_expr),\n\"foreach a ([1, 2, 3]) { c; d; }\").into_iter().map(| stmt |\nstmt.to_string()).collect :: < Vec < _ >> ().join(\"\\n\")"
+---
+foreach a ([1, 2, 3]) {
+  c;
+  d;
+}

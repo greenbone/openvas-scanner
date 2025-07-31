@@ -1,0 +1,9 @@
+---
+source: src/nasl/interpreter/tests/mod.rs
+expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (expected_array), \"a = 5; a[3];\")"
+---
+error: Expected array or dict.
+  ┌─ expected_array:1:8
+  │
+1 │ a = 5; a[3];
+  │        ^ Expected array or dict.

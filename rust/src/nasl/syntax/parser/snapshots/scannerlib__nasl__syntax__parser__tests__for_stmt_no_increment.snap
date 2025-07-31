@@ -1,0 +1,7 @@
+---
+source: src/nasl/syntax/parser/tests.rs
+expression: "crate :: nasl :: syntax :: parser :: tests ::\nparse_program_ok(stringify! (for_stmt_no_increment),\n\"for (; i < 10;) { a; }\").into_iter().map(| stmt | stmt.to_string()).collect\n:: < Vec < _ >> ().join(\"\\n\")"
+---
+for (; (i < 10); ) {
+  a;
+}
