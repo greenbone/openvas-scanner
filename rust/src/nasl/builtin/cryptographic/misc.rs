@@ -8,11 +8,11 @@ use crate::nasl::prelude::*;
 fn insert_hexzeros(register: &Register) -> Result<Vec<u8>, FnError> {
     // As in is a keyword in rust, we cannot use the nasl_function annotation for named arguments.
     let data = register
-        .named("in")
-        .ok_or_else(|| ArgumentError::MissingNamed(vec!["in".into()]))?;
+        .nasl_value("in")
+        .map_err(|_| ArgumentError::MissingNamed(vec!["in".into()]))?;
     let data = match data {
-        ContextType::Value(NaslValue::Data(x)) => x,
-        ContextType::Value(NaslValue::String(x)) => x.as_bytes(),
+        NaslValue::Data(x) => x,
+        NaslValue::String(x) => x.as_bytes(),
         _ => return Err(ArgumentError::WrongArgument("expected Data.".to_string()).into()),
     };
 
