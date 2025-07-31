@@ -22,6 +22,7 @@ pub mod hmac;
 pub mod pem_to;
 pub mod rc4;
 pub mod rsa;
+pub mod smb;
 
 #[cfg(test)]
 mod tests;
@@ -40,6 +41,8 @@ pub enum CryptographicError {
     Rsa(String),
     #[error("Error in RC4: {0}.")]
     Rc4(String),
+    #[error("Error in SMB: {0}.")]
+    Smb(String),
 }
 
 enum Crypt {
@@ -139,6 +142,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(rsa::Rsa);
         set.add_set(bf_cbc::BfCbc);
         set.add_set(pem_to::PemTo);
+        set.add_set(smb::Smb);
         set
     }
 }
