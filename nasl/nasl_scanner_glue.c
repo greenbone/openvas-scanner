@@ -1242,7 +1242,13 @@ static int notus_err = 0;
 /**
  * @brief Directly runs a LSC with the given package list and OS release.
  *
- * @naslfn{table_driven_lsc}
+ * This function runs a Notus scan using the provided package list and OS
+ * release. In case of success, it returns a list of Notus results in a
+ * JSON-like format. If an error occurs, it returns NULL and sets the
+ * `notus_err` variable to the appropriate error code. The error can be gathered
+ * using the `notus_error` function.
+ *
+ * @naslfn{notus}
  *
  * @naslnparam
  * - @a pkg_list String containing the gathered package list.
@@ -1250,14 +1256,12 @@ static int notus_err = 0;
  *
  * @param[in] lexic  Lexical context of the NASL interpreter.
  *
- * @return List of Notus results in a JSON-like format, where the first
- *         element is always a return code.
+ * @return List of Notus results in a JSON-like format, NULL on error.
  */
 tree_cell *
 nasl_notus (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  int ret = 0;
   char *response;
   advisories_t *advisories = NULL;
   anon_nasl_var element;
@@ -1280,10 +1284,12 @@ nasl_notus (lex_ctxt *lexic)
     {
       g_warning ("%s: Unable to get the response", __func__);
       notus_err = -2;
+
       return NULL;
     }
 
   advisories = process_notus_response (response, strlen (response));
+  g_free (response);
 
   // Process the advisories, generate results and store them in the kb
   for (size_t i = 0; i < advisories->count; i++)
@@ -1367,6 +1373,8 @@ nasl_notus (lex_ctxt *lexic)
                          __func__, advisory->oid);
               advisories_free (advisories);
               notus_err = -3;
+              advisories_free (advisories);
+
               return NULL;
             }
           add_var_to_array (&vul_pkg.v.v_arr, "name", &name);
@@ -1385,6 +1393,15 @@ nasl_notus (lex_ctxt *lexic)
   return retc;
 }
 
+/**
+ * @brief Get the last Notus error as string.
+ *
+ * @naslfn{notus_error}
+ *
+ * @param[in] lexic  Lexical context of the NASL interpreter.
+ *
+ * @return Error message as a string.
+ */
 tree_cell *
 nasl_notus_error (lex_ctxt *lexic)
 {
@@ -1392,17 +1409,16 @@ nasl_notus_error (lex_ctxt *lexic)
   char *notus_err_str;
   (void) lexic;
 
-  switch
-    notus_err
+  switch (notus_err)
     {
     case -1:
-      notus_err_str = "Missing data for running LSC";
+      notus_err_str = strdup ("Missing data for running LSC");
       break;
     case -2:
-      notus_err_str = "Unable to get the response";
+      notus_err_str = strdup ("Unable to get the response");
       break;
     case -3:
-      notus_err_str = "Unknown fixed version type for advisory";
+      notus_err_str = strdup ("Unknown fixed version type for advisory");
       break;
     default:
       return NULL;
@@ -1410,6 +1426,7 @@ nasl_notus_error (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_STR);
   retc->x.str_val = notus_err_str;
+  retc->size = strlen (notus_err_str);
 
   return retc;
 }
