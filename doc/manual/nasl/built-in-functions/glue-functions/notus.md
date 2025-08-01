@@ -2,13 +2,13 @@
 
 ## NAME
 
-**table_driven_lsc** - Starts a notus scan with given data
+**notus** - Starts a notus scan with given data
 
 ## SYNOPSIS
 
-*void* **table_driven_lsc**(pkg_list: *str*, product: *str*);
+*array* **notus**(pkg_list: *str*, product: *str*);
 
-**table_driven_lsc** two named arguments
+**notus** two named arguments
 
 ## DESCRIPTION
 
@@ -23,8 +23,7 @@ so information can be adjusted and must be published using
 following structure:
 ```json
 [
-  0: [return code],
-  1: {
+  0: {
     "oid": "[oid]",
     "vulnerable_packages": [{
       "name": "[package_name]",
@@ -35,7 +34,7 @@ following structure:
       }
     }]
   },
-  2: {
+  1: {
     "oid": "[oid]",
     "vulnerable_packages": [{
       "name": "[package_name]",
@@ -48,20 +47,22 @@ following structure:
   }
 ]
 ```
-The root element is a list of results, where the first item is a return code for error handling.
+The root element is a list of results.
 The elements can be accessed by using the normal NASL array handling. For more information see the example.
+In case of an Error a NULL value is returned and an Error is set. The error can be gathered using the
+**[notus_error(3)](notus_error.md)** function, which yields the last occurred error.
 
 ## RETURN VALUE
 
-This function returns an array of results, where the first element is the number of results or an error code in case of failure.
+This function returns an array of notus results
 
 ## ERRORS
 
-In case of an error, a negative code is returned:
+Possible errors
 
--1: Missing function parameter
--2: Unable to get result from Notus
--3: Error while parsing Notus results
+- Missing function parameter
+- Unable to get result from Notus
+- Error while parsing Notus results
 
 ## EXAMPLE
 
@@ -70,16 +71,11 @@ In case of an error, a negative code is returned:
 package_list = 'libzmq3-dev-0:4.3.0-4+deb10u1\nlibzmq5-4.3.1-4+deb10u1\ndosbox-0.74-2-3+deb10u1';
 product = "debian_10";
 
-ret = table_driven_lsc(pkg_list: package_list, product: product);
+ret = notus(pkg_list: package_list, product: product);
 
 foreach result (ret)
 {
-  if(typeof(result) == "int") 
-  {
-    display("LSC return code: ", result);
-    continue;
-  }
-  security_lsc(result: result);
+  security_notus(result: result);
 }
 ```
 
@@ -88,15 +84,10 @@ foreach result (ret)
 package_list = 'libzmq3-dev-0:4.3.0-4+deb10u1\nlibzmq5-4.3.1-4+deb10u1\ndosbox-0.74-2-3+deb10u1';
 product = "debian_10";
 
-ret = table_driven_lsc(pkg_list: package_list, product: product);
+ret = notus(pkg_list: package_list, product: product);
 
 foreach result (ret)
 {
-  if(typeof(result) == "int") 
-  {
-    display("LSC return code: ", result);
-    continue;
-  }
   oid = result["oid"];
   vul_packages = result["vulnerable_packages"];
   foreach package (vul_packages)
@@ -117,4 +108,4 @@ foreach result (ret)
 
 ## SEE ALSO
 
-**[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**, **[security_lsc(3)](../report-functions/security_lsc.md)**
+**[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**, **[security_notus(3)](../report-functions/security_notus.md)**
