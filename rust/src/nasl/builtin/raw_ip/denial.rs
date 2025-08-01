@@ -26,7 +26,7 @@ fn get_timeout(context: &ScanCtx) -> u8 {
 fn start_denial(context: &ScanCtx, script_ctx: &mut ScriptCtx) -> Result<NaslValue, FnError> {
     let retry = get_timeout(context);
 
-    let port = context.get_host_open_port().unwrap_or_default();
+    let port = context.get_random_open_tcp_port().unwrap_or_default();
     if port > 0 {
         if let Ok(_soc) = make_tcp_socket(context.target().ip_addr(), port, retry) {
             script_ctx.denial_port = Some(port);

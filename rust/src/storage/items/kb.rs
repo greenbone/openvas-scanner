@@ -36,7 +36,7 @@ pub enum KbKey {
     FindService(FindService),
 
     /// Known TCP ports
-    KnownTcp(String),
+    KnownTcp(u16),
 
     /// Number of timeouts for a given IP address and port. After a failed attempt
     /// this number is increased by 1 and logged.

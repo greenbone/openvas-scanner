@@ -527,28 +527,49 @@ impl<'a> ScanCtx<'a> {
             })
     }
 
+    /// Looks up open TCP ports from the knowledge base
+    pub fn get_open_tcp_ports(&self) -> Result<Vec<u16>, FnError> {
+        let open_ports =
+            self.get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))?;
+
+        let port_numbers: Vec<u16> = open_ports
+            .iter()
+            .filter_map(|(key, _values)| {
+                // Key format is "Ports/tcp/{port}"
+                key.split('/')
+                    .next_back()
+                    .and_then(|port_str| port_str.parse().ok())
+            })
+            .collect();
+
+        // If no ports found in KB, fall back to context port range
+        if port_numbers.is_empty() {
+            Ok(self.port_range().into_iter().collect())
+        } else {
+            Ok(port_numbers)
+        }
+    }
+
     /// Don't always return the first open port, otherwise
     /// we might get bitten by OSes doing active SYN flood
     /// countermeasures. Also, avoid returning 80 and 21 as
     /// open ports, as many transparent proxies are acting for these...
-    pub fn get_host_open_port(&self) -> Result<u16, FnError> {
+    pub fn get_random_open_tcp_port(&self) -> Result<u16, FnError> {
         let mut open21 = false;
         let mut open80 = false;
-        let ports: Vec<u16> = self
-            .get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))?
+        let all_ports = self.get_open_tcp_ports()?;
+        let ports: Vec<u16> = all_ports
             .iter()
-            .filter_map(|x| {
-                x.0.split('/').next_back().and_then(|x| {
-                    if x == "21" {
-                        open21 = true;
-                        None
-                    } else if x == "80" {
-                        open80 = true;
-                        None
-                    } else {
-                        x.parse::<u16>().ok()
-                    }
-                })
+            .filter_map(|&port| {
+                if port == 21 {
+                    open21 = true;
+                    None
+                } else if port == 80 {
+                    open80 = true;
+                    None
+                } else {
+                    Some(port)
+                }
             })
             .collect();
 
