@@ -8,6 +8,7 @@
 
 pub mod config;
 pub mod crypt;
+mod json_stream;
 pub mod notus;
 mod scans;
 mod vts;
@@ -20,6 +21,7 @@ use std::{
 
 use config::Config;
 use greenbone_scanner_framework::RuntimeBuilder;
+use sqlx::{SqlitePool, sqlite::SqliteSynchronous};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -31,7 +33,8 @@ fn setup_log(config: &Config) {
     tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
-async fn setup_sqlite(config: &Config) -> Result<sqlx::Pool<sqlx::Sqlite>> {
+// TODO: move to config
+pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     use sqlx::{
         Sqlite,
         pool::PoolOptions,
@@ -64,6 +67,9 @@ async fn setup_sqlite(config: &Config) -> Result<sqlx::Pool<sqlx::Sqlite>> {
 
     let options = SqliteConnectOptions::from_str(&from_config_to_sqlite_address(config))?
         .journal_mode(SqliteJournalMode::Wal)
+        // Although this can lead to data loss in the case that the application crashes we usually
+        // need to either restart that scan anyway.
+        .synchronous(SqliteSynchronous::Off)
         .busy_timeout(busy_timeout)
         .create_if_missing(true);
     let pool = PoolOptions::<Sqlite>::new()
@@ -78,14 +84,15 @@ async fn setup_sqlite(config: &Config) -> Result<sqlx::Pool<sqlx::Sqlite>> {
 async fn main() -> Result<()> {
     let config = Config::load();
     setup_log(&config);
-    setup_sqlite(&config).await?;
+    let pool = setup_sqlite(&config).await?;
     let scan = scans::Endpoints {};
+    let vts = vts::init(pool, &config).await;
 
     RuntimeBuilder::<greenbone_scanner_framework::End>::new()
         //TODO: feed version needs to be getable
         .feed_version("bla".to_owned())
         .insert_scans(Arc::new(scan))
-        .insert_get_vts(vts)
+        .insert_get_vts(Arc::new(vts))
         .run_blocking()
         .await?;
 

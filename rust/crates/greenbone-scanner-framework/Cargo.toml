@@ -25,6 +25,7 @@ tracing = "0"
 tokio-test = "0"
 uuid = { version = "1", features = ["fast-rng", "v4"] }
 futures = "0"
+time = { version = "0", features = ["parsing"] }
 
 [dev-dependencies]
 insta = { version = "1", features = ["ron"] }

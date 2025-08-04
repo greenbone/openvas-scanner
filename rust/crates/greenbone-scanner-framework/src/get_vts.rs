@@ -10,15 +10,9 @@ use crate::{
 };
 
 pub trait GetVts: Send + Sync {
-    fn get_oids(
-        &self,
-        client_id: Arc<entry::ClientIdentifier>,
-    ) -> StreamResult<'static, String, GetVTsError>;
+    fn get_oids(&self, client_id: String) -> StreamResult<'static, String, GetVTsError>;
 
-    fn get_vts(
-        &self,
-        client_id: Arc<entry::ClientIdentifier>,
-    ) -> StreamResult<'static, VTData, GetVTsError>;
+    fn get_vts(&self, client_id: String) -> StreamResult<'static, VTData, GetVTsError>;
 }
 
 pub struct GetVTsIncomingRequest<T> {
@@ -38,17 +32,29 @@ where
     fn call<'a, 'b>(
         &'b self,
         client_id: Arc<entry::ClientIdentifier>,
-        _: &'a entry::Uri,
+        uri: &'a entry::Uri,
         _: Bytes,
     ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
         let gsp = self.get_scans.clone();
+        let details = match uri.query() {
+            Some("information=true") => true,
+            Some("information=1") => true,
+            Some(_) | None => false,
+        };
+
+        let client_id = match client_id.as_ref() {
+            crate::ClientIdentifier::Unknown => "unknown".to_string(),
+            crate::ClientIdentifier::Known(client_hash) => client_hash.to_string(),
+        };
+
         Box::pin(async move {
-            match gsp.get_oids(client_id).await {
-                Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
-                Err(e) => e.into(),
+            if details {
+                BodyKind::from_result_stream(StatusCode::OK, gsp.get_vts(client_id)).await
+            } else {
+                BodyKind::from_result_stream(StatusCode::OK, gsp.get_oids(client_id)).await
             }
         })
     }
@@ -74,18 +80,13 @@ where
     }
 }
 
+#[derive(Debug, thiserror::Error)]
 pub enum GetVTsError {
+    #[error("Not yet available.")]
     NotYetAvailable,
-    External(Box<dyn ExternalError + Send + Sync + 'static>),
-}
 
-impl<T> From<T> for GetVTsError
-where
-    T: std::error::Error + Send + Sync + 'static,
-{
-    fn from(value: T) -> Self {
-        Self::External(Box::new(value))
-    }
+    #[error("Unexpected error occoured: {0}.")]
+    External(Box<dyn ExternalError + Send + Sync + 'static>),
 }
 
 impl From<GetVTsError> for BodyKind {
@@ -99,7 +100,9 @@ impl From<GetVTsError> for BodyKind {
 
 #[cfg(test)]
 mod tests {
+
     use entry::test_utilities;
+    use futures::stream;
     use http_body_util::{BodyExt, Empty};
     use hyper::{Request, service::Service};
 
@@ -110,29 +113,25 @@ mod tests {
     struct Test {}
 
     impl GetVts for Test {
-        fn get_oids(
-            &self,
-            client_id: Arc<ClientIdentifier>,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Result<Vec<String>, GetVTsError>> + Send>>
-        {
-            let client_id = client_id.clone();
-            let ok = ClientHash::from("ok");
-            let not_found = ClientHash::from("not_found");
-            Box::pin(async move {
-                match client_id.as_ref() {
-                    ClientIdentifier::Unknown => Ok(vec![]),
-                    ClientIdentifier::Known(client_id) => {
-                        if client_id == &ok {
-                            return Ok(vec![]);
-                        }
-                        if client_id == &not_found {
-                            return Err(GetVTsError::NotYetAvailable);
-                        }
+        fn get_oids(&self, client_id: String) -> StreamResult<'static, String, GetVTsError> {
+            let ok = ClientHash::from("ok").to_string();
+            let not_found = ClientHash::from("not_found").to_string();
+            let unknown = "unknown".to_string();
+            let result = if client_id == unknown || client_id == ok {
+                vec![Ok(client_id)]
+            } else if client_id == not_found {
+                vec![Err(GetVTsError::NotYetAvailable)]
+            } else {
+                vec![Err(GetVTsError::External(Box::new(std::io::Error::other(
+                    "moep",
+                ))))]
+            };
+            //stream::iter(result)
+            Box::new(stream::iter(result))
+        }
 
-                        Err(std::io::Error::new(std::io::ErrorKind::NotFound, "").into())
-                    }
-                }
-            })
+        fn get_vts(&self, _: String) -> StreamResult<'static, VTData, GetVTsError> {
+            Box::new(stream::iter(vec![Ok(VTData::default())]))
         }
     }
 
@@ -188,6 +187,35 @@ mod tests {
         let bytes = resp.into_body().collect().await.unwrap().to_bytes();
         let resp = String::from_utf8_lossy(bytes.as_ref());
         insta::assert_snapshot!(resp);
+    }
+
+    #[tokio::test]
+    async fn get_vts_detailed() {
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            incoming_request!(GetVTsIncomingRequest::from(Test {})),
+            Some(ClientHash::from("ok")),
+        );
+
+        let req = Request::builder()
+            .uri("/vts?information=true")
+            .method(Method::GET)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+        let first: Vec<VTData> = serde_json::from_slice(&bytes).unwrap();
+        let req = Request::builder()
+            .uri("/vts?information=1")
+            .method(Method::GET)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+        let second: Vec<VTData> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(first, second)
     }
 
     #[tokio::test]
