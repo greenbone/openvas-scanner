@@ -1,0 +1,200 @@
+{
+  "version": "1.0",
+  "description": "Service detection definitions for find_service builtin",
+  "services": [
+    {
+      "name": "http",
+      "service_key": "www",
+      "description": "HTTP Web Server",
+      "detections": [
+        {
+          "type": "http"
+        }
+      ],
+      "ports": [80, 8080, 8000, 3000, 8081],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A web server is running on this port"
+      },
+      "kb_entries": {}
+    },
+    {
+      "name": "https",
+      "service_key": "www",
+      "description": "HTTPS Web Server (SSL)",
+      "detections": [
+        {
+          "type": "https"
+        }
+      ],
+      "ports": [443, 8443, 9443],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A SSL/TLS web server is running on this port"
+      },
+      "kb_entries": {
+        "Transport/SSL": "{port}"
+      }
+    },
+    {
+      "name": "smtp",
+      "description": "SMTP Mail Server",
+      "detections": [
+        {
+          "type": "banner",
+          "banner_detection_type": "starts_with",
+          "value": "220",
+          "case_sensitive": false
+        },
+        {
+          "type": "banner",
+          "banner_detection_type": "contains",
+          "value": "SMTP",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [25, 587, 465],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An SMTP server is running on this port"
+      },
+      "kb_entries": {}
+    },
+    {
+      "name": "ssh",
+      "description": "SSH Server",
+      "detections": [
+        {
+          "type": "banner",
+          "banner_detection_type": "starts_with",
+          "value": "SSH-",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [22, 2222],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An SSH server is running on this port"
+      },
+      "kb_entries": {}
+    },
+    {
+      "name": "ftp",
+      "description": "FTP Server",
+      "detections": [
+        {
+          "type": "banner",
+          "banner_detection_type": "starts_with",
+          "value": "220",
+          "case_sensitive": false
+        },
+        {
+          "type": "banner",
+          "banner_detection_type": "contains",
+          "value": "FTP",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [21, 2121],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An FTP server is running on this port"
+      },
+      "kb_entries": {}
+    },
+    {
+      "name": "telnet",
+      "description": "Telnet Server",
+      "detections": [
+        {
+          "type": "banner",
+          "banner_detection_type": "contains_hex",
+          "value": "fffd"
+        },
+        {
+          "type": "banner",
+          "banner_detection_type": "contains_hex",
+          "value": "fffb"
+        }
+      ],
+      "ports": [23, 2323],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A telnet server is running on this port"
+      },
+      "kb_entries": {}
+    },
+    {
+      "name": "pop3",
+      "description": "POP3 Mail Server",
+      "detections": [
+        {
+          "type": "banner",
+          "banner_detection_type": "starts_with",
+          "value": "+OK",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [110, 995],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "A POP3 server is running on this port"
+      },
+      "kb_entries": {}
+    },
+    {
+      "name": "imap",
+      "description": "IMAP Mail Server",
+      "detections": [
+        {
+          "type": "banner",
+          "banner_detection_type": "starts_with",
+          "value": "* OK",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [143, 993],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": false,
+        "message": "An IMAP server is running on this port"
+      },
+      "kb_entries": {}
+    },
+    {
+      "name": "netbus",
+      "description": "NetBus Trojan (Security Alert)",
+      "detections": [
+        {
+          "type": "banner",
+          "banner_detection_type": "equals",
+          "value": "NetBus",
+          "case_sensitive": false
+        }
+      ],
+      "ports": [12345, 12346],
+      "save_banner": true,
+      "generate_result": {
+        "enabled": true,
+        "is_vulnerability": true,
+        "message": "NetBus backdoor is running on this port"
+      },
+      "kb_entries": {}
+    }
+  ]
+}
