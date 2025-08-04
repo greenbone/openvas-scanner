@@ -9,7 +9,7 @@
 pub mod config;
 pub mod crypt;
 mod json_stream;
-pub mod notus;
+mod notus;
 mod scans;
 mod vts;
 
@@ -26,6 +26,8 @@ use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+// TODO: should be on config
 fn setup_log(config: &Config) {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
@@ -54,6 +56,7 @@ pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
             StorageType::FileSystem => {
                 format!("sqlite:{}", config.storage.fs.path.to_string_lossy())
             }
+            // actually it can when using the openvas scanner mode
             StorageType::Redis => unreachable!(
                 "Redis configuration should never call storage::sqlite::Storage::from_config_and_feeds"
             ),
@@ -61,7 +64,7 @@ pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     }
 
     // TODO: calculate max_connections or change configuration
-    let max_connections = 4;
+    let max_connections = 20;
     // TODO: make busy_timeout a configuration option
     let busy_timeout = Duration::from_secs(2);
 
@@ -87,14 +90,15 @@ async fn main() -> Result<()> {
     let pool = setup_sqlite(&config).await?;
     let scan = scans::Endpoints {};
     let vts = vts::init(pool, &config).await;
+    let (get_notus, post_notus) = notus::init(&config);
 
     RuntimeBuilder::<greenbone_scanner_framework::End>::new()
         //TODO: feed version needs to be getable
         .feed_version("bla".to_owned())
         .insert_scans(Arc::new(scan))
         .insert_get_vts(Arc::new(vts))
+        .insert_on_request(get_notus)
+        .insert_on_request(post_notus)
         .run_blocking()
-        .await?;
-
-    todo!("use greenbone-scanner-framework");
+        .await
 }

@@ -822,7 +822,6 @@ where
             let key: TagKey = match TagKey::from_str(row.get("key")) {
                 Ok(x) => x,
                 Err(e) => {
-                    dbg!(&e);
                     tracing::warn!(error=%e, "Unable to parse tagkey");
                     continue;
                 }
@@ -830,7 +829,6 @@ where
             let value = match TagValue::parse(key, row.get::<String, _>("value")) {
                 Ok(x) => x,
                 Err(e) => {
-                    dbg!(&e);
                     tracing::warn!(error=%e, key=key.as_ref(), "Unable to parse tagvalue");
                     continue;
                 }
@@ -1449,27 +1447,22 @@ mod tests {
         plugins.sort_by(|a, b| a.oid.cmp(&b.oid));
         assert_eq!(db_plugins.len(), plugins.len());
         //assert_eq!(plugins, db_plugins);
-        plugins
-            .iter()
-            .zip(db_plugins.iter())
-            .enumerate()
-            .for_each(|(i, (p, dbp))| {
-                dbg!(i);
-                assert_eq!(p.oid, dbp.oid);
-                assert_eq!(p.name, dbp.name);
-                assert_eq!(p.filename, dbp.filename);
-                assert_eq!(p.category, dbp.category);
-                assert_eq!(p.family, dbp.family);
-                assert_eq!(p.tag.len(), dbp.tag.len());
-                assert_eq!(p.dependencies.len(), dbp.dependencies.len());
-                assert_eq!(p.required_keys.len(), dbp.required_keys.len());
-                assert_eq!(p.mandatory_keys.len(), dbp.mandatory_keys.len());
-                assert_eq!(p.excluded_keys.len(), dbp.excluded_keys.len());
-                assert_eq!(p.required_ports.len(), dbp.required_ports.len());
-                assert_eq!(p.required_udp_ports.len(), dbp.required_udp_ports.len());
-                assert_eq!(p.references.len(), dbp.references.len());
-                assert_eq!(p.preferences.len(), dbp.preferences.len());
-            });
+        plugins.iter().zip(db_plugins.iter()).for_each(|(p, dbp)| {
+            assert_eq!(p.oid, dbp.oid);
+            assert_eq!(p.name, dbp.name);
+            assert_eq!(p.filename, dbp.filename);
+            assert_eq!(p.category, dbp.category);
+            assert_eq!(p.family, dbp.family);
+            assert_eq!(p.tag.len(), dbp.tag.len());
+            assert_eq!(p.dependencies.len(), dbp.dependencies.len());
+            assert_eq!(p.required_keys.len(), dbp.required_keys.len());
+            assert_eq!(p.mandatory_keys.len(), dbp.mandatory_keys.len());
+            assert_eq!(p.excluded_keys.len(), dbp.excluded_keys.len());
+            assert_eq!(p.required_ports.len(), dbp.required_ports.len());
+            assert_eq!(p.required_udp_ports.len(), dbp.required_udp_ports.len());
+            assert_eq!(p.references.len(), dbp.references.len());
+            assert_eq!(p.preferences.len(), dbp.preferences.len());
+        });
 
         Ok(())
     }

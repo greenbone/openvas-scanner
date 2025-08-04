@@ -222,7 +222,7 @@ impl IncomingRequest {
     }
 }
 
-pub(crate) struct EntryPoint {
+pub struct EntryPoint {
     configuration: Arc<super::Scanner>,
     incoming_request: Arc<IncomingRequest>,
     client_identifier: Arc<ClientIdentifier>,
@@ -352,7 +352,6 @@ pub enum Error {
     Unexpected(String),
 }
 
-#[cfg(test)]
 pub mod test_utilities {
     use std::sync::Arc;
 
@@ -363,7 +362,7 @@ pub mod test_utilities {
 
     use super::{ClientHash, ClientIdentifier, EntryPoint, IncomingRequest, Method};
 
-    pub(crate) fn entry_point(
+    pub fn entry_point(
         authentication: Authentication,
         incoming_request: IncomingRequest,
         client_hash: Option<ClientHash>,
@@ -387,6 +386,17 @@ pub mod test_utilities {
             .uri(uri)
             .method(method)
             .body(Empty::<Bytes>::new())
+            .unwrap()
+    }
+
+    pub fn json_request<T>(method: Method, uri: &str, value: &T) -> Request<Full<Bytes>>
+    where
+        T: serde::Serialize,
+    {
+        Request::builder()
+            .uri(uri)
+            .method(method)
+            .body(json_bytes(value))
             .unwrap()
     }
 

@@ -122,14 +122,13 @@ where
     let mut ctx_builder = ContextBuilder::new();
 
     let loader = FSPluginLoader::new(config.notus.products_path.to_string_lossy().to_string());
-    match HashsumProductLoader::new(loader) {
-        Ok(loader) => {
-            let notus = Notus::new(loader, config.feed.signature_check);
-            ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));
-        }
-        Err(e) => warn!("Notus Scanner disabled: {e}"),
-    }
-    tracing::warn!(enable_get_scans = config.endpoints.enable_get_scans);
+
+    let notus = Notus::new(
+        HashsumProductLoader::new(loader),
+        config.feed.signature_check,
+    );
+    ctx_builder = ctx_builder.notus(NotusWrapper::new(notus));
+    tracing::info!(enable_get_scans = config.endpoints.enable_get_scans);
 
     ctx_builder
         .mode(config.mode.clone())
