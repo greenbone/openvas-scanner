@@ -1,0 +1,494 @@
+---
+source: src/nasl/syntax/traversal.rs
+expression: collected
+---
+[
+    FnDecl(
+        FnDecl {
+            fn_name: Ident {
+                ident: "foo",
+                span: Span {
+                    start: CharIndex(
+                        10,
+                    ),
+                    end: CharIndex(
+                        13,
+                    ),
+                },
+            },
+            args: CommaSeparated {
+                items: [],
+                delimiter: Paren,
+                span: Span {
+                    start: CharIndex(
+                        13,
+                    ),
+                    end: CharIndex(
+                        15,
+                    ),
+                },
+            },
+            block: Block {
+                items: [
+                    ExprStmt(
+                        Assignment(
+                            Assignment {
+                                lhs: PlaceExpr {
+                                    ident: Ident {
+                                        ident: "a",
+                                        span: Span {
+                                            start: CharIndex(
+                                                22,
+                                            ),
+                                            end: CharIndex(
+                                                23,
+                                            ),
+                                        },
+                                    },
+                                    array_accesses: [],
+                                    negate: false,
+                                },
+                                op: AssignmentOperator {
+                                    span: Span {
+                                        start: CharIndex(
+                                            24,
+                                        ),
+                                        end: CharIndex(
+                                            26,
+                                        ),
+                                    },
+                                    kind: PlusEqual,
+                                },
+                                rhs: Atom(
+                                    Literal(
+                                        Literal {
+                                            kind: Number(
+                                                1,
+                                            ),
+                                            span: Span {
+                                                start: CharIndex(
+                                                    27,
+                                                ),
+                                                end: CharIndex(
+                                                    28,
+                                                ),
+                                            },
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                    ),
+                    ExprStmt(
+                        Assignment(
+                            Assignment {
+                                lhs: PlaceExpr {
+                                    ident: Ident {
+                                        ident: "b",
+                                        span: Span {
+                                            start: CharIndex(
+                                                34,
+                                            ),
+                                            end: CharIndex(
+                                                35,
+                                            ),
+                                        },
+                                    },
+                                    array_accesses: [],
+                                    negate: false,
+                                },
+                                op: AssignmentOperator {
+                                    span: Span {
+                                        start: CharIndex(
+                                            36,
+                                        ),
+                                        end: CharIndex(
+                                            38,
+                                        ),
+                                    },
+                                    kind: PlusEqual,
+                                },
+                                rhs: Atom(
+                                    Literal(
+                                        Literal {
+                                            kind: Number(
+                                                1,
+                                            ),
+                                            span: Span {
+                                                start: CharIndex(
+                                                    39,
+                                                ),
+                                                end: CharIndex(
+                                                    40,
+                                                ),
+                                            },
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                    ),
+                ],
+            },
+        },
+    ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident {
+                        ident: "a",
+                        span: Span {
+                            start: CharIndex(
+                                22,
+                            ),
+                            end: CharIndex(
+                                23,
+                            ),
+                        },
+                    },
+                    array_accesses: [],
+                    negate: false,
+                },
+                op: AssignmentOperator {
+                    span: Span {
+                        start: CharIndex(
+                            24,
+                        ),
+                        end: CharIndex(
+                            26,
+                        ),
+                    },
+                    kind: PlusEqual,
+                },
+                rhs: Atom(
+                    Literal(
+                        Literal {
+                            kind: Number(
+                                1,
+                            ),
+                            span: Span {
+                                start: CharIndex(
+                                    27,
+                                ),
+                                end: CharIndex(
+                                    28,
+                                ),
+                            },
+                        },
+                    ),
+                ),
+            },
+        ),
+    ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident {
+                        ident: "b",
+                        span: Span {
+                            start: CharIndex(
+                                34,
+                            ),
+                            end: CharIndex(
+                                35,
+                            ),
+                        },
+                    },
+                    array_accesses: [],
+                    negate: false,
+                },
+                op: AssignmentOperator {
+                    span: Span {
+                        start: CharIndex(
+                            36,
+                        ),
+                        end: CharIndex(
+                            38,
+                        ),
+                    },
+                    kind: PlusEqual,
+                },
+                rhs: Atom(
+                    Literal(
+                        Literal {
+                            kind: Number(
+                                1,
+                            ),
+                            span: Span {
+                                start: CharIndex(
+                                    39,
+                                ),
+                                end: CharIndex(
+                                    40,
+                                ),
+                            },
+                        },
+                    ),
+                ),
+            },
+        ),
+    ),
+    If(
+        If {
+            if_branches: [
+                (
+                    Binary(
+                        Binary {
+                            lhs: Atom(
+                                Ident(
+                                    Ident {
+                                        ident: "a",
+                                        span: Span {
+                                            start: CharIndex(
+                                                49,
+                                            ),
+                                            end: CharIndex(
+                                                50,
+                                            ),
+                                        },
+                                    },
+                                ),
+                            ),
+                            op: BinaryOperator {
+                                span: Span {
+                                    start: CharIndex(
+                                        51,
+                                    ),
+                                    end: CharIndex(
+                                        53,
+                                    ),
+                                },
+                                kind: EqualEqual,
+                            },
+                            rhs: Atom(
+                                Literal(
+                                    Literal {
+                                        kind: Number(
+                                            1,
+                                        ),
+                                        span: Span {
+                                            start: CharIndex(
+                                                54,
+                                            ),
+                                            end: CharIndex(
+                                                55,
+                                            ),
+                                        },
+                                    },
+                                ),
+                            ),
+                        },
+                    ),
+                    Block {
+                        items: [
+                            ExprStmt(
+                                Assignment(
+                                    Assignment {
+                                        lhs: PlaceExpr {
+                                            ident: Ident {
+                                                ident: "a",
+                                                span: Span {
+                                                    start: CharIndex(
+                                                        63,
+                                                    ),
+                                                    end: CharIndex(
+                                                        64,
+                                                    ),
+                                                },
+                                            },
+                                            array_accesses: [],
+                                            negate: false,
+                                        },
+                                        op: AssignmentOperator {
+                                            span: Span {
+                                                start: CharIndex(
+                                                    65,
+                                                ),
+                                                end: CharIndex(
+                                                    67,
+                                                ),
+                                            },
+                                            kind: PlusEqual,
+                                        },
+                                        rhs: Atom(
+                                            Literal(
+                                                Literal {
+                                                    kind: Number(
+                                                        1,
+                                                    ),
+                                                    span: Span {
+                                                        start: CharIndex(
+                                                            68,
+                                                        ),
+                                                        end: CharIndex(
+                                                            69,
+                                                        ),
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            ),
+                        ],
+                    },
+                ),
+            ],
+            else_branch: Some(
+                Block {
+                    items: [
+                        ExprStmt(
+                            Assignment(
+                                Assignment {
+                                    lhs: PlaceExpr {
+                                        ident: Ident {
+                                            ident: "b",
+                                            span: Span {
+                                                start: CharIndex(
+                                                    84,
+                                                ),
+                                                end: CharIndex(
+                                                    85,
+                                                ),
+                                            },
+                                        },
+                                        array_accesses: [],
+                                        negate: false,
+                                    },
+                                    op: AssignmentOperator {
+                                        span: Span {
+                                            start: CharIndex(
+                                                86,
+                                            ),
+                                            end: CharIndex(
+                                                88,
+                                            ),
+                                        },
+                                        kind: PlusEqual,
+                                    },
+                                    rhs: Atom(
+                                        Literal(
+                                            Literal {
+                                                kind: Number(
+                                                    1,
+                                                ),
+                                                span: Span {
+                                                    start: CharIndex(
+                                                        89,
+                                                    ),
+                                                    end: CharIndex(
+                                                        90,
+                                                    ),
+                                                },
+                                            },
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ),
+                    ],
+                },
+            ),
+        },
+    ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident {
+                        ident: "a",
+                        span: Span {
+                            start: CharIndex(
+                                63,
+                            ),
+                            end: CharIndex(
+                                64,
+                            ),
+                        },
+                    },
+                    array_accesses: [],
+                    negate: false,
+                },
+                op: AssignmentOperator {
+                    span: Span {
+                        start: CharIndex(
+                            65,
+                        ),
+                        end: CharIndex(
+                            67,
+                        ),
+                    },
+                    kind: PlusEqual,
+                },
+                rhs: Atom(
+                    Literal(
+                        Literal {
+                            kind: Number(
+                                1,
+                            ),
+                            span: Span {
+                                start: CharIndex(
+                                    68,
+                                ),
+                                end: CharIndex(
+                                    69,
+                                ),
+                            },
+                        },
+                    ),
+                ),
+            },
+        ),
+    ),
+    ExprStmt(
+        Assignment(
+            Assignment {
+                lhs: PlaceExpr {
+                    ident: Ident {
+                        ident: "b",
+                        span: Span {
+                            start: CharIndex(
+                                84,
+                            ),
+                            end: CharIndex(
+                                85,
+                            ),
+                        },
+                    },
+                    array_accesses: [],
+                    negate: false,
+                },
+                op: AssignmentOperator {
+                    span: Span {
+                        start: CharIndex(
+                            86,
+                        ),
+                        end: CharIndex(
+                            88,
+                        ),
+                    },
+                    kind: PlusEqual,
+                },
+                rhs: Atom(
+                    Literal(
+                        Literal {
+                            kind: Number(
+                                1,
+                            ),
+                            span: Span {
+                                start: CharIndex(
+                                    89,
+                                ),
+                                end: CharIndex(
+                                    90,
+                                ),
+                            },
+                        },
+                    ),
+                ),
+            },
+        ),
+    ),
+]
