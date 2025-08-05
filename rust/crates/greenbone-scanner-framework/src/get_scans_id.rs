@@ -12,7 +12,7 @@ pub trait GetScansID: MapScanID {
     fn get_scans_id(
         &self,
         id: String,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send>>;
+    ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>>;
 }
 
 pub struct GetScansIDIncomingRequest<T> {
