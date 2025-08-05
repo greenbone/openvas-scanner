@@ -1,19 +1,27 @@
 use std::sync::Arc;
 
 use futures::StreamExt;
+use greenbone_scanner_framework::models::AliveTestMethods;
 use greenbone_scanner_framework::prelude::*;
-use sqlx::Row;
+use sqlx::sqlite::SqliteRow;
 use sqlx::{Acquire, QueryBuilder, SqlitePool, query};
+use sqlx::{Row, query_scalar};
 
+use crate::crypt::{self, Crypt, Encrypted};
 use crate::{config::Config, crypt::ChaCha20Crypt};
 pub struct Endpoints<E> {
     pool: SqlitePool,
     crypter: Arc<E>,
 }
 
+#[derive(Debug, thiserror::Error)]
 enum Error {
+    #[error("Unexpected error while serialization")]
     Serialization(serde_json::Error),
+    #[error("Unexpected error while doing a DB operation")]
     Sqlx(sqlx::Error),
+    #[error("Unexpected error while encrypting or decrypting")]
+    Crypt(crypt::ParseError),
 }
 
 impl From<sqlx::Error> for Error {
@@ -25,6 +33,12 @@ impl From<sqlx::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
         Error::Serialization(value)
+    }
+}
+
+impl From<crypt::ParseError> for Error {
+    fn from(value: crypt::ParseError) -> Self {
+        Error::Crypt(value)
     }
 }
 
@@ -178,6 +192,7 @@ where
                     }
                     Error::Sqlx(error) => PostScansError::External(Box::new(error)),
                     Error::Serialization(error) => PostScansError::External(Box::new(error)),
+                    Error::Crypt(error) => PostScansError::External(Box::new(error)),
                 })
         })
     }
@@ -230,15 +245,180 @@ where
     }
 }
 
+impl<E> Endpoints<E>
+where
+    E: Send + Sync + Crypt,
+{
+    async fn get_scan(&self, id: String) -> Result<models::Scan, Error> {
+        fn rows_to_ports(ports: Vec<SqliteRow>) -> Vec<models::Port> {
+            let mut tcp = Vec::with_capacity(ports.len());
+            let mut udp = Vec::with_capacity(ports.len());
+            let mut tcp_udp = Vec::with_capacity(ports.len());
+            for row in ports {
+                let protocol: String = row.get("protocol");
+                let range = models::PortRange {
+                    start: row.get::<i64, _>("start") as usize,
+                    end: row.get::<Option<i64>, _>("end").map(|x| x as usize),
+                };
+
+                match &protocol as &str {
+                    "udp" => udp.push(range),
+                    "tcp" => tcp.push(range),
+                    _ => tcp_udp.push(range),
+                }
+            }
+            vec![
+                models::Port {
+                    protocol: Some(models::Protocol::TCP),
+                    range: tcp,
+                },
+                models::Port {
+                    protocol: Some(models::Protocol::UDP),
+                    range: udp,
+                },
+                models::Port {
+                    protocol: None,
+                    range: tcp_udp,
+                },
+            ]
+        }
+        let mut conn = self.pool.acquire().await?;
+        let mut tx = conn.begin().await?;
+        let scan_row = query(
+            r#"
+        SELECT created_at, start_time, end_time, auth_data
+        FROM scans
+        WHERE id = ?
+        "#,
+        )
+        .bind(&id)
+        .fetch_one(&mut *tx)
+        .await?;
+        let preferences = query(r#"SELECT key, value FROM preferences WHERE id = ?"#)
+            .bind(&id)
+            .fetch_all(&mut *tx)
+            .await?;
+        let preferences: Vec<models::ScanPreference> = preferences
+            .into_iter()
+            .map(|row| models::ScanPreference {
+                id: row.get("key"),
+                value: row.get("value"),
+            })
+            .collect();
+
+        let ports = query("SELECT protocol, start, end FROM ports WHERE id = ? AND alive = 0")
+            .bind(&id)
+            .fetch_all(&mut *tx)
+            .await?;
+        let ports = rows_to_ports(ports);
+
+        let alive_test_ports =
+            query("SELECT protocol, start, end FROM ports WHERE id = ? AND alive = 1")
+                .bind(&id)
+                .fetch_all(&mut *tx)
+                .await?;
+        let alive_test_ports = rows_to_ports(alive_test_ports);
+
+        let reverse_lookup_unify = preferences
+            .iter()
+            .any(|x| &x.id == "target_reverse_lookup_unify" && x.value.parse().unwrap_or_default());
+        let reverse_lookup_only = preferences
+            .iter()
+            .any(|x| &x.id == "target_reverse_lookup_only" && x.value.parse().unwrap_or_default());
+
+        let hosts: Vec<String> = query_scalar(r#"SELECT host FROM hosts WHERE id = ?"#)
+            .bind(&id)
+            .fetch_all(&mut *tx)
+            .await?;
+
+        let oids = query_scalar("SELECT vt FROM vts WHERE id = ?")
+            .bind(&id)
+            .fetch_all(&mut *tx)
+            .await?;
+
+        let mut vts = Vec::with_capacity(oids.len());
+        for oid in oids {
+            let parameters =
+                query("SELECT param_id, param_value FROM vt_parameters WHERE id = ? AND vt = ?")
+                    .bind(&id)
+                    .bind(&oid)
+                    .fetch_all(&mut *tx)
+                    .await?
+                    .iter()
+                    .map(|row| models::Parameter {
+                        id: row.get("param_id"),
+                        value: row.get("param_value"),
+                    })
+                    .collect();
+            vts.push(models::VT { oid, parameters });
+        }
+
+        let alive_methods: Vec<String> =
+            query_scalar("SELECT method FROM alive_methods WHERE id = ?")
+                .bind(&id)
+                .fetch_all(&mut *tx)
+                .await?;
+
+        let alive_test_methods = alive_methods
+            .iter()
+            .map(|x| AliveTestMethods::from(x as &str))
+            .collect::<Vec<_>>();
+        let scan_id: String = query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
+            .bind(&id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+        let excluded_hosts = query_scalar("SELECT original_host FROM resolved_hosts WHERE id = ?")
+            .bind(&id)
+            .fetch_all(&mut *tx)
+            .await?;
+
+        let credentials = if let Some(auth_data) = scan_row.get::<Option<String>, _>("auth_data") {
+            let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
+            let auth_data = self.crypter.decrypt(encrypted).await;
+            serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?
+        } else {
+            vec![]
+        };
+
+        let scan = models::Scan {
+            scan_id,
+            target: models::Target {
+                hosts,
+                ports,
+                excluded_hosts,
+                credentials,
+                alive_test_ports,
+                alive_test_methods,
+                // TODO: that needs to be changed
+                reverse_lookup_unify: if reverse_lookup_unify {
+                    Some(true)
+                } else {
+                    None
+                },
+                reverse_lookup_only: if reverse_lookup_only {
+                    Some(true)
+                } else {
+                    None
+                },
+            },
+            scan_preferences: preferences,
+            vts,
+        };
+        Ok(scan)
+    }
+}
+
 impl<E> GetScansID for Endpoints<E>
 where
-    E: Send + Sync,
+    E: Send + Sync + Crypt,
 {
     fn get_scans_id(
         &self,
         id: String,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send>> {
-        todo!()
+    ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>>
+    {
+        Box::pin(async move { self.get_scan(id).await.map_err(into_external_error) })
     }
 }
 impl<E> GetScansIDResults for Endpoints<E>
@@ -324,7 +504,7 @@ pub fn init(pool: SqlitePool, config: &Config) -> Endpoints<ChaCha20Crypt> {
 mod tests {
     use futures::StreamExt;
     use greenbone_scanner_framework::{
-        GetScans, MapScanID, PostScans, PostScansError,
+        GetScans, GetScansID, MapScanID, PostScans, PostScansError,
         models::{
             self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
             ScanPreference, Service,
@@ -617,6 +797,32 @@ mod tests {
         for scan in scans {
             let result = undertest.contains_scan_id(&client_id, &scan.scan_id).await;
             assert!(result.is_some(), "scan must be found");
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn get_scan_id() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = super::init(pool, &config);
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        for scan in scans {
+            let result = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
+                .await
+                .unwrap();
+            let result = undertest.get_scans_id(result).await?;
+            assert_eq!(scan.scan_id, result.scan_id);
+            assert_eq!(
+                scan.target.credentials.len(),
+                result.target.credentials.len()
+            );
         }
 
         Ok(())

@@ -69,6 +69,18 @@ impl TryFrom<u8> for AliveTestMethods {
     }
 }
 
+impl From<&str> for AliveTestMethods {
+    fn from(value: &str) -> Self {
+        match value {
+            "tcp_ack" => AliveTestMethods::TcpAck,
+            "tcp_syn" => AliveTestMethods::TcpSyn,
+            "icmp" => AliveTestMethods::Icmp,
+            "arp" => AliveTestMethods::Arp,
+            _ => AliveTestMethods::ConsiderAlive,
+        }
+    }
+}
+
 impl Display for AliveTestMethods {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
