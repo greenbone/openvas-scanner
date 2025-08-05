@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use futures::StreamExt;
 use greenbone_scanner_framework::prelude::*;
+use sqlx::Row;
 use sqlx::{Acquire, QueryBuilder, SqlitePool, query};
 
 use crate::{config::Config, crypt::ChaCha20Crypt};
@@ -194,12 +196,24 @@ where
     }
 }
 
+fn into_external_error<T>(value: T) -> GetScansError
+where
+    T: std::error::Error + Send + Sync + 'static,
+{
+    GetScansError::External(Box::new(value))
+}
+
 impl<E> GetScans for Endpoints<E>
 where
     E: Send + Sync,
 {
     fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
-        todo!()
+        Box::new(
+            query("SELECT scan_id FROM client_scan_map WHERE client_id = ?")
+                .bind(client_id)
+                .fetch(&self.pool)
+                .map(|r| r.map(|r| r.get("scan_id")).map_err(into_external_error)),
+        )
     }
 }
 
@@ -287,7 +301,7 @@ pub fn init(pool: SqlitePool, config: &Config) -> Endpoints<ChaCha20Crypt> {
             .fs
             .key
             .clone()
-            .map(|k| ChaCha20Crypt::new(k))
+            .map(ChaCha20Crypt::new)
             .unwrap_or_else(|| ChaCha20Crypt::new("insecure")),
     );
     Endpoints { pool, crypter }
@@ -295,19 +309,17 @@ pub fn init(pool: SqlitePool, config: &Config) -> Endpoints<ChaCha20Crypt> {
 
 #[cfg(test)]
 mod tests {
+    use futures::StreamExt;
     use greenbone_scanner_framework::{
-        Authentication, ClientHash, PostScans,
-        entry::{Method, test_utilities},
-        incoming_request,
+        GetScans, PostScans, PostScansError,
         models::{
             self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
             ScanPreference, Service,
         },
     };
-    use http::StatusCode;
     use sqlx::SqlitePool;
 
-    use crate::{config::Config, notus::PostOSIcnomingRequest};
+    use crate::config::Config;
 
     fn generate_hosts() -> Vec<Vec<String>> {
         vec![vec![], vec!["0".into()]]
@@ -551,6 +563,51 @@ mod tests {
             assert!(result.is_ok(), "scan must be successfully added");
             assert_eq!(id, result.unwrap());
         }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn post_scan_duplicate_id() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = super::init(pool, &config);
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            let id = scan.scan_id.clone();
+            let result = undertest.post_scans(client_id.clone(), scan).await;
+            assert!(result.is_ok(), "scan must be successfully added");
+            assert_eq!(id, result.unwrap());
+        }
+        for scan in scans {
+            let result = undertest.post_scans(client_id.clone(), scan).await;
+            assert!(
+                matches!(result, Err(PostScansError::DuplicateId(_))),
+                "scan must be declined"
+            );
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn get_scans() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = super::init(pool, &config);
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        for scan in generate_scan() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        let client_ids = undertest.get_scans(client_id).collect::<Vec<_>>().await;
+        assert_eq!(client_ids.iter().filter(|x| x.is_err()).count(), 0);
+        assert_eq!(client_ids.iter().filter(|x| x.is_ok()).count(), scans.len());
+        let client_ids = undertest
+            .get_scans("notme".to_string())
+            .collect::<Vec<_>>()
+            .await;
+        assert!(client_ids.is_empty());
 
         Ok(())
     }
