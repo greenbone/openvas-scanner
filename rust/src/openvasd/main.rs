@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
     let config = Config::load();
     setup_log(&config);
     let pool = setup_sqlite(&config).await?;
-    let scan = scans::Endpoints {};
+    let scan = scans::init(pool.clone(), &config);
     let vts = vts::init(pool, &config).await;
     let (get_notus, post_notus) = notus::init(&config);
 
