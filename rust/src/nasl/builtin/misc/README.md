@@ -15,3 +15,4 @@
 - defined_func
 - gettimeofday
 - dump_ctxt
+- vendor_version
