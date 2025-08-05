@@ -181,7 +181,7 @@ where
     }
 }
 
-impl<E> ContainsScanID for Endpoints<E>
+impl<E> MapScanID for Endpoints<E>
 where
     E: Send + Sync,
 {
@@ -189,7 +189,7 @@ where
         &'a self,
         client_id: &'a str,
         scan_id: &'a str,
-    ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>> {
+    ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
         todo!()
     }
 }
@@ -209,8 +209,7 @@ where
 {
     fn get_scans_id(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send>> {
         todo!()
     }
@@ -221,8 +220,7 @@ where
 {
     fn get_scans_id_results(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
         from: Option<usize>,
         to: Option<usize>,
     ) -> StreamResult<'static, models::Result, GetScansIDResultsError> {
@@ -235,8 +233,7 @@ where
 {
     fn get_scans_id_results_id(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
         result_id: usize,
     ) -> std::pin::Pin<
         Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>,
@@ -250,8 +247,7 @@ where
 {
     fn get_scans_id_status(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
     ) -> std::pin::Pin<
         Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>,
     > {
@@ -264,8 +260,7 @@ where
 {
     fn post_scans_id(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
         action: models::Action,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
         todo!()
@@ -277,7 +272,6 @@ where
 {
     fn delete_scans_id(
         &self,
-        client_id: String,
         id: String,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         todo!()

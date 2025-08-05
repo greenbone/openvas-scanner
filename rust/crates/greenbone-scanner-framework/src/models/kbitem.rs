@@ -4,7 +4,7 @@
 
 //! Defines an KB item with its corresponding key in storage.
 
-use std::{collections::HashMap, fmt::Display, hash::Hash, net::IpAddr};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]

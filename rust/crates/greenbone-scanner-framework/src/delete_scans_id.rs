@@ -3,15 +3,14 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ContainsScanID, define_authentication_paths,
+    MapScanID, define_authentication_paths,
     entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
     post_scans_id::PostScansIDError,
 };
 
-pub trait DeleteScansID: ContainsScanID {
+pub trait DeleteScansID: MapScanID {
     fn delete_scans_id(
         &self,
-        client_id: String,
         id: String,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>>;
 }
@@ -46,8 +45,8 @@ where
             .next()
             .expect("expect ID, this is a toolkit error");
         Box::pin(async move {
-            enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |client_id, id| {
-                match gsp.delete_scans_id(client_id, id).await {
+            enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |id| {
+                match gsp.delete_scans_id(id).await {
                     Ok(()) => BodyKind::no_content(StatusCode::NO_CONTENT),
                     Err(e) => e.into(),
                 }
@@ -91,24 +90,29 @@ mod tests {
 
     struct Test {}
 
-    impl ContainsScanID for Test {
+    impl MapScanID for Test {
         fn contains_scan_id<'a>(
             &'a self,
-            _: &'a str,
+            client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>> {
-            Box::pin(async move { scan_id == "id" })
+        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+            Box::pin(async move {
+                if scan_id == "id" {
+                    Some(client_id.to_string())
+                } else {
+                    None
+                }
+            })
         }
     }
 
     impl DeleteScansID for Test {
         fn delete_scans_id(
             &self,
-            client_id: String,
-            _: String,
+            id: String,
         ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send>>
         {
-            let client_id = client_id.clone();
+            let client_id = id.clone();
             let ok = ClientHash::from("ok").to_string();
             let already_running = ClientHash::from("already_running").to_string();
             Box::pin(async move {
