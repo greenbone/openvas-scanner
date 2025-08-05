@@ -67,9 +67,9 @@ pub mod prelude {
     pub use std::pin::Pin;
 
     pub use crate::{
-        ClientHash, ContainsScanID, GetScans, GetScansError, GetScansID, GetScansIDError,
-        GetScansIDResults, GetScansIDResultsError, GetScansIDResultsID, GetScansIDResultsIDError,
-        GetScansIDStatus, GetScansIDStatusError, PostScans, PostScansError, StreamResult,
+        ClientHash, GetScans, GetScansError, GetScansID, GetScansIDError, GetScansIDResults,
+        GetScansIDResultsError, GetScansIDResultsID, GetScansIDResultsIDError, GetScansIDStatus,
+        GetScansIDStatusError, MapScanID, PostScans, PostScansError, StreamResult,
         delete_scans_id::{DeleteScansID, DeleteScansIDError},
         models,
         post_scans_id::PostScansID,
@@ -567,18 +567,23 @@ impl RuntimeBuilder<runtime_builder_states::End> {
     }
 }
 
-/// This trait is used for scan id specific endpoints to check if the scan_id is available.
+pub type InternalIdentifier = String;
+
+/// This trait is used for scan id specific endpoints to return an internal identifier.
 ///
 /// Rather than forcing the implemenation of a scan specific endpoint to check for themselves this
 /// trait is used. This not just makes the implementation easier but also allows us to get rid of
 /// async requirements when e.b. building a stream.
-pub trait ContainsScanID: Send + Sync {
+///
+/// Additionally it returns one id instead of two so that implementations don't need to be aware
+/// about the client_identifier.
+pub trait MapScanID: Send + Sync {
     /// Returns true when scan_id is available for the given client
     fn contains_scan_id<'a>(
         &'a self,
         client_id: &'a str,
         scan_id: &'a str,
-    ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>>;
+    ) -> std::pin::Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>>;
 }
 
 #[derive(thiserror::Error, Debug, Clone)]

@@ -4,16 +4,15 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ContainsScanID, GetScansError, define_authentication_paths,
+    GetScansError, MapScanID, define_authentication_paths,
     entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
     models,
 };
 
-pub trait GetScansIDResults: ContainsScanID {
+pub trait GetScansIDResults: MapScanID {
     fn get_scans_id_results(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
         from: Option<usize>,
         to: Option<usize>,
     ) -> StreamResult<'static, models::Result, GetScansIDResultsError>;
@@ -84,15 +83,10 @@ where
                     .unwrap_or_default(),
                 None => (None, None),
             };
-            enforce_client_id_and_scan_id(
-                &client_id,
-                id,
-                gsp.as_ref(),
-                async |client_id, scan_id| {
-                    let input = gsp.get_scans_id_results(client_id, scan_id, from, to);
-                    BodyKind::from_result_stream(StatusCode::OK, input).await
-                },
-            )
+            enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |id| {
+                let input = gsp.get_scans_id_results(id, from, to);
+                BodyKind::from_result_stream(StatusCode::OK, input).await
+            })
             .await
         })
     }
@@ -136,13 +130,19 @@ mod tests {
 
     struct Test {}
 
-    impl ContainsScanID for Test {
+    impl MapScanID for Test {
         fn contains_scan_id<'a>(
             &'a self,
-            _: &'a str,
+            client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>> {
-            Box::pin(async move { scan_id == "id" })
+        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+            Box::pin(async move {
+                if scan_id == "id" {
+                    Some(client_id.to_string())
+                } else {
+                    None
+                }
+            })
         }
     }
 
@@ -150,7 +150,6 @@ mod tests {
         fn get_scans_id_results(
             &self,
             client_id: String,
-            _: String,
             from: Option<usize>,
             to: Option<usize>,
         ) -> StreamResult<'static, models::Result, GetScansIDResultsError> {

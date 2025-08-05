@@ -3,16 +3,15 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ContainsScanID, ExternalError, define_authentication_paths,
+    ExternalError, MapScanID, define_authentication_paths,
     entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
     internal_server_error, models,
 };
 
-pub trait GetScansIDResultsID: ContainsScanID {
+pub trait GetScansIDResultsID: MapScanID {
     fn get_scans_id_results_id(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
         result_id: usize,
     ) -> std::pin::Pin<
         Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>,
@@ -55,8 +54,8 @@ where
                 Err(_) => return GetScansIDResultsIDError::InvalidID.into(),
             };
 
-            enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |client_id, id| {
-                match gsp.get_scans_id_results_id(client_id, id, rid).await {
+            enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |id| {
+                match gsp.get_scans_id_results_id(id, rid).await {
                     Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
                     Err(e) => e.into(),
                 }
@@ -132,13 +131,19 @@ mod tests {
 
     struct Test {}
 
-    impl ContainsScanID for Test {
+    impl MapScanID for Test {
         fn contains_scan_id<'a>(
             &'a self,
-            _: &'a str,
+            client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>> {
-            Box::pin(async move { scan_id == "id" })
+        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+            Box::pin(async move {
+                if scan_id == "id" {
+                    Some(client_id.to_string())
+                } else {
+                    None
+                }
+            })
         }
     }
 
@@ -146,7 +151,6 @@ mod tests {
         fn get_scans_id_results_id(
             &self,
             client_id: String,
-            _: String,
             result_id: usize,
         ) -> std::pin::Pin<
             Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send>,

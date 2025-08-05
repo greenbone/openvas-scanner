@@ -272,7 +272,7 @@ fn api_key_to_client_identifier(
     result
 }
 
-use crate::{Authentication, ContainsScanID, internal_server_error};
+use crate::{Authentication, MapScanID, internal_server_error};
 impl<R> hyper::service::Service<hyper::Request<R>> for EntryPoint
 where
     R: hyper::body::Body + Send + 'static,
@@ -334,13 +334,13 @@ pub async fn enforce_client_id_and_scan_id<T, F, Fut>(
     f: F,
 ) -> BodyKind
 where
-    T: ContainsScanID,
-    F: Fn(String, String) -> Fut,
+    T: MapScanID,
+    F: Fn(String) -> Fut,
     Fut: std::future::Future<Output = BodyKind>,
 {
     let client = enforce_client_hash(client_id).to_string();
-    if verifier.contains_scan_id(&client, &scan_id).await {
-        f(client, scan_id).await
+    if let Some(id) = verifier.contains_scan_id(&client, &scan_id).await {
+        f(id).await
     } else {
         BodyKind::no_content(StatusCode::NOT_FOUND)
     }

@@ -3,16 +3,15 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ContainsScanID, GetScansError, define_authentication_paths,
+    GetScansError, MapScanID, define_authentication_paths,
     entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
     models,
 };
 
-pub trait GetScansID: ContainsScanID {
+pub trait GetScansID: MapScanID {
     fn get_scans_id(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send>>;
 }
 
@@ -46,8 +45,8 @@ where
             .next()
             .expect("expect ID, this is a toolkit error");
         Box::pin(async move {
-            enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |client_id, id| {
-                match gsp.get_scans_id(client_id, id).await {
+            enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |id| {
+                match gsp.get_scans_id(id).await {
                     Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
                     Err(e) => e.into(),
                 }
@@ -91,28 +90,33 @@ mod tests {
 
     struct Test {}
 
-    impl ContainsScanID for Test {
+    impl MapScanID for Test {
         fn contains_scan_id<'a>(
             &'a self,
-            _: &'a str,
+            client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>> {
-            Box::pin(async move { scan_id == "id" })
+        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+            Box::pin(async move {
+                if scan_id == "id" {
+                    Some(client_id.to_string())
+                } else {
+                    None
+                }
+            })
         }
     }
 
     impl GetScansID for Test {
         fn get_scans_id(
             &self,
-            client_id: String,
-            scan_id: String,
+            id: String,
         ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send>>
         {
             let result = models::Scan {
-                scan_id,
+                scan_id: id.clone(),
                 ..Default::default()
             };
-            test_utilities::on_client_id_return(client_id, result, GetScansError::NotFound)
+            test_utilities::on_client_id_return(id, result, GetScansError::NotFound)
         }
     }
 

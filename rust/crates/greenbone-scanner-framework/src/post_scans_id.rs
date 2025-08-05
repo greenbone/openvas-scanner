@@ -3,17 +3,16 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ContainsScanID, ExternalError, define_authentication_paths,
+    ExternalError, MapScanID, define_authentication_paths,
     entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
     internal_server_error,
     models::Action,
 };
 
-pub trait PostScansID: ContainsScanID {
+pub trait PostScansID: MapScanID {
     fn post_scans_id(
         &self,
-        client_id: String,
-        scan_id: String,
+        id: String,
         action: Action,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>>;
 }
@@ -54,10 +53,7 @@ where
                         &client_id,
                         id,
                         gsp.as_ref(),
-                        async |client_id, id| match gsp
-                            .post_scans_id(client_id, id, scan.action)
-                            .await
-                        {
+                        async |id| match gsp.post_scans_id(id, scan.action).await {
                             Ok(()) => BodyKind::no_content(StatusCode::NO_CONTENT),
                             Err(e) => e.into(),
                         },
@@ -134,13 +130,20 @@ mod tests {
     use super::*;
 
     struct Test {}
-    impl ContainsScanID for Test {
+
+    impl MapScanID for Test {
         fn contains_scan_id<'a>(
             &'a self,
-            _: &'a str,
+            client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>> {
-            Box::pin(async move { scan_id == "id" })
+        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+            Box::pin(async move {
+                if scan_id == "id" {
+                    Some(client_id.to_string())
+                } else {
+                    None
+                }
+            })
         }
     }
 
@@ -148,7 +151,6 @@ mod tests {
         fn post_scans_id(
             &self,
             client_id: String,
-            _: String,
             action: Action,
         ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send>> {
             let client_id = client_id.clone();
