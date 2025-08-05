@@ -21,7 +21,7 @@ ntlmv2_flag  = string( get_kb_item( "SMB/dont_send_ntlmv1" ) );
 ct_flag      = string( get_kb_item( "SMB/dont_send_in_cleartext" ) );
 
 ## An ISSUE reported as #71142, registry methods of smb_nt.inc are currently failing
-## against a Windows Vista Ulimate SP1 and Windows Server (R) 2008 SP1 systems. Moreover,
+## against a Windows Vista Ultimate SP1 and Windows Server (R) 2008 SP1 systems. Moreover,
 ## Windows Vista has already reached End of Life.
 ## Adding a workaround to check if target is Windows Vista Service Pack 1 or Windows Server
 ## (R) 2008 Service Pack 1 and if so force target to use SMB1 instead of SMB2, which is
