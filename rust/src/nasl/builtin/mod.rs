@@ -9,6 +9,7 @@ mod cert;
 mod cryptographic;
 mod description;
 mod error;
+mod find_service;
 mod host;
 mod http;
 mod isotime;
@@ -57,6 +58,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(cryptographic::rc4::CipherHandlers::default())
         .add_set(sys::Sys)
         .add_set(ssh::Ssh::default())
+        .add_set(find_service::FindService)
         .add_set(cert::NaslCerts::default());
 
     #[cfg(feature = "nasl-builtin-raw-ip")]
