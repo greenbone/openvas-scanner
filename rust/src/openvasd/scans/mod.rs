@@ -192,7 +192,20 @@ where
         client_id: &'a str,
         scan_id: &'a str,
     ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
-        todo!()
+        Box::pin(async move {
+            match query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
+                .bind(client_id)
+                .bind(scan_id)
+                .fetch_optional(&self.pool)
+                .await
+            {
+                Ok(x) => x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()),
+                Err(error) => {
+                    tracing::warn!(%error, "Unable to fetch id from client_scan_map. Returning no id found.");
+                    None
+                }
+            }
+        })
     }
 }
 
@@ -311,7 +324,7 @@ pub fn init(pool: SqlitePool, config: &Config) -> Endpoints<ChaCha20Crypt> {
 mod tests {
     use futures::StreamExt;
     use greenbone_scanner_framework::{
-        GetScans, PostScans, PostScansError,
+        GetScans, MapScanID, PostScans, PostScansError,
         models::{
             self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
             ScanPreference, Service,
@@ -586,6 +599,24 @@ mod tests {
                 matches!(result, Err(PostScansError::DuplicateId(_))),
                 "scan must be declined"
             );
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn map_id() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = super::init(pool, &config);
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        for scan in scans {
+            let result = undertest.contains_scan_id(&client_id, &scan.scan_id).await;
+            assert!(result.is_some(), "scan must be found");
         }
 
         Ok(())
