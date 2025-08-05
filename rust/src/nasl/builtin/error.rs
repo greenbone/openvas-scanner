@@ -51,6 +51,8 @@ pub enum BuiltinError {
     #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
     RawIp(RawIpError),
+    #[error("{0}")]
+    Preference(String),
 }
 
 macro_rules! builtin_error_variant (
