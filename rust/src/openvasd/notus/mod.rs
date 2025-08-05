@@ -6,7 +6,6 @@ use greenbone_scanner_framework::{
 };
 use http::StatusCode;
 use scannerlib::{
-    models,
     nasl::FSPluginLoader,
     notus::{HashsumProductLoader, Notus, NotusError},
 };

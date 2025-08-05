@@ -19,7 +19,7 @@ pub trait PostScansID: ContainsScanID {
 }
 
 pub struct PostScansIDIncomingRequest<T> {
-    get_scans: Arc<T>,
+    scans: Arc<T>,
 }
 
 impl<S> OnRequest for PostScansIDIncomingRequest<S>
@@ -41,7 +41,7 @@ where
     where
         'b: 'a,
     {
-        let gsp = self.get_scans.clone();
+        let gsp = self.scans.clone();
         let id = self
             .ids(uri)
             .into_iter()
@@ -77,7 +77,7 @@ where
 {
     fn from(value: T) -> Self {
         PostScansIDIncomingRequest {
-            get_scans: Arc::new(value),
+            scans: Arc::new(value),
         }
     }
 }
@@ -87,7 +87,7 @@ where
     T: PostScansID + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        PostScansIDIncomingRequest { get_scans: value }
+        PostScansIDIncomingRequest { scans: value }
     }
 }
 

@@ -69,7 +69,7 @@ pub mod prelude {
     pub use crate::{
         ClientHash, ContainsScanID, GetScans, GetScansError, GetScansID, GetScansIDError,
         GetScansIDResults, GetScansIDResultsError, GetScansIDResultsID, GetScansIDResultsIDError,
-        GetScansIDStatus, GetScansIDStatusError, PostScans, PostScansError,
+        GetScansIDStatus, GetScansIDStatusError, PostScans, PostScansError, StreamResult,
         delete_scans_id::{DeleteScansID, DeleteScansIDError},
         models,
         post_scans_id::PostScansID,
