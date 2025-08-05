@@ -165,5 +165,6 @@ function_set! {
     (
         script_get_preference,
         get_preference,
+        script_get_preference_file_content,
     )
 }
