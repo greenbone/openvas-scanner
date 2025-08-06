@@ -5,6 +5,7 @@
 use crate::nasl::{
     prelude::*,
     utils::{
+        DefineGlobalVars,
         function::{Seconds, utils::DEFAULT_TIMEOUT},
         scan_ctx::JmpDesc,
     },
@@ -996,4 +997,46 @@ function_set! {
         leave_multicast_group,
         telnet_init,
     )
+}
+
+impl DefineGlobalVars for SocketFns {
+    fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
+        vec![
+            ("ENCAPS_AUTO", NaslValue::Number(OpenvasEncaps::Auto.into())),
+            ("ENCAPS_IP", NaslValue::Number(OpenvasEncaps::Ip.into())),
+            (
+                "ENCAPS_SSLv23",
+                NaslValue::Number(OpenvasEncaps::Ssl23.into()),
+            ),
+            (
+                "ENCAPS_SSLv2",
+                NaslValue::Number(OpenvasEncaps::Ssl2.into()),
+            ),
+            (
+                "ENCAPS_SSLv3",
+                NaslValue::Number(OpenvasEncaps::Ssl3.into()),
+            ),
+            (
+                "ENCAPS_TLSv1",
+                NaslValue::Number(OpenvasEncaps::Tls1.into()),
+            ),
+            (
+                "ENCAPS_TLSv11",
+                NaslValue::Number(OpenvasEncaps::Tls11.into()),
+            ),
+            (
+                "ENCAPS_TLSv12",
+                NaslValue::Number(OpenvasEncaps::Tls12.into()),
+            ),
+            (
+                "ENCAPS_TLSv13",
+                NaslValue::Number(OpenvasEncaps::Tls1.into()),
+            ),
+            (
+                "ENCAPS_TLScustom",
+                NaslValue::Number(OpenvasEncaps::TlsCustom.into()),
+            ),
+            ("ENCAPS_MAX", NaslValue::Number(OpenvasEncaps::Max.into())),
+        ]
+    }
 }
