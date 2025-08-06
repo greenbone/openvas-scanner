@@ -6,7 +6,10 @@ use std::{fmt::Display, net::IpAddr};
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
 use crate::nasl::raw_ip_utils::raw_ip_utils;
-use crate::{nasl::prelude::*, storage::items::kb::KbKey};
+use crate::{
+    nasl::{prelude::*, utils::DefineGlobalVars},
+    storage::items::kb::KbKey,
+};
 
 #[allow(clippy::module_inception)]
 pub mod network;
@@ -69,6 +72,24 @@ impl OpenvasEncaps {
     }
 }
 
+impl From<OpenvasEncaps> for i64 {
+    fn from(value: OpenvasEncaps) -> Self {
+        match value {
+            OpenvasEncaps::Auto => 0,
+            OpenvasEncaps::Ip => 1,
+            OpenvasEncaps::Ssl23 => 2,
+            OpenvasEncaps::Ssl2 => 3,
+            OpenvasEncaps::Ssl3 => 4,
+            OpenvasEncaps::Tls1 => 5,
+            OpenvasEncaps::Tls11 => 6,
+            OpenvasEncaps::Tls12 => 7,
+            OpenvasEncaps::Tls13 => 8,
+            OpenvasEncaps::TlsCustom => 9,
+            OpenvasEncaps::Max => 10,
+        }
+    }
+}
+
 impl Display for OpenvasEncaps {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -119,5 +140,13 @@ impl FromNaslValue<'_> for Port {
         } else {
             Ok(Port(port as u16))
         }
+    }
+}
+
+pub struct Network;
+
+impl DefineGlobalVars for Network {
+    fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
+        socket::SocketFns::get_global_vars().into_iter().collect()
     }
 }
