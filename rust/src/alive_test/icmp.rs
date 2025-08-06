@@ -82,7 +82,7 @@ fn forge_icmp_v6_packet() -> Vec<u8> {
 }
 
 fn forge_ipv6_packet_for_icmp(
-    icmp_buf: &mut Vec<u8>,
+    icmp_buf: &mut [u8],
     dst: Ipv6Addr,
 ) -> Result<Ipv6Packet<'static>, AliveTestError> {
     let icmp_buf_len = icmp_buf.len();
@@ -99,8 +99,9 @@ fn forge_ipv6_packet_for_icmp(
     pkt.set_destination(dst);
     pkt.set_version(IPPROTO_IPV6);
     let icmp_buf_len = icmp_buf.len() as i64;
-    let mut icmp_pkt = packet::icmpv6::MutableIcmpv6Packet::new(icmp_buf)
-        .ok_or_else(|| AliveTestError::CreateIcmpPacketFromWrongBufferSize(icmp_buf_len))?;
+    let mut icmp_pkt = packet::icmpv6::MutableIcmpv6Packet::new(icmp_buf).ok_or(
+        AliveTestError::CreateIcmpPacketFromWrongBufferSize(icmp_buf_len),
+    )?;
 
     let chksum = pnet::packet::icmpv6::checksum(
         &icmp_pkt.to_immutable(),
@@ -110,7 +111,7 @@ fn forge_ipv6_packet_for_icmp(
     icmp_pkt.set_checksum(chksum);
 
     pkt.set_payload_length(icmp_buf_len as u16);
-    pkt.set_payload(&icmp_buf);
+    pkt.set_payload(icmp_buf);
 
     //we know the buffer size. So, it never fails
     Ok(Ipv6Packet::owned(ip_buf).unwrap())

@@ -55,7 +55,7 @@ pub fn tcp_ping(dport: u16, tcp_flag: u16) -> Vec<u8> {
 }
 
 fn forge_ipv4_packet_for_tcp(
-    tcp_buf: &mut Vec<u8>,
+    tcp_buf: &mut [u8],
     dst: Ipv4Addr,
 ) -> Result<Ipv4Packet<'static>, AliveTestError> {
     // We do now the same as above for the IPv4 packet, appending the icmp packet as payload
@@ -97,7 +97,7 @@ pub fn forge_tcp_ping_ipv4(
 }
 
 fn forge_ipv6_packet_for_tcp(
-    tcp_buf: &mut Vec<u8>,
+    tcp_buf: &mut [u8],
     dst: Ipv6Addr,
 ) -> Result<Ipv6Packet<'static>, AliveTestError> {
     let tcp_buf_len = tcp_buf.len();
@@ -118,7 +118,7 @@ fn forge_ipv6_packet_for_tcp(
     let chksum = tcp.calculate_checksum(None, &pkt.to_immutable());
     tcp.set_checksum(chksum);
     pkt.set_payload_length(tcp_buf_len as u16);
-    pkt.set_payload(&tcp_buf);
+    pkt.set_payload(tcp_buf);
 
     //we know the buffer size. So, it never fails
     Ok(Ipv6Packet::owned(ip_buf).unwrap())
