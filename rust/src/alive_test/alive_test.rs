@@ -98,7 +98,7 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         AliveTestError::CreateIpPacketFromWrongBufferSize((packet.len() - L2_FRAME_OFFSET) as i64)
     })?;
     // IP header length is given in increments of 32 bits
-    // Then, the header lenght in bytes is = hl * 32 bits per words / 8bits per byte;
+    // Then, the header length in bytes is = hl * 32 bits per words / 8bits per byte;
     let header_len =
         pkt.get_header_length() as usize * BITS_PER_WORD_IP_HEADER_LEN_INCREMENT / BITS_PER_BYTE;
     let l2_and_ip_header = header_len + L2_FRAME_OFFSET;
@@ -134,8 +134,9 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
 }
 
 fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestError> {
-    let pkt = Ipv6Packet::new(&packet[L2_FRAME_OFFSET..])
-        .ok_or_else(|| AliveTestError::CreateIpPacketFromWrongBufferSize(packet.len() as i64))?;
+    let pkt = Ipv6Packet::new(&packet[L2_FRAME_OFFSET..]).ok_or(
+        AliveTestError::CreateIpPacketFromWrongBufferSize(packet.len() as i64),
+    )?;
     if pkt.get_next_header() == IpNextHeaderProtocols::Icmpv6 {
         let icmp_pkt = Icmpv6Packet::new(&packet[L2_FRAME_OFFSET + FIX_IPV6_HEADER_LENGTH..])
             .ok_or_else(|| {
@@ -172,8 +173,9 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
 }
 
 fn process_arp_frame(frame: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestError> {
-    let arp = ArpPacket::new(&frame[L2_FRAME_OFFSET..])
-        .ok_or_else(|| AliveTestError::CreateIpPacketFromWrongBufferSize(frame.len() as i64))?;
+    let arp = ArpPacket::new(&frame[L2_FRAME_OFFSET..]).ok_or(
+        AliveTestError::CreateIpPacketFromWrongBufferSize(frame.len() as i64),
+    )?;
     if arp.get_operation() == ArpOperations::Reply {
         return Ok(Some(AliveHostInfo {
             ip: arp.get_sender_proto_addr().to_string(),
