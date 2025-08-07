@@ -288,10 +288,6 @@ impl ScanStarter for NoOpScanner {
     async fn start_scan(&self, _: scannerlib::models::Scan) -> Result<(), Error> {
         Ok(())
     }
-
-    async fn can_start_scan(&self, _: &scannerlib::models::Scan) -> bool {
-        true
-    }
 }
 
 #[async_trait]

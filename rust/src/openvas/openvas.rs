@@ -10,7 +10,7 @@ use super::{
     pref_handler::PreferenceHandler,
     result_collector::ResultHelper,
 };
-use greenbone_scanner_framework::models::{self, HostInfoBuilder, Phase, Scan, Status};
+use greenbone_scanner_framework::models::{self, HostInfo, Phase, Scan, Status};
 
 use crate::storage::redis::{NameSpaceSelector, RedisCtx};
 use async_trait::async_trait;
@@ -198,7 +198,7 @@ impl ScanStarter for Scanner {
         return Ok(());
     }
 
-    async fn can_start_scan(&self, _: &Scan) -> bool {
+    async fn can_start_scan(&self) -> bool {
         self.resource_checker
             .as_ref()
             .map(|v| v.in_boundaries())
@@ -330,7 +330,7 @@ impl ScanResultFetcher for Scanner {
 
         match Arc::as_ref(&ov_results.results).lock() {
             Ok(all_results) => {
-                let hosts_info = HostInfoBuilder {
+                let hosts_info = HostInfo {
                     all: all_results.count_total as u64,
                     excluded: all_results.count_excluded as u64,
                     dead: all_results.count_dead as u64,
@@ -339,8 +339,7 @@ impl ScanResultFetcher for Scanner {
                     finished: all_results.count_alive as u64,
                     scanning: Some(all_results.host_status.clone()),
                     ..Default::default()
-                }
-                .build();
+                };
 
                 let status: Phase = OpenvasPhase::from_str(&all_results.scan_status)
                     .map_err(|_| {

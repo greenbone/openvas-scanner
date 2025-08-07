@@ -63,10 +63,6 @@ impl ScanStarter for Scanner {
         })
         .await
     }
-
-    async fn can_start_scan(&self, _: &Scan) -> bool {
-        true
-    }
 }
 
 #[async_trait]

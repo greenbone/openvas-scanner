@@ -36,18 +36,19 @@ fn setup_log(config: &Config) {
 }
 
 // TODO: move to config
-pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
+pub async fn setup_sqlite(config: &Config, shared: bool) -> Result<SqlitePool> {
     use sqlx::{
         Sqlite,
         pool::PoolOptions,
         sqlite::{SqliteConnectOptions, SqliteJournalMode},
     };
     use std::time::Duration;
-    fn from_config_to_sqlite_address(config: &Config) -> String {
+    fn from_config_to_sqlite_address(config: &Config, shared: bool) -> String {
         use crate::config::StorageType;
 
         match config.storage.storage_type {
-            StorageType::InMemory => "sqlite::memory:?cache=shared".to_owned(),
+            StorageType::InMemory if shared => "sqlite::memory:?cache=shared".to_owned(),
+            StorageType::InMemory => "sqlite::memory:".to_owned(),
             StorageType::FileSystem if config.storage.fs.path.is_dir() => {
                 let mut p = config.storage.fs.path.clone();
                 p.push("openvasd.db");
@@ -68,7 +69,7 @@ pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     // TODO: make busy_timeout a configuration option
     let busy_timeout = Duration::from_secs(2);
 
-    let options = SqliteConnectOptions::from_str(&from_config_to_sqlite_address(config))?
+    let options = SqliteConnectOptions::from_str(&from_config_to_sqlite_address(config, shared))?
         .journal_mode(SqliteJournalMode::Wal)
         // Although this can lead to data loss in the case that the application crashes we usually
         // need to either restart that scan anyway.
@@ -87,7 +88,7 @@ pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
 async fn main() -> Result<()> {
     let config = Config::load();
     setup_log(&config);
-    let pool = setup_sqlite(&config).await?;
+    let pool = setup_sqlite(&config, true).await?;
     let scan = scans::init(pool.clone(), &config);
     let vts = vts::init(pool, &config).await;
     let (get_notus, post_notus) = notus::init(&config);

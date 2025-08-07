@@ -25,6 +25,28 @@ CREATE TABLE scans (
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
+CREATE TRIGGER trg_update_scans_start_time
+AFTER UPDATE OF status ON scans
+FOR EACH ROW
+WHEN NEW.status = 'running' AND OLD.status IS NOT 'running'
+BEGIN
+    UPDATE scans
+    SET start_time = CAST(strftime('%s', 'now') AS INTEGER), 
+        end_time = NULL
+    WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER trg_update_scans_end_time
+AFTER UPDATE OF status ON scans
+FOR EACH ROW
+WHEN (NEW.status = 'failed' OR NEW.status = 'succeeded' OR NEW.status = 'stopped' ) AND OLD.status IS NOT NEW.status
+BEGIN
+    UPDATE scans
+    SET end_time = CAST(strftime('%s', 'now') AS INTEGER)
+    WHERE id = NEW.id;
+END;
+
+
 
 CREATE INDEX idx_scans_status ON scans(status);
 
@@ -78,35 +100,6 @@ CREATE TABLE vt_parameters (
     FOREIGN KEY (id, vt) REFERENCES vts(id, vt) ON DELETE CASCADE
 );
 
---- Contains host information that are already resolved. 
--- This this differentation is necessary because a scan can contain:
--- - ip ranges
--- - dns entries
--- - oci images
-CREATE TABLE resolved_hosts (
-    id INTEGER,
-    original_host TEXT NOT NULL,
-    resolved_host TEXT NOT NULL,
-    kind TEXT NOT NULL CHECK(kind IN ('oci', 'ipv4', 'ipv6', 'dns')),
-    scan_status TEXT NOT NULL DEFAULT 'queued' CHECK(scan_status IN ('queued', 'scanning', 'stopped', 'failed', 'succeeded', 'excluded')),
-    host_status TEXT NOT NULL DEFAULT 'unknown' CHECK(host_status IN ('alive', 'dead', 'unknown')),
-    PRIMARY KEY (id, resolved_host),
-    FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_resolved_hosts_host_status_scan_status_kind ON resolved_hosts(id, host_status, scan_status, kind);
-
-CREATE TABLE knowledge_base_items(
-    id INTEGER PRIMARY KEY,
-    client_scan_id INTEGER NOT NULL,
-    host TEXT NOT NULL,
-    key TEXT NOT NULL,
-    value TEXT,
-    FOREIGN KEY (client_scan_id, host) REFERENCES resolved_hosts(id, resolved_host)
-);
-
-CREATE INDEX idx_knowledge_base_items ON knowledge_base_items(id, host, key);
-
 -- maybe just store the json as a blob as we just get the data for id and result_id but never actually work with the data
 CREATE TABLE results (
     id INTEGER,
@@ -146,4 +139,35 @@ CREATE TABLE plugins (
     json_blob BLOB NOT NULL,
     FOREIGN KEY (feed_type) REFERENCES feed (type) ON DELETE CASCADE
 );
+
+-- Maybe move scripts to own sqlite pool so that they don't interfere?
+--- Contains host information that are already resolved. 
+-- This this differentation is necessary because a scan can contain:
+-- - ip ranges
+-- - dns entries
+-- - oci images
+CREATE TABLE resolved_hosts (
+    id INTEGER,
+    original_host TEXT NOT NULL,
+    resolved_host TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN ('oci', 'ipv4', 'ipv6', 'dns')),
+    scan_status TEXT NOT NULL DEFAULT 'queued' CHECK(scan_status IN ('queued', 'scanning', 'stopped', 'failed', 'succeeded', 'excluded')),
+    host_status TEXT NOT NULL DEFAULT 'unknown' CHECK(host_status IN ('alive', 'dead', 'unknown')),
+    PRIMARY KEY (id, resolved_host),
+    FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_resolved_hosts_host_status_scan_status_kind ON resolved_hosts(id, host_status, scan_status, kind);
+
+CREATE TABLE knowledge_base_items(
+    id INTEGER PRIMARY KEY,
+    client_scan_id INTEGER NOT NULL,
+    host TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT,
+    FOREIGN KEY (client_scan_id, host) REFERENCES resolved_hosts(id, resolved_host)
+);
+
+CREATE INDEX idx_knowledge_base_items ON knowledge_base_items(id, host, key);
+
 
