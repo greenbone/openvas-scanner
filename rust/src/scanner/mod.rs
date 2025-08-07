@@ -119,11 +119,6 @@ impl<S: ScannerStack + 'static> ScanStarter for ScannerWhyTwo<S> {
         self.start_scan_internal(Scan::from_resolvable_hosts(scan))
             .await
     }
-
-    async fn can_start_scan(&self, _: &models::Scan) -> bool {
-        // Todo: Implement this properly
-        true
-    }
 }
 
 #[async_trait]

@@ -215,9 +215,10 @@ where
             match queued.pop() {
                 Some(scan_id) => {
                     let (scan, status) = self.db.get_decrypted_scan(&scan_id).await?;
-                    if !self.scanner.can_start_scan(&scan).await {
+                    if !self.scanner.can_start_scan().await {
                         tracing::debug!(?status, %scan_id, "unable to start scan");
                         queued.push(scan_id);
+                        break;
                     } else {
                         tracing::debug!(?status, %scan_id, "starting scan");
                         match self.scanner.start_scan(scan).await {

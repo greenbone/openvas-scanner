@@ -198,7 +198,7 @@ impl ScanStarter for Scanner {
         return Ok(());
     }
 
-    async fn can_start_scan(&self, _: &Scan) -> bool {
+    async fn can_start_scan(&self) -> bool {
         self.resource_checker
             .as_ref()
             .map(|v| v.in_boundaries())
