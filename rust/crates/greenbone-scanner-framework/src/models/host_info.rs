@@ -15,54 +15,9 @@ pub struct HostInfoBuilder {
     pub queued: u64,
     pub finished: u64,
     pub scanning: Option<HashMap<String, i32>>,
-    pub remaining_vts_per_host: HashMap<String, usize>,
 }
 
 impl HostInfoBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn all(mut self, value: u64) -> Self {
-        self.all = value;
-        self
-    }
-
-    pub fn excluded(mut self, value: u64) -> Self {
-        self.excluded = value;
-        self
-    }
-
-    pub fn dead(mut self, value: u64) -> Self {
-        self.dead = value;
-        self
-    }
-
-    pub fn alive(mut self, value: u64) -> Self {
-        self.alive = value;
-        self
-    }
-
-    pub fn queued(mut self, value: u64) -> Self {
-        self.queued = value;
-        self
-    }
-
-    pub fn finished(mut self, value: u64) -> Self {
-        self.finished = value;
-        self
-    }
-
-    pub fn scanning(mut self, value: HashMap<String, i32>) -> Self {
-        self.scanning = Some(value);
-        self
-    }
-
-    pub fn remaining_vts_per_host(mut self, value: HashMap<String, usize>) -> Self {
-        self.remaining_vts_per_host = value;
-        self
-    }
-
     pub fn build(self) -> HostInfo {
         HostInfo {
             all: self.all,
@@ -72,7 +27,7 @@ impl HostInfoBuilder {
             queued: self.queued,
             finished: self.finished,
             scanning: self.scanning,
-            remaining_vts_per_host: self.remaining_vts_per_host,
+            remaining_vts_per_host: HashMap::new(),
         }
     }
 }
@@ -80,27 +35,33 @@ impl HostInfoBuilder {
 /// Information about hosts of a running scan
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostInfo {
-    all: u64,
-    excluded: u64,
-    dead: u64,
-    alive: u64,
-    queued: u64,
-    finished: u64,
+    pub all: u64,
+    pub excluded: u64,
+    pub dead: u64,
+    pub alive: u64,
+    pub queued: u64,
+    pub finished: u64,
     // Hosts that are currently being scanned. The second entry is the host
     // scan progress. Required for Openvas Scanner type
     #[serde(skip_serializing_if = "Option::is_none")]
-    scanning: Option<HashMap<String, i32>>,
+    pub scanning: Option<HashMap<String, i32>>,
     // Hosts that are currently being scanned. The second entry is the number of
     // remaining VTs for this host.
-    remaining_vts_per_host: HashMap<String, usize>,
+    pub remaining_vts_per_host: HashMap<String, usize>,
 }
 
 impl HostInfo {
-    pub fn from_hosts_and_num_vts(hosts: &[Host], num_vts: usize) -> Self {
+    pub fn from_hosts_and_num_vts<'a>(
+        targets: impl Iterator<Item = &'a str>,
+        num_vts: usize,
+    ) -> Self {
+        let hosts: HashMap<_, _> = targets
+            .map(|target| (target.to_string(), num_vts))
+            .collect();
         Self {
             all: hosts.len() as u64,
             queued: hosts.len() as u64,
-            remaining_vts_per_host: hosts.iter().map(|host| (host.clone(), num_vts)).collect(),
+            remaining_vts_per_host: hosts,
             ..Default::default()
         }
     }
@@ -119,14 +80,6 @@ impl HostInfo {
     pub fn finish(&mut self) {
         self.remaining_vts_per_host.clear();
         assert_eq!(self.queued, 0);
-    }
-
-    pub fn queued(&self) -> u64 {
-        self.queued
-    }
-
-    pub fn finished(&self) -> u64 {
-        self.finished
     }
 
     pub fn update_with(mut self, other: &HostInfo) -> Self {

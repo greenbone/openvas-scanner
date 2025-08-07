@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use scannerlib::models::scanner::Scanner;
+use scannerlib::scanner::Scanner;
 
 use crate::{
     feed::FeedIdentifier,

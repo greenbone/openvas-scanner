@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::scanner::ObservableResources;
+use crate::scanner::ObservableResources;
 
 /// Checks for relative resource availability.
 ///
@@ -59,9 +59,8 @@ impl Checker {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::scanner::ObservableResources;
 
-    use super::Checker;
+    use super::*;
 
     #[test]
     fn in_boundaries() {

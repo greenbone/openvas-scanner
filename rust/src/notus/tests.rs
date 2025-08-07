@@ -4,7 +4,8 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::models::{FixedPackage, FixedVersion, Specifier};
+use greenbone_scanner_framework::models::{FixedPackage, FixedVersion, Specifier};
+
 use crate::notus::{error::Error, loader::fs::FSProductLoader, notus::Notus};
 
 pub fn make_test_path(sub_components: &[&str]) -> PathBuf {

@@ -13,6 +13,7 @@ use super::{NaslValue, Port, mtu};
 use crate::function_set;
 use crate::nasl::utils::{FnError, ScanCtx};
 use crate::storage::items::kb::{self, KbItem, KbKey};
+use greenbone_scanner_framework::models::Protocol;
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
@@ -186,12 +187,12 @@ fn get_port_transport(context: &ScanCtx, port: u16, asstring: bool) -> Result<Na
 
 #[nasl_function]
 fn get_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
-    context.get_port_state(port, crate::models::Protocol::TCP)
+    context.get_port_state(port, Protocol::TCP)
 }
 
 #[nasl_function]
 fn get_udp_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
-    context.get_port_state(port, crate::models::Protocol::UDP)
+    context.get_port_state(port, Protocol::UDP)
 }
 
 pub struct Network;

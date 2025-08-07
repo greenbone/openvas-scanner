@@ -4,7 +4,9 @@
 
 use std::collections::HashMap;
 
-use crate::models::{self, FixedPackage, FixedVersion, PackageType, Specifier};
+use greenbone_scanner_framework::models::{
+    self, FixedPackage, FixedVersion, PackageType, Specifier,
+};
 
 use crate::{
     notus::error::Error,
@@ -35,7 +37,7 @@ impl Product {
     /// Transform a given list mode VT models into internal representation for performing package
     /// version comparisons.
     fn transform<P: Package>(
-        vts_model: Vec<crate::models::VulnerabilityTest>,
+        vts_model: Vec<models::VulnerabilityTest>,
     ) -> Result<VulnerabilityTests<P>, Error> {
         let mut vts = VulnerabilityTests::new();
         // Iterate through vulnerability tests of parsed file

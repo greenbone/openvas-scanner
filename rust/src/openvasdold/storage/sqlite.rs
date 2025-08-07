@@ -8,7 +8,7 @@ use super::*;
 use futures::{StreamExt, TryFutureExt, TryStreamExt};
 use itertools::Itertools;
 use scannerlib::{
-    models::{self, AliveTestMethods},
+    models::{self, AliveTestMethods, ResultType},
     notus,
     scanner::preferences::{self, preference::ScanPrefs},
     storage::{
@@ -157,7 +157,7 @@ where
 
             query.execute(&mut *tx).await?;
         }
-        let mut scan_preferences = scan.scan_preferences.0;
+        let mut scan_preferences = scan.scan_preferences;
         if scan.target.reverse_lookup_unify.unwrap_or_default() {
             scan_preferences.push(models::ScanPreference {
                 id: "target_reverse_lookup_unify".to_string(),
@@ -388,8 +388,7 @@ where
             .iter()
             .any(|x| &x.id == "target_reverse_lookup_only" && x.value.parse().unwrap_or_default());
 
-        // narf
-        let scan_preferences = ScanPrefs(preferences);
+        let scan_preferences = preferences;
 
         let hosts: Vec<String> = query_scalar(r#"SELECT host FROM hosts WHERE id = ?"#)
             .bind(id)
@@ -539,7 +538,9 @@ where
             .into_iter()
             .map(|row| models::Result {
                 id: row.get::<i64, _>("result_id") as usize,
-                r_type: row.get::<String, _>("type").into(),
+                r_type: ResultType::from_str(row.get::<&str, _>("type"))
+                    .expect("stored type must be known"),
+
                 ip_address: row.get("ip_address"),
                 hostname: row.get("hostname"),
                 oid: row.get("oid"),
@@ -1134,7 +1135,7 @@ mod tests {
                 }
                 creds
             }
-            Service::SMB | Service::ESXi => {
+            Service::SMB | Service::ESXi | Service::Generic => {
                 vec![CredentialType::UP {
                     username: "admin".to_string(),
                     password: "adminpass".to_string(),
@@ -1200,11 +1201,11 @@ mod tests {
         .collect()
     }
 
-    fn generate_scan_prefs() -> ScanPrefs {
-        ScanPrefs(vec![ScanPreference {
+    fn generate_scan_prefs() -> Vec<ScanPreference> {
+        vec![ScanPreference {
             id: "moep".into(),
             value: "narf".into(),
-        }])
+        }]
     }
 
     fn generate_vts() -> Vec<models::VT> {

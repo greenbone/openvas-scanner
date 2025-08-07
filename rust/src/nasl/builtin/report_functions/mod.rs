@@ -4,7 +4,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use crate::models::{self, Protocol, ResultType};
+use greenbone_scanner_framework::models::{self, Protocol, ResultType};
 
 use crate::nasl::prelude::*;
 
@@ -51,6 +51,7 @@ impl Reporting {
         let target = context.target();
         let hostname = target.hostname();
         let ip_address = target.ip_addr();
+        //TODO: rename models::Result to allow direct import
         let result = models::Result {
             id: self.id(),
             r_type: typus,

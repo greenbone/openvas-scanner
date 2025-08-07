@@ -7,13 +7,11 @@
 //!The scanner is used in openvasd to control scans.
 use std::{path::PathBuf, time::Duration};
 
-use crate::{
-    models::Scan,
-    models::scanner::{
-        Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
-    },
+use crate::scanner::{
+    Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
 };
 use async_trait::async_trait;
+use greenbone_scanner_framework::models::Scan;
 
 use super::connection::{delete_scan, get_delete_scan_results, start_scan, stop_scan};
 

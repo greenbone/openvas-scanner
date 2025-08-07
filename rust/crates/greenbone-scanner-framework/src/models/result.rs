@@ -54,7 +54,7 @@ pub struct Detail {
 /// Host details source information
 #[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Source {
-    // #[serde(rename = "type")]
+    #[serde(rename = "type")]
     /// type of the source
     pub s_type: String,
     /// source reference, e.g. an OID in case of a nvt type

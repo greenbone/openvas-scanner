@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use super::resources::check::Checker;
 use super::{
     cmd,
     error::OpenvasError,
@@ -9,17 +10,9 @@ use super::{
     pref_handler::PreferenceHandler,
     result_collector::ResultHelper,
 };
-use crate::models::{
-    HostInfoBuilder, Phase, Status,
-    scanner::{
-        Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanResults,
-        ScanStarter, ScanStopper,
-    },
-};
-use crate::{
-    models::{self, Scan, resources::check::Checker},
-    storage::redis::{NameSpaceSelector, RedisCtx},
-};
+use greenbone_scanner_framework::models::{self, HostInfoBuilder, Phase, Scan, Status};
+
+use crate::storage::redis::{NameSpaceSelector, RedisCtx};
 use async_trait::async_trait;
 use std::{
     collections::HashMap,
@@ -38,6 +31,10 @@ pub struct Scanner {
     resource_checker: Option<Checker>,
     default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
 }
+use crate::scanner::{
+    Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanResults, ScanStarter,
+    ScanStopper,
+};
 
 impl From<OpenvasError> for ScanError {
     fn from(value: OpenvasError) -> Self {
@@ -341,6 +338,7 @@ impl ScanResultFetcher for Scanner {
                     queued: 0,
                     finished: all_results.count_alive as u64,
                     scanning: Some(all_results.host_status.clone()),
+                    ..Default::default()
                 }
                 .build();
 

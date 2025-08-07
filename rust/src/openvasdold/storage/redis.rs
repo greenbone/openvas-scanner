@@ -5,8 +5,9 @@
 use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
-use scannerlib::models::{self, Scan, Status, VulnerabilityData};
+use scannerlib::models::{self, Scan, Status};
 use scannerlib::nasl::FSPluginLoader;
+use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::storage::Dispatcher;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
@@ -23,7 +24,7 @@ use scannerlib::{
 use tokio::{sync::RwLock, task::JoinSet};
 
 use crate::{config::Config, controller::ClientHash, storage::FeedType};
-use scannerlib::models::scanner::{ScanResultKind, ScanResults};
+use scannerlib::scanner::{ScanResultKind, ScanResults};
 
 use super::{
     AppendFetchResult, Error, FeedHash, FromConfigAndFeeds, MappedID, NVTStorer, ProgressGetter,

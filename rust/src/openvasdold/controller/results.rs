@@ -6,7 +6,7 @@
 //!
 //! This loop should be run as background task to fetch results from the scanner.
 
-use scannerlib::models::scanner::Scanner;
+use scannerlib::scanner::Scanner;
 
 use std::sync::Arc;
 

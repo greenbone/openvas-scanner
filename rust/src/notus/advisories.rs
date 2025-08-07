@@ -7,8 +7,6 @@ use std::collections::{BTreeMap, HashMap};
 use greenbone_scanner_framework::models::{ACT, NvtRef, TagKey, TagValue, VTData};
 use serde::Deserialize;
 
-use crate::scanner::preferences;
-
 /// Represents an advisory json file for notus product.
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ProductsAdvisories {

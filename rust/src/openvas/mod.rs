@@ -9,6 +9,6 @@ mod error;
 mod openvas;
 mod openvas_redis;
 mod pref_handler;
+mod resources;
 mod result_collector;
-
 pub use openvas::Scanner;

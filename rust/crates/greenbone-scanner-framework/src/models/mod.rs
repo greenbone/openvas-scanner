@@ -32,6 +32,7 @@ pub use status::*;
 pub use target::*;
 pub use vt::*;
 pub use vtdata::*;
+pub type ScanID = String;
 
 #[cfg(test)]
 mod tests {

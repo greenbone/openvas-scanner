@@ -14,10 +14,10 @@ use super::{ClientIdentifier, context::Context};
 use http::StatusCode;
 use hyper::{Method, Request};
 use regex::Regex;
-use scannerlib::models::scanner::{ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper};
-use scannerlib::models::{Action, Phase, Scan, ScanAction, scanner::*};
+use scannerlib::models::{Action, Phase, Scan, ScanAction};
 use scannerlib::notus::NotusError;
 use scannerlib::scanner::preferences::preference;
+use scannerlib::scanner::*;
 use tokio::process::Command;
 
 use crate::storage::{self, MappedID};
@@ -595,11 +595,11 @@ pub mod client {
     use hyper::{
         HeaderMap, Method, Request, body::Bytes, header::HeaderValue, service::HttpService,
     };
-    use scannerlib::models::scanner::{
-        self, Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, Scanner,
-    };
     use scannerlib::models::{self, Action, Scan, ScanAction, Status};
     use scannerlib::nasl::FSPluginLoader;
+    use scannerlib::scanner::{
+        self, Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, Scanner,
+    };
     use scannerlib::storage::infisto::{
         CachedIndexFileStorer, ChaCha20IndexFileStorer, IndexedFileStorer,
     };
@@ -615,7 +615,7 @@ pub mod client {
     use super::KnownPaths;
 
     type StartScan = Arc<Box<dyn Fn(Scan) -> Result<(), Error> + Send + Sync + 'static>>;
-    type CanStartScan = Arc<Box<dyn Fn(&Scan) -> bool + Send + Sync + 'static>>;
+    type CanStartScan = Arc<Box<dyn Fn() -> bool + Send + Sync + 'static>>;
     type StopScan = Arc<Box<dyn Fn(&str) -> Result<(), Error> + Send + Sync + 'static>>;
     type DeleteScan = Arc<Box<dyn Fn(&str) -> Result<(), Error> + Send + Sync + 'static>>;
     type FetchResults =
@@ -642,7 +642,7 @@ pub mod client {
         pub fn new() -> Self {
             Self {
                 start_scan: Arc::new(Box::new(|_| Ok(()))),
-                can_start_scan: Arc::new(Box::new(|_| true)),
+                can_start_scan: Arc::new(Box::new(|| true)),
                 stop_scan: Arc::new(Box::new(|_| Ok(()))),
                 delete_scan: Arc::new(Box::new(|_| Ok(()))),
                 fetch_results: Arc::new(Box::new(|_| Ok(ScanResults::default()))),
@@ -659,7 +659,7 @@ pub mod client {
 
         pub fn with_can_start_scan<F>(mut self, f: F) -> Self
         where
-            F: Fn(&Scan) -> bool + Send + Sync + 'static,
+            F: Fn() -> bool + Send + Sync + 'static,
         {
             self.can_start_scan = Arc::new(Box::new(f));
             self
@@ -717,10 +717,9 @@ pub mod client {
                 .unwrap()
         }
 
-        async fn can_start_scan(&self, scan: &Scan) -> bool {
+        async fn can_start_scan(&self) -> bool {
             let can_start_scan = self.can_start_scan.clone();
-            let scan = scan.clone();
-            tokio::task::spawn_blocking(move || (can_start_scan)(&scan))
+            tokio::task::spawn_blocking(move || (can_start_scan)())
                 .await
                 .unwrap()
         }
@@ -777,7 +776,7 @@ pub mod client {
     }
 
     pub async fn in_memory_example_feed() -> Client<
-        scannerlib::scanner::Scanner<(
+        scannerlib::scanner::ScannerWhyTwo<(
             Arc<ResultCatcher<crate::storage::inmemory::Storage<crate::crypt::ChaCha20Crypt>>>,
             FSPluginLoader,
         )>,
@@ -793,13 +792,14 @@ pub mod client {
             .await
             .unwrap();
         let nasl_feed_path = nasl_root().await;
-        let scanner = scannerlib::scanner::Scanner::with_storage(storage.clone(), &nasl_feed_path);
+        let scanner =
+            scannerlib::scanner::ScannerWhyTwo::with_storage(storage.clone(), &nasl_feed_path);
         Client::authenticated(scanner, storage)
     }
     pub async fn encrypted_file_based_example_feed(
         prefix: &str,
     ) -> Client<
-        scannerlib::scanner::Scanner<(
+        scannerlib::scanner::ScannerWhyTwo<(
             Arc<ResultCatcher<Storage<ChaCha20IndexFileStorer<IndexedFileStorer>>>>,
             FSPluginLoader,
         )>,
@@ -819,7 +819,8 @@ pub mod client {
             .await
             .unwrap();
         let nasl_feed_path = nasl_root().await;
-        let scanner = scannerlib::scanner::Scanner::with_storage(storage.clone(), &nasl_feed_path);
+        let scanner =
+            scannerlib::scanner::ScannerWhyTwo::with_storage(storage.clone(), &nasl_feed_path);
         Client::authenticated(scanner, storage)
     }
 
@@ -843,7 +844,7 @@ pub mod client {
     pub async fn file_based_example_feed(
         prefix: &str,
     ) -> Client<
-        scannerlib::scanner::Scanner<(
+        scannerlib::scanner::ScannerWhyTwo<(
             Arc<ResultCatcher<Storage<CachedIndexFileStorer>>>,
             FSPluginLoader,
         )>,
@@ -854,7 +855,8 @@ pub mod client {
         let store = example_feed_file_storage(&storage_dir).await;
         let store = Arc::new(ResultCatcher::new(store));
         let nasl_feed_path = nasl_root().await;
-        let scanner = scannerlib::scanner::Scanner::with_storage(store.clone(), &nasl_feed_path);
+        let scanner =
+            scannerlib::scanner::ScannerWhyTwo::with_storage(store.clone(), &nasl_feed_path);
         Client::authenticated(scanner, store)
     }
 

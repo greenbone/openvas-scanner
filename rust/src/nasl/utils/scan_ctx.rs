@@ -4,9 +4,11 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use greenbone_scanner_framework::models::{
+    AliveTestMethods, Port, PortRange, Protocol, ScanPreference,
+};
 use tokio::sync::RwLock;
 
-use crate::models::{AliveTestMethods, Port, PortRange, Protocol, ScanPreference};
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
 use crate::nasl::{FromNaslValue, WithErrorInfo};

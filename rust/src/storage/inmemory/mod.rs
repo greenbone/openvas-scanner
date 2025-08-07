@@ -7,7 +7,9 @@ use std::{collections::HashMap, sync::RwLock};
 use itertools::Itertools;
 use kb::InMemoryKbStorage;
 
-use crate::models::{self, FeedType};
+use greenbone_scanner_framework::models::FeedType;
+
+use crate::notus::advisories::VulnerabilityData;
 
 use super::{
     Dispatcher, Remover, Retriever, ScanID,
@@ -89,7 +91,7 @@ impl InMemoryStorage {
         (FeedType::Advisories, oid.to_string())
     }
 
-    fn cache_notus_advisory(&self, adv: models::VulnerabilityData) -> Result<(), StorageError> {
+    fn cache_notus_advisory(&self, adv: VulnerabilityData) -> Result<(), StorageError> {
         let item: Nvt = adv.into();
 
         let mut oid_lookup = self.oid_lookup.write()?;

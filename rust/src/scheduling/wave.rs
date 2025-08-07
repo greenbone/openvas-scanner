@@ -143,7 +143,7 @@ impl Iterator for WaveExecutionPlan {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::VT;
+    use greenbone_scanner_framework::models::VT;
 
     use crate::scanner::Scan;
     use crate::storage::inmemory::InMemoryStorage;

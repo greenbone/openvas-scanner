@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::models::{PreferenceValue, Scan, ScanPreference, ScanPreferenceInformation};
+use greenbone_scanner_framework::models::{
+    PreferenceValue, Scan, ScanPreference, ScanPreferenceInformation,
+};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -338,7 +340,7 @@ impl FullScanPreferences {
 
         let conf_prefs: Vec<ScanPreference> =
             config_prefs_copy.iter().map(ScanPreference::from).collect();
-        scan.scan_preferences.0.extend(conf_prefs);
+        scan.scan_preferences.extend(conf_prefs);
     }
 }
 

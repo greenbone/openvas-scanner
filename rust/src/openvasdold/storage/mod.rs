@@ -17,10 +17,9 @@ use std::{
 
 use async_trait::async_trait;
 use scannerlib::{
-    models::{
-        self, FeedType, Scan, Status, VulnerabilityData,
-        scanner::{ScanResultKind, ScanResults},
-    },
+    models::{self, FeedType, Scan, Status},
+    notus::advisories::VulnerabilityData,
+    scanner::{self, ScanResultKind, ScanResults},
     storage::{Dispatcher, error::StorageError, inmemory::InMemoryStorage, items::nvt::Nvt},
 };
 
@@ -68,7 +67,7 @@ impl From<std::string::FromUtf8Error> for Error {
     }
 }
 
-impl From<crate::storage::Error> for models::scanner::Error {
+impl From<crate::storage::Error> for scanner::Error {
     fn from(value: crate::storage::Error) -> Self {
         Self::Unexpected(format!("{value:?}"))
     }

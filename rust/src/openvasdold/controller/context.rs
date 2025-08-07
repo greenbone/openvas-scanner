@@ -11,7 +11,7 @@ use scannerlib::{
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use scannerlib::models::scanner::{
+use scannerlib::scanner::{
     Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
 };
 
@@ -163,7 +163,7 @@ impl<S, DB> ContextBuilder<S, DB, NoScanner> {
     /// Sets the scanner. This is required.
     pub fn scanner(self, scanner: S) -> ContextBuilder<S, DB, Scanner<S>>
     where
-        S: scannerlib::models::scanner::Scanner + 'static + std::marker::Send + std::marker::Sync,
+        S: scannerlib::scanner::Scanner + 'static + std::marker::Send + std::marker::Sync,
     {
         let Self {
             feed_config,

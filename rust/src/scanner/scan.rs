@@ -1,9 +1,7 @@
 use tracing::error;
 
-use crate::{
-    models::{self, AliveTestMethods, Port, ScanID, VT},
-    nasl::utils::scan_ctx::{Ports, Target},
-};
+use crate::nasl::utils::scan_ctx::{Ports, Target};
+use greenbone_scanner_framework::models::{self, AliveTestMethods, Port, VT};
 
 use super::preferences::preference::ScanPrefs;
 
@@ -11,7 +9,7 @@ use super::preferences::preference::ScanPrefs;
 pub struct Scan {
     pub targets: Vec<Target>,
     pub ports: Ports,
-    pub scan_id: ScanID,
+    pub scan_id: String,
     pub vts: Vec<VT>,
     pub scan_preferences: ScanPrefs,
     pub alive_test_methods: Vec<AliveTestMethods>,
@@ -44,7 +42,7 @@ impl Scan {
             ports: scan.target.ports.into(),
             scan_id: scan.scan_id,
             vts: scan.vts,
-            scan_preferences: scan.scan_preferences,
+            scan_preferences: ScanPrefs(scan.scan_preferences),
             alive_test_methods: scan.target.alive_test_methods,
             alive_test_ports: scan.target.alive_test_ports,
         }
@@ -67,7 +65,7 @@ impl Scan {
             ports: scan.target.ports.into(),
             scan_id: scan.scan_id,
             vts: scan.vts,
-            scan_preferences: scan.scan_preferences,
+            scan_preferences: ScanPrefs(scan.scan_preferences),
             alive_test_methods: scan.target.alive_test_methods,
             alive_test_ports: scan.target.alive_test_ports,
         }

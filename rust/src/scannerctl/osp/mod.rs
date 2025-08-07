@@ -108,7 +108,7 @@ where
     // when scheduling internally anyway.
     let scan = Scan {
         scan_id: sc.id.unwrap_or_default(),
-        scan_preferences: ScanPrefs(sc.scanner_params.values),
+        scan_preferences: sc.scanner_params.values,
         target: sc.targets.target.into(),
         vts: transform_vts(feed, sc.vt_selection).await?,
     };

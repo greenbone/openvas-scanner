@@ -16,7 +16,7 @@ use std::{
 use crate::config;
 pub use context::{Context, ContextBuilder, NoOpScanner};
 use hyper_util::rt::{TokioExecutor, TokioIo};
-use scannerlib::models;
+use scannerlib::{models, scanner};
 use tokio::net::TcpListener;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -79,10 +79,10 @@ pub async fn run<S, DB>(
     config: &config::Config,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
-    S: models::scanner::ScanStarter
-        + models::scanner::ScanStopper
-        + models::scanner::ScanDeleter
-        + models::scanner::ScanResultFetcher
+    S: scanner::ScanStarter
+        + scanner::ScanStopper
+        + scanner::ScanDeleter
+        + scanner::ScanResultFetcher
         + std::marker::Send
         + std::marker::Sync
         + 'static,
