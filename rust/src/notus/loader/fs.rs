@@ -9,7 +9,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::models::Product;
+use greenbone_scanner_framework::models::Product;
 
 use crate::feed::SignatureChecker;
 use crate::{

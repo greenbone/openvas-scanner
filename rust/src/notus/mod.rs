@@ -12,6 +12,7 @@ mod error;
 mod notus;
 mod vts;
 
+pub mod advisories;
 #[cfg(test)]
 mod tests;
 

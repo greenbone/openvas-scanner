@@ -8,9 +8,9 @@ use std::time::SystemTime;
 
 use crate::storage::{Error as StorageError, FeedHash, MappedID, Storage};
 use async_trait::async_trait;
-use scannerlib::models::scanner::{Error as ScanError, ScanResultKind};
-use scannerlib::models::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
 use scannerlib::models::{Phase, Scan, Status};
+use scannerlib::scanner::{Error as ScanError, ScanResultKind};
+use scannerlib::scanner::{ScanResultFetcher, ScanResults, ScanStopper};
 use scannerlib::storage::items::nvt::Nvt;
 use tokio::sync::RwLock;
 
@@ -138,7 +138,7 @@ impl<DB, Scanner> Scheduler<DB, Scanner> {
 impl<DB, Scanner> Scheduler<DB, Scanner>
 where
     DB: Storage + Send + Sync + 'static,
-    Scanner: scannerlib::models::scanner::Scanner + Send + Sync,
+    Scanner: scannerlib::scanner::Scanner + Send + Sync,
 {
     pub async fn start_scan_by_id(&self, id: &str) -> Result<(), Error> {
         let running = self.running.read().await;
@@ -307,7 +307,7 @@ where
 impl<DB, Scanner> ScanResultFetcher for Scheduler<DB, Scanner>
 where
     DB: Storage + Send + Sync + 'static,
-    Scanner: scannerlib::models::scanner::Scanner + Send + Sync,
+    Scanner: scannerlib::scanner::Scanner + Send + Sync,
 {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, ScanError>
     where
@@ -321,7 +321,7 @@ where
 impl<DB, Scanner> ScanStopper for Scheduler<DB, Scanner>
 where
     DB: Storage + Send + Sync + 'static,
-    Scanner: scannerlib::models::scanner::Scanner + Send + Sync,
+    Scanner: scannerlib::scanner::Scanner + Send + Sync,
 {
     async fn stop_scan<I>(&self, id: I) -> Result<(), ScanError>
     where
@@ -536,9 +536,9 @@ mod tests {
     };
 
     mod synchronize {
-        use scannerlib::models::{
-            Phase, Status,
-            scanner::{self, Lambda, LambdaBuilder, ScanResults, ScanStopper as _},
+        use scannerlib::{
+            models::{Phase, Status},
+            scanner::{self, Lambda, LambdaBuilder, ScanResults, ScanStopper},
         };
 
         use super::*;
@@ -619,7 +619,7 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = LambdaBuilder::new().with_can_start(|_| false).build();
+            let scanner = LambdaBuilder::new().with_can_start(|| false).build();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
@@ -646,11 +646,7 @@ mod tests {
                 db.insert_scan(s).await.unwrap();
             }
             let scanner = LambdaBuilder::new()
-                .with_start(|_| {
-                    Err(scannerlib::models::scanner::Error::Connection(
-                        "m".to_string(),
-                    ))
-                })
+                .with_start(|_| Err(scanner::Error::Connection("m".to_string())))
                 .build();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans {
@@ -704,7 +700,7 @@ mod tests {
             for s in scans.clone().into_iter() {
                 db.insert_scan(s).await.unwrap();
             }
-            let scanner = scannerlib::models::scanner::Lambda::default();
+            let scanner = scannerlib::scanner::Lambda::default();
             let scheduler = Scheduler::new(config, scanner, db);
             for s in scans.iter() {
                 scheduler.start_scan_by_id(&s.scan_id).await.unwrap();
@@ -763,7 +759,8 @@ mod tests {
     }
 
     mod start {
-        use scannerlib::models::{Phase, scanner::Lambda};
+        use scannerlib::models::Phase;
+        use scannerlib::scanner::Lambda;
 
         use crate::storage::ProgressGetter;
 

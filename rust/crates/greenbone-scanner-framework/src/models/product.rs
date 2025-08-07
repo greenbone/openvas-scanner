@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use serde::Deserialize;
+
 /// Represents an product json file for notus
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Product {
     /// Version of the file, some version might not be supported by notus
     pub version: String,
@@ -15,7 +17,7 @@ pub struct Product {
 }
 
 /// Enum of supported package types
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub enum PackageType {
     #[serde(rename = "deb")]
     DEB,
@@ -27,10 +29,12 @@ pub enum PackageType {
     SLACK,
     #[serde(rename = "msp")]
     MSP,
+    #[serde(rename = "alpm")]
+    ALPM,
 }
 
 /// Representing a single Vulnerability Test entry
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct VulnerabilityTest {
     /// OID to identify vulnerability
     pub oid: String,
@@ -39,9 +43,8 @@ pub struct VulnerabilityTest {
 }
 
 /// Version entry
-#[derive(serde::Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(untagged)]
-#[derive(Debug)]
 pub enum FixedPackage {
     ByFullName {
         full_name: String,
@@ -59,7 +62,7 @@ pub enum FixedPackage {
 }
 
 /// A specifier can be one of: >, <, >=, <=, =
-#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum Specifier {
     /// >
     #[serde(rename = ">")]
@@ -79,7 +82,7 @@ pub enum Specifier {
 }
 
 /// Version range
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Range {
     pub start: String,
     pub end: String,

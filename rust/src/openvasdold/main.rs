@@ -12,14 +12,14 @@ use std::marker::{Send, Sync};
 use config::{Config, Mode, ScannerType};
 use controller::{Context, ContextBuilder};
 use notus::NotusWrapper;
-use scannerlib::models::scanner::{
-    ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner,
-};
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::nasl::utils::scan_ctx::ContextStorage;
 use scannerlib::notus::{HashsumProductLoader, Notus};
 use scannerlib::openvas::{self, cmd};
 use scannerlib::osp;
+use scannerlib::scanner::{
+    ScanDeleter, ScanResultFetcher, ScanStarter, ScanStopper, Scanner, ScannerWhyTwo,
+};
 use scannerlib::scanner::{ScannerStackWithStorage, preferences};
 use scannerlib::scheduling::SchedulerStorage;
 use scannerlib::storage::infisto::{ChaCha20IndexFileStorer, IndexedFileStorer};
@@ -103,11 +103,11 @@ fn make_openvas_scanner(mut config: Config) -> openvas::Scanner {
 fn make_openvasd_scanner<S>(
     config: &Config,
     storage: S,
-) -> scannerlib::scanner::Scanner<ScannerStackWithStorage<S>>
+) -> scannerlib::scanner::ScannerWhyTwo<ScannerStackWithStorage<S>>
 where
     S: ContextStorage + SchedulerStorage + Clone + 'static,
 {
-    scannerlib::scanner::Scanner::with_storage(storage, &config.feed.path)
+    scannerlib::scanner::ScannerWhyTwo::with_storage(storage, &config.feed.path)
 }
 
 async fn create_context<DB, ScanHandler>(

@@ -5,8 +5,7 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use super::{Scan, Status};
-
+use greenbone_scanner_framework::models::{self, Scan, Status};
 /// ScanResults can differ in kind.
 ///
 /// For an example OSPD scanner includes all information of the status therefore we need to
@@ -27,7 +26,7 @@ pub enum ScanResultKind {
 pub struct ScanResults {
     pub id: String,
     pub status: Status,
-    pub results: Vec<super::Result>,
+    pub results: Vec<models::Result>,
 }
 
 /// Starts a scan

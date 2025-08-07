@@ -223,8 +223,8 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::models::{self, Protocol, Result, ResultType};
     use crate::openvas::openvas_redis::FakeRedis;
+    use greenbone_scanner_framework::models::{self, Protocol, Result, ResultType};
     use std::collections::HashMap;
 
     use super::ResultHelper;

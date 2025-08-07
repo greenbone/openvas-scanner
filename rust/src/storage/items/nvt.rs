@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::{
-    models::{Vulnerability, VulnerabilityData},
+    notus::advisories::{Vulnerability, VulnerabilityData},
     storage::{error::StorageError, time::AsUnixTimeStamp},
 };
 

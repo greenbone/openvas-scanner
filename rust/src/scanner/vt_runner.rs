@@ -5,7 +5,6 @@
 use crate::nasl::interpreter::ForkingInterpreter;
 use std::path::PathBuf;
 
-use crate::models::{AliveTestMethods, Parameter, Protocol, ScanID};
 use crate::nasl::syntax::{Loader, NaslValue};
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::scan_ctx::{ContextStorage, Ports, Target};
@@ -16,6 +15,7 @@ use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
 use crate::storage::items::nvt::Nvt;
 use futures::StreamExt;
+use greenbone_scanner_framework::models::{AliveTestMethods, Parameter, Protocol, ScanID};
 use tracing::{error_span, trace, warn};
 
 use crate::nasl::prelude::*;
