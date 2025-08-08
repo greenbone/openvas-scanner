@@ -25,6 +25,28 @@ CREATE TABLE scans (
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
+CREATE TRIGGER trg_update_scans_start_time
+AFTER UPDATE OF status ON scans
+FOR EACH ROW
+WHEN NEW.status = 'running' AND OLD.status IS NOT 'running'
+BEGIN
+    UPDATE scans
+    SET start_time = CAST(strftime('%s', 'now') AS INTEGER), 
+        end_time = NULL
+    WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER trg_update_scans_end_time
+AFTER UPDATE OF status ON scans
+FOR EACH ROW
+WHEN (NEW.status = 'failed' OR NEW.status = 'succeeded' OR NEW.status = 'stopped' ) AND OLD.status IS NOT NEW.status
+BEGIN
+    UPDATE scans
+    SET end_time = CAST(strftime('%s', 'now') AS INTEGER)
+    WHERE id = NEW.id;
+END;
+
+
 
 CREATE INDEX idx_scans_status ON scans(status);
 

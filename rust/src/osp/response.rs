@@ -403,9 +403,7 @@ impl HostDetail {
     }
 }
 
-use greenbone_scanner_framework::models::{
-    self, Detail, HostInfoBuilder, Phase, Protocol, Result as Vulnerability,
-};
+use greenbone_scanner_framework::models::{self, Detail, Phase, Protocol, Result as Vulnerability};
 impl From<&ScanResult> for Vulnerability {
     fn from(result: &ScanResult) -> Self {
         // name == script_name can be found via oid and is ignored here
@@ -621,12 +619,13 @@ impl From<Scan> for models::Status {
                 scanning.insert(host.name.clone(), 0);
             }
         }
+        use greenbone_scanner_framework::models::HostInfo as HI;
         models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
             end_time: value.end_time.map(|s| s.0),
             host_info: value.host_info.map(|host_info| {
-                HostInfoBuilder {
+                HI {
                     all: host_info.count_total.content.0,
                     excluded: host_info.count_excluded.content.0,
                     dead: host_info.count_dead.content.0,
@@ -642,7 +641,6 @@ impl From<Scan> for models::Status {
 
                     ..Default::default()
                 }
-                .build()
             }),
         }
     }

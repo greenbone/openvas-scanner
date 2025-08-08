@@ -50,7 +50,9 @@ impl Status {
 }
 
 /// Enum of the possible phases of a scan
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, PartialOrd, Ord,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
     /// A scan has been stored but not started yet
@@ -74,10 +76,16 @@ impl Phase {
     }
 }
 
-impl FromStr for Phase {
-    type Err = ();
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum PhaseError {
+    #[error("Unknown phase: {0}")]
+    UnknownPhase(String),
+}
 
-    fn from_str(status: &str) -> Result<Phase, ()> {
+impl FromStr for Phase {
+    type Err = PhaseError;
+
+    fn from_str(status: &str) -> Result<Phase, PhaseError> {
         match status {
             "requested" => Ok(Phase::Requested),
             "running" => Ok(Phase::Running),
@@ -85,20 +93,25 @@ impl FromStr for Phase {
             "failed" => Ok(Phase::Failed),
             "succeeded" => Ok(Phase::Succeeded),
             "stored" => Ok(Phase::Stored),
-            _ => Err(()),
+            a => Err(PhaseError::UnknownPhase(a.to_string())),
         }
     }
 }
 
+impl AsRef<str> for Phase {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Requested => "requested",
+            Self::Running => "running",
+            Self::Stopped => "stopped",
+            Self::Failed => "failed",
+            Self::Succeeded => "succeeded",
+            Self::Stored => "stored",
+        }
+    }
+}
 impl Display for Phase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Requested => write!(f, "requested"),
-            Self::Running => write!(f, "running"),
-            Self::Stopped => write!(f, "stopped"),
-            Self::Failed => write!(f, "failed"),
-            Self::Succeeded => write!(f, "succeeded"),
-            Self::Stored => write!(f, "stored"),
-        }
+        write!(f, "{}", self.as_ref())
     }
 }

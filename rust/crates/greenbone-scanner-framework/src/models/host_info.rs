@@ -6,32 +6,6 @@ use std::collections::HashMap;
 
 use crate::models::Host;
 
-#[derive(Default)]
-pub struct HostInfoBuilder {
-    pub all: u64,
-    pub excluded: u64,
-    pub dead: u64,
-    pub alive: u64,
-    pub queued: u64,
-    pub finished: u64,
-    pub scanning: Option<HashMap<String, i32>>,
-}
-
-impl HostInfoBuilder {
-    pub fn build(self) -> HostInfo {
-        HostInfo {
-            all: self.all,
-            excluded: self.excluded,
-            dead: self.dead,
-            alive: self.alive,
-            queued: self.queued,
-            finished: self.finished,
-            scanning: self.scanning,
-            remaining_vts_per_host: HashMap::new(),
-        }
-    }
-}
-
 /// Information about hosts of a running scan
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostInfo {

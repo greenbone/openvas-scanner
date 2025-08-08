@@ -354,7 +354,7 @@ mod tests {
             notus,
             ..Default::default()
         };
-        let pool = setup_sqlite(&config).await?;
+        let pool = setup_sqlite(&config, false).await?;
 
         Ok((config, pool))
     }

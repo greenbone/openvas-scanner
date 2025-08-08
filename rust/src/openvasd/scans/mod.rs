@@ -503,18 +503,21 @@ where
     }
 }
 
+pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
+    config
+        .storage
+        .fs
+        .key
+        .as_ref()
+        .map(|x| x as &str)
+        .map(ChaCha20Crypt::new)
+        .unwrap_or_else(|| ChaCha20Crypt::new("insecure"))
+}
+
 pub fn init(pool: SqlitePool, config: &Config) -> Endpoints<ChaCha20Crypt> {
     // unwrap_or_else is a safe guard in the case the db is stored on disk but no key is provided.
     // Otherweise the credentials can never be decrypted.
-    let crypter = Arc::new(
-        config
-            .storage
-            .fs
-            .key
-            .clone()
-            .map(ChaCha20Crypt::new)
-            .unwrap_or_else(|| ChaCha20Crypt::new("insecure")),
-    );
+    let crypter = Arc::new(config_to_crypt(config));
     Endpoints { pool, crypter }
 }
 
@@ -721,7 +724,7 @@ mod tests {
         ]
     }
 
-    fn generate_scan() -> Vec<models::Scan> {
+    pub fn generate_scan() -> Vec<models::Scan> {
         generate_targets()
             .into_iter()
             .map(|target| models::Scan {
@@ -733,7 +736,7 @@ mod tests {
             .collect()
     }
 
-    async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
+    pub async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let advisories_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -758,7 +761,7 @@ mod tests {
             ..Default::default()
         };
 
-        let pool = crate::setup_sqlite(&config).await?;
+        let pool = crate::setup_sqlite(&config, false).await?;
 
         Ok((config, pool))
     }
