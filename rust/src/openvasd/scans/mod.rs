@@ -7,6 +7,7 @@ use greenbone_scanner_framework::prelude::*;
 use sqlx::sqlite::SqliteRow;
 use sqlx::{Acquire, QueryBuilder, Sqlite, SqlitePool, query};
 use sqlx::{Row, query_scalar};
+use tokio::sync::mpsc::Sender;
 
 use crate::crypt::{self, Crypt, Encrypted};
 use crate::{config::Config, crypt::ChaCha20Crypt};
@@ -14,6 +15,7 @@ mod scheduling;
 pub struct Endpoints<E> {
     pool: SqlitePool,
     crypter: Arc<E>,
+    scheduling: Sender<scheduling::Message>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -488,7 +490,15 @@ where
         id: String,
         action: models::Action,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
-        todo!()
+        Box::pin(async move {
+            self.scheduling
+                .send(match action {
+                    models::Action::Start => scheduling::Message::Start(id),
+                    models::Action::Stop => scheduling::Message::Stop(id),
+                })
+                .await
+                .map_err(|e| PostScansIDError::External(Box::new(e)))
+        })
     }
 }
 impl<E> DeleteScansID for Endpoints<E>
@@ -504,6 +514,8 @@ where
 }
 
 pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
+    // unwrap_or_else is a safe guard in the case the db is stored on disk but no key is provided.
+    // Otherweise the credentials can never be decrypted.
     config
         .storage
         .fs
@@ -514,11 +526,17 @@ pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
         .unwrap_or_else(|| ChaCha20Crypt::new("insecure"))
 }
 
-pub fn init(pool: SqlitePool, config: &Config) -> Endpoints<ChaCha20Crypt> {
-    // unwrap_or_else is a safe guard in the case the db is stored on disk but no key is provided.
-    // Otherweise the credentials can never be decrypted.
+pub async fn init(
+    pool: SqlitePool,
+    config: &Config,
+) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
     let crypter = Arc::new(config_to_crypt(config));
-    Endpoints { pool, crypter }
+    let scheduler_sender = scheduling::init(pool.clone(), crypter.clone(), config).await?;
+    Ok(Endpoints {
+        pool,
+        crypter,
+        scheduling: scheduler_sender,
+    })
 }
 
 #[cfg(test)]
@@ -769,7 +787,7 @@ mod tests {
     #[tokio::test]
     async fn post_scan() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = super::init(pool, &config);
+        let undertest = super::init(pool, &config).await?;
         let client_id = "moep".to_string();
         for scan in generate_scan() {
             let id = scan.scan_id.clone();
@@ -784,7 +802,7 @@ mod tests {
     #[tokio::test]
     async fn post_scan_duplicate_id() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = super::init(pool, &config);
+        let undertest = super::init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         assert!(!scans.is_empty());
@@ -808,7 +826,7 @@ mod tests {
     #[tokio::test]
     async fn map_id() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = super::init(pool, &config);
+        let undertest = super::init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         assert!(!scans.is_empty());
@@ -826,7 +844,7 @@ mod tests {
     #[tokio::test]
     async fn get_scan_id() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = super::init(pool, &config);
+        let undertest = super::init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         assert!(!scans.is_empty());
@@ -852,7 +870,7 @@ mod tests {
     #[tokio::test]
     async fn get_scans() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = super::init(pool, &config);
+        let undertest = super::init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         for scan in generate_scan() {
