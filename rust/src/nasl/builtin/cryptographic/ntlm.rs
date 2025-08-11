@@ -2,156 +2,294 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::nasl::prelude::*;
+use digest::typenum;
+use generic_array::GenericArray;
+use rand::Rng;
 
-const perm1: [u8; 56] = [
-    57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18, 10, 2, 59, 51, 43, 35, 27, 19, 11, 3, 60,
-    52, 44, 36, 63, 55, 47, 39, 31, 23, 15, 7, 62, 54, 46, 38, 30, 22, 14, 6, 61, 53, 45, 37, 29,
-    21, 13, 5, 28, 20, 12, 4,
-];
+use crate::nasl::{
+    builtin::{cryptographic::hmac::hmac, ssh::StringOrData},
+    prelude::*,
+};
 
-const perm2: [u8; 48] = [
-    14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10, 23, 19, 12, 4, 26, 8, 16, 7, 27, 20, 13, 2, 41, 52,
-    31, 37, 47, 55, 30, 40, 51, 45, 33, 48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32,
-];
+const NTLMSSP_NEGOTIATE_LM_KEY: i64 = 0x00000080;
 
-const perm3: [u8; 64] = [
-    58, 50, 42, 34, 26, 18, 10, 2, 60, 52, 44, 36, 28, 20, 12, 4, 62, 54, 46, 38, 30, 22, 14, 6,
-    64, 56, 48, 40, 32, 24, 16, 8, 57, 49, 41, 33, 25, 17, 9, 1, 59, 51, 43, 35, 27, 19, 11, 3, 61,
-    53, 45, 37, 29, 21, 13, 5, 63, 55, 47, 39, 31, 23, 15, 7,
-];
+/// SMB/NTLM algorithm to convert a 7-byte slice into an 8-byte DES key.
+fn key7_to_key8(key7: &[u8]) -> Vec<u8> {
+    let mut key7 = key7.to_vec();
+    key7.resize(7, 0);
 
-const perm4: [u8; 48] = [
-    32, 1, 2, 3, 4, 5, 4, 5, 6, 7, 8, 9, 8, 9, 10, 11, 12, 13, 12, 13, 14, 15, 16, 17, 16, 17, 18,
-    19, 20, 21, 20, 21, 22, 23, 24, 25, 24, 25, 26, 27, 28, 29, 28, 29, 30, 31, 32, 1,
-];
-
-const perm5: [u8; 32] = [
-    16, 7, 20, 21, 29, 12, 28, 17, 1, 15, 23, 26, 5, 18, 31, 10, 2, 8, 24, 14, 32, 27, 3, 9, 19,
-    13, 30, 6, 22, 11, 4, 25,
-];
-
-const perm6: [u8; 64] = [
-    40, 8, 48, 16, 56, 24, 64, 32, 39, 7, 47, 15, 55, 23, 63, 31, 38, 6, 46, 14, 54, 22, 62, 30,
-    37, 5, 45, 13, 53, 21, 61, 29, 36, 4, 44, 12, 52, 20, 60, 28, 35, 3, 43, 11, 51, 19, 59, 27,
-    34, 2, 42, 10, 50, 18, 58, 26, 33, 1, 41, 9, 49, 17, 57, 25,
-];
-
-const sc: [u8; 16] = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1];
-
-const sbox: [[[u8; 16]; 4]; 8] = [
-    [
-        [14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7],
-        [0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8],
-        [4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0],
-        [15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13],
-    ],
-    [
-        [15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10],
-        [3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5],
-        [0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15],
-        [13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9],
-    ],
-    [
-        [10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8],
-        [13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1],
-        [13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7],
-        [1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12],
-    ],
-    [
-        [7, 13, 14, 3, 0, 6, 9, 10, 1, 2, 8, 5, 11, 12, 4, 15],
-        [13, 8, 11, 5, 6, 15, 0, 3, 4, 7, 2, 12, 1, 10, 14, 9],
-        [10, 6, 9, 0, 12, 11, 7, 13, 15, 1, 3, 14, 5, 2, 8, 4],
-        [3, 15, 0, 6, 10, 1, 13, 8, 9, 4, 5, 11, 12, 7, 2, 14],
-    ],
-    [
-        [2, 12, 4, 1, 7, 10, 11, 6, 8, 5, 3, 15, 13, 0, 14, 9],
-        [14, 11, 2, 12, 4, 7, 13, 1, 5, 0, 15, 10, 3, 9, 8, 6],
-        [4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14],
-        [11, 8, 12, 7, 1, 14, 2, 13, 6, 15, 0, 9, 10, 4, 5, 3],
-    ],
-    [
-        [12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 3, 4, 14, 7, 5, 11],
-        [10, 15, 4, 2, 7, 12, 9, 5, 6, 1, 13, 14, 0, 11, 3, 8],
-        [9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6],
-        [4, 3, 2, 12, 9, 5, 15, 10, 11, 14, 1, 7, 6, 0, 8, 13],
-    ],
-    [
-        [4, 11, 2, 14, 15, 0, 8, 13, 3, 12, 9, 7, 5, 10, 6, 1],
-        [13, 0, 11, 7, 4, 9, 1, 10, 14, 3, 5, 12, 2, 15, 8, 6],
-        [1, 4, 11, 13, 12, 3, 7, 14, 10, 15, 6, 8, 0, 5, 9, 2],
-        [6, 11, 13, 8, 1, 4, 10, 7, 9, 5, 0, 15, 14, 2, 3, 12],
-    ],
-    [
-        [13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7],
-        [1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2],
-        [7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8],
-        [2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11],
-    ],
-];
-
-/// Permute the input data according to the specified permutation array.
-fn permute(input: &[u8], perm: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(perm.len());
-    for i in perm {
-        out.push(input[*i as usize - 1]);
+    let mut key8 = vec![0u8; 8];
+    key8[0] = key7[0] >> 1;
+    key8[1] = ((key7[0] & 0x01) << 6) | (key7[1] >> 2);
+    key8[2] = ((key7[1] & 0x03) << 5) | (key7[2] >> 3);
+    key8[3] = ((key7[2] & 0x07) << 4) | (key7[3] >> 4);
+    key8[4] = ((key7[3] & 0x0F) << 3) | (key7[4] >> 5);
+    key8[5] = ((key7[4] & 0x1F) << 2) | (key7[5] >> 6);
+    key8[6] = ((key7[5] & 0x3F) << 1) | (key7[6] >> 7);
+    key8[7] = key7[6] & 0x7F;
+    for i in 0..8 {
+        key8[i] = key8[i] << 1;
     }
-    out
+    key8
 }
 
-/// Perform a left circular byte shift on the input data by the specified count.
-fn lshift(d: &[u8], count: usize) -> Vec<u8> {
-    let mut out = Vec::with_capacity(d.len());
-    for i in 0..d.len() {
-        out.push(d[(i + count) % d.len()]);
+/// Encrypts data using DES with a 7-byte key, expanding it to an 8-byte key.
+fn smb_des_encrypt(data: &[u8], key: &[u8]) -> Vec<u8> {
+    use des::Des;
+    use digest::KeyInit;
+    use ecb::cipher::BlockEncrypt;
+    // Expand 7-byte key to 8-byte DES key
+    let key8 = key7_to_key8(key);
+    let cipher = Des::new(&GenericArray::clone_from_slice(&key8));
+    let mut data = GenericArray::clone_from_slice(data);
+    cipher.encrypt_block(&mut data);
+
+    data.to_vec()
+}
+
+/// Decrypts data using DES with a 7-byte key, expanding it to an 8-byte key.
+fn smb_des_decrypt(data: &[u8], key: &[u8]) -> Vec<u8> {
+    use des::Des;
+    use digest::KeyInit;
+    use ecb::cipher::BlockDecrypt;
+    // Expand 7-byte key to 8-byte DES key
+    let key8 = key7_to_key8(key);
+    let cipher = Des::new(&GenericArray::clone_from_slice(&key8));
+    let mut data = GenericArray::clone_from_slice(data);
+    cipher.decrypt_block(&mut data);
+
+    data.to_vec()
+}
+
+/// Converts a 14-byte key into a 16-byte key for NTLMv1.
+fn ep16(key14: &[u8]) -> Vec<u8> {
+    let mut key = key14.to_vec();
+    key.resize(14, 0);
+    let sp8: [u8; 8] = [0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25];
+    let mut result1 = smb_des_encrypt(&sp8, &key[..7]);
+    let mut result2 = smb_des_encrypt(&sp8, &key[7..]);
+    result1.append(&mut result2);
+    result1
+}
+
+/// Converts a 21-byte key into a 24-byte key for NTLMv2.
+fn ep24(data: &[u8], key21: &[u8]) -> Vec<u8> {
+    let mut key = key21.to_vec();
+    key.resize(21, 0);
+    let mut result1 = smb_des_encrypt(data, &key[..7]);
+    let mut result2 = smb_des_encrypt(data, &key[7..14]);
+    let mut result3 = smb_des_encrypt(data, &key[14..]);
+    result1.append(&mut result2);
+    result1.append(&mut result3);
+    result1
+}
+
+/// Computes the SAM OEM hash for NTLMv1.
+/// This is a simplified version that uses RC4 to encrypt the data with the key.
+fn sam_oem_hash(data: &[u8], key: &[u8]) -> Vec<u8> {
+    use rc4::{KeyInit, Rc4, StreamCipher};
+
+    let mut key = key.to_vec();
+    key.resize(16, 0);
+    let mut rc4 = Rc4::new(GenericArray::<u8, typenum::U16>::from_slice(&key));
+    let mut data = data.to_vec();
+    data.resize(16, 0);
+    rc4.apply_keystream(&mut data);
+    data
+}
+
+/// Generates the NTLMv1 session key from the NT hash.
+/// This function pads the NT hash to 16 bytes and computes the MD4 hash.
+fn smb_session_keygen_ntv1_ntlmssp(nthash: &[u8]) -> Vec<u8> {
+    use md4::{Digest, Md4};
+
+    let mut nthash = nthash.to_vec();
+    nthash.resize(16, 0);
+    let mut hasher = Md4::new();
+    hasher.update(nthash);
+    hasher.finalize().to_vec()
+}
+
+fn smb_encrypt_hash_ntlmssp(password: &[u8], challenge_data: &[u8]) -> Vec<u8> {
+    let mut password = password.to_vec();
+    password.resize(16, 0);
+    password.resize(21, 0);
+    ep24(&password, challenge_data)
+}
+
+fn smb_lm_session_keygen_ntlmssp(lm_hash: &[u8], lm_response: &[u8]) -> Vec<u8> {
+    let mut partial_lm_hash = lm_hash.to_vec();
+    partial_lm_hash.resize(8, 0);
+    partial_lm_hash.resize(16, 0xbd);
+    let mut hash = smb_encrypt_hash_ntlmssp(&partial_lm_hash, lm_response);
+    hash.resize(16, 0);
+    hash
+}
+
+fn e_des_hash_ntlmssp(password: &str) -> (Vec<u8>, bool) {
+    let password = password.to_uppercase();
+    let p16 = ep16(&password.as_bytes());
+    (p16, password.len() <= 14)
+}
+
+fn smb_session_keygen_ntv2_ntlmssp(key: &[u8], nt_response: &[u8]) -> Vec<u8> {
+    use md5::Md5;
+    let mut key = key.to_vec();
+    key.resize(16, 0);
+    // We can unwrap here, as the key is always 16 bytes.
+    hmac::<Md5>(&key, nt_response).unwrap()
+}
+
+fn smb_owf_encrypt_ntv2_ntlmssp(
+    key: &[u8],
+    server_challenge_data: &[u8],
+    client_challenge_data: &[u8],
+) -> Vec<u8> {
+    use hmac::{Hmac, Mac};
+    use md5::Md5;
+
+    let mut key = key.to_vec();
+    key.resize(16, 0);
+
+    // We can unwrap here, as the key is always 16 bytes.
+    let mut hmac = Hmac::<Md5>::new_from_slice(&key).unwrap();
+    hmac.update(server_challenge_data);
+    hmac.update(client_challenge_data);
+    hmac.finalize().into_bytes().to_vec()
+}
+
+fn ntlmv2_generate_client_data_ntlmssp(addr_list: &[u8]) -> Vec<u8> {
+    /*length of response
+     *header-4, reserved-4, date-8, client chal-8, unknown-4, addr_list-size sent
+     *in arguments
+     */
+    let mut response = vec![];
+    let header: [u8; 4] = [0x00, 0x00, 0x01, 0x01];
+    let zeros: [u8; 4] = [0x00; 4];
+    let now = nt_time::FileTime::now().to_ne_bytes();
+    let client_chal: [u8; 8] = rand::thread_rng().r#gen();
+
+    response.extend_from_slice(&header);
+    response.extend_from_slice(&zeros);
+    response.extend_from_slice(&now);
+    response.extend_from_slice(&client_chal);
+    response.extend_from_slice(&zeros);
+    response.extend_from_slice(addr_list);
+
+    response
+}
+
+fn ntlmv2_generate_response_ntlmssp(
+    ntlmv2_hash: &[u8],
+    server_chal: &[u8],
+    addr_list: &[u8],
+) -> Vec<u8> {
+    let mut client_data = ntlmv2_generate_client_data_ntlmssp(addr_list);
+    let mut response = smb_owf_encrypt_ntv2_ntlmssp(ntlmv2_hash, server_chal, &client_data);
+    response.append(&mut client_data);
+    response
+}
+
+fn lmv2_generate_response_ntlmssp(ntlm_v2_hash: &[u8], server_chal: &[u8]) -> Vec<u8> {
+    let lmv2_client_data: [u8; 8] = rand::thread_rng().r#gen();
+    let mut response = smb_owf_encrypt_ntv2_ntlmssp(ntlm_v2_hash, server_chal, &lmv2_client_data);
+    response.extend_from_slice(&lmv2_client_data);
+    response
+}
+
+fn smb_ntlmv2_encrypt_hash_ntlmssp(
+    ntlmv2_hash: &[u8],
+    server_chal: &[u8],
+    address_list: &[u8],
+) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    let nt_response = ntlmv2_generate_response_ntlmssp(ntlmv2_hash, server_chal, address_list);
+    let user_session_key = smb_session_keygen_ntv2_ntlmssp(ntlmv2_hash, &nt_response);
+    let lm_response = lmv2_generate_response_ntlmssp(ntlmv2_hash, server_chal);
+
+    (lm_response, nt_response, user_session_key)
+}
+
+fn ntlmssp_genauth_ntlm(
+    password: &str,
+    challenge_data: &[u8],
+    nt_hash: &[u8],
+    neg_flags: i64,
+) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    let lm_hash = e_des_hash_ntlmssp(password).0;
+
+    let lm_response = smb_encrypt_hash_ntlmssp(&lm_hash, challenge_data);
+    let nt_response = smb_encrypt_hash_ntlmssp(nt_hash, challenge_data);
+
+    let session_key = if (neg_flags & NTLMSSP_NEGOTIATE_LM_KEY) != 0 {
+        smb_lm_session_keygen_ntlmssp(&lm_hash, &lm_response)
+    } else {
+        smb_session_keygen_ntv1_ntlmssp(nt_hash)
+    };
+
+    (lm_response, nt_response, session_key)
+}
+
+fn ntlmssp_genauth_ntlm2(challenge_data: &[u8], nt_hash: &[u8]) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    use digest::Digest;
+    use hmac::{Hmac, Mac};
+    use md5::Md5;
+
+    let mut rng = rand::thread_rng();
+    let mut lm_response = (0..8).map(|_| rng.r#gen::<u8>()).collect::<Vec<u8>>();
+    let mut session_nonce = challenge_data.to_vec();
+    session_nonce.resize(8, 0);
+    session_nonce.append(&mut lm_response);
+
+    let mut md5 = Md5::new();
+    md5.update(challenge_data);
+    md5.update(&lm_response);
+    let session_nonce_hash = md5.finalize().to_vec();
+
+    let nt_response = smb_encrypt_hash_ntlmssp(nt_hash, &session_nonce_hash);
+    let mut user_session_key = smb_session_keygen_ntv1_ntlmssp(nt_hash);
+
+    user_session_key.resize(16, 0);
+    let mut hmac = Hmac::<Md5>::new_from_slice(&user_session_key).unwrap();
+    hmac.update(&session_nonce);
+    let session_key = hmac.finalize().into_bytes().to_vec();
+
+    (lm_response, nt_response, session_key)
+}
+
+#[nasl_function(named(cryptkey, passhash))]
+fn ntlmv1_hash(cryptkey: StringOrData, passhash: StringOrData) -> Vec<u8> {
+    let cryptkey = cryptkey.0.as_bytes();
+    let passhash = passhash.0.as_bytes();
+
+    ep24(passhash, cryptkey)
+}
+
+#[nasl_function(named(cryptkey, passhash, length))]
+fn ntlmv2_hash(
+    cryptkey: StringOrData,
+    passhash: StringOrData,
+    length: i64,
+) -> Result<Vec<u8>, FnError> {
+    let mut cryptkey = cryptkey.0.as_bytes().to_vec();
+    cryptkey.resize(8, 0);
+    let passhash = passhash.0.as_bytes();
+
+    if passhash.len() != 16 {
+        return Err(FnError::wrong_unnamed_argument(
+            "passhash of length 16",
+            &format!("passhash of length {}", passhash.len()),
+        ));
     }
-    out
-}
 
-fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
-    a.iter().zip(b.iter()).map(|(x, y)| x ^ y).collect()
-}
+    let mut rng = rand::thread_rng();
+    let mut ntlmv2_client_data = (0..length).map(|_| rng.r#gen::<u8>()).collect::<Vec<u8>>();
 
-fn dohash(input: &[u8], key: &[u8], forward: bool) -> Vec<u8> {
-    let mut k = permute(key, &perm1);
-    let mut ki = vec![];
-    let mut l = k[0..perm1.len() / 2].to_vec();
-    let mut r = k[perm1.len() / 2..].to_vec();
+    let mut ntlmv2_response =
+        smb_owf_encrypt_ntv2_ntlmssp(&ntlmv2_client_data, &cryptkey, &ntlmv2_client_data);
 
-    for i in 0..16 {
-        let shift = sc[i] as usize;
-        l = lshift(&l, shift);
-        r = lshift(&r, shift);
-        ki.push(permute(&[l, r].concat(), &perm2));
-    }
+    ntlmv2_response.append(&mut ntlmv2_client_data);
 
-    let mut p = permute(input, &perm3);
-    let mut l = p[0..p.len() / 2].to_vec();
-    let mut r = p[p.len() / 2..].to_vec();
-
-    for i in 0..16 {
-        let mut er = permute(&r, &perm4);
-        let erk = match forward {
-            true => xor(&er, &ki[i]),
-            false => xor(&er, &ki[15 - i]),
-        };
-    }
-
-    todo!()
-}
-
-fn smbhash(data: &[u8], key: &[u8], forward: i64) -> Vec<u8> {
-    todo!()
-}
-
-#[nasl_function(named(cryptkey, password, nt_hash))]
-fn ntlmv1_hash(cryptkey: &str, password: &str, nt_hash: &str) -> Result<NaslValue, FnError> {
-    todo!()
-}
-
-#[nasl_function(named(cryptkey, password, nt_hash))]
-fn ntlmv2_hash(cryptkey: &str, password: &str, nt_hash: &str) -> Result<NaslValue, FnError> {
-    todo!()
+    Ok(ntlmv2_client_data)
 }
 
 #[nasl_function(named(cryptkey, password, nt_hash, neg_flags))]
@@ -160,25 +298,64 @@ fn ntlm_response(
     password: &str,
     nt_hash: &str,
     neg_flags: i64,
-) -> Result<NaslValue, FnError> {
-    todo!()
+) -> Result<Vec<u8>, FnError> {
+    let cryptkey = cryptkey.as_bytes();
+    let nt_hash = nt_hash.as_bytes();
+
+    let (mut lm_response, mut nt_response, mut session_key) =
+        ntlmssp_genauth_ntlm(password, cryptkey, nt_hash, neg_flags);
+
+    lm_response.append(&mut nt_response);
+    lm_response.append(&mut session_key);
+
+    Ok(lm_response)
 }
 
 #[nasl_function(named(cryptkey, password, nt_hash))]
-fn ntlm2_response(cryptkey: &str, password: &str, nt_hash: &str) -> Result<NaslValue, FnError> {
-    todo!()
+fn ntlm2_response(cryptkey: &str, password: &str, nt_hash: &str) -> Result<Vec<u8>, FnError> {
+    let cryptkey = cryptkey.as_bytes();
+    let nt_hash = nt_hash.as_bytes();
+    let _ = password;
+
+    if nt_hash.len() != 16 {
+        return Err(FnError::wrong_unnamed_argument(
+            "nt_hash of length 16",
+            &format!("nt_hash of length {}", nt_hash.len()),
+        ));
+    }
+
+    let (mut lm_response, mut nt_response, mut session_key) =
+        ntlmssp_genauth_ntlm2(cryptkey, nt_hash);
+
+    lm_response.append(&mut nt_response);
+    lm_response.append(&mut session_key);
+
+    Ok(lm_response)
 }
 
 #[nasl_function(named(cryptkey, user, domain, ntlmv2_hash, address_list, address_list_len))]
 fn ntlmv2_response(
-    cryptkey: &str,
-    user: &str,
-    domain: &str,
-    ntlmv2_hash: &str,
-    address_list: &str,
-    address_list_len: i64,
-) -> Result<NaslValue, FnError> {
-    todo!()
+    cryptkey: StringOrData,
+    user: StringOrData,
+    domain: StringOrData,
+    ntlmv2_hash: StringOrData,
+    address_list: StringOrData,
+    address_list_len: usize,
+) -> Result<Vec<u8>, FnError> {
+    let cryptkey = cryptkey.0.as_bytes();
+    let _ = user;
+    let _ = domain;
+    let ntlmv2_hash = ntlmv2_hash.0.as_bytes();
+    let address_list = address_list.0.as_bytes();
+    let _ = address_list_len;
+
+    let (mut lm_response, mut nt_response, mut user_session_key) =
+        smb_ntlmv2_encrypt_hash_ntlmssp(ntlmv2_hash, cryptkey, address_list);
+
+    lm_response.append(&mut user_session_key);
+    lm_response.append(&mut nt_response);
+
+    Ok(lm_response)
 }
 
 pub struct Ntlm;
