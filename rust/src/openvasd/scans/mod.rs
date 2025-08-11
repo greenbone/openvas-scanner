@@ -5,7 +5,7 @@ use futures::StreamExt;
 use greenbone_scanner_framework::models::AliveTestMethods;
 use greenbone_scanner_framework::prelude::*;
 use sqlx::sqlite::SqliteRow;
-use sqlx::{Acquire, QueryBuilder, Sqlite, SqlitePool, query};
+use sqlx::{Acquire, QueryBuilder, SqlitePool, query};
 use sqlx::{Row, query_scalar};
 use tokio::sync::mpsc::Sender;
 
@@ -48,135 +48,140 @@ impl From<crypt::ParseError> for Error {
     }
 }
 
-impl<E> Endpoints<E>
+async fn scan_insert<C>(
+    pool: &SqlitePool,
+    crypter: &C,
+    client: &str,
+    scan: models::Scan,
+) -> Result<String, Error>
 where
-    E: crate::crypt::Crypt + Sync + Send,
+    C: Crypt,
 {
-    async fn insert_scan(&self, client: String, scan: models::Scan) -> Result<String, Error> {
-        let mut conn = self.pool.acquire().await?;
-        let mut tx = conn.begin().await?;
+    let mut conn = pool.acquire().await?;
+    let mut tx = conn.begin().await?;
 
-        let row = query("INSERT INTO client_scan_map(client_id, scan_id) VALUES (?, ?)")
-            .bind(client.to_string())
-            .bind(&scan.scan_id)
-            .execute(&mut *tx)
-            .await?;
+    let row = query("INSERT INTO client_scan_map(client_id, scan_id) VALUES (?, ?)")
+        .bind(client.to_string())
+        .bind(&scan.scan_id)
+        .execute(&mut *tx)
+        .await?;
 
-        let mapped_id = row.last_insert_rowid().to_string();
-        let auth_data = {
-            if !scan.target.credentials.is_empty() {
-                let bytes = serde_json::to_vec(&scan.target.credentials)?;
-                let bytes = self.crypter.encrypt(bytes).await;
-                Some(bytes.to_string())
-            } else {
-                None
-            }
-        };
-        query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
-            .bind(&mapped_id)
-            .bind(auth_data)
-            .execute(&mut *tx)
-            .await?;
-        if !scan.vts.is_empty() {
-            let mut builder = QueryBuilder::new("INSERT INTO vts (id, vt)");
-            builder.push_values(&scan.vts, |mut b, vt| {
-                b.push_bind(&mapped_id).push_bind(&vt.oid);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-            let mut builder =
-                QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
-            builder.push_values(
-                scan.vts
-                    .iter()
-                    .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value))),
-                |mut b, (oid, param_id, param_value)| {
-                    b.push_bind(&mapped_id)
-                        .push_bind(oid)
-                        .push_bind(param_id as i64)
-                        .push_bind(param_value);
-                },
-            );
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
+    let mapped_id = row.last_insert_rowid().to_string();
+    let auth_data = {
+        if !scan.target.credentials.is_empty() {
+            let bytes = serde_json::to_vec(&scan.target.credentials)?;
+            let bytes = crypter.encrypt(bytes).await;
+            Some(bytes.to_string())
+        } else {
+            None
         }
-
-        if !scan.target.hosts.is_empty() {
-            let mut builder = QueryBuilder::new("INSERT INTO hosts (id, host)");
-            builder.push_values(scan.target.hosts, |mut b, host| {
-                b.push_bind(&mapped_id).push_bind(host);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-
-        if !scan.target.excluded_hosts.is_empty() {
-            let mut builder = QueryBuilder::new(
-                "INSERT INTO resolved_hosts (id, original_host, resolved_host, kind, scan_status)",
-            );
-            builder.push_values(scan.target.excluded_hosts, |mut b, host| {
-                //TODO: check host if ip v4, v6, dns or oci ... for now it doesn't matter.
+    };
+    query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
+        .bind(&mapped_id)
+        .bind(auth_data)
+        .execute(&mut *tx)
+        .await?;
+    if !scan.vts.is_empty() {
+        let mut builder = QueryBuilder::new("INSERT INTO vts (id, vt)");
+        builder.push_values(&scan.vts, |mut b, vt| {
+            b.push_bind(&mapped_id).push_bind(&vt.oid);
+        });
+        let query = builder.build();
+        query.execute(&mut *tx).await?;
+        let mut builder =
+            QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
+        builder.push_values(
+            scan.vts
+                .iter()
+                .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value))),
+            |mut b, (oid, param_id, param_value)| {
                 b.push_bind(&mapped_id)
-                    .push_bind(host.clone())
-                    .push_bind(host)
-                    .push_bind("dns")
-                    .push_bind("excluded");
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-
-        if !scan.target.ports.is_empty() {
-            let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
-            builder.push_values(
-                scan.target
-                    .ports
-                    .into_iter()
-                    .flat_map(|port| port.range.into_iter().map(move |r| (port.protocol, r))),
-                |mut b, (protocol, range)| {
-                    b.push_bind(&mapped_id)
-                        .push_bind(match protocol {
-                            None => "udp_tcp",
-                            Some(models::Protocol::TCP) => "tcp",
-                            Some(models::Protocol::UDP) => "udp",
-                        })
-                        .push_bind(range.start as i64)
-                        .push_bind(range.end.map(|x| x as i64));
-                },
-            );
-            let query = builder.build();
-
-            query.execute(&mut *tx).await?;
-        }
-        let mut scan_preferences = scan.scan_preferences;
-        if scan.target.reverse_lookup_unify.unwrap_or_default() {
-            scan_preferences.push(models::ScanPreference {
-                id: "target_reverse_lookup_unify".to_string(),
-                value: "true".to_string(),
-            });
-        }
-        if scan.target.reverse_lookup_only.unwrap_or_default() {
-            scan_preferences.push(models::ScanPreference {
-                id: "target_reverse_lookup_only".to_string(),
-                value: "true".to_string(),
-            });
-        }
-
-        if !scan_preferences.is_empty() {
-            let mut builder = QueryBuilder::new("INSERT INTO preferences (id, key, value)");
-            builder.push_values(scan_preferences, |mut b, pref| {
-                b.push_bind(&mapped_id)
-                    .push_bind(pref.id)
-                    .push_bind(pref.value);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-
-        tx.commit().await?;
-        Ok(scan.scan_id)
+                    .push_bind(oid)
+                    .push_bind(param_id as i64)
+                    .push_bind(param_value);
+            },
+        );
+        let query = builder.build();
+        query.execute(&mut *tx).await?;
     }
+
+    if !scan.target.hosts.is_empty() {
+        let mut builder = QueryBuilder::new("INSERT INTO hosts (id, host)");
+        builder.push_values(scan.target.hosts, |mut b, host| {
+            b.push_bind(&mapped_id).push_bind(host);
+        });
+        let query = builder.build();
+        query.execute(&mut *tx).await?;
+    }
+
+    if !scan.target.excluded_hosts.is_empty() {
+        let mut builder = QueryBuilder::new(
+            "INSERT INTO resolved_hosts (id, original_host, resolved_host, kind, scan_status)",
+        );
+        builder.push_values(scan.target.excluded_hosts, |mut b, host| {
+            //TODO: check host if ip v4, v6, dns or oci ... for now it doesn't matter.
+            b.push_bind(&mapped_id)
+                .push_bind(host.clone())
+                .push_bind(host)
+                .push_bind("dns")
+                .push_bind("excluded");
+        });
+        let query = builder.build();
+        query.execute(&mut *tx).await?;
+    }
+
+    if !scan.target.ports.is_empty() {
+        let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
+        builder.push_values(
+            scan.target
+                .ports
+                .into_iter()
+                .flat_map(|port| port.range.into_iter().map(move |r| (port.protocol, r))),
+            |mut b, (protocol, range)| {
+                b.push_bind(&mapped_id)
+                    .push_bind(match protocol {
+                        None => "udp_tcp",
+                        Some(models::Protocol::TCP) => "tcp",
+                        Some(models::Protocol::UDP) => "udp",
+                    })
+                    .push_bind(range.start as i64)
+                    .push_bind(range.end.map(|x| x as i64));
+            },
+        );
+        let query = builder.build();
+
+        query.execute(&mut *tx).await?;
+    }
+    let mut scan_preferences = scan.scan_preferences;
+    if scan.target.reverse_lookup_unify.unwrap_or_default() {
+        scan_preferences.push(models::ScanPreference {
+            id: "target_reverse_lookup_unify".to_string(),
+            value: "true".to_string(),
+        });
+    }
+    if scan.target.reverse_lookup_only.unwrap_or_default() {
+        scan_preferences.push(models::ScanPreference {
+            id: "target_reverse_lookup_only".to_string(),
+            value: "true".to_string(),
+        });
+    }
+
+    if !scan_preferences.is_empty() {
+        let mut builder = QueryBuilder::new("INSERT INTO preferences (id, key, value)");
+        builder.push_values(scan_preferences, |mut b, pref| {
+            b.push_bind(&mapped_id)
+                .push_bind(pref.id)
+                .push_bind(pref.value);
+        });
+        let query = builder.build();
+        query.execute(&mut *tx).await?;
+    }
+
+    tx.commit().await?;
+    Ok(scan.scan_id)
 }
+
+impl<E> Endpoints<E> where E: crate::crypt::Crypt + Sync + Send {}
 impl<E> PostScans for Endpoints<E>
 where
     E: crate::crypt::Crypt + Sync + Send,
@@ -188,7 +193,7 @@ where
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
         let annoying = scan.scan_id.clone();
         Box::pin(async move {
-            self.insert_scan(client_id, scan)
+            scan_insert(&self.pool, self.crypter.as_ref(), &client_id, scan)
                 .await
                 .map_err(|x| match x {
                     Error::Sqlx(sqlx::Error::Database(db))
@@ -397,7 +402,6 @@ where
             credentials,
             alive_test_ports,
             alive_test_methods,
-            // TODO: that needs to be changed
             reverse_lookup_unify: if reverse_lookup_unify {
                 Some(true)
             } else {
@@ -468,6 +472,38 @@ where
         todo!()
     }
 }
+
+async fn scan_get_status(pool: &SqlitePool, id: i64) -> Result<models::Status, sqlx::error::Error> {
+    let scan_row = query(r#"
+        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
+        FROM scans
+        WHERE id = ?
+        "#).bind(id).fetch_one(pool).await?;
+    let excluded = scan_row.get("host_excluded");
+    let dead = scan_row.get("host_dead");
+    let alive = scan_row.get("host_alive");
+    let finished = excluded + dead + alive;
+    let host_info = models::HostInfo {
+        all: scan_row.get("host_all"),
+        excluded,
+        dead,
+        alive,
+        queued: scan_row.get("host_queued"),
+        finished,
+        scanning: None,
+        remaining_vts_per_host: Default::default(),
+    };
+    let status = models::Status {
+        start_time: scan_row.get("start_time"),
+        end_time: scan_row.get("end_time"),
+        // should never fail as we just allow parseable values to be stored in the DB
+        status: scan_row.get::<String, _>("status").parse().unwrap(),
+        host_info: Some(host_info),
+    };
+
+    Ok(status)
+}
+
 impl<E> GetScansIDStatus for Endpoints<E>
 where
     E: Send + Sync,
@@ -478,7 +514,14 @@ where
     ) -> std::pin::Pin<
         Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>,
     > {
-        todo!()
+        Box::pin(async move {
+            let id: i64 = id
+                .parse()
+                .map_err(|e| GetScansIDStatusError::External(Box::new(e)))?;
+            scan_get_status(&self.pool, id)
+                .await
+                .map_err(|e| GetScansIDStatusError::External(Box::new(e)))
+        })
     }
 }
 impl<E> PostScansID for Endpoints<E>
@@ -541,17 +584,24 @@ pub async fn init(
 
 #[cfg(test)]
 mod tests {
+    use std::{sync::Arc, time::Duration};
+
     use futures::StreamExt;
     use greenbone_scanner_framework::{
-        GetScans, GetScansID, MapScanID, PostScans, PostScansError,
+        GetScans, GetScansID, GetScansIDStatus, MapScanID, PostScans, PostScansError,
         models::{
             self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
             ScanPreference, Service,
         },
+        prelude::PostScansID,
     };
+    use scannerlib::models::Phase;
     use sqlx::SqlitePool;
 
-    use crate::config::Config;
+    use crate::{
+        config::Config,
+        scans::{config_to_crypt, scheduling},
+    };
 
     fn generate_hosts() -> Vec<Vec<String>> {
         vec![vec![], vec!["0".into()]]
@@ -772,10 +822,20 @@ mod tests {
             advisories_path,
             products_path,
         };
+        let scanner = crate::config::Scanner {
+            scanner_type: crate::config::ScannerType::Openvasd,
+            ..Default::default()
+        };
+        let scheduler = crate::config::Scheduler {
+            check_interval: Duration::from_micros(10),
+            ..Default::default()
+        };
 
         let config = Config {
             feed,
             notus,
+            scanner,
+            scheduler,
             ..Default::default()
         };
 
@@ -862,6 +922,78 @@ mod tests {
                 scan.target.credentials.len(),
                 result.target.credentials.len()
             );
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn get_scan_id_status() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+
+        let crypter = Arc::new(config_to_crypt(&config));
+        let scheduler_sender = scheduling::init_with_scanner(
+            pool.clone(),
+            crypter.clone(),
+            &config,
+            scheduling::tests::scanner_succeeded().build(),
+        )
+        .await?;
+        let undertest = super::Endpoints {
+            pool,
+            crypter,
+            scheduling: scheduler_sender,
+        };
+
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        for scan in scans.iter() {
+            let result = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
+                .await
+                .unwrap();
+            let result = undertest.get_scans_id_status(result).await?;
+            assert_eq!(result.status, Phase::Stored);
+        }
+        for scan in scans.iter() {
+            let id = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
+                .await
+                .unwrap();
+
+            undertest
+                .post_scans_id(id.clone(), models::Action::Start)
+                .await?;
+            let mut status;
+            loop {
+                status = undertest.get_scans_id_status(id.clone()).await?;
+                if status.is_running() {
+                    break;
+                }
+            }
+            assert!(matches!(status.status, Phase::Requested | Phase::Running));
+        }
+        for scan in scans.iter() {
+            let id = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
+                .await
+                .unwrap();
+
+            undertest
+                .post_scans_id(id.clone(), models::Action::Start)
+                .await?;
+            let mut status;
+            loop {
+                status = undertest.get_scans_id_status(id.clone()).await?;
+                if status.is_done() {
+                    break;
+                }
+            }
+            assert!(matches!(status.status, Phase::Succeeded));
         }
 
         Ok(())

@@ -91,36 +91,6 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    async fn scan_get_status(&self, id: i64) -> R<models::Status> {
-        let scan_row = query(r#"
-        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
-        FROM scans
-        WHERE id = ?
-        "#).bind(id).fetch_one(&self.pool).await?;
-        let excluded = scan_row.get("host_excluded");
-        let dead = scan_row.get("host_dead");
-        let alive = scan_row.get("host_alive");
-        let finished = excluded + dead + alive;
-        let host_info = models::HostInfo {
-            all: scan_row.get("host_all"),
-            excluded,
-            dead,
-            alive,
-            queued: scan_row.get("host_queued"),
-            finished,
-            scanning: None,
-            remaining_vts_per_host: Default::default(),
-        };
-        let status = models::Status {
-            start_time: scan_row.get("start_time"),
-            end_time: scan_row.get("end_time"),
-            status: scan_row.get::<String, _>("status").parse()?,
-            host_info: Some(host_info),
-        };
-
-        Ok(status)
-    }
-
     async fn scan_update_status(&self, id: i64, status: models::Status) -> R<()> {
         let host_info = status.host_info.unwrap_or_default();
 
@@ -286,7 +256,7 @@ where
         self.scan_insert_results(internal_id, results.results)
             .await?;
         let kind = self.scanner.scan_result_status_kind();
-        let previous_status = self.scan_get_status(internal_id).await?;
+        let previous_status = super::scan_get_status(&self.pool, internal_id).await?;
         let status = match &kind {
             ScanResultKind::StatusOverride => results.status,
             // TODO: refactor on StatusAddition to do that within SQL directly instead of get mut
@@ -346,22 +316,13 @@ where
         Ok(())
     }
 }
-trait ScannerTypus:
-    ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static
-{
-}
-
-impl<T> ScannerTypus for T where
-    T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static
-{
-}
 
 async fn run_scheduler<S, E>(
     check_interval: std::time::Duration,
     scheduler: ScanScheduler<S, E>,
 ) -> R<Sender<Message>>
 where
-    S: ScannerTypus,
+    S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     // happens when openvasd was killed when scans did still run
@@ -409,15 +370,15 @@ fn check_redis_url(config: &Config) -> String {
     redis_url
 }
 
-async fn start_scheduler<E, S>(
+pub(super) async fn init_with_scanner<E, S>(
     pool: SqlitePool,
     crypter: Arc<E>,
     config: &Config,
     scanner: S,
 ) -> R<Sender<Message>>
 where
+    S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
-    S: ScannerTypus,
 {
     let scheduler = ScanScheduler {
         pool,
@@ -448,7 +409,7 @@ where
                 config.scanner.ospd.socket.clone(),
                 config.scanner.ospd.read_timeout,
             );
-            start_scheduler(pool, crypter, config, scanner).await
+            init_with_scanner(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvas => {
             let scanner = openvas::Scanner::new(
@@ -458,22 +419,21 @@ where
                 check_redis_url(config),
                 preferences::preference::PREFERENCES.to_vec(),
             );
-            start_scheduler(pool, crypter, config, scanner).await
+            init_with_scanner(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvasd => {
             use scanner::LambdaBuilder;
             let scanner = LambdaBuilder::new().build();
-            start_scheduler(pool, crypter, config, scanner).await
+            init_with_scanner(pool, crypter, config, scanner).await
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use greenbone_scanner_framework::PostScans;
+pub(crate) mod tests {
     use scannerlib::{
         models::Status,
-        scanner::{LambdaBuilder, ScanResults},
+        scanner::{Lambda, LambdaBuilder, ScanResults},
     };
 
     use crate::{
@@ -486,12 +446,11 @@ mod tests {
     type TR = R<()>;
 
     async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
-        let scans_endpoint = scans::init(pool.clone(), config).await.unwrap();
         let client_id = "moep".to_string();
         let scans = scans::tests::generate_scan();
+        let crypter = scans::config_to_crypt(config);
         for scan in scans {
-            scans_endpoint
-                .post_scans(client_id.clone(), scan)
+            scans::scan_insert(&pool, &crypter, &client_id, scan)
                 .await
                 .unwrap();
         }
@@ -573,53 +532,56 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn reflect_status_phase_of_scan() -> TR {
-        let (under_test, known_scans) =
-            setup_test_env_with_scanner(LambdaBuilder::new().with_fetch(|id| {
-                let results = vec![
-                    models::Result {
-                        id: 0,
-                        r_type: models::ResultType::Alarm,
-                        ip_address: None,
-                        hostname: None,
-                        oid: None,
-                        port: None,
-                        protocol: None,
-                        message: None,
-                        detail: None,
-                    },
-                    models::Result {
-                        id: 1,
-                        r_type: models::ResultType::Log,
-                        ip_address: Some("127.0.0.1".to_string()),
-                        hostname: Some("localhost".to_string()),
-                        oid: Some("1".to_string()),
-                        port: Some(22),
-                        protocol: Some(models::Protocol::UDP),
-                        message: Some("hooary".to_string()),
-                        detail: Some(models::Detail {
-                            name: "detail_name".to_string(),
-                            value: "detail_value".to_string(),
-                            source: models::Source {
-                                s_type: "dunno".to_string(),
-                                name: "something".to_string(),
-                                description: "found something in don't know".to_string(),
-                            },
-                        }),
-                    },
-                ];
+    pub(crate) fn scanner_succeeded() -> LambdaBuilder {
+        LambdaBuilder::new().with_fetch(|id| {
+            let results = vec![
+                models::Result {
+                    id: 0,
+                    r_type: models::ResultType::Alarm,
+                    ip_address: None,
+                    hostname: None,
+                    oid: None,
+                    port: None,
+                    protocol: None,
+                    message: None,
+                    detail: None,
+                },
+                models::Result {
+                    id: 1,
+                    r_type: models::ResultType::Log,
+                    ip_address: Some("127.0.0.1".to_string()),
+                    hostname: Some("localhost".to_string()),
+                    oid: Some("1".to_string()),
+                    port: Some(22),
+                    protocol: Some(models::Protocol::UDP),
+                    message: Some("hooary".to_string()),
+                    detail: Some(models::Detail {
+                        name: "detail_name".to_string(),
+                        value: "detail_value".to_string(),
+                        source: models::Source {
+                            s_type: "dunno".to_string(),
+                            name: "something".to_string(),
+                            description: "found something in don't know".to_string(),
+                        },
+                    }),
+                },
+            ];
 
-                Ok(ScanResults {
-                    id: id.to_string(),
-                    status: Status {
-                        status: models::Phase::Succeeded,
-                        ..Default::default()
-                    },
-                    results,
-                })
-            }))
-            .await?;
+            Ok(ScanResults {
+                id: id.to_string(),
+                status: Status {
+                    status: models::Phase::Succeeded,
+                    ..Default::default()
+                },
+                results,
+            })
+        })
+    }
+
+    #[tokio::test]
+    // maybe create a function of that so that it can be used within scans testing
+    async fn reflect_status_phase_of_scan() -> TR {
+        let (under_test, known_scans) = setup_test_env_with_scanner(scanner_succeeded()).await?;
         for id in known_scans.iter() {
             under_test
                 .on_message(Message::Start(id.to_string()))
