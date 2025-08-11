@@ -15,7 +15,7 @@ use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
-use rustls::ClientConnection;
+use rustls::{ClientConnection, pki_types::ServerName};
 use socket2::{Domain, Protocol, Socket, Type};
 use std::{
     io::{self, BufRead, Read, Write},
@@ -28,8 +28,11 @@ use std::{
 use thiserror::Error;
 
 use super::{
-    OpenvasEncaps, Port, get_retry, network_utils::convert_timeout, tcp::TcpConnection,
-    tls::create_tls_client, udp::UdpConnection,
+    OpenvasEncaps, Port, get_retry,
+    network_utils::convert_timeout,
+    tcp::TcpConnection,
+    tls::{create_tls_client, prepare_tls_client},
+    udp::UdpConnection,
 };
 
 static FTP_PASV: Lazy<Regex> =
@@ -75,6 +78,8 @@ pub enum SocketError {
     FailedToBindSocket(io::Error, SocketAddr),
     #[error("No route to destination: {0}.")]
     NoRouteToDestination(IpAddr),
+    #[error("TLS client: {0}.")]
+    FailedTlsNegotiation(String),
 }
 
 /// Interval used for timing tcp requests. Any tcp request has to wait at least
@@ -136,6 +141,19 @@ impl NaslSocket {
             NaslSocket::Udp(udp_connection) => udp_connection.write(buf),
         }
     }
+
+    pub fn set_tls(&mut self, tls: ClientConnection) {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            tcp_connection.set_tls(tls);
+        };
+    }
+
+    pub fn get_port(&self) -> u16 {
+        match self {
+            NaslSocket::Tcp(tcp_connection) => tcp_connection.get_port(),
+            NaslSocket::Udp(udp_connection) => udp_connection.get_port(),
+        }
+    }
 }
 
 /// The Top level struct storing all NASL sockets, a list of the
@@ -177,6 +195,11 @@ impl NaslSockets {
     /// Adds a given NASL socket. It returns the position of the socket within the
     /// list.
     fn add(&mut self, socket: NaslSocket) -> usize {
+        // Add a None element in the position 0, so the fd position
+        // is always greater than 0. This allows to check in the nasl side
+        if self.handles.is_empty() {
+            self.handles.push(None)
+        }
         if let Some(free) = self.closed_fd.pop() {
             self.handles.insert(free, Some(socket));
             free
@@ -614,13 +637,50 @@ async fn open_sock_tcp(
     open_sock_tcp_shared(context, nasl_sockets, port, timeout, transport, bufsz)
 }
 
+#[nasl_function(named(socket, transport))]
+async fn socket_negotiate_ssl(
+    context: &ScanCtx<'_>,
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+    transport: Option<i64>,
+) -> Result<NaslValue, FnError> {
+    let transport = transport.unwrap_or(OpenvasEncaps::TlsCustom.into());
+    let client = get_tls_conf(context).and_then(|conf| {
+        prepare_tls_client(
+            &conf.cert_path,
+            &conf.key_path,
+            &conf.password,
+            &conf.cafile_path,
+        )
+        .map_err(|e| SocketError::FailedTlsNegotiation(e.to_string()).into())
+    });
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    let hostname = "localhost";
+    let client_conf = std::sync::Arc::new(client?);
+    let server = ServerName::try_from(hostname.to_owned()).unwrap();
+    let client = ClientConnection::new(client_conf, server).unwrap();
+    soc.set_tls(client);
+
+    //TODO: transport is set in the kb, but is not specified in the TLS Session
+    context.set_port_transport(soc.get_port(), transport as usize)?;
+    Ok(NaslValue::Number(socket as i64))
+}
+
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
 fn get_tls_conf(context: &ScanCtx) -> Result<TlsConfig, FnError> {
-    let cert_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))?;
-    let key_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))?;
-    let password = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))?;
-    let cafile_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))?;
+    let cert_path = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))
+        .unwrap_or_default();
+    let key_path = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))
+        .unwrap_or_default();
+    let password = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))
+        .unwrap_or_default();
+    let cafile_path = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))
+        .unwrap_or_default();
 
     Ok(TlsConfig {
         cert_path,
@@ -996,6 +1056,7 @@ function_set! {
         join_multicast_group,
         leave_multicast_group,
         telnet_init,
+        socket_negotiate_ssl,
     )
 }
 

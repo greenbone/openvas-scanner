@@ -112,4 +112,11 @@ impl UdpConnection {
         self.socket.set_read_timeout(old)?;
         ret
     }
+
+    pub fn get_port(&self) -> u16 {
+        if let Ok(peer) = self.socket.peer_addr() {
+            return peer.port();
+        }
+        0
+    }
 }

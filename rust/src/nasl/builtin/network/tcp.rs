@@ -30,6 +30,20 @@ impl Read for TcpDataStream {
         }
     }
 }
+impl TcpDataStream {
+    pub fn set_tls(&mut self, tls: ClientConnection) {
+        self.tls = Some(tls);
+    }
+
+    pub fn get_port(&self) -> u16 {
+        if let Ok(peer) = self.sock.peer_addr() {
+            if let Some(s) = peer.as_socket() {
+                return s.port();
+            }
+        }
+        0
+    }
+}
 
 pub struct TcpConnection {
     stream: BufReader<TcpDataStream>,
@@ -87,6 +101,16 @@ impl TcpConnection {
                 stream: BufReader::new(stream),
             }
         }
+    }
+
+    pub fn set_tls(&mut self, tls: ClientConnection) {
+        let stream = self.stream.get_mut();
+        stream.set_tls(tls);
+    }
+
+    pub fn get_port(&self) -> u16 {
+        let stream = self.stream.get_ref();
+        stream.get_port()
     }
 
     /// Create a new TCP connection.
