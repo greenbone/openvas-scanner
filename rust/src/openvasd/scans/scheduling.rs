@@ -9,7 +9,7 @@ use scannerlib::{
         self, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper, preferences,
     },
 };
-use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteArguments};
+use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
 use tokio::sync::mpsc::Sender;
 
 use crate::{config::Config, crypt::Crypt};
@@ -29,6 +29,7 @@ pub enum Message {
     Stop(String),
 }
 
+// maybe we should just use AnyHow
 type R<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 impl<T, C> ScanScheduler<T, C> {
@@ -39,11 +40,12 @@ impl<T, C> ScanScheduler<T, C> {
         let rows = query("UPDATE scans SET status = 'failed' WHERE status = 'running'")
             .execute(&self.pool)
             .await?;
-
-        tracing::warn!(
-            scans_failed = rows.rows_affected(),
-            "Set scans to failed from previous runs."
-        );
+        if rows.rows_affected() > 0 {
+            tracing::warn!(
+                scans_failed = rows.rows_affected(),
+                "Set scans to failed from previous runs."
+            );
+        }
         Ok(())
     }
 
@@ -120,7 +122,6 @@ impl<T, C> ScanScheduler<T, C> {
     }
 
     async fn scan_update_status(&self, id: i64, status: models::Status) -> R<()> {
-        tracing::debug!(id, status = %status.status, "Set status.");
         let host_info = status.host_info.unwrap_or_default();
 
         let row = query(
@@ -148,6 +149,7 @@ impl<T, C> ScanScheduler<T, C> {
         .bind(id)
         .execute(&self.pool)
         .await?;
+        tracing::debug!(id, rows_affected=row.rows_affected(), status = %status.status, "Set status.");
         Ok(())
     }
 
@@ -362,6 +364,10 @@ where
     S: ScannerTypus,
     E: Crypt + Send + Sync + 'static,
 {
+    // happens when openvasd was killed when scans did still run
+    if let Err(error) = scheduler.running_to_failed().await {
+        tracing::warn!(%error, "Unable to set not stopped runs from a previous session to failed.")
+    }
     let mut interval = tokio::time::interval(check_interval);
     let (sender, mut recv) = tokio::sync::mpsc::channel(10);
     tokio::spawn(async move {
@@ -403,11 +409,30 @@ fn check_redis_url(config: &Config) -> String {
     redis_url
 }
 
+async fn start_scheduler<E, S>(
+    pool: SqlitePool,
+    crypter: Arc<E>,
+    config: &Config,
+    scanner: S,
+) -> R<Sender<Message>>
+where
+    E: Crypt + Send + Sync + 'static,
+    S: ScannerTypus,
+{
+    let scheduler = ScanScheduler {
+        pool,
+        cryptor: crypter,
+        max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
+        scanner: Arc::new(scanner),
+    };
+
+    run_scheduler(config.scheduler.check_interval, scheduler).await
+}
+
 pub async fn init<E>(pool: SqlitePool, crypter: Arc<E>, config: &Config) -> R<Sender<Message>>
 where
     E: Crypt + Send + Sync + 'static,
 {
-    let check_interval = config.scheduler.check_interval;
     match config.scanner.scanner_type {
         crate::config::ScannerType::OSPD => {
             //TODO: when in notus don't start scheduler at all
@@ -419,41 +444,26 @@ where
                     config.scanner.ospd.socket.display()
                 );
             }
-            let scheduler = ScanScheduler {
-                pool,
-                cryptor: crypter,
-                max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
-                scanner: Arc::new(osp::Scanner::new(
-                    config.scanner.ospd.socket.clone(),
-                    config.scanner.ospd.read_timeout,
-                )),
-            };
-            run_scheduler(check_interval, scheduler).await
+            let scanner = osp::Scanner::new(
+                config.scanner.ospd.socket.clone(),
+                config.scanner.ospd.read_timeout,
+            );
+            start_scheduler(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvas => {
-            let scheduler = ScanScheduler {
-                pool,
-                cryptor: crypter,
-                max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
-                scanner: Arc::new(openvas::Scanner::new(
-                    config.scheduler.min_free_mem,
-                    None, // cpu_option are not available currently
-                    cmd::check_sudo(),
-                    check_redis_url(config),
-                    preferences::preference::PREFERENCES.to_vec(),
-                )),
-            };
-            run_scheduler(check_interval, scheduler).await
+            let scanner = openvas::Scanner::new(
+                config.scheduler.min_free_mem,
+                None, // cpu_option are not available currently
+                cmd::check_sudo(),
+                check_redis_url(config),
+                preferences::preference::PREFERENCES.to_vec(),
+            );
+            start_scheduler(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvasd => {
             use scanner::LambdaBuilder;
-            let scheduler = ScanScheduler {
-                pool,
-                cryptor: crypter,
-                max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
-                scanner: Arc::new(LambdaBuilder::new().build()),
-            };
-            run_scheduler(check_interval, scheduler).await
+            let scanner = LambdaBuilder::new().build();
+            start_scheduler(pool, crypter, config, scanner).await
         }
     }
 }
