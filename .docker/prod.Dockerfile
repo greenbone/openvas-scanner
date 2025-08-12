@@ -26,6 +26,10 @@ RUN cp target/release/scannerctl /install/usr/local/bin
 # RUN cp release/feed-verifier /install/bin
 
 FROM ${GVM_LIBS}:${VERSION}
+# we set the VERSION_CODENAME instead of stable to prevent accidental
+# distribution upgrades
+RUN  . /etc/os-release && \
+  sed -i "s/stable/$VERSION_CODENAME/g" /etc/apt/sources.list.d/*.sources
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
   libglib2.0-0 \
@@ -55,6 +59,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libssh-4 \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
+
 
 
 # must be pre built within the rust dir and moved to the bin dir
