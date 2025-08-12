@@ -32,13 +32,11 @@ RUN  . /etc/os-release && \
   sed -i "s/stable/$VERSION_CODENAME/g" /etc/apt/sources.list.d/*.sources
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
-  libglib2.0-0 \
   libjson-glib-1.0-0 \
   libksba8 \
   nmap \
   libcap2-bin \
   snmp \
-  netdiag \
   pnscan \
   libbsd0 \
   rsync \
@@ -53,9 +51,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libhdb9-heimdal \
   libpopt0 \
   libcurl4 \
-  libcurl3-gnutls \
   zlib1g \
-  libhiredis0.14 \
   libssh-4 \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
