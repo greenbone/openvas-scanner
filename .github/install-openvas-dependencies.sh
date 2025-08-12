@@ -23,7 +23,6 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libgcrypt-dev \
     libssh-dev \
     libbsd-dev \
-    libgnutls30 \
     libgssapi3-heimdal \
     krb5-multidev \
     libasn1-8-heimdal \
