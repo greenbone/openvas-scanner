@@ -1,8 +1,8 @@
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
-use futures::{StreamExt, TryStreamExt};
+use futures::{Stream, StreamExt, TryStreamExt};
 use greenbone_scanner_framework::models::VTData;
 use greenbone_scanner_framework::{GetVTsError, GetVts, prelude::*};
 use pkcs8::Error;
@@ -15,13 +15,36 @@ use sqlx::{Acquire, Row};
 use sqlx::{Sqlite, SqlitePool, query, query_scalar};
 
 use crate::config::Config;
+
+#[derive(Default, Debug, PartialEq, PartialOrd, Clone)]
+pub enum FeedState {
+    #[default]
+    Unknown,
+    Syncing,
+    Synced(String, String),
+}
 pub struct Endpoints {
     pool: SqlitePool,
+    feed_state: Arc<RwLock<FeedState>>,
 }
 
 impl Endpoints {
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+    pub fn new(pool: SqlitePool, feed_state: Arc<RwLock<FeedState>>) -> Self {
+        Self { pool, feed_state }
+    }
+
+    pub fn feed_state(
+        &self,
+    ) -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
+        let fs = self.feed_state.clone();
+        Box::pin(async move {
+            tokio::task::spawn_blocking(move || {
+                let result = fs.read().unwrap();
+                (*result).clone()
+            })
+            .await
+            .unwrap()
+        })
     }
 }
 
@@ -34,10 +57,20 @@ impl GetVts for Endpoints {
         String,
         greenbone_scanner_framework::GetVTsError,
     > {
-        let result = query("SELECT oid FROM plugins ORDER BY oid")
-            .fetch(&self.pool)
-            .map(|row| row.map(|e| e.get("oid")).map_err(error_vts_error));
-        Box::new(result)
+        let feed_state = self.feed_state.read().expect("Poison error");
+        match &*feed_state {
+            FeedState::Unknown | FeedState::Syncing => Box::new(futures::stream::iter(vec![Err(
+                GetVTsError::NotYetAvailable,
+            )])),
+            FeedState::Synced(_, _) => {
+                // we drop earlier as we  don't know how long the stream will be consumed
+                drop(feed_state);
+                let result = query("SELECT oid FROM plugins ORDER BY oid")
+                    .fetch(&self.pool)
+                    .map(|row| row.map(|e| e.get("oid")).map_err(error_vts_error));
+                Box::new(result)
+            }
+        }
     }
 
     fn get_vts(
@@ -48,20 +81,38 @@ impl GetVts for Endpoints {
         models::VTData,
         greenbone_scanner_framework::GetVTsError,
     > {
-        let result = query("SELECT json_blob FROM plugins")
-            .fetch(&self.pool)
-            .map(|row| {
-                let r = row
-                    .map(|x| serde_json::from_slice(x.get("json_blob")).map_err(error_vts_error))
-                    .map_err(error_vts_error);
-                match r {
-                    Ok(Ok(x)) => Ok(x),
-                    Ok(e) => e,
-                    Err(e) => Err(e),
-                }
-            });
+        let feed_state = self.feed_state.read().expect("Poison error");
+        match &*feed_state {
+            FeedState::Unknown | FeedState::Syncing => Box::new(futures::stream::iter(vec![Err(
+                GetVTsError::NotYetAvailable,
+            )])),
+            FeedState::Synced(_, _) => {
+                // we drop earlier as we  don't know how long the stream will be consumed
+                drop(feed_state);
+                let result = query("SELECT feed_type, json_blob FROM plugins")
+                    .fetch(&self.pool)
+                    .map(|row| {
+                        let r = row
+                            .map(|x| match x.get("feed_type") {
+                                "advisories" => {
+                                    serde_json::from_slice::<VulnerabilityData>(x.get("json_blob"))
+                                        .map_err(error_vts_error)
+                                        .map(|x| x.into())
+                                }
+                                _ => serde_json::from_slice(x.get("json_blob"))
+                                    .map_err(error_vts_error),
+                            })
+                            .map_err(error_vts_error);
+                        match r {
+                            Ok(Ok(x)) => Ok(x),
+                            Ok(e) => e,
+                            Err(e) => Err(e),
+                        }
+                    });
 
-        Box::new(result)
+                Box::new(result)
+            }
+        }
     }
 }
 
@@ -78,6 +129,7 @@ pub struct FeedSynchronizer {
     plugin_feed: PathBuf,
     advisory_feed: PathBuf,
     signature_check: bool,
+    feed_state: Arc<RwLock<FeedState>>,
 }
 
 type FeedHashs = (String, String);
@@ -92,13 +144,30 @@ where
     verifier.sumfile_hash()
 }
 
+trait Plugin: serde::Serialize {
+    fn oid(&self) -> &str;
+}
+
+impl Plugin for VTData {
+    fn oid(&self) -> &str {
+        &self.oid
+    }
+}
+
+impl Plugin for VulnerabilityData {
+    fn oid(&self) -> &str {
+        &self.adv.oid
+    }
+}
+
 impl FeedSynchronizer {
-    pub fn new(pool: SqlitePool, config: &Config) -> Self {
+    pub fn new(pool: SqlitePool, config: &Config, feed_state: Arc<RwLock<FeedState>>) -> Self {
         Self {
             pool,
             plugin_feed: config.feed.path.clone(),
             advisory_feed: config.notus.advisories_path.clone(),
             signature_check: config.feed.signature_check,
+            feed_state,
         }
     }
 
@@ -151,10 +220,13 @@ impl FeedSynchronizer {
         Ok(())
     }
 
-    async fn store_plugin(&self, feed_hash: &FeedHash, plugin: VTData) -> Result<(), GetVTsError> {
+    async fn store_plugin<T>(&self, feed_hash: &FeedHash, plugin: T) -> Result<(), GetVTsError>
+    where
+        T: Plugin,
+    {
         let json = serde_json::to_vec(&plugin).map_err(error_vts_error)?;
         query(r#" INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)"#)
-            .bind(&plugin.oid)
+            .bind(plugin.oid())
             .bind(&json)
             .bind(feed_hash.typus.as_ref())
             .execute(&self.pool)
@@ -163,14 +235,24 @@ impl FeedSynchronizer {
 
         Ok(())
     }
+    async fn change_state(&self, state: FeedState) {
+        let fs = self.feed_state.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut value = fs.write().unwrap();
+            *value = state;
+        })
+        .await
+        .unwrap()
+    }
 
-    async fn synchronize_json<F>(&self, hash: &FeedHash, f: F) -> Result<(), GetVTsError>
+    async fn synchronize_json<F, T>(&self, hash: &FeedHash, f: F) -> Result<(), GetVTsError>
     where
-        F: Fn(std::sync::mpsc::Sender<VTData>) -> Result<(), GetVTsError> + Send + 'static,
+        F: Fn(std::sync::mpsc::Sender<T>) -> Result<(), GetVTsError> + Send + 'static,
+        T: Plugin + Send + Sync + 'static,
     {
-        let (tx_async, mut rx_async) = tokio::sync::mpsc::channel::<VTData>(1);
+        let (tx_async, mut rx_async) = tokio::sync::mpsc::channel::<T>(1);
 
-        let (tx_blocking, rx_blocking) = std::sync::mpsc::channel::<VTData>();
+        let (tx_blocking, rx_blocking) = std::sync::mpsc::channel::<T>();
 
         // background task to bridge between sync and async.
         // If we don't do that we may block the runtime
@@ -224,6 +306,7 @@ impl FeedSynchronizer {
             path: path.clone(),
             typus: FeedType::NASL,
         };
+
         self.synchronize_json(&hash, move |sender| {
             let file = std::fs::File::open(&path).map_err(|_| not_found())?;
             let reader = BufReader::new(file);
@@ -250,7 +333,7 @@ impl FeedSynchronizer {
             typus: FeedType::Advisories,
         };
 
-        self.synchronize_json(&hash, move |sender| {
+        self.synchronize_json::<_, VulnerabilityData>(&hash, move |sender| {
             let loader = FSPluginLoader::new(&path);
             let advisories_files =
                 HashsumAdvisoryLoader::new(loader.clone()).map_err(error_vts_error)?;
@@ -263,12 +346,11 @@ impl FeedSynchronizer {
                     .load_advisory(filename)
                     .map_err(error_vts_error)?;
                 for adv in advisories.advisories {
-                    let data: VTData = VulnerabilityData {
+                    let data = VulnerabilityData {
                         adv,
                         family: advisories.family.clone(),
                         filename: filename.to_owned(),
-                    }
-                    .into();
+                    };
 
                     if sender.send(data).is_err() {
                         break;
@@ -285,15 +367,22 @@ impl FeedSynchronizer {
             self.calculate_hashs().await.map_err(error_vts_error)?;
         let (known_plugin_hash, known_advisories_hash) =
             self.knowns_hashs().await.map_err(error_vts_error)?;
+        if known_plugin_hash != plugin_hash || known_advisories_hash != advisories_hash {
+            tracing::info!("Update feed metadata");
+            self.change_state(FeedState::Syncing).await;
+            if known_plugin_hash != plugin_hash {
+                self.synchronize_plugins(plugin_hash.clone()).await?;
+            }
 
-        if known_plugin_hash != plugin_hash {
-            self.synchronize_plugins(plugin_hash).await?;
-        }
+            if known_advisories_hash != advisories_hash {
+                self.synchronize_advisories(advisories_hash.clone())
+                    .await
+                    .map_err(error_vts_error)?;
+            }
 
-        if known_advisories_hash != advisories_hash {
-            self.synchronize_advisories(advisories_hash)
+            tracing::info!("Updated feed metadata");
+            self.change_state(FeedState::Synced(plugin_hash, advisories_hash))
                 .await
-                .map_err(error_vts_error)?;
         }
 
         Ok(())
@@ -309,12 +398,15 @@ where
 
 /// Initializes endpoints, spawns background task for feed verification.
 pub async fn init(pool: SqlitePool, config: &Config) -> Endpoints {
-    let endpoints = Endpoints::new(pool.clone());
-    let feed_syncer = FeedSynchronizer::new(pool, config);
+    let feed_state = Arc::new(RwLock::new(FeedState::default()));
+    let endpoints = Endpoints::new(pool.clone(), feed_state.clone());
+    let feed_syncer = FeedSynchronizer::new(pool, config, feed_state);
     let check_interval = config.feed.check_interval;
+
     tokio::spawn(async move {
         loop {
             tracing::debug!(next_check=?check_interval, "checking feed");
+
             if let Err(error) = feed_syncer.synchronize_feeds().await {
                 tracing::warn!(%error, next_check=?check_interval, "Failed to synchronize feeds.");
             }
@@ -327,6 +419,7 @@ pub async fn init(pool: SqlitePool, config: &Config) -> Endpoints {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use futures::StreamExt;
     use greenbone_scanner_framework::{GetVts, models::Feed};
     use sqlx::SqlitePool;
@@ -362,9 +455,21 @@ mod tests {
     #[tokio::test]
     async fn get_oids() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        let synchronizer = FeedSynchronizer::new(pool.clone(), &config);
+        let feed_state = Arc::new(RwLock::new(FeedState::default()));
+        let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone());
+        let synchronizer = FeedSynchronizer::new(pool.clone(), &config, feed_state);
+
+        let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
+        assert_eq!(oids.len(), 1);
+        assert_eq!(
+            oids.into_iter()
+                .filter_map(|x| x.err())
+                .filter(|x| matches!(x, GetVTsError::NotYetAvailable))
+                .count(),
+            1
+        );
+
         synchronizer.synchronize_feeds().await?;
-        let endpoint = super::Endpoints::new(pool);
         // in the case that examples are changed, I don't want to change this test each time hence
         // we just verify if we got oids.
         let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
@@ -375,13 +480,28 @@ mod tests {
     #[tokio::test]
     async fn plugin_shadow_copy() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        let synchronizer = FeedSynchronizer::new(pool.clone(), &config);
+        let feed_state = Arc::new(RwLock::new(FeedState::default()));
+        let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone());
+        let synchronizer = FeedSynchronizer::new(pool.clone(), &config, feed_state.clone());
+
+        let oids = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;
+        assert_eq!(oids.len(), 1);
+        assert_eq!(
+            oids.into_iter()
+                .filter_map(|x| x.err())
+                .filter(|x| matches!(x, GetVTsError::NotYetAvailable))
+                .count(),
+            1
+        );
+
         synchronizer.synchronize_feeds().await?;
-        let endpoint = super::Endpoints::new(pool);
         // in the case that examples are changed, I don't want to change this test each time hence
         // we just verify if we got oids.
-        let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
+        let oids = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;
+        let oids_len = oids.len();
         assert!(!oids.is_empty());
+        let filtered = oids.into_iter().filter_map(|x| x.ok()).count();
+        assert_eq!(filtered, oids_len);
         Ok(())
     }
 }

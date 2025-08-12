@@ -1,4 +1,8 @@
-use std::sync::Arc;
+use std::{
+    ops::Add,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::models::{self, Scan};
@@ -8,11 +12,12 @@ use scannerlib::{
     scanner::{
         self, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper, preferences,
     },
+    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper},
 };
 use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
 use tokio::sync::mpsc::Sender;
 
-use crate::{config::Config, crypt::Crypt};
+use crate::{config::Config, crypt::Crypt, vts::FeedState};
 mod nasl;
 
 pub struct ScanScheduler<Scanner, Cryptor> {
@@ -364,7 +369,7 @@ fn check_redis_url(config: &Config) -> String {
         tracing::warn!(
             openvas_redis = &redis_url,
             openvasd_redis = &config.storage.redis.url,
-            "openvas and openvasd use different redis connection. Using the openvas URL."
+            "openvas and openvasd use different redis connection. Using openvas_redis."
         );
     }
     redis_url
@@ -390,9 +395,94 @@ where
     run_scheduler(config.scheduler.check_interval, scheduler).await
 }
 
-pub async fn init<E>(pool: SqlitePool, crypter: Arc<E>, config: &Config) -> R<Sender<Message>>
+async fn init_redis_storage(redis_url: &str) -> R<(RedisCtx, RedisCtx)> {
+    use scannerlib::storage::redis::*;
+    let notus = RedisCtx::open(redis_url, NOTUSUPDATE_SELECTOR)?;
+    let nvt = RedisCtx::open(redis_url, FEEDUPDATE_SELECTOR)?;
+    Ok((nvt, notus))
+}
+
+async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str) -> () {
+    tracing::info!("synchornizing redis with vt feed");
+    let (vtc, nc) = match init_redis_storage(redis_url).await {
+        Ok(x) => x,
+        Err(error) => {
+            tracing::warn!(%error, "Unable to create redis cache connections");
+            return;
+        }
+    };
+    let nc = Arc::new(RwLock::new(nc));
+    let vtc = Arc::new(RwLock::new(vtc));
+    let rows = query("SELECT feed_type, json_blob FROM plugins").fetch(&pool);
+
+    const CONCURRENCY_LIMIT: usize = 1024;
+    rows.for_each_concurrent(CONCURRENCY_LIMIT, |x| {
+        let nc = nc.clone();
+        let vtc = vtc.clone();
+        async move {
+            match x {
+                Ok(row) => {
+                    tokio::task::spawn_blocking(move || {
+                        match row.get("feed_type") {
+                            "advisories" => {
+                                tracing::trace!(feed_type = "advisories", "Mirroring");
+                                let mut nc = nc.write().unwrap();
+                                match serde_json::from_slice(row.get("json_blob")) {
+                                    Ok(x) => {
+                                        if let Err(error) = nc.redis_add_advisory(Some(x)) {
+                                            tracing::warn!(%error,  "unable to mirror advisory")
+                                        }
+                                    }
+                                    Err(error) => {
+                                        tracing::warn!(%error, "Unable to parse advisory")
+                                    }
+                                };
+                            }
+                            feed_type => {
+                                tracing::trace!(feed_type, "Mirroring");
+                                let mut vtc = vtc.write().unwrap();
+                                match serde_json::from_slice(row.get("json_blob")) {
+                                    Ok(x) => {
+                                        if let Err(error) = vtc.redis_add_nvt(x) {
+                                            tracing::warn!(%error,  "unable to mirror NASL plugin")
+                                        }
+                                    }
+                                    Err(error) => {
+                                        tracing::warn!(%error, "Unable to parse NASL plugin")
+                                    }
+                                };
+                            }
+                        };
+                    });
+                }
+                Err(error) => {
+                    tracing::warn!(%error, "Unable to fetch plygins");
+                }
+            }
+        }
+    })
+    .await;
+
+    let nc = nc.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut nv = nc.write().unwrap();
+        if let Err(error) = nv.redis_add_advisory(None) {
+            tracing::warn!(%error, "Unable set notus feed to be available");
+        }
+    });
+}
+
+pub async fn init<E, FS>(
+    pool: SqlitePool,
+    crypter: Arc<E>,
+    feed_state: FS,
+    config: &Config,
+) -> R<Sender<Message>>
 where
     E: Crypt + Send + Sync + 'static,
+    FS: Fn() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>>
+        + Send
+        + 'static,
 {
     match config.scanner.scanner_type {
         crate::config::ScannerType::OSPD => {
@@ -412,13 +502,38 @@ where
             init_with_scanner(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvas => {
+            let redis_url = check_redis_url(config);
             let scanner = openvas::Scanner::new(
                 config.scheduler.min_free_mem,
                 None, // cpu_option are not available currently
                 cmd::check_sudo(),
-                check_redis_url(config),
+                redis_url.clone(),
                 preferences::preference::PREFERENCES.to_vec(),
             );
+            let initial_check_interval = config.scheduler.check_interval;
+            let slow_check_interval = config.feed.check_interval + Duration::from_secs(60);
+
+            let fpool = pool.clone();
+            tokio::task::spawn(async move {
+                let mut previous_feed_state = FeedState::Unknown;
+                loop {
+                    let new_feed_state = feed_state().await;
+                    if matches!(new_feed_state, FeedState::Synced(_, _))
+                        && new_feed_state != previous_feed_state
+                    {
+                        tracing::info!(from=?previous_feed_state, to=?new_feed_state, "feed changed");
+                        previous_feed_state = new_feed_state;
+                        synchronize_redis_feed(fpool.clone(), &redis_url).await;
+                    }
+                    // check often in an initial state
+                    if !matches!(previous_feed_state, FeedState::Synced(_, _)) {
+                        tokio::time::sleep(initial_check_interval).await
+                    } else {
+                        tokio::time::sleep(slow_check_interval).await
+                    }
+                }
+            });
+
             init_with_scanner(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvasd => {
@@ -433,7 +548,7 @@ where
 pub(crate) mod tests {
     use scannerlib::{
         models::Status,
-        scanner::{Lambda, LambdaBuilder, ScanResults},
+        scanner::{LambdaBuilder, ScanResults},
     };
 
     use crate::{

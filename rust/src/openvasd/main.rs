@@ -19,11 +19,12 @@ use std::{
     sync::Arc,
 };
 
-use config::Config;
+use config::{Config, Endpoints};
 use greenbone_scanner_framework::RuntimeBuilder;
 use sqlx::{SqlitePool, sqlite::SqliteSynchronous};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
+use vts::FeedState;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -84,20 +85,29 @@ pub async fn setup_sqlite(config: &Config, shared: bool) -> Result<SqlitePool> {
     Ok(pool)
 }
 
+pub fn feed_state(
+    vts: Arc<vts::Endpoints>,
+) -> impl Fn() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
+    move || {
+        let vts = vts.clone();
+        Box::pin(async move { vts.feed_state().await })
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
     setup_log(&config);
     let pool = setup_sqlite(&config, true).await?;
-    let scan = scans::init(pool.clone(), &config).await?;
-    let vts = vts::init(pool, &config).await;
+    let vts = Arc::new(vts::init(pool.clone(), &config).await);
+    let scan = scans::init(pool.clone(), &config, feed_state(vts.clone())).await?;
     let (get_notus, post_notus) = notus::init(&config);
 
     RuntimeBuilder::<greenbone_scanner_framework::End>::new()
         //TODO: feed version needs to be getable
         .feed_version("bla".to_owned())
         .insert_scans(Arc::new(scan))
-        .insert_get_vts(Arc::new(vts))
+        .insert_get_vts(vts.clone())
         .insert_on_request(get_notus)
         .insert_on_request(post_notus)
         .run_blocking()

@@ -143,7 +143,7 @@ impl ProductsAdvisories {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct VulnerabilityData {
     pub adv: Advisory,
     pub family: String,
