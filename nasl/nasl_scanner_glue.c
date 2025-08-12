@@ -1068,22 +1068,23 @@ security_notus (lex_ctxt *lexic)
 
       if (fixed_version != NULL && specifier != NULL)
         {
-          int spec_len = 8 - (int) strlen ((char *) version->u.v.v_str.s_val);
           buf = g_string_new (NULL);
-          g_string_printf (
-            buf,
-            "\nVulnerable package:%*s%s\n"
-            "Installed version:%*s%s-%s\n"
-            "Fixed version:%*s%s%s-%s\n",
-            3, "", name->u.v.v_str.s_val, 4, "", name->u.v.v_str.s_val,
-            version->u.v.v_str.s_val, spec_len, "", specifier->u.v.v_str.s_val,
-            name->u.v.v_str.s_val, fixed_version->u.v.v_str.s_val);
+          g_string_printf (buf,
+                           "\n"
+                           "Vulnerable package:   %s\n"
+                           "Installed version:    %s-%s\n"
+                           "Fixed version:      %2s%s-%s\n",
+                           name->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           version->u.v.v_str.s_val, specifier->u.v.v_str.s_val,
+                           name->u.v.v_str.s_val,
+                           fixed_version->u.v.v_str.s_val);
         }
       else if (start != NULL && end != NULL)
         {
           buf = g_string_new (NULL);
           g_string_printf (buf,
-                           "\nVulnerable package: %s\n"
+                           "\n"
+                           "Vulnerable package:   %s\n"
                            "Installed version:    %s-%s\n"
                            "Fixed version:      < %s-%s\n"
                            "Fixed version:      >=%s-%s\n",
