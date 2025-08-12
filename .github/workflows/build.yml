@@ -14,7 +14,7 @@ jobs:
           sh .github/install-openvas-dependencies.sh
       - name: build 
         run: |
-          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-14/libexec/ccc-analyzer
+          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-19/libexec/ccc-analyzer
           cmake --build build
   Rust:
     runs-on: self-hosted-generic
