@@ -158,6 +158,13 @@ impl NaslSocket {
         Vec::new()
     }
 
+    pub fn ssl_version(&mut self) -> NaslValue {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.ssl_version();
+        }
+        NaslValue::Null
+    }
+
     pub fn get_port(&self) -> u16 {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.get_port(),
@@ -690,6 +697,15 @@ async fn socket_get_cert(
     Ok(NaslValue::Null)
 }
 
+#[nasl_function(named(socket))]
+async fn socket_get_ssl_version(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    Ok(soc.ssl_version())
+}
+
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
 fn get_tls_conf(context: &ScanCtx) -> Result<TlsConfig, FnError> {
@@ -1082,6 +1098,7 @@ function_set! {
         telnet_init,
         socket_negotiate_ssl,
         socket_get_cert,
+        socket_get_ssl_version,
     )
 }
 

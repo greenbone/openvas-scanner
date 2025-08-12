@@ -8,11 +8,13 @@ use std::{
     time::Duration,
 };
 
-use rustls::{ClientConnection, Stream, pki_types::CertificateDer};
+use rustls::{ClientConnection, ProtocolVersion, Stream, pki_types::CertificateDer};
 
 use socket2::{self, Socket};
 
-use super::{network_utils::get_source_ip, socket::SocketError};
+use crate::nasl::NaslValue;
+
+use super::{OpenvasEncaps, network_utils::get_source_ip, socket::SocketError};
 
 struct TcpDataStream {
     sock: Socket,
@@ -120,6 +122,21 @@ impl TcpConnection {
             }
         }
         Vec::new()
+    }
+
+    pub fn ssl_version(&mut self) -> NaslValue {
+        let mut version = NaslValue::Null;
+        if let Some(tls_conn) = &self.stream.get_ref().tls {
+            version = match tls_conn.protocol_version() {
+                Some(ProtocolVersion::SSLv3) => NaslValue::Number(OpenvasEncaps::Ssl3.into()),
+                Some(ProtocolVersion::TLSv1_0) => NaslValue::Number(OpenvasEncaps::Tls1.into()),
+                Some(ProtocolVersion::TLSv1_1) => NaslValue::Number(OpenvasEncaps::Tls11.into()),
+                Some(ProtocolVersion::TLSv1_2) => NaslValue::Number(OpenvasEncaps::Tls12.into()),
+                Some(ProtocolVersion::TLSv1_3) => NaslValue::Number(OpenvasEncaps::Tls13.into()),
+                _ => NaslValue::Null,
+            };
+        }
+        version
     }
 
     /// Create a new TCP connection.
