@@ -2,12 +2,12 @@
 
 ## NAME
 
-**NTLMv1_HASH** - takes two named arguments cryptkey, pass_hash
+**NTLMv1_HASH** - takes two named arguments cryptkey, passhash
 ## SYNOPSIS
 
-*str* **NTLMv1_HASH**(cryptkey: str, password: str, nt_hash: str);
+*str* **NTLMv1_HASH**(cryptkey: str, passhash: str);
 
-**NTLMv1_HASH** It takes two named arguments cryptkey, pass_hash.
+**NTLMv1_HASH** It takes two named arguments cryptkey, passhash.
 
 ## DESCRIPTION
 

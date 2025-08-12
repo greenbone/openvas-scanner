@@ -19,7 +19,11 @@ pub mod bf_cbc;
 pub mod des;
 pub mod hash;
 pub mod hmac;
+<<<<<<< HEAD
 pub mod misc;
+=======
+pub mod ntlm;
+>>>>>>> c3f1d528 (Add: NASL builtin functions for NTLM crypto)
 pub mod pem_to;
 pub mod rc4;
 pub mod rsa;
@@ -145,6 +149,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(pem_to::PemTo);
         set.add_set(smb::Smb);
         set.add_set(misc::Misc);
+        set.add_set(ntlm::Ntlm);
         set
     }
 }
