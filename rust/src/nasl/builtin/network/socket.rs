@@ -15,7 +15,10 @@ use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
-use rustls::{ClientConnection, pki_types::ServerName};
+use rustls::{
+    ClientConnection,
+    pki_types::{CertificateDer, ServerName},
+};
 use socket2::{Domain, Protocol, Socket, Type};
 use std::{
     io::{self, BufRead, Read, Write},
@@ -146,6 +149,13 @@ impl NaslSocket {
         if let NaslSocket::Tcp(tcp_connection) = self {
             tcp_connection.set_tls(tls);
         };
+    }
+
+    pub fn peer_certs(&mut self) -> Vec<CertificateDer> {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.peer_certs();
+        }
+        Vec::new()
     }
 
     pub fn get_port(&self) -> u16 {
@@ -666,6 +676,20 @@ async fn socket_negotiate_ssl(
     Ok(NaslValue::Number(socket as i64))
 }
 
+#[nasl_function(named(socket))]
+async fn socket_get_cert(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+
+    let cert_list = soc.peer_certs();
+    if !cert_list.is_empty() {
+        return Ok(NaslValue::Data(cert_list.first().unwrap().to_vec()));
+    }
+    Ok(NaslValue::Null)
+}
+
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
 fn get_tls_conf(context: &ScanCtx) -> Result<TlsConfig, FnError> {
@@ -1057,6 +1081,7 @@ function_set! {
         leave_multicast_group,
         telnet_init,
         socket_negotiate_ssl,
+        socket_get_cert,
     )
 }
 
