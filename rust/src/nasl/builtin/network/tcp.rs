@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use rustls::{ClientConnection, Stream};
+use rustls::{ClientConnection, Stream, pki_types::CertificateDer};
 
 use socket2::{self, Socket};
 
@@ -111,6 +111,15 @@ impl TcpConnection {
     pub fn get_port(&self) -> u16 {
         let stream = self.stream.get_ref();
         stream.get_port()
+    }
+
+    pub fn peer_certs(&mut self) -> Vec<CertificateDer> {
+        if let Some(tls_conn) = &self.stream.get_ref().tls {
+            if let Some(pc) = tls_conn.peer_certificates() {
+                return pc.to_vec();
+            }
+        }
+        Vec::new()
     }
 
     /// Create a new TCP connection.
