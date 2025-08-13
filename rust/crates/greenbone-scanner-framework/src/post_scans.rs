@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     ExternalError, define_authentication_paths,
-    entry::{self, Bytes, OnRequest, enforce_client_hash, response::BodyKind},
+    entry::{self, Bytes, OnRequest, Prefixed, enforce_client_hash, response::BodyKind},
     internal_server_error, models,
 };
 
@@ -20,9 +20,18 @@ pub struct PostScansIncomingRequest<T> {
     store_scan: Arc<T>,
 }
 
+impl<T> Prefixed for PostScansIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.store_scan.prefix()
+    }
+}
+
 impl<S> OnRequest for PostScansIncomingRequest<S>
 where
-    S: PostScans + 'static,
+    S: PostScans + Prefixed + 'static,
 {
     define_authentication_paths!(authenticated: true, crate::entry::Method::POST, "scans");
 
@@ -121,6 +130,11 @@ mod tests {
     use super::*;
 
     struct Test {}
+    impl Prefixed for Test {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl PostScans for Test {
         fn post_scans(

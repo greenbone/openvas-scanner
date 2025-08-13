@@ -21,6 +21,7 @@ use std::{
 
 use config::{Config, Endpoints};
 use greenbone_scanner_framework::RuntimeBuilder;
+use scannerlib::container_image_scanner;
 use sqlx::{SqlitePool, sqlite::SqliteSynchronous};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -48,7 +49,7 @@ pub async fn setup_sqlite(config: &Config, shared: bool) -> Result<SqlitePool> {
         use crate::config::StorageType;
 
         match config.storage.storage_type {
-            StorageType::InMemory if shared => "sqlite::memory:?cache=shared".to_owned(),
+            //StorageType::InMemory if shared => "sqlite::memory:?cache=shared".to_owned(),
             StorageType::InMemory => "sqlite::memory:".to_owned(),
             StorageType::FileSystem if config.storage.fs.path.is_dir() => {
                 let mut p = config.storage.fs.path.clone();
@@ -99,9 +100,11 @@ async fn main() -> Result<()> {
     let config = Config::load();
     setup_log(&config);
     let pool = setup_sqlite(&config, true).await?;
-    let vts = Arc::new(vts::init(pool.clone(), &config).await);
+    let (feed_state2, vts) = vts::init(pool.clone(), &config).await;
+    let vts = Arc::new(vts);
     let scan = scans::init(pool.clone(), &config, feed_state(vts.clone())).await?;
     let (get_notus, post_notus) = notus::init(&config);
+    let (cis_scans, cis_vts) = container_image_scanner::init(pool.clone(), feed_state2).await?;
 
     RuntimeBuilder::<greenbone_scanner_framework::End>::new()
         //TODO: feed version needs to be getable
@@ -110,6 +113,7 @@ async fn main() -> Result<()> {
         .insert_get_vts(vts.clone())
         .insert_on_request(get_notus)
         .insert_on_request(post_notus)
+        .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts))
         .run_blocking()
         .await
 }

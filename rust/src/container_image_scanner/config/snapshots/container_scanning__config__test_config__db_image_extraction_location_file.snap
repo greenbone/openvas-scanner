@@ -1,0 +1,23 @@
+---
+source: src/config/mod.rs
+expression: config
+---
+[logging]
+level = 'TRACE'
+
+[logging.additional]
+docker_registry = 'WARN'
+
+[database]
+location = '/tmp/test.db'
+busy_timeout = '2s'
+max_connections = 1
+
+[notus]
+address = 'https://localhost:4242/notus'
+certificate = '/tmp/cert.ca'
+
+[image]
+extract_to = '/tmp/images/'
+max_scanning = 1
+batch_size = 1

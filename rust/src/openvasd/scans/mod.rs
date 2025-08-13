@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use futures::StreamExt;
+use greenbone_scanner_framework::entry::Prefixed;
 use greenbone_scanner_framework::models::AliveTestMethods;
 use greenbone_scanner_framework::prelude::*;
 use scannerlib::models::ResultType;
@@ -19,6 +20,12 @@ pub struct Endpoints<E> {
     pool: SqlitePool,
     crypter: Arc<E>,
     scheduling: Sender<scheduling::Message>,
+}
+
+impl<T> Prefixed for Endpoints<T> {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

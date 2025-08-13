@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{ExternalError, StreamResult, models::VTData};
+use crate::{ExternalError, StreamResult, entry::Prefixed, models::VTData};
 use hyper::StatusCode;
 
 use crate::{
@@ -19,9 +19,18 @@ pub struct GetVTsIncomingRequest<T> {
     get_scans: Arc<T>,
 }
 
+impl<T> Prefixed for GetVTsIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_scans.prefix()
+    }
+}
+
 impl<S> OnRequest for GetVTsIncomingRequest<S>
 where
-    S: GetVts + 'static,
+    S: GetVts + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: false,
@@ -111,6 +120,12 @@ mod tests {
     use super::*;
 
     struct Test {}
+
+    impl Prefixed for Test {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl GetVts for Test {
         fn get_oids(&self, client_id: String) -> StreamResult<'static, String, GetVTsError> {

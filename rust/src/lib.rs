@@ -9,6 +9,7 @@
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod alive_test;
+pub mod container_image_scanner;
 pub mod feed;
 pub mod nasl;
 pub mod notus;

@@ -1,0 +1,19 @@
+---
+source: src/config/mod.rs
+expression: config
+---
+[logging]
+level = 'INFO'
+
+[database]
+location = 'in-memory'
+busy_timeout = '2s'
+max_connections = 1
+
+[notus]
+address = 'http://localhost:3000/notus'
+
+[image]
+extract_to = '/tmp/container-scanning'
+max_scanning = 1
+batch_size = 1

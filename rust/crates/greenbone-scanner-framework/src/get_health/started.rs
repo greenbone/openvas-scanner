@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, response::BodyKind},
+    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
 };
 
 pub trait GetHealthStarted: Send + Sync {
@@ -29,8 +29,23 @@ pub struct GetHealthStartedIncomingRequest<T> {
     get_health_started: Arc<T>,
 }
 
+impl<T> Prefixed for GetHealthStartedIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_health_started.prefix()
+    }
+}
+
 #[derive(Default)]
 pub struct JustStarted;
+
+impl Prefixed for JustStarted {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
 
 impl GetHealthStarted for JustStarted {
     fn get_health_started(&self) -> std::pin::Pin<Box<dyn Future<Output = Started> + Send>> {
@@ -47,7 +62,7 @@ impl Default for GetHealthStartedIncomingRequest<JustStarted> {
 
 impl<S> OnRequest for GetHealthStartedIncomingRequest<S>
 where
-    S: GetHealthStarted + 'static,
+    S: GetHealthStarted + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: false,
@@ -91,6 +106,12 @@ mod tests {
     use super::*;
 
     struct NotStarted {}
+
+    impl Prefixed for NotStarted {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl GetHealthStarted for NotStarted {
         fn get_health_started(&self) -> std::pin::Pin<Box<dyn Future<Output = Started> + Send>> {

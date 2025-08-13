@@ -582,7 +582,7 @@ fn from_config_to_sqlite_address(config: &Config) -> String {
     use crate::config::StorageType;
 
     match config.storage.storage_type {
-        StorageType::InMemory => "sqlite::memory:?cache=shared".to_owned(),
+        StorageType::InMemory => "sqlite::memory:".to_owned(),
         StorageType::FileSystem if config.storage.fs.path.is_dir() => {
             let mut p = config.storage.fs.path.clone();
             p.push("openvasd.db");

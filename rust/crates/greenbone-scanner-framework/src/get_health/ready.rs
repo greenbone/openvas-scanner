@@ -4,10 +4,10 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, response::BodyKind},
+    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
 };
 
-pub trait GetHealthReady: Send + Sync {
+pub trait GetHealthReady: Prefixed + Send + Sync {
     fn get_health_ready(&self) -> std::pin::Pin<Box<dyn Future<Output = Ready> + Send>>;
 }
 
@@ -29,8 +29,23 @@ pub struct GetHealthReadyIncomingRequest<T> {
     get_health_ready: Arc<T>,
 }
 
+impl<T> Prefixed for GetHealthReadyIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_health_ready.prefix()
+    }
+}
+
 #[derive(Default)]
 pub struct JustReady;
+
+impl Prefixed for JustReady {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
 
 impl GetHealthReady for JustReady {
     fn get_health_ready(&self) -> std::pin::Pin<Box<dyn Future<Output = Ready> + Send>> {
@@ -47,7 +62,7 @@ impl Default for GetHealthReadyIncomingRequest<JustReady> {
 
 impl<S> OnRequest for GetHealthReadyIncomingRequest<S>
 where
-    S: GetHealthReady + 'static,
+    S: GetHealthReady + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: false,
@@ -95,6 +110,12 @@ mod tests {
     impl GetHealthReady for NotReady {
         fn get_health_ready(&self) -> std::pin::Pin<Box<dyn Future<Output = Ready> + Send>> {
             Box::pin(async move { super::Ready::NotReady })
+        }
+    }
+
+    impl Prefixed for NotReady {
+        fn prefix(&self) -> &'static str {
+            ""
         }
     }
 

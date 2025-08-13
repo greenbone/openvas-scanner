@@ -4,7 +4,9 @@ use hyper::StatusCode;
 
 use crate::{
     ExternalError, MapScanID, define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
+    entry::{
+        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+    },
     internal_server_error, models,
 };
 
@@ -22,9 +24,17 @@ pub struct GetScansIDResultsIDIncomingRequest<T> {
     get_scans: Arc<T>,
 }
 
+impl<T> Prefixed for GetScansIDResultsIDIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_scans.prefix()
+    }
+}
 impl<S> OnRequest for GetScansIDResultsIDIncomingRequest<S>
 where
-    S: GetScansIDResultsID + 'static,
+    S: GetScansIDResultsID + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -130,6 +140,12 @@ mod tests {
     use super::*;
 
     struct Test {}
+
+    impl Prefixed for Test {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl MapScanID for Test {
         fn contains_scan_id<'a>(

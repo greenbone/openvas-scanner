@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, response::BodyKind},
+    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
     models,
 };
 
@@ -20,6 +20,11 @@ pub struct GetScansPreferencesIncomingRequest<T> {
 
 #[derive(Default)]
 pub struct NoPreferences;
+impl Prefixed for NoPreferences {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
 
 impl GetScansPreferences for NoPreferences {
     fn get_scans_preferences<'b>(
@@ -37,9 +42,18 @@ impl Default for GetScansPreferencesIncomingRequest<NoPreferences> {
     }
 }
 
+impl<T> Prefixed for GetScansPreferencesIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_scans_preferences.prefix()
+    }
+}
+
 impl<S> OnRequest for GetScansPreferencesIncomingRequest<S>
 where
-    S: GetScansPreferences + 'static,
+    S: GetScansPreferences + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -85,6 +99,12 @@ mod tests {
     use super::*;
 
     struct Test {}
+
+    impl Prefixed for Test {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl GetScansPreferences for Test {
         fn get_scans_preferences(

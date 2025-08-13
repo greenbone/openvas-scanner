@@ -1,4 +1,4 @@
-use crate::StreamResult;
+use crate::{StreamResult, entry::Prefixed};
 use std::sync::Arc;
 
 use hyper::StatusCode;
@@ -22,9 +22,17 @@ pub struct GetScansIDResultsIncomingRequest<T> {
     get_scans: Arc<T>,
 }
 
+impl<T> Prefixed for GetScansIDResultsIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_scans.prefix()
+    }
+}
 impl<S> OnRequest for GetScansIDResultsIncomingRequest<S>
 where
-    S: GetScansIDResults + 'static,
+    S: GetScansIDResults + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -129,6 +137,12 @@ mod tests {
     use super::*;
 
     struct Test {}
+
+    impl Prefixed for Test {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl MapScanID for Test {
         fn contains_scan_id<'a>(

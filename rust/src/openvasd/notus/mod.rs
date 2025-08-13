@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use greenbone_scanner_framework::{
     ClientIdentifier, OnRequest,
-    entry::{Bytes, Method, Uri, response::BodyKind},
+    entry::{Bytes, Method, Prefixed, Uri, response::BodyKind},
 };
 use http::StatusCode;
 use scannerlib::{
@@ -17,6 +17,11 @@ type Oz = Notus<HashsumProductLoader>;
 
 pub struct GetOSIcnomingRequest(Arc<RwLock<Oz>>);
 
+impl Prefixed for GetOSIcnomingRequest {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
 impl OnRequest for GetOSIcnomingRequest {
     fn needs_authentication(&self) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send>> {
         Box::pin(async move { false })
@@ -58,6 +63,12 @@ impl OnRequest for GetOSIcnomingRequest {
 }
 
 pub struct PostOSIcnomingRequest(Arc<RwLock<Oz>>);
+
+impl Prefixed for PostOSIcnomingRequest {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
 
 impl OnRequest for PostOSIcnomingRequest {
     fn needs_authentication(&self) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send>> {

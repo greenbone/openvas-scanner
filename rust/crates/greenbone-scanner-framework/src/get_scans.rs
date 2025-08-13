@@ -5,7 +5,7 @@ use hyper::StatusCode;
 use crate::{
     ExternalError, define_authentication_paths,
     entry::{
-        self, Bytes, Method, OnRequest,
+        self, Bytes, Method, OnRequest, Prefixed,
         response::{BodyKind, StreamResult},
     },
     internal_server_error,
@@ -20,9 +20,18 @@ pub struct GetScansIncomingRequest<T> {
     get_scans: Arc<T>,
 }
 
+impl<T> Prefixed for GetScansIncomingRequest<T>
+where
+    T: Prefixed,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_scans.prefix()
+    }
+}
+
 impl<S> OnRequest for GetScansIncomingRequest<S>
 where
-    S: GetScans + 'static,
+    S: GetScans + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -113,6 +122,11 @@ mod tests {
     use super::*;
 
     struct Test {}
+    impl Prefixed for Test {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl GetScans for Test {
         fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {

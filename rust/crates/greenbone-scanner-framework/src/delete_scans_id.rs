@@ -4,11 +4,13 @@ use hyper::StatusCode;
 
 use crate::{
     MapScanID, define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
+    entry::{
+        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+    },
     post_scans_id::PostScansIDError,
 };
 
-pub trait DeleteScansID: MapScanID {
+pub trait DeleteScansID: MapScanID + Prefixed {
     fn delete_scans_id(
         &self,
         id: String,
@@ -17,6 +19,15 @@ pub trait DeleteScansID: MapScanID {
 
 pub struct DeleteScansIDIncomingRequest<T> {
     handler: Arc<T>,
+}
+
+impl<S> Prefixed for DeleteScansIDIncomingRequest<S>
+where
+    S: Prefixed + 'static,
+{
+    fn prefix(&self) -> &'static str {
+        self.handler.prefix()
+    }
 }
 
 impl<S> OnRequest for DeleteScansIDIncomingRequest<S>
@@ -103,6 +114,12 @@ mod tests {
                     None
                 }
             })
+        }
+    }
+
+    impl Prefixed for Test {
+        fn prefix(&self) -> &'static str {
+            ""
         }
     }
 

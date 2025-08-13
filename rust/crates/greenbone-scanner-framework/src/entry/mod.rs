@@ -84,7 +84,11 @@ macro_rules! define_authentication_paths {
     };
 }
 
-pub trait OnRequest {
+pub trait Prefixed {
+    fn prefix(&self) -> &'static str;
+}
+
+pub trait OnRequest: Prefixed {
     fn needs_authentication(&self) -> Pin<Box<dyn Future<Output = bool> + Send>>;
     fn on_parts(&self) -> &'static [&'static str];
     fn on_method(&self) -> &'static Method;
@@ -136,16 +140,25 @@ macro_rules! incoming_request {
     }};
 }
 
-fn parts_match(handler_parts: &[&str], req_parts: &[&str]) -> bool {
-    if handler_parts.len() != req_parts.len() {
-        return false;
-    }
-    for (i, p) in req_parts.iter().enumerate() {
-        if handler_parts[i] == "*" {
+fn parts_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) -> bool {
+    let offset = if !prefix.is_empty() {
+        if handler_parts.len() != request_parts.len() - 1 || prefix != request_parts[0] {
+            return false;
+        }
+        1
+    } else {
+        if handler_parts.len() != request_parts.len() {
+            return false;
+        }
+        0
+    };
+
+    for (i, p) in handler_parts.iter().enumerate() {
+        if p == &"*" {
             continue;
         }
 
-        if p != &handler_parts[i] {
+        if p != &request_parts[i + offset] {
             return false;
         }
     }
@@ -185,7 +198,7 @@ impl IncomingRequest {
                 .filter(|x| !x.is_empty())
                 .collect::<Vec<_>>();
             for rh in callbacks {
-                if parts_match(rh.on_parts(), &parts) {
+                if parts_match(rh.prefix(), rh.on_parts(), &parts) {
                     let needs_authentication = rh.needs_authentication().await;
                     let is_authenticated =
                         matches!(&*client_identifier, &ClientIdentifier::Known(_));
@@ -444,6 +457,12 @@ mod tests {
 
     struct IdPart {}
 
+    impl Prefixed for IdPart {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
+
     impl OnRequest for IdPart {
         define_authentication_paths!(authenticated: true, Method::GET, "test", "id", "*");
         fn call<'a, 'b>(
@@ -462,6 +481,11 @@ mod tests {
         }
     }
     struct Authenticated {}
+    impl Prefixed for Authenticated {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl OnRequest for Authenticated {
         define_authentication_paths!(authenticated: true, Method::GET, "test", "authn");
@@ -481,6 +505,12 @@ mod tests {
     }
 
     struct NotAuthenticated {}
+
+    impl Prefixed for NotAuthenticated {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl OnRequest for NotAuthenticated {
         define_authentication_paths!(authenticated: false, Method::GET, "test", "not_authn");
@@ -625,6 +655,49 @@ mod tests {
 
         let req = Request::builder()
             .uri("/test/authn")
+            .header("x-api-key", "test")
+            .method(Method::HEAD)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    struct PrefixedAuth {}
+    impl Prefixed for PrefixedAuth {
+        fn prefix(&self) -> &'static str {
+            "achso"
+        }
+    }
+
+    impl OnRequest for PrefixedAuth {
+        define_authentication_paths!(authenticated: true, Method::GET, "test", "wtf");
+        fn call<'a, 'b>(
+            &'b self,
+            _: Arc<ClientIdentifier>,
+            _: &'a Uri,
+            _: Bytes,
+        ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
+        where
+            'b: 'a,
+        {
+            Box::pin(
+                async move { BodyKind::json_content(StatusCode::OK, &"test_response".to_owned()) },
+            )
+        }
+    }
+
+    #[tokio::test]
+    async fn prefixed() {
+        let entry_point = test_utilities::entry_point(
+            Authentication::ApiKey(vec!["test".to_owned()]),
+            incoming_request!(PrefixedAuth {}),
+            Some(Default::default()),
+        );
+
+        let req = Request::builder()
+            .uri("/achso/test/wtf")
             .header("x-api-key", "test")
             .method(Method::HEAD)
             .body(Empty::<Bytes>::new())

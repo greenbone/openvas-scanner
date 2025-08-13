@@ -2,12 +2,11 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
-use futures::{Stream, StreamExt, TryStreamExt};
-use greenbone_scanner_framework::models::VTData;
-use greenbone_scanner_framework::{GetVTsError, GetVts, prelude::*};
-use pkcs8::Error;
+pub use crate::container_image_scanner::endpoints::vts::FeedState;
+pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
+use greenbone_scanner_framework::GetVTsError;
 use scannerlib::feed;
-use scannerlib::models::FeedType;
+use scannerlib::models::{FeedType, VTData};
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
@@ -15,106 +14,6 @@ use sqlx::{Acquire, Row};
 use sqlx::{Sqlite, SqlitePool, query, query_scalar};
 
 use crate::config::Config;
-
-#[derive(Default, Debug, PartialEq, PartialOrd, Clone)]
-pub enum FeedState {
-    #[default]
-    Unknown,
-    Syncing,
-    Synced(String, String),
-}
-pub struct Endpoints {
-    pool: SqlitePool,
-    feed_state: Arc<RwLock<FeedState>>,
-}
-
-impl Endpoints {
-    pub fn new(pool: SqlitePool, feed_state: Arc<RwLock<FeedState>>) -> Self {
-        Self { pool, feed_state }
-    }
-
-    pub fn feed_state(
-        &self,
-    ) -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
-        let fs = self.feed_state.clone();
-        Box::pin(async move {
-            tokio::task::spawn_blocking(move || {
-                let result = fs.read().unwrap();
-                (*result).clone()
-            })
-            .await
-            .unwrap()
-        })
-    }
-}
-
-impl GetVts for Endpoints {
-    fn get_oids(
-        &self,
-        _: String,
-    ) -> greenbone_scanner_framework::StreamResult<
-        'static,
-        String,
-        greenbone_scanner_framework::GetVTsError,
-    > {
-        let feed_state = self.feed_state.read().expect("Poison error");
-        match &*feed_state {
-            FeedState::Unknown | FeedState::Syncing => Box::new(futures::stream::iter(vec![Err(
-                GetVTsError::NotYetAvailable,
-            )])),
-            FeedState::Synced(_, _) => {
-                // we drop earlier as we  don't know how long the stream will be consumed
-                drop(feed_state);
-                let result = query("SELECT oid FROM plugins ORDER BY oid")
-                    .fetch(&self.pool)
-                    .map(|row| row.map(|e| e.get("oid")).map_err(error_vts_error));
-                Box::new(result)
-            }
-        }
-    }
-
-    fn get_vts(
-        &self,
-        _: String,
-    ) -> greenbone_scanner_framework::StreamResult<
-        'static,
-        models::VTData,
-        greenbone_scanner_framework::GetVTsError,
-    > {
-        let feed_state = self.feed_state.read().expect("Poison error");
-        match &*feed_state {
-            FeedState::Unknown | FeedState::Syncing => Box::new(futures::stream::iter(vec![Err(
-                GetVTsError::NotYetAvailable,
-            )])),
-            FeedState::Synced(_, _) => {
-                // we drop earlier as we  don't know how long the stream will be consumed
-                drop(feed_state);
-                let result = query("SELECT feed_type, json_blob FROM plugins")
-                    .fetch(&self.pool)
-                    .map(|row| {
-                        let r = row
-                            .map(|x| match x.get("feed_type") {
-                                "advisories" => {
-                                    serde_json::from_slice::<VulnerabilityData>(x.get("json_blob"))
-                                        .map_err(error_vts_error)
-                                        .map(|x| x.into())
-                                }
-                                _ => serde_json::from_slice(x.get("json_blob"))
-                                    .map_err(error_vts_error),
-                            })
-                            .map_err(error_vts_error);
-                        match r {
-                            Ok(Ok(x)) => Ok(x),
-                            Ok(e) => e,
-                            Err(e) => Err(e),
-                        }
-                    });
-
-                Box::new(result)
-            }
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the hash values of the sha256sums for specific feeds
@@ -397,10 +296,10 @@ where
 }
 
 /// Initializes endpoints, spawns background task for feed verification.
-pub async fn init(pool: SqlitePool, config: &Config) -> Endpoints {
+pub async fn init(pool: SqlitePool, config: &Config) -> (Arc<RwLock<FeedState>>, Endpoints) {
     let feed_state = Arc::new(RwLock::new(FeedState::default()));
-    let endpoints = Endpoints::new(pool.clone(), feed_state.clone());
-    let feed_syncer = FeedSynchronizer::new(pool, config, feed_state);
+    let endpoints = Endpoints::new(pool.clone(), feed_state.clone(), None);
+    let feed_syncer = FeedSynchronizer::new(pool, config, feed_state.clone());
     let check_interval = config.feed.check_interval;
 
     tokio::spawn(async move {
@@ -414,7 +313,7 @@ pub async fn init(pool: SqlitePool, config: &Config) -> Endpoints {
             tokio::time::sleep(check_interval).await;
         }
     });
-    endpoints
+    (feed_state, endpoints)
 }
 
 #[cfg(test)]
@@ -456,7 +355,7 @@ mod tests {
     async fn get_oids() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
         let feed_state = Arc::new(RwLock::new(FeedState::default()));
-        let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone());
+        let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone(), None);
         let synchronizer = FeedSynchronizer::new(pool.clone(), &config, feed_state);
 
         let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
@@ -481,7 +380,7 @@ mod tests {
     async fn plugin_shadow_copy() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
         let feed_state = Arc::new(RwLock::new(FeedState::default()));
-        let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone());
+        let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone(), None);
         let synchronizer = FeedSynchronizer::new(pool.clone(), &config, feed_state.clone());
 
         let oids = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;

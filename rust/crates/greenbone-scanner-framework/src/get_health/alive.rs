@@ -4,10 +4,10 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, response::BodyKind},
+    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
 };
 
-pub trait GetHealthAlive: Send + Sync {
+pub trait GetHealthAlive: Prefixed + Send + Sync {
     fn get_health_alive(&self) -> std::pin::Pin<Box<dyn Future<Output = Alive> + Send>>;
 }
 
@@ -32,6 +32,12 @@ pub struct GetHealthAliveIncomingRequest<T> {
 #[derive(Default)]
 pub struct JustAlive;
 
+impl Prefixed for JustAlive {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
+
 impl GetHealthAlive for JustAlive {
     fn get_health_alive(&self) -> std::pin::Pin<Box<dyn Future<Output = Alive> + Send>> {
         Box::pin(async move { Alive::Alive })
@@ -42,6 +48,15 @@ impl Default for GetHealthAliveIncomingRequest<JustAlive> {
         Self {
             get_health_alive: Arc::new(JustAlive {}),
         }
+    }
+}
+
+impl<S> Prefixed for GetHealthAliveIncomingRequest<S>
+where
+    S: Prefixed + 'static,
+{
+    fn prefix(&self) -> &'static str {
+        self.get_health_alive.prefix()
     }
 }
 
@@ -91,6 +106,12 @@ mod tests {
     use super::*;
 
     struct NotAlive {}
+
+    impl Prefixed for NotAlive {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
 
     impl GetHealthAlive for NotAlive {
         fn get_health_alive(&self) -> std::pin::Pin<Box<dyn Future<Output = Alive> + Send>> {

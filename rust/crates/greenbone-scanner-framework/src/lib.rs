@@ -11,6 +11,7 @@ pub use entry::ClientIdentifier;
 pub use entry::IncomingRequest;
 pub use entry::OnRequest;
 
+use entry::Prefixed;
 use get_scans::GetScansIncomingRequest;
 use get_scans_id::GetScansIDIncomingRequest;
 use get_scans_id_results::GetScansIDResultsIncomingRequest;
@@ -230,7 +231,10 @@ impl<T> RuntimeBuilder<T> {
     {
         let mut idx = None;
         for (i, or) in self.incoming_request.on_requests.iter().enumerate() {
-            if or.on_method() == value.on_method() && or.on_parts() == value.on_parts() {
+            if or.prefix() == value.prefix()
+                && or.on_method() == value.on_method()
+                && or.on_parts() == value.on_parts()
+            {
                 idx = Some(i);
                 break;
             }
@@ -242,6 +246,44 @@ impl<T> RuntimeBuilder<T> {
             self.incoming_request.on_requests.push(value);
         }
         self
+    }
+
+    // TODO: find a better name
+    pub fn insert_additional_scan_endpoints<S, V>(
+        self,
+        scans: Arc<S>,
+        vts: Arc<V>,
+    ) -> RuntimeBuilder<T>
+    where
+        S: PostScans
+            + GetScans
+            + GetScansID
+            + GetScansIDResults
+            + GetScansIDResultsID
+            + GetScansIDStatus
+            + PostScansID
+            + DeleteScansID
+            + 'static,
+        V: GetVts + Prefixed + 'static,
+    {
+        let ior = self
+            .insert_on_request(PostScansIncomingRequest::from(scans.clone()))
+            .insert_on_request(GetScansIncomingRequest::from(scans.clone()))
+            .insert_on_request(GetScansIDIncomingRequest::from(scans.clone()))
+            .insert_on_request(GetScansIDResultsIncomingRequest::from(scans.clone()))
+            .insert_on_request(GetScansIDStatusIncomingRequest::from(scans.clone()))
+            .insert_on_request(PostScansIDIncomingRequest::from(scans.clone()))
+            .insert_on_request(DeleteScansIDIncomingRequest::from(scans))
+            .insert_on_request(GetVTsIncomingRequest::from(vts));
+        RuntimeBuilder {
+            api_version: ior.api_version,
+            feed_version: ior.feed_version,
+            listener_address: ior.listener_address,
+            tls: ior.tls,
+            api_keys: ior.api_keys,
+            incoming_request: ior.incoming_request,
+            _phanton: PhantomData,
+        }
     }
 
     //pub fn incoming_request(mut self, incoming_request: IncomingRequest) -> RunTimeBuilder {
@@ -324,7 +366,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
         value: Arc<T>,
     ) -> RuntimeBuilder<runtime_builder_states::PostScansSet>
     where
-        T: PostScans + 'static,
+        T: PostScans + Prefixed + 'static,
     {
         let ior = self.insert_on_request(PostScansIncomingRequest::from(value));
         RuntimeBuilder {
@@ -344,7 +386,7 @@ impl RuntimeBuilder<runtime_builder_states::PostScansSet> {
         value: Arc<T>,
     ) -> RuntimeBuilder<runtime_builder_states::GetScansSet>
     where
-        T: GetScans + 'static,
+        T: GetScans + Prefixed + 'static,
     {
         let ior = self.insert_on_request(GetScansIncomingRequest::from(value));
         RuntimeBuilder {
@@ -365,7 +407,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScansSet> {
         value: Arc<T>,
     ) -> RuntimeBuilder<runtime_builder_states::GetScanIDSet>
     where
-        T: GetScansID + 'static,
+        T: GetScansID + Prefixed + 'static,
     {
         let ior = self.insert_on_request(GetScansIDIncomingRequest::from(value));
         RuntimeBuilder {
@@ -386,7 +428,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDSet> {
         value: Arc<T>,
     ) -> RuntimeBuilder<runtime_builder_states::GetScanIDResultSet>
     where
-        T: GetScansIDResults + 'static,
+        T: GetScansIDResults + Prefixed + 'static,
     {
         let ior = self.insert_on_request(GetScansIDResultsIncomingRequest::from(value));
         RuntimeBuilder {
@@ -407,7 +449,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultSet> {
         value: Arc<T>,
     ) -> RuntimeBuilder<runtime_builder_states::GetScanIDResultIDSet>
     where
-        T: GetScansIDResultsID + 'static,
+        T: GetScansIDResultsID + Prefixed + 'static,
     {
         let ior = self.insert_on_request(GetScansIDResultsIDIncomingRequest::from(value));
         RuntimeBuilder {
@@ -428,7 +470,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultIDSet> {
         value: Arc<T>,
     ) -> RuntimeBuilder<runtime_builder_states::GetScanIDStatusSet>
     where
-        T: GetScansIDStatus + 'static,
+        T: GetScansIDStatus + Prefixed + 'static,
     {
         let ior = self.insert_on_request(GetScansIDStatusIncomingRequest::from(value));
         RuntimeBuilder {
@@ -449,7 +491,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDStatusSet> {
         value: Arc<T>,
     ) -> RuntimeBuilder<runtime_builder_states::PostScanIDSet>
     where
-        T: PostScansID + 'static,
+        T: PostScansID + Prefixed + 'static,
     {
         let ior = self.insert_on_request(PostScansIDIncomingRequest::from(value));
         RuntimeBuilder {
@@ -488,7 +530,7 @@ impl RuntimeBuilder<runtime_builder_states::PostScanIDSet> {
 impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     pub fn insert_get_vts<T>(self, value: Arc<T>) -> RuntimeBuilder<runtime_builder_states::End>
     where
-        T: GetVts + 'static,
+        T: GetVts + Prefixed + 'static,
     {
         let ior = self.insert_on_request(GetVTsIncomingRequest::from(value));
         RuntimeBuilder {
