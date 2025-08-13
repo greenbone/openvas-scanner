@@ -211,10 +211,10 @@ where
     }
 
     pub async fn collect_scan_status(&mut self, scan_id: String) -> RedisStorageResult<()> {
-        if let Ok(scan_status) = self.redis_connector.scan_status(scan_id) {
-            if let Ok(mut results) = Arc::as_ref(&self.results).lock() {
-                results.scan_status = scan_status.to_string();
-            }
+        if let Ok(scan_status) = self.redis_connector.scan_status(scan_id)
+            && let Ok(mut results) = Arc::as_ref(&self.results).lock()
+        {
+            results.scan_status = scan_status.to_string();
         }
         Ok(())
     }
@@ -223,8 +223,10 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::models::{self, Protocol, Result, ResultType};
-    use crate::openvas::openvas_redis::FakeRedis;
+    use crate::{
+        models::{self, Protocol, Result, ResultType},
+        openvas::openvas_redis::test::FakeRedis,
+    };
     use std::collections::HashMap;
 
     use super::ResultHelper;

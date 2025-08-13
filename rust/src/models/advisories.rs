@@ -134,7 +134,7 @@ impl<'a> Iterator for ProductsAdvisoriesIterator<'a> {
 }
 
 impl ProductsAdvisories {
-    pub fn iter(&self) -> ProductsAdvisoriesIterator {
+    pub fn iter(&self) -> ProductsAdvisoriesIterator<'_> {
         ProductsAdvisoriesIterator {
             products_advisories: self,
             index: 0,
