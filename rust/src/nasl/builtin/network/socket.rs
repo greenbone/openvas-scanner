@@ -165,6 +165,12 @@ impl NaslSocket {
         NaslValue::Null
     }
 
+    pub fn check_safe_renegotiation(&mut self) -> NaslValue {
+        // TODO: This is not possible. rustls does not provide
+        // a feature to check secure renegotiation
+        unimplemented!()
+    }
+
     pub fn get_port(&self) -> u16 {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.get_port(),
@@ -503,7 +509,11 @@ async fn open_sock_kdc(
     Ok(NaslValue::Number(ret as i64))
 }
 
-fn make_tls_client_connection(context: &ScanCtx<'_>, vhost: &str) -> Option<ClientConnection> {
+fn make_tls_client_connection(
+    context: &ScanCtx<'_>,
+    transport: &OpenvasEncaps,
+    vhost: &str,
+) -> Option<ClientConnection> {
     get_tls_conf(context).ok().and_then(|conf| {
         create_tls_client(
             vhost,
@@ -511,6 +521,7 @@ fn make_tls_client_connection(context: &ScanCtx<'_>, vhost: &str) -> Option<Clie
             &conf.key_path,
             &conf.password,
             &conf.cafile_path,
+            transport,
         )
         .ok()
     })
@@ -536,7 +547,7 @@ fn open_sock_tcp_vhost(
         Some(OpenvasEncaps::Auto) => {
             set_transport = true;
             // Try SSL/TLS first
-            let tls = make_tls_client_connection(context, vhost);
+            let tls = make_tls_client_connection(context, &OpenvasEncaps::Auto, vhost);
             if tls.is_some() {
                 transport = OpenvasEncaps::TlsCustom as i64;
             } else {
@@ -554,7 +565,7 @@ fn open_sock_tcp_vhost(
         // TLS/SSL
         Some(tls_version) => match tls_version {
             OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                make_tls_client_connection(context, vhost)
+                make_tls_client_connection(context, &tls_version, vhost)
             }
             _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport).into()),
         },
@@ -668,6 +679,8 @@ async fn socket_negotiate_ssl(
             &conf.key_path,
             &conf.password,
             &conf.cafile_path,
+            // safe to unwrap() because knowon from above
+            &OpenvasEncaps::from_i64(transport).unwrap(),
         )
         .map_err(|e| SocketError::FailedTlsNegotiation(e.to_string()).into())
     });
@@ -704,6 +717,15 @@ async fn socket_get_ssl_version(
 ) -> Result<NaslValue, FnError> {
     let soc = nasl_sockets.get_open_socket_mut(socket)?;
     Ok(soc.ssl_version())
+}
+
+#[nasl_function(named(socket))]
+async fn socket_check_ssl_safe_renegotiation(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    Ok(soc.check_safe_renegotiation())
 }
 
 /// Reads the information necessary for a TLS connection from the KB and
