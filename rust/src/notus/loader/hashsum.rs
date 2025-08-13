@@ -66,15 +66,15 @@ impl ProductLoader for HashsumProductLoader {
     }
 
     fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool {
-        if let Ok(mut loader) = HashSumNameLoader::sha256(&self.loader) {
-            if let Some(Ok(file_item)) = loader.find(|entry| {
+        if let Ok(mut loader) = HashSumNameLoader::sha256(&self.loader)
+            && let Some(Ok(file_item)) = loader.find(|entry| {
                 if let Ok(item) = entry {
                     return item.get_filename() == format!("{os}.notus");
                 }
                 false
-            }) {
-                return *stamp != FeedStamp::Hashsum(file_item.get_hashsum());
-            }
+            })
+        {
+            return *stamp != FeedStamp::Hashsum(file_item.get_hashsum());
         }
         false
     }

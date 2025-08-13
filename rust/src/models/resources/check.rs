@@ -37,15 +37,15 @@ impl Checker {
     pub fn breakaways(&self) -> Vec<ObservableResources> {
         let mut results = Vec::with_capacity(2);
         let available = super::available();
-        if let Some(free) = self.memory {
-            if available.memory < free {
-                results.push(ObservableResources::Memory);
-            }
+        if let Some(free) = self.memory
+            && available.memory < free
+        {
+            results.push(ObservableResources::Memory);
         }
-        if let Some(workload) = self.cpu {
-            if available.cpu > workload {
-                results.push(ObservableResources::CPU);
-            }
+        if let Some(workload) = self.cpu
+            && available.cpu > workload
+        {
+            results.push(ObservableResources::CPU);
         }
 
         results

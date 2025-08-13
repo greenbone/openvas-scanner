@@ -256,12 +256,11 @@ where
     async fn prepare_boreas_alive_test(&mut self) -> RedisStorageResult<()> {
         // Check "test_alive_hosts_only" configuration from openvas.conf
         // If set no, boreas is disabled and alive_host.nasl is used instead.
-        if let Ok(config) = cmd::read_openvas_config() {
-            if let Some(setting) = config.get("default", "test_alive_hosts_only") {
-                if setting == "no" {
-                    return Ok(());
-                }
-            }
+        if let Ok(config) = cmd::read_openvas_config()
+            && let Some(setting) = config.get("default", "test_alive_hosts_only")
+            && setting == "no"
+        {
+            return Ok(());
         }
 
         let methods = self.scan_config.target.alive_test_methods.clone();
@@ -566,11 +565,12 @@ mod tests {
         models::{
             AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan, Service,
         },
+        openvas::openvas_redis::test::FakeRedis,
         scanner::preferences::preference::ScanPrefs,
     };
 
     use super::PreferenceHandler;
-    use crate::openvas::openvas_redis::{FakeRedis, KbAccess};
+    use crate::openvas::openvas_redis::KbAccess;
 
     #[tokio::test]
     async fn test_prefs() {

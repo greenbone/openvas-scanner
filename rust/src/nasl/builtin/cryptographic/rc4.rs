@@ -20,7 +20,7 @@ pub struct CipherHandler {
 
 fn lock_handlers(
     handlers: &Arc<Mutex<Vec<CipherHandler>>>,
-) -> Result<MutexGuard<Vec<CipherHandler>>, FnError> {
+) -> Result<MutexGuard<'_, Vec<CipherHandler>>, FnError> {
     // we actually need to panic as a lock error is fatal
     // alternatively we need to add a poison error on FnError
     Ok(Arc::as_ref(handlers).lock().unwrap())
@@ -123,12 +123,12 @@ impl CipherHandlers {
 
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
 
-        if hd > 0 {
-            if let Some((_i, h)) = handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd) {
-                let d = h.handler.encode(data);
-                return Ok(NaslValue::Data(d));
-            };
-        };
+        if hd > 0
+            && let Some((_i, h)) = handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd)
+        {
+            let d = h.handler.encode(data);
+            return Ok(NaslValue::Data(d));
+        }
 
         let key = match get_key(register) {
             Ok(k) if !k.is_empty() => k.to_vec(),

@@ -281,7 +281,7 @@ where
 
     /// Runs the given lines of code and returns the list of results
     /// along with the `ScanCtx` used for evaluating them.
-    pub fn results_and_context(&self) -> (Vec<NaslResult>, ScanCtx) {
+    pub fn results_and_context(&self) -> (Vec<NaslResult>, ScanCtx<'_>) {
         futures::executor::block_on(async {
             let context = self.context();
             (
@@ -338,7 +338,7 @@ where
         })
     }
 
-    fn context(&self) -> ScanCtx {
+    fn context(&self) -> ScanCtx<'_> {
         let target = Target::do_not_resolve_hostname(&self.target);
         ScanCtxBuilder {
             storage: &self.storage,

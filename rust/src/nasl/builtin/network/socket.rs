@@ -87,10 +87,10 @@ impl Interval {
     /// Check the time since the last tick and wait if necessary.
     pub fn tick(&self) {
         let mut last_tick = self.last_tick.lock().unwrap();
-        if let Ok(since) = SystemTime::now().duration_since(*last_tick) {
-            if since < self.interval {
-                sleep(self.interval - since);
-            }
+        if let Ok(since) = SystemTime::now().duration_since(*last_tick)
+            && since < self.interval
+        {
+            sleep(self.interval - since);
         }
         *last_tick = SystemTime::now();
     }

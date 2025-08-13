@@ -215,10 +215,10 @@ impl Response {
             if send(SendState::Start) {
                 return;
             }
-            if let Some(v) = value.next() {
-                if send(SendState::Bytes(true, v)) {
-                    return;
-                };
+            if let Some(v) = value.next()
+                && send(SendState::Bytes(true, v))
+            {
+                return;
             }
             if value.any(|v| send(SendState::Bytes(false, v))) {
                 return;

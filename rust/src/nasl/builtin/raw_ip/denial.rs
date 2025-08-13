@@ -29,13 +29,13 @@ fn start_denial(context: &ScanCtx, script_ctx: &mut ScriptCtx) -> Result<NaslVal
     let retry = get_timeout(context);
 
     let port = context.get_random_open_tcp_port().unwrap_or_default();
-    if port > 0 {
-        if let Ok(_soc) = make_tcp_socket(context.target().ip_addr(), port, retry) {
-            script_ctx.denial_port = Some(port);
+    if port > 0
+        && let Ok(_soc) = make_tcp_socket(context.target().ip_addr(), port, retry)
+    {
+        script_ctx.denial_port = Some(port);
 
-            return Ok(NaslValue::Null);
-        }
-    };
+        return Ok(NaslValue::Null);
+    }
 
     script_ctx.alive = nasl_tcp_ping_shared(context, None)? > NaslValue::Number(0);
 
@@ -85,10 +85,9 @@ async fn end_denial(
     )
     .run_alive_test()
     .await
+        && !alive_test_result.is_empty()
     {
-        if !alive_test_result.is_empty() {
-            return Ok(NaslValue::Number(1));
-        }
+        return Ok(NaslValue::Number(1));
     }
 
     Ok(NaslValue::Null)

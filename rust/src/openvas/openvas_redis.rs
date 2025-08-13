@@ -2,13 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::storage::items::nvt::{ACT, Nvt, NvtPreference, PreferenceType};
+use crate::storage::items::nvt::Nvt;
 use crate::storage::redis::{DbError, RedisCtx, RedisGetNvt, RedisStorageResult, RedisWrapper};
-use std::collections::BTreeMap;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex, MutexGuard},
-};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug, Default)]
 pub struct RedisHelper<R>
@@ -116,70 +112,82 @@ impl VtHelper for RedisHelper<RedisCtx> {
     }
 }
 
-pub struct FakeRedis {
-    pub data: HashMap<String, Vec<Vec<u8>>>,
-}
+#[cfg(test)]
+pub mod test {
+    use std::collections::{BTreeMap, HashMap};
 
-impl FakeRedis {
-    #[cfg(test)]
-    pub fn item_exists(&self, key: &str, value: &str) -> bool {
-        let mut v: Vec<String> = Vec::new();
-        if let Some(item) = self.data.get(key) {
-            for i in item {
-                v.push(String::from_utf8(i.to_vec()).unwrap());
+    use crate::{
+        openvas::openvas_redis::{KbAccess, VtHelper},
+        storage::{
+            items::nvt::{ACT, Nvt, NvtPreference, PreferenceType},
+            redis::RedisStorageResult,
+        },
+    };
+
+    pub struct FakeRedis {
+        pub data: HashMap<String, Vec<Vec<u8>>>,
+    }
+
+    impl FakeRedis {
+        pub fn item_exists(&self, key: &str, value: &str) -> bool {
+            let mut v: Vec<String> = Vec::new();
+            if let Some(item) = self.data.get(key) {
+                for i in item {
+                    v.push(String::from_utf8(i.to_vec()).unwrap());
+                }
+            }
+            v.contains(&value.to_string())
+        }
+    }
+
+    impl VtHelper for FakeRedis {
+        fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
+            match oid {
+                "123" => Ok(Some(Nvt {
+                    oid: "123".to_string(),
+                    name: "test".to_string(),
+                    filename: "test.nasl".to_string(),
+                    tag: BTreeMap::new(),
+                    dependencies: Vec::new(),
+                    required_keys: Vec::new(),
+                    mandatory_keys: Vec::new(),
+                    excluded_keys: Vec::new(),
+                    required_ports: Vec::new(),
+                    required_udp_ports: Vec::new(),
+                    references: Vec::new(),
+                    preferences: vec![
+                        NvtPreference {
+                            id: Some(1),
+                            class: PreferenceType::CheckBox,
+                            name: "test1".to_string(),
+                            default: "no".to_string(),
+                        },
+                        NvtPreference {
+                            id: Some(2),
+                            class: PreferenceType::Entry,
+                            name: "test2".to_string(),
+                            default: "".to_string(),
+                        },
+                    ],
+                    category: ACT::Init,
+                    family: "test".to_string(),
+                })),
+                _ => Ok(None),
             }
         }
-        v.contains(&value.to_string())
     }
-}
 
-impl VtHelper for FakeRedis {
-    fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
-        match oid {
-            "123" => Ok(Some(Nvt {
-                oid: "123".to_string(),
-                name: "test".to_string(),
-                filename: "test.nasl".to_string(),
-                tag: BTreeMap::new(),
-                dependencies: Vec::new(),
-                required_keys: Vec::new(),
-                mandatory_keys: Vec::new(),
-                excluded_keys: Vec::new(),
-                required_ports: Vec::new(),
-                required_udp_ports: Vec::new(),
-                references: Vec::new(),
-                preferences: vec![
-                    NvtPreference {
-                        id: Some(1),
-                        class: PreferenceType::CheckBox,
-                        name: "test1".to_string(),
-                        default: "no".to_string(),
-                    },
-                    NvtPreference {
-                        id: Some(2),
-                        class: PreferenceType::Entry,
-                        name: "test2".to_string(),
-                        default: "".to_string(),
-                    },
-                ],
-                category: ACT::Init,
-                family: "test".to_string(),
-            })),
-            _ => Ok(None),
+    impl KbAccess for FakeRedis {
+        fn push_kb_item<T: redis::ToRedisArgs>(
+            &mut self,
+            key: &str,
+            value: T,
+        ) -> RedisStorageResult<()> {
+            self.data.insert(key.to_string(), value.to_redis_args());
+            Ok(())
         }
-    }
-}
-
-impl KbAccess for FakeRedis {
-    fn push_kb_item<T: redis::ToRedisArgs>(
-        &mut self,
-        key: &str,
-        value: T,
-    ) -> RedisStorageResult<()> {
-        self.data.insert(key.to_string(), value.to_redis_args());
-        Ok(())
-    }
-    fn kb_id(&self) -> RedisStorageResult<u32> {
-        Ok(3)
+        fn kb_id(&self) -> RedisStorageResult<u32> {
+            Ok(3)
+        }
     }
 }
