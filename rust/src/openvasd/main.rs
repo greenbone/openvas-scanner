@@ -21,11 +21,10 @@ use std::{
 
 use config::{Config, Endpoints};
 use greenbone_scanner_framework::RuntimeBuilder;
-use scannerlib::container_image_scanner;
+use scannerlib::{container_image_scanner, models::FeedState};
 use sqlx::{SqlitePool, sqlite::SqliteSynchronous};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
-use vts::FeedState;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -38,14 +37,14 @@ fn setup_log(config: &Config) {
 }
 
 // TODO: move to config
-pub async fn setup_sqlite(config: &Config, shared: bool) -> Result<SqlitePool> {
+pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     use sqlx::{
         Sqlite,
         pool::PoolOptions,
         sqlite::{SqliteConnectOptions, SqliteJournalMode},
     };
     use std::time::Duration;
-    fn from_config_to_sqlite_address(config: &Config, shared: bool) -> String {
+    fn from_config_to_sqlite_address(config: &Config) -> String {
         use crate::config::StorageType;
 
         match config.storage.storage_type {
@@ -71,7 +70,7 @@ pub async fn setup_sqlite(config: &Config, shared: bool) -> Result<SqlitePool> {
     // TODO: make busy_timeout a configuration option
     let busy_timeout = Duration::from_secs(2);
 
-    let options = SqliteConnectOptions::from_str(&from_config_to_sqlite_address(config, shared))?
+    let options = SqliteConnectOptions::from_str(&from_config_to_sqlite_address(config))?
         .journal_mode(SqliteJournalMode::Wal)
         // Although this can lead to data loss in the case that the application crashes we usually
         // need to either restart that scan anyway.
@@ -99,16 +98,16 @@ pub fn feed_state(
 async fn main() -> Result<()> {
     let config = Config::load();
     setup_log(&config);
-    let pool = setup_sqlite(&config, true).await?;
+    let pool = setup_sqlite(&config).await?;
     let (feed_state2, vts) = vts::init(pool.clone(), &config).await;
     let vts = Arc::new(vts);
     let scan = scans::init(pool.clone(), &config, feed_state(vts.clone())).await?;
     let (get_notus, post_notus) = notus::init(&config);
-    let (cis_scans, cis_vts) = container_image_scanner::init(pool.clone(), feed_state2).await?;
+    let (cis_scans, cis_vts) =
+        container_image_scanner::init(pool.clone(), feed_state2.clone()).await?;
 
     RuntimeBuilder::<greenbone_scanner_framework::End>::new()
-        //TODO: feed version needs to be getable
-        .feed_version("bla".to_owned())
+        .feed_version(feed_state2)
         .insert_scans(Arc::new(scan))
         .insert_get_vts(vts.clone())
         .insert_on_request(get_notus)

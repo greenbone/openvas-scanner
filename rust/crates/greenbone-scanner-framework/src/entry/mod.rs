@@ -310,10 +310,15 @@ where
                 req.headers().get("x-api-key"),
             )),
         };
+        let feed_version = match &*cbs.feed_version.read().unwrap() {
+            crate::models::FeedState::Unknown => "unavailable".to_string(),
+            crate::models::FeedState::Syncing => "unavailable".to_string(),
+            crate::models::FeedState::Synced(vt, adv) => format!("{vt}{adv}"),
+        };
         let rb = hyper::Response::builder()
             .header("authentication", cbs.authentication.static_str())
             .header("api-version", &cbs.api_version)
-            .header("feed-version", &cbs.feed_version);
+            .header("feed-version", &feed_version);
         let incoming = self.incoming_request.clone();
 
         Box::pin(async move {
@@ -366,12 +371,12 @@ pub enum Error {
 }
 
 pub mod test_utilities {
-    use std::sync::Arc;
+    use std::sync::{Arc, RwLock};
 
     use http_body_util::{Empty, Full};
     use hyper::{Request, body::Bytes};
 
-    use crate::{Authentication, Scanner};
+    use crate::{Authentication, Scanner, models::FeedState};
 
     use super::{ClientHash, ClientIdentifier, EntryPoint, IncomingRequest, Method};
 
@@ -383,7 +388,10 @@ pub mod test_utilities {
         let configuration = Arc::new(Scanner {
             api_version: "test".to_owned(),
             authentication,
-            feed_version: "the on us".to_owned(),
+            feed_version: Arc::new(RwLock::new(FeedState::Synced(
+                "vt".to_string(),
+                "advisories".to_string(),
+            ))),
         });
 
         let client_identifier = Arc::new(match client_hash {
@@ -549,7 +557,7 @@ mod tests {
 
         assert_eq!(
             headers.get("feed-version").unwrap(),
-            HeaderValue::from_static("the on us")
+            HeaderValue::from_static("vtadvisories")
         );
 
         let resp = resp.into_body().collect().await.unwrap().to_bytes();

@@ -8,6 +8,7 @@ use futures::StreamExt;
 pub use config::Config;
 use futures::Stream;
 use greenbone_scanner_framework::entry::Prefixed;
+use greenbone_scanner_framework::models::FeedState;
 use image::DockerRegistryV2;
 use image::extractor::filtered_image;
 use image::packages::AllTypes;
@@ -86,7 +87,7 @@ static MIGRATOR: Migrator = sqlx::migrate!("./src/container_image_scanner/migrat
 
 use endpoints::scans::Scans;
 //TODO: move endpoints to openvasd?
-use endpoints::vts::{FeedState, VTEndpoints};
+use endpoints::vts::VTEndpoints;
 use sqlx::SqlitePool;
 pub async fn init(
     vt_pool: SqlitePool,

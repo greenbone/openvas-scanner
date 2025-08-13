@@ -47,6 +47,7 @@ pub use get_health::{GetHealthStarted, GetHealthStartedIncomingRequest};
 
 pub mod models;
 mod post_scans;
+use models::FeedState;
 pub use post_scans::PostScans;
 pub use post_scans::PostScansError;
 pub mod post_scans_id;
@@ -133,7 +134,7 @@ pub use runtime_builder_states::{End, Start};
 pub struct RuntimeBuilder<T> {
     // Contains the currently supported API versions.
     api_version: Vec<String>,
-    feed_version: Option<String>,
+    feed_state: Option<Arc<RwLock<FeedState>>>,
     listener_address: SocketAddr,
     tls: Option<TLSConfig>,
     api_keys: Option<Vec<String>>,
@@ -166,7 +167,7 @@ impl<T> RuntimeBuilder<T> {
 
         RuntimeBuilder {
             api_version: vec!["1".to_owned()],
-            feed_version: None,
+            feed_state: None,
             tls: None,
             api_keys: None,
             incoming_request,
@@ -175,8 +176,8 @@ impl<T> RuntimeBuilder<T> {
         }
     }
 
-    pub fn feed_version(mut self, feed_version: String) -> RuntimeBuilder<T> {
-        self.feed_version = Some(feed_version);
+    pub fn feed_version(mut self, feed_state: Arc<RwLock<FeedState>>) -> RuntimeBuilder<T> {
+        self.feed_state = Some(feed_state);
         self
     }
 
@@ -277,7 +278,7 @@ impl<T> RuntimeBuilder<T> {
             .insert_on_request(GetVTsIncomingRequest::from(vts));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -318,7 +319,7 @@ impl<T> RuntimeBuilder<T> {
         };
         Scanner {
             api_version: self.api_version.join(","),
-            feed_version: self.feed_version.clone().unwrap_or_default(),
+            feed_version: self.feed_state.clone().unwrap_or_default(),
             authentication,
         }
     }
@@ -350,7 +351,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             .insert_on_request(DeleteScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -371,7 +372,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
         let ior = self.insert_on_request(PostScansIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -391,7 +392,7 @@ impl RuntimeBuilder<runtime_builder_states::PostScansSet> {
         let ior = self.insert_on_request(GetScansIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -412,7 +413,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScansSet> {
         let ior = self.insert_on_request(GetScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -433,7 +434,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDSet> {
         let ior = self.insert_on_request(GetScansIDResultsIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -454,7 +455,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultSet> {
         let ior = self.insert_on_request(GetScansIDResultsIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -475,7 +476,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultIDSet> {
         let ior = self.insert_on_request(GetScansIDStatusIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -496,7 +497,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDStatusSet> {
         let ior = self.insert_on_request(PostScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -517,7 +518,7 @@ impl RuntimeBuilder<runtime_builder_states::PostScanIDSet> {
         let ior = self.insert_on_request(DeleteScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -535,7 +536,7 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
         let ior = self.insert_on_request(GetVTsIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
-            feed_version: ior.feed_version,
+            feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
@@ -657,7 +658,7 @@ impl AsRef<str> for Authentication {
 pub struct Scanner {
     pub api_version: String,
     pub authentication: Authentication,
-    pub feed_version: String,
+    pub feed_version: Arc<RwLock<FeedState>>,
 }
 
 #[cfg(test)]

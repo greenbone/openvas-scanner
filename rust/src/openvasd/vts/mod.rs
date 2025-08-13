@@ -2,11 +2,10 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
-pub use crate::container_image_scanner::endpoints::vts::FeedState;
 pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
 use greenbone_scanner_framework::GetVTsError;
 use scannerlib::feed;
-use scannerlib::models::{FeedType, VTData};
+use scannerlib::models::{FeedState, FeedType, VTData};
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
@@ -346,7 +345,7 @@ mod tests {
             notus,
             ..Default::default()
         };
-        let pool = setup_sqlite(&config, false).await?;
+        let pool = setup_sqlite(&config).await?;
 
         Ok((config, pool))
     }

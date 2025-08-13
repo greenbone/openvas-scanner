@@ -1,5 +1,4 @@
 use std::{
-    ops::Add,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -7,17 +6,18 @@ use std::{
 use futures::StreamExt;
 use greenbone_scanner_framework::models::{self, Scan};
 use scannerlib::{
+    models::FeedState,
     openvas::{self, cmd},
     osp,
     scanner::{
         self, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper, preferences,
     },
-    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper},
+    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx},
 };
 use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
 use tokio::sync::mpsc::Sender;
 
-use crate::{config::Config, crypt::Crypt, vts::FeedState};
+use crate::{config::Config, crypt::Crypt};
 mod nasl;
 
 pub struct ScanScheduler<Scanner, Cryptor> {

@@ -6,14 +6,13 @@ use futures::StreamExt;
 use greenbone_scanner_framework::entry::Prefixed;
 use greenbone_scanner_framework::models::AliveTestMethods;
 use greenbone_scanner_framework::prelude::*;
-use scannerlib::models::ResultType;
+use scannerlib::models::{FeedState, ResultType};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{Acquire, QueryBuilder, SqlitePool, query};
 use sqlx::{Row, query_scalar};
 use tokio::sync::mpsc::Sender;
 
 use crate::crypt::{self, Crypt, Encrypted};
-use crate::vts::FeedState;
 use crate::{config::Config, crypt::ChaCha20Crypt};
 mod scheduling;
 pub struct Endpoints<E> {
@@ -724,14 +723,13 @@ mod tests {
         },
         prelude::PostScansID,
     };
-    use scannerlib::models::Phase;
+    use scannerlib::models::{FeedState, Phase};
     use sqlx::SqlitePool;
 
     use crate::{
         config::Config,
         crypt::ChaCha20Crypt,
         scans::{config_to_crypt, scheduling},
-        vts::FeedState,
     };
 
     fn feed_state() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
@@ -977,7 +975,7 @@ mod tests {
             ..Default::default()
         };
 
-        let pool = crate::setup_sqlite(&config, false).await?;
+        let pool = crate::setup_sqlite(&config).await?;
 
         Ok((config, pool))
     }

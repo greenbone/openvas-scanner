@@ -67,3 +67,11 @@ impl From<String> for FeedType {
         FeedType::from(&value as &str)
     }
 }
+
+#[derive(Default, Debug, PartialEq, PartialOrd, Clone)]
+pub enum FeedState {
+    #[default]
+    Unknown,
+    Syncing,
+    Synced(String, String),
+}

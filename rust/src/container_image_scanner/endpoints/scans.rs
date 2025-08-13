@@ -1,12 +1,12 @@
 use futures::StreamExt;
 use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 use tokio::sync::mpsc::Sender;
 
 use greenbone_scanner_framework::{
     MapScanID, StreamResult, entry::Prefixed, models::HostInfo, prelude::*,
 };
-use sqlx::{Acquire, QueryBuilder, Sqlite, query};
+use sqlx::{Acquire, QueryBuilder, query};
 
 use crate::container_image_scanner::scheduling;
 
