@@ -1,17 +1,21 @@
 use futures::{StreamExt, TryFutureExt};
 use std::{fmt::Display, sync::Arc};
+use tokio::sync::RwLock;
 
 use greenbone_scanner_framework::models;
 use sqlx::Sqlite;
 
-use crate::container_image_scanner::{
-    Config, ExternalError, detection,
-    image::{
-        Image, ImageParseError, Registry,
-        extractor::{self, Extractor, Locator},
-        packages::ToNotus,
+use crate::{
+    container_image_scanner::{
+        Config, ExternalError, detection,
+        image::{
+            Image, ImageParseError, Registry,
+            extractor::{self, Extractor, Locator},
+            packages::ToNotus,
+        },
+        notus,
     },
-    notus,
+    notus::{HashsumProductLoader, Notus},
 };
 
 use super::db;
@@ -44,7 +48,7 @@ pub enum ScannerError {
 }
 
 async fn scan_arch_image<'a, L, T>(
-    config: &'a Config,
+    products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     locator: &'a L,
     image: String,
 ) -> Result<Vec<models::Result>, ScannerArchImageError>
@@ -61,13 +65,14 @@ where
 
     // TODO: abstract notus to allow different implementations
     let results =
-        notus::vulnerabilities(config, locator.architecture(), image, &os, packages).await?;
+        notus::vulnerabilities(products, locator.architecture(), image, &os, packages).await?;
     Ok(results)
 }
 
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
     pool: Arc<sqlx::Pool<Sqlite>>,
+    products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     registry: &'a super::InitializedRegistry<'a, R>,
 ) -> Result<(), ScannerError>
 where
@@ -104,12 +109,13 @@ where
     }
     let locator_per_arch = extractor.extract().await;
     for locator in locator_per_arch.iter() {
-        if let Err(e) = scan_arch_image::<_, T>(&config, locator, registry.id.image.to_owned())
-            .and_then(|results| {
-                db::store_results(pool.clone(), registry.id.id(), results)
-                    .map_err(ScannerArchImageError::from)
-            })
-            .await
+        if let Err(e) =
+            scan_arch_image::<_, T>(products.clone(), locator, registry.id.image.to_owned())
+                .and_then(|results| {
+                    db::store_results(pool.clone(), registry.id.id(), results)
+                        .map_err(ScannerArchImageError::from)
+                })
+                .await
         {
             add_warning(&format!("Locator({})", locator.architecture()), &e);
         };

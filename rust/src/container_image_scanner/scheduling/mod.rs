@@ -6,6 +6,7 @@ use sqlx::SqlitePool;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::RwLock;
 use tracing::debug;
 use tracing::warn;
 
@@ -15,6 +16,8 @@ use sqlx::Sqlite;
 use tokio::sync::mpsc::Sender;
 
 use crate::container_image_scanner;
+use crate::notus::HashsumProductLoader;
+use crate::notus::Notus;
 use tokio::sync::mpsc::Receiver;
 use tokio::time;
 
@@ -56,6 +59,7 @@ pub struct Scheduler<Registry, Extractor> {
     config: Arc<Config>,
     registry: PhantomData<Registry>,
     extractor: PhantomData<Extractor>,
+    products: Arc<RwLock<Notus<HashsumProductLoader>>>,
 }
 
 impl<Registry, Extractor> Scheduler<Registry, Extractor> {
@@ -63,6 +67,7 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
         config: Arc<Config>,
         receiver: Receiver<Message>,
         pool: Arc<sqlx::Pool<Sqlite>>,
+        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) -> Self {
         Scheduler {
             receiver,
@@ -70,15 +75,17 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
             config,
             registry: PhantomData,
             extractor: PhantomData,
+            products,
         }
     }
 
     pub fn init(
         config: Arc<Config>,
         pool: Arc<sqlx::Pool<Sqlite>>,
+        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) -> (Sender<Message>, Scheduler<Registry, Extractor>) {
         let (sender, receiver) = tokio::sync::mpsc::channel(10);
-        (sender, Self::new(config, receiver, pool))
+        (sender, Self::new(config, receiver, pool, products))
     }
 }
 
@@ -108,6 +115,10 @@ where
     }
     pub fn config(&self) -> Arc<Config> {
         self.config.clone()
+    }
+
+    pub fn products(&self) -> Arc<RwLock<Notus<HashsumProductLoader>>> {
+        self.products.clone()
     }
 
     async fn registry(
@@ -160,8 +171,12 @@ where
         db::set_scan_to_running_and_add_images(pool.as_ref(), &image.id, images).await
     }
 
-    pub(crate) async fn start_scans<T>(config: Arc<Config>, pool: Arc<sqlx::Pool<Sqlite>>)
-    where
+    pub(crate) async fn start_scans<T>(
+        config: Arc<Config>,
+        pool: Arc<sqlx::Pool<Sqlite>>,
+
+        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+    ) where
         T: ToNotus,
     {
         let max_concurrent_scans = 2;
@@ -172,7 +187,7 @@ where
                 tracing::warn!(%error, "Unable to set image status after fetching the images");
             }
         }
-        Self::scan_images::<T>(config, pool.clone()).await;
+        Self::scan_images::<T>(config, pool.clone(), products).await;
         if let Err(error) = db::set_scans_to_finished(pool.clone()).await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
@@ -245,6 +260,7 @@ where
     async fn scan_image<T>(
         config: Arc<Config>,
         pool: Arc<sqlx::Pool<Sqlite>>,
+        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
         id: &ImageID,
         credentials: Option<Credential>,
     ) -> Result<(), ScanImageError>
@@ -257,13 +273,17 @@ where
 
         let registry = InitializedRegistry { id, registry };
 
-        scanner::scan_image::<E, R, T>(config.clone(), pool.clone(), &registry)
+        scanner::scan_image::<E, R, T>(config.clone(), pool.clone(), products, &registry)
             .await
             .map_err(ScanImageError::ScannerError)
     }
 
-    async fn scan_images<T>(config: Arc<Config>, pool: Arc<sqlx::Pool<Sqlite>>)
-    where
+    async fn scan_images<T>(
+        config: Arc<Config>,
+        pool: Arc<sqlx::Pool<Sqlite>>,
+
+        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+    ) where
         T: ToNotus,
     {
         let scans = Self::set_images_to_scanning(config.clone(), pool.as_ref())
@@ -273,9 +293,10 @@ where
         for (id, credentials) in scans {
             let pool = pool.clone();
             let config = config.clone();
+            let products = products.clone();
 
             join_handler.push(async move {
-                let result = Self::scan_image::<T>(config, pool, &id, credentials).await;
+                let result = Self::scan_image::<T>(config, pool, products, &id, credentials).await;
                 (id, result)
             });
         }
@@ -324,25 +345,26 @@ where
         let mut interval = time::interval(check_interval);
         let config = self.config.clone();
         let pool = self.pool.clone();
-
         loop {
             tokio::select! {
                 Some(()) = self.check_for_message() => {
 
+                let products = self.products.clone();
                 let config = config.clone();
                 let pool = pool.clone();
                 tokio::spawn(async move {
-                    Self::start_scans::<T>(config, pool).await
+                    Self::start_scans::<T>(config, pool, products).await
                 });
 
                 }
 
                 _ = interval.tick() => {
 
+                let products = self.products.clone();
                 let config = config.clone();
                 let pool = pool.clone();
                 tokio::spawn(async move {
-                    Self::start_scans::<T>(config, pool).await
+                    Self::start_scans::<T>(config, pool, products).await
 
                 });
 

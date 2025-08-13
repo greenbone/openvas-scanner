@@ -494,7 +494,7 @@ mod scans_utils {
             DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
             packages::AllTypes,
         },
-        notus::notus_fake::NotusMock,
+        notus::path_to_products,
         scheduling::Scheduler,
     };
 
@@ -519,9 +519,15 @@ mod scans_utils {
             .run(&pool)
             .await
             .expect("need migrated database scheme");
+        let products_path: &str =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
         // TODO: get rid of arc
-        let (sender, scheduler) = Scheduler::<R, E>::init(config.into(), Arc::new(pool.clone()));
+        let (sender, scheduler) = Scheduler::<R, E>::init(
+            config.into(),
+            Arc::new(pool.clone()),
+            path_to_products(products_path, false),
+        );
         let scans = super::Scans {
             pool: pool.clone(),
             scheduling: sender,
@@ -531,15 +537,13 @@ mod scans_utils {
 
     pub struct Fakes {
         registry: DockerRegistryV2Mock,
-        _notus: NotusMock,
         pub entry: super::Scans,
         pub scheduler: Scheduler<DockerRegistryV2, filtered_image::Extractor>,
     }
 
     impl Fakes {
-        fn notus_config(notus: &NotusMock) -> Config {
+        fn notus_config() -> Config {
             let notus = crate::container_image_scanner::config::Notus {
-                address: format!("http://{}/notus", notus.address()),
                 ..Default::default()
             };
             crate::container_image_scanner::Config {
@@ -550,13 +554,11 @@ mod scans_utils {
         pub async fn init() -> Self {
             let registry =
                 DockerRegistryV2Mock::serve_images(DockerRegistryV2Mock::supported_images()).await;
-            let notus = NotusMock::default().await;
-            let config = Fakes::notus_config(&notus);
+            let config = Fakes::notus_config();
             let (scheduler, entry) = in_memory_scheduler_and_scan(config).await;
 
             Self {
                 registry,
-                _notus: notus,
                 entry,
                 scheduler,
             }
@@ -600,6 +602,7 @@ mod scans_utils {
                 Scheduler::<DockerRegistryV2, filtered_image::Extractor>::start_scans::<AllTypes>(
                     self.scheduler.config(),
                     self.scheduler.pool(),
+                    self.scheduler.products(),
                 )
                 .await;
             }
@@ -887,7 +890,7 @@ mod test {
                 .filter_map(|x| x.ok())
                 .map(|x| x.id)
                 .collect();
-            assert_eq!(result.len(), 269 * fakes.success_scan().target.hosts.len());
+            assert_eq!(result.len(), 275 * fakes.success_scan().target.hosts.len());
         }
 
         #[tokio::test]

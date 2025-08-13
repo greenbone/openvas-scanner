@@ -20,7 +20,8 @@ use std::{
 };
 
 use config::{Config, Endpoints};
-use greenbone_scanner_framework::RuntimeBuilder;
+use greenbone_scanner_framework::{RuntimeBuilder, ServerCertificate};
+use notus::config_to_products;
 use scannerlib::{container_image_scanner, models::FeedState};
 use sqlx::{SqlitePool, sqlite::SqliteSynchronous};
 use tracing::level_filters::LevelFilter;
@@ -85,7 +86,7 @@ pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     Ok(pool)
 }
 
-pub fn feed_state(
+pub fn get_feed_state(
     vts: Arc<vts::Endpoints>,
 ) -> impl Fn() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
     move || {
@@ -96,19 +97,45 @@ pub fn feed_state(
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    //TODO: merge container_image_scanner::Config into that
+    //
+    // I prefer the way Duration is handled there as well as logging configuration.
+    // Maybe we can find a way to support the new style with the old for downwards compatibility
+    // reasons. Additionally the storage configuratio6 is now dated and needs to be overhauled.
     let config = Config::load();
     setup_log(&config);
+
+    //TODO: AsRef impl for Config
+    let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
     let (feed_state2, vts) = vts::init(pool.clone(), &config).await;
     let vts = Arc::new(vts);
-    let scan = scans::init(pool.clone(), &config, feed_state(vts.clone())).await?;
-    let (get_notus, post_notus) = notus::init(&config);
+    let scan = scans::init(pool.clone(), &config, get_feed_state(vts.clone())).await?;
+    let (get_notus, post_notus) = notus::init(products.clone());
     let (cis_scans, cis_vts) =
-        container_image_scanner::init(pool.clone(), feed_state2.clone()).await?;
+        container_image_scanner::init(pool.clone(), feed_state2.clone(), products).await?;
+    let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new()
+        // TODO: use a lambda like in scanner instead.
+        // That way we don't need to manage tokio::spawn_blocking all over the place
+        .feed_version(feed_state2);
+    match (config.tls.certs.clone(), config.tls.key.clone()) {
+        (Some(certificate), Some(key)) => {
+            rb = rb.server_tls_cer(ServerCertificate::new(certificate, key))
+        }
+        (None, None) => {
+            // ok no TLS
+        }
+        _ => {
+            tracing::warn!(
+                "Invalid TLS configuration. Please provide a certificate path and a key path. Falling back to http."
+            )
+        }
+    };
+    if let Some(client_certs) = config.tls.client_certs.clone() {
+        rb = rb.path_client_certs(client_certs);
+    }
 
-    RuntimeBuilder::<greenbone_scanner_framework::End>::new()
-        .feed_version(feed_state2)
-        .insert_scans(Arc::new(scan))
+    rb.insert_scans(Arc::new(scan))
         .insert_get_vts(vts.clone())
         .insert_on_request(get_notus)
         .insert_on_request(post_notus)

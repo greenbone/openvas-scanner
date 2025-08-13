@@ -127,14 +127,14 @@ impl Display for ResultType {
 /// Notus Results are a Map from OIDs to vulnerable Packages
 pub type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
 
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct VulnerablePackage {
     pub name: String,
     pub installed_version: String,
     pub fixed_version: FixedVersion,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 #[derive(Debug)]
 pub enum FixedVersion {

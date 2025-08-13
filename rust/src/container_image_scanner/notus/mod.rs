@@ -1,10 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path, sync::Arc};
 
-use greenbone_scanner_framework::models;
+use greenbone_scanner_framework::models::{self, FixedVersion, VulnerablePackage};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 
-use crate::container_image_scanner::{Config, detection::OperatingSystem};
+use crate::{
+    container_image_scanner::{Config, detection::OperatingSystem},
+    nasl::FSPluginLoader,
+    notus::{HashsumProductLoader, Notus},
+};
 
 /// Some products have unique requirements that we have to generate somehow.
 ///
@@ -29,29 +34,6 @@ pub fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
 }
 
 pub type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
-
-#[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct VulnerablePackage {
-    pub name: String,
-    pub installed_version: String,
-    pub fixed_version: FixedVersion,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(untagged)]
-pub enum FixedVersion {
-    Single { version: String, specifier: String },
-    Range { start: String, end: String },
-}
-
-impl Default for FixedVersion {
-    fn default() -> Self {
-        Self::Range {
-            start: Default::default(),
-            end: Default::default(),
-        }
-    }
-}
 
 fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
     let hostname = Some(image);
@@ -97,102 +79,48 @@ fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    #[error("Certificate is not available.")]
-    CertificateNotAvailabe,
-    #[error("Certificate is not a pem file.")]
-    CertificateNotPem,
-    #[error("Unable to build http client.")]
-    UnableToBuildClient,
-    #[error("Unable to send packages to Notus.")]
-    UnableToSend,
-    #[error("Unexpected status code from Notus.")]
-    UnExpectedStatusCode,
     #[error("Unexpected response format from Notus.")]
     UnExpectedResponseFormat,
 }
 
-struct Request {
-    key: String,
-    packages: Vec<String>,
-}
-
-impl Request {
-    pub fn new(architecture: &str, os: &OperatingSystem, packages: Vec<String>) -> Self {
-        Self {
-            key: generate_key(architecture, os),
-            packages,
-        }
-    }
-
-    pub async fn send(&self, config: &Config) -> Result<NotusResults, Error> {
-        let mut client = reqwest::Client::builder();
-        if let Some(cert) = config.notus.certificate.as_ref() {
-            let bytes = match tokio::fs::read(cert).await {
-                Ok(x) => x,
-                Err(e) => {
-                    tracing::warn!(error=%e, certificate = ?cert.to_str(), "Not available.");
-                    return Err(Error::CertificateNotAvailabe);
-                }
-            };
-            match reqwest::Certificate::from_pem(&bytes) {
-                Ok(x) => client = client.add_root_certificate(x),
-                Err(e) => {
-                    tracing::warn!(error=%e, certificate = ?cert.to_str(), "Not a pem file");
-                    return Err(Error::CertificateNotPem);
-                }
-            }
-        }
-        let client = match client.build() {
-            Ok(x) => x,
-            Err(e) => {
-                tracing::warn!(error=%e, "Unable to generate client.");
-                return Err(Error::UnableToBuildClient);
-            }
-        };
-        let address = format!("{}/{}", config.notus.address, self.key);
-        let response = match client.post(&address).json(&self.packages).send().await {
-            Ok(x) => x,
-            Err(e) => {
-                tracing::warn!(address, error=%e, "Unable to send packages to client.");
-                return Err(Error::UnableToSend);
-            }
-        };
-        let result = match response.error_for_status() {
-            Ok(x) => x,
-            Err(e) => match e.status() {
-                Some(StatusCode::NOT_FOUND) => {
-                    tracing::info!(error=%e, product=self.key, "Not supported by Notus. Returning no vulnerabilities.");
-                    return Ok(HashMap::new());
-                }
-                None | Some(_) => {
-                    tracing::warn!(error=%e, "Unable to send packages to client.");
-                    return Err(Error::UnExpectedStatusCode);
-                }
-            },
-        };
-
-        let result = match result.json().await {
-            Ok(x) => x,
-            Err(e) => {
-                tracing::warn!(error=%e, "Unable to parse result.");
-                return Err(Error::UnExpectedResponseFormat);
-            }
-        };
-
-        Ok(result)
-    }
+type Oz = Notus<HashsumProductLoader>;
+pub fn path_to_products<P>(
+    path: P,
+    signature_check: bool,
+) -> Arc<RwLock<Notus<HashsumProductLoader>>>
+where
+    P: AsRef<Path>,
+{
+    let loader = FSPluginLoader::new(path);
+    let loader = HashsumProductLoader::new(loader);
+    Arc::new(RwLock::new(Notus::new(loader, signature_check)))
 }
 
 pub async fn vulnerabilities(
-    config: &Config,
+    products: Arc<RwLock<Oz>>,
     architecture: &str,
     image: String,
     os: &OperatingSystem,
     packages: Vec<String>,
 ) -> Result<Vec<models::Result>, Error> {
-    let request = Request::new(architecture, os, packages);
-    let response = request.send(config).await?;
-    Ok(to_result(image, response))
+    let mut p = products.write_owned().await;
+    let os = generate_key(architecture, os);
+
+    //TODO: here jo
+    let result = tokio::task::spawn_blocking(move || p.scan(&os, &packages))
+        .await
+        .unwrap();
+    match result {
+        Ok(x) => Ok(to_result(image, x)),
+        Err(error) => {
+            tracing::warn!(%error, "Unable to get results from Notus.");
+            Err(Error::UnExpectedResponseFormat)
+        }
+    }
+    //
+    // let request = Request::new(architecture, os, packages);
+    // let response = request.send(config).await?;
+    // Ok(to_result(image, response))
 }
 
 #[cfg(test)]
@@ -219,84 +147,6 @@ mod key_generation_tests {
         };
         let result = super::generate_key("", &os);
         assert_eq!("openeuler_24.03_lts_sp1".to_owned(), result);
-    }
-}
-
-#[cfg(test)]
-pub mod notus_fake {
-    use std::{fs::File, path::Path};
-
-    use super::NotusResults;
-
-    pub type OsResults = (String, NotusResults);
-
-    pub struct NotusMock {
-        pub server: mockito::ServerGuard,
-        // the mocks must be stored otherwise the Server will return 501
-        _mocks: Vec<mockito::Mock>,
-    }
-
-    impl NotusMock {
-        pub fn result_mock(
-            server: &mut mockito::ServerGuard,
-            key: &str,
-            result: &NotusResults,
-        ) -> Vec<mockito::Mock> {
-            vec![
-                server
-                    .mock("POST", &format!("/notus/{key}") as &str)
-                    .with_header("Content-Type", "application/json")
-                    .with_body(serde_json::to_string(result).unwrap())
-                    .with_status(200)
-                    .create(),
-            ]
-        }
-
-        pub async fn serve(results: &[OsResults]) -> Self {
-            let mut server = mockito::Server::new_async().await;
-            let _mocks = results
-                .iter()
-                .flat_map(|(key, response)| Self::result_mock(&mut server, key, response))
-                .collect();
-            Self { server, _mocks }
-        }
-
-        fn read_test_data_dir() -> Vec<(String, NotusResults)> {
-            const NOTUS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data/notus");
-            let root = Path::new(NOTUS_DIR);
-            std::fs::read_dir(root)
-                .unwrap()
-                .filter_map(|x| x.ok())
-                .map(|x| x.path())
-                .filter(|x| x.is_dir())
-                .flat_map(|dir| {
-                    std::fs::read_dir(&dir)
-                        .into_iter()
-                        .flat_map(|entries| entries.filter_map(|e| e.ok()))
-                        .map(|file_entry| file_entry.path())
-                        .filter(|p| p.extension().map_or_else(|| false, |ext| ext == "json"))
-                        .map(|json_path| {
-                            let os_key = json_path
-                                .file_stem()
-                                .and_then(|s| s.to_str())
-                                .unwrap()
-                                .to_string();
-                            let file = File::open(&json_path).unwrap();
-                            let content = serde_json::from_reader(file).unwrap();
-                            (os_key, content)
-                        })
-                })
-                .collect()
-        }
-
-        pub async fn default() -> Self {
-            let results = Self::read_test_data_dir();
-            Self::serve(&results).await
-        }
-
-        pub fn address(&self) -> String {
-            self.server.host_with_port()
-        }
     }
 }
 

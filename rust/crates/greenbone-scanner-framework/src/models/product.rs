@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::fmt::Display;
+
 use serde::Deserialize;
 
 /// Represents an product json file for notus
@@ -79,6 +81,24 @@ pub enum Specifier {
     /// =
     #[serde(rename = "=")]
     EQ,
+}
+
+impl AsRef<str> for Specifier {
+    fn as_ref(&self) -> &str {
+        match self {
+            Specifier::GT => ">",
+            Specifier::LT => "<",
+            Specifier::GE => ">=",
+            Specifier::LE => "<=",
+            Specifier::EQ => "=",
+        }
+    }
+}
+
+impl Display for Specifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
 }
 
 /// Version range

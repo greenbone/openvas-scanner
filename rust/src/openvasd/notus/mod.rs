@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use greenbone_scanner_framework::{
     ClientIdentifier, OnRequest,
@@ -121,10 +121,25 @@ impl OnRequest for PostOSIcnomingRequest {
     }
 }
 
-pub fn init(config: &Config) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
-    let loader = FSPluginLoader::new(config.notus.products_path.to_string_lossy().to_string());
+pub fn path_to_products<P>(
+    path: P,
+    signature_check: bool,
+) -> Arc<RwLock<Notus<HashsumProductLoader>>>
+where
+    P: AsRef<Path>,
+{
+    let loader = FSPluginLoader::new(path);
     let loader = HashsumProductLoader::new(loader);
-    let notus = Arc::new(RwLock::new(Notus::new(loader, config.feed.signature_check)));
+    Arc::new(RwLock::new(Notus::new(loader, signature_check)))
+}
+
+pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus<HashsumProductLoader>>> {
+    path_to_products(&config.notus.products_path, config.feed.signature_check)
+}
+
+pub fn init(
+    notus: Arc<RwLock<Notus<HashsumProductLoader>>>,
+) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
     (
         GetOSIcnomingRequest(notus.clone()),
         PostOSIcnomingRequest(notus),
@@ -171,7 +186,7 @@ mod tests {
     #[tokio::test]
     async fn get_notus() -> crate::Result<()> {
         let config = config();
-        let (undertest, _) = super::init(&config);
+        let (undertest, _) = super::init(super::config_to_products(&config));
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
             incoming_request!(undertest),
@@ -186,7 +201,7 @@ mod tests {
     #[tokio::test]
     async fn post_notus_os() -> crate::Result<()> {
         let config = config();
-        let (_, undertest) = super::init(&config);
+        let (_, undertest) = super::init(super::config_to_products(&config));
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
             incoming_request!(undertest),

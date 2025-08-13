@@ -89,9 +89,12 @@ use endpoints::scans::Scans;
 //TODO: move endpoints to openvasd?
 use endpoints::vts::VTEndpoints;
 use sqlx::SqlitePool;
+
+use crate::notus::{HashsumProductLoader, Notus};
 pub async fn init(
     vt_pool: SqlitePool,
     feed_state: Arc<RwLock<FeedState>>,
+    products: Arc<tokio::sync::RwLock<Notus<HashsumProductLoader>>>,
 ) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
     let config = Config::load();
 
@@ -102,6 +105,7 @@ pub async fn init(
     let (sender, scheduler) = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
         config.into(),
         Arc::new(pool.clone()),
+        products,
     );
     tokio::spawn(async move {
         scheduler.run::<AllTypes>(Duration::from_secs(10)).await;
