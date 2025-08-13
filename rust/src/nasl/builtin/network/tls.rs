@@ -14,9 +14,12 @@ use pkcs8::der::Decode;
 use rustls::{
     ClientConfig, ClientConnection, RootCertStore,
     pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
+    version::{TLS12, TLS13},
 };
 
 use crate::nasl::builtin::http::NoVerifier;
+
+use super::OpenvasEncaps;
 
 pub enum TLSError {
     Io(io::Error),
@@ -71,9 +74,16 @@ pub fn prepare_tls_client(
     key_path: &str,
     password: &str,
     cafile_path: &str,
+    transport: &OpenvasEncaps,
 ) -> Result<ClientConfig, TLSError> {
+    let config = match transport {
+        OpenvasEncaps::Tls12 => ClientConfig::builder_with_protocol_versions(&[&TLS12]),
+        OpenvasEncaps::Tls13 => ClientConfig::builder_with_protocol_versions(&[&TLS13]),
+        _ => ClientConfig::builder(),
+    };
+
     let config = if cafile_path.is_empty() {
-        ClientConfig::builder()
+        config
             .dangerous()
             .with_custom_certificate_verifier(Arc::new(NoVerifier))
     } else {
@@ -121,8 +131,9 @@ pub fn create_tls_client(
     key_path: &str,
     password: &str,
     cafile_path: &str,
+    transport: &OpenvasEncaps,
 ) -> Result<ClientConnection, TLSError> {
     let server = ServerName::try_from(hostname.to_owned()).unwrap();
-    let config = prepare_tls_client(cert_path, key_path, password, cafile_path)?;
+    let config = prepare_tls_client(cert_path, key_path, password, cafile_path, transport)?;
     ClientConnection::new(Arc::new(config), server).map_err(|e| e.into())
 }

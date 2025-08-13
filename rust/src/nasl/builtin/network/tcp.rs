@@ -124,6 +124,13 @@ impl TcpConnection {
         Vec::new()
     }
 
+    //   pub fn check_safe_renegotiation(&mut self) -> NaslValue {
+    //       if let Some(tls_conn) = &self.stream.get_mut().tls {
+    //           if let Some(pc) = tls_conn.
+    //       }
+    //       Vec::new()
+    //   }
+
     pub fn ssl_version(&mut self) -> NaslValue {
         let mut version = NaslValue::Null;
         if let Some(tls_conn) = &self.stream.get_ref().tls {
