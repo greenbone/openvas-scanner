@@ -297,11 +297,11 @@ impl<'de> Deserialize<'de> for Target {
                         }
                         "alive_test" => {
                             if let Ok(at) = map.next_value::<String>() {
-                                if let Ok(at) = at.parse::<u8>() {
-                                    if let Ok(at) = models::AliveTestMethods::try_from(at) {
-                                        result.alive_test_methods = Some(vec![at]);
-                                        continue;
-                                    }
+                                if let Ok(at) = at.parse::<u8>()
+                                    && let Ok(at) = models::AliveTestMethods::try_from(at)
+                                {
+                                    result.alive_test_methods = Some(vec![at]);
+                                    continue;
                                 }
                                 return Err(de::Error::custom(format!(
                                     "{at} is not a valid number. It must be a number of 1, 2, 4, 8 or 16."

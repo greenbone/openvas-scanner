@@ -216,10 +216,8 @@ async fn capture_task(
     loop {
         tokio::select! {
             packet = stream.next() => { // packet is Option<Result<Box>>
-                if let Some(Ok(data)) = packet {
-                    if let Ok(Some(alive_host)) = process_packet(&data) {
+                if let Some(Ok(data)) = packet && let Ok(Some(alive_host)) = process_packet(&data) {
                         tx_msg.send(alive_host).await.unwrap()
-                    }
                 }
             },
             ctl = rx_ctl.recv() => {

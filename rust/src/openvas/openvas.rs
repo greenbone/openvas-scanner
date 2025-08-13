@@ -397,12 +397,12 @@ impl ScanResultFetcher for Scanner {
 
                     // Read openvas scanner exit code and if failed, reset the status to Failed.
                     let exit_status = scan.wait().map_err(OpenvasError::CmdError)?;
-                    if let Some(code) = exit_status.code() {
-                        if code != 0 {
-                            scan_res.status.status = Phase::Failed;
-                            scan_res.status.start_time = scan_res.status.end_time;
-                            scan_res.status.host_info = None;
-                        }
+                    if let Some(code) = exit_status.code()
+                        && code != 0
+                    {
+                        scan_res.status.status = Phase::Failed;
+                        scan_res.status.start_time = scan_res.status.end_time;
+                        scan_res.status.host_info = None;
                     }
 
                     redis_help

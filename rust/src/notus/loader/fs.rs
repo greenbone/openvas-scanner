@@ -97,14 +97,12 @@ where
         let mut available_os = vec![];
         for dir_entry in paths.flatten() {
             let file = dir_entry.path();
-            if file.is_file() {
-                if let Some(p) = file.file_name() {
-                    if p.to_string_lossy().ends_with(".notus") {
-                        if let Some(stem) = file.file_stem() {
-                            available_os.push(stem.to_string_lossy().to_string());
-                        }
-                    }
-                }
+            if file.is_file()
+                && let Some(p) = file.file_name()
+                && p.to_string_lossy().ends_with(".notus")
+                && let Some(stem) = file.file_stem()
+            {
+                available_os.push(stem.to_string_lossy().to_string());
             }
         }
         Ok(available_os)

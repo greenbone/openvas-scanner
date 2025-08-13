@@ -157,10 +157,10 @@ where
         }
 
         let mut queued = self.queued.write().await;
-        if let Some(max_queuing) = self.config().max_queued_scans {
-            if queued.len() == max_queuing {
-                return Err(Error::QueueFull);
-            }
+        if let Some(max_queuing) = self.config().max_queued_scans
+            && queued.len() == max_queuing
+        {
+            return Err(Error::QueueFull);
         }
         if queued.iter().any(|x| x == id) {
             return Err(Error::ScanAlreadyQueued);

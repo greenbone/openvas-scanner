@@ -16,15 +16,13 @@ use super::Context;
 async fn changed_hash(signature_check: bool, feeds: &[FeedHash]) -> Result<Vec<FeedHash>, ()> {
     let mut result = Vec::with_capacity(feeds.len());
     for h in feeds {
-        if signature_check {
-            if let Err(err) = scannerlib::feed::check_signature(&h.path) {
-                tracing::warn!(
-                    sumsfile=%h.path.display(),
-                    error=%err,
-                    "Signature is incorrect, skipping",
-                );
-                return Err(());
-            }
+        if signature_check && let Err(err) = scannerlib::feed::check_signature(&h.path) {
+            tracing::warn!(
+                sumsfile=%h.path.display(),
+                error=%err,
+                "Signature is incorrect, skipping",
+            );
+            return Err(());
         }
 
         let path = h.path.clone();
@@ -63,12 +61,11 @@ where
                 break;
             };
             let last_hash = ctx.scheduler.feed_hash().await;
-            if let Ok(nh) = changed_hash(signature_check, &last_hash).await {
-                if !nh.is_empty() {
-                    if let Err(err) = ctx.scheduler.synchronize_feeds(nh).await {
-                        tracing::warn!(%err, "Unable to sync feed")
-                    }
-                }
+            if let Ok(nh) = changed_hash(signature_check, &last_hash).await
+                && !nh.is_empty()
+                && let Err(err) = ctx.scheduler.synchronize_feeds(nh).await
+            {
+                tracing::warn!(%err, "Unable to sync feed")
             }
 
             tokio::time::sleep(interval).await;

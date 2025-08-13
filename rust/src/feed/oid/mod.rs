@@ -41,10 +41,10 @@ where
     }
 
     fn script_oid(stmt: &Statement) -> Option<String> {
-        if let Statement::ExprStmt(Expr::Atom(Atom::FnCall(call))) = stmt {
-            if call.fn_name.to_str() == "script_oid" {
-                return call.args.items.first().map(|x| x.to_string());
-            }
+        if let Statement::ExprStmt(Expr::Atom(Atom::FnCall(call))) = stmt
+            && call.fn_name.to_str() == "script_oid"
+        {
+            return call.args.items.first().map(|x| x.to_string());
         }
         None
     }
