@@ -789,9 +789,7 @@ mod tests {
                    port="443/tcp"
                    test_id=""
                    name="Path disclosure vulnerability"
-                   type="Log Message">
-             bla
-           </result>
+                   type="Log Message">bla</result>
          </results>
          <progress>
             <host name="127.0.0.1">45</host>
