@@ -39,7 +39,6 @@ use pnet::packet::{
     udp::{MutableUdpPacket, UdpPacket},
 };
 
-use pnet_macros_support::types::u9be;
 use socket2::{Domain, Protocol, Socket};
 use tracing::debug;
 
@@ -88,7 +87,7 @@ const DEFAULT_IPV4_HEADER_LENGTH_32BIT_INCREMENTS: u8 = 5;
 const DEFAULT_TCP_DATA_OFFSET_32BIT_INCREMENTS: u8 = 5;
 /// Default ttl value is inherit from NASL C
 const DEFAULT_TTL: u8 = 0x40;
-const TH_SYN: u16 = 0x02;
+const TH_SYN: u8 = 0x02;
 
 #[derive(Default)]
 struct PacketPayload {
@@ -616,7 +615,7 @@ fn forge_tcp(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_offset: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_win: Option<u16>,
     th_urp: Option<u16>,
 ) -> Vec<u8> {
@@ -635,7 +634,7 @@ fn forge_tcp(
     tcp_seg.set_acknowledgement(th_ack.unwrap_or(0_u32));
     tcp_seg.set_reserved(th_x2.unwrap_or(0_u8));
     tcp_seg.set_data_offset(th_offset.unwrap_or(5_u8));
-    tcp_seg.set_flags(th_flags.unwrap_or(0_u16));
+    tcp_seg.set_flags(th_flags.unwrap_or(0_u8));
     tcp_seg.set_window(th_win.unwrap_or(0_u16));
     tcp_seg.set_urgent_ptr(th_urp.unwrap_or(0_u16));
 
@@ -684,7 +683,7 @@ fn forge_tcp_packet(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_win: Option<u16>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
@@ -904,7 +903,7 @@ fn set_elements_tcp<'a>(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_urp: Option<u16>,
     th_win: Option<u16>,
     new_buf: &'a mut Vec<u8>,
@@ -1013,7 +1012,7 @@ fn set_tcp_elements(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
     th_win: Option<u16>,
@@ -1246,7 +1245,7 @@ fn display_opts(pkt: &TcpPacket) {
 fn format_flags(pkt: &TcpPacket) -> String {
     let flags = pkt.get_flags();
     let mut flag_strs = vec![];
-    let mut check_flag = |flag: u9be, name: &str| {
+    let mut check_flag = |flag: u8, name: &str| {
         if flags & flag == flag {
             flag_strs.push(name.to_owned());
         }
@@ -2467,7 +2466,7 @@ fn forge_tcp_v6_packet(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_win: Option<u16>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
@@ -2534,7 +2533,7 @@ fn set_tcp_v6_elements(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
     th_win: Option<u16>,

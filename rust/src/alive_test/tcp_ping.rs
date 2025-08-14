@@ -22,24 +22,7 @@ use crate::nasl::raw_ip_utils::raw_ip_utils::{
 pub const FILTER_PORT: u16 = 9910;
 pub const TCP_LENGTH: usize = 20;
 
-#[derive(PartialEq, Eq)]
-pub enum TcpFlags {
-    Empty = 0x00,
-    ThSyn = 0x02,
-    ThAck = 0x10,
-}
-
-impl From<u16> for TcpFlags {
-    fn from(value: u16) -> Self {
-        match value {
-            0x02 => Self::ThSyn,
-            0x10 => Self::ThAck,
-            _ => Self::Empty,
-        }
-    }
-}
-
-pub fn tcp_ping(dport: u16, tcp_flag: u16) -> Vec<u8> {
+pub fn tcp_ping(dport: u16, tcp_flag: u8) -> Vec<u8> {
     let mut tcp_buf = vec![0u8; TCP_LENGTH];
     // known buffer size.
     let mut tcp = MutableTcpPacket::new(&mut tcp_buf).unwrap();
@@ -90,7 +73,7 @@ fn forge_ipv4_packet_for_tcp(
 pub fn forge_tcp_ping_ipv4(
     dst: Ipv4Addr,
     dport: &u16,
-    tcp_flag: u16,
+    tcp_flag: u8,
 ) -> Result<Ipv4Packet<'static>, AliveTestError> {
     let mut tcp_buf = tcp_ping(*dport, tcp_flag);
     forge_ipv4_packet_for_tcp(&mut tcp_buf, dst)
@@ -127,7 +110,7 @@ fn forge_ipv6_packet_for_tcp(
 pub fn forge_tcp_ping_ipv6(
     dst: Ipv6Addr,
     dport: &u16,
-    tcp_flag: u16,
+    tcp_flag: u8,
 ) -> Result<Ipv6Packet<'static>, AliveTestError> {
     let mut tcp_buf = tcp_ping(*dport, tcp_flag);
     forge_ipv6_packet_for_tcp(&mut tcp_buf, dst)

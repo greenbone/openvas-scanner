@@ -15,7 +15,7 @@ pub struct AvailableResources {
 /// Returns available resources
 pub fn available() -> AvailableResources {
     let system = sysinfo::System::new_all();
-    let cpu = system.global_cpu_info().cpu_usage();
+    let cpu = system.global_cpu_usage();
     let memory = system.available_memory();
     AvailableResources { memory, cpu }
 }
