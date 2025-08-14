@@ -10,10 +10,8 @@ path = "/var/lib/openvas/plugins"
 # Disables or enables the signature check
 signature_check = true
 
-[feed.check_interval]
 # How often the feed should be checked for updates
-secs = 3600
-nanos = 0
+check_interval = "3600s"
 
 [notus]
 # Path to the notus feed. This is required for the /notus endpoint
