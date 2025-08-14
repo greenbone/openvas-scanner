@@ -105,10 +105,10 @@ impl SshSession {
     }
 
     pub async fn close(&mut self) {
-        if let Some(channel) = &mut self.channel().await {
-            if let Err(e) = channel.close() {
-                debug!("Encountered error while closing channel: {}", e);
-            }
+        if let Some(channel) = &mut self.channel().await
+            && let Err(e) = channel.close()
+        {
+            debug!("Encountered error while closing channel: {}", e);
         }
         self.channel = None;
     }

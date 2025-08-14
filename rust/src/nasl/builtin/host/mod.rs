@@ -102,10 +102,10 @@ pub fn get_host_name(_register: &Register, context: &ScanCtx) -> Result<NaslValu
 #[nasl_function(named(hostname))]
 pub fn get_host_name_source(context: &ScanCtx, hostname: Hostname) -> String {
     let vh = context.target().vhosts();
-    if !vh.is_empty() {
-        if let Some(vhost) = vh.iter().find(|vhost| vhost.hostname() == hostname.0) {
-            return vhost.source().to_string();
-        };
+    if !vh.is_empty()
+        && let Some(vhost) = vh.iter().find(|vhost| vhost.hostname() == hostname.0)
+    {
+        return vhost.source().to_string();
     }
     context.target().original_target_str().to_string()
 }

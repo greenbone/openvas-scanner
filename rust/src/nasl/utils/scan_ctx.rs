@@ -333,10 +333,11 @@ impl<'a> ScanCtx<'a> {
         loop {
             i += 1;
             let result = self.executor.exec(name, self, register, script_ctx).await;
-            if let Some(Err(ref e)) = result {
-                if e.retryable() && i < NUM_RETRIES_ON_RETRYABLE_ERROR {
-                    continue;
-                }
+            if let Some(Err(ref e)) = result
+                && e.retryable()
+                && i < NUM_RETRIES_ON_RETRYABLE_ERROR
+            {
+                continue;
             }
             return result;
         }

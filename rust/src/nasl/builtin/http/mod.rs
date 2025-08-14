@@ -73,7 +73,7 @@ pub struct NaslHttp2 {
 
 async fn lock_handles(
     handles: &Arc<Mutex<Vec<Handle>>>,
-) -> Result<MutexGuard<Vec<Handle>>, FnError> {
+) -> Result<MutexGuard<'_, Vec<Handle>>, FnError> {
     // we actually need to panic as a lock error is fatal
     // alternatively we need to add a poison error on FnError
     Ok(Arc::as_ref(handles).lock().await)

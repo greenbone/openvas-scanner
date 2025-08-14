@@ -33,11 +33,11 @@ fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
 
     let results = Code::load(&NonUtf8Loader, path)?.parse();
     num_errors += results.num_errors();
-    if let Ok(stmts) = results.emit_errors() {
-        if verbose {
-            for stmt in stmts.stmts().iter() {
-                print_stmt(stmt);
-            }
+    if let Ok(stmts) = results.emit_errors()
+        && verbose
+    {
+        for stmt in stmts.stmts().iter() {
+            print_stmt(stmt);
         }
     }
     Ok(num_errors)

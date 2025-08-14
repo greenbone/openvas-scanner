@@ -680,10 +680,10 @@ impl Config {
         if let Some(mode) = cmds.get_one::<Mode>("mode") {
             config.mode = mode.clone();
         }
-        if let Some(key) = cmds.get_one::<String>("storage_key") {
-            if !key.is_empty() {
-                config.storage.fs.key = Some(key.clone());
-            }
+        if let Some(key) = cmds.get_one::<String>("storage_key")
+            && !key.is_empty()
+        {
+            config.storage.fs.key = Some(key.clone());
         }
 
         let scan_prefs: HashMap<String, ScanPrefValue> = PREFERENCES

@@ -92,7 +92,7 @@ pub trait IndexedByteStorage {
         T: TryFrom<Vec<u8>>,
         <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     {
-        let data = self.by_indices(key, &[index.clone()])?;
+        let data = self.by_indices(key, std::slice::from_ref(index))?;
         Ok(data.into_iter().next())
     }
 
@@ -370,10 +370,10 @@ impl CachedIndexFileStorer {
     }
     fn find_index(&self, key: &str) -> Option<(usize, &Vec<Index>)> {
         for i in 0..self.cache.len() {
-            if let Some((k, v)) = &self.cache[i] {
-                if k == key {
-                    return Some((i, v));
-                }
+            if let Some((k, v)) = &self.cache[i]
+                && k == key
+            {
+                return Some((i, v));
             }
         }
         None
@@ -450,10 +450,10 @@ impl IndexedByteStorage for CachedIndexFileStorer {
     fn remove(&mut self, key: &str) -> Result<(), Error> {
         self.base.clean(key)?;
         for i in 0..self.cache.len() {
-            if let Some((k, _)) = &self.cache[i] {
-                if k == key {
-                    self.cache[i] = None;
-                }
+            if let Some((k, _)) = &self.cache[i]
+                && k == key
+            {
+                self.cache[i] = None;
             }
         }
         Ok(())
