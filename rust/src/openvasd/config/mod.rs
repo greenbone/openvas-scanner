@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use logging::SerLevel;
 use scannerlib::models::PreferenceValue;
 use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
+use std::str::FromStr;
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
@@ -15,6 +17,7 @@ use std::{
 use clap::{ArgAction, builder::TypedValueParser};
 use serde::{Deserialize, Serialize};
 mod duration;
+mod logging;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Feed {
@@ -225,20 +228,6 @@ pub struct Tls {
     pub client_certs: Option<PathBuf>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Logging {
-    #[serde(default)]
-    pub level: String,
-}
-
-impl Default for Logging {
-    fn default() -> Self {
-        Self {
-            level: "INFO".to_string(),
-        }
-    }
-}
-
 #[derive(Deserialize, Serialize, Default, Debug, Clone, PartialEq, Eq)]
 pub enum StorageType {
     #[default]
@@ -316,8 +305,8 @@ pub struct Config {
     pub scanner: Scanner,
     #[serde(default)]
     pub listener: Listener,
-    #[serde(default)]
-    pub log: Logging,
+    #[serde(default, alias = "log", alias = "logging")]
+    pub logging: logging::Logging,
     #[serde(default)]
     pub storage: Storage,
     #[serde(default)]
@@ -678,7 +667,7 @@ impl Config {
             config.listener.address = *ip;
         }
         if let Some(log_level) = cmds.get_one::<String>("log-level") {
-            config.log.level.clone_from(log_level);
+            config.logging.level = SerLevel::from_str(log_level).unwrap_or_default();
         }
         if let Some(stype) = cmds.get_one::<StorageType>("storage_type") {
             config.storage.storage_type = stype.clone();
@@ -738,9 +727,9 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::StorageType;
+    use crate::config::{StorageType, logging::SerLevel};
     use scannerlib::scanner::preferences::preference::ScanPrefValue;
-    use std::{path::PathBuf, time::Duration};
+    use std::{path::PathBuf, str::FromStr, time::Duration};
 
     #[test]
     fn current_example_parseable() {
@@ -795,7 +784,7 @@ mod tests {
 
         assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
 
-        assert_eq!(config.log.level, "INFO".to_string());
+        assert_eq!(config.logging.level, SerLevel::from_str("INFO").unwrap());
         // this is used to verify the default config manually.
         // se to true to write the default configuration to `tmp`
         if false {
@@ -817,7 +806,7 @@ mod tests {
         key = "changeme"
         "#;
         let config: super::Config = toml::from_str(cfg).unwrap();
-        assert_eq!(config.log.level, "DEBUG");
+        assert_eq!(config.logging.level, SerLevel::from_str("DEBUG").unwrap());
         assert_eq!(
             config.storage.fs.path,
             PathBuf::from("/var/lib/openvasd/storage/test")

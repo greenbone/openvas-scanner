@@ -29,14 +29,6 @@ use tracing_subscriber::EnvFilter;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-// TODO: should be on config
-fn setup_log(config: &Config) {
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .parse_lossy(format!("{},rustls=info,h2=info", &config.log.level));
-    tracing_subscriber::fmt().with_env_filter(filter).init();
-}
-
 // TODO: move to config
 pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     use sqlx::{
@@ -103,7 +95,7 @@ async fn main() -> Result<()> {
     // Maybe we can find a way to support the new style with the old for downwards compatibility
     // reasons. Additionally the storage configuratio6 is now dated and needs to be overhauled.
     let config = Config::load();
-    setup_log(&config);
+    config.logging.init();
 
     //TODO: AsRef impl for Config
     let products = config_to_products(&config);

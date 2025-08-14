@@ -66,9 +66,13 @@ nanos = 0
 # ip address and port to listen to
 address = "127.0.0.1:3000"
 
-[log]
-# level of the log messages: TRACE > DEBUG > INFO > WARN > ERROR
-level = "INFO"
+[logging]
+level = 'INFO'
+
+[logging.additional]
+# with that we can set other packages to be quieter
+sqlx = 'WARN'
+
 
 [storage]
 # can be either fs (file system), redis or inmemory (in memory).
