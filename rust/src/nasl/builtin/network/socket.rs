@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use crate::nasl::{
+    builtin::misc::{NASL_ERR_ECONNRESET, NASL_ERR_ETIMEDOUT, NASL_ERR_NOERR},
     prelude::*,
     utils::{
         DefineGlobalVars,
@@ -151,6 +152,19 @@ impl NaslSocket {
         };
     }
 
+    pub fn set_last_err(&mut self, nasl_err: i64) {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            tcp_connection.set_last_err(nasl_err);
+        };
+    }
+
+    pub fn last_err(&mut self) -> i64 {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.last_err();
+        };
+        NASL_ERR_NOERR
+    }
+
     pub fn peer_certs(&mut self) -> Vec<CertificateDer> {
         if let NaslSocket::Tcp(tcp_connection) = self {
             return tcp_connection.peer_certs();
@@ -158,11 +172,11 @@ impl NaslSocket {
         Vec::new()
     }
 
-    pub fn ssl_version(&mut self) -> NaslValue {
+    pub fn ssl_version(&mut self) -> Option<i64> {
         if let NaslSocket::Tcp(tcp_connection) = self {
             return tcp_connection.ssl_version();
         }
-        NaslValue::Null
+        None
     }
 
     pub fn check_safe_renegotiation(&mut self) -> NaslValue {
@@ -353,9 +367,21 @@ fn send_shared(
                         "the given flags value is out of range".to_string(),
                     ));
                 }
-                Ok(conn.send_with_flags(data, flags as i32)?)
+                match conn.send_with_flags(data, flags as i32) {
+                    Ok(s) => Ok(s),
+                    Err(e) => {
+                        conn.set_last_err(NASL_ERR_ECONNRESET);
+                        Err(SocketError::IO(e))
+                    }
+                }
             } else {
-                Ok(conn.write(data)?)
+                match conn.write(data) {
+                    Ok(s) => Ok(s),
+                    Err(e) => {
+                        conn.set_last_err(NASL_ERR_ECONNRESET);
+                        Err(SocketError::IO(e))
+                    }
+                }
             }
         }
         NaslSocket::Udp(conn) => {
@@ -688,7 +714,13 @@ async fn socket_negotiate_ssl(
     let hostname = "localhost";
     let client_conf = std::sync::Arc::new(client?);
     let server = ServerName::try_from(hostname.to_owned()).unwrap();
-    let client = ClientConnection::new(client_conf, server).unwrap();
+    let client = match ClientConnection::new(client_conf, server) {
+        Ok(c) => c,
+        Err(_) => {
+            soc.set_last_err(NASL_ERR_ETIMEDOUT);
+            return Ok(NaslValue::Null);
+        }
+    };
     soc.set_tls(client);
 
     //TODO: transport is set in the kb, but is not specified in the TLS Session
@@ -716,7 +748,19 @@ async fn socket_get_ssl_version(
     socket: usize,
 ) -> Result<NaslValue, FnError> {
     let soc = nasl_sockets.get_open_socket_mut(socket)?;
-    Ok(soc.ssl_version())
+    if let Some(v) = soc.ssl_version() {
+        return Ok(NaslValue::Number(v));
+    }
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function]
+async fn socket_get_error(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    Ok(NaslValue::Number(soc.last_err()))
 }
 
 #[nasl_function(named(socket))]
@@ -864,7 +908,10 @@ async fn ftp_log_in(
         NaslSocket::Tcp(conn) => {
             check_ftp_response(&mut *conn, &[220])?;
             let data = format!("USER {user}\r\n");
-            conn.write_all(data.as_bytes())?;
+            if let Err(e) = conn.write_all(data.as_bytes()) {
+                conn.set_last_err(NASL_ERR_ECONNRESET);
+                return Err(SocketError::IO(e));
+            };
 
             let code = check_ftp_response(&mut *conn, &[230, 331])?;
             if code == 331 {
@@ -1121,6 +1168,7 @@ function_set! {
         socket_negotiate_ssl,
         socket_get_cert,
         socket_get_ssl_version,
+        socket_get_error,
     )
 }
 

@@ -12,13 +12,14 @@ use rustls::{ClientConnection, ProtocolVersion, Stream, pki_types::CertificateDe
 
 use socket2::{self, Socket};
 
-use crate::nasl::NaslValue;
+use crate::nasl::builtin::misc::{NASL_ERR_ETIMEDOUT, NASL_ERR_NOERR};
 
 use super::{OpenvasEncaps, network_utils::get_source_ip, socket::SocketError};
 
 struct TcpDataStream {
     sock: Socket,
     tls: Option<ClientConnection>,
+    last_err: i64,
 }
 
 impl Read for TcpDataStream {
@@ -35,6 +36,14 @@ impl Read for TcpDataStream {
 impl TcpDataStream {
     pub fn set_tls(&mut self, tls: ClientConnection) {
         self.tls = Some(tls);
+    }
+
+    pub fn set_last_err(&mut self, nasl_err: i64) {
+        self.last_err = nasl_err
+    }
+
+    pub fn last_err(&self) -> i64 {
+        self.last_err
     }
 
     pub fn get_port(&self) -> u16 {
@@ -110,6 +119,16 @@ impl TcpConnection {
         stream.set_tls(tls);
     }
 
+    pub fn set_last_err(&mut self, nasl_err: i64) {
+        let stream = self.stream.get_mut();
+        stream.set_last_err(nasl_err);
+    }
+
+    pub fn last_err(&self) -> i64 {
+        let stream = self.stream.get_ref();
+        stream.last_err()
+    }
+
     pub fn get_port(&self) -> u16 {
         let stream = self.stream.get_ref();
         stream.get_port()
@@ -124,26 +143,18 @@ impl TcpConnection {
         Vec::new()
     }
 
-    //   pub fn check_safe_renegotiation(&mut self) -> NaslValue {
-    //       if let Some(tls_conn) = &self.stream.get_mut().tls {
-    //           if let Some(pc) = tls_conn.
-    //       }
-    //       Vec::new()
-    //   }
-
-    pub fn ssl_version(&mut self) -> NaslValue {
-        let mut version = NaslValue::Null;
+    pub fn ssl_version(&mut self) -> Option<i64> {
         if let Some(tls_conn) = &self.stream.get_ref().tls {
-            version = match tls_conn.protocol_version() {
-                Some(ProtocolVersion::SSLv3) => NaslValue::Number(OpenvasEncaps::Ssl3.into()),
-                Some(ProtocolVersion::TLSv1_0) => NaslValue::Number(OpenvasEncaps::Tls1.into()),
-                Some(ProtocolVersion::TLSv1_1) => NaslValue::Number(OpenvasEncaps::Tls11.into()),
-                Some(ProtocolVersion::TLSv1_2) => NaslValue::Number(OpenvasEncaps::Tls12.into()),
-                Some(ProtocolVersion::TLSv1_3) => NaslValue::Number(OpenvasEncaps::Tls13.into()),
-                _ => NaslValue::Null,
+            match tls_conn.protocol_version() {
+                Some(ProtocolVersion::SSLv3) => Some(OpenvasEncaps::Ssl3),
+                Some(ProtocolVersion::TLSv1_0) => Some(OpenvasEncaps::Tls1),
+                Some(ProtocolVersion::TLSv1_1) => Some(OpenvasEncaps::Tls11),
+                Some(ProtocolVersion::TLSv1_2) => Some(OpenvasEncaps::Tls12),
+                Some(ProtocolVersion::TLSv1_3) => Some(OpenvasEncaps::Tls13),
+                _ => None,
             };
         }
-        version
+        None
     }
 
     /// Create a new TCP connection.
@@ -184,7 +195,14 @@ impl TcpConnection {
                 Err(e) => return Err(e),
             }
         }
-        Ok(Self::new(TcpDataStream { sock, tls }, bufsz))
+        Ok(Self::new(
+            TcpDataStream {
+                sock,
+                tls,
+                last_err: NASL_ERR_NOERR,
+            },
+            bufsz,
+        ))
     }
 
     pub fn connect_priv(
@@ -211,9 +229,19 @@ impl TcpConnection {
 
         sock.bind(&SocketAddr::new(src, sport).into())?;
 
-        sock.connect_timeout(&SocketAddr::new(addr, dport).into(), timeout)?;
+        let err = match sock.connect_timeout(&SocketAddr::new(addr, dport).into(), timeout) {
+            Ok(()) => NASL_ERR_NOERR,
+            Err(_) => NASL_ERR_ETIMEDOUT,
+        };
 
-        Ok(Self::new(TcpDataStream { sock, tls: None }, None))
+        Ok(Self::new(
+            TcpDataStream {
+                sock,
+                tls: None,
+                last_err: err,
+            },
+            None,
+        ))
     }
 
     /// Returns the socket address of the local half of this TCP connection.
