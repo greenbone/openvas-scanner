@@ -25,13 +25,9 @@ address = '127.0.0.1:3000'
 level = 'INFO'
 
 [storage]
-type = 'inmemory'
-
-[storage.fs]
-path = '/var/lib/openvasd/storage'
-
-[storage.redis]
-url = 'unix:///run/redis-openvas/redis.sock'
+location = 'in-memory'
+busy_timeout = '2s'
+max_connections = 1
 
 [scheduler]
 check_interval = '500ms'
@@ -44,7 +40,6 @@ socket = '/var/run/ospd/ospd-openvas.sock'
 
 [scanner.preferences]
 aaa = false
-bbb = 'foobar'
 [container_image_scanner.database]
 location = 'in-memory'
 busy_timeout = '2s'

@@ -1,15 +1,9 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-    str::FromStr,
-    time::Duration,
-};
+use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
-use clap::{ArgAction, Parser};
 use serde::{Deserialize, Serialize};
-mod duration;
-mod logging;
-use logging::Logging;
+use sqlx::sqlite::SqliteSynchronous;
+pub mod duration;
+pub mod logging;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DBLocation {
@@ -24,6 +18,18 @@ impl DBLocation {
             Self::InMemory => "sqlite::memory:".to_owned(),
             Self::File(path_buf) => format!("sqlite:{}", path_buf.to_string_lossy()),
         }
+    }
+
+    pub fn default_file_location() -> Self {
+        let cache_dir = if let Some(xdg_cache) = std::env::var_os("XDG_CACHE_HOME") {
+            PathBuf::from(&xdg_cache)
+        } else {
+            PathBuf::from(".")
+        };
+        let cache_dir = cache_dir.join("container-image-scanner");
+        let cache_dir = cache_dir.join("database.sql");
+
+        Self::File(cache_dir)
     }
 }
 
@@ -117,13 +123,14 @@ pub struct SqliteConfiguration {
         deserialize_with = "DBLocation::config_deserialize",
         serialize_with = "DBLocation::config_serialize"
     )]
-    location: DBLocation,
+    pub location: DBLocation,
     #[serde(
         deserialize_with = "duration::deserialize",
         serialize_with = "duration::serialize"
     )]
-    busy_timeout: Duration,
-    max_connections: u32,
+    pub busy_timeout: Duration,
+    pub max_connections: u32,
+    pub credential_key: Option<String>,
 }
 
 impl Default for SqliteConfiguration {
@@ -132,6 +139,7 @@ impl Default for SqliteConfiguration {
             location: Default::default(),
             busy_timeout: Duration::from_secs(2),
             max_connections: 1,
+            credential_key: None,
         }
     }
 }
@@ -147,11 +155,21 @@ impl SqliteConfiguration {
         let options = SqliteConnectOptions::from_str(&self.location.sqlite_address())?
             .journal_mode(SqliteJournalMode::Wal)
             .busy_timeout(self.busy_timeout)
+            // Although this can lead to data loss in the case that the application crashes we usually
+            // need to either restart that scan anyway.
+            .synchronous(SqliteSynchronous::Off)
             .create_if_missing(true);
         PoolOptions::<Sqlite>::new()
             .max_connections(self.max_connections)
             .connect_with(options)
             .await
+    }
+
+    pub fn default_file_location() -> Self {
+        Self {
+            location: DBLocation::default_file_location(),
+            ..Default::default()
+        }
     }
 }
 

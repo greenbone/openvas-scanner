@@ -683,10 +683,7 @@ pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
     // Otherweise the credentials can never be decrypted.
     config
         .storage
-        .fs
-        .key
-        .as_ref()
-        .map(|x| x as &str)
+        .credential_key()
         .map(ChaCha20Crypt::new)
         .unwrap_or_else(|| ChaCha20Crypt::new("insecure"))
 }

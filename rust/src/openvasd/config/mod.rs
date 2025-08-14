@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use logging::SerLevel;
-use scannerlib::container_image_scanner::config::Image;
+use scannerlib::container_image_scanner::config::{DBLocation, Image, SqliteConfiguration};
 use scannerlib::models::PreferenceValue;
 use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
 use std::str::FromStr;
@@ -283,8 +283,44 @@ impl Default for FileStorage {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum StorageTypes {
+    V1(StorageV1),
+    V2(SqliteConfiguration),
+}
+
+impl StorageTypes {
+    //TODO: if you credential_key is set and it was not called before we should actually create a
+    //random key and store it as a file into XDG_CACHE or /tmp/ with rights that only the owner can
+    //read it.
+    //Before doing that we should check that file exists and if so return that key.
+    pub fn credential_key(&self) -> Option<&str> {
+        match self {
+            StorageTypes::V1(storage_v1) => storage_v1.fs.key.as_deref(),
+            StorageTypes::V2(sqlite_configuration) => {
+                sqlite_configuration.credential_key.as_deref()
+            }
+        }
+    }
+    pub fn set_credential_key<S: Into<String>>(&mut self, key: S) {
+        let key = key.into();
+        match self {
+            StorageTypes::V1(storage_v1) => storage_v1.fs.key = Some(key),
+            StorageTypes::V2(sqlite_configuration) => {
+                sqlite_configuration.credential_key = Some(key)
+            }
+        }
+    }
+}
+impl Default for StorageTypes {
+    fn default() -> Self {
+        Self::V2(Default::default())
+    }
+}
+
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
-pub struct Storage {
+pub struct StorageV1 {
     #[serde(default, rename = "type")]
     pub storage_type: StorageType,
     #[serde(default)]
@@ -304,7 +340,7 @@ pub struct Config {
     pub listener: Listener,
     #[serde(alias = "log", alias = "logging")]
     pub logging: logging::Logging,
-    pub storage: Storage,
+    pub storage: StorageTypes,
     pub scheduler: Scheduler,
     pub scanner: Scanner,
     #[serde(alias = "container-image-scanner")]
@@ -640,8 +676,8 @@ impl Config {
         if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
             config.notus.advisories_path.clone_from(path);
         }
-        if let Some(path) = cmds.get_one::<String>("redis-url") {
-            config.storage.redis.url.clone_from(path);
+        if let Some(_path) = cmds.get_one::<String>("redis-url") {
+            // is actually ignored as on scanner openvas the redis-url of openvas is used
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-certs") {
             config.tls.certs = Some(path.clone());
@@ -668,17 +704,23 @@ impl Config {
             config.logging.level = SerLevel::from_str(log_level).unwrap_or_default();
         }
         if let Some(stype) = cmds.get_one::<StorageType>("storage_type") {
-            config.storage.storage_type = stype.clone();
+            config.storage = StorageTypes::V2(match stype {
+                StorageType::InMemory | StorageType::Redis => SqliteConfiguration::default(),
+                StorageType::FileSystem => SqliteConfiguration::default_file_location(),
+            });
         }
         if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
-            config.storage.fs.path.clone_from(path);
+            config.storage = StorageTypes::V2(SqliteConfiguration {
+                location: DBLocation::File(path.clone()),
+                ..Default::default()
+            });
         }
         if let Some(mode) = cmds.get_one::<Mode>("mode") {
             config.mode = mode.clone();
         }
         if let Some(key) = cmds.get_one::<String>("storage_key") {
             if !key.is_empty() {
-                config.storage.fs.key = Some(key.clone());
+                config.storage.set_credential_key(key.clone());
             }
         }
 
@@ -754,28 +796,17 @@ mod tests {
     fn defaults() {
         let mut config = super::Config::default();
 
+        // just adding one otherwise we could run into order issues
         config
             .scanner
             .preferences
             .insert("aaa".to_string(), ScanPrefValue::Bool(false));
-        config.scanner.preferences.insert(
-            "bbb".to_string(),
-            ScanPrefValue::String("foobar".to_string()),
-        );
+
         // we hardcode that here, otherwise the test may fail on machines that have different
         // XDG_PATHs set.
         config.container_image_scanner.image.extract_to =
             ImageExtractionLocation::File("/tmp/openvasd/cis".into());
 
-        // config
-        //     .scanner
-        //     .preferences
-        //     .insert("aaa".to_string(), ScanPrefValue::Bool(false));
-        // config.scanner.preferences.insert(
-        //     "bbb".to_string(),
-        //     ScanPrefValue::String("foobar".to_string()),
-        // );
-        //
         assert_toml_snapshot!(config);
     }
 }

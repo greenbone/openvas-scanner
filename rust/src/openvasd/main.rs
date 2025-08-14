@@ -13,69 +13,54 @@ mod notus;
 mod scans;
 mod vts;
 
+use sqlx::migrate::Migrator;
 use std::{
     marker::{Send, Sync},
-    str::FromStr,
     sync::Arc,
 };
 
-use config::{Config, Endpoints};
+use config::{Config, StorageType};
 use greenbone_scanner_framework::{RuntimeBuilder, ServerCertificate};
 use notus::config_to_products;
-use scannerlib::{container_image_scanner, models::FeedState};
-use sqlx::{SqlitePool, sqlite::SqliteSynchronous};
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::EnvFilter;
+use scannerlib::{
+    container_image_scanner::{
+        self,
+        config::{DBLocation, SqliteConfiguration},
+    },
+    models::FeedState,
+};
+use sqlx::SqlitePool;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+static MIGRATOR: Migrator = sqlx::migrate!();
+
 // TODO: move to config
 pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
-    use sqlx::{
-        Sqlite,
-        pool::PoolOptions,
-        sqlite::{SqliteConnectOptions, SqliteJournalMode},
-    };
-    use std::time::Duration;
-    fn from_config_to_sqlite_address(config: &Config) -> String {
-        use crate::config::StorageType;
+    let result = match config.storage.clone() {
+        config::StorageTypes::V1(storage_v1) => {
+            let mut sqliteconfig = SqliteConfiguration::default();
 
-        match config.storage.storage_type {
-            //StorageType::InMemory if shared => "sqlite::memory:?cache=shared".to_owned(),
-            StorageType::InMemory => "sqlite::memory:".to_owned(),
-            StorageType::FileSystem if config.storage.fs.path.is_dir() => {
-                let mut p = config.storage.fs.path.clone();
-                p.push("openvasd.db");
-                format!("sqlite:{}", p.to_string_lossy())
-            }
-            StorageType::FileSystem => {
-                format!("sqlite:{}", config.storage.fs.path.to_string_lossy())
-            }
-            // actually it can when using the openvas scanner mode
-            StorageType::Redis => unreachable!(
-                "Redis configuration should never call storage::sqlite::Storage::from_config_and_feeds"
-            ),
+            match storage_v1.storage_type {
+                //StorageType::InMemory if shared => "sqlite::memory:?cache=shared".to_owned(),
+                StorageType::InMemory | StorageType::Redis => {}
+                StorageType::FileSystem if storage_v1.fs.path.is_dir() => {
+                    let mut p = storage_v1.fs.path.clone();
+                    p.push("openvasd.db");
+                    sqliteconfig.location = DBLocation::File(p);
+                }
+                StorageType::FileSystem => {
+                    sqliteconfig.location = DBLocation::File(storage_v1.fs.path);
+                }
+            };
+            sqliteconfig
         }
+        config::StorageTypes::V2(sqlite_configuration) => sqlite_configuration,
     }
-
-    // TODO: calculate max_connections or change configuration
-    let max_connections = 20;
-    // TODO: make busy_timeout a configuration option
-    let busy_timeout = Duration::from_secs(2);
-
-    let options = SqliteConnectOptions::from_str(&from_config_to_sqlite_address(config))?
-        .journal_mode(SqliteJournalMode::Wal)
-        // Although this can lead to data loss in the case that the application crashes we usually
-        // need to either restart that scan anyway.
-        .synchronous(SqliteSynchronous::Off)
-        .busy_timeout(busy_timeout)
-        .create_if_missing(true);
-    let pool = PoolOptions::<Sqlite>::new()
-        .max_connections(max_connections)
-        .connect_with(options)
-        .await?;
-    sqlx::migrate!().run(&pool).await?;
-    Ok(pool)
+    .create_pool()
+    .await?;
+    MIGRATOR.run(&result).await?;
+    Ok(result)
 }
 
 pub fn get_feed_state(
