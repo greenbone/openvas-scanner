@@ -100,5 +100,7 @@ path = "/var/lib/openvasd/storage"
 # Minimum memory that must be available in order to start a scan. If not set, there is no limit.
 # min_free_mem = 2147483648 # 2GiB
 
+[scheduler.check_interval]
 # Iteration interval for the scheduler
-check_interval = "500ms"
+secs = 0
+nanos = 500000000

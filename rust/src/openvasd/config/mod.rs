@@ -14,10 +14,15 @@ use std::{
 
 use clap::{ArgAction, builder::TypedValueParser};
 use serde::{Deserialize, Serialize};
+mod duration;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Feed {
     pub path: PathBuf,
+    #[serde(
+        deserialize_with = "duration::deserialize",
+        serialize_with = "duration::serialize"
+    )]
     pub check_interval: Duration,
     pub signature_check: bool,
 }
@@ -41,6 +46,10 @@ pub struct Scheduler {
     pub max_running_scans: Option<usize>,
     #[serde(default)]
     pub min_free_mem: Option<u64>,
+    #[serde(
+        deserialize_with = "duration::deserialize",
+        serialize_with = "duration::serialize"
+    )]
     pub check_interval: Duration,
 }
 
@@ -732,6 +741,24 @@ mod tests {
     use crate::config::StorageType;
     use scannerlib::scanner::preferences::preference::ScanPrefValue;
     use std::{path::PathBuf, time::Duration};
+
+    #[test]
+    fn current_example_parseable() {
+        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
+        path.push_str("/examples/openvasd/config.example.toml");
+        let content = std::fs::read_to_string(&path).unwrap();
+
+        toml::from_str::<super::Config>(&content).unwrap();
+    }
+    #[test]
+    fn downards_compatible() {
+        let mut path = env!("CARGO_MANIFEST_DIR").to_string();
+        path.push_str("/examples/openvasd/config.example_v1.toml");
+
+        let content = std::fs::read_to_string(&path).unwrap();
+
+        toml::from_str::<super::Config>(&content).unwrap();
+    }
 
     #[test]
     fn defaults() {
