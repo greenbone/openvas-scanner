@@ -142,31 +142,6 @@ impl MapScanID for Scans {
             }
         })
     }
-    // fn contains_scan_id<'a>(
-    //     &'a self,
-    //     client_id: &'a str,
-    //     scan_id: &'a str,
-    // ) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send + 'a>> {
-    //     Box::pin(async move {
-    //         match query(
-    //             r#"SELECT 1
-    //             FROM scans
-    //             WHERE client_id = ? AND scan_id = ? "#,
-    //         )
-    //         .bind(client_id)
-    //         .bind(scan_id)
-    //         .fetch_one(&self.pool)
-    //         .await
-    //         {
-    //             Ok(_) => true,
-    //             Err(sqlx::Error::RowNotFound) => false,
-    //             Err(e) => {
-    //                 tracing::warn!(error=%e, "Unable to execute statement");
-    //                 false
-    //             }
-    //         }
-    //     })
-    // }
 }
 
 impl GetScans for Scans {
