@@ -95,9 +95,8 @@ pub async fn init(
     vt_pool: SqlitePool,
     feed_state: Arc<RwLock<FeedState>>,
     products: Arc<tokio::sync::RwLock<Notus<HashsumProductLoader>>>,
+    config: Config,
 ) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
-    let config = Config::load();
-
     let pool = config.database.create_pool().await?;
     MIGRATOR.run(&pool).await?;
 

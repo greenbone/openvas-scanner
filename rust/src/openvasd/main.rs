@@ -104,12 +104,10 @@ async fn main() -> Result<()> {
     let vts = Arc::new(vts);
     let scan = scans::init(pool.clone(), &config, get_feed_state(vts.clone())).await?;
     let (get_notus, post_notus) = notus::init(products.clone());
-    let (cis_scans, cis_vts) =
-        container_image_scanner::init(pool.clone(), feed_state2.clone(), products).await?;
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new()
         // TODO: use a lambda like in scanner instead.
         // That way we don't need to manage tokio::spawn_blocking all over the place
-        .feed_version(feed_state2);
+        .feed_version(feed_state2.clone());
     match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
             rb = rb.server_tls_cer(ServerCertificate::new(certificate, key))
@@ -126,6 +124,14 @@ async fn main() -> Result<()> {
     if let Some(client_certs) = config.tls.client_certs.clone() {
         rb = rb.path_client_certs(client_certs);
     }
+
+    let (cis_scans, cis_vts) = container_image_scanner::init(
+        pool.clone(),
+        feed_state2,
+        products,
+        config.container_image_scanner,
+    )
+    .await?;
 
     rb.insert_scans(Arc::new(scan))
         .insert_get_vts(vts.clone())

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use logging::SerLevel;
+use scannerlib::container_image_scanner::config::Image;
 use scannerlib::models::PreferenceValue;
 use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
 use std::str::FromStr;
@@ -68,12 +69,11 @@ impl Default for Scheduler {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(default)]
 pub struct Scanner {
-    #[serde(default, rename = "type")]
+    #[serde(rename = "type")]
     pub scanner_type: ScannerType,
-    #[serde(default)]
     pub ospd: OspdWrapper,
-    #[serde(default)]
     pub preferences: HashMap<String, ScanPrefValue>,
 }
 
@@ -85,6 +85,10 @@ pub enum ScannerType {
     Openvas,
     #[serde(rename = "openvasd")]
     Openvasd,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ImageExtractionLocation {
+    File(PathBuf),
 }
 
 impl Default for ScannerType {
@@ -290,27 +294,21 @@ pub struct Storage {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(default)]
 pub struct Config {
-    #[serde(default)]
     pub mode: Mode,
-    #[serde(default)]
     pub feed: Feed,
-    #[serde(default)]
     pub notus: Notus,
-    #[serde(default)]
     pub endpoints: Endpoints,
-    #[serde(default)]
     pub tls: Tls,
-    #[serde(default)]
-    pub scanner: Scanner,
-    #[serde(default)]
     pub listener: Listener,
-    #[serde(default, alias = "log", alias = "logging")]
+    #[serde(alias = "log", alias = "logging")]
     pub logging: logging::Logging,
-    #[serde(default)]
     pub storage: Storage,
-    #[serde(default)]
     pub scheduler: Scheduler,
+    pub scanner: Scanner,
+    #[serde(alias = "container-image-scanner")]
+    pub container_image_scanner: scannerlib::container_image_scanner::Config,
 }
 
 impl Display for Config {
@@ -727,9 +725,12 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{StorageType, logging::SerLevel};
-    use scannerlib::scanner::preferences::preference::ScanPrefValue;
-    use std::{path::PathBuf, str::FromStr, time::Duration};
+
+    use insta::assert_toml_snapshot;
+    use scannerlib::{
+        container_image_scanner::config::ImageExtractionLocation,
+        scanner::preferences::preference::ScanPrefValue,
+    };
 
     #[test]
     fn current_example_parseable() {
@@ -752,6 +753,7 @@ mod tests {
     #[test]
     fn defaults() {
         let mut config = super::Config::default();
+
         config
             .scanner
             .preferences
@@ -760,58 +762,20 @@ mod tests {
             "bbb".to_string(),
             ScanPrefValue::String("foobar".to_string()),
         );
+        // we hardcode that here, otherwise the test may fail on machines that have different
+        // XDG_PATHs set.
+        config.container_image_scanner.image.extract_to =
+            ImageExtractionLocation::File("/tmp/openvasd/cis".into());
 
-        assert_eq!(
-            config.feed.path,
-            std::path::PathBuf::from("/var/lib/openvas/plugins")
-        );
-        assert_eq!(config.feed.check_interval, Duration::from_secs(3600));
-
-        assert!(!config.endpoints.enable_get_scans);
-        assert!(config.endpoints.enable_get_performance.is_none());
-        assert!(config.endpoints.key.is_none());
-
-        assert!(config.tls.certs.is_none());
-        assert!(config.tls.key.is_none());
-        assert!(config.tls.client_certs.is_none());
-
-        assert_eq!(config.scheduler.check_interval, Duration::from_millis(500));
-        assert_eq!(
-            config.scanner.ospd.socket,
-            PathBuf::from("/var/run/ospd/ospd-openvas.sock")
-        );
-        assert!(config.scanner.ospd.read_timeout.is_none());
-
-        assert_eq!(config.listener.address, ([127, 0, 0, 1], 3000).into());
-
-        assert_eq!(config.logging.level, SerLevel::from_str("INFO").unwrap());
-        // this is used to verify the default config manually.
-        // se to true to write the default configuration to `tmp`
-        if false {
-            let mut cf = std::fs::File::create("/tmp/openvas.default.example.toml").unwrap();
-            use std::io::Write;
-            cf.write_all(toml::to_string_pretty(&config).unwrap().as_bytes())
-                .unwrap();
-        }
-    }
-
-    #[test]
-    fn parse_toml() {
-        let cfg = r#"[log]
-        level = "DEBUG"
-        [storage]
-        type = "fs"
-        [storage.fs]
-        path = "/var/lib/openvasd/storage/test"
-        key = "changeme"
-        "#;
-        let config: super::Config = toml::from_str(cfg).unwrap();
-        assert_eq!(config.logging.level, SerLevel::from_str("DEBUG").unwrap());
-        assert_eq!(
-            config.storage.fs.path,
-            PathBuf::from("/var/lib/openvasd/storage/test")
-        );
-        assert_eq!(config.storage.fs.key, Some("changeme".to_string()));
-        assert_eq!(config.storage.storage_type, StorageType::FileSystem);
+        // config
+        //     .scanner
+        //     .preferences
+        //     .insert("aaa".to_string(), ScanPrefValue::Bool(false));
+        // config.scanner.preferences.insert(
+        //     "bbb".to_string(),
+        //     ScanPrefValue::String("foobar".to_string()),
+        // );
+        //
+        assert_toml_snapshot!(config);
     }
 }

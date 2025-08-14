@@ -74,6 +74,8 @@ level = 'INFO'
 sqlx = 'WARN'
 
 
+
+
 [storage]
 # can be either fs (file system), redis or inmemory (in memory).
 # If it is set to fs is highly recommended to set `STORAGE_KEY` in the env variable.
@@ -106,3 +108,13 @@ path = "/var/lib/openvasd/storage"
 
 # Iteration interval for the scheduler
 check_interval = "500ms"
+
+[container_image_scanner.database]
+location = 'in-memory'
+busy_timeout = '2s'
+max_connections = 1
+
+[container_image_scanner.image]
+extract_to = '/tmp/openvasd/cis'
+max_scanning = 1
+batch_size = 1

@@ -363,17 +363,6 @@ where
 
     Ok(sender)
 }
-fn check_redis_url(config: &Config) -> String {
-    let redis_url = cmd::get_redis_socket();
-    if redis_url != config.storage.redis.url {
-        tracing::warn!(
-            openvas_redis = &redis_url,
-            openvasd_redis = &config.storage.redis.url,
-            "openvas and openvasd use different redis connection. Using openvas_redis."
-        );
-    }
-    redis_url
-}
 
 pub(super) async fn init_with_scanner<E, S>(
     pool: SqlitePool,
@@ -502,7 +491,8 @@ where
             init_with_scanner(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvas => {
-            let redis_url = check_redis_url(config);
+            let redis_url = cmd::get_redis_socket();
+
             let scanner = openvas::Scanner::new(
                 config.scheduler.min_free_mem,
                 None, // cpu_option are not available currently

@@ -517,19 +517,10 @@ mod scans_utils {
     }
 
     impl Fakes {
-        fn notus_config() -> Config {
-            let notus = crate::container_image_scanner::config::Notus {
-                ..Default::default()
-            };
-            crate::container_image_scanner::Config {
-                notus,
-                ..Default::default()
-            }
-        }
         pub async fn init() -> Self {
             let registry =
                 DockerRegistryV2Mock::serve_images(DockerRegistryV2Mock::supported_images()).await;
-            let config = Fakes::notus_config();
+            let config = Config::default();
             let (scheduler, entry) = in_memory_scheduler_and_scan(config).await;
 
             Self {
