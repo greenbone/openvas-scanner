@@ -159,10 +159,6 @@ codegen-units = 1
 [[bin]]
 name = "openvasd"
 path = "src/openvasd/main.rs"
-[[bin]]
-name = "openvasdold"
-path = "src/openvasdold/main.rs"
-
 
 [[bin]]
 name = "scannerctl"
