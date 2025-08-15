@@ -228,7 +228,7 @@ impl Hdrblob {
                     self.data_end,
                 )?;
                 if rdlen < 0 {
-                    return Err(anyhow!("invalid length of dribbel entries"));
+                    return Err(anyhow!("invalid length of dribble entries"));
                 }
                 index_entries.extend(dribble_index_entries);
 

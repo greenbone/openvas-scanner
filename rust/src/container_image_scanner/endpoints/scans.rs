@@ -104,8 +104,8 @@ impl PostScans for Scans {
             self.insert_scan(client_id, scan)
                 .await
                 .map_err(|x| match x {
-                    sqlx::Error::Database(dbe)
-                        if dbe.kind() == sqlx::error::ErrorKind::UniqueViolation =>
+                    sqlx::Error::Database(be)
+                        if be.kind() == sqlx::error::ErrorKind::UniqueViolation =>
                     {
                         PostScansError::DuplicateId(scan_id)
                     }
@@ -614,7 +614,7 @@ mod scans_utils {
         }
 
         #[allow(dead_code)]
-        /// This is just a toggle to temporaly use logging
+        /// This is just a toggle to temporally use logging
         pub fn init_logging() {
             let filter = tracing_subscriber::filter::Targets::new()
                 .with_default(tracing::Level::WARN)

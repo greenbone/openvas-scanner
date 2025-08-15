@@ -94,7 +94,7 @@ pub enum GetVTsError {
     #[error("Not yet available.")]
     NotYetAvailable,
 
-    #[error("Unexpected error occoured: {0}.")]
+    #[error("Unexpected error occurred: {0}.")]
     External(Box<dyn ExternalError + Send + Sync + 'static>),
 }
 

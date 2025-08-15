@@ -614,7 +614,7 @@ pub type InternalIdentifier = String;
 
 /// This trait is used for scan id specific endpoints to return an internal identifier.
 ///
-/// Rather than forcing the implemenation of a scan specific endpoint to check for themselves this
+/// Rather than forcing the implementation of a scan specific endpoint to check for themselves this
 /// trait is used. This not just makes the implementation easier but also allows us to get rid of
 /// async requirements when e.b. building a stream.
 ///

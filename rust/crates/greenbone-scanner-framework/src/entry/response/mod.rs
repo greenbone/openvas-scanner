@@ -92,7 +92,7 @@ impl BodyKind {
     /// Transforms a StreamResult into a BodyKind
     ///
     /// Verifies the first result of given StreamResult:
-    /// If it is ok then it will create a new stream with the first element and the resut
+    /// If it is ok then it will create a new stream with the first element and the result
     /// If it is Err then it will return the error bodykind
     /// If it is an empty stgream it will return an BodyKind::Stream with an empty stream
     pub async fn from_result_stream<T, E>(

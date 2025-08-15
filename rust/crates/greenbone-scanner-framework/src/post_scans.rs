@@ -88,7 +88,7 @@ where
 pub enum PostScansError {
     #[error("ID ({0}) is already in use.")]
     DuplicateId(String),
-    #[error("Unexpected error occoured: {0}.")]
+    #[error("Unexpected error occurred: {0}.")]
     External(Box<dyn ExternalError>),
 }
 

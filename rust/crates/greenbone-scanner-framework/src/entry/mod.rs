@@ -116,7 +116,7 @@ pub trait OnRequest: Prefixed {
 /// Will be called after the authorization and senity checks are done.
 ///
 /// It contains all the OnRequest implementations and iterates through them.
-/// When the path, method and autorization matches the requirements of OnRequest
+/// When the path, method and authorization matches the requirements of OnRequest
 /// the call method on that will be called.
 ///
 /// If the method is HEAD then the requirements but the Method will be checked

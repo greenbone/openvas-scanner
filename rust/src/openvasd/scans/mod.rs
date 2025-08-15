@@ -680,7 +680,7 @@ where
 
 pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
     // unwrap_or_else is a safe guard in the case the db is stored on disk but no key is provided.
-    // Otherweise the credentials can never be decrypted.
+    // Otherwise the credentials can never be decrypted.
     config
         .storage
         .credential_key()

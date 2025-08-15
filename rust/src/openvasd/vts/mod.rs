@@ -30,9 +30,9 @@ pub struct FeedSynchronizer {
     feed_state: Arc<RwLock<FeedState>>,
 }
 
-type FeedHashs = (String, String);
+type FeedHashes = (String, String);
 
-//TODO: move somewhere reuseable if necessary
+//TODO: move somewhere reusable if necessary
 fn sumfile_hash<S>(path: S) -> Result<String, scannerlib::feed::VerifyError>
 where
     S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
@@ -81,13 +81,13 @@ impl FeedSynchronizer {
         .unwrap()
     }
 
-    async fn calculate_hashs(&self) -> Result<FeedHashs, feed::VerifyError> {
+    async fn calculate_hashes(&self) -> Result<FeedHashes, feed::VerifyError> {
         let nasl_hash = self.calculate_hash(self.plugin_feed.clone()).await?;
         let advisories_hash = self.calculate_hash(self.advisory_feed.clone()).await?;
         Ok((nasl_hash, advisories_hash))
     }
 
-    async fn knowns_hashs(&self) -> Result<FeedHashs, sqlx::Error> {
+    async fn knowns_hashes(&self) -> Result<FeedHashes, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
         let mut tx = conn.begin().await?;
         let plugin_hash = query_scalar("SELECT hash FROM feed WHERE type = 'nasl'")
@@ -262,9 +262,9 @@ impl FeedSynchronizer {
 
     async fn synchronize_feeds(&self) -> Result<(), GetVTsError> {
         let (plugin_hash, advisories_hash) =
-            self.calculate_hashs().await.map_err(error_vts_error)?;
+            self.calculate_hashes().await.map_err(error_vts_error)?;
         let (known_plugin_hash, known_advisories_hash) =
-            self.knowns_hashs().await.map_err(error_vts_error)?;
+            self.knowns_hashes().await.map_err(error_vts_error)?;
         if known_plugin_hash != plugin_hash || known_advisories_hash != advisories_hash {
             tracing::info!("Update feed metadata");
             self.change_state(FeedState::Syncing).await;

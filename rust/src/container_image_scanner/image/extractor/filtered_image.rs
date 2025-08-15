@@ -35,7 +35,7 @@ impl From<docker_registry::render::RenderError> for ExtractorError {
 impl From<tokio::task::JoinError> for ExtractorError {
     fn from(value: tokio::task::JoinError) -> Self {
         tracing::warn!(error=?value, "Tokio is unable to join the task.");
-        ExtractorError::Io(std::io::Error::other("Unable to joing task."))
+        ExtractorError::Io(std::io::Error::other("Unable to joining task."))
     }
 }
 
@@ -52,7 +52,7 @@ impl super::Extractor for Extractor {
         Box::pin(async move {
             let base = config.image_extraction_location();
             let scan_id = image.id();
-            //TODO: remove unncessary parsing
+            //TODO: remove unnecessary parsing
             let image: Image = image.image.parse().unwrap();
             let base = base
                 .join("images")
@@ -94,7 +94,7 @@ impl super::Extractor for Extractor {
             tracing::warn!(
                 layer = layer.index,
                 assumed_layer = self.last_index + 1 + self.offset,
-                "Expected a diffferent layer index."
+                "Expected a different layer index."
             );
             self.offset += 1;
         }

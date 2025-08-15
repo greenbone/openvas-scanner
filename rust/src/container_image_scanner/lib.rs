@@ -56,7 +56,7 @@ macro_rules! concat_slices {
 
 /// Parses preferences from (str, str) to an actual preferences.
 ///
-/// Usually the preferences are comming from user input, are stored within preferences table and
+/// Usually the preferences are coming from user input, are stored within preferences table and
 /// then fetched and parsed for the actual system. See image::registry as an example.
 trait ParsePreferences<T> {
     fn parse_preference_entry(key: &str, value: &str) -> Option<T>;

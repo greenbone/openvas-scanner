@@ -23,11 +23,11 @@ fn create_test_layer(name: &str) -> Option<()> {
 
     let input_dir = format!("test-data/images/{name}");
     let input_dir = Path::new(&input_dir);
-    let outut = format!("test-data/layers/{name}.tar.gz");
-    let output_path = Path::new(&outut);
+    let output = format!("test-data/layers/{name}.tar.gz");
+    let output_path = Path::new(&output);
 
     if !output_path.exists() {
-        println!("cargo:info=Creating {outut}");
+        println!("cargo:info=Creating {output}");
 
         if let Some(parent_dir) = output_path.parent() {
             ignore_error(fs::create_dir_all(parent_dir))?;
@@ -38,7 +38,7 @@ fn create_test_layer(name: &str) -> Option<()> {
         ignore_error(tar.append_dir_all(".", input_dir))?;
         ignore_error(ignore_error(tar.into_inner())?.finish())?;
 
-        println!("cargo:info=Created {outut}.");
+        println!("cargo:info=Created {output}.");
     }
     Some(())
 }

@@ -28,13 +28,13 @@ pub enum ScannerArchImageError {
     NoPackages,
     #[error("Unable to fetch vulnerabilities: {0}")]
     Notus(#[from] notus::Error),
-    #[error("A DB error occured: {0}")]
+    #[error("A DB error occurred: {0}")]
     StoreResults(#[from] sqlx::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScannerError {
-    #[error("An error occured while handling a image: {0}")]
+    #[error("An error occurred while handling a image: {0}")]
     Image(#[from] ScannerArchImageError),
 
     #[error("Unable to extract image")]
@@ -43,7 +43,7 @@ pub enum ScannerError {
     #[error("Unable to parse: `{0}`. Scan failed because of incorrect user input.")]
     ImageParseError(#[from] ImageParseError),
 
-    #[error("Issues occured, that may lead to inaccurate results.")]
+    #[error("Issues occurred, that may lead to inaccurate results.")]
     NonInterrupting(Vec<String>),
 }
 

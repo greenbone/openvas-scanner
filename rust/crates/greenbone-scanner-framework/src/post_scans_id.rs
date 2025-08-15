@@ -102,7 +102,7 @@ where
 pub enum PostScansIDError {
     #[error("ALready running.")]
     Running,
-    #[error("Unexpected error occoured: {0}.")]
+    #[error("Unexpected error occurred: {0}.")]
     External(Box<dyn ExternalError>),
 }
 

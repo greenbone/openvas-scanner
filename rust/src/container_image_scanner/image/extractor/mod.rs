@@ -21,7 +21,7 @@ impl Location {
     /// Opens the underlying PathBuf
     ///
     /// As the Locator must ensure that the file exists it MUST not fail therefore we don't need to
-    /// pass an error arround and can panic instead as it is a logic error.
+    /// pass an error around and can panic instead as it is a logic error.
     pub async fn open(self) -> impl tokio::io::AsyncBufRead + Unpin {
         BufReader::new(File::open(&self.0).await.unwrap())
     }

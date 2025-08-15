@@ -162,7 +162,7 @@ where
     ) -> Result<(), sqlx::Error> {
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
-                warn!(error=%e, ids=?image.id, "Unable to initialize registery. Setting scan to failed.");
+                warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
                 return Ok(());
             }
             Ok(x) => x,

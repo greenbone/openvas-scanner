@@ -81,7 +81,7 @@ pub enum GetScansError {
     // TODO: GetScansID uses this, should be moved to there
     #[error("Not found.")]
     NotFound,
-    #[error("Unexpected error occoured: {0}.")]
+    #[error("Unexpected error occurred: {0}.")]
     External(Box<dyn ExternalError>),
 }
 

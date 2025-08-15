@@ -191,8 +191,8 @@ where
 {
     /// Checks for scans that are requested and may start them
     ///
-    /// After verifying concurrently running scans it starts a scan when the scan waas started
-    /// succesfully than it sets it to 'running', if the start fails then it sets it to failed.
+    /// After verifying concurrently running scans it starts a scan when the scan was started
+    /// successfully than it sets it to 'running', if the start fails then it sets it to failed.
     ///
     /// In the case that the ScanStarter implementation blocks start_scan is spawned as a
     /// background task.

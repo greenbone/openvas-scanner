@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
     //
     // I prefer the way Duration is handled there as well as logging configuration.
     // Maybe we can find a way to support the new style with the old for downwards compatibility
-    // reasons. Additionally the storage configuratio6 is now dated and needs to be overhauled.
+    // reasons. Additionally the storage configuration6 is now dated and needs to be overhauled.
     let config = Config::load();
     config.logging.init();
 

@@ -130,7 +130,7 @@ CREATE TABLE feed (
 CREATE TABLE plugins (
     oid TEXT PRIMARY KEY,
     feed_type TEXT NOT NULL,
-    -- we store the plugion as a json blob otherwise we would need to have 8 tables
+    -- we store the plugin as a json blob otherwise we would need to have 8 tables
     -- as we just need the information when we start a script it is simpler to fetch
     -- and then deserialize that blob into a struct than having to fetch data from multiple
     -- tables.
