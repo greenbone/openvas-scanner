@@ -33,6 +33,7 @@ impl Read for TcpDataStream {
         }
     }
 }
+
 impl TcpDataStream {
     pub fn set_tls(&mut self, tls: ClientConnection) {
         self.tls = Some(tls);
@@ -134,13 +135,13 @@ impl TcpConnection {
         stream.get_port()
     }
 
-    pub fn peer_certs(&mut self) -> Vec<CertificateDer> {
+    pub fn peer_certs(&mut self) -> &[CertificateDer<'static>] {
         if let Some(tls_conn) = &self.stream.get_ref().tls {
             if let Some(pc) = tls_conn.peer_certificates() {
-                return pc.to_vec();
+                return pc;
             }
         }
-        Vec::new()
+        &[]
     }
 
     pub fn ssl_version(&mut self) -> Option<i64> {

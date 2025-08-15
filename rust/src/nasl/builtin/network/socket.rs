@@ -17,15 +17,17 @@ use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
 use rustls::{
-    ClientConnection,
-    pki_types::{CertificateDer, ServerName},
+    ClientConnection, RootCertStore,
+    client::{WebPkiServerVerifier, danger::ServerCertVerifier},
+    pki_types::{CertificateDer, ServerName, UnixTime},
 };
+use rustls_native_certs::load_native_certs;
 use socket2::{Domain, Protocol, Socket, Type};
 use std::{
     io::{self, BufRead, Read, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr},
     str::FromStr,
-    sync::Mutex,
+    sync::{Arc, Mutex},
     thread::sleep,
     time::{Duration, SystemTime},
 };
@@ -84,6 +86,8 @@ pub enum SocketError {
     NoRouteToDestination(IpAddr),
     #[error("TLS client: {0}.")]
     FailedTlsNegotiation(String),
+    #[error("Failed to load system certificates.")]
+    FailedLoadRootCerts,
 }
 
 /// Interval used for timing tcp requests. Any tcp request has to wait at least
@@ -165,11 +169,11 @@ impl NaslSocket {
         NASL_ERR_NOERR
     }
 
-    pub fn peer_certs(&mut self) -> Vec<CertificateDer> {
+    pub fn peer_certs(&mut self) -> &[CertificateDer<'static>] {
         if let NaslSocket::Tcp(tcp_connection) = self {
             return tcp_connection.peer_certs();
         }
-        Vec::new()
+        &[]
     }
 
     pub fn ssl_version(&mut self) -> Option<i64> {
@@ -710,6 +714,7 @@ async fn socket_negotiate_ssl(
         )
         .map_err(|e| SocketError::FailedTlsNegotiation(e.to_string()).into())
     });
+
     let soc = nasl_sockets.get_open_socket_mut(socket)?;
     let hostname = "localhost";
     let client_conf = std::sync::Arc::new(client?);
@@ -740,6 +745,45 @@ async fn socket_get_cert(
         return Ok(NaslValue::Data(cert_list.first().unwrap().to_vec()));
     }
     Ok(NaslValue::Null)
+}
+
+#[nasl_function(named(socket))]
+async fn socket_cert_verify(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    let cert_list = soc.peer_certs();
+
+    let cert = if !cert_list.is_empty() {
+        cert_list.first().unwrap()
+    } else {
+        return Ok(NaslValue::Null);
+    };
+
+    let mut roots = RootCertStore::empty();
+    if load_native_certs()
+        .certs
+        .iter()
+        .map(|c| roots.add(c.clone()))
+        .collect::<Result<Vec<_>, _>>()
+        .is_err()
+    {
+        return Err(SocketError::FailedLoadRootCerts.into());
+    }
+
+    let now = UnixTime::now();
+    // TODO!: we need to get the target hostname name here if already fork()'ed or
+    // even fork() here.
+    let server = ServerName::try_from("localhost".to_owned()).unwrap();
+    let scv = WebPkiServerVerifier::builder(Arc::new(roots))
+        .build()
+        .unwrap();
+
+    match scv.verify_server_cert(cert, &cert_list[..&cert_list.len() - 1], &server, &[], now) {
+        Ok(_) => Ok(NaslValue::Number(0)),
+        _ => Ok(NaslValue::Number(1)),
+    }
 }
 
 #[nasl_function(named(socket))]
@@ -1169,6 +1213,7 @@ function_set! {
         socket_get_cert,
         socket_get_ssl_version,
         socket_get_error,
+        socket_cert_verify,
     )
 }
 
