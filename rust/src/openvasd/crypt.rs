@@ -56,6 +56,13 @@ pub struct ChaCha20Crypt {
 }
 
 impl ChaCha20Crypt {
+    pub fn new<K>(k: K) -> Self
+    where
+        K: Into<Key>,
+    {
+        ChaCha20Crypt { key: k.into() }
+    }
+
     fn encrypt_sync(key: &Key, mut data: Vec<u8>) -> Encrypted {
         let mut nonce = [0u8; 12];
         let mut rng = rand::thread_rng();

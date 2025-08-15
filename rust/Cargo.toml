@@ -91,6 +91,7 @@ libssh-rs = { version = "0.3.5", features = [
 ], optional = true }
 
 nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
+greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
 nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 openssl = { version = "0.10.72", features = ["vendored"] }
 blowfish = "0.9.1"
@@ -99,14 +100,30 @@ codespan-reporting = "0.11.1"
 dsa = "0.6.3"
 mtu = { version = "0.2.9", optional = true }
 
+sqlx = { version = "0.8.3", features = ["sqlite", "runtime-tokio-rustls" ] }
+tokio-serde-json = "0.3.0"
+tokio-util = "0.7.15"
+# container-image-scanner
+docker-registry = { version = "0.7.0", features = ["reqwest-rustls"] }
+rpmdb = { path = "crates/rpmdb-rs" }
+# can potentially be deleted when notus for container-image-scanner is not using http anymore
+reqwest = "0.12.23"
+
+
 [workspace]
-members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
+members = ["crates/smoketest", "crates/nasl-function-proc-macro", "crates/greenbone-scanner-framework"]
 
 [dev-dependencies]
 tracing-test = "0.2.5"
 criterion = "0"
 once_cell = "1.20.1"
-insta = { version = "1.41.1", features = ["ron"] }
+insta = { version = "1.41.1", features = ["ron", "toml"] }
+# for faking http responses
+mockito = "1.7.0"
+
+[build-dependencies]
+flate2 = "1"
+tar = "0"
 
 [features]
 default = [

@@ -325,6 +325,7 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
 }
 
 /// Contains all information  necessary to do a hash sum check
+#[derive(Debug)]
 pub struct HashSumFileItem<'a> {
     pub file_name: String,
     pub hashsum: String,

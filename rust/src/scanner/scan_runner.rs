@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::HostInfo;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::Target;
 use futures::{Stream, stream};
+use greenbone_scanner_framework::models::HostInfo;
 
 use crate::scanner::ScannerStack;
 use crate::scheduling::{ConcurrentVT, VTError};

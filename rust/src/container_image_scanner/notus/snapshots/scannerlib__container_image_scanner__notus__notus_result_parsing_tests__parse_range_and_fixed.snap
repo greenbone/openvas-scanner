@@ -1,0 +1,13 @@
+---
+source: src/container_image_scanner/notus/mod.rs
+expression: result
+---
+[
+  Result(
+    id: 0,
+    type: alarm,
+    hostname: Some("oci://holla/die:waldfee"),
+    oid: Some("1.1"),
+    message: Some("Vulnerable package: foo\nInstalled version:  foo-1.2.3\nFixed version:      <=foo-1.2.2\nFixed version:      >=foo-1.2.5\nVulnerable package: bar\nInstalled version:  bar-1.2.4\nFixed version:      >=bar-1.2.5"),
+  ),
+]

@@ -9,9 +9,9 @@ use crate::Filename;
 use crate::{CliError, CliErrorKind};
 
 use scannerlib::feed;
-use scannerlib::models;
 use scannerlib::nasl::WithErrorInfo;
 use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
+use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::storage::Dispatcher;
 use scannerlib::storage::items::notus_advisory::NotusCache;
@@ -22,7 +22,7 @@ use scannerlib::storage::redis::RedisStorage;
 use scannerlib::storage::redis::RedisWrapper;
 
 pub trait NotusStorage:
-    Dispatcher<(), Item = models::VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
+    Dispatcher<(), Item = VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
 {
 }
 
@@ -76,7 +76,7 @@ where
         for adv in advisories.advisories {
             let _ = storage.dispatch(
                 (),
-                models::VulnerabilityData {
+                VulnerabilityData {
                     adv,
                     family: advisories.family.clone(),
                     filename: filename.to_owned(),

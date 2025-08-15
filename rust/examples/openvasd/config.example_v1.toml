@@ -1,0 +1,106 @@
+# Openvasd contains several modes to control the behavior of it.
+# Service enables nasl and notus feed observations all endpoints.
+mode = "service"
+# Notus disables /scan endpoints and just observes the notus feed.
+# mode = "service_notus"
+
+[feed]
+# Path to the openvas feed. This is required for the /vts endpoint.
+path = "/var/lib/openvas/plugins"
+# Disables or enables the signature check
+signature_check = true
+
+[feed.check_interval]
+# How often the feed should be checked for updates
+secs = 3600
+nanos = 0
+
+[notus]
+# Path to the notus feed. This is required for the /notus endpoint
+products_path = "/var/lib/notus/products/"
+# path to the notus advisories feed. This is required for the /vts endpoint
+advisories_path = "/var/lib/notus/advisories/"
+
+[endpoints]
+# Enables GET /scans endpoint
+enable_get_scans = true
+# If set it requires `x-api-key` header to use the endpoint
+key = "mtls_is_preferred"
+
+[tls]
+# The server certificate
+certs = "/etc/openvasd/tls/server.pem"
+# Server key
+key = "/var/lib/openvasd/tls/server.rsa"
+# dir that contains client certificates. If there are none than every client is
+# allowed to connect otherwise just the clients that have the configured
+# client certificates.
+client_certs = "/etc/openvasd/tls/client"
+
+[scanner]
+# Supported types:
+#   "ospd": Old API which will be deprecated soon
+#   "openvas": Current C based openvas-scanner
+#   "openvasd": New Rust based scanner which is not yet fully implemented
+# If "ospd" is used the ospd related settings have to be set.
+# If "openvas" is selected the [storage] option has to be set to "redis".
+type = "openvas"
+
+[scanner.ospd]
+# Path to the unix socket of ospd-openvas
+socket = "/var/run/ospd/ospd.sock"
+
+[scanner.ospd.read_timeout]
+# Max time openvasd waits for an ospd-openvas response before
+# returning a 500 code (Internal server error). Using the config
+# file, it can be set in seconds and nanoseconds.
+secs = 1
+nanos = 0
+
+[ospd.result_check_interval]
+# interval of checking for results for started scans
+secs = 1
+nanos = 0
+
+[listener]
+# ip address and port to listen to
+address = "127.0.0.1:3000"
+
+[log]
+# level of the log messages: TRACE > DEBUG > INFO > WARN > ERROR
+level = "INFO"
+
+[storage]
+# can be either fs (file system), redis or inmemory (in memory).
+# If it is set to fs is highly recommended to set `STORAGE_KEY` in the env variable.
+# WARNING: if the type is set to fs and no encryption key is set then the data is stored unencrypted.
+# "redis" has to be chosen if the "openvas" scanner type is set.
+#type = "fs"
+type = "redis"
+#type = "inmemory"
+
+[storage.redis]
+# Set the redis url. When socket is used it has to start with `unix://`
+# if a username and password is required it also needs to set in the url:
+# redis://user:pass@localhost:6379
+url = "redis://localhost:6379"
+
+[storage.fs]
+# Sets the storage root directory if the storage.type is set to `fs`.
+path = "/var/lib/openvasd/storage"
+# Sets the key used to encrypt the storage data. It is recommended to set it via the `STORAGE_KEY` environment variable.
+#key = "changeme"
+
+[scheduler]
+# Sets the maximum number scans that can be queued at once. If not set, there is no limit.
+# max_queued_scans = 10
+# Sets the maximum number of scans that can run in parallel. If the maximum number is reached,
+# queued scans remain in the queue.  If not set, there is no limit.
+# max_running_scans = 10
+# Minimum memory that must be available in order to start a scan. If not set, there is no limit.
+# min_free_mem = 2147483648 # 2GiB
+
+[scheduler.check_interval]
+# Iteration interval for the scheduler
+secs = 0
+nanos = 500000000

@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::{Product, ProductsAdvisories};
+use greenbone_scanner_framework::models::Product;
+
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 
-use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError, check_signature};
+use crate::feed::check_signature;
+use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError};
+use crate::notus::advisories::ProductsAdvisories;
 use crate::notus::error::{Error, LoadProductErrorKind};
 
 use super::{AdvisoryLoader, FeedStamp, ProductLoader};
@@ -18,8 +21,8 @@ pub struct HashsumProductLoader {
 impl SignatureChecker for HashsumProductLoader {}
 
 impl HashsumProductLoader {
-    pub fn new(loader: FSPluginLoader) -> Result<Self, Error> {
-        Ok(Self { loader })
+    pub fn new(loader: FSPluginLoader) -> Self {
+        Self { loader }
     }
 }
 
