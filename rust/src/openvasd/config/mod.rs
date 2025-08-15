@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use logging::SerLevel;
-use scannerlib::container_image_scanner::config::{DBLocation, Image, SqliteConfiguration};
+use scannerlib::container_image_scanner::config::{DBLocation, SqliteConfiguration};
 use scannerlib::models::PreferenceValue;
 use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
 use std::str::FromStr;

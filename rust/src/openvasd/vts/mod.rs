@@ -9,8 +9,8 @@ use scannerlib::models::{FeedState, FeedType, VTData};
 use scannerlib::nasl::FSPluginLoader;
 use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
-use sqlx::{Acquire, Row};
-use sqlx::{Sqlite, SqlitePool, query, query_scalar};
+use sqlx::Acquire;
+use sqlx::{SqlitePool, query, query_scalar};
 
 use crate::config::Config;
 
@@ -319,7 +319,7 @@ pub async fn init(pool: SqlitePool, config: &Config) -> (Arc<RwLock<FeedState>>,
 mod tests {
     use super::*;
     use futures::StreamExt;
-    use greenbone_scanner_framework::{GetVts, models::Feed};
+    use greenbone_scanner_framework::GetVts;
     use sqlx::SqlitePool;
 
     use crate::{config::Config, setup_sqlite, vts::FeedSynchronizer};

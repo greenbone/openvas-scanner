@@ -1,5 +1,4 @@
-use core::fmt;
-use serde::{Deserialize, Deserializer, Serializer, de::Visitor};
+use serde::{Deserializer, Serializer, de::Visitor};
 use std::time::Duration;
 
 /// Deserialize a duration from a string like "1s", "500ms", etc.

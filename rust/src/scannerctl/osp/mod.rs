@@ -7,7 +7,6 @@ use std::path::Path;
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use scannerlib::models::{self, Parameter, Scan, VT};
-use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::storage::Retriever;
 use scannerlib::storage::inmemory::InMemoryStorage;
 use scannerlib::storage::items::nvt::{Feed, Nvt};

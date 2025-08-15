@@ -12,7 +12,6 @@ use super::dberror::RedisStorageResult;
 use itertools::Itertools;
 use redis::*;
 
-use greenbone_scanner_framework::models;
 
 use crate::notus::advisories::Vulnerability;
 use crate::notus::advisories::VulnerabilityData;

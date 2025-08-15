@@ -564,7 +564,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::scanner::preferences::preference::ScanPrefs;
+    
     use greenbone_scanner_framework::models::{
         self, AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan,
         Service,

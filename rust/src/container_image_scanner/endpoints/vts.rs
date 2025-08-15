@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::models::FeedState;
-use greenbone_scanner_framework::{ClientIdentifier, GetVTsError, GetVts, entry::Prefixed, models};
+use greenbone_scanner_framework::{GetVTsError, GetVts, entry::Prefixed, models};
 use sqlx::Row;
 use sqlx::{SqlitePool, query};
 

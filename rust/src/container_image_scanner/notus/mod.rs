@@ -1,12 +1,10 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use greenbone_scanner_framework::models::{self, FixedVersion, VulnerablePackage};
-use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 use crate::{
-    container_image_scanner::{Config, detection::OperatingSystem},
+    container_image_scanner::detection::OperatingSystem,
     nasl::FSPluginLoader,
     notus::{HashsumProductLoader, Notus},
 };
