@@ -34,12 +34,11 @@
 - socket_get_ssl_version
 - socket_negotiate_ssl
 - socket_get_error
+- socket_cert_verify
 
 ## Missing
 
 - get_sock_info
-- socket_cert_verify
-- socket_get_cert
 - socket_get_ssl_ciphersuite (Not used in the whole feed. Won't be implemented)
 - socket_get_ssl_session_id
 - socket_ssl_do_handshake
