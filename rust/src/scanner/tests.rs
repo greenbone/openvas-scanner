@@ -1,5 +1,6 @@
 use super::Scan;
 use super::preferences::preference::ScanPrefs;
+use crate::nasl::Code;
 use crate::nasl::ScanCtxBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::interpreter::Register;
