@@ -67,20 +67,19 @@ jobs:
           token: ${{ secrets.token }}
           fetch-depth: '0'
 
-      - name: set git credentials
+      - name: Set git credentials
         run: |
-             git config --global user.email "${{ secrets.email }}"
-             git config --global user.name "${{ secrets.name }}"
-      - name: "create working branch for previous major release (${{ env.LATEST_VERSION }})"
-        if: ( env.RELEASE_KIND == 'major' )
+          git config --global user.email "${{ secrets.email }}"
+          git config --global user.name "${{ secrets.name }}"
+
+      - name: Create working branch for previous major release (${{ env.LATEST_VERSION }})
+        if: env.RELEASE_KIND == 'major'
         run: |
-          # checkout latest version 
           git checkout "v${{ env.LATEST_VERSION }}"
-          # get just the major version of latest version 
           export BRANCH_NAME=$(echo "${{ env.LATEST_VERSION }}" | sed 's/^\([0-9]*\).*/v\1/')
           git checkout -b "$BRANCH_NAME" && git push origin "$BRANCH_NAME" || true
-      # create binaries
-      - uses: greenbone/actions/setup-pontos@v3
+
+      # Create binaries
       - uses: ./.github/actions/compile-x86_64
       - uses: ./.github/actions/compile-aarch64
       - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
@@ -89,20 +88,13 @@ jobs:
       - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
       - run: rm -rf assets/linux
       - run: ls -las assets/
-      # create branch of version
-      - name: prepare project version ${{ env.RELEASE_REF }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
+      
+      # Create branch of version
+      - name: Prepare project version ${{ env.RELEASE_REF }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
         run: |
-          # jump back for the case that we switched to a tag
           git checkout "${{ env.RELEASE_REF }}"
-          # ignore failure on setting version
-          pontos-version update ${{ env.NEW_VERSION }} || true
-          # set app version on chart
           awk '{sub(/appVersion: "[0-9]+\.[0-9]+\.[0-9]+"/,"appVersion: \"${{ env.NEW_VERSION }}\""); print}' charts/openvasd/Chart.yaml | tee /tmp/Chart.yaml
           mv /tmp/Chart.yaml charts/openvasd/Chart.yaml
-          # as soon as pontos-version release is available and it supports cargo do
-          # cd rust
-          # pontos-version update ${{ env.NEW_VERSION }}
-          # but since we don't upload cargo modules to registry the version doesn't matter as of now.
           if git diff --exit-code --quiet; then
             echo "There are no modified files, skipping."
           else
@@ -113,24 +105,35 @@ jobs:
             git rebase origin/${{ env.RELEASE_REF}}
             git push origin ${{ env.RELEASE_REF }}
           fi
-      - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
+
+      # Install and run git-cliff to generate changelog
+      - name: Install git-cliff
+        uses: greenbone/actions/uv@v3
+        with:
+          install: git-cliff
+
+      - name: Generate changelog with git-cliff
         run: |
-          pontos-changelog \
-            --current-version ${{ env.LATEST_VERSION }} \
-            --next-version ${{ env.NEW_VERSION }} \
-            --config changelog.toml \
-            --repository $REPOSITORY \
-            --versioning-scheme semver \
-            -o /tmp/changelog.md   || true
-          # we would rather have empty release notes than no release
-          if [ ! -f "/tmp/changelog.md" ]; then
-            touch /tmp/changelog.md
-          fi
-          echo "${{ secrets.token }}" | gh auth login --with-token
+          git-cliff -v --strip header -o /tmp/changelog.md --tag "${{ env.NEW_VERSION }}" "${{ env.LATEST_VERSION }}..HEAD"
+
+      # Create GitHub Release with changelog
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.token }}
+        run: |
           export nrn="v${{ env.NEW_VERSION }}"
           gh release create "$nrn" -F /tmp/changelog.md
 
-      - name: "sign ${{ env.PROJECT }}"
+      # Update CHANGELOG.md in the repo after release
+      - name: Update CHANGELOG.md
+        run: |
+          git-cliff -v -o CHANGELOG.md --tag "${{ env.NEW_VERSION }}"
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for v${{ env.NEW_VERSION }}" || echo "No changes to commit"
+          git push origin "${{ env.RELEASE_REF }}"
+
+      # Sign assets and upload to release
+      - name: Sign ${{ env.PROJECT }}
         run: |
           export nrn="v${{ env.NEW_VERSION }}"
           export filename="$PROJECT-$nrn"
