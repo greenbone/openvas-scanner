@@ -114,7 +114,11 @@ jobs:
 
       - name: Generate changelog with git-cliff
         run: |
-          git-cliff -v --strip header -o /tmp/changelog.md --tag "${{ env.NEW_VERSION }}" "${{ env.LATEST_VERSION }}..HEAD"
+          git-cliff -v --strip header -o /tmp/changelog.md --config cliff.toml --tag "${{ env.NEW_VERSION }}" "v${{ env.LATEST_VERSION }}..HEAD"
+          # Fallback if changelog is empty
+          if [ ! -s "/tmp/changelog.md" ]; then
+            echo "No release notes. See commit history for details." > /tmp/changelog.md
+          fi
 
       # Create GitHub Release with changelog
       - name: Create GitHub Release
