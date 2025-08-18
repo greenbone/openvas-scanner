@@ -75,7 +75,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libpopt0 \
   libcurl4 \
   libcurl3-gnutls \
-  libhiredis0.14 \
+  libhiredis1.1.0 \
   zlib1g\
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
