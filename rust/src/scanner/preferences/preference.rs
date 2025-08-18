@@ -88,7 +88,7 @@ pub const PREFERENCES: [ScanPreferenceInformation; 23] = [
     ScanPreferenceInformation {
         id: "plugins_timeout",
         name: "Plugins Timeout",
-        default: PreferenceValue::Int(5),
+        default: PreferenceValue::Int(320),
         description: "This is the maximum lifetime, in seconds of a plugin. It may happen \
         that some plugins are slow because of the way they are written or \
         the way the remote server behaves. This option allows you to make \
