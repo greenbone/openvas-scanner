@@ -14,7 +14,7 @@ mod host;
 mod http;
 mod isotime;
 mod knowledge_base;
-mod misc;
+pub mod misc;
 mod network;
 mod preferences;
 #[cfg(feature = "nasl-builtin-raw-ip")]
