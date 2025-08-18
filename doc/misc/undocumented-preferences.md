@@ -2,7 +2,7 @@
 
 Some scanner preferences are found in the scanner code but are not documented in the man page. This is because such preferences are for internal usage or just preferences to be set via the client and there is no intention to be set via the configuration file. The following are the preferences and what they are used for and the reason they are not documented in the man page.
 
-- auth_port_ssh: This setting is scanner wide. Not to be set in the config file since it has priority. This should be set by the client. Internally used. It will be set by the client, else it is checked in the kb, else defaults to 22 (SSH default port).
+- auth_port_ssh: This setting is scanner wide. Not to be set in the config file since it has priority. Internally used. It will be set by the client, else it is checked in the kb, else defaults to 22 (SSH default port).
 - config_file: It is set via command line. If set in the configuration file, the scanner loads configuration set in the file where this setting is pointing to.
 - TARGET: Is the host list to be attacked. Internally used and set by the client.
 - exclude_hosts: excluded host from the TARGET list. Internally used and set by the client.
