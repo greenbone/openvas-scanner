@@ -152,7 +152,7 @@ jobs:
       - name: prepare setup
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
-            docker.io
+            docker.io docker-cli
           FEED_DIR="feed/" sh .github/prepare-feed.sh
           install -m 755 assets/linux/amd64/feed-verifier /usr/local/bin/
           install -m 755 assets/linux/amd64/scannerctl /usr/local/bin/
