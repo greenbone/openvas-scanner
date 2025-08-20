@@ -120,21 +120,6 @@ impl LambdaBuilder {
         self.lambda.start = Box::new(f);
         self
     }
-    pub fn with_stop<F>(mut self, f: F) -> Self
-    where
-        F: Fn(&str) -> Result<(), Error> + Sync + Send + 'static,
-    {
-        self.lambda.stop = Box::new(f);
-        self
-    }
-    pub fn with_delete<F>(mut self, f: F) -> Self
-    where
-        F: Fn(&str) -> Result<(), Error> + Sync + Send + 'static,
-    {
-        self.lambda.delete = Box::new(f);
-        self
-    }
-
     pub fn with_fetch<F>(mut self, f: F) -> Self
     where
         F: Fn(&str) -> Result<ScanResults, Error> + Sync + Send + 'static,

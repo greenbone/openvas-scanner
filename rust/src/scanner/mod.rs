@@ -29,7 +29,7 @@ mod tests;
 pub use error::ExecuteError;
 pub use scan::Scan;
 pub use scan_runner::ScanRunner;
-pub use scanner_stack::ScannerStack;
+use scanner_stack::ScannerStack;
 pub use scanner_stack::ScannerStackWithStorage;
 
 use async_trait::async_trait;
@@ -48,9 +48,7 @@ use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
 use crate::storage::Remover;
 use crate::storage::ScanID;
-use crate::storage::inmemory::InMemoryStorage;
 use running_scan::{RunningScan, RunningScanHandle};
-use scanner_stack::DefaultScannerStack;
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct Scanner<S: ScannerStack> {
@@ -65,24 +63,13 @@ where
     St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
     L: Loader + 'static,
 {
-    pub fn new(storage: St, loader: L, executor: Executor) -> Self {
+    fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),
             loader: Arc::new(loader),
             function_executor: Arc::new(executor),
         }
-    }
-}
-
-impl Scanner<DefaultScannerStack> {
-    /// Create a new scanner with the default stack.
-    /// Requires the root path for the loader.
-    pub fn with_default_stack(root: &Path) -> Self {
-        let storage = Arc::new(InMemoryStorage::new());
-        let loader = FSPluginLoader::new(root);
-        let executor = nasl_std_functions();
-        Self::new(storage, loader, executor)
     }
 }
 

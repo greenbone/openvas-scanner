@@ -359,11 +359,12 @@ impl<'de> Deserialize<'de> for Target {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 // TODO: replace kind, username and password with enum
 pub struct Credentials {
-    pub credential: Option<Vec<Credential>>,
+    credential: Option<Vec<Credential>>,
 }
+
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 // TODO: replace kind, username and password with enum
-pub struct Credential {
+struct Credential {
     pub kind: String,
     pub service: String,
     pub port: Option<String>,

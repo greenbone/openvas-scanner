@@ -38,7 +38,7 @@ static RE: Lazy<Regex> = lazy_regex!(r"(\d+|.)");
 /// These two steps (comparing and removing initial non-digit strings and initial digit strings) are
 /// repeated until a difference is found or both strings are exhausted.
 #[derive(PartialEq, Debug, Clone)]
-pub struct PackageVersion(pub String);
+struct PackageVersion(String);
 
 impl Display for PackageVersion {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

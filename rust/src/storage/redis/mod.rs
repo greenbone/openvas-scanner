@@ -9,7 +9,6 @@ mod connector;
 mod dberror;
 
 use std::sync::Mutex;
-use std::sync::MutexGuard;
 
 use connector::CACHE_KEY;
 /// Default selector for feed update
@@ -56,14 +55,6 @@ where
     kbs: InMemoryKbStorage,
 }
 
-impl<R: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt> RedisStorage<R> {
-    fn lock_cache(&self) -> Result<MutexGuard<'_, R>, DbError> {
-        self.cache
-            .lock()
-            .map_err(|e| DbError::PoisonedLock(format!("{e:?}")))
-    }
-}
-
 impl RedisStorage<RedisCtx> {
     /// Initialize and return an NVT Cache Object
     ///
@@ -79,16 +70,6 @@ impl RedisStorage<RedisCtx> {
             cache: Mutex::new(rctx),
             kbs: InMemoryKbStorage::default(),
         })
-    }
-
-    /// Reset the NVT Cache and release the redis namespace
-    pub fn reset(&self) -> RedisStorageResult<()> {
-        self.lock_cache()?.delete_namespace()
-    }
-
-    /// Reset the NVT Cache. Do not release the namespace. Only ensure it is clean
-    pub fn flushdb(&self) -> RedisStorageResult<()> {
-        self.lock_cache()?.flush_namespace()
     }
 }
 

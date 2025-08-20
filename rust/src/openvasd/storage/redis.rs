@@ -38,7 +38,7 @@ pub struct Storage<T> {
 }
 
 impl<T> Storage<T> {
-    pub fn new(underlying: T, url: String, feed: Vec<FeedHash>) -> Storage<T> {
+    fn new(underlying: T, url: String, feed: Vec<FeedHash>) -> Storage<T> {
         Storage {
             hash: RwLock::new(feed),
             url: Arc::new(url),

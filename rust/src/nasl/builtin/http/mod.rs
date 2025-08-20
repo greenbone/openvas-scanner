@@ -60,7 +60,7 @@ fn get_user_agent(context: &ScanCtx) -> Result<String, FnError> {
     }
 }
 
-pub struct Handle {
+struct Handle {
     pub handle_id: i32,
     pub header_items: Vec<(String, String)>,
     pub http_code: u16,
@@ -108,7 +108,7 @@ fn next_handle_id(handles: &MutexGuard<Vec<Handle>>) -> i32 {
 
 /// NoVerifier is to allow insecure connections
 #[derive(Debug)]
-pub struct NoVerifier;
+struct NoVerifier;
 
 /// DANGER: This custom implementation of the SeverCertVerifier
 /// is really dangerous and return success for all and everything.
@@ -468,12 +468,12 @@ function_set! {
 pub struct NaslHttp;
 
 #[nasl_function]
-pub async fn close_socket(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
+async fn close_socket(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(), FnError> {
     close_shared(sockets, socket_fd)
 }
 
 #[nasl_function(named(timeout, transport, bufsz))]
-pub async fn open_socket(
+async fn open_socket(
     context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
@@ -548,12 +548,12 @@ fn http_req_shared(
 }
 
 #[nasl_function(named(port, item))]
-pub fn get(context: &ScanCtx, port: Port, item: String) -> Result<NaslValue, FnError> {
+fn get(context: &ScanCtx, port: Port, item: String) -> Result<NaslValue, FnError> {
     http_req_shared(context, Method::GET, port, item, None)
 }
 
 #[nasl_function]
-pub fn head(
+fn head(
     context: &ScanCtx,
     port: Port,
     item: String,
@@ -563,7 +563,7 @@ pub fn head(
 }
 
 #[nasl_function]
-pub fn post(
+fn post(
     context: &ScanCtx,
     port: Port,
     item: String,
@@ -573,7 +573,7 @@ pub fn post(
 }
 
 #[nasl_function]
-pub fn delete(
+fn delete(
     context: &ScanCtx,
     port: Port,
     item: String,
@@ -583,7 +583,7 @@ pub fn delete(
 }
 
 #[nasl_function]
-pub fn put(
+fn put(
     context: &ScanCtx,
     port: Port,
     item: String,
@@ -593,7 +593,7 @@ pub fn put(
 }
 
 #[nasl_function]
-pub fn cgi_bin(context: &ScanCtx) -> String {
+fn cgi_bin(context: &ScanCtx) -> String {
     context
         .scan_params()
         .find(|x| x.id == "cgi-path")

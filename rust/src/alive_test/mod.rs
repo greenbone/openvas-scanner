@@ -13,4 +13,4 @@ mod icmp;
 mod tcp_ping;
 
 pub use alive_test::Scanner;
-pub use error::Error as AliveTestError;
+use error::Error as AliveTestError;

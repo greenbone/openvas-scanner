@@ -248,7 +248,7 @@ impl Hasher {
     }
 
     /// Returns the hash of a given reader and key
-    pub fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
+    fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
     where
         R: Read,
     {
@@ -293,12 +293,6 @@ impl<'a> HashSumNameLoader<'a> {
             self.hasher.sum_file(),
         )
     }
-}
-
-/// Defines a file name loader to load filenames
-pub trait FileNameLoader {
-    /// Returns the next filename
-    fn next_filename(&mut self) -> Option<Result<String, Error>>;
 }
 
 impl<'a> Iterator for HashSumNameLoader<'a> {
@@ -359,91 +353,6 @@ impl HashSumFileItem<'_> {
     /// returns hash sum
     pub fn get_hashsum(&self) -> String {
         self.hashsum.clone()
-    }
-}
-
-/// Finds .nasl and .inc files within a given path.
-///
-/// If the base is set it returns the relative path otherwise the absolute path.
-/// When the relative path is returned it behaves exactly like a `HashSumNameLoader`.
-pub struct NaslFileFinder {
-    base: Option<String>,
-    paths: glob::Paths,
-}
-
-impl NaslFileFinder {
-    /// Initializes NaslFileFinder based on a base path.
-    pub fn new<P>(base: P, relative: bool) -> Self
-    where
-        P: AsRef<str>,
-    {
-        let paths = glob::glob(&format!("{}/**/*", base.as_ref())).expect("valid glob pattern");
-        Self {
-            base: if relative {
-                Some(base.as_ref().to_string())
-            } else {
-                None
-            },
-            paths,
-        }
-    }
-}
-
-impl Loader for NaslFileFinder {
-    fn load(&self, key: &str) -> Result<String, LoadError> {
-        let path = if let Some(base) = &self.base {
-            let path: std::path::PathBuf = base.into();
-            path.join(key)
-        } else {
-            key.into()
-        };
-
-        // unfortunately nasl is still in iso-8859-1
-        crate::nasl::syntax::load_non_utf8_path(path.as_path())
-    }
-
-    fn root_path(&self) -> Result<String, LoadError> {
-        self.base.clone().ok_or_else(|| {
-            LoadError::Dirty("NaslFileFinder is not initialized with a base path".to_string())
-        })
-    }
-}
-
-impl Iterator for NaslFileFinder {
-    type Item = Result<String, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.paths.next() {
-                Some(result) => {
-                    let result = result.map_err(|e| {
-                        Error::LoadError(LoadError::Dirty(format!("Not a valid file: {e}",)))
-                    });
-
-                    match result {
-                        Ok(f) => {
-                            let filename = f.display().to_string();
-                            if filename.ends_with(".nasl") | filename.ends_with(".inc") {
-                                let result = if let Some(base) = &self.base {
-                                    filename.trim_start_matches(base).trim_start_matches('/')
-                                } else {
-                                    &filename
-                                };
-                                return Some(Ok(result.to_owned()));
-                            }
-                        }
-                        Err(e) => return Some(Err(e)),
-                    }
-                }
-                None => return None,
-            }
-        }
-    }
-}
-
-impl FileNameLoader for NaslFileFinder {
-    fn next_filename(&mut self) -> Option<Result<String, Error>> {
-        self.next()
     }
 }
 

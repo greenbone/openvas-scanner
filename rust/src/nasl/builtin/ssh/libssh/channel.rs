@@ -38,7 +38,7 @@ impl Channel {
             .map_err(|e| SshErrorKind::OpenSession.with(self.session_id).with(e))
     }
 
-    pub fn is_closed(&self) -> bool {
+    fn is_closed(&self) -> bool {
         self.channel.is_closed()
     }
 
