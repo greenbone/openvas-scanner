@@ -167,7 +167,7 @@ where
     let storage = St::from_config_and_feeds(config, feeds)?;
 
     match config.scanner.scanner_type {
-        ScannerType::OSPD => {
+        ScannerType::Ospd => {
             let scanner = make_osp_scanner(config);
             run_with_scanner_and_storage(scanner, storage, config).await
         }
