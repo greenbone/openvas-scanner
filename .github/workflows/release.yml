@@ -62,7 +62,7 @@ jobs:
       PROJECT: ${{inputs.project}}
       REPOSITORY: ${{inputs.repository}}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.token }}
           fetch-depth: '0'

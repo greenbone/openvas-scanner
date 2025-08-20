@@ -7,7 +7,7 @@ jobs:
     runs-on: self-hosted-generic
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Formatting
         run: sh .github/check-c-formatting.sh ${{ github.base_ref }}
   Rust:
@@ -16,7 +16,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-rust
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
@@ -27,7 +27,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-rust
       - run: cargo install typos-cli || true
       - run: typos
@@ -37,13 +37,13 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: cargo install cargo-audit || true
       - run: cargo audit
   License-Headers:
     runs-on: self-hosted-generic
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Check license headers
         run: bash ./check_license_headers.bash
