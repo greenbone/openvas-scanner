@@ -48,11 +48,11 @@ impl TcpDataStream {
     }
 
     pub fn get_port(&self) -> u16 {
-        if let Ok(peer) = self.sock.peer_addr() {
-            if let Some(s) = peer.as_socket() {
+        if let Ok(peer) = self.sock.peer_addr()
+            && let Some(s) = peer.as_socket() {
                 return s.port();
+                
             }
-        }
         0
     }
 }
@@ -136,11 +136,10 @@ impl TcpConnection {
     }
 
     pub fn peer_certs(&mut self) -> &[CertificateDer<'static>] {
-        if let Some(tls_conn) = &self.stream.get_ref().tls {
-            if let Some(pc) = tls_conn.peer_certificates() {
+        if let Some(tls_conn) = &self.stream.get_ref().tls
+            && let Some(pc) = tls_conn.peer_certificates() {
                 return pc;
             }
-        }
         &[]
     }
 
