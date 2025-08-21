@@ -384,6 +384,13 @@ impl ScanPrefs {
         self.0.iter().find(|x| x.id == key).map(|x| x.value.clone())
     }
 
+    pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
+        self.0
+            .iter()
+            .find(|x| x.id == key)
+            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &ScanPreference> {
         self.0.iter()
     }
