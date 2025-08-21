@@ -20,7 +20,7 @@ pub struct Status {
 }
 
 impl Status {
-    pub fn is_running(&self) -> bool {
+    fn is_running(&self) -> bool {
         self.status.is_running()
     }
 
@@ -69,7 +69,7 @@ pub enum Phase {
 }
 
 impl Phase {
-    pub fn is_running(&self) -> bool {
+    fn is_running(&self) -> bool {
         matches!(self, Self::Running | Self::Requested)
     }
 }

@@ -74,7 +74,7 @@ mod slack_tests {
     use super::Windows;
 
     #[test]
-    pub fn test_compare_gt() {
+    fn test_compare_gt() {
         let package1 = Windows {
             name: "Windows Server 2025 x64".to_string(),
             prefix: "10.0.26100".to_string(),
@@ -89,7 +89,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_name() {
+    fn test_compare_gt_different_name() {
         let package1 = Windows {
             name: "Windows Server 2025 x64".to_string(),
             prefix: "10.0.26100".to_string(),
@@ -106,7 +106,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_gt_different_prefix() {
+    fn test_compare_gt_different_prefix() {
         let package1 = Windows {
             name: "Windows Server 2025 x64".to_string(),
             prefix: "10.0.26100".to_string(),
@@ -123,7 +123,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_compare_equal() {
+    fn test_compare_equal() {
         let package1 = Windows {
             name: "Windows Server 2025 x64".to_string(),
             prefix: "10.0.26100".to_string(),
@@ -138,7 +138,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_from_full_name() {
+    fn test_from_full_name() {
         assert!(Windows::from_full_name("").is_none());
 
         let package = Windows::from_full_name("Windows Server 2025 x64;10.0.26100.1000").unwrap();
@@ -148,7 +148,7 @@ mod slack_tests {
     }
 
     #[test]
-    pub fn test_from_name_and_full_version() {
+    fn test_from_name_and_full_version() {
         assert!(Windows::from_name_and_full_version("", "").is_none());
 
         let package = Windows::from_name_and_full_version(

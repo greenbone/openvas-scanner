@@ -63,20 +63,6 @@ pub fn get_named_arg<'a, T: FromNaslValue<'a>>(
     <T as FromNaslValue>::from_nasl_value(register.nasl_value(name)?)
 }
 
-/// A convenience function to obtain an optional, argument
-/// that can be either positional or named from the `Register`.
-pub fn get_optional_maybe_named_arg<'a, T: FromNaslValue<'a>>(
-    register: &'a Register,
-    name: &'a str,
-    position: usize,
-) -> Result<Option<T>, FnError> {
-    let via_position = get_optional_positional_arg::<T>(register, position)?;
-    match via_position {
-        Some(via_position) => Ok(Some(via_position)),
-        _ => get_optional_named_arg(register, name),
-    }
-}
-
 /// A convenience function to obtain an argument
 /// that can be either positional or named from the `Register`.
 pub fn get_maybe_named_arg<'a, T: FromNaslValue<'a>>(

@@ -29,7 +29,7 @@ pub enum Error {
     #[error("Pcap: No valid interface {0}")]
     NoValidInterface(String),
     #[error("Fail spawning the task {0}")]
-    JoinError(String),
+    Join(String),
     #[error("Fail to get device list {0}")]
     GetDeviceList(String),
     #[error("Fail to get local MAC address {0}")]

@@ -123,7 +123,7 @@ where
 {
     /// Create a new Vulnerability Test based on a given OID and fixed_package. The fixed_package
     /// is used for comparing an installed package to this vulnerability.
-    pub fn create(oid: String, fixed_package: &FixedPackage) -> Option<(String, Self)> {
+    fn create(oid: String, fixed_package: &FixedPackage) -> Option<(String, Self)> {
         match &fixed_package {
             // Package information can be either given by full name, name and full version
             // or as a range
@@ -217,7 +217,7 @@ where
 /// Information for a Package can either be a single version with a comparison specifier or a
 /// version range.
 #[derive(Debug, Clone)]
-pub enum PackageInformation<P>
+enum PackageInformation<P>
 where
     P: Package,
 {

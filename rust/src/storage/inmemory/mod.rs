@@ -320,7 +320,7 @@ mod tests {
     };
 
     #[test]
-    pub fn nvt() -> Result<(), StorageError> {
+    fn nvt() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
         let nvt = Nvt {
@@ -334,7 +334,7 @@ mod tests {
     }
 
     #[test]
-    pub fn nvt_oid() -> Result<(), StorageError> {
+    fn nvt_oid() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
         let nvt = Nvt {
@@ -349,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    pub fn kb() {
+    fn kb() {
         let storage = InMemoryStorage::default();
         let key = KbContextKey::default();
         let value1 = KbItem::String("1".to_string());

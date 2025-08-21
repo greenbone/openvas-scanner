@@ -52,12 +52,6 @@ impl Error {
     }
 }
 
-impl ErrorKind {
-    pub fn into_error(self, span: Span) -> SpannedError {
-        SpannedError { span, kind: self }
-    }
-}
-
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Self {
         Error { kind, span: None }

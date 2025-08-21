@@ -153,7 +153,7 @@ pub enum CredentialType {
 
 impl CredentialType {
     /// Uses given closure to transform the password of the credential.
-    pub fn map_password<F, E>(self, f: F) -> Result<Self, E>
+    fn map_password<F, E>(self, f: F) -> Result<Self, E>
     where
         F: Fn(String) -> Result<String, E>,
     {

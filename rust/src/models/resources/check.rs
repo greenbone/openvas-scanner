@@ -34,7 +34,7 @@ impl Checker {
     }
 
     /// Returns a list of resource observables that are not within the threshold.
-    pub fn breakaways(&self) -> Vec<ObservableResources> {
+    fn breakaways(&self) -> Vec<ObservableResources> {
         let mut results = Vec::with_capacity(2);
         let available = super::available();
         if let Some(free) = self.memory

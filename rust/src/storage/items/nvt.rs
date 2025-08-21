@@ -339,14 +339,10 @@ pub struct Oid(pub String);
 #[derive(Clone)]
 pub struct FileName(pub String);
 
-pub type NvtContextKeyField = (String, NvtKey, NvtField);
-
 #[derive(Clone)]
 pub struct FeedVersion;
 
 pub struct Feed;
-
-pub type FeedFilter = Vec<NvtField>;
 
 /// Preferences that can be set by a user when running a script.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -548,8 +544,6 @@ pub struct Nvt {
     pub family: String,
 }
 
-pub type NvtIdentifier = String;
-
 impl Display for Nvt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "VT {} ({})", self.oid, self.filename)
@@ -578,29 +572,6 @@ impl Nvt {
             NvtField::Category(s) => self.category = s,
             NvtField::Family(s) => self.family = s,
         };
-    }
-    /// Verifies if a nvt is matching a field
-    pub fn matches_field(&self, field: &NvtField) -> bool {
-        match field {
-            NvtField::Oid(x) => &self.oid == x,
-            NvtField::FileName(x) => &self.filename == x,
-            NvtField::Name(x) => &self.name == x,
-            NvtField::Tag(a, _) => self.tag.contains_key(a),
-            NvtField::Dependencies(x) => &self.dependencies == x,
-            NvtField::RequiredKeys(x) => &self.required_keys == x,
-            NvtField::MandatoryKeys(x) => &self.mandatory_keys == x,
-            NvtField::ExcludedKeys(x) => &self.excluded_keys == x,
-            NvtField::RequiredPorts(x) => &self.required_ports == x,
-            NvtField::RequiredUdpPorts(x) => &self.required_udp_ports == x,
-            NvtField::Preference(x) => self.preferences.contains(x),
-            NvtField::Reference(x) => &self.references == x,
-            NvtField::Category(x) => &self.category == x,
-            NvtField::Family(x) => &self.family == x,
-        }
-    }
-    /// Verifies if a nvt is matching a field
-    pub fn matches_any_field(&self, field: &[NvtField]) -> bool {
-        field.iter().any(|x| self.matches_field(x))
     }
 }
 

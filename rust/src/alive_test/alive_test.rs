@@ -43,7 +43,7 @@ const L2_FRAME_OFFSET: usize = 16;
 const BITS_PER_WORD_IP_HEADER_LEN_INCREMENT: usize = 32;
 const BITS_PER_BYTE: usize = 8;
 
-pub struct AliveTestCtlStop;
+struct AliveTestCtlStop;
 
 #[derive(Clone)]
 pub struct AliveHostInfo {

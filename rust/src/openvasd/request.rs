@@ -5,7 +5,7 @@
 use http_body_util::BodyExt;
 
 #[derive(serde::Serialize, Debug)]
-pub struct BadRequest {
+struct BadRequest {
     line: usize,
     column: usize,
     message: String,
