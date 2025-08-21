@@ -246,7 +246,14 @@ impl ScriptReader {
     fn oid_from_ast(&self, ast: &Ast) -> Option<String> {
         iter_fn_calls(ast)
             .find(|call| call.fn_name.to_string() == "script_oid")
-            .map(|call| call.args.items.first().unwrap().to_string())
+            .map(|call| {
+                call.args
+                    .items
+                    .first()
+                    .unwrap()
+                    .to_string()
+                    .replace('\"', "")
+            })
     }
 
     fn get_dependencies(&self, ast: &Ast) -> Vec<ScriptPath> {
