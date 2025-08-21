@@ -9,6 +9,8 @@ mod metadata;
 mod parser;
 mod token;
 mod tokenizer;
+mod traversal;
+mod visitor;
 
 pub use loader::*;
 pub use metadata::DescriptionBlock;
