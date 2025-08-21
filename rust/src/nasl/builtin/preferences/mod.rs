@@ -77,10 +77,9 @@ pub fn get_plugin_preference_fname(
     };
     if let Some(file_content) =
         script_get_preference_file_content_shared(register, config, name, id)
+        && tmp.write_all(file_content.to_string().as_bytes()).is_ok()
     {
-        if tmp.write_all(file_content.to_string().as_bytes()).is_ok() {
-            return Ok(tmp.path().to_string_lossy().into_owned());
-        }
+        return Ok(tmp.path().to_string_lossy().into_owned());
     }
 
     Err(BuiltinError::Preference(format!(
