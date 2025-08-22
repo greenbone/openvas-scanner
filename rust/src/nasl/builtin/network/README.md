@@ -35,10 +35,10 @@
 - socket_negotiate_ssl
 - socket_get_error
 - socket_cert_verify
+- get_sock_info
 
 ## Missing
 
-- get_sock_info
 - socket_get_ssl_ciphersuite (Not used in the whole feed. Won't be implemented)
 - socket_get_ssl_session_id
 - socket_ssl_do_handshake

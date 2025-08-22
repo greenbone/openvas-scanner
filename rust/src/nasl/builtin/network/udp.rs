@@ -105,6 +105,10 @@ impl UdpConnection {
         self.socket.local_addr()
     }
 
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.socket.peer_addr()
+    }
+
     pub fn read_with_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> io::Result<usize> {
         let old = self.socket.read_timeout()?;
         self.socket.set_read_timeout(Some(timeout))?;

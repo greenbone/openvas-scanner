@@ -16,9 +16,10 @@ use crate::nasl::builtin::misc::{NASL_ERR_ETIMEDOUT, NASL_ERR_NOERR};
 
 use super::{OpenvasEncaps, network_utils::get_source_ip, socket::SocketError};
 
-struct TcpDataStream {
+pub struct TcpDataStream {
     sock: Socket,
     tls: Option<ClientConnection>,
+    transport: Option<OpenvasEncaps>,
     last_err: i64,
 }
 
@@ -39,6 +40,18 @@ impl TcpDataStream {
         self.tls = Some(tls);
     }
 
+    pub fn tls(&self) -> &Option<ClientConnection> {
+        &self.tls
+    }
+
+    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+        self.transport = Some(transport);
+    }
+
+    pub fn transport(&self) -> &Option<OpenvasEncaps> {
+        &self.transport
+    }
+
     pub fn set_last_err(&mut self, nasl_err: i64) {
         self.last_err = nasl_err
     }
@@ -49,16 +62,16 @@ impl TcpDataStream {
 
     pub fn get_port(&self) -> u16 {
         if let Ok(peer) = self.sock.peer_addr()
-            && let Some(s) = peer.as_socket() {
-                return s.port();
-                
-            }
+            && let Some(s) = peer.as_socket()
+        {
+            return s.port();
+        }
         0
     }
 }
 
 pub struct TcpConnection {
-    stream: BufReader<TcpDataStream>,
+    pub stream: BufReader<TcpDataStream>,
 }
 
 impl Read for TcpConnection {
@@ -120,6 +133,21 @@ impl TcpConnection {
         stream.set_tls(tls);
     }
 
+    pub fn tls(&self) -> &Option<ClientConnection> {
+        let stream = self.stream.get_ref();
+        stream.tls()
+    }
+
+    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+        let stream = self.stream.get_mut();
+        stream.set_transport(transport);
+    }
+
+    pub fn transport(&self) -> &Option<OpenvasEncaps> {
+        let stream = self.stream.get_ref();
+        stream.transport()
+    }
+
     pub fn set_last_err(&mut self, nasl_err: i64) {
         let stream = self.stream.get_mut();
         stream.set_last_err(nasl_err);
@@ -137,13 +165,14 @@ impl TcpConnection {
 
     pub fn peer_certs(&mut self) -> &[CertificateDer<'static>] {
         if let Some(tls_conn) = &self.stream.get_ref().tls
-            && let Some(pc) = tls_conn.peer_certificates() {
-                return pc;
-            }
+            && let Some(pc) = tls_conn.peer_certificates()
+        {
+            return pc;
+        }
         &[]
     }
 
-    pub fn ssl_version(&mut self) -> Option<i64> {
+    pub fn ssl_version(&self) -> Option<i64> {
         if let Some(tls_conn) = &self.stream.get_ref().tls {
             match tls_conn.protocol_version() {
                 Some(ProtocolVersion::SSLv3) => Some(OpenvasEncaps::Ssl3),
@@ -199,6 +228,7 @@ impl TcpConnection {
             TcpDataStream {
                 sock,
                 tls,
+                transport: None,
                 last_err: NASL_ERR_NOERR,
             },
             bufsz,
@@ -238,6 +268,7 @@ impl TcpConnection {
             TcpDataStream {
                 sock,
                 tls: None,
+                transport: None,
                 last_err: err,
             },
             None,
@@ -250,6 +281,14 @@ impl TcpConnection {
             .get_ref()
             .sock
             .local_addr()
+            .map(|a| a.as_socket().unwrap()) // safe to unwrap because we're dealing with a TCP socket
+    }
+
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.stream
+            .get_ref()
+            .sock
+            .peer_addr()
             .map(|a| a.as_socket().unwrap()) // safe to unwrap because we're dealing with a TCP socket
     }
 

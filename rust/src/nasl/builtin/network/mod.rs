@@ -39,7 +39,8 @@ fn mtu(target_ip: IpAddr) -> usize {
     }
 }
 
-enum OpenvasEncaps {
+#[derive(Clone)]
+pub enum OpenvasEncaps {
     Auto = 0, /* Request auto detection.  */
     Ip,
     Ssl23, /* Ask for compatibility options */
@@ -86,6 +87,22 @@ impl From<OpenvasEncaps> for i64 {
             OpenvasEncaps::Tls13 => 8,
             OpenvasEncaps::TlsCustom => 9,
             OpenvasEncaps::Max => 10,
+        }
+    }
+}
+
+impl From<OpenvasEncaps> for String {
+    fn from(value: OpenvasEncaps) -> String {
+        match value {
+            OpenvasEncaps::Ip => "None".to_string(),
+            OpenvasEncaps::Ssl23 => "SSL 2.3".to_string(),
+            OpenvasEncaps::Ssl2 => "SSL 2".to_string(),
+            OpenvasEncaps::Ssl3 => "SSL 3".to_string(),
+            OpenvasEncaps::Tls1 => "TLS 1".to_string(),
+            OpenvasEncaps::Tls11 => "TLS 1.1".to_string(),
+            OpenvasEncaps::Tls12 => "TLS 1.2".to_string(),
+            OpenvasEncaps::Tls13 => "TLS 1.3".to_string(),
+            _ => "None".to_string(),
         }
     }
 }
