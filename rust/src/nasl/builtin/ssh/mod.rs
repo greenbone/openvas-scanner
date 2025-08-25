@@ -24,8 +24,7 @@ pub use sessions::SshSessions as Ssh;
 
 use std::time::Duration;
 
-use ::russh::{Preferred, cipher};
-use russh_keys::key;
+use ::russh::{Preferred, cipher, keys::Algorithm};
 
 use crate::nasl::prelude::*;
 
@@ -144,7 +143,7 @@ impl Ssh {
         ctx: &ScanCtx<'_>,
         socket: Option<Socket>,
         port: Option<u16>,
-        keytype: Option<CommaSeparated<key::Name>>,
+        keytype: Option<CommaSeparated<Algorithm>>,
         csciphers: Option<CommaSeparated<cipher::Name>>,
         scciphers: Option<CommaSeparated<cipher::Name>>,
         timeout: Option<u64>,

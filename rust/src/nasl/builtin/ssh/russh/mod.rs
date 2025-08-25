@@ -4,15 +4,14 @@
 
 mod session;
 
+use russh::keys::Algorithm;
 pub use session::SshSession;
 use tokio::sync::Mutex;
 
 use std::{net::IpAddr, time::Duration};
 
-use russh::cipher;
-use russh_keys::key;
-
 use super::error::Result;
+use russh::cipher;
 
 use super::sessions::SshSessions;
 
@@ -37,7 +36,7 @@ impl SshSessions {
         socket: Option<Socket>,
         ip_addr: IpAddr,
         port: Port,
-        keytype: Vec<key::Name>,
+        keytype: Vec<Algorithm>,
         csciphers: Vec<cipher::Name>,
         scciphers: Vec<cipher::Name>,
         timeout: Option<Duration>,
