@@ -103,6 +103,7 @@ codespan-reporting = "0.12.0"
 dsa = "0.6.3"
 mtu = { version = "0.2.9", optional = true }
 pathdiff = "0.2.3"
+tempfile = "3.20.0"
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
