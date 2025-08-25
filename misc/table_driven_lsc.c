@@ -246,7 +246,7 @@ struct notus_info
   char *alpn; // Application layer protocol negotiation: http/1.0, http/1.1, h2
   char *http_version; // same version as in application layer
   int port;           // server port
-  int tls;            // 0: TLS encapsulation diable. Otherwise enable
+  int tls;            // 0: TLS encapsulation disable. Otherwise enable
 };
 
 typedef struct notus_info *notus_info_t;
@@ -427,72 +427,7 @@ parse_server (notus_info_t *notusdata)
   return 0;
 }
 
-/** @brief Fixed version format
- */
-enum fixed_type
-{
-  UNKNOWN, // Unknown
-  RANGE,   // Range of version which fixed the package
-  SINGLE,  // A single version with a specifier (gt or lt)
-};
-
-/** @brief Fixed version
- */
-struct fixed_version
-{
-  char *version;   // a version
-  char *specifier; // a lt or gt specifier
-};
-typedef struct fixed_version fixed_version_t;
-
-/** @brief Specify a version range
- */
-struct version_range
-{
-  char *start; // <= the version
-  char *stop;  // >= the version
-};
-typedef struct version_range version_range_t;
-
-/** @brief Define a vulnerable package
- */
-struct vulnerable_pkg
-{
-  char *pkg_name;        // package name
-  char *install_version; // installed version of the vulnerable package
-  enum fixed_type type;  // fixed version type: range or single
-  union
-  {
-    version_range_t *range;   // range of vulnerable versions
-    fixed_version_t *version; // version and specifier for the fixed versions
-  };
-};
-
-typedef struct vulnerable_pkg vuln_pkg_t;
-
-/** brief define an advisory with a list of vulnerable packages
- */
-struct advisory
-{
-  char *oid;             // Advisory OID
-  vuln_pkg_t *pkgs[100]; // list of vulnerable packages, installed version and
-                         // fixed versions
-  size_t count;          // Count of vulnerable packages this adivsory has
-};
-
-typedef struct advisory advisory_t;
-
-/** brief define a advisories list
- */
-struct advisories
-{
-  advisory_t **advisories;
-  size_t count;
-  size_t max_size;
-};
-typedef struct advisories advisories_t;
-
-/** @brief Initialize a new adivisories struct with 100 slots
+/** @brief Initialize a new advisories struct with 100 slots
  *
  *  @return initialized advisories_t struct. It must be free by the caller
  *          with advisories_free()
@@ -508,7 +443,7 @@ advisories_new ()
   return advisories_list;
 }
 
-/** @brief Initialize a new adivisories struct with 100 slots
+/** @brief Initialize a new advisories struct with 100 slots
  *
  *  @param advisories_list[in/out] An advisories holder to add new advisories
 into.
@@ -533,7 +468,7 @@ advisories_add (advisories_t *advisories_list, advisory_t *advisory)
   advisories_list->count++;
 }
 
-/** @brief Initialize a new adivisory
+/** @brief Initialize a new advisory
  *
  *  @param oid The advisory's OID
  *
@@ -574,7 +509,7 @@ advisory_add_vuln_pkg (advisory_t *adv, vuln_pkg_t *vuln)
 
 /** @brief Free()'s an advisory
  *
- *  @param advisory The adviosory to be free()'ed.
+ *  @param advisory The advisory to be free()'ed.
  *  It free()'s all vulnerable packages that belong to this advisory.
  */
 static void
@@ -607,10 +542,10 @@ advisory_free (advisory_t *advisory)
 
 /** @brief Free()'s an advisories
  *
- *  @param advisory The adviosories holder to be free()'ed.
+ *  @param advisory The advisories holder to be free()'ed.
  *  It free()'s all advisories members.
  */
-static void
+void
 advisories_free (advisories_t *advisories)
 {
   if (advisories == NULL)
@@ -629,11 +564,11 @@ advisories_free (advisories_t *advisories)
  *              Can be RANGE or SINGLE
  *  @param item1 Depending on the type is the "version" for SINGLE type,
  *               or the "less than" for RANGE type
- *  @param item2 Depending on the type is the "specifer" for SINGLE type,
- *               or the "greather than" for RANGE type
+ *  @param item2 Depending on the type is the "specifier" for SINGLE type,
+ *               or the "greater than" for RANGE type
  *
  *  @return a vulnerable packages struct. Members are a copy of the passed
- *          parametes. They must be free separately.
+ *          parameters. They must be free separately.
  */
 static vuln_pkg_t *
 vulnerable_pkg_new (const char *pkg_name, const char *install_version,
@@ -671,13 +606,13 @@ vulnerable_pkg_new (const char *pkg_name, const char *install_version,
  *  @description This is the body string in response get from an openvasd server
  *
  *  @param resp String containing the json object to be processed.
- *  @param len String lenght.
+ *  @param len String length.
  *
  *  @return a advisories_t struct containing all advisories and vulnerable
  *                         packages.
  *                         After usage must be free()'ed with advisories_free().
  */
-static advisories_t *
+advisories_t *
 process_notus_response (const gchar *resp, const size_t len)
 {
   JsonParser *parser = NULL;
@@ -979,7 +914,7 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
  *  @return String containing the server response or NULL
  *          Must be free()'ed by the caller.
  */
-static char *
+char *
 notus_get_response (const char *pkg_list, const char *os)
 {
   const char *server = NULL;
@@ -999,7 +934,7 @@ notus_get_response (const char *pkg_list, const char *os)
       return NULL;
     }
 
-  // Convert the packge list string into a string containing json
+  // Convert the package list string into a string containing json
   // array of packages
   if ((json_pkglist = make_package_list_as_json_str (pkg_list)) == NULL)
     {
@@ -1020,10 +955,10 @@ notus_get_response (const char *pkg_list, const char *os)
 /** @brief Call notus and stores the results
  *
  *  @param ip_str Target's IP address.
- *  @param hostname Targer's hostname.
+ *  @param hostname Target's hostname.
  *  @param pkg_list List of packages installed in the target. The packages are
  * "\n" separated.
- *  @param os Name of the target's operative sistem.
+ *  @param os Name of the target's operating system.
  *
  *  @result Count of stored results. -1 on error.
  */
@@ -1053,9 +988,10 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
           if (pkg->type == RANGE)
             {
               g_string_printf (res,
-                               "\nVulnerable package: %s\n"
+                               "\n"
+                               "Vulnerable package:   %s\n"
                                "Installed version:    %s-%s\n"
-                               "Fixed version:      <=%s-%s\n"
+                               "Fixed version:      < %s-%s\n"
                                "Fixed version:      >=%s-%s\n",
                                pkg->pkg_name, pkg->pkg_name,
                                pkg->install_version, pkg->pkg_name,
@@ -1064,15 +1000,14 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
             }
           else if (pkg->type == SINGLE)
             {
-              int spec_len = 8 - (int) strlen (pkg->version->specifier);
               g_string_printf (res,
-                               "\nVulnerable package:%*s%s\n"
-                               "Installed version:%*s%s-%s\n"
-                               "Fixed version:%*s%s%s-%s\n",
-                               3, "", pkg->pkg_name, 4, "", pkg->pkg_name,
-                               pkg->install_version, spec_len, "",
-                               pkg->version->specifier, pkg->pkg_name,
-                               pkg->version->version);
+                               "\n"
+                               "Vulnerable package:   %s\n"
+                               "Installed version:    %s-%s\n"
+                               "Fixed version:      %2s%s-%s\n",
+                               pkg->pkg_name, pkg->pkg_name,
+                               pkg->install_version, pkg->version->specifier,
+                               pkg->pkg_name, pkg->version->version);
             }
           else
             {
@@ -1212,7 +1147,7 @@ run_table_driven_lsc (const char *scan_id, const char *ip_str,
               if (err == 1)
                 {
                   g_warning (
-                    "%s: Unablet to retrieve message. Timeout after 60s.",
+                    "%s: Unable to retrieve message. Timeout after 60s.",
                     __func__);
                   return -1;
                 }
