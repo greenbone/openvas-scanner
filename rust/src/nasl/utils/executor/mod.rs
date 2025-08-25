@@ -22,7 +22,6 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 pub use nasl_function::NaslFunction;
-use nasl_function::{AsyncQuadrupleArgFn, AsyncTripleArgFn};
 use tokio::sync::RwLock;
 
 use crate::nasl::prelude::*;
@@ -87,6 +86,10 @@ impl Executor {
     pub(crate) fn iter_fn_global_vars(&self) -> impl Iterator<Item = (&'static str, NaslValue)> {
         self.fn_global_vars.iter().cloned()
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &str> {
+        self.sets.iter().flat_map(|set| set.iter())
+    }
 }
 
 pub struct StoredFunctionSet<State> {
@@ -100,80 +103,6 @@ impl<State> StoredFunctionSet<State> {
             state: RwLock::new(state),
             fns: HashMap::new(),
         }
-    }
-
-    pub fn async_stateful<F>(&mut self, k: &str, v: F)
-    where
-        F: for<'a> AsyncQuadrupleArgFn<
-                &'a State,
-                &'a Register,
-                &'a ScanCtx<'a>,
-                &'a mut ScriptCtx,
-                Output = NaslResult,
-            > + Send
-            + Sync
-            + 'static,
-    {
-        self.fns
-            .insert(k.to_string(), NaslFunction::AsyncStateful(Box::new(v)));
-    }
-
-    pub fn sync_stateful(
-        &mut self,
-        k: &str,
-        v: fn(&State, &Register, &ScanCtx, &mut ScriptCtx) -> NaslResult,
-    ) {
-        self.fns
-            .insert(k.to_string(), NaslFunction::SyncStateful(v));
-    }
-
-    pub fn async_stateful_mut<F>(&mut self, k: &str, v: F)
-    where
-        F: for<'a> AsyncQuadrupleArgFn<
-                &'a mut State,
-                &'a Register,
-                &'a ScanCtx<'a>,
-                &'a mut ScriptCtx,
-                Output = NaslResult,
-            > + Send
-            + Sync
-            + 'static,
-    {
-        self.fns
-            .insert(k.to_string(), NaslFunction::AsyncStatefulMut(Box::new(v)));
-    }
-
-    pub fn sync_stateful_mut(
-        &mut self,
-        k: &str,
-        v: fn(&mut State, &Register, &ScanCtx, &mut ScriptCtx) -> NaslResult,
-    ) {
-        self.fns
-            .insert(k.to_string(), NaslFunction::SyncStatefulMut(v));
-    }
-
-    pub fn async_stateless<F>(&mut self, k: &str, v: F)
-    where
-        F: for<'a> AsyncTripleArgFn<
-                &'a Register,
-                &'a ScanCtx<'a>,
-                &'a mut ScriptCtx,
-                Output = NaslResult,
-            > + Send
-            + Sync
-            + 'static,
-    {
-        self.fns
-            .insert(k.to_string(), NaslFunction::AsyncStateless(Box::new(v)));
-    }
-
-    pub fn sync_stateless(
-        &mut self,
-        k: &str,
-        v: fn(&Register, &ScanCtx, &mut ScriptCtx) -> NaslResult,
-    ) {
-        self.fns
-            .insert(k.to_string(), NaslFunction::SyncStateless(v));
     }
 
     pub fn add_nasl_function(&mut self, k: &str, f: NaslFunction<State>) {
@@ -214,7 +143,7 @@ impl<State> StoredFunctionSet<State> {
 /// useful in order to store `StoredFunctionSet`s of different type
 /// within the `Executor`.
 #[async_trait]
-pub trait FunctionSet {
+trait FunctionSet {
     async fn exec<'a>(
         &'a self,
         k: &'a str,
@@ -224,6 +153,8 @@ pub trait FunctionSet {
     ) -> NaslResult;
 
     fn contains(&self, k: &str) -> bool;
+
+    fn iter(&self) -> Box<dyn Iterator<Item = &str> + '_>;
 }
 
 #[async_trait]
@@ -263,6 +194,10 @@ impl<State: Sync + Send> FunctionSet for StoredFunctionSet<State> {
 
     fn contains(&self, k: &str) -> bool {
         self.fns.contains_key(k)
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = &str> + '_> {
+        Box::new(self.fns.keys().map(|x| x.as_str()))
     }
 }
 

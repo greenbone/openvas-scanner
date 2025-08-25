@@ -13,7 +13,7 @@ use super::SessionId;
 /// A cloneable representation of the Error type of the underlying SSH lib
 #[derive(Clone, Debug, Error)]
 #[error("{0}")]
-pub struct LibError(String);
+struct LibError(String);
 
 #[cfg(feature = "nasl-builtin-libssh")]
 impl From<libssh_rs::Error> for LibError {

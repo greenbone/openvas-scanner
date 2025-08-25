@@ -91,21 +91,6 @@ impl From<OpenvasPhase> for Phase {
 }
 
 impl Scanner {
-    pub fn with_relative_memory(
-        memory: f32,
-        sudo: bool,
-        url: String,
-        default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
-    ) -> Self {
-        Self {
-            running: Default::default(),
-            sudo,
-            redis_socket: url,
-            resource_checker: Some(Checker::new_relative_memory(memory, None)),
-            default_scanner_preferences,
-        }
-    }
-
     pub fn new(
         memory: Option<u64>,
         cpu: Option<f32>,
@@ -394,12 +379,12 @@ impl ScanResultFetcher for Scanner {
 
                     // Read openvas scanner exit code and if failed, reset the status to Failed.
                     let exit_status = scan.wait().map_err(OpenvasError::CmdError)?;
-                    if let Some(code) = exit_status.code() {
-                        if code != 0 {
-                            scan_res.status.status = Phase::Failed;
-                            scan_res.status.start_time = scan_res.status.end_time;
-                            scan_res.status.host_info = None;
-                        }
+                    if let Some(code) = exit_status.code()
+                        && code != 0
+                    {
+                        scan_res.status.status = Phase::Failed;
+                        scan_res.status.start_time = scan_res.status.end_time;
+                        scan_res.status.host_info = None;
                     }
 
                     redis_help

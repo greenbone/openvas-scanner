@@ -85,12 +85,12 @@ struct Interval {
 
 impl Interval {
     /// Check the time since the last tick and wait if necessary.
-    pub fn tick(&self) {
+    fn tick(&self) {
         let mut last_tick = self.last_tick.lock().unwrap();
-        if let Ok(since) = SystemTime::now().duration_since(*last_tick) {
-            if since < self.interval {
-                sleep(self.interval - since);
-            }
+        if let Ok(since) = SystemTime::now().duration_since(*last_tick)
+            && since < self.interval
+        {
+            sleep(self.interval - since);
         }
         *last_tick = SystemTime::now();
     }
@@ -121,7 +121,7 @@ impl NaslSocket {
         }
     }
 
-    pub fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             NaslSocket::Tcp(tcp_connection) => tcp_connection.read(buf),
             NaslSocket::Udp(udp_connection) => udp_connection.read(buf),
@@ -175,7 +175,7 @@ impl NaslSockets {
 
     /// Adds a given NASL socket. It returns the position of the socket within the
     /// list.
-    pub fn add(&mut self, socket: NaslSocket) -> usize {
+    fn add(&mut self, socket: NaslSocket) -> usize {
         if let Some(free) = self.closed_fd.pop() {
             self.handles.insert(free, Some(socket));
             free
@@ -440,6 +440,7 @@ async fn open_sock_kdc(
 
     let ip = lookup_host(&hostname)
         .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
+        .into_iter()
         .next()
         .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
@@ -690,7 +691,7 @@ async fn get_source_port(sockets: &NaslSockets, socket: usize) -> Result<NaslVal
 /// Receive a response of a FTP server and checks the status code of it.
 /// This status code is compared to a list of expected status codes and
 /// returned, if it is contained in that list.
-pub fn check_ftp_response(
+fn check_ftp_response(
     mut conn: impl BufRead,
     expected_codes: &[usize],
 ) -> Result<usize, SocketError> {

@@ -8,18 +8,18 @@ jobs:
     container:
       image: registry.community.greenbone.net/community/gvm-libs:stable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh
       - name: build 
         run: |
-          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-14/libexec/ccc-analyzer
+          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-19/libexec/ccc-analyzer
           cmake --build build
   Rust:
     runs-on: self-hosted-generic
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-rust
       # we just check if it is compilable, the actual compilation is now done in:
       # - in the Dockefiles

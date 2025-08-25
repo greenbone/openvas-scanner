@@ -11,7 +11,7 @@ use crate::nasl::prelude::*;
 use super::{CryptographicError, get_data, get_key};
 
 /// Structure to hold a Cipher Handler
-pub struct CipherHandler {
+struct CipherHandler {
     /// Handler ID
     pub id: i32,
     /// Handler
@@ -20,7 +20,7 @@ pub struct CipherHandler {
 
 fn lock_handlers(
     handlers: &Arc<Mutex<Vec<CipherHandler>>>,
-) -> Result<MutexGuard<Vec<CipherHandler>>, FnError> {
+) -> Result<MutexGuard<'_, Vec<CipherHandler>>, FnError> {
     // we actually need to panic as a lock error is fatal
     // alternatively we need to add a poison error on FnError
     Ok(Arc::as_ref(handlers).lock().unwrap())
@@ -57,7 +57,7 @@ pub struct CipherHandlers {
 impl CipherHandlers {
     /// Closes a stream cipher.
     #[nasl_function]
-    pub fn close_stream_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
+    fn close_stream_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
         let hd = match register.nasl_value("hd") {
             Ok(NaslValue::Number(x)) => *x as i32,
             _ => return Err(CryptographicError::Rc4("Handler ID not found".to_string()).into()),
@@ -80,7 +80,7 @@ impl CipherHandlers {
     ///  
     /// Returns the id of the encrypted data cipher handler on success.
     #[nasl_function]
-    pub fn open_rc4_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
+    fn open_rc4_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
         // Get Arguments
 
         let key = match get_key(register) {
@@ -110,7 +110,7 @@ impl CipherHandlers {
     ///  -iv: string Initialization vector (mandatory if no handler is given).
     ///  -key: string key (mandatory if no handler is given).
     #[nasl_function]
-    pub fn rc4_encrypt(&self, register: &Register) -> Result<NaslValue, FnError> {
+    fn rc4_encrypt(&self, register: &Register) -> Result<NaslValue, FnError> {
         let data = match get_data(register) {
             Ok(d) if !d.is_empty() => d.to_vec(),
             _ => return Err(CryptographicError::Rc4("Missing data argument".to_string()).into()),
@@ -123,12 +123,12 @@ impl CipherHandlers {
 
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
 
-        if hd > 0 {
-            if let Some((_i, h)) = handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd) {
-                let d = h.handler.encode(data);
-                return Ok(NaslValue::Data(d));
-            };
-        };
+        if hd > 0
+            && let Some((_i, h)) = handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd)
+        {
+            let d = h.handler.encode(data);
+            return Ok(NaslValue::Data(d));
+        }
 
         let key = match get_key(register) {
             Ok(k) if !k.is_empty() => k.to_vec(),

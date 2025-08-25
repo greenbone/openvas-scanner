@@ -34,10 +34,10 @@ impl Parse for DescriptionBlock {
 }
 
 fn check_condition(condition: &Expr) -> bool {
-    if let Expr::Atom(Atom::Ident(ident)) = condition {
-        if ident.to_string() == "description" {
-            return true;
-        }
+    if let Expr::Atom(Atom::Ident(ident)) = condition
+        && ident.to_string() == "description"
+    {
+        return true;
     }
     false
 }

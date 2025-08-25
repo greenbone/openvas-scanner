@@ -90,7 +90,7 @@ pub const PREFERENCES: [ScanPreferenceInformation; 23] = [
     ScanPreferenceInformation {
         id: "plugins_timeout",
         name: "Plugins Timeout",
-        default: PreferenceValue::Int(5),
+        default: PreferenceValue::Int(320),
         description: "This is the maximum lifetime, in seconds of a plugin. It may happen \
         that some plugins are slow because of the way they are written or \
         the way the remote server behaves. This option allows you to make \
@@ -261,12 +261,12 @@ impl Default for ScanPrefValue {
 
 #[derive(Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FullScanPreferences {
-    pub scan_preferences: Vec<FullScanPreference>,
+    scan_preferences: Vec<FullScanPreference>,
 }
 
 /// Configuration preference information for a scan. The type can be derived from the default value.
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FullScanPreference {
+struct FullScanPreference {
     /// The ID of the scan preference
     pub id: String,
     /// Display name of the scan preference
@@ -382,13 +382,6 @@ impl ScanPrefs {
             .iter()
             .find(|x| x.id == key)
             .and_then(|x| x.value.parse::<i64>().ok())
-    }
-
-    pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
-        self.0
-            .iter()
-            .find(|x| x.id == key)
-            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
     }
 
     pub fn get_preference_string(&self, key: &str) -> Option<String> {

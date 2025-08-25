@@ -26,15 +26,17 @@ RUN cp target/release/scannerctl /install/usr/local/bin
 # RUN cp release/feed-verifier /install/bin
 
 FROM ${GVM_LIBS}:${VERSION}
+# we set the VERSION_CODENAME instead of stable to prevent accidental
+# distribution upgrades
+RUN  . /etc/os-release && \
+  sed -i "s/stable/$VERSION_CODENAME/g" /etc/apt/sources.list.d/*.sources
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
   bison \
-  libglib2.0-0 \
   libjson-glib-1.0-0 \
   libksba8 \
   nmap \
   libcap2-bin \
   snmp \
-  netdiag \
   pnscan \
   libbsd0 \
   rsync \
@@ -49,12 +51,11 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libhdb9-heimdal \
   libpopt0 \
   libcurl4 \
-  libcurl3-gnutls \
   zlib1g \
-  libhiredis0.14 \
   libssh-4 \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
+
 
 
 # must be pre built within the rust dir and moved to the bin dir

@@ -9,8 +9,26 @@ use std::{
 
 use crate::nasl::prelude::*;
 use pcap::{Address, Device};
+use pnet_base::MacAddr;
 
-use super::RawIpError;
+use super::{
+    RawIpError,
+    frame_forgery::{ArpFrame, ETHERTYPE_ARP, Frame},
+};
+
+use pnet::{
+    datalink::interfaces,
+    packet::{ipv4::Ipv4Packet, ipv6::Ipv6Packet, tcp::*, udp::MutableUdpPacket},
+};
+
+/// Return the MAC address, given the interface name
+pub fn get_local_mac_address(name: &str) -> Result<MacAddr, FnError> {
+    interfaces()
+        .into_iter()
+        .find(|x| x.name == *name)
+        .and_then(|dev| dev.mac)
+        .ok_or_else(|| RawIpError::FailedToGetLocalMacAddress.into())
+}
 
 /// Convert a string in a IpAddr
 pub fn ipstr2ipaddr(ip_addr: &str) -> Result<IpAddr, FnError> {
@@ -77,7 +95,7 @@ pub fn get_mtu(target_ip: IpAddr) -> Result<usize, RawIpError> {
     Ok(mtu)
 }
 
-pub fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
+fn bind_local_socket(dst: &SocketAddr) -> Result<UdpSocket, RawIpError> {
     match dst {
         SocketAddr::V4(_) => UdpSocket::bind("0.0.0.0:0"),
         SocketAddr::V6(_) => UdpSocket::bind("[0:0:0:0:0:0:0:0]:0"),
@@ -97,4 +115,95 @@ pub fn get_source_ip(dst: IpAddr) -> Result<IpAddr, FnError> {
         .and_then(|_| local_socket.local_addr().ok())
         .and_then(|l_addr| IpAddr::from_str(&l_addr.ip().to_string()).ok())
         .ok_or(RawIpError::NoRouteToDestination.into())
+}
+
+pub fn get_source_ipv6(dst: Ipv6Addr) -> Result<Ipv6Addr, FnError> {
+    match get_source_ip(IpAddr::from(dst)) {
+        Ok(IpAddr::V6(a)) => Ok(a),
+        _ => Err(RawIpError::NoRouteToDestination.into()),
+    }
+}
+
+pub fn get_source_ipv4(dst: Ipv4Addr) -> Result<Ipv4Addr, FnError> {
+    match get_source_ip(IpAddr::from(dst)) {
+        Ok(IpAddr::V4(a)) => Ok(a),
+        _ => Err(RawIpError::NoRouteToDestination.into()),
+    }
+}
+
+pub trait ChecksumCalculator<'a, V: 'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a V) -> u16;
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableUdpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::udp::ipv4_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableTcpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::tcp::ipv4_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableUdpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::udp::ipv6_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableTcpPacket<'a> {
+    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
+        let chksum = chksum.unwrap_or(0);
+        if chksum != 0 {
+            return chksum.to_be();
+        }
+        pnet::packet::tcp::ipv6_checksum(
+            &self.to_immutable(),
+            &pkt.get_source(),
+            &pkt.get_destination(),
+        )
+    }
+}
+
+/// Forge a data link layer frame with an ARP request in the payload
+pub fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<u8> {
+    let mut frame = Frame::new();
+    frame.set_srchaddr(eth_src);
+    frame.set_dsthaddr(MacAddr::broadcast());
+    frame.set_ethertype(ETHERTYPE_ARP.to_le());
+
+    let mut arp_frame = ArpFrame::new();
+    arp_frame.set_srchaddr(eth_src);
+    arp_frame.set_srcip(src_ip);
+    arp_frame.set_dsthaddr(MacAddr::zero());
+    arp_frame.set_dstip(dst_ip);
+
+    frame.set_payload(arp_frame.into());
+    frame.into()
 }

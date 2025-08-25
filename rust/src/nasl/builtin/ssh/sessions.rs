@@ -23,7 +23,7 @@ pub struct SshSessions {
 }
 
 impl SshSessions {
-    pub async fn get_by_id(&self, id: SessionId) -> Result<BorrowedSession> {
+    pub async fn get_by_id(&self, id: SessionId) -> Result<BorrowedSession<'_>> {
         Ok(self
             .sessions
             .get(&id)

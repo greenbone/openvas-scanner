@@ -11,7 +11,7 @@ use std::{
 
 use super::{
     PacketForgeryError, RawIpError,
-    raw_ip_utils::{get_interface_by_local_ip, get_source_ip, islocalhost},
+    raw_ip_utils::{ChecksumCalculator, get_interface_by_local_ip, get_source_ip, islocalhost},
 };
 
 use crate::nasl::NaslValue;
@@ -39,7 +39,6 @@ use pnet::packet::{
     udp::{MutableUdpPacket, UdpPacket},
 };
 
-use pnet_macros_support::types::u9be;
 use socket2::{Domain, Protocol, Socket};
 use tracing::debug;
 
@@ -88,7 +87,7 @@ const DEFAULT_IPV4_HEADER_LENGTH_32BIT_INCREMENTS: u8 = 5;
 const DEFAULT_TCP_DATA_OFFSET_32BIT_INCREMENTS: u8 = 5;
 /// Default ttl value is inherit from NASL C
 const DEFAULT_TTL: u8 = 0x40;
-const TH_SYN: u16 = 0x02;
+const TH_SYN: u8 = 0x02;
 
 #[derive(Default)]
 struct PacketPayload {
@@ -225,7 +224,7 @@ impl<'a> FromNaslValue<'a> for Ipv6Addr {
 }
 
 /// print the raw packet
-pub fn display_packet(vector: &[u8]) {
+fn display_packet(vector: &[u8]) {
     let mut s: String = "\n".to_string();
     let mut count = 0;
 
@@ -242,68 +241,8 @@ pub fn display_packet(vector: &[u8]) {
     println!("packet = {}", &s);
 }
 
-trait ChecksumCalculator<'a, V: 'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a V) -> u16;
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableUdpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::udp::ipv4_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv4Packet<'a>> for MutableTcpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv4Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::tcp::ipv4_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableUdpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::udp::ipv6_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
-
-impl<'a> ChecksumCalculator<'a, Ipv6Packet<'a>> for MutableTcpPacket<'a> {
-    fn calculate_checksum(&self, chksum: Option<u16>, pkt: &'a Ipv6Packet) -> u16 {
-        let chksum = chksum.unwrap_or(0);
-        if chksum != 0 {
-            return chksum.to_be();
-        }
-        pnet::packet::tcp::ipv6_checksum(
-            &self.to_immutable(),
-            &pkt.get_source(),
-            &pkt.get_destination(),
-        )
-    }
-}
-
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
-pub fn safe_copy_from_slice(
+fn safe_copy_from_slice(
     d_buf: &mut [u8],
     d_init: usize,
     d_fin: usize,
@@ -404,7 +343,7 @@ fn forge_ip_packet(
     Ok(NaslValue::Data(buf))
 }
 
-pub enum IpElement {
+enum IpElement {
     HeaderLength,
     Id,
     IpLen,
@@ -676,7 +615,7 @@ fn forge_tcp(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_offset: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_win: Option<u16>,
     th_urp: Option<u16>,
 ) -> Vec<u8> {
@@ -695,7 +634,7 @@ fn forge_tcp(
     tcp_seg.set_acknowledgement(th_ack.unwrap_or(0_u32));
     tcp_seg.set_reserved(th_x2.unwrap_or(0_u8));
     tcp_seg.set_data_offset(th_offset.unwrap_or(5_u8));
-    tcp_seg.set_flags(th_flags.unwrap_or(0_u16));
+    tcp_seg.set_flags(th_flags.unwrap_or(0_u8));
     tcp_seg.set_window(th_win.unwrap_or(0_u16));
     tcp_seg.set_urgent_ptr(th_urp.unwrap_or(0_u16));
 
@@ -744,7 +683,7 @@ fn forge_tcp_packet(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_win: Option<u16>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
@@ -964,7 +903,7 @@ fn set_elements_tcp<'a>(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_urp: Option<u16>,
     th_win: Option<u16>,
     new_buf: &'a mut Vec<u8>,
@@ -1073,7 +1012,7 @@ fn set_tcp_elements(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
     th_win: Option<u16>,
@@ -1306,7 +1245,7 @@ fn display_opts(pkt: &TcpPacket) {
 fn format_flags(pkt: &TcpPacket) -> String {
     let flags = pkt.get_flags();
     let mut flag_strs = vec![];
-    let mut check_flag = |flag: u9be, name: &str| {
+    let mut check_flag = |flag: u8, name: &str| {
         if flags & flag == flag {
             flag_strs.push(name.to_owned());
         }
@@ -1791,7 +1730,7 @@ fn dump_icmp_packet(positional: CheckedPositionals<Ipv4Packet>) -> Result<NaslVa
 // here should be reasonably safe.
 // https://github.com/libpnet/libpnet/blob/a01aa493e2ecead4c45e7322b6c5f7ab29e8a985/pnet_macros/src/decorator.rs#L1138
 #[allow(unexpected_cfgs)]
-pub mod igmp {
+mod igmp {
     use std::net::Ipv4Addr;
 
     use pnet::packet::{Packet, PrimitiveValues};
@@ -1803,7 +1742,7 @@ pub mod igmp {
 
     /// Represents the "IGMP type" header field.
     #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct IgmpType(pub u8);
+    pub struct IgmpType(u8);
 
     impl IgmpType {
         /// Create a new `IgmpType` instance.
@@ -1842,15 +1781,15 @@ pub mod igmp {
     pub mod IgmpTypes {
         use super::IgmpType;
         /// IGMP type for "Membership Query"
-        pub const MembershipQuery: IgmpType = IgmpType(0x11);
+        const MembershipQuery: IgmpType = IgmpType(0x11);
         /// IGMP type for "IGMPv1 Membership Report"
-        pub const IGMPv1MembershipReport: IgmpType = IgmpType(0x12);
+        const IGMPv1MembershipReport: IgmpType = IgmpType(0x12);
         /// IGMP type for "IGMPv2 Membership Report"
-        pub const IGMPv2MembershipReport: IgmpType = IgmpType(0x16);
+        const IGMPv2MembershipReport: IgmpType = IgmpType(0x16);
         /// IGMP type for "IGMPv3 Membership Report"
-        pub const IGMPv3MembershipReport: IgmpType = IgmpType(0x22);
+        const IGMPv3MembershipReport: IgmpType = IgmpType(0x22);
         /// IGMP type for Leave Group"
-        pub const LeaveGroup: IgmpType = IgmpType(0x17);
+        const LeaveGroup: IgmpType = IgmpType(0x17);
         /// OpenVAS IGMP default type
         pub const Default: IgmpType = IgmpType(0x00);
     }
@@ -2059,7 +1998,7 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-pub fn nasl_tcp_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+fn nasl_tcp_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     nasl_tcp_ping_shared(configs, port)
 }
 
@@ -2527,7 +2466,7 @@ fn forge_tcp_v6_packet(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_win: Option<u16>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
@@ -2594,7 +2533,7 @@ fn set_tcp_v6_elements(
     th_ack: Option<u32>,
     th_x2: Option<u8>,
     th_off: Option<u8>,
-    th_flags: Option<u16>,
+    th_flags: Option<u8>,
     th_urp: Option<u16>,
     th_sum: Option<u16>,
     th_win: Option<u16>,
@@ -3139,7 +3078,7 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
     Ok(NaslValue::Null)
 }
 
-pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -3251,7 +3190,7 @@ pub fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<N
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-pub fn nasl_tcp_v6_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+fn nasl_tcp_v6_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
     nasl_tcp_v6_ping_shared(configs, port)
 }
 

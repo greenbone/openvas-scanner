@@ -230,10 +230,10 @@ fn parse_function_args<'a>(
 fn first_unsorted_index(iter: impl Iterator<Item = usize>) -> Option<usize> {
     let mut prev = None;
     for (index, next) in iter.enumerate() {
-        if let Some(prev) = prev {
-            if next < prev {
-                return Some(index);
-            }
+        if let Some(prev) = prev
+            && next < prev
+        {
+            return Some(index);
         }
         prev = Some(next);
     }

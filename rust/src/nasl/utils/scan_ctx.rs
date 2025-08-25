@@ -174,7 +174,8 @@ impl Target {
         self.ip_addr
     }
 
-    pub fn kind(&self) -> &TargetKind {
+    #[cfg(test)]
+    fn kind(&self) -> &TargetKind {
         &self.kind
     }
 }
@@ -191,7 +192,7 @@ impl From<(Target, Ports)> for CtxTarget {
 }
 
 impl CtxTarget {
-    pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
+    fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
         self.vhosts.lock().unwrap().push(VHost { hostname, source });
         self
     }
@@ -223,10 +224,6 @@ impl CtxTarget {
 
     pub fn ports_tcp(&self) -> &BTreeSet<u16> {
         &self.ports_tcp
-    }
-
-    pub fn ports_udp(&self) -> &BTreeSet<u16> {
-        &self.ports_udp
     }
 }
 
@@ -334,10 +331,11 @@ impl<'a> ScanCtx<'a> {
         loop {
             i += 1;
             let result = self.executor.exec(name, self, register, script_ctx).await;
-            if let Some(Err(ref e)) = result {
-                if e.retryable() && i < NUM_RETRIES_ON_RETRYABLE_ERROR {
-                    continue;
-                }
+            if let Some(Err(ref e)) = result
+                && e.retryable()
+                && i < NUM_RETRIES_ON_RETRYABLE_ERROR
+            {
+                continue;
             }
             return result;
         }
@@ -348,17 +346,12 @@ impl<'a> ScanCtx<'a> {
         self.executor.contains(name)
     }
 
-    /// Get the executor
-    pub fn executor(&self) -> &'a Executor {
-        self.executor
-    }
-
     /// Get the Key
     pub fn scan(&self) -> &ScanID {
         &self.scan
     }
 
-    pub fn filename(&self) -> &PathBuf {
+    fn filename(&self) -> &PathBuf {
         &self.filename
     }
 
@@ -405,7 +398,7 @@ impl<'a> ScanCtx<'a> {
         }
     }
 
-    pub fn dispatch_nvt(&self, nvt: Nvt) {
+    fn dispatch_nvt(&self, nvt: Nvt) {
         self.storage
             .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
             .unwrap();
@@ -420,16 +413,8 @@ impl<'a> ScanCtx<'a> {
         self.nvt.lock().unwrap()
     }
 
-    pub fn set_scan_params(&mut self, params: ScanPrefs) {
-        self.scan_preferences = params;
-    }
-
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
         self.scan_preferences.iter()
-    }
-
-    pub fn set_alive_test_methods(&mut self, methods: Vec<AliveTestMethods>) {
-        self.alive_test_methods = methods;
     }
 
     pub fn alive_test_methods(&self) -> Vec<AliveTestMethods> {
@@ -459,10 +444,7 @@ impl<'a> ScanCtx<'a> {
         Ok(result)
     }
 
-    pub fn get_kb_items_with_keys(
-        &self,
-        key: &KbKey,
-    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
+    fn get_kb_items_with_keys(&self, key: &KbKey) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
         let result = self
             .storage
             .retrieve(&GetKbContextKey(
@@ -586,25 +568,11 @@ impl<'a> ScanCtx<'a> {
         Ok(ret)
     }
 
-    pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
+    fn get_preference_bool(&self, key: &str) -> Option<bool> {
         self.scan_preferences
             .iter()
             .find(|x| x.id == key)
             .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
-    }
-
-    pub fn get_preference_int(&self, key: &str) -> Option<i64> {
-        self.scan_preferences
-            .iter()
-            .find(|x| x.id == key)
-            .and_then(|x| x.value.parse::<i64>().ok())
-    }
-
-    pub fn get_preference_string(&self, key: &str) -> Option<String> {
-        self.scan_preferences
-            .iter()
-            .find(|x| x.id == key)
-            .map(|x| x.value.clone())
     }
 
     pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {

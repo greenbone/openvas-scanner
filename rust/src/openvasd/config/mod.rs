@@ -80,7 +80,7 @@ pub struct Scanner {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum ScannerType {
     #[serde(rename = "ospd")]
-    OSPD,
+    Ospd,
     #[serde(rename = "openvas")]
     Openvas,
     #[serde(rename = "openvasd")]
@@ -93,7 +93,7 @@ pub enum ImageExtractionLocation {
 
 impl Default for ScannerType {
     fn default() -> Self {
-        Self::OSPD
+        Self::Ospd
     }
 }
 
@@ -107,7 +107,7 @@ impl TypedValueParser for ScannerType {
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
         Ok(match value.to_str().unwrap_or_default() {
-            "ospd" => ScannerType::OSPD,
+            "ospd" => ScannerType::Ospd,
             "openvas" => ScannerType::Openvas,
             "openvasd" => ScannerType::Openvasd,
             x => {
@@ -516,7 +516,7 @@ impl Config {
                     .env("SCANNER_TYPE")
                     .long("scanner-type")
                     .value_name("ospd,openvas")
-                    .value_parser(ScannerType::OSPD)
+                    .value_parser(ScannerType::Ospd)
                     .help("Type of scanner used to manage scans")
             )
             .arg(
@@ -718,10 +718,10 @@ impl Config {
         if let Some(mode) = cmds.get_one::<Mode>("mode") {
             config.mode = mode.clone();
         }
-        if let Some(key) = cmds.get_one::<String>("storage_key") {
-            if !key.is_empty() {
-                config.storage.set_credential_key(key.clone());
-            }
+        if let Some(key) = cmds.get_one::<String>("storage_key")
+            && !key.is_empty()
+        {
+            config.storage.set_credential_key(key.clone());
         }
 
         let scan_prefs: HashMap<String, ScanPrefValue> = PREFERENCES

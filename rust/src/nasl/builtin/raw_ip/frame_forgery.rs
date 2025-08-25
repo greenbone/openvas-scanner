@@ -4,15 +4,15 @@
 
 //! Defines NASL frame forgery and arp functions
 
-use pnet::datalink::interfaces;
 use pnet_base::MacAddr;
 use std::fmt;
 use std::{net::Ipv4Addr, str::FromStr};
 
 use pcap::{Capture, Device};
 
-use super::RawIpError;
-use super::raw_ip_utils::{get_interface_by_local_ip, get_source_ip, ipstr2ipaddr};
+use super::raw_ip_utils::{
+    forge_arp_frame, get_interface_by_local_ip, get_local_mac_address, get_source_ip, ipstr2ipaddr,
+};
 
 use tracing::info;
 
@@ -22,21 +22,21 @@ use crate::nasl::utils::function::Seconds;
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 
 /// Hardware type ethernet
-pub const ARPHRD_ETHER: u16 = 0x0001;
+const ARPHRD_ETHER: u16 = 0x0001;
 /// Protocol type IP
-pub const ETHERTYPE_IP: u16 = 0x0800;
+const ETHERTYPE_IP: u16 = 0x0800;
 /// Protocol type ARP
 pub const ETHERTYPE_ARP: u16 = 0x0806;
 /// Length in bytes of an ethernet mac address
-pub const ETH_ALEN: u8 = 0x0006;
+const ETH_ALEN: u8 = 0x0006;
 /// Protocol length for ARP
-pub const ARP_PROTO_LEN: u8 = 0x0004;
+const ARP_PROTO_LEN: u8 = 0x0004;
 /// ARP operation request
-pub const ARPOP_REQUEST: u16 = 0x0001;
+const ARPOP_REQUEST: u16 = 0x0001;
 
 #[derive(Debug)]
 /// Structure to hold a datalink layer frame
-pub struct Frame {
+pub(crate) struct Frame {
     /// Source MAC address
     srchaddr: MacAddr,
     /// Destination MAC address
@@ -48,7 +48,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn new() -> Frame {
+    pub(crate) fn new() -> Frame {
         Frame {
             srchaddr: MacAddr::zero(),
             dsthaddr: MacAddr::zero(),
@@ -57,20 +57,20 @@ impl Frame {
         }
     }
 
-    pub fn set_srchaddr(&mut self, srchaddr: MacAddr) -> &Frame {
+    pub(crate) fn set_srchaddr(&mut self, srchaddr: MacAddr) -> &Frame {
         self.srchaddr = srchaddr;
         self
     }
-    pub fn set_dsthaddr(&mut self, dsthaddr: MacAddr) -> &Frame {
+    pub(crate) fn set_dsthaddr(&mut self, dsthaddr: MacAddr) -> &Frame {
         self.dsthaddr = dsthaddr;
         self
     }
-    pub fn set_ethertype(&mut self, ethertype: u16) -> &Frame {
+    pub(crate) fn set_ethertype(&mut self, ethertype: u16) -> &Frame {
         self.ethertype = ethertype;
         self
     }
 
-    pub fn set_payload(&mut self, payload: Vec<u8>) -> &Frame {
+    pub(crate) fn set_payload(&mut self, payload: Vec<u8>) -> &Frame {
         self.payload = payload;
         self
     }
@@ -184,7 +184,7 @@ pub struct ArpFrame {
 }
 
 impl ArpFrame {
-    pub fn new() -> ArpFrame {
+    pub(crate) fn new() -> ArpFrame {
         ArpFrame {
             arphdr: ARP_HEADER,
             srchaddr: MacAddr::zero(),
@@ -195,19 +195,19 @@ impl ArpFrame {
         }
     }
 
-    pub fn set_srchaddr(&mut self, srchaddr: MacAddr) -> &ArpFrame {
+    pub(crate) fn set_srchaddr(&mut self, srchaddr: MacAddr) -> &ArpFrame {
         self.srchaddr = srchaddr;
         self
     }
-    pub fn set_srcip(&mut self, srcip: Ipv4Addr) -> &ArpFrame {
+    pub(crate) fn set_srcip(&mut self, srcip: Ipv4Addr) -> &ArpFrame {
         self.srcip = srcip;
         self
     }
-    pub fn set_dsthaddr(&mut self, dsthaddr: MacAddr) -> &ArpFrame {
+    pub(crate) fn set_dsthaddr(&mut self, dsthaddr: MacAddr) -> &ArpFrame {
         self.dsthaddr = dsthaddr;
         self
     }
-    pub fn set_dstip(&mut self, dstip: Ipv4Addr) -> &ArpFrame {
+    pub(crate) fn set_dstip(&mut self, dstip: Ipv4Addr) -> &ArpFrame {
         self.dstip = dstip;
         self
     }
@@ -236,23 +236,6 @@ impl From<ArpFrame> for Vec<u8> {
     }
 }
 
-/// Forge a data link layer frame with an ARP request in the payload
-fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> Vec<u8> {
-    let mut frame = Frame::new();
-    frame.set_srchaddr(eth_src);
-    frame.set_dsthaddr(MacAddr::broadcast());
-    frame.set_ethertype(ETHERTYPE_ARP.to_le());
-
-    let mut arp_frame = ArpFrame::new();
-    arp_frame.set_srchaddr(eth_src);
-    arp_frame.set_srcip(src_ip);
-    arp_frame.set_dsthaddr(MacAddr::zero());
-    arp_frame.set_dstip(dst_ip);
-
-    frame.set_payload(arp_frame.into());
-    frame.into()
-}
-
 /// Forge a datalink layer frame with data in the payload
 fn forge_frame(src: MacAddr, dst: MacAddr, ether_proto: u16, payload: Vec<u8>) -> Vec<u8> {
     let mut frame = Frame::new();
@@ -278,15 +261,6 @@ fn validate_mac_address(v: Option<&NaslValue>) -> Result<MacAddr, FnError> {
         _ => None,
     };
     mac_addr.ok_or_else(|| FnError::wrong_unnamed_argument("mac address", "invalid mac address"))
-}
-
-/// Return the MAC address, given the interface name
-fn get_local_mac_address(name: &str) -> Result<MacAddr, FnError> {
-    interfaces()
-        .into_iter()
-        .find(|x| x.name == *name)
-        .and_then(|dev| dev.mac)
-        .ok_or_else(|| RawIpError::FailedToGetLocalMacAddress.into())
 }
 
 /// Return a frame given a capture device and a filter. It returns an empty frame in case

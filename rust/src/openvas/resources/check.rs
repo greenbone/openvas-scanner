@@ -21,31 +21,20 @@ impl Checker {
     pub fn new(memory: Option<u64>, cpu: Option<f32>) -> Self {
         Self { memory, cpu }
     }
-    /// Returns a instance based on relative memory instead of absolute.
-    ///
-    /// When creating an instance with 16 GB of Ram and memory of 0.1 means that at least 1,6 GB
-    /// must be available.
-    pub fn new_relative_memory(memory: f32, cpu: Option<f32>) -> Self {
-        let memory = {
-            let system = sysinfo::System::new_all();
-            Some((system.total_memory() as f32 * memory) as u64)
-        };
-        Self { memory, cpu }
-    }
 
     /// Returns a list of resource observables that are not within the threshold.
-    pub fn breakaways(&self) -> Vec<ObservableResources> {
+    fn breakaways(&self) -> Vec<ObservableResources> {
         let mut results = Vec::with_capacity(2);
         let available = super::available();
-        if let Some(free) = self.memory {
-            if available.memory < free {
-                results.push(ObservableResources::Memory);
-            }
+        if let Some(free) = self.memory
+            && available.memory < free
+        {
+            results.push(ObservableResources::Memory);
         }
-        if let Some(workload) = self.cpu {
-            if available.cpu > workload {
-                results.push(ObservableResources::CPU);
-            }
+        if let Some(workload) = self.cpu
+            && available.cpu > workload
+        {
+            results.push(ObservableResources::CPU);
         }
 
         results

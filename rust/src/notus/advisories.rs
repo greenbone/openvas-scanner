@@ -115,34 +115,6 @@ pub struct Severity {
     pub cvss_v3: Option<String>,
 }
 
-pub struct ProductsAdvisoriesIterator<'a> {
-    products_advisories: &'a ProductsAdvisories,
-    index: usize,
-}
-
-impl<'a> Iterator for ProductsAdvisoriesIterator<'a> {
-    type Item = &'a Advisory;
-
-    fn next(&mut self) -> Option<&'a Advisory> {
-        if self.index < self.products_advisories.advisories.len() {
-            let result = Some(&self.products_advisories.advisories[self.index]);
-            self.index += 1;
-            result
-        } else {
-            None
-        }
-    }
-}
-
-impl ProductsAdvisories {
-    pub fn iter(&self) -> ProductsAdvisoriesIterator {
-        ProductsAdvisoriesIterator {
-            products_advisories: self,
-            index: 0,
-        }
-    }
-}
-
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct VulnerabilityData {
     pub adv: Advisory,

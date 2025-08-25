@@ -32,7 +32,7 @@ pub use scanner::*;
 pub use error::ExecuteError;
 pub use scan::Scan;
 pub use scan_runner::ScanRunner;
-pub use scanner_stack::ScannerStack;
+use scanner_stack::ScannerStack;
 pub use scanner_stack::ScannerStackWithStorage;
 
 use async_trait::async_trait;
@@ -50,7 +50,8 @@ use crate::storage::ScanID;
 use crate::storage::inmemory::InMemoryStorage;
 use greenbone_scanner_framework::models;
 use running_scan::{RunningScan, RunningScanHandle};
-use scanner_stack::DefaultScannerStack;
+
+pub type DefaultScannerStack = (Arc<InMemoryStorage>, FSPluginLoader);
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct ScannerWhyTwo<S: ScannerStack> {
@@ -65,7 +66,7 @@ where
     St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
     L: Loader + 'static,
 {
-    pub fn new(storage: St, loader: L, executor: Executor) -> Self {
+    fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),

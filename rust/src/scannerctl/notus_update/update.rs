@@ -21,7 +21,7 @@ use scannerlib::storage::redis::RedisGetNvt;
 use scannerlib::storage::redis::RedisStorage;
 use scannerlib::storage::redis::RedisWrapper;
 
-pub trait NotusStorage:
+pub(crate) trait NotusStorage:
     Dispatcher<(), Item = VulnerabilityData> + Dispatcher<NotusCache, Item = ()>
 {
 }

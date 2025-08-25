@@ -174,7 +174,7 @@ impl PortList {
 
 /// Error types
 #[derive(Debug, Clone)]
-pub enum Error {
+enum Error {
     /// XML parse error
     ParseError(String),
     /// Storage error
@@ -199,7 +199,7 @@ impl From<StorageError> for Error {
 impl std::error::Error for Error {}
 
 /// Parse a port list from a string.
-pub fn parse_portlist<R>(pl: R) -> Result<Vec<Port>, Error>
+fn parse_portlist<R>(pl: R) -> Result<Vec<Port>, Error>
 where
     R: BufRead,
 {
@@ -264,11 +264,11 @@ struct ScanConfigPreferenceNvt {
     name: String,
 }
 
-pub trait OspStorage: Retriever<Oid, Item = Nvt> + Retriever<Feed, Item = Vec<Nvt>> {}
+trait OspStorage: Retriever<Oid, Item = Nvt> + Retriever<Feed, Item = Vec<Nvt>> {}
 
 impl OspStorage for InMemoryStorage {}
 
-pub fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<Vec<VT>, Error>
+fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<Vec<VT>, Error>
 where
     R: BufRead,
 {

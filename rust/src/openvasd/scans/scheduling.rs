@@ -474,7 +474,7 @@ where
         + 'static,
 {
     match config.scanner.scanner_type {
-        crate::config::ScannerType::OSPD => {
+        crate::config::ScannerType::Ospd => {
             //TODO: when in notus don't start scheduler at all
             if !config.scanner.ospd.socket.exists()
                 && config.mode != crate::config::Mode::ServiceNotus

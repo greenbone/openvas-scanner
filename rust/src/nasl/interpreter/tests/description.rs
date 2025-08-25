@@ -2,26 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::{LoadError, Loader};
 use crate::storage::Retriever;
 use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::items::nvt::{
     ACT::Denial, FileName, Nvt, NvtPreference, NvtRef, PreferenceType::Password, TagKey,
 };
-
-#[derive(Default)]
-pub struct NoOpLoader {}
-
-/// Is a no operation loader for test purposes.
-impl Loader for NoOpLoader {
-    fn load(&self, _: &str) -> Result<String, LoadError> {
-        Ok(String::default())
-    }
-
-    fn root_path(&self) -> Result<std::string::String, crate::nasl::syntax::LoadError> {
-        Ok(String::default())
-    }
-}
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

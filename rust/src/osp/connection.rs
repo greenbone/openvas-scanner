@@ -19,17 +19,17 @@ use super::{
 };
 
 /// Sends a command to the unix socket and returns the response
-pub fn send_command<T: AsRef<Path>>(
+fn send_command<T: AsRef<Path>>(
     address: T,
     r_timeout: Option<Duration>,
     cmd: ScanCommand,
 ) -> Result<Response, Error> {
     let mut socket = UnixStream::connect(address)?;
     let cmd = cmd.try_to_xml()?;
-    if let Some(rtimeout) = r_timeout {
-        if !rtimeout.is_zero() {
-            socket.set_read_timeout(Some(rtimeout))?;
-        }
+    if let Some(rtimeout) = r_timeout
+        && !rtimeout.is_zero()
+    {
+        socket.set_read_timeout(Some(rtimeout))?;
     }
     socket.write_all(&cmd)?;
     let reader: BufReader<_> = BufReader::new(socket);

@@ -266,7 +266,7 @@ impl From<Response> for Status {
 
 impl Response {
     /// Get the status of the response
-    pub fn status(self) -> Status {
+    fn status(self) -> Status {
         match self {
             Response::Failure { status } => status,
             Response::StartScan { status, .. } => status,
@@ -286,13 +286,6 @@ pub struct Status {
     #[serde(rename = "@status")]
     /// Status code
     pub code: StringU64,
-}
-
-impl Status {
-    /// Check if the status is OK
-    pub fn is_ok(&self) -> bool {
-        self.code.0 == 200
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -398,7 +391,7 @@ struct HostDetail {
 }
 
 impl HostDetail {
-    pub fn extract(&self) -> Option<Detail> {
+    fn extract(&self) -> Option<Detail> {
         self.detail.first().cloned()
     }
 }
@@ -796,9 +789,7 @@ mod tests {
                    port="443/tcp"
                    test_id=""
                    name="Path disclosure vulnerability"
-                   type="Log Message">
-             bla
-           </result>
+                   type="Log Message">bla</result>
          </results>
          <progress>
             <host name="127.0.0.1">45</host>

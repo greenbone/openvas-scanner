@@ -39,7 +39,7 @@ pub use forking_interpreter::ForkingInterpreter;
 pub use nasl_value::NaslValue;
 pub use register::Register;
 
-pub type Result<T = NaslValue, E = Error> = std::result::Result<T, E>;
+type Result<T = NaslValue, E = Error> = std::result::Result<T, E>;
 
 #[derive(PartialEq, Eq)]
 enum InterpreterState {
@@ -57,7 +57,7 @@ impl InterpreterState {
 /// the `Span` pointing to the identifier of the function that
 /// resulted in this value originally.
 #[derive(Clone)]
-pub struct FunctionCallData {
+struct FunctionCallData {
     value: NaslValue,
     span: Span,
 }
@@ -82,7 +82,7 @@ pub struct FunctionCallData {
 ///    call. This is done until the `data` field is exhausted. At that
 ///    point, execution proceeds normally.
 #[derive(Clone)]
-pub enum ForkReentryData {
+enum ForkReentryData {
     Collecting {
         data: Vec<FunctionCallData>,
         register: Register,
@@ -240,7 +240,7 @@ fn expand_fork_at(
         .collect()
 }
 
-pub struct Interpreter<'ctx> {
+struct Interpreter<'ctx> {
     pub(super) register: Register,
     pub(super) scan_ctx: &'ctx ScanCtx<'ctx>,
     pub(super) script_ctx: ScriptCtx,
@@ -313,7 +313,7 @@ impl<'ctx> Interpreter<'ctx> {
         }
     }
 
-    pub async fn collect_exprs(
+    async fn collect_exprs(
         &mut self,
         exprs: impl Iterator<Item = &Expr>,
     ) -> Result<Vec<NaslValue>> {
@@ -536,9 +536,5 @@ impl<'ctx> Interpreter<'ctx> {
 
     pub(crate) fn is_finished(&self) -> bool {
         self.state.is_finished()
-    }
-
-    pub fn register(&self) -> &Register {
-        &self.register
     }
 }

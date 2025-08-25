@@ -92,7 +92,7 @@ pub trait IndexedByteStorage {
         T: TryFrom<Vec<u8>>,
         <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     {
-        let data = self.by_indices(key, &[index.clone()])?;
+        let data = self.by_indices(key, std::slice::from_ref(index))?;
         Ok(data.into_iter().next())
     }
 
@@ -123,7 +123,7 @@ impl IndexedFileStorer {
     }
 
     /// Creates a new index element and stored the element in the file.
-    pub fn create<T>(&self, id: &str, element: T) -> Result<Vec<Index>, Error>
+    fn create<T>(&self, id: &str, element: T) -> Result<Vec<Index>, Error>
     where
         T: AsRef<[u8]>,
     {
@@ -161,7 +161,7 @@ impl IndexedFileStorer {
     }
 
     /// Gets the data from the file by using the given index.
-    pub fn data_by_index(&self, key: &str, idx: &Index) -> Result<Vec<u8>, Error> {
+    fn data_by_index(&self, key: &str, idx: &Index) -> Result<Vec<u8>, Error> {
         let fn_name = format!("{key}.dat");
         let path = Path::new(&self.base).join(fn_name);
         let mut file = open_file(path, OpenOptions::new().read(true))?;
@@ -177,7 +177,7 @@ impl IndexedFileStorer {
     ///
     /// This should be rarely used as the index is usually returned when storing data.
     /// The caller should rather cache the index.
-    pub fn load_index(&self, key: &str) -> Result<Vec<Index>, Error> {
+    fn load_index(&self, key: &str) -> Result<Vec<Index>, Error> {
         let fn_name = format!("{key}.idx");
         let path = Path::new(&self.base).join(&fn_name);
         let mut file = open_file(path, OpenOptions::new().read(true))?;
@@ -192,8 +192,9 @@ impl IndexedFileStorer {
         Ok(index)
     }
 
+    #[cfg(test)]
     /// Appends the given data to the file and enlarges the index.
-    pub fn append<T>(&self, key: &str, index: &[Index], data: T) -> Result<Vec<Index>, Error>
+    fn append<T>(&self, key: &str, index: &[Index], data: T) -> Result<Vec<Index>, Error>
     where
         T: AsRef<[u8]>,
     {
@@ -201,7 +202,7 @@ impl IndexedFileStorer {
     }
 
     /// Appends all given data sets to the file and enlarges the index.
-    pub fn append_all_index<T>(
+    fn append_all_index<T>(
         &self,
         key: &str,
         index: &[Index],
@@ -230,7 +231,7 @@ impl IndexedFileStorer {
     }
 
     /// Removes dat and idx files from the file system.
-    pub fn clean(&self, key: &str) -> Result<(), Error> {
+    fn clean(&self, key: &str) -> Result<(), Error> {
         let remove_file = |path| {
             let dat_path = Path::new(&self.base).join(path);
             fs::remove_file(dat_path).map_err(|e| Error::IoError(IoErrorKind::Remove, e.kind()))
@@ -324,7 +325,7 @@ pub enum Range {
 
 impl Range {
     /// Filters the given index by the range.
-    pub fn filter<'a>(&'a self, fi: &'a [Index]) -> &'a [Index] {
+    fn filter<'a>(&'a self, fi: &'a [Index]) -> &'a [Index] {
         match self {
             Range::All => fi,
             Range::From(i) => {
@@ -370,10 +371,10 @@ impl CachedIndexFileStorer {
     }
     fn find_index(&self, key: &str) -> Option<(usize, &Vec<Index>)> {
         for i in 0..self.cache.len() {
-            if let Some((k, v)) = &self.cache[i] {
-                if k == key {
-                    return Some((i, v));
-                }
+            if let Some((k, v)) = &self.cache[i]
+                && k == key
+            {
+                return Some((i, v));
             }
         }
         None
@@ -450,10 +451,10 @@ impl IndexedByteStorage for CachedIndexFileStorer {
     fn remove(&mut self, key: &str) -> Result<(), Error> {
         self.base.clean(key)?;
         for i in 0..self.cache.len() {
-            if let Some((k, _)) = &self.cache[i] {
-                if k == key {
-                    self.cache[i] = None;
-                }
+            if let Some((k, _)) = &self.cache[i]
+                && k == key
+            {
+                self.cache[i] = None;
             }
         }
         Ok(())
@@ -497,8 +498,9 @@ where
         }
     }
 
+    #[cfg(test)]
     /// Creates a new instance for all indices of given key.
-    pub fn new(key: &str, storage: S) -> Result<Self, Error> {
+    fn new(key: &str, storage: S) -> Result<Self, Error> {
         let indices = Self::load_indices(key, &storage)?;
         Ok(Self {
             current: 0,

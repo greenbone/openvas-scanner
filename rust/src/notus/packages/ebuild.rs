@@ -275,7 +275,7 @@ mod ebuild_tests {
     use super::Package;
 
     #[test]
-    pub fn test_guard() {
+    fn test_guard() {
         assert!(EBuild::from_full_name("").is_none());
         assert!(EBuild::from_full_name("www-servers/").is_none());
         assert!(EBuild::from_full_name("www-servers/name").is_none());
@@ -284,7 +284,7 @@ mod ebuild_tests {
     }
 
     #[test]
-    pub fn test_parse_fullname() {
+    fn test_parse_fullname() {
         let ebuild = EBuild::from_full_name(
             "app-i18n/tagainijisho-1.2.0_pre20200118132551_p20201001_p20201001-r42",
         )
@@ -315,7 +315,7 @@ mod ebuild_tests {
     }
 
     #[test]
-    pub fn test_parse_fullname_from_file() {
+    fn test_parse_fullname_from_file() {
         let path = make_test_path(&["data", "notus", "gentoo_examples.txt"]);
         let file = File::open(path).unwrap();
         for line in io::BufReader::new(file).lines() {
@@ -324,7 +324,7 @@ mod ebuild_tests {
     }
 
     #[test]
-    pub fn test_comparability() {
+    fn test_comparability() {
         let apache1 = EBuild::from_full_name("www-servers/apache-2.4.51-r2").unwrap();
         let apache2 =
             EBuild::from_name_and_full_version("www-servers/apache", "2.4.51-r3").unwrap();

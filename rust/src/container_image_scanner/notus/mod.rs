@@ -1,11 +1,10 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use greenbone_scanner_framework::models::{self, FixedVersion, VulnerablePackage};
 use tokio::sync::RwLock;
 
 use crate::{
     container_image_scanner::detection::OperatingSystem,
-    nasl::FSPluginLoader,
     notus::{HashsumProductLoader, Notus},
 };
 
@@ -82,17 +81,6 @@ pub enum Error {
 }
 
 type Oz = Notus<HashsumProductLoader>;
-pub fn path_to_products<P>(
-    path: P,
-    signature_check: bool,
-) -> Arc<RwLock<Notus<HashsumProductLoader>>>
-where
-    P: AsRef<Path>,
-{
-    let loader = FSPluginLoader::new(path);
-    let loader = HashsumProductLoader::new(loader);
-    Arc::new(RwLock::new(Notus::new(loader, signature_check)))
-}
 
 pub async fn vulnerabilities(
     products: Arc<RwLock<Oz>>,
