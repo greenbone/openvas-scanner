@@ -1,10 +1,9 @@
-use crate::storage::items::kb::Ssl;
 // SPDX-FileCopyrightText: 2025 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+use crate::models::PreferenceValue;
 use crate::nasl::prelude::*;
 use crate::scanner::preferences::preference::PREFERENCES;
-use crate::{models::PreferenceValue, storage::items::kb::KbKey};
 use base64::Engine as _;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -51,19 +50,16 @@ fn script_get_preference_file_content_shared(
     config: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
-) -> Option<NaslValue> {
+) -> Option<Vec<u8>> {
     let content = script_get_preference_shared(register, config, name, id)?;
     let content = content.as_string().unwrap();
-    match base64::engine::general_purpose::STANDARD.decode(content) {
-        Ok(c) => Some(c.into()),
-        Err(_) => None,
-    }
+    base64::engine::general_purpose::STANDARD
+        .decode(content)
+        .ok()
 }
 
 /// Given a preference name or ID of file type script preference, stores the
 /// preference value in a temporary file and returns the path.
-// The C implementation of this function, is internally called by nasl_builtin_find_service to
-// store the TLS stuff in temporary files, which are later use to create a tls socket.
 #[allow(unused)]
 pub fn get_plugin_preference_fname(
     register: &Register,
@@ -71,42 +67,26 @@ pub fn get_plugin_preference_fname(
     name: Option<String>,
     id: Option<usize>,
 ) -> Result<String, FnError> {
-    let mut tmp = match NamedTempFile::with_prefix("openvas-file-upload.") {
-        Ok(f) => f,
-        Err(e) => return Err(BuiltinError::Preference(e.to_string()).into()),
-    };
-    if let Some(file_content) =
-        script_get_preference_file_content_shared(register, config, name, id)
-        && tmp.write_all(file_content.to_string().as_bytes()).is_ok()
-    {
-        return Ok(tmp.path().to_string_lossy().into_owned());
+    let mut tmp = NamedTempFile::with_prefix("openvas-file-upload.")
+        .map_err(|e| BuiltinError::Preference(e.to_string()))?;
+    match script_get_preference_file_content_shared(register, config, name, id) {
+        Some(file_content) => {
+            if tmp.write_all(&file_content).is_ok() {
+                Ok(tmp.path().to_string_lossy().into_owned())
+            } else {
+                Err(BuiltinError::Preference(format!(
+                    "get_plugin_preference_fname: Could not write to temporary file at {:?}",
+                    tmp.path()
+                ))
+                .into())
+            }
+        }
+        None => Err(BuiltinError::Preference(format!(
+            "get_plugin_preference_fname: Could not create temporary file for {:?}",
+            tmp.path()
+        ))
+        .into()),
     }
-
-    Err(BuiltinError::Preference(format!(
-        "get_plugin_preference_fname: Could not create temporary file for {:?}",
-        tmp.path()
-    ))
-    .into())
-}
-
-#[allow(unused)]
-pub fn plug_set_ssl_cert(config: &ScanCtx, path: String) -> Result<(), FnError> {
-    config.set_single_kb_item(KbKey::Ssl(Ssl::Cert), path)
-}
-
-#[allow(unused)]
-pub fn plug_set_ssl_key(config: &ScanCtx, path: String) -> Result<(), FnError> {
-    config.set_single_kb_item(KbKey::Ssl(Ssl::Key), path)
-}
-
-#[allow(unused)]
-pub fn plug_set_ssl_password(config: &ScanCtx, path: String) -> Result<(), FnError> {
-    config.set_single_kb_item(KbKey::Ssl(Ssl::Password), path)
-}
-
-#[allow(unused)]
-pub fn plug_set_ssl_ca_file(config: &ScanCtx, path: String) -> Result<(), FnError> {
-    config.set_single_kb_item(KbKey::Ssl(Ssl::Ca), path)
 }
 
 #[nasl_function(named(id))]
@@ -115,7 +95,7 @@ fn script_get_preference_file_content(
     config: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
-) -> Option<NaslValue> {
+) -> Option<Vec<u8>> {
     script_get_preference_file_content_shared(register, config, name, id)
 }
 
