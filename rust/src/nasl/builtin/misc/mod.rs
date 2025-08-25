@@ -292,22 +292,16 @@ fn vendor_version(context: &ScanCtx<'_>) -> Result<NaslValue, MiscError> {
 
 /// Are safe checks enabled ?
 #[nasl_function]
-fn safe_checks(context: &ScanCtx<'_>) -> NaslValue {
-    NaslValue::Boolean(
-        context
-            .scan_preferences
-            .get_preference_bool("safe_checks")
-            .unwrap_or(false),
-    )
+fn safe_checks(context: &ScanCtx<'_>) -> bool {
+    context
+        .scan_preferences
+        .get_preference_bool("safe_checks")
+        .unwrap_or(false)
 }
 
-/// Are safe checks enabled ?
 #[nasl_function]
-fn get_script_oid(context: &ScanCtx<'_>) -> NaslValue {
-    match context.nvt().clone() {
-        Some(nvt) => NaslValue::Data(nvt.oid.into_bytes()),
-        None => NaslValue::Null,
-    }
+fn get_script_oid(context: &ScanCtx<'_>) -> Option<Vec<u8>> {
+    context.nvt().clone().map(|nvt| nvt.oid.into_bytes())
 }
 
 pub struct Misc;
