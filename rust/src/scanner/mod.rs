@@ -25,6 +25,9 @@ mod vt_runner;
 
 #[cfg(test)]
 mod tests;
+//TODO: export trairs directly to get rid of scanner::scanner:ScanStopper, ...
+mod scanner;
+pub use scanner::*;
 
 pub use error::ExecuteError;
 pub use scan::Scan;
@@ -36,10 +39,6 @@ use async_trait::async_trait;
 use std::{collections::HashMap, path::Path, sync::Arc};
 use tokio::sync::RwLock;
 
-use crate::models;
-use crate::models::scanner::{
-    Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
-};
 use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 use crate::nasl::utils::Executor;
@@ -48,17 +47,21 @@ use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
 use crate::storage::Remover;
 use crate::storage::ScanID;
+use crate::storage::inmemory::InMemoryStorage;
+use greenbone_scanner_framework::models;
 use running_scan::{RunningScan, RunningScanHandle};
 
+pub type DefaultScannerStack = (Arc<InMemoryStorage>, FSPluginLoader);
+
 /// Allows starting, stopping and managing the results of new scans.
-pub struct Scanner<S: ScannerStack> {
+pub struct ScannerWhyTwo<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
     storage: Arc<S::Storage>,
     loader: Arc<S::Loader>,
     function_executor: Arc<Executor>,
 }
 
-impl<St, L> Scanner<(St, L)>
+impl<St, L> ScannerWhyTwo<(St, L)>
 where
     St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
     L: Loader + 'static,
@@ -73,7 +76,18 @@ where
     }
 }
 
-impl<S> Scanner<ScannerStackWithStorage<S>>
+impl ScannerWhyTwo<DefaultScannerStack> {
+    /// Create a new scanner with the default stack.
+    /// Requires the root path for the loader.
+    pub fn with_default_stack(root: &Path) -> Self {
+        let storage = Arc::new(InMemoryStorage::new());
+        let loader = FSPluginLoader::new(root);
+        let executor = nasl_std_functions();
+        Self::new(storage, loader, executor)
+    }
+}
+
+impl<S> ScannerWhyTwo<ScannerStackWithStorage<S>>
 where
     S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
 {
@@ -87,7 +101,7 @@ where
     }
 }
 
-impl<S: ScannerStack + 'static> Scanner<S> {
+impl<S: ScannerStack + 'static> ScannerWhyTwo<S> {
     async fn start_scan_internal(&self, scan: Scan) -> Result<(), Error> {
         let storage = self.storage.clone();
         let loader = self.loader.clone();
@@ -101,20 +115,15 @@ impl<S: ScannerStack + 'static> Scanner<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack + 'static> ScanStarter for Scanner<S> {
+impl<S: ScannerStack + 'static> ScanStarter for ScannerWhyTwo<S> {
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
         self.start_scan_internal(Scan::from_resolvable_hosts(scan))
             .await
     }
-
-    async fn can_start_scan(&self, _: &models::Scan) -> bool {
-        // Todo: Implement this properly
-        true
-    }
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanStopper for Scanner<S> {
+impl<S: ScannerStack> ScanStopper for ScannerWhyTwo<S> {
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -132,7 +141,7 @@ impl<S: ScannerStack> ScanStopper for Scanner<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanDeleter for Scanner<S> {
+impl<S: ScannerStack> ScanDeleter for ScannerWhyTwo<S> {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -147,7 +156,7 @@ impl<S: ScannerStack> ScanDeleter for Scanner<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanResultFetcher for Scanner<S> {
+impl<S: ScannerStack> ScanResultFetcher for ScannerWhyTwo<S> {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -161,6 +170,7 @@ impl<S: ScannerStack> ScanResultFetcher for Scanner<S> {
         Ok(ScanResults {
             id: id.to_string(),
             status,
+            // TODO: verify
             // The results are directly stored by the storage implementation:
             // inmemory.rs
             // file.rs

@@ -10,13 +10,14 @@ use std::{
     time::SystemTime,
 };
 
-use crate::models::{HostInfo, Phase, Status, scanner::Error};
 use crate::nasl::utils::Executor;
+use crate::scanner::Error;
 use crate::{
     scanner::scan_runner::ScanRunner,
     scheduling::{ExecutionPlan, ExecutionPlaner, VTError},
 };
 use futures::StreamExt;
+use greenbone_scanner_framework::models::{HostInfo, Phase, Status};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 

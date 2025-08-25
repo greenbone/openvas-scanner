@@ -1,0 +1,6 @@
+---
+source: src/config.rs
+expression: config
+---
+db = '/tmp/test.db'
+image_extraction_location = '/tmp/images/'

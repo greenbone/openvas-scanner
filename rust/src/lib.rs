@@ -9,8 +9,8 @@
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod alive_test;
+pub mod container_image_scanner;
 pub mod feed;
-pub mod models;
 pub mod nasl;
 pub mod notus;
 pub mod openvas;
@@ -18,3 +18,5 @@ pub mod osp;
 pub mod scanner;
 pub mod scheduling;
 pub mod storage;
+
+pub use greenbone_scanner_framework::models;

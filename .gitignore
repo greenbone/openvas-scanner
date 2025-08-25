@@ -10,3 +10,4 @@ testsuiterun.nasl
 assets/
 *.rsa
 *.pem
+*.snap.new

@@ -34,7 +34,7 @@ use super::items::nvt::FeedVersion;
 use super::items::nvt::FileName;
 use super::items::nvt::Nvt;
 use super::items::nvt::Oid;
-use super::items::result::ResultContextKeyAll;
+
 use super::items::result::ResultContextKeySingle;
 use super::items::result::ResultItem;
 
@@ -199,12 +199,12 @@ where
         unimplemented!()
     }
 }
-impl<S> Retriever<ResultContextKeyAll> for RedisStorage<S>
+impl<S> Retriever<ScanID> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
@@ -217,12 +217,12 @@ where
         unimplemented!()
     }
 }
-impl<S> Remover<ResultContextKeyAll> for RedisStorage<S>
+impl<S> Remover<ScanID> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
     type Item = Vec<ResultItem>;
-    fn remove(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }

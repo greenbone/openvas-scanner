@@ -1,0 +1,32 @@
+[package]
+name = "greenbone-scanner-framework"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+futures-util = "0"
+http-body = "1"
+http-body-util = "0"
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0", features = ["tokio"] }
+hyper-rustls = "0"
+rustls = "0"
+rustls-pemfile = "2"
+# TODO: although it is not harmful, as we just use it to extract
+# subject identifier, we should find a way to achieve that goal using version 2
+rustls-pemfile-old = { version = "1", package = "rustls-pemfile" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-rustls = "0"
+tracing = "0"
+tokio-test = "0"
+uuid = { version = "1", features = ["fast-rng", "v4"] }
+futures = "0"
+time = { version = "0", features = ["parsing"] }
+
+[dev-dependencies]
+insta = { version = "1", features = ["ron"] }
+

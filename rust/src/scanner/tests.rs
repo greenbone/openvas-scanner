@@ -1,9 +1,5 @@
 use super::Scan;
 use super::preferences::preference::ScanPrefs;
-use crate::models::Phase;
-use crate::models::Protocol;
-use crate::models::VT;
-use crate::models::scanner::{ScanResultFetcher, ScanResults};
 use crate::nasl::Code;
 use crate::nasl::ScanCtxBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
@@ -12,7 +8,8 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::NaslValue;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::Target;
-use crate::scanner::Scanner;
+use crate::scanner::ScannerWhyTwo;
+use crate::scanner::{ScanResultFetcher, ScanResults};
 use crate::scanner::{
     error::{ExecuteError, ScriptResult},
     scan_runner::ScanRunner,
@@ -28,6 +25,9 @@ use crate::storage::items::kb::KbItem;
 use crate::storage::items::kb::KbKey;
 use crate::storage::items::nvt::FileName;
 use crate::storage::items::nvt::Nvt;
+use greenbone_scanner_framework::models::Phase;
+use greenbone_scanner_framework::models::Protocol;
+use greenbone_scanner_framework::models::VT;
 
 use futures::StreamExt;
 use std::sync::Arc;
@@ -63,14 +63,14 @@ fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
     ((Arc::new(storage), loader), executor, scan)
 }
 
-fn make_scanner_and_scan_success() -> (Scanner<TestStack>, Scan) {
+fn make_scanner_and_scan_success() -> (ScannerWhyTwo<TestStack>, Scan) {
     let ((storage, loader), executor, scan) = setup(&only_success());
-    (Scanner::new(storage, loader, executor), scan)
+    (ScannerWhyTwo::new(storage, loader, executor), scan)
 }
 
-fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (Scanner<TestStack>, Scan) {
+fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (ScannerWhyTwo<TestStack>, Scan) {
     let ((storage, loader), executor, scan) = setup(scripts);
-    (Scanner::new(storage, loader, executor), scan)
+    (ScannerWhyTwo::new(storage, loader, executor), scan)
 }
 
 fn only_success() -> [(String, Nvt); 3] {
@@ -414,7 +414,7 @@ async fn mandatory_keys() {
     assert_eq!(failure.len(), 1);
 }
 
-async fn wait_for_status(scanner: Scanner<TestStack>, id: &str, phase: Phase) -> ScanResults {
+async fn wait_for_status(scanner: ScannerWhyTwo<TestStack>, id: &str, phase: Phase) -> ScanResults {
     const TIMEOUT: u128 = 500;
     let start = Instant::now();
     loop {
@@ -466,8 +466,8 @@ async fn start_scan_failure() {
         "host_info should be set"
     );
     let host_info = scan_results.status.host_info.unwrap();
-    assert_eq!(host_info.finished(), 1);
-    assert_eq!(host_info.queued(), 0);
+    assert_eq!(host_info.finished, 1);
+    assert_eq!(host_info.queued, 0);
 }
 
 #[tokio::test]
@@ -495,6 +495,6 @@ async fn start_scan_success() {
         "host_info should be set"
     );
     let host_info = scan_results.status.host_info.unwrap();
-    assert_eq!(host_info.finished(), 2);
-    assert_eq!(host_info.queued(), 0);
+    assert_eq!(host_info.finished, 2);
+    assert_eq!(host_info.queued, 0);
 }
