@@ -82,7 +82,7 @@ jobs:
   
   debian_stable:
     name: ghcr:debian:stable
-    runs-on: "self-hosted-generic"
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5

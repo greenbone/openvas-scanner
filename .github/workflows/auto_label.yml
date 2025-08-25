@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   label:
-    runs-on: self-hosted-generic
+    runs-on: ubuntu-latest
     steps:
         - uses: greenbone/actions/pr-conventional-commit-labeler@main
           with:
