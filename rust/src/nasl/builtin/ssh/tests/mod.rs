@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use russh::server::Config as ServerConfig;
 use russh::server::Server as _;
-use russh_keys::key::KeyPair;
+
 use server::AuthConfig;
 use server::TestServer;
 
@@ -30,7 +30,6 @@ const PORT: u16 = 2223;
 
 fn default_config() -> ServerConfig {
     ServerConfig {
-        keys: vec![KeyPair::generate_ed25519()],
         inactivity_timeout: Some(std::time::Duration::from_secs(3600)),
         auth_rejection_time: std::time::Duration::from_secs(3),
         auth_rejection_time_initial: Some(std::time::Duration::from_secs(0)),
