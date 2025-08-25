@@ -21,10 +21,19 @@ use chrono::{
 use nasl_function_proc_macro::nasl_function;
 use thiserror::Error;
 
-use crate::nasl::{prelude::*, utils::function::Maybe};
+use crate::nasl::{
+    prelude::*,
+    utils::{DefineGlobalVars, function::Maybe},
+};
 use flate2::{
     Compression, read::GzDecoder, read::ZlibDecoder, write::GzEncoder, write::ZlibEncoder,
 };
+
+pub const NASL_ERR_NOERR: i64 = 0;
+pub const NASL_ERR_ETIMEDOUT: i64 = 1;
+pub const NASL_ERR_ECONNRESET: i64 = 2;
+pub const NASL_ERR_EUNREACH: i64 = 3;
+pub const NASL_ERR_EUNKNOWN: i64 = 99;
 
 #[derive(Debug, Error)]
 pub enum MiscError {
@@ -303,4 +312,19 @@ function_set! {
         dump_ctxt,
         vendor_version,
     )
+}
+
+impl DefineGlobalVars for Misc {
+    fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
+        vec![
+            ("NASL_ERR_NOERR", NaslValue::Number(NASL_ERR_NOERR)),
+            ("NASL_ERR_ETIMEDOUT", NaslValue::Number(NASL_ERR_ETIMEDOUT)),
+            (
+                "NASL_ERR_ECONNRESET",
+                NaslValue::Number(NASL_ERR_ECONNRESET),
+            ),
+            ("NASL_ERR_EUNREACH", NaslValue::Number(NASL_ERR_EUNREACH)),
+            ("NASL_ERR_EUNKNOWN", NaslValue::Number(NASL_ERR_EUNKNOWN)),
+        ]
+    }
 }

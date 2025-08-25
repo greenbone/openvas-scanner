@@ -15,7 +15,8 @@ mod http;
 mod isotime;
 mod knowledge_base;
 pub mod misc;
-mod network;
+pub mod network;
+
 mod preferences;
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod raw_ip;
@@ -65,6 +66,7 @@ pub fn nasl_std_functions() -> Executor {
     executor.add_set(raw_ip::RawIp);
     #[cfg(feature = "nasl-builtin-raw-ip")]
     executor.add_global_vars(raw_ip::RawIp);
+    executor.add_global_vars(network::socket::SocketFns);
 
     executor
 }
