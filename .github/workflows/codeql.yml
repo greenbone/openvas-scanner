@@ -11,7 +11,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: self-hosted-generic
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read

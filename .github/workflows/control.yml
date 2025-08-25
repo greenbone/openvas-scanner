@@ -40,7 +40,7 @@ jobs:
   # this prevents us from having to pass down all labels, event_name, etc
   # to init.yml
   adapt_release:
-    runs-on: self-hosted-generic
+    runs-on: ubuntu-latest
     outputs:
       kind: ${{ steps.kind.outputs.kind}}
     steps:
