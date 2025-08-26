@@ -1,6 +1,7 @@
+use std::{io, path::PathBuf};
+
 use super::{PackageError, ResolvePackages};
 use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
-use std::{io, path::PathBuf};
 
 pub struct RPMDBSqliteFile;
 

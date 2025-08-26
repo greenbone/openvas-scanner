@@ -4,9 +4,8 @@
 
 use std::{collections::HashMap, fmt::Display, str::FromStr};
 
-use crate::models::Specifier;
-
 use super::port::Protocol;
+use crate::models::Specifier;
 
 /// Scan result
 #[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]

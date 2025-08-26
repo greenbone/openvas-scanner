@@ -3,9 +3,8 @@ use std::{fmt::Display, str::FromStr};
 use tokio::io::{AsyncBufRead, AsyncBufReadExt};
 use tracing::debug;
 
-use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
-
 use super::{PackageError, ResolvePackages};
+use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
 
 pub struct DPKGStatusFile;
 

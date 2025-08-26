@@ -1,8 +1,7 @@
 use std::pin::Pin;
 
-use crate::concat_slices;
-
 use super::extractor::{Locator, LocatorError};
+use crate::concat_slices;
 
 mod debian;
 mod rpm;

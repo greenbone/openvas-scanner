@@ -52,9 +52,8 @@ impl DBI for SqliteDB {
 
 #[cfg(test)]
 mod tests {
-    use crate::DBI;
-
     use super::SqliteDB;
+    use crate::DBI;
 
     const SQLITE_FILE: &str = "testdata/rpmdb.sqlite";
 

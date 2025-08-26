@@ -1,17 +1,14 @@
 pub mod config;
-use std::pin::Pin;
-use std::sync::{Arc, RwLock};
-use std::time::Duration;
-
-use futures::StreamExt;
+use std::{
+    pin::Pin,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 pub use config::Config;
-use futures::Stream;
-use greenbone_scanner_framework::entry::Prefixed;
-use greenbone_scanner_framework::models::FeedState;
-use image::DockerRegistryV2;
-use image::extractor::filtered_image;
-use image::packages::AllTypes;
+use futures::{Stream, StreamExt};
+use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
+use image::{DockerRegistryV2, extractor::filtered_image, packages::AllTypes};
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
 pub mod detection;

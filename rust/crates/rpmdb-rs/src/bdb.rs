@@ -1,10 +1,12 @@
-use serde::Deserialize;
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    io::{Read, Seek, SeekFrom},
+    path::PathBuf,
+};
 
-use crate::DBI;
-use crate::errors::RpmdbError;
+use serde::Deserialize;
+
+use crate::{DBI, errors::RpmdbError};
 
 const VALID_PAGE_SIZES: [u32; 8] = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536];
 

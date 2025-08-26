@@ -1,7 +1,6 @@
 use anyhow::anyhow;
 
-use super::entry::IndexEntry;
-use super::rpmtags::*;
+use super::{entry::IndexEntry, rpmtags::*};
 
 #[derive(Default, Debug)]
 pub struct Package {
@@ -143,9 +142,8 @@ impl TryFrom<Vec<IndexEntry>> for Package {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DBI, bdb::Bdb, entry::Hdrblob, ndb::Ndb, sqlite3::SqliteDB};
-
     use super::Package;
+    use crate::{DBI, bdb::Bdb, entry::Hdrblob, ndb::Ndb, sqlite3::SqliteDB};
 
     #[test]
     fn test_bdb() {

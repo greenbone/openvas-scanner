@@ -1,8 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
-use tracing::metadata::ParseLevelError;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use tracing::Level;
+use tracing::{Level, metadata::ParseLevelError};
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

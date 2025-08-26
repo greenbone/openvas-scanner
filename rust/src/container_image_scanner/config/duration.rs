@@ -1,5 +1,6 @@
-use serde::{Deserialize, Deserializer, Serializer};
 use std::time::Duration;
+
+use serde::{Deserialize, Deserializer, Serializer};
 
 /// Deserialize a duration from a string like "1s", "500ms", etc.
 pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>

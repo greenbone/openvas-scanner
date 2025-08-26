@@ -1,18 +1,20 @@
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::{
+    io::BufReader,
+    path::{Path, PathBuf},
+    sync::{Arc, RwLock},
+};
 
-pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
 use greenbone_scanner_framework::GetVTsError;
-use scannerlib::feed;
-use scannerlib::models::{FeedState, FeedType, VTData};
-use scannerlib::nasl::FSPluginLoader;
-use scannerlib::notus::advisories::VulnerabilityData;
-use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
-use sqlx::Acquire;
-use sqlx::{SqlitePool, query, query_scalar};
+use scannerlib::{
+    feed,
+    models::{FeedState, FeedType, VTData},
+    nasl::FSPluginLoader,
+    notus::{AdvisoryLoader, HashsumAdvisoryLoader, advisories::VulnerabilityData},
+};
+use sqlx::{Acquire, SqlitePool, query, query_scalar};
 
 use crate::config::Config;
+pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the hash values of the sha256sums for specific feeds
@@ -317,11 +319,11 @@ pub async fn init(pool: SqlitePool, config: &Config) -> (Arc<RwLock<FeedState>>,
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use futures::StreamExt;
     use greenbone_scanner_framework::GetVts;
     use sqlx::SqlitePool;
 
+    use super::*;
     use crate::{config::Config, setup_sqlite, vts::FeedSynchronizer};
 
     async fn create_pool() -> crate::Result<(Config, SqlitePool)> {

@@ -1,9 +1,10 @@
-use futures::Stream;
-use futures_util::stream::StreamExt;
 use std::{
     pin::Pin,
     task::{Context, Poll},
 };
+
+use futures::Stream;
+use futures_util::stream::StreamExt;
 
 use crate::entry::Bytes;
 
@@ -93,8 +94,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use futures::StreamExt;
-    use futures::stream;
+    use futures::{StreamExt, stream};
 
     use crate::entry::Bytes;
 

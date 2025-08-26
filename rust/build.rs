@@ -1,10 +1,11 @@
-use std::fmt::Display;
-use std::fs::{self, File};
-use std::io::BufWriter;
-use std::path::Path;
+use std::{
+    fmt::Display,
+    fs::{self, File},
+    io::BufWriter,
+    path::Path,
+};
 
-use flate2::Compression;
-use flate2::write::GzEncoder;
+use flate2::{Compression, write::GzEncoder};
 use tar::Builder;
 
 fn create_test_layer(name: &str) -> Option<()> {

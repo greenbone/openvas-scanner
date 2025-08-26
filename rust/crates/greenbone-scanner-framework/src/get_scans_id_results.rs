@@ -1,11 +1,12 @@
-use crate::{StreamResult, entry::Prefixed};
 use std::sync::Arc;
 
 use hyper::StatusCode;
 
 use crate::{
-    GetScansError, MapScanID, define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, enforce_client_id_and_scan_id, response::BodyKind},
+    GetScansError, MapScanID, StreamResult, define_authentication_paths,
+    entry::{
+        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+    },
     models,
 };
 
@@ -132,9 +133,8 @@ mod tests {
     use http_body_util::{BodyExt, Empty};
     use hyper::{Request, service::Service};
 
-    use crate::{Authentication, ClientHash, incoming_request};
-
     use super::*;
+    use crate::{Authentication, ClientHash, incoming_request};
 
     struct Test {}
 

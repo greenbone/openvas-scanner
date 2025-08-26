@@ -1,6 +1,7 @@
+use std::io::{self, Read};
+
 use serde::de::DeserializeOwned;
 use serde_json::{self, Deserializer};
-use std::io::{self, Read};
 // copied from
 // https://stackoverflow.com/questions/68641157/how-can-i-stream-elements-from-inside-a-json-array-using-serde-json?noredirect=1#comment121310322_68641157
 // Currently it does not seem that serde directly supports streaming elements of a large list,

@@ -3,9 +3,8 @@ use std::{path::PathBuf, sync::Arc};
 use thiserror::Error;
 use tokio::{fs::File, io::BufReader};
 
-use crate::container_image_scanner::{Futura, FuturaRef, config::Config};
-
 use super::{ImageID, PackedLayer};
+use crate::container_image_scanner::{Futura, FuturaRef, config::Config};
 
 pub mod filtered_image;
 

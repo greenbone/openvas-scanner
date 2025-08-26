@@ -376,9 +376,8 @@ pub mod test_utilities {
     use http_body_util::{Empty, Full};
     use hyper::{Request, body::Bytes};
 
-    use crate::{Authentication, Scanner, models::FeedState};
-
     use super::{ClientHash, ClientIdentifier, EntryPoint, IncomingRequest, Method};
+    use crate::{Authentication, Scanner, models::FeedState};
 
     pub fn entry_point(
         authentication: Authentication,
@@ -456,12 +455,10 @@ pub mod test_utilities {
 #[cfg(test)]
 mod tests {
     use http_body_util::Empty;
-    use hyper::service::Service;
-    use hyper::{Request, header::HeaderValue};
-
-    use crate::Authentication;
+    use hyper::{Request, header::HeaderValue, service::Service};
 
     use super::*;
+    use crate::Authentication;
 
     struct IdPart {}
 

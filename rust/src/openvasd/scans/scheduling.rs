@@ -541,13 +541,12 @@ pub(crate) mod tests {
         scanner::{LambdaBuilder, ScanResults},
     };
 
+    use super::*;
     use crate::{
         config::Config,
         crypt::ChaCha20Crypt,
         scans::{self, tests::create_pool},
     };
-
-    use super::*;
     type TR = R<()>;
 
     async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use crate::{ExternalError, StreamResult, entry::Prefixed, models::VTData};
 use hyper::StatusCode;
 
 use crate::{
-    define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, response::BodyKind},
+    ExternalError, StreamResult, define_authentication_paths,
+    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
     internal_server_error,
+    models::VTData,
 };
 
 pub trait GetVts: Send + Sync {
@@ -115,9 +115,8 @@ mod tests {
     use http_body_util::{BodyExt, Empty};
     use hyper::{Request, service::Service};
 
-    use crate::{Authentication, ClientHash, incoming_request};
-
     use super::*;
+    use crate::{Authentication, ClientHash, incoming_request};
 
     struct Test {}
 

@@ -1,11 +1,9 @@
 pub(crate) mod docker_v2;
-pub(crate) use super::PackedLayer;
-
 pub use docker_v2::Registry as DockerV2;
 
-use crate::container_image_scanner::{ExternalError, FuturaRef, ParsePreferences, Streamer};
-
 use super::Image;
+pub(crate) use super::PackedLayer;
+use crate::container_image_scanner::{ExternalError, FuturaRef, ParsePreferences, Streamer};
 
 #[derive(Clone, Debug)]
 pub struct Credential {

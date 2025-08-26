@@ -3,9 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use async_trait::async_trait;
-use thiserror::Error;
-
 use greenbone_scanner_framework::models::{self, Scan, Status};
+use thiserror::Error;
 /// ScanResults can differ in kind.
 ///
 /// For an example OSPD scanner includes all information of the status therefore we need to

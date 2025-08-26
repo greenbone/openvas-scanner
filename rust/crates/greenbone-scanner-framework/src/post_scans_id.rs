@@ -136,9 +136,8 @@ mod tests {
     use http_body_util::Empty;
     use hyper::{Method, Request, service::Service};
 
-    use crate::{Authentication, ClientHash, incoming_request, models::ScanAction};
-
     use super::*;
+    use crate::{Authentication, ClientHash, incoming_request, models::ScanAction};
 
     struct Test {}
 

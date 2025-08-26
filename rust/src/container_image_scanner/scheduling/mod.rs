@@ -1,34 +1,29 @@
-use db::ProcessingImage;
-use db::RequestedScans;
-use futures::stream::FuturesUnordered;
-use scanner::ScannerError;
-use sqlx::SqlitePool;
-use std::marker::PhantomData;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::RwLock;
-use tracing::debug;
-use tracing::warn;
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 
-use futures::StreamExt;
+use container_image_scanner::{
+    ExternalError, ParsePreferences,
+    config::Config,
+    image,
+    image::{Credential, Image, ImageID, packages::ToNotus},
+};
+use db::{ProcessingImage, RequestedScans};
+use futures::{StreamExt, stream::FuturesUnordered};
 use greenbone_scanner_framework::models;
-use sqlx::Sqlite;
-use tokio::sync::mpsc::Sender;
+use scanner::ScannerError;
+use sqlx::{Sqlite, SqlitePool};
+use tokio::{
+    sync::{
+        RwLock,
+        mpsc::{Receiver, Sender},
+    },
+    time,
+};
+use tracing::{debug, warn};
 
-use crate::container_image_scanner;
-use crate::notus::HashsumProductLoader;
-use crate::notus::Notus;
-use tokio::sync::mpsc::Receiver;
-use tokio::time;
-
-use container_image_scanner::ExternalError;
-use container_image_scanner::ParsePreferences;
-use container_image_scanner::config::Config;
-use container_image_scanner::image;
-use container_image_scanner::image::Credential;
-use container_image_scanner::image::Image;
-use container_image_scanner::image::ImageID;
-use container_image_scanner::image::packages::ToNotus;
+use crate::{
+    container_image_scanner,
+    notus::{HashsumProductLoader, Notus},
+};
 
 mod db;
 mod scanner;

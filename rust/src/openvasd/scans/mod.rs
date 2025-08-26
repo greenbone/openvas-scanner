@@ -1,19 +1,15 @@
-use std::num::ParseIntError;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{num::ParseIntError, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
-use greenbone_scanner_framework::entry::Prefixed;
-use greenbone_scanner_framework::models::AliveTestMethods;
-use greenbone_scanner_framework::prelude::*;
+use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
 use scannerlib::models::{FeedState, ResultType};
-use sqlx::sqlite::SqliteRow;
-use sqlx::{Acquire, QueryBuilder, SqlitePool, query};
-use sqlx::{Row, query_scalar};
+use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
 
-use crate::crypt::{self, Crypt, Encrypted};
-use crate::{config::Config, crypt::ChaCha20Crypt};
+use crate::{
+    config::Config,
+    crypt::{self, ChaCha20Crypt, Crypt, Encrypted},
+};
 mod scheduling;
 pub struct Endpoints<E> {
     pool: SqlitePool,

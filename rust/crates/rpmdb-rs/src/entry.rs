@@ -5,10 +5,11 @@ use std::{
     mem,
 };
 
-use super::rpmtags::*;
 use anyhow::{Context, Result, anyhow};
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
 use serde::Deserialize;
+
+use super::rpmtags::*;
 
 // ref. https://github.com/rpm-software-management/rpm/blob/rpm-4.14.3-release/lib/header.c#L121-L122
 const REGION_TAG_COUNT: i32 = mem::size_of::<EntryInfo>() as i32;

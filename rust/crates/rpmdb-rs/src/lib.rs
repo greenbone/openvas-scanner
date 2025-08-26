@@ -9,14 +9,14 @@ mod rpmtags;
 
 mod sqlite3;
 
-use errors::RpmdbError;
-use ndb::Ndb;
-use sqlite3::SqliteDB;
 use std::path::PathBuf;
 
 use bdb::Bdb;
 use entry::Hdrblob;
+use errors::RpmdbError;
+use ndb::Ndb;
 use package::Package;
+use sqlite3::SqliteDB;
 
 pub trait DBI {
     fn read(&mut self) -> Result<Vec<Vec<u8>>, RpmdbError>;

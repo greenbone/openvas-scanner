@@ -122,9 +122,8 @@ impl DBI for Ndb {
 
 #[cfg(test)]
 mod tests {
-    use crate::DBI;
-
     use super::Ndb;
+    use crate::DBI;
 
     const NDB_FILE: &str = "testdata/Packages.db";
 

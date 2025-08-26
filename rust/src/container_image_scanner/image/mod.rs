@@ -1,10 +1,9 @@
 use std::{fmt::Display, str::FromStr};
 
 mod registry;
-pub use registry::Credential;
-pub use registry::DockerV2 as DockerRegistryV2;
-pub use registry::Registry;
-pub use registry::Setting as RegistrySetting;
+pub use registry::{
+    Credential, DockerV2 as DockerRegistryV2, Registry, Setting as RegistrySetting,
+};
 pub mod extractor;
 #[cfg(test)]
 pub use registry::docker_v2::fake::RegistryMock as DockerRegistryV2Mock;

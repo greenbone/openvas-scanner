@@ -117,9 +117,8 @@ mod tests {
     use hyper::{Request, service::Service};
     use tokio::io;
 
-    use crate::{Authentication, ClientHash, incoming_request};
-
     use super::*;
+    use crate::{Authentication, ClientHash, incoming_request};
 
     struct Test {}
     impl Prefixed for Test {

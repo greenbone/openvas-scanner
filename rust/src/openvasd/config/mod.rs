@@ -2,20 +2,22 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use logging::SerLevel;
-use scannerlib::container_image_scanner::config::{DBLocation, SqliteConfiguration};
-use scannerlib::models::PreferenceValue;
-use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
-use std::str::FromStr;
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
     net::SocketAddr,
     path::PathBuf,
+    str::FromStr,
     time::Duration,
 };
 
 use clap::{ArgAction, builder::TypedValueParser};
+use logging::SerLevel;
+use scannerlib::{
+    container_image_scanner::config::{DBLocation, SqliteConfiguration},
+    models::PreferenceValue,
+    scanner::preferences::preference::{PREFERENCES, ScanPrefValue},
+};
 use serde::{Deserialize, Serialize};
 mod duration;
 mod logging;

@@ -2,18 +2,20 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use rustls::pki_types::{
-    CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer,
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+    sync::{Arc, RwLock},
 };
-use rustls::server::WebPkiClientVerifier;
-use rustls::server::danger::ClientCertVerifier;
-use rustls::{RootCertStore, ServerConfig};
+
+use rustls::{
+    RootCertStore, ServerConfig,
+    pki_types::{
+        CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer,
+    },
+    server::{WebPkiClientVerifier, danger::ClientCertVerifier},
+};
 use rustls_pemfile_old::{Item, read_one};
-
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
-
-use std::{fs, io};
 
 use crate::entry::ClientIdentifier;
 

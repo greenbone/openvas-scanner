@@ -1,5 +1,4 @@
-use std::path::Path;
-use std::process::Command;
+use std::{path::Path, process::Command};
 
 fn main() {
     let rpmdb_path = Path::new("testdata/rpmdb.sqlite");

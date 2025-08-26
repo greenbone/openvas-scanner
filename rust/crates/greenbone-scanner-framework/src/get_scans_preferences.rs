@@ -94,9 +94,8 @@ mod tests {
     use http_body_util::{BodyExt, Empty};
     use hyper::{Request, service::Service};
 
-    use crate::{Authentication, ClientHash, incoming_request};
-
     use super::*;
+    use crate::{Authentication, ClientHash, incoming_request};
 
     struct Test {}
 

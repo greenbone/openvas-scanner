@@ -3,12 +3,11 @@ use std::{path::PathBuf, sync::Arc};
 use docker_registry::render;
 use tokio::fs::File;
 
+use super::{ExtractorError, LocatorError};
 use crate::container_image_scanner::{
     self, detection,
     image::{Image, ImageID, PackedLayer, packages},
 };
-
-use super::{ExtractorError, LocatorError};
 
 pub struct Extractor {
     base: PathBuf,

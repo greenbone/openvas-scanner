@@ -6,12 +6,8 @@ use std::{
 };
 
 use delete_scans_id::{DeleteScansID, DeleteScansIDIncomingRequest};
-pub use entry::ClientHash;
-pub use entry::ClientIdentifier;
-pub use entry::IncomingRequest;
-pub use entry::OnRequest;
-
 use entry::Prefixed;
+pub use entry::{ClientHash, ClientIdentifier, IncomingRequest, OnRequest};
 use get_scans::GetScansIncomingRequest;
 use get_scans_id::GetScansIDIncomingRequest;
 use get_scans_id_results::GetScansIDResultsIncomingRequest;
@@ -25,8 +21,7 @@ pub mod delete_scans_id;
 pub mod entry;
 pub use entry::response::StreamResult;
 mod get_scans;
-pub use get_scans::GetScans;
-pub use get_scans::GetScansError;
+pub use get_scans::{GetScans, GetScansError};
 //TODO: move
 mod get_scans_id;
 pub use get_scans_id::{GetScansID, GetScansIDError};
@@ -41,15 +36,15 @@ pub use get_scans_preferences::GetScansPreferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
-pub use get_health::{GetHealthAlive, GetHealthAliveIncomingRequest};
-pub use get_health::{GetHealthReady, GetHealthReadyIncomingRequest};
-pub use get_health::{GetHealthStarted, GetHealthStartedIncomingRequest};
+pub use get_health::{
+    GetHealthAlive, GetHealthAliveIncomingRequest, GetHealthReady, GetHealthReadyIncomingRequest,
+    GetHealthStarted, GetHealthStartedIncomingRequest,
+};
 
 pub mod models;
 mod post_scans;
 use models::FeedState;
-pub use post_scans::PostScans;
-pub use post_scans::PostScansError;
+pub use post_scans::{PostScans, PostScansError};
 pub mod post_scans_id;
 mod tls;
 pub use hyper::StatusCode;
@@ -74,8 +69,7 @@ pub mod prelude {
         GetScansIDStatusError, MapScanID, PostScans, PostScansError, StreamResult,
         delete_scans_id::{DeleteScansID, DeleteScansIDError},
         models,
-        post_scans_id::PostScansID,
-        post_scans_id::PostScansIDError,
+        post_scans_id::{PostScansID, PostScansIDError},
     };
 }
 

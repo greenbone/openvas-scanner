@@ -1,16 +1,16 @@
-use greenbone_scanner_framework::models::{self};
-use sqlx::query::Query;
-use sqlx::sqlite::SqliteRow;
-use sqlx::{Acquire, Database, Pool, QueryBuilder, Row, query};
-use std::str::FromStr;
-use std::{collections::HashMap, sync::Arc};
-use tracing::debug;
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use futures::{Stream, StreamExt};
-use sqlx::Sqlite;
+use greenbone_scanner_framework::models::{self};
+use sqlx::{
+    Acquire, Database, Pool, QueryBuilder, Row, Sqlite, query, query::Query, sqlite::SqliteRow,
+};
+use tracing::debug;
 
-use crate::container_image_scanner::ExternalError;
-use crate::container_image_scanner::image::{Credential, Image, ImageID, ImageParseError};
+use crate::container_image_scanner::{
+    ExternalError,
+    image::{Credential, Image, ImageID, ImageParseError},
+};
 
 impl From<SqliteRow> for ImageID {
     fn from(row: SqliteRow) -> Self {

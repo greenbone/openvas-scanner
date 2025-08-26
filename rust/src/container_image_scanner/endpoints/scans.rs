@@ -1,12 +1,11 @@
-use futures::StreamExt;
-use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
 use std::str::FromStr;
-use tokio::sync::mpsc::Sender;
 
+use futures::StreamExt;
 use greenbone_scanner_framework::{
     MapScanID, StreamResult, entry::Prefixed, models::HostInfo, prelude::*,
 };
-use sqlx::{Acquire, QueryBuilder, query};
+use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
+use tokio::sync::mpsc::Sender;
 
 use crate::container_image_scanner::scheduling;
 
@@ -462,6 +461,7 @@ mod scans_utils {
     use greenbone_scanner_framework::prelude::*;
     use sqlx::SqlitePool;
 
+    use super::Scans;
     use crate::{
         container_image_scanner::{
             Config, MIGRATOR,
@@ -474,8 +474,6 @@ mod scans_utils {
         },
         notus::path_to_products,
     };
-
-    use super::Scans;
 
     pub fn client_id() -> String {
         ClientHash::default().to_string()
@@ -644,9 +642,8 @@ mod test {
     use greenbone_scanner_framework::prelude::*;
     use models::Phase;
 
-    use crate::container_image_scanner::endpoints::scans::scans_utils::{Fakes, client_id};
-
     use super::scans_utils::second_client_id;
+    use crate::container_image_scanner::endpoints::scans::scans_utils::{Fakes, client_id};
 
     #[tokio::test]
     async fn post_scan_double_id() {

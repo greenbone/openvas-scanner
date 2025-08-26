@@ -8,9 +8,8 @@ use std::{
 use futures::{Stream, StreamExt};
 use tokio::sync::mpsc::Receiver;
 
-use crate::container_image_scanner::{ExternalError, Streamer, image::Image};
-
 use super::{PackedLayer, Setting};
+use crate::container_image_scanner::{ExternalError, Streamer, image::Image};
 
 pub struct BlobStream {
     receiver: Receiver<Result<PackedLayer, Box<dyn Error + Send + Sync>>>,

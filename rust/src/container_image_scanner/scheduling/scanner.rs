@@ -1,10 +1,11 @@
-use futures::{StreamExt, TryFutureExt};
 use std::{fmt::Display, sync::Arc};
-use tokio::sync::RwLock;
 
+use futures::{StreamExt, TryFutureExt};
 use greenbone_scanner_framework::models;
 use sqlx::Sqlite;
+use tokio::sync::RwLock;
 
+use super::db;
 use crate::{
     container_image_scanner::{
         Config, ExternalError, detection,
@@ -17,8 +18,6 @@ use crate::{
     },
     notus::{HashsumProductLoader, Notus},
 };
-
-use super::db;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScannerArchImageError {
