@@ -8,7 +8,7 @@ use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::NaslValue;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::Target;
-use crate::scanner::ScannerWhyTwo;
+use crate::scanner::OpenvasdScanner;
 use crate::scanner::{ScanResultFetcher, ScanResults};
 use crate::scanner::{
     error::{ExecuteError, ScriptResult},
@@ -63,14 +63,14 @@ fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
     ((Arc::new(storage), loader), executor, scan)
 }
 
-fn make_scanner_and_scan_success() -> (ScannerWhyTwo<TestStack>, Scan) {
+fn make_scanner_and_scan_success() -> (OpenvasdScanner<TestStack>, Scan) {
     let ((storage, loader), executor, scan) = setup(&only_success());
-    (ScannerWhyTwo::new(storage, loader, executor), scan)
+    (OpenvasdScanner::new(storage, loader, executor), scan)
 }
 
-fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (ScannerWhyTwo<TestStack>, Scan) {
+fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (OpenvasdScanner<TestStack>, Scan) {
     let ((storage, loader), executor, scan) = setup(scripts);
-    (ScannerWhyTwo::new(storage, loader, executor), scan)
+    (OpenvasdScanner::new(storage, loader, executor), scan)
 }
 
 fn only_success() -> [(String, Nvt); 3] {
@@ -414,7 +414,11 @@ async fn mandatory_keys() {
     assert_eq!(failure.len(), 1);
 }
 
-async fn wait_for_status(scanner: ScannerWhyTwo<TestStack>, id: &str, phase: Phase) -> ScanResults {
+async fn wait_for_status(
+    scanner: OpenvasdScanner<TestStack>,
+    id: &str,
+    phase: Phase,
+) -> ScanResults {
     const TIMEOUT: u128 = 500;
     let start = Instant::now();
     loop {

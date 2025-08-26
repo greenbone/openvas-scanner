@@ -54,14 +54,14 @@ use running_scan::{RunningScan, RunningScanHandle};
 pub type DefaultScannerStack = (Arc<InMemoryStorage>, FSPluginLoader);
 
 /// Allows starting, stopping and managing the results of new scans.
-pub struct ScannerWhyTwo<S: ScannerStack> {
+pub struct OpenvasdScanner<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
     storage: Arc<S::Storage>,
     loader: Arc<S::Loader>,
     function_executor: Arc<Executor>,
 }
 
-impl<St, L> ScannerWhyTwo<(St, L)>
+impl<St, L> OpenvasdScanner<(St, L)>
 where
     St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
     L: Loader + 'static,
@@ -76,7 +76,7 @@ where
     }
 }
 
-impl ScannerWhyTwo<DefaultScannerStack> {
+impl OpenvasdScanner<DefaultScannerStack> {
     /// Create a new scanner with the default stack.
     /// Requires the root path for the loader.
     pub fn with_default_stack(root: &Path) -> Self {
@@ -87,7 +87,7 @@ impl ScannerWhyTwo<DefaultScannerStack> {
     }
 }
 
-impl<S> ScannerWhyTwo<ScannerStackWithStorage<S>>
+impl<S> OpenvasdScanner<ScannerStackWithStorage<S>>
 where
     S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
 {
@@ -101,7 +101,7 @@ where
     }
 }
 
-impl<S: ScannerStack + 'static> ScannerWhyTwo<S> {
+impl<S: ScannerStack + 'static> OpenvasdScanner<S> {
     async fn start_scan_internal(&self, scan: Scan) -> Result<(), Error> {
         let storage = self.storage.clone();
         let loader = self.loader.clone();
@@ -115,7 +115,7 @@ impl<S: ScannerStack + 'static> ScannerWhyTwo<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack + 'static> ScanStarter for ScannerWhyTwo<S> {
+impl<S: ScannerStack + 'static> ScanStarter for OpenvasdScanner<S> {
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
         self.start_scan_internal(Scan::from_resolvable_hosts(scan))
             .await
@@ -123,7 +123,7 @@ impl<S: ScannerStack + 'static> ScanStarter for ScannerWhyTwo<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanStopper for ScannerWhyTwo<S> {
+impl<S: ScannerStack> ScanStopper for OpenvasdScanner<S> {
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -141,7 +141,7 @@ impl<S: ScannerStack> ScanStopper for ScannerWhyTwo<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanDeleter for ScannerWhyTwo<S> {
+impl<S: ScannerStack> ScanDeleter for OpenvasdScanner<S> {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -156,7 +156,7 @@ impl<S: ScannerStack> ScanDeleter for ScannerWhyTwo<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanResultFetcher for ScannerWhyTwo<S> {
+impl<S: ScannerStack> ScanResultFetcher for OpenvasdScanner<S> {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,
