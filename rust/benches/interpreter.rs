@@ -1,4 +1,6 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use std::hint::black_box;
+
+use criterion::{Criterion, criterion_group, criterion_main};
 use futures::StreamExt;
 use scannerlib::nasl::utils::scan_ctx::Target;
 use scannerlib::nasl::{Code, NoOpLoader, nasl_std_functions};

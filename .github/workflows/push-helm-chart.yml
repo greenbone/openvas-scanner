@@ -15,7 +15,7 @@ on:
 
 jobs:
   helm:
-    runs-on: self-hosted-generic
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: greenbone/actions/helm-build-push@v3
