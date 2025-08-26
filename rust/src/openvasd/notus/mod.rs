@@ -1,14 +1,11 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use greenbone_scanner_framework::{
     ClientIdentifier, OnRequest,
     entry::{Bytes, Method, Prefixed, Uri, response::BodyKind},
 };
 use http::StatusCode;
-use scannerlib::{
-    nasl::FSPluginLoader,
-    notus::{HashsumProductLoader, Notus, NotusError},
-};
+use scannerlib::notus::{HashsumProductLoader, Notus, NotusError, path_to_products};
 use tokio::sync::RwLock;
 
 use crate::config::Config;
@@ -119,18 +116,6 @@ impl OnRequest for PostOSIcnomingRequest {
             }
         })
     }
-}
-
-pub fn path_to_products<P>(
-    path: P,
-    signature_check: bool,
-) -> Arc<RwLock<Notus<HashsumProductLoader>>>
-where
-    P: AsRef<Path>,
-{
-    let loader = FSPluginLoader::new(path);
-    let loader = HashsumProductLoader::new(loader);
-    Arc::new(RwLock::new(Notus::new(loader, signature_check)))
 }
 
 pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus<HashsumProductLoader>>> {

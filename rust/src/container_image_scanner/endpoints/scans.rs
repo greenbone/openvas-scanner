@@ -462,15 +462,17 @@ mod scans_utils {
     use greenbone_scanner_framework::prelude::*;
     use sqlx::SqlitePool;
 
-    use crate::container_image_scanner::{
-        Config, MIGRATOR,
-        config::DBLocation,
-        image::{
-            DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
-            packages::AllTypes,
+    use crate::{
+        container_image_scanner::{
+            Config, MIGRATOR,
+            config::DBLocation,
+            image::{
+                DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
+                packages::AllTypes,
+            },
+            scheduling::Scheduler,
         },
         notus::path_to_products,
-        scheduling::Scheduler,
     };
 
     use super::Scans;
