@@ -55,62 +55,88 @@ impl server::Server for TestServer {
 impl server::Handler for TestServer {
     type Error = russh::Error;
 
-    async fn channel_open_session(
+    #[allow(clippy::manual_async_fn)]
+    fn channel_open_session(
         &mut self,
         channel: Channel<Msg>,
         session: &mut Session,
-    ) -> Result<bool, Self::Error> {
-        let mut clients = self.clients.lock().await;
-        clients.insert(channel.id(), session.handle());
-        Ok(true)
-    }
-
-    async fn data(&mut self, _: ChannelId, _: &[u8], _: &mut Session) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    async fn auth_none(&mut self, _user: &str) -> Result<Auth, Self::Error> {
-        Ok(Auth::Accept)
-    }
-
-    async fn auth_password(&mut self, user: &str, password: &str) -> Result<Auth, Self::Error> {
-        if user == self.auth.user && password == self.auth.password {
-            Ok(Auth::Accept)
-        } else {
-            Ok(Auth::Reject {
-                proceed_with_methods: None,
-            })
+    ) -> impl Future<Output = Result<bool, Self::Error>> {
+        async move {
+            let mut clients = self.clients.lock().await;
+            clients.insert(channel.id(), session.handle());
+            Ok(true)
         }
     }
 
-    async fn auth_succeeded(&mut self, _: &mut Session) -> Result<(), Self::Error> {
-        Ok(())
+    #[allow(clippy::manual_async_fn)]
+    fn data(
+        &mut self,
+        _: ChannelId,
+        _: &[u8],
+        _: &mut Session,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        async { Ok(()) }
     }
 
-    async fn exec_request(
+    #[allow(clippy::manual_async_fn)]
+    fn auth_none(&mut self, _user: &str) -> impl Future<Output = Result<Auth, Self::Error>> + Send {
+        async { Ok(Auth::Accept) }
+    }
+
+    #[allow(clippy::manual_async_fn)]
+    fn auth_password(
+        &mut self,
+        user: &str,
+        password: &str,
+    ) -> impl Future<Output = Result<Auth, Self::Error>> + Send {
+        async move {
+            if user == self.auth.user && password == self.auth.password {
+                Ok(Auth::Accept)
+            } else {
+                Ok(Auth::Reject {
+                    proceed_with_methods: None,
+                    partial_success: false,
+                })
+            }
+        }
+    }
+
+    #[allow(clippy::manual_async_fn)]
+    fn auth_succeeded(
+        &mut self,
+        _: &mut Session,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        async { Ok(()) }
+    }
+
+    #[allow(clippy::manual_async_fn)]
+    fn exec_request(
         &mut self,
         channel: ChannelId,
         cmd: &[u8],
         session: &mut Session,
-    ) -> Result<(), Self::Error> {
-        match String::from_utf8(cmd.to_vec()).unwrap().as_str() {
-            // Send to stdout.
-            "write_foo_stdout" => session.data(channel, CryptoVec::from("foo".to_string())),
-            // Send to stderr.
-            "write_bar_stderr" => {
-                session.extended_data(channel, 1, CryptoVec::from("bar".to_string()))
-            }
-            "write_both" => {
-                session.data(channel, CryptoVec::from("foo".to_string()));
-                session.extended_data(channel, 1, CryptoVec::from("bar".to_string()));
-            }
-            _ => panic!(),
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        async move {
+            let _ = match String::from_utf8(cmd.to_vec()).unwrap().as_str() {
+                // Send to stdout.
+                "write_foo_stdout" => session.data(channel, CryptoVec::from("foo".to_string())),
+                // Send to stderr.
+                "write_bar_stderr" => {
+                    session.extended_data(channel, 1, CryptoVec::from("bar".to_string()))
+                }
+                "write_both" => {
+                    let _ = session.data(channel, CryptoVec::from("foo".to_string()));
+                    session.extended_data(channel, 1, CryptoVec::from("bar".to_string()))
+                }
+                _ => panic!(),
+            };
+            let _ = session.close(channel);
+            Ok(())
         }
-        session.close(channel);
-        Ok(())
     }
 
-    async fn pty_request(
+    #[allow(clippy::manual_async_fn)]
+    fn pty_request(
         &mut self,
         _: ChannelId,
         _: &str,
@@ -120,11 +146,16 @@ impl server::Handler for TestServer {
         _: u32,
         _: &[(Pty, u32)],
         _: &mut Session,
-    ) -> Result<(), Self::Error> {
-        Ok(())
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        async { Ok(()) }
     }
 
-    async fn shell_request(&mut self, _: ChannelId, _: &mut Session) -> Result<(), Self::Error> {
-        Ok(())
+    #[allow(clippy::manual_async_fn)]
+    fn shell_request(
+        &mut self,
+        _: ChannelId,
+        _: &mut Session,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        async { Ok(()) }
     }
 }
