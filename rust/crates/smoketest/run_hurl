@@ -1,0 +1,34 @@
+#!/bin/bash
+
+## Required environment variables:
+# CLIENT_CERT
+# CLIENT_KEY
+# OPENVASD_SERVER
+## Do not forget to set target, username and password in config/simple_scan_ssh_only.json
+
+#run single tests.
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER ready.hurl vts.hurl --test
+
+# post a scan and get the scan_id. Store it for later use.
+scan_id=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER post_scan.hurl)
+echo "scan_id=$scan_id" > hurl_variables
+
+# pass the scan id with the --variables-file option and starts the scan
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER start_scan.hurl --test --variables-file hurl_variables
+
+status=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_status.hurl --variables-file hurl_variables |jq  -r ".status")
+
+
+# run until it finishes or fails
+while [[ "$status" != "succeeded" && "$status" != "stopped" && "$status" && "failed" ]]; do
+    status=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER  get_status.hurl --variables-file hurl_variables |jq -r ".status")
+done
+
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_status_assert.hurl --test --variables-file hurl_variables 
+
+# pass the scan id with the --variables-file option and get results
+hurl-k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_results.hurl --variables-file hurl_variables --test
+
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER delete.hurl --variables-file hurl_variables --test
+
+rm hurl_variables
