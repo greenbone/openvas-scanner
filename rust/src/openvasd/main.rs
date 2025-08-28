@@ -120,8 +120,8 @@ async fn main() -> Result<()> {
 
     rb.insert_scans(Arc::new(scan))
         .insert_get_vts(vts.clone())
-        .insert_on_request(get_notus)
-        .insert_on_request(post_notus)
+        .add_request_handler(get_notus)
+        .add_request_handler(post_notus)
         .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts))
         .run_blocking()
         .await

@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
+    entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
 };
 
 pub trait GetHealthReady: Prefixed + Send + Sync {
@@ -60,7 +60,7 @@ impl Default for GetHealthReadyIncomingRequest<JustReady> {
     }
 }
 
-impl<S> OnRequest for GetHealthReadyIncomingRequest<S>
+impl<S> RequestHandler for GetHealthReadyIncomingRequest<S>
 where
     S: GetHealthReady + Prefixed + 'static,
 {
@@ -102,7 +102,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct NotReady {}
 
@@ -122,7 +122,7 @@ mod tests {
     async fn get_health_ready() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetHealthReadyIncomingRequest::from(super::JustReady {})),
+            create_single_handler!(GetHealthReadyIncomingRequest::from(super::JustReady {})),
             None,
         );
 
@@ -139,7 +139,7 @@ mod tests {
     async fn get_health_not_ready() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetHealthReadyIncomingRequest::from(NotReady {})),
+            create_single_handler!(GetHealthReadyIncomingRequest::from(NotReady {})),
             Some(ClientHash::from("ok")),
         );
 

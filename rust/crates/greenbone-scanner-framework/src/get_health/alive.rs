@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
+    entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
 };
 
 pub trait GetHealthAlive: Prefixed + Send + Sync {
@@ -60,7 +60,7 @@ where
     }
 }
 
-impl<S> OnRequest for GetHealthAliveIncomingRequest<S>
+impl<S> RequestHandler for GetHealthAliveIncomingRequest<S>
 where
     S: GetHealthAlive + 'static,
 {
@@ -102,7 +102,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct NotAlive {}
 
@@ -122,7 +122,7 @@ mod tests {
     async fn get_health_alive() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetHealthAliveIncomingRequest::from(super::JustAlive {})),
+            create_single_handler!(GetHealthAliveIncomingRequest::from(super::JustAlive {})),
             None,
         );
 
@@ -139,7 +139,7 @@ mod tests {
     async fn get_health_not_alive() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetHealthAliveIncomingRequest::from(NotAlive {})),
+            create_single_handler!(GetHealthAliveIncomingRequest::from(NotAlive {})),
             Some(ClientHash::from("ok")),
         );
 

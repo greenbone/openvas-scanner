@@ -5,7 +5,8 @@ use hyper::StatusCode;
 use crate::{
     ExternalError, MapScanID, define_authentication_paths,
     entry::{
-        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+        self, Bytes, Method, Prefixed, RequestHandler, enforce_client_id_and_scan_id,
+        response::BodyKind,
     },
     internal_server_error,
     models::Action,
@@ -32,7 +33,7 @@ where
     }
 }
 
-impl<S> OnRequest for PostScansIDIncomingRequest<S>
+impl<S> RequestHandler for PostScansIDIncomingRequest<S>
 where
     S: PostScansID + Prefixed + 'static,
 {
@@ -137,7 +138,7 @@ mod tests {
     use hyper::{Method, Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request, models::ScanAction};
+    use crate::{Authentication, ClientHash, create_single_handler, models::ScanAction};
 
     struct Test {}
 
@@ -189,7 +190,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
         let scans = ScanAction {
@@ -209,7 +210,7 @@ mod tests {
     async fn missing_scan() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -226,7 +227,7 @@ mod tests {
     async fn already_running() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("already_running")),
         );
         let scans = ScanAction {
@@ -246,7 +247,7 @@ mod tests {
     async fn ok() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
         let scans = ScanAction {

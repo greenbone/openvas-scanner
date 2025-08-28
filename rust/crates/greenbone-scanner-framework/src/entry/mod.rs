@@ -88,7 +88,7 @@ pub trait Prefixed {
     fn prefix(&self) -> &'static str;
 }
 
-pub trait OnRequest: Prefixed {
+pub trait RequestHandler: Prefixed {
     fn needs_authentication(&self) -> Pin<Box<dyn Future<Output = bool> + Send>>;
     fn on_parts(&self) -> &'static [&'static str];
     fn on_method(&self) -> &'static Method;
@@ -115,22 +115,17 @@ pub trait OnRequest: Prefixed {
 
 /// Will be called after the authorization and sanity checks are done.
 ///
-/// It contains all the OnRequest implementations and iterates through them.
-/// When the path, method and authorization matches the requirements of OnRequest
-/// the call method on that will be called.
-///
-/// If the method is HEAD then the requirements but the Method will be checked
-/// an on match it will return empty body with the status code and all header
-/// information available.
+/// It contains all the RequestHandler implementations and finds handler
+/// with matching path, method and authorization and calls it.
 #[derive(Default, Clone)]
-pub struct IncomingRequest {
-    pub on_requests: Vec<Arc<Box<dyn OnRequest + Send + Sync>>>,
+pub struct RequestHandlers {
+    pub handlers: Vec<Arc<Box<dyn RequestHandler + Send + Sync>>>,
 }
 
 #[macro_export]
-macro_rules! incoming_request {
+macro_rules! create_single_handler {
     ($($path:expr),*) => {{
-        let mut ir = $crate::IncomingRequest::default();
+        let mut ir = $crate::RequestHandlers::default();
         $(
             ir.push($path);
         )*
@@ -167,13 +162,13 @@ fn parts_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) -> 
 
 type BodyKindFuture = std::pin::Pin<Box<dyn futures_util::Future<Output = BodyKind> + Send>>;
 
-impl IncomingRequest {
+impl RequestHandlers {
     pub fn push<T>(&mut self, request_handler: T)
     where
-        T: OnRequest + Send + Sync + 'static,
+        T: RequestHandler + Send + Sync + 'static,
     {
-        self.on_requests.push(Arc::new(
-            Box::new(request_handler) as Box<dyn OnRequest + Send + Sync + 'static>
+        self.handlers.push(Arc::new(
+            Box::new(request_handler) as Box<dyn RequestHandler + Send + Sync + 'static>
         ));
     }
 
@@ -188,7 +183,7 @@ impl IncomingRequest {
         <R as hyper::body::Body>::Error: std::error::Error,
         <R as hyper::body::Body>::Data: Send,
     {
-        let callbacks = self.on_requests.clone();
+        let callbacks = self.handlers.clone();
 
         Box::pin(async move {
             let parts = req
@@ -231,21 +226,21 @@ impl IncomingRequest {
 }
 
 pub struct EntryPoint {
-    configuration: Arc<super::Scanner>,
-    incoming_request: Arc<IncomingRequest>,
+    scanner: Arc<super::Scanner>,
+    handlers: Arc<RequestHandlers>,
     client_identifier: Arc<ClientIdentifier>,
 }
 
 impl EntryPoint {
     pub fn new(
-        configuration: Arc<super::Scanner>,
+        scanner: Arc<super::Scanner>,
         client_identifier: Arc<ClientIdentifier>,
-        incoming_request: Arc<IncomingRequest>,
+        handlers: Arc<RequestHandlers>,
     ) -> EntryPoint {
         EntryPoint {
-            configuration,
+            scanner,
             client_identifier,
-            incoming_request,
+            handlers,
         }
     }
 }
@@ -281,6 +276,7 @@ fn api_key_to_client_identifier(
 }
 
 use crate::{Authentication, MapScanID, internal_server_error};
+
 impl<R> hyper::service::Service<hyper::Request<R>> for EntryPoint
 where
     R: hyper::body::Body + Send + 'static,
@@ -296,8 +292,8 @@ where
     >;
 
     fn call(&self, req: hyper::Request<R>) -> Self::Future {
-        let cbs = self.configuration.clone();
-        let cid = match &self.configuration.authentication {
+        let cbs = self.scanner.clone();
+        let cid = match &self.scanner.authentication {
             Authentication::Disabled => Arc::new(ClientIdentifier::Known(Default::default())),
             Authentication::MTLS => self.client_identifier.clone(),
             Authentication::ApiKey(keys) => Arc::new(api_key_to_client_identifier(
@@ -314,7 +310,7 @@ where
             .header("authentication", cbs.authentication.static_str())
             .header("api-version", &cbs.api_version)
             .header("feed-version", &feed_version);
-        let incoming = self.incoming_request.clone();
+        let incoming = self.handlers.clone();
 
         Box::pin(async move {
             let resp = incoming.call(cid, req).await;
@@ -371,12 +367,12 @@ pub mod test_utilities {
     use http_body_util::{Empty, Full};
     use hyper::{Request, body::Bytes};
 
-    use super::{ClientHash, ClientIdentifier, EntryPoint, IncomingRequest, Method};
+    use super::{ClientHash, ClientIdentifier, EntryPoint, Method, RequestHandlers};
     use crate::{Authentication, Scanner, models::FeedState};
 
     pub fn entry_point(
         authentication: Authentication,
-        incoming_request: IncomingRequest,
+        handlers: RequestHandlers,
         client_hash: Option<ClientHash>,
     ) -> EntryPoint {
         let configuration = Arc::new(Scanner {
@@ -392,7 +388,7 @@ pub mod test_utilities {
             Some(x) => ClientIdentifier::Known(x),
             None => ClientIdentifier::Unknown,
         });
-        let ir = Arc::new(incoming_request);
+        let ir = Arc::new(handlers);
         EntryPoint::new(configuration, client_identifier, ir)
     }
 
@@ -463,7 +459,7 @@ mod tests {
         }
     }
 
-    impl OnRequest for IdPart {
+    impl RequestHandler for IdPart {
         define_authentication_paths!(authenticated: true, Method::GET, "test", "id", "*");
         fn call<'a, 'b>(
             &'b self,
@@ -487,7 +483,7 @@ mod tests {
         }
     }
 
-    impl OnRequest for Authenticated {
+    impl RequestHandler for Authenticated {
         define_authentication_paths!(authenticated: true, Method::GET, "test", "authn");
         fn call<'a, 'b>(
             &'b self,
@@ -512,7 +508,7 @@ mod tests {
         }
     }
 
-    impl OnRequest for NotAuthenticated {
+    impl RequestHandler for NotAuthenticated {
         define_authentication_paths!(authenticated: false, Method::GET, "test", "not_authn");
         fn call<'a, 'b>(
             &'b self,
@@ -531,7 +527,7 @@ mod tests {
     async fn contains_header_information_on_head() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(Authenticated {}),
+            create_single_handler!(Authenticated {}),
             Some(ClientHash::default()),
         );
         let req = test_utilities::empty_request(Method::HEAD, "/test////authn//////");
@@ -560,7 +556,7 @@ mod tests {
     async fn contains_content_type_and_len() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(IdPart {}),
+            create_single_handler!(IdPart {}),
             Some(ClientHash::default()),
         );
         let req = test_utilities::empty_request(Method::GET, "/test/id/itsame");
@@ -580,7 +576,7 @@ mod tests {
     async fn id_path() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(IdPart {}),
+            create_single_handler!(IdPart {}),
             Some(ClientHash::default()),
         );
         let req = test_utilities::empty_request(Method::GET, "/test/id/itsame");
@@ -594,7 +590,7 @@ mod tests {
     async fn id_path_missing_id() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(IdPart {}),
+            create_single_handler!(IdPart {}),
             Some(ClientHash::default()),
         );
         let req = test_utilities::empty_request(Method::GET, "/test/id///");
@@ -607,7 +603,7 @@ mod tests {
     async fn not_found() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(Authenticated {}, NotAuthenticated {}),
+            create_single_handler!(Authenticated {}, NotAuthenticated {}),
             Some(ClientHash::default()),
         );
         for (method, url) in [
@@ -623,7 +619,7 @@ mod tests {
     async fn missing_client_id_on_mtls() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(Authenticated {}),
+            create_single_handler!(Authenticated {}),
             None,
         );
 
@@ -636,7 +632,7 @@ mod tests {
     async fn missing_api_key() {
         let entry_point = test_utilities::entry_point(
             Authentication::ApiKey(vec!["test".to_owned()]),
-            incoming_request!(Authenticated {}),
+            create_single_handler!(Authenticated {}),
             Some(Default::default()),
         );
 
@@ -649,7 +645,7 @@ mod tests {
     async fn api_key() {
         let entry_point = test_utilities::entry_point(
             Authentication::ApiKey(vec!["test".to_owned()]),
-            incoming_request!(Authenticated {}),
+            create_single_handler!(Authenticated {}),
             Some(Default::default()),
         );
 
@@ -671,7 +667,7 @@ mod tests {
         }
     }
 
-    impl OnRequest for PrefixedAuth {
+    impl RequestHandler for PrefixedAuth {
         define_authentication_paths!(authenticated: true, Method::GET, "test", "wtf");
         fn call<'a, 'b>(
             &'b self,
@@ -692,7 +688,7 @@ mod tests {
     async fn prefixed() {
         let entry_point = test_utilities::entry_point(
             Authentication::ApiKey(vec!["test".to_owned()]),
-            incoming_request!(PrefixedAuth {}),
+            create_single_handler!(PrefixedAuth {}),
             Some(Default::default()),
         );
 

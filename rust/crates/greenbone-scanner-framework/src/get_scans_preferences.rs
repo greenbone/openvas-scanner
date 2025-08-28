@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
+    entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
     models,
 };
 
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<S> OnRequest for GetScansPreferencesIncomingRequest<S>
+impl<S> RequestHandler for GetScansPreferencesIncomingRequest<S>
 where
     S: GetScansPreferences + Prefixed + 'static,
 {
@@ -95,7 +95,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct Test {}
 
@@ -118,7 +118,7 @@ mod tests {
     async fn get_scans_preferences_unauthenticated() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansPreferencesIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansPreferencesIncomingRequest::from(Test {})),
             None,
         );
 
@@ -135,7 +135,7 @@ mod tests {
     async fn get_scans_preferences() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansPreferencesIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansPreferencesIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

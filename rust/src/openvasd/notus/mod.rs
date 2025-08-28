@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use greenbone_scanner_framework::{
-    ClientIdentifier, OnRequest,
+    ClientIdentifier, RequestHandler,
     entry::{Bytes, Method, Prefixed, Uri, response::BodyKind},
 };
 use http::StatusCode;
@@ -19,7 +19,7 @@ impl Prefixed for GetOSIcnomingRequest {
         ""
     }
 }
-impl OnRequest for GetOSIcnomingRequest {
+impl RequestHandler for GetOSIcnomingRequest {
     fn needs_authentication(&self) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send>> {
         Box::pin(async move { false })
     }
@@ -67,7 +67,7 @@ impl Prefixed for PostOSIcnomingRequest {
     }
 }
 
-impl OnRequest for PostOSIcnomingRequest {
+impl RequestHandler for PostOSIcnomingRequest {
     fn needs_authentication(&self) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send>> {
         Box::pin(async move { false })
     }
@@ -134,9 +134,8 @@ pub fn init(
 #[cfg(test)]
 mod tests {
     use greenbone_scanner_framework::{
-        Authentication, ClientHash,
+        Authentication, ClientHash, create_single_handler,
         entry::{Method, test_utilities},
-        incoming_request,
     };
     use http::StatusCode;
     use hyper::service::Service;
@@ -174,7 +173,7 @@ mod tests {
         let (undertest, _) = super::init(super::config_to_products(&config));
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(undertest),
+            create_single_handler!(undertest),
             Some(ClientHash::default()),
         );
         let req = test_utilities::empty_request(Method::GET, "/notus");
@@ -189,7 +188,7 @@ mod tests {
         let (_, undertest) = super::init(super::config_to_products(&config));
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(undertest),
+            create_single_handler!(undertest),
             Some(ClientHash::default()),
         );
         let req = test_utilities::json_request(

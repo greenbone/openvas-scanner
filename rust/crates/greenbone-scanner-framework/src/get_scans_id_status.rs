@@ -5,7 +5,8 @@ use hyper::StatusCode;
 use crate::{
     GetScansError, MapScanID, define_authentication_paths,
     entry::{
-        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+        self, Bytes, Method, Prefixed, RequestHandler, enforce_client_id_and_scan_id,
+        response::BodyKind,
     },
     models,
 };
@@ -32,7 +33,7 @@ where
     }
 }
 
-impl<S> OnRequest for GetScansIDStatusIncomingRequest<S>
+impl<S> RequestHandler for GetScansIDStatusIncomingRequest<S>
 where
     S: GetScansIDStatus + Prefixed + 'static,
 {
@@ -98,7 +99,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct Test {}
 
@@ -142,7 +143,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDStatusIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDStatusIncomingRequest::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -159,7 +160,7 @@ mod tests {
     async fn not_found() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDStatusIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDStatusIncomingRequest::from(Test {})),
             Some(ClientHash::from("not_found")),
         );
 
@@ -176,7 +177,7 @@ mod tests {
     async fn get_status() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDStatusIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDStatusIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

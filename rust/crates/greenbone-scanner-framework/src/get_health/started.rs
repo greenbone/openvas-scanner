@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
+    entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
 };
 
 pub trait GetHealthStarted: Send + Sync {
@@ -60,7 +60,7 @@ impl Default for GetHealthStartedIncomingRequest<JustStarted> {
     }
 }
 
-impl<S> OnRequest for GetHealthStartedIncomingRequest<S>
+impl<S> RequestHandler for GetHealthStartedIncomingRequest<S>
 where
     S: GetHealthStarted + Prefixed + 'static,
 {
@@ -102,7 +102,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct NotStarted {}
 
@@ -122,7 +122,7 @@ mod tests {
     async fn get_health_started() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetHealthStartedIncomingRequest::from(super::JustStarted {})),
+            create_single_handler!(GetHealthStartedIncomingRequest::from(super::JustStarted {})),
             None,
         );
 
@@ -139,7 +139,7 @@ mod tests {
     async fn get_health_not_started() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetHealthStartedIncomingRequest::from(NotStarted {})),
+            create_single_handler!(GetHealthStartedIncomingRequest::from(NotStarted {})),
             Some(ClientHash::from("ok")),
         );
 

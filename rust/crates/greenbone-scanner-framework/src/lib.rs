@@ -7,7 +7,7 @@ use std::{
 
 use delete_scans_id::{DeleteScansID, DeleteScansIDIncomingRequest};
 use entry::Prefixed;
-pub use entry::{ClientHash, ClientIdentifier, IncomingRequest, OnRequest};
+pub use entry::{ClientHash, ClientIdentifier, RequestHandler, RequestHandlers};
 use get_scans::GetScansIncomingRequest;
 use get_scans_id::GetScansIDIncomingRequest;
 use get_scans_id_results::GetScansIDResultsIncomingRequest;
@@ -133,7 +133,7 @@ pub struct RuntimeBuilder<T> {
     listener_address: SocketAddr,
     tls: Option<TLSConfig>,
     api_keys: Option<Vec<String>>,
-    incoming_request: IncomingRequest,
+    handlers: RequestHandlers,
     _phantom: PhantomData<T>,
 }
 
@@ -154,18 +154,18 @@ impl Default for RuntimeBuilder<runtime_builder_states::Start> {
 
 impl<T> RuntimeBuilder<T> {
     pub fn new() -> RuntimeBuilder<runtime_builder_states::Start> {
-        let mut incoming_request = IncomingRequest::default();
-        incoming_request.push(GetScansPreferencesIncomingRequest::default());
-        incoming_request.push(GetHealthAliveIncomingRequest::default());
-        incoming_request.push(GetHealthReadyIncomingRequest::default());
-        incoming_request.push(GetHealthStartedIncomingRequest::default());
+        let mut handlers = RequestHandlers::default();
+        handlers.push(GetScansPreferencesIncomingRequest::default());
+        handlers.push(GetHealthAliveIncomingRequest::default());
+        handlers.push(GetHealthReadyIncomingRequest::default());
+        handlers.push(GetHealthStartedIncomingRequest::default());
 
         RuntimeBuilder {
             api_version: vec!["1".to_owned()],
             feed_state: None,
             tls: None,
             api_keys: None,
-            incoming_request,
+            handlers,
             listener_address: ([127, 0, 0, 1], 3000).into(),
             _phantom: PhantomData,
         }
@@ -221,12 +221,12 @@ impl<T> RuntimeBuilder<T> {
         self
     }
 
-    pub fn insert_on_request<R>(mut self, value: R) -> RuntimeBuilder<T>
+    pub fn add_request_handler<R>(mut self, value: R) -> RuntimeBuilder<T>
     where
-        R: OnRequest + Sync + Send + 'static,
+        R: RequestHandler + Sync + Send + 'static,
     {
         let mut idx = None;
-        for (i, or) in self.incoming_request.on_requests.iter().enumerate() {
+        for (i, or) in self.handlers.handlers.iter().enumerate() {
             if or.prefix() == value.prefix()
                 && or.on_method() == value.on_method()
                 && or.on_parts() == value.on_parts()
@@ -235,11 +235,11 @@ impl<T> RuntimeBuilder<T> {
                 break;
             }
         }
-        let value = Arc::new(Box::new(value) as Box<dyn OnRequest + Send + Sync + 'static>);
+        let value = Arc::new(Box::new(value) as Box<dyn RequestHandler + Send + Sync + 'static>);
         if let Some(idx) = idx {
-            self.incoming_request.on_requests[idx] = value;
+            self.handlers.handlers[idx] = value;
         } else {
-            self.incoming_request.on_requests.push(value);
+            self.handlers.handlers.push(value);
         }
         self
     }
@@ -263,21 +263,21 @@ impl<T> RuntimeBuilder<T> {
         V: GetVts + Prefixed + 'static,
     {
         let ior = self
-            .insert_on_request(PostScansIncomingRequest::from(scans.clone()))
-            .insert_on_request(GetScansIncomingRequest::from(scans.clone()))
-            .insert_on_request(GetScansIDIncomingRequest::from(scans.clone()))
-            .insert_on_request(GetScansIDResultsIncomingRequest::from(scans.clone()))
-            .insert_on_request(GetScansIDStatusIncomingRequest::from(scans.clone()))
-            .insert_on_request(PostScansIDIncomingRequest::from(scans.clone()))
-            .insert_on_request(DeleteScansIDIncomingRequest::from(scans))
-            .insert_on_request(GetVTsIncomingRequest::from(vts));
+            .add_request_handler(PostScansIncomingRequest::from(scans.clone()))
+            .add_request_handler(GetScansIncomingRequest::from(scans.clone()))
+            .add_request_handler(GetScansIDIncomingRequest::from(scans.clone()))
+            .add_request_handler(GetScansIDResultsIncomingRequest::from(scans.clone()))
+            .add_request_handler(GetScansIDStatusIncomingRequest::from(scans.clone()))
+            .add_request_handler(PostScansIDIncomingRequest::from(scans.clone()))
+            .add_request_handler(DeleteScansIDIncomingRequest::from(scans))
+            .add_request_handler(GetVTsIncomingRequest::from(vts));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -332,20 +332,20 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             + 'static,
     {
         let ior = self
-            .insert_on_request(PostScansIncomingRequest::from(value.clone()))
-            .insert_on_request(GetScansIncomingRequest::from(value.clone()))
-            .insert_on_request(GetScansIDIncomingRequest::from(value.clone()))
-            .insert_on_request(GetScansIDResultsIncomingRequest::from(value.clone()))
-            .insert_on_request(GetScansIDStatusIncomingRequest::from(value.clone()))
-            .insert_on_request(PostScansIDIncomingRequest::from(value.clone()))
-            .insert_on_request(DeleteScansIDIncomingRequest::from(value));
+            .add_request_handler(PostScansIncomingRequest::from(value.clone()))
+            .add_request_handler(GetScansIncomingRequest::from(value.clone()))
+            .add_request_handler(GetScansIDIncomingRequest::from(value.clone()))
+            .add_request_handler(GetScansIDResultsIncomingRequest::from(value.clone()))
+            .add_request_handler(GetScansIDStatusIncomingRequest::from(value.clone()))
+            .add_request_handler(PostScansIDIncomingRequest::from(value.clone()))
+            .add_request_handler(DeleteScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -359,14 +359,14 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     where
         T: PostScans + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(PostScansIncomingRequest::from(value));
+        let ior = self.add_request_handler(PostScansIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -379,14 +379,14 @@ impl RuntimeBuilder<runtime_builder_states::PostScansSet> {
     where
         T: GetScans + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(GetScansIncomingRequest::from(value));
+        let ior = self.add_request_handler(GetScansIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -400,14 +400,14 @@ impl RuntimeBuilder<runtime_builder_states::GetScansSet> {
     where
         T: GetScansID + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(GetScansIDIncomingRequest::from(value));
+        let ior = self.add_request_handler(GetScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -421,14 +421,14 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDSet> {
     where
         T: GetScansIDResults + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(GetScansIDResultsIncomingRequest::from(value));
+        let ior = self.add_request_handler(GetScansIDResultsIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -442,14 +442,14 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultSet> {
     where
         T: GetScansIDResultsID + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(GetScansIDResultsIDIncomingRequest::from(value));
+        let ior = self.add_request_handler(GetScansIDResultsIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -463,14 +463,14 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultIDSet> {
     where
         T: GetScansIDStatus + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(GetScansIDStatusIncomingRequest::from(value));
+        let ior = self.add_request_handler(GetScansIDStatusIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -484,14 +484,14 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDStatusSet> {
     where
         T: PostScansID + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(PostScansIDIncomingRequest::from(value));
+        let ior = self.add_request_handler(PostScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -505,14 +505,14 @@ impl RuntimeBuilder<runtime_builder_states::PostScanIDSet> {
     where
         T: DeleteScansID + 'static,
     {
-        let ior = self.insert_on_request(DeleteScansIDIncomingRequest::from(value));
+        let ior = self.add_request_handler(DeleteScansIDIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -523,14 +523,14 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     where
         T: GetVts + Prefixed + 'static,
     {
-        let ior = self.insert_on_request(GetVTsIncomingRequest::from(value));
+        let ior = self.add_request_handler(GetVTsIncomingRequest::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
-            incoming_request: ior.incoming_request,
+            handlers: ior.handlers,
             _phantom: PhantomData,
         }
     }
@@ -545,7 +545,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
         };
 
         let incoming = TcpListener::bind(&self.listener_address).await?;
-        let incoming_request = Arc::new(self.incoming_request);
+        let handlers = Arc::new(self.handlers);
 
         if let Some(tls_config) = tls_config {
             use hyper::server::conn::http2::Builder;
@@ -559,7 +559,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                 let tls_acceptor = tls_acceptor.clone();
                 let identifier = tls_config.client_identifier.clone();
                 let ctx = scanner.clone();
-                let incoming_request = incoming_request.clone();
+                let handlers = handlers.clone();
                 tokio::spawn(async move {
                     let tls_stream = match tls_acceptor.accept(tcp_stream).await {
                         Ok(tls_stream) => tls_stream,
@@ -569,7 +569,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                         }
                     };
                     let cci = retrieve_and_reset_client_identifier(identifier);
-                    let service = entry::EntryPoint::new(ctx, Arc::new(cci), incoming_request);
+                    let service = entry::EntryPoint::new(ctx, Arc::new(cci), handlers);
                     if let Err(err) = Builder::new(TokioExecutor::new())
                         .serve_connection(TokioIo::new(tls_stream), service)
                         .await
@@ -584,10 +584,10 @@ impl RuntimeBuilder<runtime_builder_states::End> {
             loop {
                 let (tcp_stream, _remote_addr) = incoming.accept().await?;
                 let ctx = scanner.clone();
-                let incoming_request = incoming_request.clone();
+                let handlers = handlers.clone();
                 tokio::spawn(async move {
                     let cci = ClientIdentifier::Unknown;
-                    let service = entry::EntryPoint::new(ctx, Arc::new(cci), incoming_request);
+                    let service = entry::EntryPoint::new(ctx, Arc::new(cci), handlers);
                     if let Err(err) = Builder::new()
                         .serve_connection(TokioIo::new(tcp_stream), service)
                         .await

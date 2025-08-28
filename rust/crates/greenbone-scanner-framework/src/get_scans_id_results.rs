@@ -5,7 +5,8 @@ use hyper::StatusCode;
 use crate::{
     GetScansError, MapScanID, StreamResult, define_authentication_paths,
     entry::{
-        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+        self, Bytes, Method, Prefixed, RequestHandler, enforce_client_id_and_scan_id,
+        response::BodyKind,
     },
     models,
 };
@@ -31,7 +32,7 @@ where
         self.get_scans.prefix()
     }
 }
-impl<S> OnRequest for GetScansIDResultsIncomingRequest<S>
+impl<S> RequestHandler for GetScansIDResultsIncomingRequest<S>
 where
     S: GetScansIDResults + Prefixed + 'static,
 {
@@ -134,7 +135,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct Test {}
 
@@ -192,7 +193,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -209,7 +210,7 @@ mod tests {
     async fn scan_results() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -229,7 +230,7 @@ mod tests {
     async fn scan_results_from_to() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -250,7 +251,7 @@ mod tests {
     async fn scan_results_to() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -271,7 +272,7 @@ mod tests {
     async fn ignores_invalid_query() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

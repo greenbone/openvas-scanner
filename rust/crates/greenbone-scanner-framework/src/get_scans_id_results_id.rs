@@ -5,7 +5,8 @@ use hyper::StatusCode;
 use crate::{
     ExternalError, MapScanID, define_authentication_paths,
     entry::{
-        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+        self, Bytes, Method, Prefixed, RequestHandler, enforce_client_id_and_scan_id,
+        response::BodyKind,
     },
     internal_server_error, models,
 };
@@ -32,7 +33,7 @@ where
         self.get_scans.prefix()
     }
 }
-impl<S> OnRequest for GetScansIDResultsIDIncomingRequest<S>
+impl<S> RequestHandler for GetScansIDResultsIDIncomingRequest<S>
 where
     S: GetScansIDResultsID + Prefixed + 'static,
 {
@@ -136,7 +137,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct Test {}
 
@@ -187,7 +188,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIDIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -204,7 +205,7 @@ mod tests {
     async fn not_found() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIDIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("not_found")),
         );
 
@@ -221,7 +222,7 @@ mod tests {
     async fn invalid_rid() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIDIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("not_found")),
         );
 
@@ -238,7 +239,7 @@ mod tests {
     async fn get_status() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIDResultsIDIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIDResultsIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

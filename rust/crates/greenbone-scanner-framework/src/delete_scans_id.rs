@@ -5,7 +5,8 @@ use hyper::StatusCode;
 use crate::{
     MapScanID, define_authentication_paths,
     entry::{
-        self, Bytes, Method, OnRequest, Prefixed, enforce_client_id_and_scan_id, response::BodyKind,
+        self, Bytes, Method, Prefixed, RequestHandler, enforce_client_id_and_scan_id,
+        response::BodyKind,
     },
     post_scans_id::PostScansIDError,
 };
@@ -30,7 +31,7 @@ where
     }
 }
 
-impl<S> OnRequest for DeleteScansIDIncomingRequest<S>
+impl<S> RequestHandler for DeleteScansIDIncomingRequest<S>
 where
     S: DeleteScansID + 'static,
 {
@@ -96,7 +97,7 @@ mod tests {
     use hyper::{Method, Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct Test {}
 
@@ -148,7 +149,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -165,7 +166,7 @@ mod tests {
     async fn missing_scan() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -182,7 +183,7 @@ mod tests {
     async fn already_running() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("already_running")),
         );
 
@@ -199,7 +200,7 @@ mod tests {
     async fn ok() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

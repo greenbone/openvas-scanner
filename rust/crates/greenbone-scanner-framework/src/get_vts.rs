@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use crate::{
     ExternalError, StreamResult, define_authentication_paths,
-    entry::{self, Bytes, Method, OnRequest, Prefixed, response::BodyKind},
+    entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
     internal_server_error,
     models::VTData,
 };
@@ -28,7 +28,7 @@ where
     }
 }
 
-impl<S> OnRequest for GetVTsIncomingRequest<S>
+impl<S> RequestHandler for GetVTsIncomingRequest<S>
 where
     S: GetVts + Prefixed + 'static,
 {
@@ -116,7 +116,7 @@ mod tests {
     use hyper::{Request, service::Service};
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct Test {}
 
@@ -153,7 +153,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetVTsIncomingRequest::from(Test {})),
+            create_single_handler!(GetVTsIncomingRequest::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -170,7 +170,7 @@ mod tests {
     async fn not_yet_available() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetVTsIncomingRequest::from(Test {})),
+            create_single_handler!(GetVTsIncomingRequest::from(Test {})),
             Some(ClientHash::from("not_found")),
         );
 
@@ -187,7 +187,7 @@ mod tests {
     async fn get_vts_authenticated() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetVTsIncomingRequest::from(Test {})),
+            create_single_handler!(GetVTsIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -207,7 +207,7 @@ mod tests {
     async fn get_vts_detailed() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetVTsIncomingRequest::from(Test {})),
+            create_single_handler!(GetVTsIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -236,7 +236,7 @@ mod tests {
     async fn get_vts_unauthenticated() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetVTsIncomingRequest::from(Test {})),
+            create_single_handler!(GetVTsIncomingRequest::from(Test {})),
             None,
         );
 

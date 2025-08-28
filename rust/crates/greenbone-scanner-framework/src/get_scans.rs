@@ -5,7 +5,7 @@ use hyper::StatusCode;
 use crate::{
     ExternalError, define_authentication_paths,
     entry::{
-        self, Bytes, Method, OnRequest, Prefixed,
+        self, Bytes, Method, Prefixed, RequestHandler,
         response::{BodyKind, StreamResult},
     },
     internal_server_error,
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<S> OnRequest for GetScansIncomingRequest<S>
+impl<S> RequestHandler for GetScansIncomingRequest<S>
 where
     S: GetScans + Prefixed + 'static,
 {
@@ -118,7 +118,7 @@ mod tests {
     use tokio::io;
 
     use super::*;
-    use crate::{Authentication, ClientHash, incoming_request};
+    use crate::{Authentication, ClientHash, create_single_handler};
 
     struct Test {}
     impl Prefixed for Test {
@@ -144,7 +144,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIncomingRequest::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -161,7 +161,7 @@ mod tests {
     async fn get_scans() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            incoming_request!(GetScansIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIncomingRequest::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
