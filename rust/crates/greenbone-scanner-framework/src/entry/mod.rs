@@ -113,7 +113,7 @@ pub trait OnRequest: Prefixed {
         'b: 'a;
 }
 
-/// Will be called after the authorization and senity checks are done.
+/// Will be called after the authorization and sanity checks are done.
 ///
 /// It contains all the OnRequest implementations and iterates through them.
 /// When the path, method and authorization matches the requirements of OnRequest
@@ -166,6 +166,7 @@ fn parts_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) -> 
 }
 
 type BodyKindFuture = std::pin::Pin<Box<dyn futures_util::Future<Output = BodyKind> + Send>>;
+
 impl IncomingRequest {
     pub fn push<T>(&mut self, request_handler: T)
     where
