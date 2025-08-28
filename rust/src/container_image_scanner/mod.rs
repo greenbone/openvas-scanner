@@ -11,17 +11,17 @@ use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
 use image::{DockerRegistryV2, extractor::filtered_image, packages::AllTypes};
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
-pub mod detection;
+mod detection;
 pub mod endpoints;
-pub mod image;
+mod image;
 mod notus;
-pub mod scheduling;
+mod scheduling;
 
-pub type Futura<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
-pub type FuturaRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
-pub type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
+type Futura<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
+type FuturaRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
+type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
 
-pub type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
+type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 /// combines slices on compile time
 #[macro_export]

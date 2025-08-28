@@ -12,7 +12,7 @@ use crate::{
 ///
 /// Some examples:
 /// - NAME="openEuler" VERSION="24.03 (LTS-SP1)" -> openeuler_24.03_lts_sp1
-pub fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
+fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
     let normalize_euler_version = || {
         os.version
             .to_lowercase()
@@ -30,7 +30,7 @@ pub fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
     }
 }
 
-pub type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
+type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
 
 fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
     let hostname = Some(image);

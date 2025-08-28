@@ -20,9 +20,9 @@ use crate::nasl::raw_ip_utils::raw_ip_utils::{
 };
 
 pub const FILTER_PORT: u16 = 9910;
-pub const TCP_LENGTH: usize = 20;
+const TCP_LENGTH: usize = 20;
 
-pub fn tcp_ping(dport: u16, tcp_flag: u8) -> Vec<u8> {
+fn tcp_ping(dport: u16, tcp_flag: u8) -> Vec<u8> {
     let mut tcp_buf = vec![0u8; TCP_LENGTH];
     // known buffer size.
     let mut tcp = MutableTcpPacket::new(&mut tcp_buf).unwrap();

@@ -12,7 +12,7 @@ use super::commands::Error;
 
 /// StringU32 is a wrapper around u32 to allow deserialization of strings
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct StringU64(u64);
+struct StringU64(u64);
 
 impl From<i64> for StringU64 {
     fn from(value: i64) -> Self {
@@ -442,19 +442,7 @@ impl From<&ScanResult> for Vulnerability {
 pub struct Results {
     /// Results
     #[serde(default)]
-    pub result: Vec<ScanResult>,
-}
-
-impl Results {
-    /// Push a result to the results
-    pub fn push(&mut self, result: ScanResult) {
-        self.result.push(result);
-    }
-
-    /// Extend the results with another results
-    pub fn extend(&mut self, results: Results) {
-        self.result.extend(results.result);
-    }
+    result: Vec<ScanResult>,
 }
 
 impl From<Results> for Vec<Vulnerability> {

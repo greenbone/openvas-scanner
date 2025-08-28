@@ -21,7 +21,7 @@ where
 }
 
 /// Parses duration from String
-pub fn parse(s: &str) -> Result<Duration, String> {
+fn parse(s: &str) -> Result<Duration, String> {
     let s = s.trim();
     let value: String = s.chars().take_while(|c| c.is_numeric()).collect();
     let value: u64 = value

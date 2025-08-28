@@ -46,7 +46,7 @@ const BITS_PER_BYTE: usize = 8;
 struct AliveTestCtlStop;
 
 #[derive(Clone)]
-pub struct AliveHostInfo {
+struct AliveHostInfo {
     ip: String,
     detection_method: AliveTestMethods,
 }

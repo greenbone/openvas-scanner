@@ -25,10 +25,6 @@ impl Location {
         BufReader::new(File::open(&self.0).await.unwrap())
     }
 
-    pub fn inner(&self) -> &PathBuf {
-        &self.0
-    }
-
     pub fn into_inner(self) -> PathBuf {
         self.0
     }

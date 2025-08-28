@@ -20,6 +20,7 @@ pub enum Setting {
 }
 
 impl Setting {
+    #[cfg(test)]
     pub fn preference_key(&self) -> &str {
         match self {
             Setting::Insecure => "registry_allow_insecure",

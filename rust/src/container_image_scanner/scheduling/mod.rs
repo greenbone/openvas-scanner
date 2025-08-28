@@ -28,9 +28,6 @@ use crate::{
 mod db;
 mod scanner;
 
-pub type ClientID = String;
-pub type ScanID = String;
-
 #[derive(Debug)]
 pub struct Message {
     id: String,
@@ -58,7 +55,7 @@ pub struct Scheduler<Registry, Extractor> {
 }
 
 impl<Registry, Extractor> Scheduler<Registry, Extractor> {
-    pub fn new(
+    fn new(
         config: Arc<Config>,
         receiver: Receiver<Message>,
         pool: Arc<sqlx::Pool<Sqlite>>,
@@ -103,15 +100,17 @@ where
     R: container_image_scanner::image::Registry + Send + Sync,
     E: container_image_scanner::image::extractor::Extractor + Send + Sync,
 {
-    //pool: Arc<sqlx::Pool<Sqlite>>,
-    //config: Arc<Config>,
+    #[cfg(test)]
     pub fn pool(&self) -> Arc<sqlx::Pool<Sqlite>> {
         self.pool.clone()
     }
+
+    #[cfg(test)]
     pub fn config(&self) -> Arc<Config> {
         self.config.clone()
     }
 
+    #[cfg(test)]
     pub fn products(&self) -> Arc<RwLock<Notus<HashsumProductLoader>>> {
         self.products.clone()
     }

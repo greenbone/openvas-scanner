@@ -40,7 +40,7 @@ type Vts = HashMap<VTKey, Nvt>;
 type Results = HashMap<ScanID, Vec<ResultItem>>;
 
 // Artificial type for fetching all OIDs
-pub struct OIDs;
+struct OIDs;
 
 /// Is a in-memory dispatcher that behaves like a Storage.
 #[derive(Default, Debug)]
@@ -111,18 +111,11 @@ impl InMemoryStorage {
     }
 
     /// Removes all stored nasl_vts
-    pub fn clean_vts(&self) -> Result<(), StorageError> {
+    fn clean_vts(&self) -> Result<(), StorageError> {
         let mut vts = self.vts.write()?;
         vts.retain(|(ft, _), _| matches!(ft, FeedType::Advisories));
         let mut version = self.feed_version.write()?;
         *version = String::new();
-        Ok(())
-    }
-
-    /// Removes all stored nasl_vts
-    pub fn clean_advisories(&self) -> Result<(), StorageError> {
-        let mut vts = self.vts.write()?;
-        vts.retain(|(ft, _), _| matches!(ft, FeedType::NASL));
         Ok(())
     }
 }

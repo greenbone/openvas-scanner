@@ -364,7 +364,7 @@ impl<'a> ScanCtx<'a> {
         self.target.add_hostname(hostname, source);
     }
 
-    pub fn port_range(&self) -> PortRange {
+    fn port_range(&self) -> PortRange {
         // TODO Get this from the scan prefs
         PortRange {
             start: 0,

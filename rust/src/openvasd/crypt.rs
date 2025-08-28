@@ -44,10 +44,8 @@ impl From<String> for Key {
 #[async_trait]
 pub trait Crypt {
     async fn encrypt(&self, data: Vec<u8>) -> Encrypted;
-    fn encrypt_sync(&self, data: Vec<u8>) -> Encrypted;
 
     async fn decrypt(&self, encrypted: Encrypted) -> Vec<u8>;
-    fn decrypt_sync(&self, encrypted: &Encrypted) -> Vec<u8>;
 }
 
 #[derive(Clone, Debug, Default)]
@@ -91,19 +89,11 @@ impl Crypt for ChaCha20Crypt {
             .unwrap()
     }
 
-    fn encrypt_sync(&self, data: Vec<u8>) -> Encrypted {
-        Self::encrypt_sync(&self.key, data)
-    }
-
     async fn decrypt(&self, encrypted: Encrypted) -> Vec<u8> {
         let key = self.key.clone();
         tokio::task::spawn_blocking(move || Self::decrypt_sync(&key, &encrypted))
             .await
             .unwrap()
-    }
-
-    fn decrypt_sync(&self, encrypted: &Encrypted) -> Vec<u8> {
-        Self::decrypt_sync(&self.key, encrypted)
     }
 }
 

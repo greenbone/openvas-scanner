@@ -607,12 +607,4 @@ impl RedisCtx {
         self.release_namespace()?;
         Ok(())
     }
-
-    /// Clean up the namespace.
-    pub fn flush_namespace(&mut self) -> RedisStorageResult<()> {
-        Cmd::new()
-            .arg("FLUSHDB")
-            .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
-        Ok(())
-    }
 }

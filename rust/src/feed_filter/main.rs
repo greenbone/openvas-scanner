@@ -35,7 +35,7 @@ fn init_logging() {
     about = "Filters scripts from the feed which aren't runnable with the current set of builtins in the openvasd implementation.",
     version = env!("CARGO_PKG_VERSION")
 )]
-pub struct FilterArgs {
+struct FilterArgs {
     /// Path to the feed that should be read and filtered.
     feed_path: PathBuf,
     /// Output path: If present, a copy of the feed containing only
@@ -168,7 +168,7 @@ impl Script {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ScriptPath(String);
+struct ScriptPath(String);
 
 impl ScriptPath {
     fn new(feed_path: &Path, path: &Path) -> Self {
@@ -269,7 +269,7 @@ impl ScriptReader {
     }
 }
 
-pub struct RunnableScripts(Scripts);
+struct RunnableScripts(Scripts);
 
 impl RunnableScripts {
     fn new(unresolved: Scripts) -> Self {

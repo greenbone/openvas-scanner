@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::Path};
+use std::fmt::Display;
 
 use thiserror::Error;
 use tokio::{
@@ -29,7 +29,7 @@ impl Display for OperatingSystem {
 }
 
 #[derive(Error, Debug)]
-pub enum OperatingSystemDetectionError {
+enum OperatingSystemDetectionError {
     #[error("Failed to read the operating system file")]
     ReadError(#[from] std::io::Error),
     #[error("Unknown operating system")]
@@ -55,7 +55,7 @@ where
     Err(LocatorError::NotFound("No operating system definition".to_owned()).into())
 }
 
-pub struct OperatingSystemDetector<T> {
+struct OperatingSystemDetector<T> {
     reader: T,
 }
 
@@ -63,11 +63,11 @@ impl<T> OperatingSystemDetector<T>
 where
     T: AsyncBufRead + Unpin,
 {
-    pub fn new(reader: T) -> Self {
+    fn new(reader: T) -> Self {
         OperatingSystemDetector { reader }
     }
 
-    pub async fn detect_operating_system(
+    async fn detect_operating_system(
         self,
     ) -> Result<OperatingSystem, OperatingSystemDetectionError> {
         let mut lines = self.reader.lines();
@@ -117,9 +117,10 @@ where
 }
 
 impl OperatingSystemDetector<BufReader<File>> {
-    pub async fn try_open<T>(root: T) -> Result<Self, std::io::Error>
+    #[cfg(test)]
+    async fn try_open<T>(root: T) -> Result<Self, std::io::Error>
     where
-        T: AsRef<Path>,
+        T: AsRef<std::path::Path>,
     {
         let file = File::open(root).await?;
 

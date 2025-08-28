@@ -6,8 +6,8 @@
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
 
-pub mod config;
-pub mod crypt;
+mod config;
+mod crypt;
 mod json_stream;
 mod notus;
 mod scans;
@@ -36,13 +36,12 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>
 static MIGRATOR: Migrator = sqlx::migrate!();
 
 // TODO: move to config
-pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
+async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     let result = match config.storage.clone() {
         config::StorageTypes::V1(storage_v1) => {
             let mut sqliteconfig = SqliteConfiguration::default();
 
             match storage_v1.storage_type {
-                //StorageType::InMemory if shared => "sqlite::memory:?cache=shared".to_owned(),
                 StorageType::InMemory | StorageType::Redis => {}
                 StorageType::FileSystem if storage_v1.fs.path.is_dir() => {
                     let mut p = storage_v1.fs.path.clone();
@@ -63,7 +62,7 @@ pub async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     Ok(result)
 }
 
-pub fn get_feed_state(
+fn get_feed_state(
     vts: Arc<vts::Endpoints>,
 ) -> impl Fn() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
     move || {

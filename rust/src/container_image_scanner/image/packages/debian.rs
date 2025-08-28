@@ -17,7 +17,7 @@ impl DPKGStatusFile {
 }
 
 #[derive(Debug, Default)]
-pub struct Package {
+struct Package {
     package: String,
     version: String,
     status: PackageStatus,
@@ -113,7 +113,7 @@ impl ResolvePackages for DPKGStatusFile {
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
-pub struct PackageStatus {
+struct PackageStatus {
     want: Want,
     flag: Flag,
     status: Status,
@@ -160,7 +160,7 @@ impl FromStr for PackageStatus {
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
-pub enum Want {
+enum Want {
     #[default]
     Unknown,
     Install,
@@ -184,7 +184,7 @@ impl FromStr for Want {
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
-pub enum Flag {
+enum Flag {
     #[default]
     Unknown,
     Ok,
@@ -204,7 +204,7 @@ impl FromStr for Flag {
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
-pub enum Status {
+enum Status {
     #[default]
     Unknown,
     NotInstalled,

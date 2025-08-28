@@ -18,13 +18,13 @@ pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the hash values of the sha256sums for specific feeds
-pub struct FeedHash {
+struct FeedHash {
     hash: String,
     path: PathBuf,
     typus: FeedType,
 }
 
-pub struct FeedSynchronizer {
+struct FeedSynchronizer {
     pool: SqlitePool,
     plugin_feed: PathBuf,
     advisory_feed: PathBuf,
@@ -61,7 +61,7 @@ impl Plugin for VulnerabilityData {
 }
 
 impl FeedSynchronizer {
-    pub fn new(pool: SqlitePool, config: &Config, feed_state: Arc<RwLock<FeedState>>) -> Self {
+    fn new(pool: SqlitePool, config: &Config, feed_state: Arc<RwLock<FeedState>>) -> Self {
         Self {
             pool,
             plugin_feed: config.feed.path.clone(),

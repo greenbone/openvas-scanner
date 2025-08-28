@@ -35,7 +35,7 @@ pub fn row_to_credential(row: &SqliteRow) -> Option<Credential> {
     }
 }
 
-pub async fn with_scan_status<'a, F>(
+async fn with_scan_status<'a, F>(
     pool: &Pool<Sqlite>,
     id: &str,
     build_queries: F,

@@ -76,7 +76,7 @@ macro_rules! generate_all_types {
 generate_all_types! {debian::DPKGStatusFile, rpm::RPMDBSqliteFile }
 
 #[cfg(test)]
-pub mod fakes {
+mod fakes {
     use crate::container_image_scanner::{
         FuturaRef,
         image::extractor::{Location, Locator, LocatorError},

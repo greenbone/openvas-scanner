@@ -40,8 +40,8 @@ pub struct Notus {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Redis {
-    pub url: String,
+struct Redis {
+    url: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -89,7 +89,7 @@ pub enum ScannerType {
     Openvasd,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ImageExtractionLocation {
+enum ImageExtractionLocation {
     File(PathBuf),
 }
 
@@ -305,7 +305,7 @@ impl StorageTypes {
             }
         }
     }
-    pub fn set_credential_key<S: Into<String>>(&mut self, key: S) {
+    fn set_credential_key<S: Into<String>>(&mut self, key: S) {
         let key = key.into();
         match self {
             StorageTypes::V1(storage_v1) => storage_v1.fs.key = Some(key),

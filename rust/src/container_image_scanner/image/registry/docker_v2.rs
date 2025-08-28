@@ -11,7 +11,7 @@ use tokio::sync::mpsc::Receiver;
 use super::{PackedLayer, Setting};
 use crate::container_image_scanner::{ExternalError, Streamer, image::Image};
 
-pub struct BlobStream {
+struct BlobStream {
     receiver: Receiver<Result<PackedLayer, Box<dyn Error + Send + Sync>>>,
 }
 

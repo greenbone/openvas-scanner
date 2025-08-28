@@ -483,7 +483,7 @@ mod scans_utils {
         ClientHash::from("second").to_string()
     }
 
-    pub async fn in_memory_scheduler_and_scan<R, E>(
+    async fn in_memory_scheduler_and_scan<R, E>(
         config: crate::container_image_scanner::Config,
     ) -> (Scheduler<R, E>, Scans) {
         let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address())
@@ -615,7 +615,7 @@ mod scans_utils {
 
         #[allow(dead_code)]
         /// This is just a toggle to temporally use logging
-        pub fn init_logging() {
+        fn init_logging() {
             let filter = tracing_subscriber::filter::Targets::new()
                 .with_default(tracing::Level::WARN)
                 .with_target("greenbone_scanner_framework", tracing::Level::INFO)

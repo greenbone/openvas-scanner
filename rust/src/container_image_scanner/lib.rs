@@ -1,21 +1,21 @@
-pub mod config;
+ mod config;
 use std::pin::Pin;
 
 use futures::StreamExt;
 
-pub use config::Config;
+ use config::Config;
 use futures::Stream;
-pub mod detection;
-pub mod endpoints;
-pub mod image;
+ mod detection;
+ mod endpoints;
+ mod image;
 mod notus;
-pub mod scheduling;
+ mod scheduling;
 
-pub type Futura<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
-pub type FuturaRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
-pub type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
+ type Futura<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
+ type FuturaRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
+ type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
 
-pub type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
+ type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 /// combines slices on compile time
 #[macro_export]

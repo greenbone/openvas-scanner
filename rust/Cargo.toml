@@ -177,10 +177,6 @@ name = "feed-filter"
 path = "src/feed_filter/main.rs"
 
 [[bench]]
-name = "infisto_comparison"
-harness = false
-
-[[bench]]
 name = "nasl_syntax_parse"
 harness = false
 

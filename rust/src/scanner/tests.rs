@@ -89,14 +89,14 @@ fn loader(s: &str) -> String {
 
 #[derive(Debug, Default)]
 struct GenerateScript {
-    pub id: String,
-    pub rc: usize,
-    pub dependencies: Vec<String>,
-    pub required_keys: Vec<String>,
-    pub mandatory_keys: Vec<String>,
-    pub required_tcp_ports: Vec<String>,
-    pub required_udp_ports: Vec<String>,
-    pub exclude: Vec<String>,
+    id: String,
+    rc: usize,
+    dependencies: Vec<String>,
+    required_keys: Vec<String>,
+    mandatory_keys: Vec<String>,
+    required_tcp_ports: Vec<String>,
+    required_udp_ports: Vec<String>,
+    exclude: Vec<String>,
 }
 
 impl GenerateScript {

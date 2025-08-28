@@ -33,13 +33,11 @@ pub use error::ExecuteError;
 pub use scan::Scan;
 pub use scan_runner::ScanRunner;
 use scanner_stack::ScannerStack;
-pub use scanner_stack::ScannerStackWithStorage;
 
 use async_trait::async_trait;
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 
-use crate::nasl::nasl_std_functions;
 use crate::nasl::syntax::{FSPluginLoader, Loader};
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
@@ -66,6 +64,8 @@ where
     St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
     L: Loader + 'static,
 {
+    // TODO: Actually use this or rewrite it.
+    #[allow(unused)]
     fn new(storage: St, loader: L, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
@@ -74,30 +74,9 @@ where
             function_executor: Arc::new(executor),
         }
     }
-}
 
-impl OpenvasdScanner<DefaultScannerStack> {
-    /// Create a new scanner with the default stack.
-    /// Requires the root path for the loader.
-    pub fn with_default_stack(root: &Path) -> Self {
-        let storage = Arc::new(InMemoryStorage::new());
-        let loader = FSPluginLoader::new(root);
-        let executor = nasl_std_functions();
-        Self::new(storage, loader, executor)
-    }
-}
-
-impl<S> OpenvasdScanner<ScannerStackWithStorage<S>>
-where
-    S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
-{
-    /// Creates a new scanner with a Storage and the rest based on the DefaultScannerStack.
-    ///
-    /// Requires the root path for the loader and the storage implementation.
-    pub fn with_storage(storage: S, root: &Path) -> Self {
-        let loader = FSPluginLoader::new(root);
-        let executor = nasl_std_functions();
-        Self::new(storage, loader, executor)
+    pub fn fake() -> Self {
+        todo!()
     }
 }
 

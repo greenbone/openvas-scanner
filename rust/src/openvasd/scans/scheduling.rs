@@ -10,7 +10,8 @@ use scannerlib::{
     openvas::{self, cmd},
     osp,
     scanner::{
-        self, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper, preferences,
+        DefaultScannerStack, OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind,
+        ScanStarter, ScanStopper, preferences,
     },
     storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx},
 };
@@ -20,7 +21,7 @@ use tokio::sync::mpsc::Sender;
 use crate::{config::Config, crypt::Crypt};
 mod nasl;
 
-pub struct ScanScheduler<Scanner, Cryptor> {
+struct ScanScheduler<Scanner, Cryptor> {
     pool: SqlitePool,
     cryptor: Arc<Cryptor>,
     scanner: Arc<Scanner>,
@@ -527,8 +528,8 @@ where
             init_with_scanner(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvasd => {
-            use scanner::LambdaBuilder;
-            let scanner = LambdaBuilder::new().build();
+            // TODO
+            let scanner: OpenvasdScanner<DefaultScannerStack> = OpenvasdScanner::fake();
             init_with_scanner(pool, crypter, config, scanner).await
         }
     }
@@ -538,7 +539,7 @@ where
 pub(crate) mod tests {
     use scannerlib::{
         models::Status,
-        scanner::{LambdaBuilder, ScanResults},
+        scanner::{self, LambdaBuilder, ScanResults},
     };
 
     use super::*;

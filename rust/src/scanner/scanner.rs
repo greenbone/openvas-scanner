@@ -180,12 +180,6 @@ impl ScanResultFetcher for Lambda {
     }
 }
 
-/// Combines all traits needed for a scanner.
-#[async_trait]
-pub trait Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
-
-impl<T> Scanner for T where T: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher {}
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum ObservableResources {
     CPU,
