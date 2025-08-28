@@ -415,9 +415,7 @@ impl From<&ScanResult> for Vulnerability {
             match r_type {
                 RT::HostDetail => match urlencoding::decode(&result.description) {
                     Ok(decoded) => {
-                        let decoded = quick_xml::de::from_str::<HostDetail>(&decoded);
-                        dbg!(&decoded, "decoded");
-                        decoded.unwrap_or_default()
+                        quick_xml::de::from_str::<HostDetail>(&decoded).unwrap_or_default()
                     }
                     Err(_) => Default::default(),
                 },
