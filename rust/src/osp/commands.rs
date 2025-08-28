@@ -4,7 +4,8 @@
 
 use std::io::{self, Cursor};
 
-use crate::models::{PortRange, Protocol, Scan, scanner};
+use crate::scanner;
+use greenbone_scanner_framework::models::{PortRange, Protocol, Scan};
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event, attributes::Attribute};
 
 use super::response::Status;
@@ -280,7 +281,7 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
             if c.port.is_some() {
                 parameter.push(("port", &sp));
             }
-            use crate::models::CredentialType;
+            use greenbone_scanner_framework::models::CredentialType;
 
             writer.within_parameter_element("credential", parameter, &mut |writer| {
                 match &c.credential_type {

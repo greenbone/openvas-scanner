@@ -113,7 +113,7 @@ pub async fn scan_status(cli: &reqwest::Client, server: &String, id: &str) -> Op
                 return Some(st.status);
             }
             Err(err) => {
-                println!("{:?}", err);
+                println!("{err:?}");
                 return None;
             }
         }
@@ -146,7 +146,7 @@ pub async fn scan_results(
                 return Some(res);
             }
             Err(err) => {
-                println!("{:?}", err);
+                println!("{err:?}");
                 return None;
             }
         }

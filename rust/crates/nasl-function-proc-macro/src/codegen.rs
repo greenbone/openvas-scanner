@@ -144,11 +144,7 @@ impl<'a> ArgsStruct<'a> {
             .collect()
     }
 
-    pub fn get_inner_call_expr(
-        &self,
-        mangled_ident: &Ident,
-        asyncness: Option<Async>,
-    ) -> TokenStream {
+    fn get_inner_call_expr(&self, mangled_ident: &Ident, asyncness: Option<Async>) -> TokenStream {
         let fn_args_names = self.get_fn_args_names();
         let call_expr = match self.receiver_type {
             ReceiverType::None => quote! { #mangled_ident(#fn_args_names) },

@@ -4,9 +4,12 @@
 
 use std::time::SystemTime;
 
-use crate::models::{Product, ProductsAdvisories};
+// Maybe move products to notus so they are the same as advisories
+use greenbone_scanner_framework::models::Product;
 
 use crate::{feed::VerifyError, notus::error::Error};
+
+use super::advisories::ProductsAdvisories;
 
 pub mod fs;
 pub mod hashsum;

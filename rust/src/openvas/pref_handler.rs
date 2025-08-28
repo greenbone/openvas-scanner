@@ -4,11 +4,11 @@
 
 use std::collections::HashMap;
 
-use crate::models::{
+use crate::storage::redis::RedisStorageResult;
+use greenbone_scanner_framework::models::{
     AliveTestMethods, CredentialType, PreferenceValue, Scan, ScanPreferenceInformation, Service,
     VT, ports_to_openvas_port_list,
 };
-use crate::storage::redis::RedisStorageResult;
 
 use super::cmd;
 use super::openvas_redis::{KbAccess, VtHelper};
@@ -472,7 +472,6 @@ where
                         }
                     };
                 }
-
                 Service::SMB => {
                     if let CredentialType::UP {
                         username, password, ..
@@ -485,7 +484,6 @@ where
                         ));
                     };
                 }
-
                 Service::ESXi => {
                     if let CredentialType::UP {
                         username, password, ..
@@ -499,7 +497,6 @@ where
                         ));
                     };
                 }
-
                 Service::SNMP => {
                     if let CredentialType::SNMP {
                         username,
@@ -534,16 +531,21 @@ where
                             "{OID_SNMP_AUTH}:3:password:SNMPv3 Password:|||{password}"
                         ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:4:radio:SNMPv3 Authentication Algorithm:|||{auth_algorithm}"
-                        ));
+                                        "{OID_SNMP_AUTH}:4:radio:SNMPv3 Authentication Algorithm:|||{auth_algorithm}"
+                                    ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:5:password:SNMPv3 Privacy Password:|||{privacy_password}"
-                        ));
+                                        "{OID_SNMP_AUTH}:5:password:SNMPv3 Privacy Password:|||{privacy_password}"
+                                    ));
                         credential_preferences.push(format!(
-                            "{OID_SNMP_AUTH}:6:radio:SNMPv3 Privacy Algorithm:|||{privacy_algorithm}"
-                        ));
+                                        "{OID_SNMP_AUTH}:6:radio:SNMPv3 Privacy Algorithm:|||{privacy_algorithm}"
+                                    ));
                     }
                 }
+
+                // TODO: maybe treat as ssh?
+                Service::Generic => unreachable!(
+                    "OpenVAS is not aware about service::generic it was introduced for image-scanner"
+                ),
             }
         }
 
@@ -561,16 +563,13 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{
-        models::{
-            AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan, Service,
-        },
-        openvas::openvas_redis::test::FakeRedis,
-        scanner::preferences::preference::ScanPrefs,
+    use greenbone_scanner_framework::models::{
+        self, AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan,
+        Service,
     };
 
     use super::PreferenceHandler;
-    use crate::openvas::openvas_redis::KbAccess;
+    use crate::openvas::openvas_redis::{KbAccess, test::FakeRedis};
 
     #[tokio::test]
     async fn test_prefs() {
@@ -615,24 +614,24 @@ mod tests {
                 },
             ],
         }];
-        scan.scan_preferences = ScanPrefs(vec![
-            crate::models::ScanPreference {
+        scan.scan_preferences = vec![
+            models::ScanPreference {
                 id: "testParam1".to_string(),
                 value: "1".to_string(),
             },
-            crate::models::ScanPreference {
+            models::ScanPreference {
                 id: "testParam2".to_string(),
                 value: "abc".to_string(),
             },
-        ]);
-        scan.vts = vec![crate::models::VT {
+        ];
+        scan.vts = vec![models::VT {
             oid: "123".to_string(),
             parameters: vec![
-                crate::models::Parameter {
+                models::Parameter {
                     id: 1,
                     value: "yes".to_string(),
                 },
-                crate::models::Parameter {
+                models::Parameter {
                     id: 2,
                     value: "abc".to_string(),
                 },
