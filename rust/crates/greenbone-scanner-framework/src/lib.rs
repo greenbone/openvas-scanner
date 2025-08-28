@@ -154,7 +154,7 @@ impl Default for RuntimeBuilder<runtime_builder_states::Start> {
 
 impl<T> RuntimeBuilder<T> {
     pub fn new() -> RuntimeBuilder<runtime_builder_states::Start> {
-        let mut incoming_request = IncomingRequest::with_capacity(13);
+        let mut incoming_request = IncomingRequest::default();
         incoming_request.push(GetScansPreferencesIncomingRequest::default());
         incoming_request.push(GetHealthAliveIncomingRequest::default());
         incoming_request.push(GetHealthReadyIncomingRequest::default());

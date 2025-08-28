@@ -227,12 +227,6 @@ impl IncomingRequest {
             BodyKind::no_content(StatusCode::NOT_FOUND)
         })
     }
-
-    pub fn with_capacity(arg: usize) -> IncomingRequest {
-        IncomingRequest {
-            on_requests: Vec::with_capacity(arg),
-        }
-    }
 }
 
 pub struct EntryPoint {
