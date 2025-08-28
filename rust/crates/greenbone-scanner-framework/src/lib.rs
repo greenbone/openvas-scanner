@@ -106,6 +106,7 @@ mod runtime_builder_states {
     pub struct DeleteScanIDSet;
     pub struct End;
 }
+
 // we hide all other states to not pollute the namespace too much
 pub use runtime_builder_states::{End, Start};
 
@@ -133,7 +134,7 @@ pub struct RuntimeBuilder<T> {
     tls: Option<TLSConfig>,
     api_keys: Option<Vec<String>>,
     incoming_request: IncomingRequest,
-    _phanton: PhantomData<T>,
+    _phantom: PhantomData<T>,
 }
 
 fn retrieve_and_reset_client_identifier(id: Arc<RwLock<ClientIdentifier>>) -> ClientIdentifier {
@@ -166,7 +167,7 @@ impl<T> RuntimeBuilder<T> {
             api_keys: None,
             incoming_request,
             listener_address: ([127, 0, 0, 1], 3000).into(),
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 
@@ -277,14 +278,9 @@ impl<T> RuntimeBuilder<T> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
-
-    //pub fn incoming_request(mut self, incoming_request: IncomingRequest) -> RunTimeBuilder {
-    //    self.incoming_request = Some(Arc::new(incoming_request));
-    //    self
-    //}
 
     fn build_scanner(&self) -> Scanner {
         let authentication = match (&self.tls, &self.api_keys) {
@@ -350,7 +346,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -371,7 +367,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -391,7 +387,7 @@ impl RuntimeBuilder<runtime_builder_states::PostScansSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -412,7 +408,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScansSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -433,7 +429,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -454,7 +450,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -475,7 +471,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDResultIDSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -496,7 +492,7 @@ impl RuntimeBuilder<runtime_builder_states::GetScanIDStatusSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -517,7 +513,7 @@ impl RuntimeBuilder<runtime_builder_states::PostScanIDSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -535,7 +531,7 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             incoming_request: ior.incoming_request,
-            _phanton: PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
