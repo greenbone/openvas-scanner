@@ -11,13 +11,12 @@ pub use entry::{ClientHash, ClientIdentifier, RequestHandler, RequestHandlers};
 use get_scans::GetScansIncomingRequest;
 use get_scans_id::GetScansIDIncomingRequest;
 use get_scans_id_results::GetScansIDResultsIncomingRequest;
-use get_scans_id_results_id::GetScansIDResultsIDIncomingRequest;
 use get_scans_id_status::GetScansIDStatusIncomingRequest;
 use get_scans_preferences::GetScansPreferencesIncomingRequest;
 use get_vts::GetVTsIncomingRequest;
 use hyper_util::rt::{TokioExecutor, TokioIo};
 
-pub mod delete_scans_id;
+mod delete_scans_id;
 pub mod entry;
 pub use entry::response::StreamResult;
 mod get_scans;
@@ -32,22 +31,19 @@ pub use get_scans_id_results_id::{GetScansIDResultsID, GetScansIDResultsIDError}
 mod get_scans_id_status;
 pub use get_scans_id_status::{GetScansIDStatus, GetScansIDStatusError};
 mod get_scans_preferences;
-pub use get_scans_preferences::GetScansPreferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
-pub use get_health::{
-    GetHealthAlive, GetHealthAliveIncomingRequest, GetHealthReady, GetHealthReadyIncomingRequest,
-    GetHealthStarted, GetHealthStartedIncomingRequest,
+use get_health::{
+    GetHealthAliveIncomingRequest, GetHealthReadyIncomingRequest, GetHealthStartedIncomingRequest,
 };
 
 pub mod models;
 mod post_scans;
 use models::FeedState;
 pub use post_scans::{PostScans, PostScansError};
-pub mod post_scans_id;
+mod post_scans_id;
 mod tls;
-pub use hyper::StatusCode;
 use post_scans::PostScansIncomingRequest;
 use post_scans_id::{PostScansID, PostScansIDIncomingRequest};
 use tokio::net::TcpListener;
@@ -89,20 +85,13 @@ impl ServerCertificate {
 }
 
 #[derive(Debug, Default)]
-pub struct TLSConfig {
+struct TLSConfig {
     server_tls_cer: ServerCertificate,
     path_client_certs: Option<PathBuf>,
 }
 
 mod runtime_builder_states {
     pub struct Start;
-    pub struct PostScansSet;
-    pub struct GetScansSet;
-    pub struct GetScanIDSet;
-    pub struct GetScanIDResultSet;
-    pub struct GetScanIDResultIDSet;
-    pub struct GetScanIDStatusSet;
-    pub struct PostScanIDSet;
     pub struct DeleteScanIDSet;
     pub struct End;
 }
@@ -176,11 +165,6 @@ impl<T> RuntimeBuilder<T> {
         self
     }
 
-    pub fn listener_address(mut self, listener_address: SocketAddr) -> RuntimeBuilder<T> {
-        self.listener_address = listener_address;
-        self
-    }
-
     pub fn server_tls_cer(mut self, server_tls_cer: ServerCertificate) -> RuntimeBuilder<T> {
         self.tls = Some(match self.tls {
             Some(TLSConfig {
@@ -213,11 +197,6 @@ impl<T> RuntimeBuilder<T> {
                 path_client_certs: Some(path_client_certs),
             },
         });
-        self
-    }
-
-    pub fn api_keys(mut self, api_key: &[String]) -> RuntimeBuilder<T> {
-        self.api_keys = Some(api_key.to_vec());
         self
     }
 
@@ -351,173 +330,6 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     }
 }
 
-impl RuntimeBuilder<runtime_builder_states::Start> {
-    pub fn insert_post_scans<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::PostScansSet>
-    where
-        T: PostScans + Prefixed + 'static,
-    {
-        let ior = self.add_request_handler(PostScansIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-impl RuntimeBuilder<runtime_builder_states::PostScansSet> {
-    pub fn insert_get_scans<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::GetScansSet>
-    where
-        T: GetScans + Prefixed + 'static,
-    {
-        let ior = self.add_request_handler(GetScansIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl RuntimeBuilder<runtime_builder_states::GetScansSet> {
-    pub fn insert_get_scans_id<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::GetScanIDSet>
-    where
-        T: GetScansID + Prefixed + 'static,
-    {
-        let ior = self.add_request_handler(GetScansIDIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl RuntimeBuilder<runtime_builder_states::GetScanIDSet> {
-    pub fn insert_get_scans_id_results<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::GetScanIDResultSet>
-    where
-        T: GetScansIDResults + Prefixed + 'static,
-    {
-        let ior = self.add_request_handler(GetScansIDResultsIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl RuntimeBuilder<runtime_builder_states::GetScanIDResultSet> {
-    pub fn insert_get_scans_id_results_id<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::GetScanIDResultIDSet>
-    where
-        T: GetScansIDResultsID + Prefixed + 'static,
-    {
-        let ior = self.add_request_handler(GetScansIDResultsIDIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl RuntimeBuilder<runtime_builder_states::GetScanIDResultIDSet> {
-    pub fn insert_get_scans_id_status<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::GetScanIDStatusSet>
-    where
-        T: GetScansIDStatus + Prefixed + 'static,
-    {
-        let ior = self.add_request_handler(GetScansIDStatusIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl RuntimeBuilder<runtime_builder_states::GetScanIDStatusSet> {
-    pub fn insert_post_scans_id<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::PostScanIDSet>
-    where
-        T: PostScansID + Prefixed + 'static,
-    {
-        let ior = self.add_request_handler(PostScansIDIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl RuntimeBuilder<runtime_builder_states::PostScanIDSet> {
-    pub fn insert_delete_scans_id<T>(
-        self,
-        value: Arc<T>,
-    ) -> RuntimeBuilder<runtime_builder_states::DeleteScanIDSet>
-    where
-        T: DeleteScansID + 'static,
-    {
-        let ior = self.add_request_handler(DeleteScansIDIncomingRequest::from(value));
-        RuntimeBuilder {
-            api_version: ior.api_version,
-            feed_state: ior.feed_state,
-            listener_address: ior.listener_address,
-            tls: ior.tls,
-            api_keys: ior.api_keys,
-            handlers: ior.handlers,
-            _phantom: PhantomData,
-        }
-    }
-}
-
 impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     pub fn insert_get_vts<T>(self, value: Arc<T>) -> RuntimeBuilder<runtime_builder_states::End>
     where
@@ -619,11 +431,6 @@ pub trait MapScanID: Send + Sync {
     ) -> std::pin::Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>>;
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum Error {
-    #[error("Client certificates configured but none available")]
-    NoClientCertificatesFound,
-}
 pub enum Authentication {
     Disabled,
     MTLS,
@@ -631,7 +438,7 @@ pub enum Authentication {
 }
 
 impl Authentication {
-    pub fn static_str(&self) -> &'static str {
+    fn static_str(&self) -> &'static str {
         match self {
             Authentication::Disabled => "disabled",
             Authentication::MTLS => "mTLS",
@@ -646,9 +453,9 @@ impl AsRef<str> for Authentication {
     }
 }
 pub struct Scanner {
-    pub api_version: String,
-    pub authentication: Authentication,
-    pub feed_version: Arc<RwLock<FeedState>>,
+    api_version: String,
+    authentication: Authentication,
+    feed_version: Arc<RwLock<FeedState>>,
 }
 
 #[cfg(test)]

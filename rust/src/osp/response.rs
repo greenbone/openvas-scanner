@@ -12,7 +12,7 @@ use super::commands::Error;
 
 /// StringU32 is a wrapper around u32 to allow deserialization of strings
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct StringU64(u64);
+pub struct StringU64(u64);
 
 impl From<i64> for StringU64 {
     fn from(value: i64) -> Self {

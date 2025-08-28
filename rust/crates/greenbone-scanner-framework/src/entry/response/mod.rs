@@ -1,4 +1,4 @@
-pub mod json_stream;
+mod json_stream;
 use std::{
     convert::Infallible,
     pin::Pin,
@@ -78,7 +78,7 @@ impl BodyKind {
         }
     }
 
-    pub fn from_stream<J, T>(status_code: StatusCode, inner: J) -> Self
+    fn from_stream<J, T>(status_code: StatusCode, inner: J) -> Self
     where
         //TODO: get rid of static by adding lifetimes to BodyKind
         J: Stream<Item = T> + Unpin + Send + 'static,

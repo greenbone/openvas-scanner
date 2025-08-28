@@ -9,7 +9,6 @@ pub mod response;
 
 use hyper::{StatusCode, header::HeaderValue};
 use response::{BodyKind, BodyKindContent};
-use thiserror::Error;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ClientHash([u8; 32]);
@@ -353,12 +352,6 @@ where
     } else {
         BodyKind::no_content(StatusCode::NOT_FOUND)
     }
-}
-
-#[derive(Debug, PartialEq, Eq, Error)]
-pub enum Error {
-    #[error("Unexpected while creating the response: {0}")]
-    Unexpected(String),
 }
 
 pub mod test_utilities {

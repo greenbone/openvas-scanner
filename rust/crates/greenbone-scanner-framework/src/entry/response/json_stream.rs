@@ -48,7 +48,7 @@ impl<S> JsonFramedStream<S>
 where
     S: Stream<Item = Bytes> + Unpin,
 {
-    pub fn new(inner: S) -> Self {
+    fn new(inner: S) -> Self {
         Self {
             inner,
             state: JsonFramingState::Start,

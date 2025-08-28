@@ -14,13 +14,13 @@ mod scan_action;
 mod scanner_preference;
 mod status;
 mod target;
-pub mod time;
+mod time;
 mod vt;
 mod vtdata;
 
 pub use credential::*;
 pub use host_info::*;
-pub use kbitem::*;
+use kbitem::*;
 pub use parameter::*;
 pub use port::*;
 pub use product::*;
@@ -32,7 +32,6 @@ pub use status::*;
 pub use target::*;
 pub use vt::*;
 pub use vtdata::*;
-pub type ScanID = String;
 
 #[cfg(test)]
 mod tests {

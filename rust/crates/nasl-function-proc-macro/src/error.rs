@@ -27,7 +27,7 @@ impl Error {
         }
     }
 
-    pub fn message(&self) -> String {
+    fn message(&self) -> String {
         match self.kind {
             ErrorKind::OnlyNormalArgumentsAllowed => {
                 "Only normal identifier arguments are allowed on the function."

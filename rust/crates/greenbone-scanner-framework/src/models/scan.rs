@@ -4,7 +4,7 @@
 
 use super::{scanner_preference::ScanPreference, target::Target, vt::VT};
 
-pub type ScanId = String;
+type ScanId = String;
 
 /// Struct for creating and getting a scan
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

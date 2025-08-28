@@ -147,7 +147,7 @@ impl DBI for Bdb {
 
 // source: https://github.com/berkeleydb/libdb/blob/5b7b02ae052442626af54c176335b67ecc613a30/src/dbinc/db_page.h#L73
 #[derive(Debug, Deserialize)]
-pub struct GenericMetadataPage {
+struct GenericMetadataPage {
     lsn: [u8; 8],
     page_no: u32,
     magic: u32,
@@ -167,7 +167,7 @@ pub struct GenericMetadataPage {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct HashMetadataPage {
+struct HashMetadataPage {
     generic: GenericMetadataPage,
     max_bucket: u32,
     high_mask: u32,
@@ -178,7 +178,7 @@ pub struct HashMetadataPage {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct HashPage {
+struct HashPage {
     lsn: [u8; 8],
     page_no: u32,
     previous_page_no: u32,
@@ -190,7 +190,7 @@ pub struct HashPage {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct HashOffPageEntry {
+struct HashOffPageEntry {
     page_type: u8,
     unused: [u8; 3],
     page_no: u32,

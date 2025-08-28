@@ -40,7 +40,7 @@ pub struct Notus {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-struct Redis {
+pub struct Redis {
     url: String,
 }
 

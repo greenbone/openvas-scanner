@@ -18,7 +18,7 @@ use ndb::Ndb;
 use package::Package;
 use sqlite3::SqliteDB;
 
-pub trait DBI {
+trait DBI {
     fn read(&mut self) -> Result<Vec<Vec<u8>>, RpmdbError>;
 }
 

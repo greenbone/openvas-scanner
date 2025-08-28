@@ -14,20 +14,6 @@ pub struct Credential {
     pub credential_type: CredentialType,
 }
 
-impl Credential {
-    /// Maps the password of the credential using the given closure.
-    pub fn map_password<F, E>(self, f: F) -> Result<Self, E>
-    where
-        F: Fn(String) -> Result<String, E>,
-    {
-        Ok(Credential {
-            service: self.service,
-            port: self.port,
-            credential_type: self.credential_type.map_password(f)?,
-        })
-    }
-}
-
 impl Default for Credential {
     fn default() -> Self {
         Self {
@@ -153,78 +139,6 @@ pub enum CredentialType {
         realm: String,
         kdc: String,
     },
-}
-
-impl CredentialType {
-    /// Uses given closure to transform the password of the credential.
-    fn map_password<F, E>(self, f: F) -> Result<Self, E>
-    where
-        F: Fn(String) -> Result<String, E>,
-    {
-        Ok(match self {
-            CredentialType::UP {
-                username,
-                password,
-                privilege,
-            } => CredentialType::UP {
-                username,
-                password: f(password)?,
-                privilege: match privilege {
-                    Some(p) => Some(PrivilegeInformation {
-                        username: p.username,
-                        password: f(p.password)?,
-                    }),
-                    None => None,
-                },
-            },
-            CredentialType::USK {
-                username,
-                password,
-                private_key,
-                privilege,
-            } => CredentialType::USK {
-                username,
-                password: match password {
-                    Some(p) => Some(f(p)?),
-                    None => None,
-                },
-                private_key: f(private_key)?,
-                privilege: match privilege {
-                    Some(p) => Some(PrivilegeInformation {
-                        username: p.username,
-                        password: f(p.password)?,
-                    }),
-                    None => None,
-                },
-            },
-            CredentialType::SNMP {
-                username,
-                password,
-                community,
-                auth_algorithm,
-                privacy_password,
-                privacy_algorithm,
-            } => CredentialType::SNMP {
-                username,
-                password: f(password)?,
-                community,
-                auth_algorithm,
-                privacy_password: f(privacy_password)?,
-                privacy_algorithm,
-            },
-            CredentialType::KRB5 {
-                username,
-                password,
-                realm,
-                kdc,
-            } => CredentialType::KRB5 {
-                username,
-                password: f(password)?,
-                realm,
-                kdc,
-            },
-        })
-    }
 }
 
 impl AsRef<str> for CredentialType {

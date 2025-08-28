@@ -4,23 +4,23 @@ use super::{entry::IndexEntry, rpmtags::*};
 
 #[derive(Default, Debug)]
 pub struct Package {
-    pub epoch: i32,
+    epoch: i32,
     pub name: String,
     pub version: String,
     pub release: String,
     pub arch: String,
-    pub source_rpm: String,
-    pub size: i32,
-    pub license: String,
-    pub vendor: String,
-    pub modularitylabel: String,
+    source_rpm: String,
+    size: i32,
+    license: String,
+    vendor: String,
+    modularitylabel: String,
 
-    pub base_names: Vec<String>,
-    pub dir_indexes: Vec<i32>,
-    pub dir_names: Vec<String>,
+    base_names: Vec<String>,
+    dir_indexes: Vec<i32>,
+    dir_names: Vec<String>,
 
-    pub provides: Vec<String>,
-    pub requires: Vec<String>,
+    provides: Vec<String>,
+    requires: Vec<String>,
 }
 
 impl TryFrom<Vec<IndexEntry>> for Package {
