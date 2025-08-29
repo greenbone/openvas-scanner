@@ -169,3 +169,11 @@ pub async fn delete_scan(cli: &reqwest::Client, server: &String, id: &str) -> bo
     tracing::info!("\tDelete scan FAILED");
     false
 }
+
+/// Check health/ready
+pub async fn health_ready(cli: &reqwest::Client, server: &String) -> bool {
+    let mut path = String::from(server);
+    path.push_str("/health/ready");
+    let res = cli.get(path).send().await.unwrap();
+    res.status().is_success()
+}

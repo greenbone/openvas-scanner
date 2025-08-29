@@ -40,7 +40,7 @@ export TARGET_HOSTNAME=192.168.10.10
 export TARGET_USERNAME=user
 export TARGET_PASSWORD=pass
 export API_KEY=mtls_is_preferred
-export SCAN_CONFIG=config/simple_scan_ssh_only.json
+export SCAN_CONFIG=configs/simple_scan_ssh_only.json
 
 #build and run
 make build
