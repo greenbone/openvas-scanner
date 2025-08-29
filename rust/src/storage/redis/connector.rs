@@ -138,7 +138,7 @@ impl NameSpaceSelector {
             NameSpaceSelector::Free => {
                 Self::select_namespace(kb, 0)?;
                 for dbi in 1..max_db {
-                    match kb.hset_nx(DB_INDEX, dbi, 1) {
+                    match redis::Commands::hset_nx(kb, DB_INDEX, dbi, 1) {
                         Ok(1) => {
                             Self::select_namespace(kb, dbi)?;
                             return Ok(dbi);
@@ -152,7 +152,7 @@ impl NameSpaceSelector {
             NameSpaceSelector::Key(key) => {
                 for dbi in 1..max_db {
                     Self::select_namespace(kb, dbi)?;
-                    match kb.exists(key) {
+                    match redis::Commands::exists(kb, key) {
                         Ok(1) => return Ok(dbi),
                         Ok(_) => {}
                         Err(err) => return Err(err.into()),
@@ -184,63 +184,55 @@ impl RedisWrapper for RedisCtx {
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn rpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
-        self.kb
-            .as_mut()
-            .expect("Valid redis connection")
-            .rpush(key, val)
-            .map_err(|e| e.into())
+        redis::Commands::rpush(self.kb.as_mut().expect("Valid redis connection"), key, val)
+            .map_err(DbError::from)
     }
 
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn lpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
-        self.kb
-            .as_mut()
-            .expect("Valid redis connection")
-            .lpush(key, val)
-            .map_err(|e| e.into())
+        redis::Commands::lpush(self.kb.as_mut().expect("Valid redis connection"), key, val)
+            .map_err(DbError::from)
     }
 
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn del(&mut self, key: &str) -> RedisStorageResult<()> {
-        self.kb
-            .as_mut()
-            .expect("Valid redis connection")
-            .del(key)
-            .map_err(|e| e.into())
+        redis::Commands::del(self.kb.as_mut().expect("Valid redis connection"), key)
+            .map_err(DbError::from)
     }
 
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn lindex(&mut self, key: &str, index: isize) -> RedisStorageResult<String> {
-        let ret: RedisValueHandler = self
-            .kb
-            .as_mut()
-            .expect("Valid redis connection")
-            .lindex(key, index)?;
+        let ret: RedisValueHandler = redis::Commands::lindex(
+            self.kb.as_mut().expect("Valid redis connection"),
+            key,
+            index,
+        )
+        .map_err(DbError::from)?;
         Ok(ret.v)
     }
 
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn lrange(&mut self, key: &str, start: isize, end: isize) -> RedisStorageResult<Vec<String>> {
-        let ret = self
-            .kb
-            .as_mut()
-            .expect("Valid redis connection")
-            .lrange(key, start, end)?;
+        let ret = redis::Commands::lrange(
+            self.kb.as_mut().expect("Valid redis connection"),
+            key,
+            start,
+            end,
+        )
+        .map_err(DbError::from)?;
         Ok(ret)
     }
 
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn keys(&mut self, pattern: &str) -> RedisStorageResult<Vec<String>> {
-        let ret: Vec<String> = self
-            .kb
-            .as_mut()
-            .expect("Valid redis connection")
-            .keys(pattern)?;
+        let ret: Vec<String> =
+            redis::Commands::keys(self.kb.as_mut().expect("Valid redis connection"), pattern)
+                .map_err(DbError::from)?;
         Ok(ret)
     }
 
