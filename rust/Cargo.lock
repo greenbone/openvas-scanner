@@ -3729,7 +3729,7 @@ dependencies = [
  "pnet_macros",
  "pnet_macros_support",
  "quick-xml",
- "rand 0.8.5",
+ "rand 0.9.2",
  "rand_core 0.6.4",
  "rc4",
  "redis",

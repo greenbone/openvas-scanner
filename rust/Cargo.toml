@@ -51,7 +51,7 @@ quick-xml = { version = "0.38.1", features = [
     "serialize",
 ] }
 
-rand = "0.8.5"
+rand = "0.9.2"
 redis = "0.32.5"
 regex = "1.10.6"
 ripemd = "0.1.3"

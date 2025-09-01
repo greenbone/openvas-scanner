@@ -6,7 +6,7 @@ use std::hint::black_box;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use rand::Rng;
-use rand::distributions::Alphanumeric;
+use rand::distr::Alphanumeric;
 use scannerlib::storage::infisto::{
     CachedIndexFileStorer, IndexedByteStorage, IndexedFileStorer, Range,
 };
@@ -18,7 +18,7 @@ pub fn reading(c: &mut Criterion) {
     let amount = 1000000;
     fn random_data() -> Vec<u8> {
         use rand::RngCore;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut data = vec![0; 1024];
         rng.fill_bytes(&mut data);
         data
@@ -32,7 +32,7 @@ pub fn reading(c: &mut Criterion) {
         format!(
             "{}{}",
             pre,
-            rand::thread_rng()
+            rand::rng()
                 .sample_iter(&Alphanumeric)
                 .take(7)
                 .map(char::from)
@@ -90,7 +90,7 @@ pub fn storing(c: &mut Criterion) {
     let amount = 100000;
     fn random_data() -> Vec<u8> {
         use rand::RngCore;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut data = vec![0; 1024];
         rng.fill_bytes(&mut data);
         data
@@ -104,7 +104,7 @@ pub fn storing(c: &mut Criterion) {
         format!(
             "{}{}",
             pre,
-            rand::thread_rng()
+            rand::rng()
                 .sample_iter(&Alphanumeric)
                 .take(7)
                 .map(char::from)

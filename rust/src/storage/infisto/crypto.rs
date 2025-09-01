@@ -68,7 +68,7 @@ pub struct Key(GenericArray<u8, U32>);
 impl Default for Key {
     fn default() -> Self {
         let mut key = [0u8; 32];
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         rng.fill_bytes(&mut key);
         Key(key.into())
     }
@@ -108,7 +108,7 @@ impl<T> ChaCha20IndexFileStorer<T> {
 
     fn encrypt(key: &Key, mut data: Vec<u8>) -> Encrypted {
         let mut nonce = [0u8; 12];
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         rng.fill_bytes(&mut nonce);
         let Key(key) = key;
         let mut cipher = ChaCha20::new(key, &nonce.into());
@@ -190,7 +190,7 @@ mod tests {
         let amount = 1000;
         fn random_data() -> Vec<u8> {
             use rand::RngCore;
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let mut data = vec![0; 1024];
             rng.fill_bytes(&mut data);
             data
