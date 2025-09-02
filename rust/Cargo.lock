@@ -3694,7 +3694,7 @@ dependencies = [
  "flate2",
  "futures",
  "futures-util",
- "generic-array 0.14.7",
+ "generic-array 1.2.0",
  "glob",
  "h2 0.4.12",
  "hex",
