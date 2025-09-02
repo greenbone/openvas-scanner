@@ -148,7 +148,7 @@ alive_test_ports
 test_alive_wait_timeout
 
 :   This option is to set how long (in sec) Boreas (alive test) waits for
-    replies after last packet was sent. Default: 3 seconds
+    replies after last packet was sent. Default: 3 seconds.
 
 optimize_test
 
@@ -171,7 +171,7 @@ checks_read_timeout
 :   Number of seconds that the security checks will wait for when doing
     a recv(). You should increase this value if you are running openvas
     across a slow network slink (testing a host via a dialup connection
-    for instance)
+    for instance).
 
 timeout_retry
 
