@@ -64,6 +64,11 @@ plugins_folder
 :   Contains the location of the plugins folder. This is usually
     \@OPENVAS_NVT_DIR@, but you may change this.
 
+include_folders
+
+:   Contains the location of the include file folder. This is usually
+    \@OPENVAS_NVT_DIR@, but you may change this.
+
 max_hosts
 
 :   is maximum number of hosts to test at the same time which should be
@@ -87,6 +92,11 @@ log_whole_attack
     date and target of each plugin launched. This is helpful for
     monitoring and debugging purpose, however this option might make
     openvas fill your disk rather quickly.
+
+db_address
+
+:   Path to the redis socket where the plugins cache and knowledge
+    bases are stored.
 
 report_scripts
 
@@ -148,7 +158,17 @@ alive_test_ports
 test_alive_wait_timeout
 
 :   This option is to set how long (in sec) Boreas (alive test) waits for
-    replies after last packet was sent. Default: 3 seconds
+    replies after last packet was sent. Default: 3 seconds.
+
+icmp_retries
+
+:   This is the default amount of icmp packets that will be sent to
+    the host target during an alive test. Defaults to 1.
+
+icmp_grace_period
+
+:   Wait time between icmp packets during alive tests. Useful for
+    sensitive targets. It can slow down the alive test.
 
 optimize_test
 
@@ -161,6 +181,14 @@ optimize_test
     false positives. If you are not sure that the banners of the remote
     host have been tampered with, you can disable this option.
 
+optimization_level
+
+:   Level of test optimization. It checks if plugins requirement are
+    met. Level=1 checks only that required ports are open, level=2
+    checks open ports and keys requirements are met, else checks also
+    if excluded keys are present or not. Default: no optimization,
+    check everything.
+
 test_empty_vhost
 
 :   If set to yes, the scanner will also test the target by using empty
@@ -170,8 +198,8 @@ checks_read_timeout
 
 :   Number of seconds that the security checks will wait for when doing
     a recv(). You should increase this value if you are running openvas
-    across a slow network slink (testing a host via a dialup connection
-    for instance)
+    across a slow network link (testing a host via a dialup connection
+    for instance).
 
 timeout_retry
 
@@ -330,6 +358,37 @@ table_driven_lsc
     gathered packages are sent to a specialized scanner. This is far more efficient than doing
     checks via NASL.
     Defaults to "yes".
+
+mqtt_server_uri
+
+:   URI to the MQTT server used for internal communication with Notus
+    (table driven LSC). This implementation of Notus is in python and
+    it is deprecated, beeing replaced with a Rust implementation of
+    Notus.
+
+mqtt_user
+
+:   Username for authenticated MQTT communication.
+
+mqtt_pass
+
+:   Password for authenticated MQTT communication The other options in
+    this file can usually be redefined by the client.
+
+openvasd_server
+
+:   Openvasd server URI to Rust implementation of Notus. It has
+    priority over MQTT settings.
+
+x-apikey
+
+:   API Key for authenticate against openvasd when Notus Rust
+    implementation is enabled.
+
+nasl_no_signature_check
+
+:   Enable/disable the Feed signacture check. Pay attention to the
+    negative logic of this setting.
 
 The other options in this file can usually be redefined by the client.
 
