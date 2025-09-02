@@ -224,7 +224,6 @@ Username for authenticated MQTT communication.
 
 .IP mqtt_pass
 Password for authenticated MQTT communication.
-The other options in this file can usually be redefined by the client.
 
 .IP openvasd_server
 Openvasd server URI to Rust implementation of Notus. It has priority over MQTT settings.
@@ -235,6 +234,7 @@ API Key for authenticate against openvasd when Notus Rust implementation is enab
 .IP nasl_no_signature_check
 Enable/disable the Feed signacture check. Pay attention to the negative logic of this setting.
 
+The other options in this file can usually be redefined by the client.
 
 .SH NETWORK USAGE
 
