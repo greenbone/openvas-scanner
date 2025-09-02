@@ -132,7 +132,7 @@ Level of test optimization. It checks if plugins requirement are met. Level=1 ch
 If set to yes, the scanner will also test the target by using empty vhost value in addition to the target's associated vhost values.
 
 .IP checks_read_timeout
-Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvas across a slow network slink (testing a host via a dialup connection for instance).
+Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvas across a slow network link (testing a host via a dialup connection for instance).
 
 .IP timeout_retry
 Number of retries when a socket connection attempt timesout.

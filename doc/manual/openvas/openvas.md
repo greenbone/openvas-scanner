@@ -170,7 +170,7 @@ checks_read_timeout
 
 :   Number of seconds that the security checks will wait for when doing
     a recv(). You should increase this value if you are running openvas
-    across a slow network slink (testing a host via a dialup connection
+    across a slow network link (testing a host via a dialup connection
     for instance).
 
 timeout_retry
