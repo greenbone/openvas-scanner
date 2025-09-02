@@ -8,4 +8,4 @@ edition = "2024"
 libgcrypt-sys = { path = "libgcrypt-sys" }
 
 [build-dependencies]
-cc = "1.0"
+cc = { workspace = true }

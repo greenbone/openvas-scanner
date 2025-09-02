@@ -7,7 +7,7 @@ use std::ffi::CStr;
 pub mod mac;
 
 unsafe extern "C" {
-    pub fn gcrypt_strerror(err: ::std::os::raw::c_int) -> *const ::std::os::raw::c_char;
+    fn gcrypt_strerror(err: ::std::os::raw::c_int) -> *const ::std::os::raw::c_char;
 }
 
 fn gcrypt_get_error_string(error: i32) -> &'static str {

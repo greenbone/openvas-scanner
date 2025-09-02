@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::{Host, Protocol};
+use greenbone_scanner_framework::models::{Host, Parameter, Protocol};
 
 use crate::nasl::interpreter::InterpreterError;
 use crate::scheduling::Stage;
@@ -22,7 +22,7 @@ pub enum ExecuteError {
     NotFound(#[from] crate::nasl::syntax::LoadError),
     #[error("unable to handle parameter: {0}")]
     /// The parameter could not be processed
-    Parameter(crate::models::Parameter),
+    Parameter(Parameter),
 }
 
 #[derive(Debug)]
