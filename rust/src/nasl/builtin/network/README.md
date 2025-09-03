@@ -23,12 +23,22 @@
 - get_port_state
 - get_tcp_port_state
 - get_udp_port_state
-
-## Missing
-
 - join_multicast_group
 - leave_multicast_group
 - scanner_get_port
 - start_denial
 - end_denial
 - telnet_init
+- socket_check_ssl_safe_renegotiation (unimplemented)
+- socket_get_cert
+- socket_get_ssl_version
+- socket_negotiate_ssl
+- socket_get_error
+- socket_cert_verify
+- get_sock_info
+
+## Missing
+
+- socket_get_ssl_ciphersuite (Not used in the whole feed. Won't be implemented)
+- socket_get_ssl_session_id
+- socket_ssl_do_handshake
