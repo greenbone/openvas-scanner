@@ -24,8 +24,8 @@ fn key7_to_key8(key7: &[u8]) -> Vec<u8> {
     key8[5] = ((key7[4] & 0x1F) << 2) | (key7[5] >> 6);
     key8[6] = ((key7[5] & 0x3F) << 1) | (key7[6] >> 7);
     key8[7] = key7[6] & 0x7F;
-    for i in 0..8 {
-        key8[i] = key8[i] << 1;
+    for item in key8.iter_mut() {
+        *item <<= 1;
     }
     key8
 }
@@ -113,7 +113,7 @@ fn smb_lm_session_keygen_ntlmssp(lm_hash: &[u8], lm_response: &[u8]) -> Vec<u8> 
 
 fn e_des_hash_ntlmssp(password: &str) -> (Vec<u8>, bool) {
     let password = password.to_uppercase();
-    let p16 = ep16(&password.as_bytes());
+    let p16 = ep16(password.as_bytes());
     (p16, password.len() <= 14)
 }
 
@@ -287,7 +287,7 @@ fn ntlmv2_hash(
     let mut ntlmv2_client_data = (0..length).map(|_| rng.r#gen::<u8>()).collect::<Vec<u8>>();
 
     let mut ntlmv2_response =
-        smb_owf_encrypt_ntv2_ntlmssp(&passhash, &cryptkey, &ntlmv2_client_data);
+        smb_owf_encrypt_ntv2_ntlmssp(passhash, &cryptkey, &ntlmv2_client_data);
 
     ntlmv2_response.append(&mut ntlmv2_client_data);
 
@@ -389,7 +389,7 @@ fn lm_owf_gen(pass: StringOrData) -> Vec<u8> {
     let binding = pass.0.to_ascii_uppercase();
     let pass = binding.as_bytes();
 
-    ep16(&pass)
+    ep16(pass)
 }
 
 #[nasl_function]
