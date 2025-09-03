@@ -19,7 +19,7 @@ jobs:
   # TODO: do we need to push or is building enough?
   debian_testing:
     name: ghcr:debian:testing
-    runs-on: "self-hosted-generic"
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
