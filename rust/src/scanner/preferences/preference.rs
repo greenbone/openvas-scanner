@@ -258,9 +258,7 @@ impl Default for ScanPrefValue {
 }
 
 #[derive(Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FullScanPreferences {
-    scan_preferences: Vec<FullScanPreference>,
-}
+pub struct FullScanPreferences(Vec<FullScanPreference>);
 
 /// Configuration preference information for a scan. The type can be derived from the default value.
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -309,23 +307,23 @@ impl FullScanPreferences {
         for pref in PREFERENCES.iter() {
             scan_preferences.push(FullScanPreference::from(pref));
         }
-        Self { scan_preferences }
+        Self(scan_preferences)
     }
 
     /// Override the default scanner preferences with the ones from the config file or command line.
     pub fn override_default_preferences(&mut self, preferences: HashMap<String, ScanPrefValue>) {
         for (pref_id, pref_val) in preferences.into_iter() {
-            if let Some(pref) = self.scan_preferences.iter_mut().find(|p| p.id == *pref_id) {
+            if let Some(pref) = self.0.iter_mut().find(|p| p.id == *pref_id) {
                 pref.default = pref_val.clone();
             }
         }
     }
 
     pub fn set_scan_with_preferences(&self, scan: &mut Scan) {
-        let mut config_prefs_copy = self.scan_preferences.clone();
+        let mut config_prefs_copy = self.0.clone();
         let scan_prefs = scan.scan_preferences.clone();
         let mut pref_index_to_remove = vec![];
-        for (i, cp) in self.scan_preferences.iter().enumerate() {
+        for (i, cp) in self.0.iter().enumerate() {
             for sp in scan_prefs.iter() {
                 if cp.id == sp.id {
                     pref_index_to_remove.push(i);
