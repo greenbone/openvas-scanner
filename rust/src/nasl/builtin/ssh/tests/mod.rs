@@ -8,9 +8,11 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use rand_core::OsRng;
 use russh::server::Config as ServerConfig;
 use russh::server::Server as _;
-use russh_keys::key::KeyPair;
+
+use russh::keys::PrivateKey;
 use server::AuthConfig;
 use server::TestServer;
 
@@ -29,8 +31,9 @@ static LOCK: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
 const PORT: u16 = 2223;
 
 fn default_config() -> ServerConfig {
+    let mut rng = OsRng;
     ServerConfig {
-        keys: vec![KeyPair::generate_ed25519()],
+        keys: vec![PrivateKey::random(&mut rng, russh::keys::Algorithm::Ed25519).unwrap()],
         inactivity_timeout: Some(std::time::Duration::from_secs(3600)),
         auth_rejection_time: std::time::Duration::from_secs(3),
         auth_rejection_time_initial: Some(std::time::Duration::from_secs(0)),
@@ -90,6 +93,7 @@ async fn ssh_connect() {
                 ArgumentError::WrongArgument(_)
             );
             // Without a matching key algorithm, we should not be able to connect
+            #[cfg(not(feature = "nasl-builtin-libssh"))]
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{PORT}, keytype: "ssh-rsa");"#),
