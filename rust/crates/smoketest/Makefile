@@ -13,7 +13,7 @@ TARGET := 127.0.0.1
 endif
 
 ifndef OPENVASD_SERVER
-OPENVASD_SERVER := https://127.0.0.1:8080
+OPENVASD_SERVER := https://127.0.0.1:3000
 endif
 
 ifndef SCAN_CONFIG
@@ -41,3 +41,6 @@ prepare-scan:
 	sed -i 's|<username>|'$(TARGET_USERNAME)'|' configs/simple_scan_ssh_only.json
 	sed -i 's|<password>|'$(TARGET_PASSWORD)'|' configs/simple_scan_ssh_only.json
 	sed -i 's|<hostname>|'$(TARGET)'|' configs/simple_scan_ssh_only.json
+
+run-hurl: prepare-scan
+	run_hurl
