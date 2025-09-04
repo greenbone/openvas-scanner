@@ -8,15 +8,19 @@ use std::{
     time::Duration,
 };
 
-use rustls::{ClientConnection, Stream};
+use rustls::{ClientConnection, ProtocolVersion, Stream, pki_types::CertificateDer};
 
 use socket2::{self, Socket};
 
-use super::{network_utils::get_source_ip, socket::SocketError};
+use crate::nasl::builtin::misc::{NASL_ERR_ETIMEDOUT, NASL_ERR_NOERR};
 
-struct TcpDataStream {
+use super::{OpenvasEncaps, network_utils::get_source_ip, socket::SocketError};
+
+pub struct TcpDataStream {
     sock: Socket,
     tls: Option<ClientConnection>,
+    transport: Option<OpenvasEncaps>,
+    last_err: i64,
 }
 
 impl Read for TcpDataStream {
@@ -31,8 +35,43 @@ impl Read for TcpDataStream {
     }
 }
 
+impl TcpDataStream {
+    pub fn set_tls(&mut self, tls: ClientConnection) {
+        self.tls = Some(tls);
+    }
+
+    pub fn tls(&self) -> &Option<ClientConnection> {
+        &self.tls
+    }
+
+    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+        self.transport = Some(transport);
+    }
+
+    pub fn transport(&self) -> &Option<OpenvasEncaps> {
+        &self.transport
+    }
+
+    pub fn set_last_err(&mut self, nasl_err: i64) {
+        self.last_err = nasl_err
+    }
+
+    pub fn last_err(&self) -> i64 {
+        self.last_err
+    }
+
+    pub fn get_port(&self) -> u16 {
+        if let Ok(peer) = self.sock.peer_addr()
+            && let Some(s) = peer.as_socket()
+        {
+            return s.port();
+        }
+        0
+    }
+}
+
 pub struct TcpConnection {
-    stream: BufReader<TcpDataStream>,
+    pub stream: BufReader<TcpDataStream>,
 }
 
 impl Read for TcpConnection {
@@ -89,6 +128,64 @@ impl TcpConnection {
         }
     }
 
+    pub fn set_tls(&mut self, tls: ClientConnection) {
+        let stream = self.stream.get_mut();
+        stream.set_tls(tls);
+    }
+
+    pub fn tls(&self) -> &Option<ClientConnection> {
+        let stream = self.stream.get_ref();
+        stream.tls()
+    }
+
+    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+        let stream = self.stream.get_mut();
+        stream.set_transport(transport);
+    }
+
+    pub fn transport(&self) -> &Option<OpenvasEncaps> {
+        let stream = self.stream.get_ref();
+        stream.transport()
+    }
+
+    pub fn set_last_err(&mut self, nasl_err: i64) {
+        let stream = self.stream.get_mut();
+        stream.set_last_err(nasl_err);
+    }
+
+    pub fn last_err(&self) -> i64 {
+        let stream = self.stream.get_ref();
+        stream.last_err()
+    }
+
+    pub fn get_port(&self) -> u16 {
+        let stream = self.stream.get_ref();
+        stream.get_port()
+    }
+
+    pub fn peer_certs(&mut self) -> &[CertificateDer<'static>] {
+        if let Some(tls_conn) = &self.stream.get_ref().tls
+            && let Some(pc) = tls_conn.peer_certificates()
+        {
+            return pc;
+        }
+        &[]
+    }
+
+    pub fn ssl_version(&self) -> Option<i64> {
+        if let Some(tls_conn) = &self.stream.get_ref().tls {
+            match tls_conn.protocol_version() {
+                Some(ProtocolVersion::SSLv3) => Some(OpenvasEncaps::Ssl3),
+                Some(ProtocolVersion::TLSv1_0) => Some(OpenvasEncaps::Tls1),
+                Some(ProtocolVersion::TLSv1_1) => Some(OpenvasEncaps::Tls11),
+                Some(ProtocolVersion::TLSv1_2) => Some(OpenvasEncaps::Tls12),
+                Some(ProtocolVersion::TLSv1_3) => Some(OpenvasEncaps::Tls13),
+                _ => None,
+            };
+        }
+        None
+    }
+
     /// Create a new TCP connection.
     pub fn connect(
         addr: IpAddr,
@@ -127,7 +224,15 @@ impl TcpConnection {
                 Err(e) => return Err(e),
             }
         }
-        Ok(Self::new(TcpDataStream { sock, tls }, bufsz))
+        Ok(Self::new(
+            TcpDataStream {
+                sock,
+                tls,
+                transport: None,
+                last_err: NASL_ERR_NOERR,
+            },
+            bufsz,
+        ))
     }
 
     pub fn connect_priv(
@@ -154,9 +259,20 @@ impl TcpConnection {
 
         sock.bind(&SocketAddr::new(src, sport).into())?;
 
-        sock.connect_timeout(&SocketAddr::new(addr, dport).into(), timeout)?;
+        let err = match sock.connect_timeout(&SocketAddr::new(addr, dport).into(), timeout) {
+            Ok(()) => NASL_ERR_NOERR,
+            Err(_) => NASL_ERR_ETIMEDOUT,
+        };
 
-        Ok(Self::new(TcpDataStream { sock, tls: None }, None))
+        Ok(Self::new(
+            TcpDataStream {
+                sock,
+                tls: None,
+                transport: None,
+                last_err: err,
+            },
+            None,
+        ))
     }
 
     /// Returns the socket address of the local half of this TCP connection.
@@ -165,6 +281,14 @@ impl TcpConnection {
             .get_ref()
             .sock
             .local_addr()
+            .map(|a| a.as_socket().unwrap()) // safe to unwrap because we're dealing with a TCP socket
+    }
+
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.stream
+            .get_ref()
+            .sock
+            .peer_addr()
             .map(|a| a.as_socket().unwrap()) // safe to unwrap because we're dealing with a TCP socket
     }
 

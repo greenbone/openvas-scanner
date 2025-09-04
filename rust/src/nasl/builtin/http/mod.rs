@@ -108,7 +108,7 @@ fn next_handle_id(handles: &MutexGuard<Vec<Handle>>) -> i32 {
 
 /// NoVerifier is to allow insecure connections
 #[derive(Debug)]
-struct NoVerifier;
+pub struct NoVerifier;
 
 /// DANGER: This custom implementation of the SeverCertVerifier
 /// is really dangerous and return success for all and everything.
