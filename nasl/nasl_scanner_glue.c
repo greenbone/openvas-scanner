@@ -1269,9 +1269,6 @@ nasl_notus (lex_ctxt *lexic)
   char *pkg_list = get_str_var_by_name (lexic, "pkg_list");
   char *product = get_str_var_by_name (lexic, "product");
 
-  retc = alloc_typed_cell (DYN_ARRAY);
-  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
-
   if (product == NULL || pkg_list == NULL)
     {
       g_warning ("%s: Missing data for running LSC", __func__);
@@ -1292,6 +1289,9 @@ nasl_notus (lex_ctxt *lexic)
   advisories = process_notus_response (response, strlen (response));
   g_free (response);
 
+  retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+
   // Process the advisories, generate results and store them in the kb
   for (size_t i = 0; i < advisories->count; i++)
     {
@@ -1306,7 +1306,7 @@ nasl_notus (lex_ctxt *lexic)
 
       memset (&oid, 0, sizeof (oid));
       oid.var_type = VAR2_STRING;
-      oid.v.v_str.s_val = (unsigned char *) g_strdup (advisory->oid);
+      oid.v.v_str.s_val = (unsigned char *) advisory->oid;
       oid.v.v_str.s_siz = strlen (advisory->oid);
 
       for (size_t j = 0; j < advisory->count; j++)
@@ -1319,10 +1319,9 @@ nasl_notus (lex_ctxt *lexic)
           name.var_type = VAR2_STRING;
           installed.var_type = VAR2_STRING;
           vul_pkg.var_type = VAR2_ARRAY;
-          name.v.v_str.s_val = (unsigned char *) g_strdup (pkg->pkg_name);
+          name.v.v_str.s_val = (unsigned char *) pkg->pkg_name;
           name.v.v_str.s_siz = strlen (pkg->pkg_name);
-          installed.v.v_str.s_val =
-            (unsigned char *) g_strdup (pkg->install_version);
+          installed.v.v_str.s_val = (unsigned char *) pkg->install_version;
           installed.v.v_str.s_siz = strlen (pkg->install_version);
 
           if (pkg->type == RANGE)
@@ -1333,16 +1332,15 @@ nasl_notus (lex_ctxt *lexic)
 
               memset (&start, 0, sizeof (start));
               start.var_type = VAR2_STRING;
-              start.v.v_str.s_val =
-                (unsigned char *) g_strdup (pkg->range->start);
+              start.v.v_str.s_val = (unsigned char *) pkg->range->start;
               start.v.v_str.s_siz = strlen (pkg->range->start);
               add_var_to_array (&range.v.v_arr, "start", &start);
 
               memset (&end, 0, sizeof (end));
               end.var_type = VAR2_STRING;
-              end.v.v_str.s_val = (unsigned char *) g_strdup (pkg->range->stop);
+              end.v.v_str.s_val = (unsigned char *) pkg->range->stop;
+              end.v.v_str.s_siz = strlen (pkg->range->stop);
               add_var_to_array (&range.v.v_arr, "end", &end);
-
               add_var_to_array (&vul_pkg.v.v_arr, "fixed", &range);
             }
           else if (pkg->type == SINGLE)
@@ -1354,15 +1352,14 @@ nasl_notus (lex_ctxt *lexic)
 
               memset (&version, 0, sizeof (version));
               version.var_type = VAR2_STRING;
-              version.v.v_str.s_val =
-                (unsigned char *) g_strdup (pkg->version->version);
+              version.v.v_str.s_val = (unsigned char *) pkg->version->version;
               version.v.v_str.s_siz = strlen (pkg->version->version);
               add_var_to_array (&single.v.v_arr, "version", &version);
 
               memset (&specifier, 0, sizeof (specifier));
               specifier.var_type = VAR2_STRING;
               specifier.v.v_str.s_val =
-                (unsigned char *) g_strdup (pkg->version->specifier);
+                (unsigned char *) pkg->version->specifier;
               specifier.v.v_str.s_siz = strlen (pkg->version->specifier);
               add_var_to_array (&single.v.v_arr, "specifier", &specifier);
 
@@ -1374,7 +1371,7 @@ nasl_notus (lex_ctxt *lexic)
                          __func__, advisory->oid);
               advisories_free (advisories);
               notus_err = -3;
-              advisories_free (advisories);
+              deref_cell (retc);
 
               return NULL;
             }
