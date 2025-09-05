@@ -233,6 +233,13 @@ lazy_static! {
     pub static ref PREFERENCES_JSON: String = serde_json::to_string(&PREFERENCES).unwrap();
 }
 
+pub fn pref_is_true(prefs: &ScanPrefs, key: &str) -> Option<bool> {
+    prefs
+        .iter()
+        .find(|x| x.id == key)
+        .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ScanPrefValue {
@@ -385,10 +392,7 @@ impl ScanPrefs {
     }
 
     pub fn get_preference_bool(&self, key: &str) -> Option<bool> {
-        self.0
-            .iter()
-            .find(|x| x.id == key)
-            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
+        pref_is_true(self, key)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &ScanPreference> {
