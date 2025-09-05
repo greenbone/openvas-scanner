@@ -537,6 +537,7 @@ async fn open_sock_kdc(
 
     let ip = lookup_host(&hostname)
         .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
+        .into_iter()
         .next()
         .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
