@@ -107,7 +107,6 @@ rustls-platform-verifier = "0.6.1"
 rustls-webpki = "0.103.4"
 pathdiff = "0.2.3"
 rand_core = "0.6.4"
-tempfile = "3.20.0"
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]

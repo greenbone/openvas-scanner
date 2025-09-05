@@ -5,8 +5,6 @@ use crate::models::PreferenceValue;
 use crate::nasl::prelude::*;
 use crate::scanner::preferences::preference::PREFERENCES;
 use base64::Engine as _;
-use std::io::Write;
-use tempfile::NamedTempFile;
 
 fn script_get_preference_shared(
     register: &Register,
@@ -56,37 +54,6 @@ fn script_get_preference_file_content_shared(
     base64::engine::general_purpose::STANDARD
         .decode(content)
         .ok()
-}
-
-/// Given a preference name or ID of file type script preference, stores the
-/// preference value in a temporary file and returns the path.
-#[allow(unused)]
-pub fn get_plugin_preference_fname(
-    register: &Register,
-    config: &ScanCtx,
-    name: Option<String>,
-    id: Option<usize>,
-) -> Result<String, FnError> {
-    let mut tmp = NamedTempFile::with_prefix("openvas-file-upload.")
-        .map_err(|e| BuiltinError::Preference(e.to_string()))?;
-    match script_get_preference_file_content_shared(register, config, name, id) {
-        Some(file_content) => {
-            if tmp.write_all(&file_content).is_ok() {
-                Ok(tmp.path().to_string_lossy().into_owned())
-            } else {
-                Err(BuiltinError::Preference(format!(
-                    "get_plugin_preference_fname: Could not write to temporary file at {:?}",
-                    tmp.path()
-                ))
-                .into())
-            }
-        }
-        None => Err(BuiltinError::Preference(format!(
-            "get_plugin_preference_fname: Could not create temporary file for {:?}",
-            tmp.path()
-        ))
-        .into()),
-    }
 }
 
 #[nasl_function(named(id))]
