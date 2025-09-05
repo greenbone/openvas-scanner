@@ -4,8 +4,11 @@
 use crate::models::PreferenceValue;
 use crate::nasl::prelude::*;
 use crate::scanner::preferences::preference::PREFERENCES;
-#[nasl_function(named(id))]
-fn script_get_preference(
+use base64::Engine as _;
+use std::io::Write;
+use tempfile::NamedTempFile;
+
+fn script_get_preference_shared(
     register: &Register,
     config: &ScanCtx,
     name: Option<String>,
@@ -42,6 +45,70 @@ fn script_get_preference(
     None
 }
 
+fn script_get_preference_file_content_shared(
+    register: &Register,
+    config: &ScanCtx,
+    name: Option<String>,
+    id: Option<usize>,
+) -> Option<Vec<u8>> {
+    let content = script_get_preference_shared(register, config, name, id)?;
+    let content = content.as_string().unwrap();
+    base64::engine::general_purpose::STANDARD
+        .decode(content)
+        .ok()
+}
+
+/// Given a preference name or ID of file type script preference, stores the
+/// preference value in a temporary file and returns the path.
+#[allow(unused)]
+pub fn get_plugin_preference_fname(
+    register: &Register,
+    config: &ScanCtx,
+    name: Option<String>,
+    id: Option<usize>,
+) -> Result<String, FnError> {
+    let mut tmp = NamedTempFile::with_prefix("openvas-file-upload.")
+        .map_err(|e| BuiltinError::Preference(e.to_string()))?;
+    match script_get_preference_file_content_shared(register, config, name, id) {
+        Some(file_content) => {
+            if tmp.write_all(&file_content).is_ok() {
+                Ok(tmp.path().to_string_lossy().into_owned())
+            } else {
+                Err(BuiltinError::Preference(format!(
+                    "get_plugin_preference_fname: Could not write to temporary file at {:?}",
+                    tmp.path()
+                ))
+                .into())
+            }
+        }
+        None => Err(BuiltinError::Preference(format!(
+            "get_plugin_preference_fname: Could not create temporary file for {:?}",
+            tmp.path()
+        ))
+        .into()),
+    }
+}
+
+#[nasl_function(named(id))]
+fn script_get_preference_file_content(
+    register: &Register,
+    config: &ScanCtx,
+    name: Option<String>,
+    id: Option<usize>,
+) -> Option<Vec<u8>> {
+    script_get_preference_file_content_shared(register, config, name, id)
+}
+
+#[nasl_function(named(id))]
+fn script_get_preference(
+    register: &Register,
+    config: &ScanCtx,
+    name: Option<String>,
+    id: Option<usize>,
+) -> Option<NaslValue> {
+    script_get_preference_shared(register, config, name, id)
+}
+
 #[nasl_function]
 fn get_preference(config: &ScanCtx, name: String) -> Option<NaslValue> {
     let val = if let Some(pref) = config.scan_params().find(|p| p.id == name) {
@@ -76,5 +143,6 @@ function_set! {
     (
         script_get_preference,
         get_preference,
+        script_get_preference_file_content,
     )
 }
