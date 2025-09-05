@@ -1,8 +1,0 @@
-commit_types = [
-    { message = "^add", group = "Added"},
-    { message = "^remove", group = "Removed"},
-    { message = "^change", group = "Changed"},
-    { message = "^fix", group = "Bug Fixes"},
-]
-
-changelog_dir = "changelog"
