@@ -13,6 +13,7 @@ mod hash;
 mod helper;
 mod hmac;
 mod misc;
+mod ntlm;
 mod pem_to;
 mod rc4;
 mod rsa;
