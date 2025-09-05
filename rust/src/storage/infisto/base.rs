@@ -649,7 +649,7 @@ mod cached {
         let amount = 1000;
         fn random_data() -> Vec<u8> {
             use rand::RngCore;
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let mut data = vec![0; 1024];
             rng.fill_bytes(&mut data);
             data
@@ -741,7 +741,7 @@ mod indexed {
         let amount = 1000;
         fn random_data() -> Vec<u8> {
             use rand::RngCore;
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let mut data = vec![0; 1024];
             rng.fill_bytes(&mut data);
             data

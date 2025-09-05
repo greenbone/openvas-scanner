@@ -7,11 +7,11 @@ use std::fmt::Display;
 use async_trait::async_trait;
 use chacha20::ChaCha20;
 use chacha20::cipher::{KeyIvInit, StreamCipher};
-use generic_array::GenericArray;
 use generic_array::typenum::U32;
 use pbkdf2::pbkdf2_hmac;
 use rand::{self, RngCore};
 use sha2::Sha256;
+use sha2::digest::generic_array::GenericArray;
 
 #[derive(Clone, Debug)]
 struct Key(GenericArray<u8, U32>);
@@ -19,7 +19,7 @@ struct Key(GenericArray<u8, U32>);
 impl Default for Key {
     fn default() -> Self {
         let mut key = [0u8; 32];
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         rng.fill_bytes(&mut key);
         Key(key.into())
     }
@@ -60,7 +60,7 @@ pub struct ChaCha20Crypt {
 impl ChaCha20Crypt {
     fn encrypt_sync(key: &Key, mut data: Vec<u8>) -> Encrypted {
         let mut nonce = [0u8; 12];
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         rng.fill_bytes(&mut nonce);
         let Key(key) = key;
         let mut cipher = ChaCha20::new(key, &nonce.into());

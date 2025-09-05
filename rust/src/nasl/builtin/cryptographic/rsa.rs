@@ -2,6 +2,7 @@
 //
 
 // SPDX-License-Identifier: GPL-2.0-or-later
+use super::CryptographicError;
 use crate::function_set;
 use crate::nasl::prelude::*;
 use ccm::aead::OsRng;
@@ -11,8 +12,6 @@ use rsa::signature::digest::Digest;
 use rsa::{BigUint, Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
 use sha1::Sha1;
 
-use super::CryptographicError;
-
 #[nasl_function(named(data, n, e, pad))]
 fn rsa_public_encrypt(
     data: &[u8],
@@ -21,7 +20,7 @@ fn rsa_public_encrypt(
     pad: Option<bool>,
 ) -> Result<NaslValue, CryptographicError> {
     let pad = pad.unwrap_or_default();
-    let mut rng = rand::thread_rng();
+    let mut rng = OsRng;
     let pub_key = RsaPublicKey::new(
         rsa::BigUint::from_bytes_be(n),
         rsa::BigUint::from_bytes_be(e),
@@ -112,7 +111,8 @@ fn rsa_public_decrypt(sign: &[u8], n: &[u8], e: &[u8]) -> Result<NaslValue, FnEr
     let n_b = rsa::BigUint::from_bytes_be(n);
     let public_key =
         RsaPublicKey::new(n_b, e_b).map_err(|e| CryptographicError::Rsa(e.to_string()))?;
-    let mut rng = rand::thread_rng();
+    let mut rng = OsRng;
+
     let enc_data = public_key
         .encrypt(&mut rng, Pkcs1v15Encrypt, sign)
         .map_err(|e| CryptographicError::Rsa(e.to_string()))?;
