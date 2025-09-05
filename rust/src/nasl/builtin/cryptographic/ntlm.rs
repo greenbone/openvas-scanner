@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use digest::typenum;
-use generic_array::GenericArray;
 use rand::Rng;
 
 use crate::nasl::{builtin::cryptographic::hmac::hmac, prelude::*, utils::function::StringOrData};
@@ -35,6 +34,7 @@ fn smb_des_encrypt(data: &[u8], key: &[u8]) -> Vec<u8> {
     use des::Des;
     use digest::KeyInit;
     use ecb::cipher::BlockEncrypt;
+    use ecb::cipher::generic_array::GenericArray;
     // Expand 7-byte key to 8-byte DES key
     let key8 = key7_to_key8(key);
     let cipher = Des::new(&GenericArray::clone_from_slice(&key8));
@@ -72,6 +72,7 @@ fn ep24(data: &[u8], key21: &[u8]) -> Vec<u8> {
 /// Computes the SAM OEM hash for NTLMv1.
 /// This is a simplified version that uses RC4 to encrypt the data with the key.
 fn sam_oem_hash(data: &[u8], key: &[u8]) -> Vec<u8> {
+    use rc4::cipher::generic_array::GenericArray;
     use rc4::{KeyInit, Rc4, StreamCipher};
 
     let mut key = key.to_vec();
@@ -152,7 +153,7 @@ fn ntlmv2_generate_client_data_ntlmssp(addr_list: &[u8]) -> Vec<u8> {
     let header: [u8; 4] = [0x00, 0x00, 0x01, 0x01];
     let zeros: [u8; 4] = [0x00; 4];
     let now = nt_time::FileTime::now().to_ne_bytes();
-    let client_chal: [u8; 8] = rand::thread_rng().r#gen();
+    let client_chal: [u8; 8] = rand::rng().random();
 
     response.extend_from_slice(&header);
     response.extend_from_slice(&zeros);
@@ -176,7 +177,7 @@ fn ntlmv2_generate_response_ntlmssp(
 }
 
 fn lmv2_generate_response_ntlmssp(ntlm_v2_hash: &[u8], server_chal: &[u8]) -> Vec<u8> {
-    let lmv2_client_data: [u8; 8] = rand::thread_rng().r#gen();
+    let lmv2_client_data: [u8; 8] = rand::rng().random();
     let mut response = smb_owf_encrypt_ntv2_ntlmssp(ntlm_v2_hash, server_chal, &lmv2_client_data);
     response.extend_from_slice(&lmv2_client_data);
     response
@@ -219,8 +220,8 @@ fn ntlmssp_genauth_ntlm2(challenge_data: &[u8], nt_hash: &[u8]) -> (Vec<u8>, Vec
     use hmac::{Hmac, Mac};
     use md5::Md5;
 
-    let mut rng = rand::thread_rng();
-    let mut lm_response = (0..8).map(|_| rng.r#gen::<u8>()).collect::<Vec<u8>>();
+    let mut rng = rand::rng();
+    let mut lm_response = (0..8).map(|_| rng.random::<u8>()).collect::<Vec<u8>>();
     lm_response.resize(16, 0);
     let lm_response = vec![0; 24];
     let mut session_nonce = challenge_data.to_vec();
@@ -244,7 +245,7 @@ fn ntlmssp_genauth_ntlm2(challenge_data: &[u8], nt_hash: &[u8]) -> (Vec<u8>, Vec
 }
 
 fn ntlmssp_genauth_keyexchg(session_key: &[u8]) -> (Vec<u8>, Vec<u8>) {
-    let new_session_key: [u8; 16] = rand::thread_rng().r#gen();
+    let new_session_key: [u8; 16] = rand::rng().random();
     let encrypted_session_key = sam_oem_hash(&new_session_key, session_key);
     (encrypted_session_key, new_session_key.to_vec())
 }
@@ -283,8 +284,8 @@ fn ntlmv2_hash(
         ));
     }
 
-    let mut rng = rand::thread_rng();
-    let mut ntlmv2_client_data = (0..length).map(|_| rng.r#gen::<u8>()).collect::<Vec<u8>>();
+    let mut rng = rand::rng();
+    let mut ntlmv2_client_data = (0..length).map(|_| rng.random::<u8>()).collect::<Vec<u8>>();
 
     let mut ntlmv2_response =
         smb_owf_encrypt_ntv2_ntlmssp(passhash, &cryptkey, &ntlmv2_client_data);
