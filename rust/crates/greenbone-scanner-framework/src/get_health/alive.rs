@@ -25,7 +25,7 @@ impl From<Alive> for StatusCode {
     }
 }
 
-pub struct GetHealthAliveIncomingRequest<T> {
+pub struct GetHealthAliveHandler<T> {
     get_health_alive: Arc<T>,
 }
 
@@ -43,7 +43,7 @@ impl GetHealthAlive for JustAlive {
         Box::pin(async move { Alive::Alive })
     }
 }
-impl Default for GetHealthAliveIncomingRequest<JustAlive> {
+impl Default for GetHealthAliveHandler<JustAlive> {
     fn default() -> Self {
         Self {
             get_health_alive: Arc::new(JustAlive {}),
@@ -51,7 +51,7 @@ impl Default for GetHealthAliveIncomingRequest<JustAlive> {
     }
 }
 
-impl<S> Prefixed for GetHealthAliveIncomingRequest<S>
+impl<S> Prefixed for GetHealthAliveHandler<S>
 where
     S: Prefixed + 'static,
 {
@@ -60,7 +60,7 @@ where
     }
 }
 
-impl<S> RequestHandler for GetHealthAliveIncomingRequest<S>
+impl<S> RequestHandler for GetHealthAliveHandler<S>
 where
     S: GetHealthAlive + 'static,
 {
@@ -84,12 +84,12 @@ where
     }
 }
 
-impl<T> From<T> for GetHealthAliveIncomingRequest<T>
+impl<T> From<T> for GetHealthAliveHandler<T>
 where
     T: GetHealthAlive + 'static,
 {
     fn from(value: T) -> Self {
-        GetHealthAliveIncomingRequest {
+        GetHealthAliveHandler {
             get_health_alive: Arc::new(value),
         }
     }
@@ -122,7 +122,7 @@ mod tests {
     async fn get_health_alive() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetHealthAliveIncomingRequest::from(super::JustAlive {})),
+            create_single_handler!(GetHealthAliveHandler::from(super::JustAlive {})),
             None,
         );
 
@@ -139,7 +139,7 @@ mod tests {
     async fn get_health_not_alive() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetHealthAliveIncomingRequest::from(NotAlive {})),
+            create_single_handler!(GetHealthAliveHandler::from(NotAlive {})),
             Some(ClientHash::from("ok")),
         );
 

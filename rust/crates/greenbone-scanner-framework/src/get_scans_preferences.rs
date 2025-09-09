@@ -14,7 +14,7 @@ pub trait GetScansPreferences: Send + Sync {
     ) -> std::pin::Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>>;
 }
 
-pub struct GetScansPreferencesIncomingRequest<T> {
+pub struct GetScansPreferencesHandler<T> {
     get_scans_preferences: Arc<T>,
 }
 
@@ -34,7 +34,7 @@ impl GetScansPreferences for NoPreferences {
         Box::pin(async move { vec![] })
     }
 }
-impl Default for GetScansPreferencesIncomingRequest<NoPreferences> {
+impl Default for GetScansPreferencesHandler<NoPreferences> {
     fn default() -> Self {
         Self {
             get_scans_preferences: Arc::new(NoPreferences {}),
@@ -42,7 +42,7 @@ impl Default for GetScansPreferencesIncomingRequest<NoPreferences> {
     }
 }
 
-impl<T> Prefixed for GetScansPreferencesIncomingRequest<T>
+impl<T> Prefixed for GetScansPreferencesHandler<T>
 where
     T: Prefixed,
 {
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<S> RequestHandler for GetScansPreferencesIncomingRequest<S>
+impl<S> RequestHandler for GetScansPreferencesHandler<S>
 where
     S: GetScansPreferences + Prefixed + 'static,
 {
@@ -77,12 +77,12 @@ where
     }
 }
 
-impl<T> From<T> for GetScansPreferencesIncomingRequest<T>
+impl<T> From<T> for GetScansPreferencesHandler<T>
 where
     T: GetScansPreferences + 'static,
 {
     fn from(value: T) -> Self {
-        GetScansPreferencesIncomingRequest {
+        GetScansPreferencesHandler {
             get_scans_preferences: Arc::new(value),
         }
     }
@@ -118,7 +118,7 @@ mod tests {
     async fn get_scans_preferences_unauthenticated() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansPreferencesIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansPreferencesHandler::from(Test {})),
             None,
         );
 
@@ -135,7 +135,7 @@ mod tests {
     async fn get_scans_preferences() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansPreferencesIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansPreferencesHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

@@ -11,18 +11,18 @@ use crate::{
     post_scans_id::PostScansIDError,
 };
 
-pub trait DeleteScansID: MapScanID + Prefixed {
+pub trait DeleteScansId: MapScanID + Prefixed {
     fn delete_scans_id(
         &self,
         id: String,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>>;
 }
 
-pub struct DeleteScansIDIncomingRequest<T> {
+pub struct DeleteScansIdHandler<T> {
     handler: Arc<T>,
 }
 
-impl<S> Prefixed for DeleteScansIDIncomingRequest<S>
+impl<S> Prefixed for DeleteScansIdHandler<S>
 where
     S: Prefixed + 'static,
 {
@@ -31,9 +31,9 @@ where
     }
 }
 
-impl<S> RequestHandler for DeleteScansIDIncomingRequest<S>
+impl<S> RequestHandler for DeleteScansIdHandler<S>
 where
-    S: DeleteScansID + 'static,
+    S: DeleteScansId + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -68,23 +68,23 @@ where
     }
 }
 
-impl<T> From<T> for DeleteScansIDIncomingRequest<T>
+impl<T> From<T> for DeleteScansIdHandler<T>
 where
-    T: DeleteScansID + 'static,
+    T: DeleteScansId + 'static,
 {
     fn from(value: T) -> Self {
-        DeleteScansIDIncomingRequest {
+        DeleteScansIdHandler {
             handler: Arc::new(value),
         }
     }
 }
 
-impl<T> From<Arc<T>> for DeleteScansIDIncomingRequest<T>
+impl<T> From<Arc<T>> for DeleteScansIdHandler<T>
 where
-    T: DeleteScansID + 'static,
+    T: DeleteScansId + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        DeleteScansIDIncomingRequest { handler: value }
+        DeleteScansIdHandler { handler: value }
     }
 }
 
@@ -123,7 +123,7 @@ mod tests {
         }
     }
 
-    impl DeleteScansID for Test {
+    impl DeleteScansId for Test {
         fn delete_scans_id(
             &self,
             id: String,
@@ -149,7 +149,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIdHandler::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -166,7 +166,7 @@ mod tests {
     async fn missing_scan() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIdHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -183,7 +183,7 @@ mod tests {
     async fn already_running() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIdHandler::from(Test {})),
             Some(ClientHash::from("already_running")),
         );
 
@@ -200,7 +200,7 @@ mod tests {
     async fn ok() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(DeleteScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(DeleteScansIdHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

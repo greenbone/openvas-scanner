@@ -25,11 +25,11 @@ impl From<Started> for StatusCode {
     }
 }
 
-pub struct GetHealthStartedIncomingRequest<T> {
+pub struct GetHealthStartedHandler<T> {
     get_health_started: Arc<T>,
 }
 
-impl<T> Prefixed for GetHealthStartedIncomingRequest<T>
+impl<T> Prefixed for GetHealthStartedHandler<T>
 where
     T: Prefixed,
 {
@@ -52,7 +52,7 @@ impl GetHealthStarted for JustStarted {
         Box::pin(async move { Started::Started })
     }
 }
-impl Default for GetHealthStartedIncomingRequest<JustStarted> {
+impl Default for GetHealthStartedHandler<JustStarted> {
     fn default() -> Self {
         Self {
             get_health_started: Arc::new(JustStarted {}),
@@ -60,7 +60,7 @@ impl Default for GetHealthStartedIncomingRequest<JustStarted> {
     }
 }
 
-impl<S> RequestHandler for GetHealthStartedIncomingRequest<S>
+impl<S> RequestHandler for GetHealthStartedHandler<S>
 where
     S: GetHealthStarted + Prefixed + 'static,
 {
@@ -84,12 +84,12 @@ where
     }
 }
 
-impl<T> From<T> for GetHealthStartedIncomingRequest<T>
+impl<T> From<T> for GetHealthStartedHandler<T>
 where
     T: GetHealthStarted + 'static,
 {
     fn from(value: T) -> Self {
-        GetHealthStartedIncomingRequest {
+        GetHealthStartedHandler {
             get_health_started: Arc::new(value),
         }
     }
@@ -122,7 +122,7 @@ mod tests {
     async fn get_health_started() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetHealthStartedIncomingRequest::from(super::JustStarted {})),
+            create_single_handler!(GetHealthStartedHandler::from(super::JustStarted {})),
             None,
         );
 
@@ -139,7 +139,7 @@ mod tests {
     async fn get_health_not_started() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetHealthStartedIncomingRequest::from(NotStarted {})),
+            create_single_handler!(GetHealthStartedHandler::from(NotStarted {})),
             Some(ClientHash::from("ok")),
         );
 

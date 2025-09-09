@@ -1,7 +1,7 @@
 mod alive;
-pub use alive::GetHealthAliveIncomingRequest;
+pub use alive::GetHealthAliveHandler;
 mod ready;
-pub use ready::GetHealthReadyIncomingRequest;
+pub use ready::GetHealthReadyHandler;
 
 mod started;
-pub use started::GetHealthStartedIncomingRequest;
+pub use started::GetHealthStartedHandler;

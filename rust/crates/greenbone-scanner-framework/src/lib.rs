@@ -5,15 +5,15 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use delete_scans_id::{DeleteScansID, DeleteScansIDIncomingRequest};
+use delete_scans_id::{DeleteScansId, DeleteScansIdHandler};
 use entry::Prefixed;
 pub use entry::{ClientHash, ClientIdentifier, RequestHandler, RequestHandlers};
-use get_scans::GetScansIncomingRequest;
-use get_scans_id::GetScansIDIncomingRequest;
-use get_scans_id_results::GetScansIDResultsIncomingRequest;
-use get_scans_id_status::GetScansIDStatusIncomingRequest;
-use get_scans_preferences::GetScansPreferencesIncomingRequest;
-use get_vts::GetVTsIncomingRequest;
+use get_scans::GetScansHandler;
+use get_scans_id::GetScansIdHandler;
+use get_scans_id_results::GetScansIdResultsHandler;
+use get_scans_id_status::GetScansIdStatusHandler;
+use get_scans_preferences::GetScansPreferencesHandler;
+use get_vts::GetVTsHandler;
 use hyper_util::rt::{TokioExecutor, TokioIo};
 
 mod delete_scans_id;
@@ -23,19 +23,19 @@ mod get_scans;
 pub use get_scans::{GetScans, GetScansError};
 //TODO: move
 mod get_scans_id;
-pub use get_scans_id::{GetScansID, GetScansIDError};
+pub use get_scans_id::{GetScansIDError, GetScansId};
 mod get_scans_id_results;
-pub use get_scans_id_results::{GetScansIDResults, GetScansIDResultsError};
+pub use get_scans_id_results::{GetScansIDResultsError, GetScansIdResults};
 mod get_scans_id_results_id;
-pub use get_scans_id_results_id::{GetScansIDResultsID, GetScansIDResultsIDError};
+pub use get_scans_id_results_id::{GetScansIDResultsIDError, GetScansIdResultsId};
 mod get_scans_id_status;
-pub use get_scans_id_status::{GetScansIDStatus, GetScansIDStatusError};
+pub use get_scans_id_status::{GetScansIDStatusError, GetScansIdStatus};
 mod get_scans_preferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
 use get_health::{
-    GetHealthAliveIncomingRequest, GetHealthReadyIncomingRequest, GetHealthStartedIncomingRequest,
+    GetHealthAliveHandler, GetHealthReadyHandler, GetHealthStartedHandler,
 };
 
 pub mod models;
@@ -44,8 +44,8 @@ use models::FeedState;
 pub use post_scans::{PostScans, PostScansError};
 mod post_scans_id;
 mod tls;
-use post_scans::PostScansIncomingRequest;
-use post_scans_id::{PostScansID, PostScansIDIncomingRequest};
+use post_scans::PostScansHandler;
+use post_scans_id::{PostScansId, PostScansIdHandler};
 use tokio::net::TcpListener;
 
 pub trait ExternalError: core::error::Error + Send + Sync + 'static {}
@@ -60,12 +60,12 @@ pub mod prelude {
     pub use std::pin::Pin;
 
     pub use crate::{
-        ClientHash, GetScans, GetScansError, GetScansID, GetScansIDError, GetScansIDResults,
-        GetScansIDResultsError, GetScansIDResultsID, GetScansIDResultsIDError, GetScansIDStatus,
-        GetScansIDStatusError, MapScanID, PostScans, PostScansError, StreamResult,
-        delete_scans_id::{DeleteScansID, DeleteScansIDError},
+        ClientHash, GetScans, GetScansError, GetScansIDError, GetScansIDResultsError,
+        GetScansIDResultsIDError, GetScansIDStatusError, GetScansId, GetScansIdResults,
+        GetScansIdResultsId, GetScansIdStatus, MapScanID, PostScans, PostScansError, StreamResult,
+        delete_scans_id::{DeleteScansIDError, DeleteScansId},
         models,
-        post_scans_id::{PostScansID, PostScansIDError},
+        post_scans_id::{PostScansIDError, PostScansId},
     };
 }
 
@@ -144,10 +144,10 @@ impl Default for RuntimeBuilder<runtime_builder_states::Start> {
 impl<T> RuntimeBuilder<T> {
     pub fn new() -> RuntimeBuilder<runtime_builder_states::Start> {
         let mut handlers = RequestHandlers::default();
-        handlers.push(GetScansPreferencesIncomingRequest::default());
-        handlers.push(GetHealthAliveIncomingRequest::default());
-        handlers.push(GetHealthReadyIncomingRequest::default());
-        handlers.push(GetHealthStartedIncomingRequest::default());
+        handlers.push(GetScansPreferencesHandler::default());
+        handlers.push(GetHealthAliveHandler::default());
+        handlers.push(GetHealthReadyHandler::default());
+        handlers.push(GetHealthStartedHandler::default());
 
         RuntimeBuilder {
             api_version: vec!["1".to_owned()],
@@ -232,24 +232,24 @@ impl<T> RuntimeBuilder<T> {
     where
         S: PostScans
             + GetScans
-            + GetScansID
-            + GetScansIDResults
-            + GetScansIDResultsID
-            + GetScansIDStatus
-            + PostScansID
-            + DeleteScansID
+            + GetScansId
+            + GetScansIdResults
+            + GetScansIdResultsId
+            + GetScansIdStatus
+            + PostScansId
+            + DeleteScansId
             + 'static,
         V: GetVts + Prefixed + 'static,
     {
         let ior = self
-            .add_request_handler(PostScansIncomingRequest::from(scans.clone()))
-            .add_request_handler(GetScansIncomingRequest::from(scans.clone()))
-            .add_request_handler(GetScansIDIncomingRequest::from(scans.clone()))
-            .add_request_handler(GetScansIDResultsIncomingRequest::from(scans.clone()))
-            .add_request_handler(GetScansIDStatusIncomingRequest::from(scans.clone()))
-            .add_request_handler(PostScansIDIncomingRequest::from(scans.clone()))
-            .add_request_handler(DeleteScansIDIncomingRequest::from(scans))
-            .add_request_handler(GetVTsIncomingRequest::from(vts));
+            .add_request_handler(PostScansHandler::from(scans.clone()))
+            .add_request_handler(GetScansHandler::from(scans.clone()))
+            .add_request_handler(GetScansIdHandler::from(scans.clone()))
+            .add_request_handler(GetScansIdResultsHandler::from(scans.clone()))
+            .add_request_handler(GetScansIdStatusHandler::from(scans.clone()))
+            .add_request_handler(PostScansIdHandler::from(scans.clone()))
+            .add_request_handler(DeleteScansIdHandler::from(scans))
+            .add_request_handler(GetVTsHandler::from(vts));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
@@ -302,22 +302,22 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     where
         T: PostScans
             + GetScans
-            + GetScansID
-            + GetScansIDResults
-            + GetScansIDResultsID
-            + GetScansIDStatus
-            + PostScansID
-            + DeleteScansID
+            + GetScansId
+            + GetScansIdResults
+            + GetScansIdResultsId
+            + GetScansIdStatus
+            + PostScansId
+            + DeleteScansId
             + 'static,
     {
         let ior = self
-            .add_request_handler(PostScansIncomingRequest::from(value.clone()))
-            .add_request_handler(GetScansIncomingRequest::from(value.clone()))
-            .add_request_handler(GetScansIDIncomingRequest::from(value.clone()))
-            .add_request_handler(GetScansIDResultsIncomingRequest::from(value.clone()))
-            .add_request_handler(GetScansIDStatusIncomingRequest::from(value.clone()))
-            .add_request_handler(PostScansIDIncomingRequest::from(value.clone()))
-            .add_request_handler(DeleteScansIDIncomingRequest::from(value));
+            .add_request_handler(PostScansHandler::from(value.clone()))
+            .add_request_handler(GetScansHandler::from(value.clone()))
+            .add_request_handler(GetScansIdHandler::from(value.clone()))
+            .add_request_handler(GetScansIdResultsHandler::from(value.clone()))
+            .add_request_handler(GetScansIdStatusHandler::from(value.clone()))
+            .add_request_handler(PostScansIdHandler::from(value.clone()))
+            .add_request_handler(DeleteScansIdHandler::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
@@ -335,7 +335,7 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     where
         T: GetVts + Prefixed + 'static,
     {
-        let ior = self.add_request_handler(GetVTsIncomingRequest::from(value));
+        let ior = self.add_request_handler(GetVTsHandler::from(value));
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
@@ -452,6 +452,7 @@ impl AsRef<str> for Authentication {
         self.static_str()
     }
 }
+
 pub struct Scanner {
     api_version: String,
     authentication: Authentication,

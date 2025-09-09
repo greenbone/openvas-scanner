@@ -16,11 +16,11 @@ pub trait PostScans: Send + Sync {
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>>;
 }
 
-pub struct PostScansIncomingRequest<T> {
+pub struct PostScansHandler<T> {
     store_scan: Arc<T>,
 }
 
-impl<T> Prefixed for PostScansIncomingRequest<T>
+impl<T> Prefixed for PostScansHandler<T>
 where
     T: Prefixed,
 {
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<S> RequestHandler for PostScansIncomingRequest<S>
+impl<S> RequestHandler for PostScansHandler<S>
 where
     S: PostScans + Prefixed + 'static,
 {
@@ -65,22 +65,22 @@ where
     }
 }
 
-impl<T> From<T> for PostScansIncomingRequest<T>
+impl<T> From<T> for PostScansHandler<T>
 where
     T: PostScans + 'static,
 {
     fn from(value: T) -> Self {
-        PostScansIncomingRequest {
+        PostScansHandler {
             store_scan: Arc::new(value),
         }
     }
 }
-impl<T> From<Arc<T>> for PostScansIncomingRequest<T>
+impl<T> From<Arc<T>> for PostScansHandler<T>
 where
     T: PostScans + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        PostScansIncomingRequest { store_scan: value }
+        PostScansHandler { store_scan: value }
     }
 }
 
@@ -156,7 +156,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansHandler::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
         let scans = models::Scan::default();
@@ -174,7 +174,7 @@ mod tests {
     async fn missing_scan() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansHandler::from(Test {})),
             Some(ClientHash::from("not_found")),
         );
 
@@ -191,7 +191,7 @@ mod tests {
     async fn duplicate_id() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansHandler::from(Test {})),
             Some(ClientHash::from("not_found")),
         );
         let scans = models::Scan::default();
@@ -209,7 +209,7 @@ mod tests {
     async fn post_scans() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
         let scans = models::Scan::default();

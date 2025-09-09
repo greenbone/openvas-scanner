@@ -11,18 +11,18 @@ use crate::{
     models,
 };
 
-pub trait GetScansID: MapScanID {
+pub trait GetScansId: MapScanID {
     fn get_scans_id(
         &self,
         id: String,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>>;
 }
 
-pub struct GetScansIDIncomingRequest<T> {
+pub struct GetScansIdHandler<T> {
     get_scans: Arc<T>,
 }
 
-impl<T> Prefixed for GetScansIDIncomingRequest<T>
+impl<T> Prefixed for GetScansIdHandler<T>
 where
     T: Prefixed,
 {
@@ -31,9 +31,9 @@ where
     }
 }
 
-impl<S> RequestHandler for GetScansIDIncomingRequest<S>
+impl<S> RequestHandler for GetScansIdHandler<S>
 where
-    S: GetScansID + Prefixed + 'static,
+    S: GetScansId + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -68,23 +68,23 @@ where
     }
 }
 
-impl<T> From<T> for GetScansIDIncomingRequest<T>
+impl<T> From<T> for GetScansIdHandler<T>
 where
-    T: GetScansID + 'static,
+    T: GetScansId + 'static,
 {
     fn from(value: T) -> Self {
-        GetScansIDIncomingRequest {
+        GetScansIdHandler {
             get_scans: Arc::new(value),
         }
     }
 }
 
-impl<T> From<Arc<T>> for GetScansIDIncomingRequest<T>
+impl<T> From<Arc<T>> for GetScansIdHandler<T>
 where
-    T: GetScansID + 'static,
+    T: GetScansId + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        GetScansIDIncomingRequest { get_scans: value }
+        GetScansIdHandler { get_scans: value }
     }
 }
 
@@ -123,7 +123,7 @@ mod tests {
         }
     }
 
-    impl GetScansID for Test {
+    impl GetScansId for Test {
         fn get_scans_id(
             &self,
             id: String,
@@ -141,7 +141,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdHandler::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -158,7 +158,7 @@ mod tests {
     async fn not_found() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdHandler::from(Test {})),
             Some(ClientHash::from("not_found")),
         );
 
@@ -175,7 +175,7 @@ mod tests {
     async fn get_scans() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

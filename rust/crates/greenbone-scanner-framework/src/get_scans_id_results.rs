@@ -11,7 +11,7 @@ use crate::{
     models,
 };
 
-pub trait GetScansIDResults: MapScanID {
+pub trait GetScansIdResults: MapScanID {
     fn get_scans_id_results(
         &self,
         id: String,
@@ -20,11 +20,11 @@ pub trait GetScansIDResults: MapScanID {
     ) -> StreamResult<'static, models::Result, GetScansIDResultsError>;
 }
 
-pub struct GetScansIDResultsIncomingRequest<T> {
+pub struct GetScansIdResultsHandler<T> {
     get_scans: Arc<T>,
 }
 
-impl<T> Prefixed for GetScansIDResultsIncomingRequest<T>
+impl<T> Prefixed for GetScansIdResultsHandler<T>
 where
     T: Prefixed,
 {
@@ -32,9 +32,9 @@ where
         self.get_scans.prefix()
     }
 }
-impl<S> RequestHandler for GetScansIDResultsIncomingRequest<S>
+impl<S> RequestHandler for GetScansIdResultsHandler<S>
 where
-    S: GetScansIDResults + Prefixed + 'static,
+    S: GetScansIdResults + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -102,23 +102,23 @@ where
     }
 }
 
-impl<T> From<T> for GetScansIDResultsIncomingRequest<T>
+impl<T> From<T> for GetScansIdResultsHandler<T>
 where
-    T: GetScansIDResults + 'static,
+    T: GetScansIdResults + 'static,
 {
     fn from(value: T) -> Self {
-        GetScansIDResultsIncomingRequest {
+        GetScansIdResultsHandler {
             get_scans: Arc::new(value),
         }
     }
 }
 
-impl<T> From<Arc<T>> for GetScansIDResultsIncomingRequest<T>
+impl<T> From<Arc<T>> for GetScansIdResultsHandler<T>
 where
-    T: GetScansIDResults + 'static,
+    T: GetScansIdResults + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        GetScansIDResultsIncomingRequest { get_scans: value }
+        GetScansIdResultsHandler { get_scans: value }
     }
 }
 
@@ -161,7 +161,7 @@ mod tests {
         }
     }
 
-    impl GetScansIDResults for Test {
+    impl GetScansIdResults for Test {
         fn get_scans_id_results(
             &self,
             client_id: String,
@@ -193,7 +193,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdResultsHandler::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -210,7 +210,7 @@ mod tests {
     async fn scan_results() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdResultsHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -230,7 +230,7 @@ mod tests {
     async fn scan_results_from_to() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdResultsHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -251,7 +251,7 @@ mod tests {
     async fn scan_results_to() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdResultsHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -272,7 +272,7 @@ mod tests {
     async fn ignores_invalid_query() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIDResultsIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansIdResultsHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

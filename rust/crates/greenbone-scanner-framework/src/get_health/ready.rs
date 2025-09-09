@@ -25,11 +25,11 @@ impl From<Ready> for StatusCode {
     }
 }
 
-pub struct GetHealthReadyIncomingRequest<T> {
+pub struct GetHealthReadyHandler<T> {
     get_health_ready: Arc<T>,
 }
 
-impl<T> Prefixed for GetHealthReadyIncomingRequest<T>
+impl<T> Prefixed for GetHealthReadyHandler<T>
 where
     T: Prefixed,
 {
@@ -52,7 +52,7 @@ impl GetHealthReady for JustReady {
         Box::pin(async move { Ready::Ready })
     }
 }
-impl Default for GetHealthReadyIncomingRequest<JustReady> {
+impl Default for GetHealthReadyHandler<JustReady> {
     fn default() -> Self {
         Self {
             get_health_ready: Arc::new(JustReady {}),
@@ -60,7 +60,7 @@ impl Default for GetHealthReadyIncomingRequest<JustReady> {
     }
 }
 
-impl<S> RequestHandler for GetHealthReadyIncomingRequest<S>
+impl<S> RequestHandler for GetHealthReadyHandler<S>
 where
     S: GetHealthReady + Prefixed + 'static,
 {
@@ -84,12 +84,12 @@ where
     }
 }
 
-impl<T> From<T> for GetHealthReadyIncomingRequest<T>
+impl<T> From<T> for GetHealthReadyHandler<T>
 where
     T: GetHealthReady + 'static,
 {
     fn from(value: T) -> Self {
-        GetHealthReadyIncomingRequest {
+        GetHealthReadyHandler {
             get_health_ready: Arc::new(value),
         }
     }
@@ -122,7 +122,7 @@ mod tests {
     async fn get_health_ready() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetHealthReadyIncomingRequest::from(super::JustReady {})),
+            create_single_handler!(GetHealthReadyHandler::from(super::JustReady {})),
             None,
         );
 
@@ -139,7 +139,7 @@ mod tests {
     async fn get_health_not_ready() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetHealthReadyIncomingRequest::from(NotReady {})),
+            create_single_handler!(GetHealthReadyHandler::from(NotReady {})),
             Some(ClientHash::from("ok")),
         );
 

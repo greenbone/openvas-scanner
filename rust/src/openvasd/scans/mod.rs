@@ -438,7 +438,7 @@ where
     }
 }
 
-impl<E> GetScansID for Endpoints<E>
+impl<E> GetScansId for Endpoints<E>
 where
     E: Send + Sync + Crypt,
 {
@@ -487,7 +487,7 @@ fn row_to_result(row: SqliteRow) -> models::Result {
             }),
     }
 }
-impl<E> GetScansIDResults for Endpoints<E>
+impl<E> GetScansIdResults for Endpoints<E>
 where
     E: Send + Sync,
 {
@@ -549,7 +549,7 @@ AND result_id >= ?"#
         }))
     }
 }
-impl<E> GetScansIDResultsID for Endpoints<E>
+impl<E> GetScansIdResultsId for Endpoints<E>
 where
     E: Send + Sync,
 {
@@ -614,7 +614,7 @@ async fn scan_get_status(pool: &SqlitePool, id: i64) -> Result<models::Status, s
     Ok(status)
 }
 
-impl<E> GetScansIDStatus for Endpoints<E>
+impl<E> GetScansIdStatus for Endpoints<E>
 where
     E: Send + Sync,
 {
@@ -634,7 +634,7 @@ where
         })
     }
 }
-impl<E> PostScansID for Endpoints<E>
+impl<E> PostScansId for Endpoints<E>
 where
     E: Send + Sync,
 {
@@ -654,7 +654,7 @@ where
         })
     }
 }
-impl<E> DeleteScansID for Endpoints<E>
+impl<E> DeleteScansId for Endpoints<E>
 where
     E: Send + Sync,
 {
@@ -708,13 +708,13 @@ mod tests {
 
     use futures::StreamExt;
     use greenbone_scanner_framework::{
-        GetScans, GetScansID, GetScansIDResults, GetScansIDStatus, MapScanID, PostScans,
+        GetScans, GetScansId, GetScansIdResults, GetScansIdStatus, MapScanID, PostScans,
         PostScansError,
         models::{
             self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
             ScanPreference, Service,
         },
-        prelude::PostScansID,
+        prelude::PostScansId,
     };
     use scannerlib::models::{FeedState, Phase};
     use sqlx::SqlitePool;

@@ -210,7 +210,7 @@ impl Scans {
     }
 }
 
-impl GetScansID for Scans {
+impl GetScansId for Scans {
     fn get_scans_id(
         &self,
         id: String,
@@ -273,7 +273,7 @@ fn row_to_result(row: SqliteRow) -> models::Result {
     }
 }
 
-impl GetScansIDResults for Scans {
+impl GetScansIdResults for Scans {
     fn get_scans_id_results(
         &self,
         id: String,
@@ -331,7 +331,7 @@ impl GetScansIDResults for Scans {
     }
 }
 
-impl GetScansIDResultsID for Scans {
+impl GetScansIdResultsId for Scans {
     fn get_scans_id_results_id(
         &self,
         id: String,
@@ -380,7 +380,7 @@ fn row_to_status(row: SqliteRow) -> models::Status {
     }
 }
 
-impl GetScansIDStatus for Scans {
+impl GetScansIdStatus for Scans {
     fn get_scans_id_status(
         &self,
         id: String,
@@ -400,7 +400,7 @@ impl GetScansIDStatus for Scans {
     }
 }
 
-impl PostScansID for Scans {
+impl PostScansId for Scans {
     fn post_scans_id(
         &self,
         id: String,
@@ -430,7 +430,7 @@ impl Scans {
     }
 }
 
-impl DeleteScansID for Scans {
+impl DeleteScansId for Scans {
     fn delete_scans_id(
         &self,
         id: String,

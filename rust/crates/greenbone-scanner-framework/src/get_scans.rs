@@ -16,11 +16,11 @@ pub trait GetScans: Send + Sync {
     fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError>;
 }
 
-pub struct GetScansIncomingRequest<T> {
+pub struct GetScansHandler<T> {
     get_scans: Arc<T>,
 }
 
-impl<T> Prefixed for GetScansIncomingRequest<T>
+impl<T> Prefixed for GetScansHandler<T>
 where
     T: Prefixed,
 {
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<S> RequestHandler for GetScansIncomingRequest<S>
+impl<S> RequestHandler for GetScansHandler<S>
 where
     S: GetScans + Prefixed + 'static,
 {
@@ -56,23 +56,23 @@ where
     }
 }
 
-impl<T> From<T> for GetScansIncomingRequest<T>
+impl<T> From<T> for GetScansHandler<T>
 where
     T: GetScans + 'static,
 {
     fn from(value: T) -> Self {
-        GetScansIncomingRequest {
+        GetScansHandler {
             get_scans: Arc::new(value),
         }
     }
 }
 
-impl<T> From<Arc<T>> for GetScansIncomingRequest<T>
+impl<T> From<Arc<T>> for GetScansHandler<T>
 where
     T: GetScans + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        GetScansIncomingRequest { get_scans: value }
+        GetScansHandler { get_scans: value }
     }
 }
 
@@ -144,7 +144,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansHandler::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -161,7 +161,7 @@ mod tests {
     async fn get_scans() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansIncomingRequest::from(Test {})),
+            create_single_handler!(GetScansHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 

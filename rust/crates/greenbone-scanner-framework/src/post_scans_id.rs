@@ -12,7 +12,7 @@ use crate::{
     models::Action,
 };
 
-pub trait PostScansID: MapScanID {
+pub trait PostScansId: MapScanID {
     fn post_scans_id(
         &self,
         id: String,
@@ -20,11 +20,11 @@ pub trait PostScansID: MapScanID {
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>>;
 }
 
-pub struct PostScansIDIncomingRequest<T> {
+pub struct PostScansIdHandler<T> {
     scans: Arc<T>,
 }
 
-impl<T> Prefixed for PostScansIDIncomingRequest<T>
+impl<T> Prefixed for PostScansIdHandler<T>
 where
     T: Prefixed,
 {
@@ -33,9 +33,9 @@ where
     }
 }
 
-impl<S> RequestHandler for PostScansIDIncomingRequest<S>
+impl<S> RequestHandler for PostScansIdHandler<S>
 where
-    S: PostScansID + Prefixed + 'static,
+    S: PostScansId + Prefixed + 'static,
 {
     define_authentication_paths!(
         authenticated: true,
@@ -79,23 +79,23 @@ where
     }
 }
 
-impl<T> From<T> for PostScansIDIncomingRequest<T>
+impl<T> From<T> for PostScansIdHandler<T>
 where
-    T: PostScansID + 'static,
+    T: PostScansId + 'static,
 {
     fn from(value: T) -> Self {
-        PostScansIDIncomingRequest {
+        PostScansIdHandler {
             scans: Arc::new(value),
         }
     }
 }
 
-impl<T> From<Arc<T>> for PostScansIDIncomingRequest<T>
+impl<T> From<Arc<T>> for PostScansIdHandler<T>
 where
-    T: PostScansID + 'static,
+    T: PostScansId + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        PostScansIDIncomingRequest { scans: value }
+        PostScansIdHandler { scans: value }
     }
 }
 
@@ -164,7 +164,7 @@ mod tests {
         }
     }
 
-    impl PostScansID for Test {
+    impl PostScansId for Test {
         fn post_scans_id(
             &self,
             client_id: String,
@@ -190,7 +190,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIdHandler::from(Test {})),
             Some(ClientHash::from("internal_server_error")),
         );
         let scans = ScanAction {
@@ -210,7 +210,7 @@ mod tests {
     async fn missing_scan() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIdHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
@@ -227,7 +227,7 @@ mod tests {
     async fn already_running() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIdHandler::from(Test {})),
             Some(ClientHash::from("already_running")),
         );
         let scans = ScanAction {
@@ -247,7 +247,7 @@ mod tests {
     async fn ok() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
-            create_single_handler!(PostScansIDIncomingRequest::from(Test {})),
+            create_single_handler!(PostScansIdHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
         let scans = ScanAction {
