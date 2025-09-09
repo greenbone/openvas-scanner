@@ -17,8 +17,8 @@ mod image;
 mod notus;
 mod scheduling;
 
-type Futura<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
-type FuturaRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
+type PinBoxFut<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
+type PinBoxFutRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
 type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
 
 type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;

@@ -78,14 +78,14 @@ generate_all_types! {debian::DPKGStatusFile, rpm::RPMDBSqliteFile }
 #[cfg(test)]
 mod fakes {
     use crate::container_image_scanner::{
-        FuturaRef,
+        PinBoxFutRef,
         image::extractor::{Location, Locator, LocatorError},
     };
 
     pub struct FakeLocator;
 
     impl Locator for FakeLocator {
-        fn locate(&self, name: &str) -> FuturaRef<'_, Result<Location, LocatorError>> {
+        fn locate(&self, name: &str) -> PinBoxFutRef<'_, Result<Location, LocatorError>> {
             let name = name.to_owned();
 
             Box::pin(async move {

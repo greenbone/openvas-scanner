@@ -3,7 +3,7 @@ pub use docker_v2::Registry as DockerV2;
 
 use super::Image;
 pub(crate) use super::PackedLayer;
-use crate::container_image_scanner::{ExternalError, FuturaRef, ParsePreferences, Streamer};
+use crate::container_image_scanner::{ExternalError, ParsePreferences, PinBoxFutRef, Streamer};
 
 #[derive(Clone, Debug)]
 pub struct Credential {
@@ -55,7 +55,7 @@ pub trait Registry {
     /// registry. If the tag is missing it tries to get all tag variations. If everything is set it
     /// will just return the given image.
     //TODO: define useable errors
-    fn resolve_image(&self, image: Image) -> FuturaRef<Vec<Result<Image, ExternalError>>>;
+    fn resolve_image(&self, image: Image) -> PinBoxFutRef<'_, Vec<Result<Image, ExternalError>>>;
 
     fn pull_image(&self, image: Image) -> Streamer<Result<PackedLayer, ExternalError>>;
 }

@@ -14,7 +14,6 @@ mod scan_action;
 mod scanner_preference;
 mod status;
 mod target;
-mod time;
 mod vt;
 mod vtdata;
 
