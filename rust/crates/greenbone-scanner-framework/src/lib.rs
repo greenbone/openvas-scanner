@@ -34,9 +34,7 @@ mod get_scans_preferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
-use get_health::{
-    GetHealthAliveHandler, GetHealthReadyHandler, GetHealthStartedHandler,
-};
+use get_health::{GetHealthAliveHandler, GetHealthReadyHandler, GetHealthStartedHandler};
 
 pub mod models;
 mod post_scans;
@@ -114,7 +112,7 @@ pub use runtime_builder_states::{End, Start};
 // - GET /health/alive
 // - GET /health/ready
 // - GET /health/started
-// Additionall endpoints that are not scanner specific can be registered as well.
+// Additionally, endpoints that are not scanner specific can be registered as well.
 pub struct RuntimeBuilder<T> {
     // Contains the currently supported API versions.
     api_version: Vec<String>,
