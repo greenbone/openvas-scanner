@@ -3,13 +3,36 @@ use std::{fmt::Debug, pin::Pin, sync::Arc};
 use hyper::StatusCode;
 
 use crate::{
-    ExternalError, auth_method_segments,
+    Endpoint, ExternalError, auth_method_segments, auth_method_segments_new,
+    endpoint::InputData,
     entry::{
         self, Bytes, Method, Prefixed, RequestHandler,
         response::{BodyKind, StreamResult},
     },
     internal_server_error,
 };
+
+pub struct GetScansE;
+
+impl Endpoint for GetScansE {
+    type In = String;
+
+    type Out = Result<Vec<String>, GetScansError>;
+
+    auth_method_segments_new!(
+        authenticated: true,
+        Method::GET,
+        "scans"
+    );
+
+    fn data_to_input(data: InputData) -> Self::In {
+        entry::enforce_client_hash(&data.client_id).to_string()
+    }
+
+    fn output_to_data(out: Self::Out) -> BodyKind {
+        todo!()
+    }
+}
 
 pub trait GetScans: Send + Sync {
     fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError>;
@@ -111,39 +134,37 @@ impl From<GetScansError> for BodyKind {
 #[cfg(test)]
 mod tests {
     use entry::test_utilities;
-    use futures::stream;
     use http_body_util::{BodyExt, Empty};
     use hyper::{Request, service::Service};
     use tokio::io;
 
     use super::*;
-    use crate::{Authentication, ClientHash, create_single_handler};
+    use crate::{Authentication, ClientHash, Handler, Handlers};
 
-    struct Test {}
-    impl Prefixed for Test {
-        fn prefix(&self) -> &'static str {
-            ""
-        }
-    }
+    struct Test;
 
-    impl GetScans for Test {
-        fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
+    impl Handler<GetScansE> for Test {
+        fn call(
+            &self,
+            client_id: String,
+        ) -> Pin<Box<dyn std::future::Future<Output = <GetScansE as Endpoint>::Out> + Send>>
+        {
             let ise = ClientHash::from("internal_server_error").to_string();
             if ise == client_id {
-                return Box::new(stream::iter(vec![Err(GetScansError::External(Box::new(
-                    io::Error::other("oh no"),
-                )))]));
+                Box::pin(async move {
+                    Err(GetScansError::External(Box::new(io::Error::other("oh no"))))
+                })
+            } else {
+                Box::pin(async move { Ok(vec![String::default()]) })
             }
-
-            Box::new(stream::iter(vec![Ok(String::default())]))
         }
     }
 
     #[tokio::test]
     async fn internal_server_error() {
-        let entry_point = test_utilities::entry_point(
+        let entry_point = test_utilities::new_entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansHandler::from(Test {})),
+            Handlers::single(GetScansE, Test),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -158,9 +179,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_scans() {
-        let entry_point = test_utilities::entry_point(
+        let entry_point = test_utilities::new_entry_point(
             Authentication::MTLS,
-            create_single_handler!(GetScansHandler::from(Test {})),
+            Handlers::single(GetScansE, Test),
             Some(ClientHash::from("ok")),
         );
 

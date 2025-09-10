@@ -79,6 +79,25 @@ macro_rules! auth_method_segments {
     };
 }
 
+#[macro_export]
+macro_rules! auth_method_segments_new {
+    (authenticated: $authn:expr, $method:expr, $($path:literal),*) => {
+        fn needs_authentication(
+        ) -> bool {
+            $authn
+        }
+
+        fn path_segments() -> &'static [&'static str] {
+            &[ $( $path, )* ]
+        }
+
+        fn http_method() -> $crate::entry::Method {
+            $method
+        }
+
+    };
+}
+
 pub trait Prefixed {
     fn prefix(&self) -> &'static str;
 }
@@ -234,6 +253,26 @@ impl RequestHandlers {
     }
 }
 
+pub struct NewEntryPoint {
+    scanner: Arc<super::Scanner>,
+    handlers: Arc<Handlers>,
+    client_identifier: Arc<ClientIdentifier>,
+}
+
+impl NewEntryPoint {
+    pub fn new(
+        scanner: Arc<super::Scanner>,
+        client_identifier: Arc<ClientIdentifier>,
+        handlers: Arc<Handlers>,
+    ) -> NewEntryPoint {
+        NewEntryPoint {
+            scanner,
+            client_identifier,
+            handlers,
+        }
+    }
+}
+
 pub struct EntryPoint {
     scanner: Arc<super::Scanner>,
     handlers: Arc<RequestHandlers>,
@@ -285,7 +324,56 @@ fn api_key_to_client_identifier(
     result
 }
 
-use crate::{Authentication, MapScanID, internal_server_error};
+use crate::{Authentication, Handlers, MapScanID, internal_server_error};
+
+impl<R> hyper::service::Service<hyper::Request<R>> for NewEntryPoint
+where
+    R: hyper::body::Body + Send + 'static,
+    <R as hyper::body::Body>::Error: std::error::Error,
+    <R as hyper::body::Body>::Data: Send,
+{
+    type Response = hyper::Response<BodyKindContent>;
+
+    type Error = Infallible;
+
+    type Future =
+        Pin<Box<dyn futures_util::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+
+    fn call(&self, req: hyper::Request<R>) -> Self::Future {
+        let cbs = self.scanner.clone();
+        let cid = match &self.scanner.authentication {
+            Authentication::Disabled => Arc::new(ClientIdentifier::Known(Default::default())),
+            Authentication::MTLS => self.client_identifier.clone(),
+            Authentication::ApiKey(keys) => Arc::new(api_key_to_client_identifier(
+                keys,
+                req.headers().get("x-api-key"),
+            )),
+        };
+        let feed_version = match &*cbs.feed_version.read().unwrap() {
+            crate::models::FeedState::Unknown => "unavailable".to_string(),
+            crate::models::FeedState::Syncing => "unavailable".to_string(),
+            crate::models::FeedState::Synced(vt, adv) => format!("{vt}{adv}"),
+        };
+        let rb = hyper::Response::builder()
+            .header("authentication", cbs.authentication.static_str())
+            .header("api-version", &cbs.api_version)
+            .header("feed-version", &feed_version);
+        let incoming = self.handlers.clone();
+
+        Box::pin(async move {
+            let resp = incoming.call(cid, req).await;
+            let rb = match &resp.content {
+                BodyKindContent::Empty => rb,
+                BodyKindContent::Binary(x) => rb
+                    .header("Content-Type", "application/json")
+                    .header("Content-Length", x.len()),
+                BodyKindContent::BinaryStream(_) => rb.header("Content-Type", "application/json"),
+            };
+
+            Ok(rb.status(resp.status_code).body(resp.content).unwrap())
+        })
+    }
+}
 
 impl<R> hyper::service::Service<hyper::Request<R>> for EntryPoint
 where
@@ -373,8 +461,8 @@ pub mod test_utilities {
     use http_body_util::{Empty, Full};
     use hyper::{Request, body::Bytes};
 
-    use super::{ClientHash, ClientIdentifier, EntryPoint, Method, RequestHandlers};
-    use crate::{Authentication, Scanner, models::FeedState};
+    use super::{ClientHash, ClientIdentifier, EntryPoint, Method, NewEntryPoint, RequestHandlers};
+    use crate::{Authentication, Handlers, Scanner, models::FeedState};
 
     pub fn entry_point(
         authentication: Authentication,
@@ -396,6 +484,28 @@ pub mod test_utilities {
         });
         let ir = Arc::new(handlers);
         EntryPoint::new(configuration, client_identifier, ir)
+    }
+
+    pub fn new_entry_point(
+        authentication: Authentication,
+        handlers: Handlers,
+        client_hash: Option<ClientHash>,
+    ) -> NewEntryPoint {
+        let configuration = Arc::new(Scanner {
+            api_version: "test".to_owned(),
+            authentication,
+            feed_version: Arc::new(RwLock::new(FeedState::Synced(
+                "vt".to_string(),
+                "advisories".to_string(),
+            ))),
+        });
+
+        let client_identifier = Arc::new(match client_hash {
+            Some(x) => ClientIdentifier::Known(x),
+            None => ClientIdentifier::Unknown,
+        });
+        let ir = Arc::new(handlers);
+        NewEntryPoint::new(configuration, client_identifier, ir)
     }
 
     pub fn empty_request(method: Method, uri: &str) -> Request<Empty<Bytes>> {
