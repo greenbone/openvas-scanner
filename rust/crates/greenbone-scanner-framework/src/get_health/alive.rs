@@ -3,7 +3,7 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    define_authentication_paths,
+    authentication_and_paths,
     entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
 };
 
@@ -64,7 +64,7 @@ impl<S> RequestHandler for GetHealthAliveHandler<S>
 where
     S: GetHealthAlive + 'static,
 {
-    define_authentication_paths!(
+    authentication_and_paths!(
         authenticated: false,
         Method::GET,
         "health", "alive"

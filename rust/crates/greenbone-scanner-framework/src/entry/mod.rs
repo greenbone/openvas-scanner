@@ -60,7 +60,7 @@ pub type Bytes = hyper::body::Bytes;
 pub type Method = hyper::Method;
 
 #[macro_export]
-macro_rules! define_authentication_paths {
+macro_rules! authentication_and_paths {
     (authenticated: $authn:expr, $method:expr, $($path:literal),*) => {
 
 
@@ -451,7 +451,7 @@ mod tests {
     }
 
     impl RequestHandler for IdPart {
-        define_authentication_paths!(authenticated: true, Method::GET, "test", "id", "*");
+        authentication_and_paths!(authenticated: true, Method::GET, "test", "id", "*");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
@@ -475,7 +475,7 @@ mod tests {
     }
 
     impl RequestHandler for Authenticated {
-        define_authentication_paths!(authenticated: true, Method::GET, "test", "authn");
+        authentication_and_paths!(authenticated: true, Method::GET, "test", "authn");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
@@ -500,7 +500,7 @@ mod tests {
     }
 
     impl RequestHandler for NotAuthenticated {
-        define_authentication_paths!(authenticated: false, Method::GET, "test", "not_authn");
+        authentication_and_paths!(authenticated: false, Method::GET, "test", "not_authn");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
@@ -659,7 +659,7 @@ mod tests {
     }
 
     impl RequestHandler for PrefixedAuth {
-        define_authentication_paths!(authenticated: true, Method::GET, "test", "wtf");
+        authentication_and_paths!(authenticated: true, Method::GET, "test", "wtf");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,

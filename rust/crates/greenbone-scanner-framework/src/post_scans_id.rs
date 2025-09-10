@@ -3,7 +3,7 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ExternalError, MapScanID, define_authentication_paths,
+    ExternalError, MapScanID, authentication_and_paths,
     entry::{
         self, Bytes, Method, Prefixed, RequestHandler, enforce_client_id_and_scan_id,
         response::BodyKind,
@@ -37,7 +37,7 @@ impl<S> RequestHandler for PostScansIdHandler<S>
 where
     S: PostScansId + Prefixed + 'static,
 {
-    define_authentication_paths!(
+    authentication_and_paths!(
         authenticated: true,
         Method::POST,
         "scans", "*"

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    define_authentication_paths,
+    authentication_and_paths,
     entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
     models,
 };
@@ -55,7 +55,7 @@ impl<S> RequestHandler for GetScansPreferencesHandler<S>
 where
     S: GetScansPreferences + Prefixed + 'static,
 {
-    define_authentication_paths!(
+    authentication_and_paths!(
         authenticated: true,
         Method::GET,
         "scans", "preferences"
