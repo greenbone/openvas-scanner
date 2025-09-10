@@ -144,7 +144,7 @@ fn smb_owf_encrypt_ntv2_ntlmssp(
     hmac.finalize().into_bytes().to_vec()
 }
 
-fn ntlmv2_generate_client_data_ntlmssp(addr_list: &[u8]) -> Vec<u8> {
+fn ntlmv2_generate_client_data_ntlmssp(addr_list: &[u8], rng: &mut impl Rng) -> Vec<u8> {
     /*length of response
      *header-4, reserved-4, date-8, client chal-8, unknown-4, addr_list-size sent
      *in arguments
@@ -153,7 +153,7 @@ fn ntlmv2_generate_client_data_ntlmssp(addr_list: &[u8]) -> Vec<u8> {
     let header: [u8; 4] = [0x00, 0x00, 0x01, 0x01];
     let zeros: [u8; 4] = [0x00; 4];
     let now = nt_time::FileTime::now().to_ne_bytes();
-    let client_chal: [u8; 8] = rand::rng().random();
+    let client_chal: [u8; 8] = rng.random();
 
     response.extend_from_slice(&header);
     response.extend_from_slice(&zeros);
@@ -169,8 +169,9 @@ fn ntlmv2_generate_response_ntlmssp(
     ntlmv2_hash: &[u8],
     server_chal: &[u8],
     addr_list: &[u8],
+    rng: &mut impl Rng,
 ) -> Vec<u8> {
-    let mut client_data = ntlmv2_generate_client_data_ntlmssp(addr_list);
+    let mut client_data = ntlmv2_generate_client_data_ntlmssp(addr_list, rng);
     let mut response = smb_owf_encrypt_ntv2_ntlmssp(ntlmv2_hash, server_chal, &client_data);
     response.append(&mut client_data);
     response
@@ -187,8 +188,9 @@ fn smb_ntlmv2_encrypt_hash_ntlmssp(
     ntlmv2_hash: &[u8],
     server_chal: &[u8],
     address_list: &[u8],
+    rng: &mut impl Rng,
 ) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
-    let nt_response = ntlmv2_generate_response_ntlmssp(ntlmv2_hash, server_chal, address_list);
+    let nt_response = ntlmv2_generate_response_ntlmssp(ntlmv2_hash, server_chal, address_list, rng);
     let user_session_key = smb_session_keygen_ntv2_ntlmssp(ntlmv2_hash, &nt_response);
     let lm_response = lmv2_generate_response_ntlmssp(ntlmv2_hash, server_chal);
 
@@ -215,12 +217,15 @@ fn ntlmssp_genauth_ntlm(
     (lm_response, nt_response, session_key)
 }
 
-fn ntlmssp_genauth_ntlm2(challenge_data: &[u8], nt_hash: &[u8]) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+fn ntlmssp_genauth_ntlm2(
+    challenge_data: &[u8],
+    nt_hash: &[u8],
+    rng: &mut impl Rng,
+) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     use digest::Digest;
     use hmac::{Hmac, Mac};
     use md5::Md5;
 
-    let mut rng = rand::rng();
     let mut lm_response = (0..8).map(|_| rng.random::<u8>()).collect::<Vec<u8>>();
     lm_response.resize(16, 0);
     let lm_response = vec![0; 24];
@@ -258,8 +263,16 @@ fn ntlmv1_hash(cryptkey: StringOrData, passhash: StringOrData) -> Vec<u8> {
     ep24(cryptkey, passhash)
 }
 
-/// Unfortunately as this function is based on random generated data, it is not easy to test,
-/// but was manually verified by comparing it with an altered function with fixed data.
+fn ntlmv2_hash_gen(cryptkey: &[u8], passhash: &[u8], length: usize, rng: &mut impl Rng) -> Vec<u8> {
+    let mut ntlmv2_client_data = (0..length).map(|_| rng.random::<u8>()).collect::<Vec<u8>>();
+
+    let mut ntlmv2_response = smb_owf_encrypt_ntv2_ntlmssp(passhash, cryptkey, &ntlmv2_client_data);
+
+    ntlmv2_response.append(&mut ntlmv2_client_data);
+
+    ntlmv2_response
+}
+
 #[nasl_function(named(cryptkey, passhash, length))]
 fn ntlmv2_hash(
     cryptkey: StringOrData,
@@ -284,15 +297,12 @@ fn ntlmv2_hash(
         ));
     }
 
-    let mut rng = rand::rng();
-    let mut ntlmv2_client_data = (0..length).map(|_| rng.random::<u8>()).collect::<Vec<u8>>();
-
-    let mut ntlmv2_response =
-        smb_owf_encrypt_ntv2_ntlmssp(passhash, &cryptkey, &ntlmv2_client_data);
-
-    ntlmv2_response.append(&mut ntlmv2_client_data);
-
-    Ok(ntlmv2_response)
+    Ok(ntlmv2_hash_gen(
+        &cryptkey,
+        passhash,
+        length as usize,
+        &mut rand::rng(),
+    ))
 }
 
 #[nasl_function(named(cryptkey, password, nt_hash, neg_flags))]
@@ -314,20 +324,11 @@ fn ntlm_response(
     Ok(lm_response)
 }
 
-/// This function is broken in openvas-nasl and is currently not used in the feed.
-/// Also it relies on random generated data, so it is impossible to test, if it
-/// works correctly
-#[nasl_function(named(cryptkey, password, nt_hash))]
-fn ntlm2_response(
-    cryptkey: StringOrData,
-    password: StringOrData,
-    nt_hash: StringOrData,
+fn ntlm2_response_gen(
+    cryptkey: &[u8],
+    nt_hash: &[u8],
+    rng: &mut impl Rng,
 ) -> Result<Vec<u8>, FnError> {
-    let mut cryptkey = cryptkey.0.as_bytes().to_vec();
-    cryptkey.resize(8, 0);
-    let nt_hash = nt_hash.0.as_bytes();
-    let _ = password;
-
     if nt_hash.len() < 16 {
         return Err(FnError::wrong_unnamed_argument(
             "nt_hash of length 16",
@@ -336,7 +337,7 @@ fn ntlm2_response(
     }
 
     let (mut lm_response, mut nt_response, mut session_key) =
-        ntlmssp_genauth_ntlm2(&cryptkey, nt_hash);
+        ntlmssp_genauth_ntlm2(cryptkey, nt_hash, rng);
 
     lm_response.append(&mut nt_response);
     lm_response.append(&mut session_key);
@@ -344,24 +345,33 @@ fn ntlm2_response(
     Ok(lm_response)
 }
 
+#[nasl_function(named(cryptkey, password, nt_hash))]
+fn ntlm2_response(
+    cryptkey: StringOrData,
+    #[allow(unused)] password: StringOrData,
+    nt_hash: StringOrData,
+) -> Result<Vec<u8>, FnError> {
+    let mut cryptkey = cryptkey.0.as_bytes().to_vec();
+    cryptkey.resize(8, 0);
+    let nt_hash = nt_hash.0.as_bytes();
+    ntlm2_response_gen(&cryptkey, nt_hash, &mut rand::rng())
+}
+
 #[nasl_function(named(cryptkey, user, domain, ntlmv2_hash, address_list, address_list_len))]
 fn ntlmv2_response(
     cryptkey: StringOrData,
-    user: StringOrData,
-    domain: StringOrData,
+    #[allow(unused)] user: StringOrData,
+    #[allow(unused)] domain: StringOrData,
     ntlmv2_hash: StringOrData,
     address_list: StringOrData,
-    address_list_len: usize,
+    #[allow(unused)] address_list_len: usize,
 ) -> Result<Vec<u8>, FnError> {
     let cryptkey = cryptkey.0.as_bytes();
-    let _ = user;
-    let _ = domain;
     let ntlmv2_hash = ntlmv2_hash.0.as_bytes();
     let address_list = address_list.0.as_bytes();
-    let _ = address_list_len;
 
     let (mut lm_response, mut nt_response, mut user_session_key) =
-        smb_ntlmv2_encrypt_hash_ntlmssp(ntlmv2_hash, cryptkey, address_list);
+        smb_ntlmv2_encrypt_hash_ntlmssp(ntlmv2_hash, cryptkey, address_list, &mut rand::rng());
 
     lm_response.append(&mut user_session_key);
     lm_response.append(&mut nt_response);
@@ -371,13 +381,11 @@ fn ntlmv2_response(
 
 #[nasl_function(named(cryptkey, session_key, nt_hash))]
 fn key_exchange(
-    cryptkey: StringOrData,
+    #[allow(unused)] cryptkey: StringOrData,
     session_key: StringOrData,
-    nt_hash: StringOrData,
+    #[allow(unused)] nt_hash: StringOrData,
 ) -> Result<Vec<u8>, FnError> {
-    let _ = cryptkey;
     let session_key = session_key.0.as_bytes();
-    let _ = nt_hash;
 
     let (mut encrypted_session_key, mut new_session_key) = ntlmssp_genauth_keyexchg(session_key);
     new_session_key.append(&mut encrypted_session_key);
