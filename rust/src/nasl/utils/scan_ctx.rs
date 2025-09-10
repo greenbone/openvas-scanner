@@ -4,10 +4,12 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use greenbone_scanner_framework::models::{
+    AliveTestMethods, Port, PortRange, Protocol, ScanPreference,
+};
 use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
 
-use crate::models::{AliveTestMethods, Port, PortRange, Protocol, ScanPreference};
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
 use crate::nasl::{FromNaslValue, WithErrorInfo};
@@ -19,7 +21,7 @@ use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
 use crate::storage::items::nvt::{Feed, FeedVersion, FileName, Nvt};
 use crate::storage::items::nvt::{NvtField, Oid};
-use crate::storage::items::result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem};
+use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::redis::{
     RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper,
 };
@@ -236,9 +238,8 @@ pub trait ContextStorage:
     // results
     + Dispatcher<ScanID, Item = ResultItem>
     + Retriever<ResultContextKeySingle, Item = ResultItem>
-    + Retriever<ResultContextKeyAll, Item = Vec<ResultItem>>
-    + Remover<ResultContextKeySingle, Item = ResultItem>
-    + Remover<ResultContextKeyAll, Item = Vec<ResultItem>>
+    + Retriever<ScanID, Item = Vec<ResultItem>>
+    + Remover<ScanID, Item = Vec<ResultItem>>
     // nvt
     + Dispatcher<FileName, Item = Nvt>
     + Dispatcher<FeedVersion, Item = String>
@@ -363,7 +364,7 @@ impl<'a> ScanCtx<'a> {
         self.target.add_hostname(hostname, source);
     }
 
-    pub fn port_range(&self) -> PortRange {
+    fn port_range(&self) -> PortRange {
         // TODO Get this from the scan prefs
         PortRange {
             start: 0,

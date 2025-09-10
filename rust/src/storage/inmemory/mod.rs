@@ -7,7 +7,9 @@ use std::{collections::HashMap, sync::RwLock};
 use itertools::Itertools;
 use kb::InMemoryKbStorage;
 
-use crate::models::{self, FeedType};
+use greenbone_scanner_framework::models::FeedType;
+
+use crate::notus::advisories::VulnerabilityData;
 
 use super::{
     Dispatcher, Remover, Retriever, ScanID,
@@ -16,7 +18,7 @@ use super::{
         kb::{GetKbContextKey, KbContextKey, KbItem},
         notus_advisory::NotusAdvisory,
         nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
-        result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
+        result::{ResultContextKeySingle, ResultItem},
     },
 };
 
@@ -38,7 +40,7 @@ type Vts = HashMap<VTKey, Nvt>;
 type Results = HashMap<ScanID, Vec<ResultItem>>;
 
 // Artificial type for fetching all OIDs
-pub struct OIDs;
+struct OIDs;
 
 /// Is a in-memory dispatcher that behaves like a Storage.
 #[derive(Default, Debug)]
@@ -89,7 +91,7 @@ impl InMemoryStorage {
         (FeedType::Advisories, oid.to_string())
     }
 
-    fn cache_notus_advisory(&self, adv: models::VulnerabilityData) -> Result<(), StorageError> {
+    fn cache_notus_advisory(&self, adv: VulnerabilityData) -> Result<(), StorageError> {
         let item: Nvt = adv.into();
 
         let mut oid_lookup = self.oid_lookup.write()?;
@@ -109,18 +111,11 @@ impl InMemoryStorage {
     }
 
     /// Removes all stored nasl_vts
-    pub fn clean_vts(&self) -> Result<(), StorageError> {
+    fn clean_vts(&self) -> Result<(), StorageError> {
         let mut vts = self.vts.write()?;
         vts.retain(|(ft, _), _| matches!(ft, FeedType::Advisories));
         let mut version = self.feed_version.write()?;
         *version = String::new();
-        Ok(())
-    }
-
-    /// Removes all stored nasl_vts
-    pub fn clean_advisories(&self) -> Result<(), StorageError> {
-        let mut vts = self.vts.write()?;
-        vts.retain(|(ft, _), _| matches!(ft, FeedType::NASL));
         Ok(())
     }
 }
@@ -279,18 +274,18 @@ impl Retriever<ResultContextKeySingle> for InMemoryStorage {
     }
 }
 
-impl Retriever<ResultContextKeyAll> for InMemoryStorage {
+impl Retriever<ScanID> for InMemoryStorage {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn retrieve(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         let results = self.results.read()?;
 
         Ok(results.get(key).cloned())
     }
 }
 
-impl Remover<ResultContextKeyAll> for InMemoryStorage {
+impl Remover<ScanID> for InMemoryStorage {
     type Item = Vec<ResultItem>;
-    fn remove(&self, key: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn remove(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         let mut results = self.results.write()?;
         Ok(results.remove(key))
     }

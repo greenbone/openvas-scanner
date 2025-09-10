@@ -46,9 +46,9 @@ const BITS_PER_BYTE: usize = 8;
 struct AliveTestCtlStop;
 
 #[derive(Clone)]
-pub struct AliveHostInfo {
+struct AliveHostInfo {
     ip: String,
-    detection_method: AliveTestMethods,
+    detectihttp_method: AliveTestMethods,
 }
 
 struct PktCodec;
@@ -113,7 +113,7 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         {
             return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detection_method: AliveTestMethods::Icmp,
+                detectihttp_method: AliveTestMethods::Icmp,
             }));
         }
     }
@@ -126,7 +126,7 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         if tcp_packet.get_destination() == FILTER_PORT {
             return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detection_method: AliveTestMethods::TcpSyn,
+                detectihttp_method: AliveTestMethods::TcpSyn,
             }));
         }
     }
@@ -146,7 +146,7 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         let make_alive_host_ctl = |pkt: Ipv6Packet<'_>, method| {
             Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detection_method: method,
+                detectihttp_method: method,
             }))
         };
         match icmp_pkt.get_icmpv6_type() {
@@ -165,7 +165,7 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         if tcp_packet.get_destination() == FILTER_PORT {
             return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detection_method: AliveTestMethods::TcpSyn,
+                detectihttp_method: AliveTestMethods::TcpSyn,
             }));
         }
     }
@@ -179,7 +179,7 @@ fn process_arp_frame(frame: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestErr
     if arp.get_operation() == ArpOperations::Reply {
         return Ok(Some(AliveHostInfo {
             ip: arp.get_sender_proto_addr().to_string(),
-            detection_method: AliveTestMethods::Arp,
+            detectihttp_method: AliveTestMethods::Arp,
         }));
     }
     Ok(None)
@@ -364,7 +364,7 @@ impl Scanner {
         while let Some(alivehost) = rx_msg.recv().await {
             if self.target.contains(&alivehost.ip) && !alive.contains(&alivehost.ip) {
                 alive.insert(alivehost.ip.clone());
-                println!("{} via {:?}", &alivehost.ip, &alivehost.detection_method);
+                println!("{} via {:?}", &alivehost.ip, &alivehost.detectihttp_method);
             }
         }
 
