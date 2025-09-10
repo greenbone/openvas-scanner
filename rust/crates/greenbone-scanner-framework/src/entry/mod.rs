@@ -66,10 +66,8 @@ macro_rules! define_authentication_paths {
 
         fn needs_authentication(
             &self,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = bool> + Send>> {
-            Box::pin(async move {
-                $authn
-            })
+        ) -> bool {
+            $authn
         }
 
         fn on_parts(&self) -> &'static [&'static str] {
@@ -88,7 +86,7 @@ pub trait Prefixed {
 }
 
 pub trait RequestHandler: Prefixed {
-    fn needs_authentication(&self) -> Pin<Box<dyn Future<Output = bool> + Send>>;
+    fn needs_authentication(&self) -> bool;
     fn on_parts(&self) -> &'static [&'static str];
     fn on_method(&self) -> &'static Method;
     fn ids(&self, uri: &Uri) -> Vec<String> {
@@ -194,7 +192,7 @@ impl RequestHandlers {
                 .collect::<Vec<_>>();
             for rh in callbacks {
                 if parts_match(rh.prefix(), rh.on_parts(), &parts) {
-                    let needs_authentication = rh.needs_authentication().await;
+                    let needs_authentication = rh.needs_authentication();
                     let is_authenticated =
                         matches!(&*client_identifier, &ClientIdentifier::Known(_));
                     if !needs_authentication || is_authenticated {

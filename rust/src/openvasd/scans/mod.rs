@@ -186,7 +186,6 @@ where
     Ok(scan.scan_id)
 }
 
-impl<E> Endpoints<E> where E: crate::crypt::Crypt + Sync + Send {}
 impl<E> PostScans for Endpoints<E>
 where
     E: crate::crypt::Crypt + Sync + Send,

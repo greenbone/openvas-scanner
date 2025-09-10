@@ -20,8 +20,8 @@ impl Prefixed for GetOSIcnomingRequest {
     }
 }
 impl RequestHandler for GetOSIcnomingRequest {
-    fn needs_authentication(&self) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send>> {
-        Box::pin(async move { false })
+    fn needs_authentication(&self) -> bool {
+        false
     }
 
     fn on_parts(&self) -> &'static [&'static str] {
@@ -68,8 +68,8 @@ impl Prefixed for PostOSIcnomingRequest {
 }
 
 impl RequestHandler for PostOSIcnomingRequest {
-    fn needs_authentication(&self) -> std::pin::Pin<Box<dyn Future<Output = bool> + Send>> {
-        Box::pin(async move { false })
+    fn needs_authentication(&self) -> bool {
+        false
     }
 
     fn on_parts(&self) -> &'static [&'static str] {
