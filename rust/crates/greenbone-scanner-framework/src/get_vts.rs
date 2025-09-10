@@ -3,7 +3,7 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ExternalError, StreamResult, authentication_and_paths,
+    ExternalError, StreamResult, auth_method_segments,
     entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
     internal_server_error,
     models::VTData,
@@ -32,7 +32,7 @@ impl<S> RequestHandler for GetVTsHandler<S>
 where
     S: GetVts + Prefixed + 'static,
 {
-    authentication_and_paths!(
+    auth_method_segments!(
         authenticated: false,
         Method::GET,
         "vts"

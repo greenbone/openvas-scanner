@@ -3,7 +3,7 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    MapScanID, authentication_and_paths,
+    MapScanID, auth_method_segments,
     entry::{
         self, Bytes, Method, Prefixed, RequestHandler, enforce_client_id_and_scan_id,
         response::BodyKind,
@@ -35,7 +35,7 @@ impl<S> RequestHandler for DeleteScansIdHandler<S>
 where
     S: DeleteScansId + 'static,
 {
-    authentication_and_paths!(
+    auth_method_segments!(
         authenticated: true,
         Method::DELETE,
         "scans", "*"

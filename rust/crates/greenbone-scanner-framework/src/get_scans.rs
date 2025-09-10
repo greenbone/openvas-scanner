@@ -3,7 +3,7 @@ use std::{fmt::Debug, sync::Arc};
 use hyper::StatusCode;
 
 use crate::{
-    ExternalError, authentication_and_paths,
+    ExternalError, auth_method_segments,
     entry::{
         self, Bytes, Method, Prefixed, RequestHandler,
         response::{BodyKind, StreamResult},
@@ -33,7 +33,7 @@ impl<S> RequestHandler for GetScansHandler<S>
 where
     S: GetScans + Prefixed + 'static,
 {
-    authentication_and_paths!(
+    auth_method_segments!(
         authenticated: true,
         Method::GET,
         "scans"

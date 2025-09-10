@@ -3,7 +3,7 @@ use std::sync::Arc;
 use hyper::StatusCode;
 
 use crate::{
-    ExternalError, authentication_and_paths,
+    ExternalError, auth_method_segments,
     entry::{self, Bytes, Prefixed, RequestHandler, enforce_client_hash, response::BodyKind},
     internal_server_error, models,
 };
@@ -33,7 +33,7 @@ impl<S> RequestHandler for PostScansHandler<S>
 where
     S: PostScans + Prefixed + 'static,
 {
-    authentication_and_paths!(authenticated: true, crate::entry::Method::POST, "scans");
+    auth_method_segments!(authenticated: true, crate::entry::Method::POST, "scans");
 
     fn call<'a, 'b>(
         &'b self,

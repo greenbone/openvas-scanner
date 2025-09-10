@@ -28,8 +28,8 @@ impl RequestHandler for GetOSIcnomingRequest {
         &["notus"]
     }
 
-    fn http_method(&self) -> &'static Method {
-        &Method::GET
+    fn http_method(&self) -> Method {
+        Method::GET
     }
 
     fn call<'a, 'b>(
@@ -76,8 +76,8 @@ impl RequestHandler for PostOSIcnomingRequest {
         &["notus", "*"]
     }
 
-    fn http_method(&self) -> &'static Method {
-        &Method::POST
+    fn http_method(&self) -> Method {
+        Method::POST
     }
 
     fn call<'a, 'b>(

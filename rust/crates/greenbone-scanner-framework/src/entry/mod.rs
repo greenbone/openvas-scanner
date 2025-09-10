@@ -60,7 +60,7 @@ pub type Bytes = hyper::body::Bytes;
 pub type Method = hyper::Method;
 
 #[macro_export]
-macro_rules! authentication_and_paths {
+macro_rules! auth_method_segments {
     (authenticated: $authn:expr, $method:expr, $($path:literal),*) => {
         fn needs_authentication(
             &self,
@@ -72,8 +72,8 @@ macro_rules! authentication_and_paths {
             &[ $( $path, )* ]
         }
 
-        fn http_method(&self) -> &'static $crate::entry::Method {
-            &$method
+        fn http_method(&self) -> $crate::entry::Method {
+            $method
         }
 
     };
@@ -86,7 +86,7 @@ pub trait Prefixed {
 pub trait RequestHandler: Prefixed {
     fn needs_authentication(&self) -> bool;
     fn path_segments(&self) -> &'static [&'static str];
-    fn http_method(&self) -> &'static Method;
+    fn http_method(&self) -> Method;
     fn ids(&self, uri: &Uri) -> Vec<String> {
         uri.path()
             .split('/')
@@ -449,7 +449,7 @@ mod tests {
     }
 
     impl RequestHandler for IdPart {
-        authentication_and_paths!(authenticated: true, Method::GET, "test", "id", "*");
+        auth_method_segments!(authenticated: true, Method::GET, "test", "id", "*");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
@@ -473,7 +473,7 @@ mod tests {
     }
 
     impl RequestHandler for Authenticated {
-        authentication_and_paths!(authenticated: true, Method::GET, "test", "authn");
+        auth_method_segments!(authenticated: true, Method::GET, "test", "authn");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
@@ -498,7 +498,7 @@ mod tests {
     }
 
     impl RequestHandler for NotAuthenticated {
-        authentication_and_paths!(authenticated: false, Method::GET, "test", "not_authn");
+        auth_method_segments!(authenticated: false, Method::GET, "test", "not_authn");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
@@ -657,7 +657,7 @@ mod tests {
     }
 
     impl RequestHandler for PrefixedAuth {
-        authentication_and_paths!(authenticated: true, Method::GET, "test", "wtf");
+        auth_method_segments!(authenticated: true, Method::GET, "test", "wtf");
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
