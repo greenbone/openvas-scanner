@@ -205,8 +205,8 @@ impl<T> RuntimeBuilder<T> {
         let mut idx = None;
         for (i, or) in self.handlers.handlers.iter().enumerate() {
             if or.prefix() == value.prefix()
-                && or.on_method() == value.on_method()
-                && or.on_parts() == value.on_parts()
+                && or.http_method() == value.http_method()
+                && or.path_segments() == value.path_segments()
             {
                 idx = Some(i);
                 break;

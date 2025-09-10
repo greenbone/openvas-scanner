@@ -186,7 +186,7 @@ make_str_lookup_enum! {
         severity_origin => SeverityOrigin,
         severity_vector => SeverityVector,
         solution => Solution,
-        solution_method => SolutionMethod, // legacy can probably removed in the next feed
+        solutihttp_method => SolutionMethod, // legacy can probably removed in the next feed
         solution_type => SolutionType,
         summary => Summary,
         vuldetect => Vuldetect

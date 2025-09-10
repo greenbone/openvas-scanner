@@ -62,19 +62,17 @@ pub type Method = hyper::Method;
 #[macro_export]
 macro_rules! authentication_and_paths {
     (authenticated: $authn:expr, $method:expr, $($path:literal),*) => {
-
-
         fn needs_authentication(
             &self,
         ) -> bool {
             $authn
         }
 
-        fn on_parts(&self) -> &'static [&'static str] {
+        fn path_segments(&self) -> &'static [&'static str] {
             &[ $( $path, )* ]
         }
 
-        fn on_method(&self) -> &'static $crate::entry::Method {
+        fn http_method(&self) -> &'static $crate::entry::Method {
             &$method
         }
 
@@ -87,13 +85,13 @@ pub trait Prefixed {
 
 pub trait RequestHandler: Prefixed {
     fn needs_authentication(&self) -> bool;
-    fn on_parts(&self) -> &'static [&'static str];
-    fn on_method(&self) -> &'static Method;
+    fn path_segments(&self) -> &'static [&'static str];
+    fn http_method(&self) -> &'static Method;
     fn ids(&self, uri: &Uri) -> Vec<String> {
         uri.path()
             .split('/')
             .filter(|x| !x.is_empty())
-            .zip(self.on_parts().iter())
+            .zip(self.path_segments().iter())
             .filter(|(_, x)| x == &&"*")
             .map(move |(x, _)| x.to_owned())
             .collect()
@@ -191,7 +189,7 @@ impl RequestHandlers {
                 .filter(|x| !x.is_empty())
                 .collect::<Vec<_>>();
             for rh in callbacks {
-                if parts_match(rh.prefix(), rh.on_parts(), &parts) {
+                if parts_match(rh.prefix(), rh.path_segments(), &parts) {
                     let needs_authentication = rh.needs_authentication();
                     let is_authenticated =
                         matches!(&*client_identifier, &ClientIdentifier::Known(_));
@@ -199,7 +197,7 @@ impl RequestHandlers {
                         if req.method() == Method::HEAD {
                             return BodyKind::no_content(StatusCode::OK);
                         }
-                        if req.method() == rh.on_method() {
+                        if req.method() == rh.http_method() {
                             let uri = req.uri().clone();
                             let body = req.into_body();
                             let bytes = match body.collect().await {

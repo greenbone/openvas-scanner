@@ -24,11 +24,11 @@ impl RequestHandler for GetOSIcnomingRequest {
         false
     }
 
-    fn on_parts(&self) -> &'static [&'static str] {
+    fn path_segments(&self) -> &'static [&'static str] {
         &["notus"]
     }
 
-    fn on_method(&self) -> &'static Method {
+    fn http_method(&self) -> &'static Method {
         &Method::GET
     }
 
@@ -72,11 +72,11 @@ impl RequestHandler for PostOSIcnomingRequest {
         false
     }
 
-    fn on_parts(&self) -> &'static [&'static str] {
+    fn path_segments(&self) -> &'static [&'static str] {
         &["notus", "*"]
     }
 
-    fn on_method(&self) -> &'static Method {
+    fn http_method(&self) -> &'static Method {
         &Method::POST
     }
 
