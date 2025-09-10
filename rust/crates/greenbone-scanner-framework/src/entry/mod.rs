@@ -129,7 +129,7 @@ macro_rules! create_single_handler {
     }};
 }
 
-fn parts_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) -> bool {
+fn segments_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) -> bool {
     let offset = if !prefix.is_empty() {
         if handler_parts.len() != request_parts.len() - 1 || prefix != request_parts[0] {
             return false;
@@ -168,7 +168,6 @@ impl RequestHandlers {
 
     fn call<R>(
         &self,
-
         client_identifier: Arc<ClientIdentifier>,
         req: hyper::Request<R>,
     ) -> BodyKindFuture
@@ -180,7 +179,7 @@ impl RequestHandlers {
         let callbacks = self.handlers.clone();
 
         Box::pin(async move {
-            let parts = req
+            let segments = req
                 .uri()
                 .path()
                 .split('/')
@@ -188,7 +187,7 @@ impl RequestHandlers {
                 .filter(|x| !x.is_empty())
                 .collect::<Vec<_>>();
             for rh in callbacks {
-                if parts_match(rh.prefix(), rh.path_segments(), &parts) {
+                if segments_match(rh.prefix(), rh.path_segments(), &segments) {
                     let needs_authentication = rh.needs_authentication();
                     let is_authenticated =
                         matches!(&*client_identifier, &ClientIdentifier::Known(_));
