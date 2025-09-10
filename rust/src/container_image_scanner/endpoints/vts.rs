@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    pin::Pin,
+    sync::{Arc, RwLock},
+};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{
@@ -32,9 +35,7 @@ impl VTEndpoints {
         }
     }
 
-    pub fn feed_state(
-        &self,
-    ) -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
+    pub fn feed_state(&self) -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
         let fs = self.feed_state.clone();
         Box::pin(async move {
             tokio::task::spawn_blocking(move || {

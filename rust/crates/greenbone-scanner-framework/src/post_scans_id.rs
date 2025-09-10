@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -17,7 +17,7 @@ pub trait PostScansId: MapScanID {
         &self,
         id: String,
         action: Action,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>>;
 }
 
 pub struct PostScansIdHandler<T> {
@@ -48,7 +48,7 @@ where
         client_id: Arc<entry::ClientIdentifier>,
         uri: &'a entry::Uri,
         body: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -153,7 +153,7 @@ mod tests {
             &'a self,
             client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+        ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
             Box::pin(async move {
                 if scan_id == "id" {
                     Some(client_id.to_string())
@@ -169,7 +169,7 @@ mod tests {
             &self,
             client_id: String,
             action: Action,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send>> {
+        ) -> Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send>> {
             let client_id = client_id.clone();
             let ok = ClientHash::from("ok").to_string();
             let already_running = ClientHash::from("already_running").to_string();

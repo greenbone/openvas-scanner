@@ -16,6 +16,7 @@ mod vts;
 use sqlx::migrate::Migrator;
 use std::{
     marker::{Send, Sync},
+    pin::Pin,
     sync::Arc,
 };
 
@@ -64,7 +65,7 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
 
 fn get_feed_state(
     vts: Arc<vts::Endpoints>,
-) -> impl Fn() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
+) -> impl Fn() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
     move || {
         let vts = vts.clone();
         Box::pin(async move { vts.feed_state().await })

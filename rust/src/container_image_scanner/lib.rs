@@ -1,5 +1,5 @@
  mod config;
-use std::pin::Pin;
+use Pin;
 
 use futures::StreamExt;
 

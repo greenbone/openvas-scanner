@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -11,7 +11,7 @@ use crate::{
 pub trait GetScansPreferences: Send + Sync {
     fn get_scans_preferences(
         &self,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>>;
+    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>>;
 }
 
 pub struct GetScansPreferencesHandler<T> {
@@ -29,8 +29,7 @@ impl Prefixed for NoPreferences {
 impl GetScansPreferences for NoPreferences {
     fn get_scans_preferences<'b>(
         &self,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>>
-    {
+    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
         Box::pin(async move { vec![] })
     }
 }
@@ -66,7 +65,7 @@ where
         _: Arc<entry::ClientIdentifier>,
         _: &'a entry::Uri,
         _: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -108,8 +107,7 @@ mod tests {
     impl GetScansPreferences for Test {
         fn get_scans_preferences(
             &self,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>>
-        {
+        ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
             Box::pin(async move { vec![] })
         }
     }

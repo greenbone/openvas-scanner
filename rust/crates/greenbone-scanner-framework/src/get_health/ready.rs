@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub trait GetHealthReady: Prefixed + Send + Sync {
-    fn get_health_ready(&self) -> std::pin::Pin<Box<dyn Future<Output = Ready> + Send>>;
+    fn get_health_ready(&self) -> Pin<Box<dyn Future<Output = Ready> + Send>>;
 }
 
 pub enum Ready {
@@ -48,7 +48,7 @@ impl Prefixed for JustReady {
 }
 
 impl GetHealthReady for JustReady {
-    fn get_health_ready(&self) -> std::pin::Pin<Box<dyn Future<Output = Ready> + Send>> {
+    fn get_health_ready(&self) -> Pin<Box<dyn Future<Output = Ready> + Send>> {
         Box::pin(async move { Ready::Ready })
     }
 }
@@ -75,7 +75,7 @@ where
         _: Arc<entry::ClientIdentifier>,
         _: &'a entry::Uri,
         _: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -107,7 +107,7 @@ mod tests {
     struct NotReady {}
 
     impl GetHealthReady for NotReady {
-        fn get_health_ready(&self) -> std::pin::Pin<Box<dyn Future<Output = Ready> + Send>> {
+        fn get_health_ready(&self) -> Pin<Box<dyn Future<Output = Ready> + Send>> {
             Box::pin(async move { super::Ready::NotReady })
         }
     }

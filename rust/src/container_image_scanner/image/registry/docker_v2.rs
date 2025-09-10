@@ -208,7 +208,7 @@ impl super::Registry for Registry {
     fn resolve_image(
         &self,
         image: super::Image,
-    ) -> std::pin::Pin<
+    ) -> Pin<
         Box<
             dyn Future<Output = Vec<Result<super::Image, super::ExternalError>>> + Send + Sync + '_,
         >,

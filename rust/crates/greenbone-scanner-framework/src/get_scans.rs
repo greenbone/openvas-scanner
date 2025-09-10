@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -12,7 +12,6 @@ use crate::{
 };
 
 pub trait GetScans: Send + Sync {
-    //fn get_scans(&self, client_id: String) -> BodyKind;
     fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError>;
 }
 
@@ -44,7 +43,7 @@ where
         client_id: Arc<entry::ClientIdentifier>,
         _: &'a entry::Uri,
         _: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {

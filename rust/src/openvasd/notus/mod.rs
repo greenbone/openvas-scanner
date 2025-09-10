@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use greenbone_scanner_framework::{
     ClientIdentifier, RequestHandler,
@@ -38,7 +38,7 @@ impl RequestHandler for GetOSIcnomingRequest {
         _: &'a Uri,
         _: Bytes,
         // req: Request<Body>,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -85,7 +85,7 @@ impl RequestHandler for PostOSIcnomingRequest {
         _: Arc<ClientIdentifier>,
         uri: &'a Uri,
         body: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {

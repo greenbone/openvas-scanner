@@ -2,6 +2,7 @@ use std::{
     marker::PhantomData,
     net::SocketAddr,
     path::PathBuf,
+    pin::Pin,
     sync::{Arc, RwLock},
 };
 
@@ -54,8 +55,6 @@ pub mod prelude {
     //! Contains all use statements thate are exported within this framework.
     //!
     //! To use it call `use greenbone_scanner_framework::preluse::*`.
-
-    pub use std::pin::Pin;
 
     pub use crate::{
         ClientHash, GetScans, GetScansError, GetScansIDError, GetScansIDResultsError,
@@ -426,7 +425,7 @@ pub trait MapScanID: Send + Sync {
         &'a self,
         client_id: &'a str,
         scan_id: &'a str,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>>;
+    ) -> Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>>;
 }
 
 pub enum Authentication {

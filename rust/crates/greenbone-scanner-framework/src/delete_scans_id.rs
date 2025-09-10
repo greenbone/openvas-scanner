@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -15,7 +15,7 @@ pub trait DeleteScansId: MapScanID + Prefixed {
     fn delete_scans_id(
         &self,
         id: String,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>>;
 }
 
 pub struct DeleteScansIdHandler<T> {
@@ -46,7 +46,7 @@ where
         client_id: Arc<entry::ClientIdentifier>,
         uri: &'a entry::Uri,
         _: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -106,7 +106,7 @@ mod tests {
             &'a self,
             client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+        ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
             Box::pin(async move {
                 if scan_id == "id" {
                     Some(client_id.to_string())
@@ -127,8 +127,7 @@ mod tests {
         fn delete_scans_id(
             &self,
             id: String,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send>>
-        {
+        ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send>> {
             let client_id = id.clone();
             let ok = ClientHash::from("ok").to_string();
             let already_running = ClientHash::from("already_running").to_string();

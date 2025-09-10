@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{pin::Pin, str::FromStr};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{
@@ -96,7 +96,7 @@ impl PostScans for Scans {
         &self,
         client_id: String,
         scan: models::Scan,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
         Box::pin(async move {
             // maybe get rid of clone
             let scan_id = scan.scan_id.clone();
@@ -119,7 +119,7 @@ impl MapScanID for Scans {
         &'a self,
         client_id: &'a str,
         scan_id: &'a str,
-    ) -> std::pin::Pin<
+    ) -> Pin<
         Box<
             dyn Future<Output = Option<greenbone_scanner_framework::InternalIdentifier>>
                 + Send

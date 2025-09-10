@@ -1,4 +1,5 @@
 use std::{
+    pin::Pin,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -470,9 +471,7 @@ pub async fn init<E, FS>(
 ) -> R<Sender<Message>>
 where
     E: Crypt + Send + Sync + 'static,
-    FS: Fn() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>>
-        + Send
-        + 'static,
+    FS: Fn() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> + Send + 'static,
 {
     match config.scanner.scanner_type {
         crate::config::ScannerType::Ospd => {

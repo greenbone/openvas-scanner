@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -15,9 +15,7 @@ pub trait GetScansIdStatus: MapScanID {
     fn get_scans_id_status(
         &self,
         id: String,
-    ) -> std::pin::Pin<
-        Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>,
-    >;
+    ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>;
 }
 
 pub struct GetScansIdStatusHandler<T> {
@@ -48,7 +46,7 @@ where
         client_id: Arc<entry::ClientIdentifier>,
         uri: &'a entry::Uri,
         _: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -114,7 +112,7 @@ mod tests {
             &'a self,
             client_id: &'a str,
             scan_id: &'a str,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+        ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
             Box::pin(async move {
                 if scan_id == "id" {
                     Some(client_id.to_string())
@@ -129,9 +127,8 @@ mod tests {
         fn get_scans_id_status(
             &self,
             client_id: String,
-        ) -> std::pin::Pin<
-            Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send>,
-        > {
+        ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send>>
+        {
             let result = models::Status {
                 ..Default::default()
             };

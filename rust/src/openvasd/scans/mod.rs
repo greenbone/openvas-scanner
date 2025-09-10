@@ -1,4 +1,4 @@
-use std::{num::ParseIntError, str::FromStr, sync::Arc};
+use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
@@ -194,7 +194,7 @@ where
         &self,
         client_id: String,
         scan: models::Scan,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
         let annoying = scan.scan_id.clone();
         Box::pin(async move {
             scan_insert(&self.pool, self.crypter.as_ref(), &client_id, scan)
@@ -222,7 +222,7 @@ where
         &'a self,
         client_id: &'a str,
         scan_id: &'a str,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
         Box::pin(async move {
             match query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
                 .bind(client_id)
@@ -444,8 +444,7 @@ where
     fn get_scans_id(
         &self,
         id: String,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>>
-    {
+    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>> {
         Box::pin(async move { self.get_scan(id).await.map_err(into_external_error) })
     }
 }
@@ -556,9 +555,8 @@ where
         &self,
         id: String,
         result_id: usize,
-    ) -> std::pin::Pin<
-        Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>,
-    > {
+    ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
+    {
         Box::pin(async move {
             let maybe_row = query(
                 r#"
@@ -620,9 +618,8 @@ where
     fn get_scans_id_status(
         &self,
         id: String,
-    ) -> std::pin::Pin<
-        Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>,
-    > {
+    ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>
+    {
         Box::pin(async move {
             let id: i64 = id
                 .parse()
@@ -641,7 +638,7 @@ where
         &self,
         id: String,
         action: models::Action,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
         Box::pin(async move {
             self.scheduling
                 .send(match action {
@@ -660,7 +657,7 @@ where
     fn delete_scans_id(
         &self,
         id: String,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         Box::pin(async move {
             // everything else should have ON DELETE CASCADE
             query("DELETE FROM client_scan_map WHERE id = ?")
@@ -689,7 +686,7 @@ pub async fn init<F>(
     feed_state: F,
 ) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>>
 where
-    F: Fn() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> + Send + 'static,
+    F: Fn() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> + Send + 'static,
 {
     let crypter = Arc::new(config_to_crypt(config));
     let scheduler_sender =
@@ -703,7 +700,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{pin::Pin, sync::Arc, time::Duration};
 
     use futures::StreamExt;
     use greenbone_scanner_framework::{
@@ -724,7 +721,7 @@ mod tests {
         scans::{config_to_crypt, scheduling},
     };
 
-    fn feed_state() -> std::pin::Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
+    fn feed_state() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
         Box::pin(async { FeedState::Synced("0".into(), "2".into()) })
     }
     async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {

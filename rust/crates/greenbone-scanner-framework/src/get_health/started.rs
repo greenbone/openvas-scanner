@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub trait GetHealthStarted: Send + Sync {
-    fn get_health_started(&self) -> std::pin::Pin<Box<dyn Future<Output = Started> + Send>>;
+    fn get_health_started(&self) -> Pin<Box<dyn Future<Output = Started> + Send>>;
 }
 
 pub enum Started {
@@ -48,7 +48,7 @@ impl Prefixed for JustStarted {
 }
 
 impl GetHealthStarted for JustStarted {
-    fn get_health_started(&self) -> std::pin::Pin<Box<dyn Future<Output = Started> + Send>> {
+    fn get_health_started(&self) -> Pin<Box<dyn Future<Output = Started> + Send>> {
         Box::pin(async move { Started::Started })
     }
 }
@@ -75,7 +75,7 @@ where
         _: Arc<entry::ClientIdentifier>,
         _: &'a entry::Uri,
         _: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -113,7 +113,7 @@ mod tests {
     }
 
     impl GetHealthStarted for NotStarted {
-        fn get_health_started(&self) -> std::pin::Pin<Box<dyn Future<Output = Started> + Send>> {
+        fn get_health_started(&self) -> Pin<Box<dyn Future<Output = Started> + Send>> {
             Box::pin(async move { super::Started::NotStarted })
         }
     }

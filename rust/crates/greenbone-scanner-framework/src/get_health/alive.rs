@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub trait GetHealthAlive: Prefixed + Send + Sync {
-    fn get_health_alive(&self) -> std::pin::Pin<Box<dyn Future<Output = Alive> + Send>>;
+    fn get_health_alive(&self) -> Pin<Box<dyn Future<Output = Alive> + Send>>;
 }
 
 pub enum Alive {
@@ -39,7 +39,7 @@ impl Prefixed for JustAlive {
 }
 
 impl GetHealthAlive for JustAlive {
-    fn get_health_alive(&self) -> std::pin::Pin<Box<dyn Future<Output = Alive> + Send>> {
+    fn get_health_alive(&self) -> Pin<Box<dyn Future<Output = Alive> + Send>> {
         Box::pin(async move { Alive::Alive })
     }
 }
@@ -75,7 +75,7 @@ where
         _: Arc<entry::ClientIdentifier>,
         _: &'a entry::Uri,
         _: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -113,7 +113,7 @@ mod tests {
     }
 
     impl GetHealthAlive for NotAlive {
-        fn get_health_alive(&self) -> std::pin::Pin<Box<dyn Future<Output = Alive> + Send>> {
+        fn get_health_alive(&self) -> Pin<Box<dyn Future<Output = Alive> + Send>> {
             Box::pin(async move { super::Alive::NotAlive })
         }
     }

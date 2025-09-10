@@ -154,7 +154,7 @@ fn segments_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) 
     true
 }
 
-type BodyKindFuture = std::pin::Pin<Box<dyn futures_util::Future<Output = BodyKind> + Send>>;
+type BodyKindFuture = Pin<Box<dyn futures_util::Future<Output = BodyKind> + Send>>;
 
 impl RequestHandlers {
     pub fn push<T>(&mut self, request_handler: T)
@@ -280,9 +280,8 @@ where
 
     type Error = Infallible;
 
-    type Future = std::pin::Pin<
-        Box<dyn futures_util::Future<Output = Result<Self::Response, Self::Error>> + Send>,
-    >;
+    type Future =
+        Pin<Box<dyn futures_util::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, req: hyper::Request<R>) -> Self::Future {
         let cbs = self.scanner.clone();
@@ -349,7 +348,10 @@ where
 }
 
 pub mod test_utilities {
-    use std::sync::{Arc, RwLock};
+    use std::{
+        pin::Pin,
+        sync::{Arc, RwLock},
+    };
 
     use http_body_util::{Empty, Full};
     use hyper::{Request, body::Bytes};
@@ -410,7 +412,7 @@ pub mod test_utilities {
         client_id: String,
         f: A,
         e: B,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<A, B>> + Send>>
+    ) -> Pin<Box<dyn Future<Output = Result<A, B>> + Send>>
     where
         A: Sync + Send + 'static,
         B: From<std::io::Error> + Sync + Send + 'static,

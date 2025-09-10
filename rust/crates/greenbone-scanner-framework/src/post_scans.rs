@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
@@ -13,7 +13,7 @@ pub trait PostScans: Send + Sync {
         &self,
         client_id: String,
         scan: models::Scan,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>>;
 }
 
 pub struct PostScansHandler<T> {
@@ -40,7 +40,7 @@ where
         client_id: Arc<entry::ClientIdentifier>,
         _: &'a entry::Uri,
         body: Bytes,
-    ) -> std::pin::Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a,
     {
@@ -140,8 +140,7 @@ mod tests {
             &self,
             client_id: String,
             _: models::Scan,
-        ) -> std::pin::Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send>>
-        {
+        ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send>> {
             let result = "response_id".to_owned();
 
             test_utilities::on_client_id_return(
