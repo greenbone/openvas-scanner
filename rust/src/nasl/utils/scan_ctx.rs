@@ -7,6 +7,7 @@
 use greenbone_scanner_framework::models::{
     AliveTestMethods, Port, PortRange, Protocol, ScanPreference,
 };
+use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
 
 use crate::nasl::builtin::{KBError, NaslSockets};
@@ -26,7 +27,6 @@ use crate::storage::redis::{
 };
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
-use rand::seq::SliceRandom;
 use std::collections::BTreeSet;
 use std::sync::MutexGuard;
 
@@ -557,7 +557,7 @@ impl<'a> ScanCtx<'a> {
             .collect();
 
         let ret = if !ports.is_empty() {
-            *ports.choose(&mut rand::thread_rng()).unwrap()
+            *ports.choose(&mut rand::rng()).unwrap()
         } else if open21 {
             21
         } else if open80 {

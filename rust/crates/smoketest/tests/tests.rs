@@ -23,6 +23,15 @@ pub mod tests {
         assert!(status);
     }
 
+    /// Check the server sending the GET request
+    #[tokio::test]
+    async fn check_server_health_ready() {
+        let args = Args::get_all();
+        let cli = new_client(args.api_key(), args.cert(), args.key());
+        let status = health_ready(&cli, args.openvasd()).await;
+        assert!(status);
+    }
+
     #[tokio::test]
     /// Run a successful scan. Get results and delete the scan
     async fn run_scan() {

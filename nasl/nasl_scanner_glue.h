@@ -118,4 +118,13 @@ nasl_vendor_version (lex_ctxt *);
 tree_cell *
 nasl_update_table_driven_lsc_data (lex_ctxt *);
 
+tree_cell *
+nasl_notus (lex_ctxt *);
+
+tree_cell *
+nasl_notus_error (lex_ctxt *);
+
+tree_cell *
+security_notus (lex_ctxt *lexic);
+
 #endif

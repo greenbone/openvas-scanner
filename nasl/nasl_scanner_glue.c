@@ -15,11 +15,13 @@
 
 #include "nasl_scanner_glue.h"
 
-#include "../misc/ipc_openvas.h"   /* for ipc_* */
-#include "../misc/network.h"       /* for getpts */
-#include "../misc/plugutils.h"     /* for plug_set_id */
-#include "../misc/support.h"       /* for the g_memdup2 workaround */
-#include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "../misc/ipc_openvas.h" /* for ipc_* */
+#include "../misc/kb_cache.h"
+#include "../misc/network.h"          /* for getpts */
+#include "../misc/plugutils.h"        /* for plug_set_id */
+#include "../misc/support.h"          /* for the g_memdup2 workaround */
+#include "../misc/table_driven_lsc.h" /* for lsc */
+#include "../misc/vendorversion.h"    /* for vendor_version_get */
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -32,12 +34,13 @@
 #include <fcntl.h> /* for open */
 #include <glib.h>
 #include <gvm/base/logging.h>
-#include <gvm/base/prefs.h> /* for prefs_get */
-#include <gvm/util/kb.h>    /* for KB_TYPE_INT */
-#include <stdlib.h>         /* for atoi */
-#include <string.h>         /* for strcmp */
-#include <sys/stat.h>       /* for stat */
-#include <unistd.h>         /* for close */
+#include <gvm/base/networking.h> /* for addr6_to_str */
+#include <gvm/base/prefs.h>      /* for prefs_get */
+#include <gvm/util/kb.h>         /* for KB_TYPE_INT */
+#include <stdlib.h>              /* for atoi */
+#include <string.h>              /* for strcmp */
+#include <sys/stat.h>            /* for stat */
+#include <unistd.h>              /* for close */
 
 #undef G_LOG_DOMAIN
 /**
@@ -1005,6 +1008,119 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
   return FAKE_CELL;
 }
 
+tree_cell *
+security_notus (lex_ctxt *lexic)
+{
+  tree_cell *result;
+  named_nasl_var *oid_var, *var, *vul_packages, *name, *version, *fixed,
+    *fixed_version, *specifier, *start, *end;
+  anon_nasl_var *pkg;
+  unsigned char *oid;
+  int i;
+  GString *result_buf, *buf;
+  gchar *kb_result;
+
+  result = get_variable_by_name (lexic, "result");
+  if (result == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: oid or result is NULL\n");
+      return FAKE_CELL;
+    }
+
+  var = (named_nasl_var *) result->x.ref_val;
+
+  oid_var = get_var_by_name (&var->u.v.v_arr, "oid");
+  if (oid_var == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: oid not found\n");
+      return FAKE_CELL;
+    }
+
+  oid = oid_var->u.v.v_str.s_val;
+
+  vul_packages = get_var_by_name (&var->u.v.v_arr, "vulnerable_packages");
+  if (vul_packages == NULL || vul_packages->u.var_type != VAR2_ARRAY)
+    {
+      nasl_perror (lexic, "security_lsc: vul_packages is not an array\n");
+      return FAKE_CELL;
+    }
+  result_buf = g_string_new (NULL);
+  for (i = 0; i < vul_packages->u.v.v_arr.max_idx; i++)
+    {
+      pkg = nasl_get_var_by_num (lexic, &vul_packages->u.v.v_arr, i, 0);
+      if (pkg == NULL)
+        continue;
+
+      name = get_var_by_name (&pkg->v.v_arr, "name");
+      version = get_var_by_name (&pkg->v.v_arr, "installed");
+      fixed = get_var_by_name (&pkg->v.v_arr, "fixed");
+      if (fixed == NULL)
+        continue;
+      fixed_version = get_var_by_name (&fixed->u.v.v_arr, "version");
+      specifier = get_var_by_name (&fixed->u.v.v_arr, "specifier");
+      start = get_var_by_name (&fixed->u.v.v_arr, "start");
+      end = get_var_by_name (&fixed->u.v.v_arr, "end");
+
+      if (name == NULL || version == NULL)
+        {
+          continue;
+        }
+
+      if (fixed_version != NULL && specifier != NULL)
+        {
+          buf = g_string_new (NULL);
+          g_string_printf (buf,
+                           "\n"
+                           "Vulnerable package:   %s\n"
+                           "Installed version:    %s-%s\n"
+                           "Fixed version:      %2s%s-%s\n",
+                           name->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           version->u.v.v_str.s_val, specifier->u.v.v_str.s_val,
+                           name->u.v.v_str.s_val,
+                           fixed_version->u.v.v_str.s_val);
+        }
+      else if (start != NULL && end != NULL)
+        {
+          buf = g_string_new (NULL);
+          g_string_printf (buf,
+                           "\n"
+                           "Vulnerable package:   %s\n"
+                           "Installed version:    %s-%s\n"
+                           "Fixed version:      < %s-%s\n"
+                           "Fixed version:      >=%s-%s\n",
+                           name->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           version->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           start->u.v.v_str.s_val, name->u.v.v_str.s_val,
+                           end->u.v.v_str.s_val);
+        }
+      else
+        {
+          continue;
+        }
+      g_string_append (result_buf, buf->str);
+      g_string_free (buf, TRUE);
+    }
+
+  if (result_buf == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: No results to publish\n");
+      return FAKE_CELL;
+    }
+
+  gchar ip_str[INET6_ADDRSTRLEN];
+  addr6_to_str (lexic->script_infos->ip, ip_str);
+  // type|||IP|||HOSTNAME|||package|||OID|||the result message|||URI
+  kb_result =
+    g_strdup_printf ("%s|||%s|||%s|||%s|||%s|||%s|||%s", "ALARM", ip_str, " ",
+                     "package", oid, result_buf->str, "");
+  g_string_free (result_buf, TRUE);
+  kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
+                                       kb_result);
+  g_free (kb_result);
+
+  return NULL;
+}
+
 /**
  * @brief Send a security message to the client.
  *
@@ -1024,7 +1140,8 @@ log_message (lex_ctxt *lexic)
   return security_something (lexic, proto_post_log, post_log_with_uri);
 }
 
-// FIXME: the name of the function is too broad, krb5 people also hate prefixes
+// FIXME: the name of the function is too broad, krb5 people also hate
+// prefixes
 tree_cell *
 error_message2 (lex_ctxt *lexic)
 {
@@ -1116,6 +1233,201 @@ nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
   return NULL;
 }
 
+/**
+ * @brief Error code for Notus.
+ *
+ * The last occurred error code is stored in this variable.
+ */
+static int notus_err = 0;
+
+/**
+ * @brief Directly runs a LSC with the given package list and OS release.
+ *
+ * This function runs a Notus scan using the provided package list and OS
+ * release. In case of success, it returns a list of Notus results in a
+ * JSON-like format. If an error occurs, it returns NULL and sets the
+ * `notus_err` variable to the appropriate error code. The error can be gathered
+ * using the `notus_error` function.
+ *
+ * @naslfn{notus}
+ *
+ * @naslnparam
+ * - @a pkg_list String containing the gathered package list.
+ * - @a product The OS release.
+ *
+ * @param[in] lexic  Lexical context of the NASL interpreter.
+ *
+ * @return List of Notus results in a JSON-like format, NULL on error.
+ */
+tree_cell *
+nasl_notus (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  char *response;
+  advisories_t *advisories = NULL;
+  anon_nasl_var element;
+  char *pkg_list = get_str_var_by_name (lexic, "pkg_list");
+  char *product = get_str_var_by_name (lexic, "product");
+
+  if (product == NULL || pkg_list == NULL)
+    {
+      g_warning ("%s: Missing data for running LSC", __func__);
+      notus_err = -1;
+      return NULL;
+    }
+
+  response = notus_get_response (pkg_list, product);
+
+  if (!response)
+    {
+      g_warning ("%s: Unable to get the response", __func__);
+      notus_err = -2;
+
+      return NULL;
+    }
+
+  advisories = process_notus_response (response, strlen (response));
+  g_free (response);
+
+  retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+
+  // Process the advisories, generate results and store them in the kb
+  for (size_t i = 0; i < advisories->count; i++)
+    {
+      advisory_t *advisory = advisories->advisories[i];
+      anon_nasl_var vulnerable_pkgs, oid;
+
+      memset (&element, 0, sizeof (element));
+      element.var_type = VAR2_ARRAY;
+
+      memset (&vulnerable_pkgs, 0, sizeof (vulnerable_pkgs));
+      vulnerable_pkgs.var_type = VAR2_ARRAY;
+
+      memset (&oid, 0, sizeof (oid));
+      oid.var_type = VAR2_STRING;
+      oid.v.v_str.s_val = (unsigned char *) advisory->oid;
+      oid.v.v_str.s_siz = strlen (advisory->oid);
+
+      for (size_t j = 0; j < advisory->count; j++)
+        {
+          vuln_pkg_t *pkg = advisory->pkgs[j];
+          anon_nasl_var name, installed, vul_pkg;
+          memset (&name, 0, sizeof (name));
+          memset (&installed, 0, sizeof (installed));
+          memset (&vul_pkg, 0, sizeof (vul_pkg));
+          name.var_type = VAR2_STRING;
+          installed.var_type = VAR2_STRING;
+          vul_pkg.var_type = VAR2_ARRAY;
+          name.v.v_str.s_val = (unsigned char *) pkg->pkg_name;
+          name.v.v_str.s_siz = strlen (pkg->pkg_name);
+          installed.v.v_str.s_val = (unsigned char *) pkg->install_version;
+          installed.v.v_str.s_siz = strlen (pkg->install_version);
+
+          if (pkg->type == RANGE)
+            {
+              anon_nasl_var range, start, end;
+              memset (&range, 0, sizeof (range));
+              range.var_type = VAR2_ARRAY;
+
+              memset (&start, 0, sizeof (start));
+              start.var_type = VAR2_STRING;
+              start.v.v_str.s_val = (unsigned char *) pkg->range->start;
+              start.v.v_str.s_siz = strlen (pkg->range->start);
+              add_var_to_array (&range.v.v_arr, "start", &start);
+
+              memset (&end, 0, sizeof (end));
+              end.var_type = VAR2_STRING;
+              end.v.v_str.s_val = (unsigned char *) pkg->range->stop;
+              end.v.v_str.s_siz = strlen (pkg->range->stop);
+              add_var_to_array (&range.v.v_arr, "end", &end);
+              add_var_to_array (&vul_pkg.v.v_arr, "fixed", &range);
+            }
+          else if (pkg->type == SINGLE)
+            {
+              anon_nasl_var single, version, specifier;
+
+              memset (&single, 0, sizeof (single));
+              single.var_type = VAR2_ARRAY;
+
+              memset (&version, 0, sizeof (version));
+              version.var_type = VAR2_STRING;
+              version.v.v_str.s_val = (unsigned char *) pkg->version->version;
+              version.v.v_str.s_siz = strlen (pkg->version->version);
+              add_var_to_array (&single.v.v_arr, "version", &version);
+
+              memset (&specifier, 0, sizeof (specifier));
+              specifier.var_type = VAR2_STRING;
+              specifier.v.v_str.s_val =
+                (unsigned char *) pkg->version->specifier;
+              specifier.v.v_str.s_siz = strlen (pkg->version->specifier);
+              add_var_to_array (&single.v.v_arr, "specifier", &specifier);
+
+              add_var_to_array (&vul_pkg.v.v_arr, "fixed", &single);
+            }
+          else
+            {
+              g_warning ("%s: Unknown fixed version type for advisory %s",
+                         __func__, advisory->oid);
+              advisories_free (advisories);
+              notus_err = -3;
+              deref_cell (retc);
+
+              return NULL;
+            }
+          add_var_to_array (&vul_pkg.v.v_arr, "name", &name);
+          add_var_to_array (&vul_pkg.v.v_arr, "installed", &installed);
+          add_var_to_list (&vulnerable_pkgs.v.v_arr, j, &vul_pkg);
+        }
+
+      add_var_to_array (&element.v.v_arr, "oid", &oid);
+      add_var_to_array (&element.v.v_arr, "vulnerable_packages",
+                        &vulnerable_pkgs);
+      add_var_to_list (retc->x.ref_val, i, &element);
+    }
+
+  advisories_free (advisories);
+
+  return retc;
+}
+
+/**
+ * @brief Get the last Notus error as string.
+ *
+ * @naslfn{notus_error}
+ *
+ * @param[in] lexic  Lexical context of the NASL interpreter.
+ *
+ * @return Error message as a string.
+ */
+tree_cell *
+nasl_notus_error (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  char *notus_err_str;
+  (void) lexic;
+
+  switch (notus_err)
+    {
+    case -1:
+      notus_err_str = strdup ("Missing data for running LSC");
+      break;
+    case -2:
+      notus_err_str = strdup ("Unable to get the response");
+      break;
+    case -3:
+      notus_err_str = strdup ("Unknown fixed version type for advisory");
+      break;
+    default:
+      return NULL;
+    }
+
+  retc = alloc_typed_cell (CONST_STR);
+  retc->x.str_val = notus_err_str;
+  retc->size = strlen (notus_err_str);
+
+  return retc;
+}
 /*-------------------------[ Reporting an open port ]---------------------*/
 
 /**

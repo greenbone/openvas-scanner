@@ -88,6 +88,9 @@ nasl_array_iterator (void *, tree_cell *);
 tree_cell *
 nasl_iterate_array (nasl_iterator *);
 
+named_nasl_var *
+get_var_by_name (nasl_array *a, const char *s);
+
 int
 add_var_to_list (nasl_array *, int, const anon_nasl_var *);
 

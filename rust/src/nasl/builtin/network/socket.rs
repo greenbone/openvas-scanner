@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use crate::nasl::{
+    builtin::misc::{NASL_ERR_ECONNRESET, NASL_ERR_ETIMEDOUT, NASL_ERR_NOERR},
     prelude::*,
     utils::{
+        DefineGlobalVars,
         function::{Seconds, utils::DEFAULT_TIMEOUT},
         scan_ctx::JmpDesc,
     },
@@ -14,21 +16,29 @@ use crate::storage::items::kb::{self, KbKey};
 use dns_lookup::lookup_host;
 use lazy_regex::{Lazy, lazy_regex};
 use regex::Regex;
-use rustls::ClientConnection;
+use rustls::{
+    ClientConnection, RootCertStore,
+    client::{WebPkiServerVerifier, danger::ServerCertVerifier},
+    pki_types::{CertificateDer, ServerName, UnixTime},
+};
+use rustls_native_certs::load_native_certs;
 use socket2::{Domain, Protocol, Socket, Type};
 use std::{
     io::{self, BufRead, Read, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr},
     str::FromStr,
-    sync::Mutex,
+    sync::{Arc, Mutex},
     thread::sleep,
     time::{Duration, SystemTime},
 };
 use thiserror::Error;
 
 use super::{
-    OpenvasEncaps, Port, get_retry, network_utils::convert_timeout, tcp::TcpConnection,
-    tls::create_tls_client, udp::UdpConnection,
+    OpenvasEncaps, Port, get_retry,
+    network_utils::convert_timeout,
+    tcp::TcpConnection,
+    tls::{create_tls_client, prepare_tls_client},
+    udp::UdpConnection,
 };
 
 static FTP_PASV: Lazy<Regex> =
@@ -74,6 +84,10 @@ pub enum SocketError {
     FailedToBindSocket(io::Error, SocketAddr),
     #[error("No route to destination: {0}.")]
     NoRouteToDestination(IpAddr),
+    #[error("TLS client: {0}.")]
+    FailedTlsNegotiation(String),
+    #[error("Failed to load system certificates.")]
+    FailedLoadRootCerts,
 }
 
 /// Interval used for timing tcp requests. Any tcp request has to wait at least
@@ -135,6 +149,72 @@ impl NaslSocket {
             NaslSocket::Udp(udp_connection) => udp_connection.write(buf),
         }
     }
+
+    pub fn set_tls(&mut self, tls: ClientConnection) {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            tcp_connection.set_tls(tls);
+        };
+    }
+
+    pub fn session(&self) -> &Option<ClientConnection> {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.stream.get_ref().tls();
+        };
+        &None
+    }
+
+    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            tcp_connection.set_transport(transport);
+        };
+    }
+
+    pub fn transport(&self) -> &Option<OpenvasEncaps> {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.transport();
+        }
+        &None
+    }
+
+    pub fn set_last_err(&mut self, nasl_err: i64) {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            tcp_connection.set_last_err(nasl_err);
+        };
+    }
+
+    pub fn last_err(&mut self) -> i64 {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.last_err();
+        };
+        NASL_ERR_NOERR
+    }
+
+    pub fn peer_certs(&mut self) -> &[CertificateDer<'static>] {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.peer_certs();
+        }
+        &[]
+    }
+
+    pub fn ssl_version(&self) -> Option<i64> {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.ssl_version();
+        }
+        None
+    }
+
+    pub fn check_safe_renegotiation(&mut self) -> NaslValue {
+        // TODO: This is not possible. rustls does not provide
+        // a feature to check secure renegotiation
+        unimplemented!()
+    }
+
+    pub fn get_port(&self) -> u16 {
+        match self {
+            NaslSocket::Tcp(tcp_connection) => tcp_connection.get_port(),
+            NaslSocket::Udp(udp_connection) => udp_connection.get_port(),
+        }
+    }
 }
 
 /// The Top level struct storing all NASL sockets, a list of the
@@ -176,6 +256,11 @@ impl NaslSockets {
     /// Adds a given NASL socket. It returns the position of the socket within the
     /// list.
     fn add(&mut self, socket: NaslSocket) -> usize {
+        // Add a None element in the position 0, so the fd position
+        // is always greater than 0. This allows to check in the nasl side
+        if self.handles.is_empty() {
+            self.handles.push(None)
+        }
         if let Some(free) = self.closed_fd.pop() {
             self.handles.insert(free, Some(socket));
             free
@@ -306,9 +391,21 @@ fn send_shared(
                         "the given flags value is out of range".to_string(),
                     ));
                 }
-                Ok(conn.send_with_flags(data, flags as i32)?)
+                match conn.send_with_flags(data, flags as i32) {
+                    Ok(s) => Ok(s),
+                    Err(e) => {
+                        conn.set_last_err(NASL_ERR_ECONNRESET);
+                        Err(SocketError::IO(e))
+                    }
+                }
             } else {
-                Ok(conn.write(data)?)
+                match conn.write(data) {
+                    Ok(s) => Ok(s),
+                    Err(e) => {
+                        conn.set_last_err(NASL_ERR_ECONNRESET);
+                        Err(SocketError::IO(e))
+                    }
+                }
             }
         }
         NaslSocket::Udp(conn) => {
@@ -462,7 +559,11 @@ async fn open_sock_kdc(
     Ok(NaslValue::Number(ret as i64))
 }
 
-fn make_tls_client_connection(context: &ScanCtx<'_>, vhost: &str) -> Option<ClientConnection> {
+fn make_tls_client_connection(
+    context: &ScanCtx<'_>,
+    transport: &OpenvasEncaps,
+    vhost: &str,
+) -> Option<ClientConnection> {
     get_tls_conf(context).ok().and_then(|conf| {
         create_tls_client(
             vhost,
@@ -470,6 +571,7 @@ fn make_tls_client_connection(context: &ScanCtx<'_>, vhost: &str) -> Option<Clie
             &conf.key_path,
             &conf.password,
             &conf.cafile_path,
+            transport,
         )
         .ok()
     })
@@ -495,7 +597,7 @@ fn open_sock_tcp_vhost(
         Some(OpenvasEncaps::Auto) => {
             set_transport = true;
             // Try SSL/TLS first
-            let tls = make_tls_client_connection(context, vhost);
+            let tls = make_tls_client_connection(context, &OpenvasEncaps::Auto, vhost);
             if tls.is_some() {
                 transport = OpenvasEncaps::TlsCustom as i64;
             } else {
@@ -513,7 +615,7 @@ fn open_sock_tcp_vhost(
         // TLS/SSL
         Some(tls_version) => match tls_version {
             OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                make_tls_client_connection(context, vhost)
+                make_tls_client_connection(context, &tls_version, vhost)
             }
             _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport).into()),
         },
@@ -613,13 +715,142 @@ async fn open_sock_tcp(
     open_sock_tcp_shared(context, nasl_sockets, port, timeout, transport, bufsz)
 }
 
+#[nasl_function(named(socket, transport))]
+async fn socket_negotiate_ssl(
+    context: &ScanCtx<'_>,
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+    transport: Option<i64>,
+) -> Result<NaslValue, FnError> {
+    let transport = transport.unwrap_or(OpenvasEncaps::TlsCustom.into());
+    let client = get_tls_conf(context).and_then(|conf| {
+        prepare_tls_client(
+            &conf.cert_path,
+            &conf.key_path,
+            &conf.password,
+            &conf.cafile_path,
+            // safe to unwrap() because knowon from above
+            &OpenvasEncaps::from_i64(transport).unwrap(),
+        )
+        .map_err(|e| SocketError::FailedTlsNegotiation(e.to_string()).into())
+    });
+
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    let hostname = "localhost";
+    let client_conf = std::sync::Arc::new(client?);
+    let server = ServerName::try_from(hostname.to_owned()).unwrap();
+    let client = match ClientConnection::new(client_conf, server) {
+        Ok(c) => c,
+        Err(_) => {
+            soc.set_last_err(NASL_ERR_ETIMEDOUT);
+            return Ok(NaslValue::Null);
+        }
+    };
+    soc.set_tls(client);
+
+    //TODO: transport is set in the kb, but is not specified in the TLS Session
+    context.set_port_transport(soc.get_port(), transport as usize)?;
+    Ok(NaslValue::Number(socket as i64))
+}
+
+#[nasl_function(named(socket))]
+async fn socket_get_cert(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+
+    let cert_list = soc.peer_certs();
+    if !cert_list.is_empty() {
+        return Ok(NaslValue::Data(cert_list.first().unwrap().to_vec()));
+    }
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function(named(socket))]
+async fn socket_cert_verify(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    let cert_list = soc.peer_certs();
+
+    let cert = if !cert_list.is_empty() {
+        cert_list.first().unwrap()
+    } else {
+        return Ok(NaslValue::Null);
+    };
+
+    let mut roots = RootCertStore::empty();
+    if load_native_certs()
+        .certs
+        .iter()
+        .map(|c| roots.add(c.clone()))
+        .collect::<Result<Vec<_>, _>>()
+        .is_err()
+    {
+        return Err(SocketError::FailedLoadRootCerts.into());
+    }
+
+    let now = UnixTime::now();
+    // TODO!: we need to get the target hostname name here if already fork()'ed or
+    // even fork() here.
+    let server = ServerName::try_from("localhost".to_owned()).unwrap();
+    let scv = WebPkiServerVerifier::builder(Arc::new(roots))
+        .build()
+        .unwrap();
+
+    match scv.verify_server_cert(cert, &cert_list[..&cert_list.len() - 1], &server, &[], now) {
+        Ok(_) => Ok(NaslValue::Number(0)),
+        _ => Ok(NaslValue::Number(1)),
+    }
+}
+
+#[nasl_function(named(socket))]
+async fn socket_get_ssl_version(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    if let Some(v) = soc.ssl_version() {
+        return Ok(NaslValue::Number(v));
+    }
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function]
+async fn socket_get_error(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    Ok(NaslValue::Number(soc.last_err()))
+}
+
+#[nasl_function(named(socket))]
+async fn socket_check_ssl_safe_renegotiation(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    Ok(soc.check_safe_renegotiation())
+}
+
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
 fn get_tls_conf(context: &ScanCtx) -> Result<TlsConfig, FnError> {
-    let cert_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))?;
-    let key_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))?;
-    let password = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))?;
-    let cafile_path = context.get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))?;
+    let cert_path = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))
+        .unwrap_or_default();
+    let key_path = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))
+        .unwrap_or_default();
+    let password = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))
+        .unwrap_or_default();
+    let cafile_path = context
+        .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))
+        .unwrap_or_default();
 
     Ok(TlsConfig {
         cert_path,
@@ -688,6 +919,132 @@ async fn get_source_port(sockets: &NaslSockets, socket: usize) -> Result<NaslVal
     Ok(NaslValue::Number(port as i64))
 }
 
+enum SocInfo {
+    Dport,
+    Sport,
+    Encaps,
+    TlsProto,
+    TlsKx,
+    TlsCertType,
+    TlsCipher,
+    TlsMac,
+    TlsAuth,
+    TlsCert,
+}
+
+impl<'a> FromNaslValue<'a> for SocInfo {
+    fn from_nasl_value(data: &'a NaslValue) -> Result<Self, FnError> {
+        match data {
+            NaslValue::Data(val) if *val == "dport".as_bytes().to_vec() => Ok(Self::Dport),
+            NaslValue::String(val) if val == "dport" => Ok(Self::Dport),
+            NaslValue::Data(val) if *val == "sport".as_bytes().to_vec() => Ok(Self::Sport),
+            NaslValue::String(val) if val == "sport" => Ok(Self::Sport),
+            NaslValue::Data(val) if *val == "encaps".as_bytes().to_vec() => Ok(Self::Encaps),
+            NaslValue::String(val) if val == "encaps" => Ok(Self::Encaps),
+            NaslValue::Data(val) if *val == "tls-proto".as_bytes().to_vec() => Ok(Self::TlsProto),
+            NaslValue::String(val) if val == "tls-proto" => Ok(Self::TlsProto),
+            NaslValue::Data(val) if *val == "tls-kx".as_bytes().to_vec() => Ok(Self::TlsKx),
+            NaslValue::String(val) if val == "tls-kx" => Ok(Self::TlsKx),
+            NaslValue::Data(val) if *val == "tls-certtype".as_bytes().to_vec() => {
+                Ok(Self::TlsCertType)
+            }
+            NaslValue::String(val) if val == "tls-certtype" => Ok(Self::TlsCertType),
+            NaslValue::Data(val) if *val == "tls-cipher".as_bytes().to_vec() => Ok(Self::TlsCipher),
+            NaslValue::String(val) if val == "tls-cipher" => Ok(Self::TlsCipher),
+            NaslValue::Data(val) if *val == "tls-mac".as_bytes().to_vec() => Ok(Self::TlsMac),
+            NaslValue::String(val) if val == "tls-mac" => Ok(Self::TlsMac),
+            NaslValue::Data(val) if *val == "tls-auth".as_bytes().to_vec() => Ok(Self::TlsAuth),
+            NaslValue::String(val) if val == "tls-auth" => Ok(Self::TlsAuth),
+            NaslValue::Data(val) if *val == "tls-cert".as_bytes().to_vec() => Ok(Self::TlsCert),
+            NaslValue::String(val) if val == "tls-cert" => Ok(Self::TlsCert),
+            _ => Err(SocketError::WrongArgument(data.to_string()).into()),
+        }
+    }
+}
+/// Get the source port of a open socket
+#[nasl_function(named(asstring))]
+async fn get_sock_info(
+    sockets: &NaslSockets,
+    socket: usize,
+    keyword: SocInfo,
+    asstring: Option<NaslValue>,
+) -> Result<NaslValue, SocketError> {
+    let socket = sockets.get_open_socket(socket)?;
+    let asstring = asstring.is_some();
+
+    if socket.session().is_none() {
+        return Ok(NaslValue::String("n/a".to_string()));
+    }
+
+    match keyword {
+        SocInfo::Dport => {
+            let port = match socket {
+                NaslSocket::Tcp(conn) => conn.peer_addr()?.port(), // .local_addr()?.port(),
+                NaslSocket::Udp(conn) => conn.peer_addr()?.port(),
+            };
+            Ok(NaslValue::Number(port as i64))
+        }
+        SocInfo::Sport => {
+            let port = match socket {
+                NaslSocket::Tcp(conn) => conn.local_addr()?.port(),
+                NaslSocket::Udp(conn) => conn.local_addr()?.port(),
+            };
+            Ok(NaslValue::Number(port as i64))
+        }
+        SocInfo::Encaps => {
+            let encaps = match socket {
+                NaslSocket::Tcp(conn) => conn.transport().clone().unwrap_or(OpenvasEncaps::Ip),
+                NaslSocket::Udp(_) => OpenvasEncaps::Ip,
+            };
+            match asstring {
+                true => Ok(NaslValue::String(encaps.into())),
+                false => Ok(NaslValue::Number(encaps as i64)),
+            }
+        }
+        SocInfo::TlsProto => match socket.ssl_version() {
+            Some(v) => {
+                if let Some(v) = OpenvasEncaps::from_i64(v) {
+                    Ok(NaslValue::String(format!("{}", v)))
+                } else {
+                    Ok(NaslValue::String("[?]".to_string()))
+                }
+            }
+            None => Ok(NaslValue::String("n/a".to_string())),
+        },
+        SocInfo::TlsKx => {
+            if let Some(se) = socket.session()
+                && let Some(kx) = se.negotiated_key_exchange_group()
+            {
+                return Ok(NaslValue::String(format!("{:?}", kx)));
+            };
+            Ok(NaslValue::String("".to_string()))
+        }
+        SocInfo::TlsCipher => {
+            if let Some(se) = socket.session()
+                && let Some(cs) = se.negotiated_cipher_suite()
+            {
+                return Ok(NaslValue::String(format!("{:?}", cs)));
+            };
+            Ok(NaslValue::String("".to_string()))
+        }
+        SocInfo::TlsMac => {
+            unimplemented!();
+        }
+        SocInfo::TlsCert => {
+            if let Some(se) = socket.session()
+                && let Some(pc) = se.peer_certificates()
+            {
+                return Ok(NaslValue::String(format!("{:?}", pc)));
+            };
+            Ok(NaslValue::String("".to_string()))
+        }
+        SocInfo::TlsAuth => {
+            unimplemented!();
+        }
+        _ => Ok(NaslValue::Null),
+    }
+}
+
 /// Receive a response of a FTP server and checks the status code of it.
 /// This status code is compared to a list of expected status codes and
 /// returned, if it is contained in that list.
@@ -741,7 +1098,10 @@ async fn ftp_log_in(
         NaslSocket::Tcp(conn) => {
             check_ftp_response(&mut *conn, &[220])?;
             let data = format!("USER {user}\r\n");
-            conn.write_all(data.as_bytes())?;
+            if let Err(e) = conn.write_all(data.as_bytes()) {
+                conn.set_last_err(NASL_ERR_ECONNRESET);
+                return Err(SocketError::IO(e));
+            };
 
             let code = check_ftp_response(&mut *conn, &[230, 331])?;
             if code == 331 {
@@ -995,5 +1355,53 @@ function_set! {
         join_multicast_group,
         leave_multicast_group,
         telnet_init,
+        socket_negotiate_ssl,
+        socket_get_cert,
+        socket_get_ssl_version,
+        socket_get_error,
+        socket_cert_verify,
+        get_sock_info,
     )
+}
+
+impl DefineGlobalVars for SocketFns {
+    fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
+        vec![
+            ("ENCAPS_AUTO", NaslValue::Number(OpenvasEncaps::Auto.into())),
+            ("ENCAPS_IP", NaslValue::Number(OpenvasEncaps::Ip.into())),
+            (
+                "ENCAPS_SSLv23",
+                NaslValue::Number(OpenvasEncaps::Ssl23.into()),
+            ),
+            (
+                "ENCAPS_SSLv2",
+                NaslValue::Number(OpenvasEncaps::Ssl2.into()),
+            ),
+            (
+                "ENCAPS_SSLv3",
+                NaslValue::Number(OpenvasEncaps::Ssl3.into()),
+            ),
+            (
+                "ENCAPS_TLSv1",
+                NaslValue::Number(OpenvasEncaps::Tls1.into()),
+            ),
+            (
+                "ENCAPS_TLSv11",
+                NaslValue::Number(OpenvasEncaps::Tls11.into()),
+            ),
+            (
+                "ENCAPS_TLSv12",
+                NaslValue::Number(OpenvasEncaps::Tls12.into()),
+            ),
+            (
+                "ENCAPS_TLSv13",
+                NaslValue::Number(OpenvasEncaps::Tls1.into()),
+            ),
+            (
+                "ENCAPS_TLScustom",
+                NaslValue::Number(OpenvasEncaps::TlsCustom.into()),
+            ),
+            ("ENCAPS_MAX", NaslValue::Number(OpenvasEncaps::Max.into())),
+        ]
+    }
 }

@@ -12,7 +12,7 @@ use std::{os::fd::AsRawFd, time::Duration};
 
 use libssh_rs::{LogLevel, SshOption};
 use russh::cipher;
-use russh_keys::key;
+use russh::keys::Algorithm;
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::debug;
 
@@ -84,7 +84,7 @@ impl Ssh {
         socket: Option<Socket>,
         ip: IpAddr,
         port: u16,
-        keytype: Vec<key::Name>,
+        keytype: Vec<Algorithm>,
         csciphers: Vec<cipher::Name>,
         scciphers: Vec<cipher::Name>,
         timeout: Option<Duration>,
@@ -121,7 +121,7 @@ impl Ssh {
         socket: Option<Socket>,
         ip: IpAddr,
         port: u16,
-        keytype: Vec<key::Name>,
+        keytype: Vec<Algorithm>,
         csciphers: Vec<cipher::Name>,
         scciphers: Vec<cipher::Name>,
         timeout: Option<Duration>,
