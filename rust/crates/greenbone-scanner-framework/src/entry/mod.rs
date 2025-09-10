@@ -102,7 +102,6 @@ pub trait RequestHandler: Prefixed {
         client_id: Arc<ClientIdentifier>,
         uri: &'a Uri,
         body: Bytes,
-        // req: Request<Body>,
     ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
     where
         'b: 'a;
@@ -309,7 +308,7 @@ where
 
         Box::pin(async move {
             let resp = incoming.call(cid, req).await;
-            let rb = match &resp.kind {
+            let rb = match &resp.content {
                 BodyKindContent::Empty => rb,
                 BodyKindContent::Binary(x) => rb
                     .header("Content-Type", "application/json")
@@ -317,7 +316,7 @@ where
                 BodyKindContent::BinaryStream(_) => rb.header("Content-Type", "application/json"),
             };
 
-            Ok(rb.status(resp.status_code).body(resp.kind).unwrap())
+            Ok(rb.status(resp.status_code).body(resp.content).unwrap())
         })
     }
 }

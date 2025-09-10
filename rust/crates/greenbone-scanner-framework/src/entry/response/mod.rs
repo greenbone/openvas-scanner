@@ -11,7 +11,7 @@ use hyper::{StatusCode, body::Bytes};
 
 pub struct BodyKind {
     pub status_code: StatusCode,
-    pub kind: BodyKindContent,
+    pub content: BodyKindContent,
 }
 
 /// Implements the hyper http body types
@@ -61,7 +61,7 @@ impl BodyKind {
     pub fn no_content(status_code: StatusCode) -> Self {
         Self {
             status_code,
-            kind: BodyKindContent::Empty,
+            content: BodyKindContent::Empty,
         }
     }
 
@@ -72,7 +72,7 @@ impl BodyKind {
         match serde_json::to_vec(v) {
             Ok(v) => BodyKind {
                 status_code,
-                kind: BodyKindContent::Binary(v.into()),
+                content: BodyKindContent::Binary(v.into()),
             },
             Err(e) => internal_server_error!(e),
         }
@@ -86,7 +86,10 @@ impl BodyKind {
     {
         let inner = json_stream::from_stream(inner);
         let kind = BodyKindContent::BinaryStream(Box::pin(inner));
-        Self { status_code, kind }
+        Self {
+            status_code,
+            content: kind,
+        }
     }
 
     /// Transforms a StreamResult into a BodyKind
