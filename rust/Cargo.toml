@@ -129,7 +129,7 @@ nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 rpmdb = { path = "crates/rpmdb-rs" }
 
 [workspace]
-members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
+members = ["crates/smoketest", "crates/nasl-function-proc-macro", "crates/greenbone-scanner-framework"]
 
 [dev-dependencies]
 tracing-test = "0.2.5"
