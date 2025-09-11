@@ -87,6 +87,8 @@ pub struct Handlers {
 }
 
 impl Handlers {
+    // We take the ZST _endpoint as an argument so we don't
+    // need turbofish syntax for this method
     pub fn add<E: Endpoint, T: Handler<E>>(&mut self, _endpoint: E, handler: T)
     where
         T: Send + Sync + 'static,
@@ -100,7 +102,9 @@ impl Handlers {
         })));
     }
 
-    pub fn single<E: Endpoint, T: Handler<E>>(_endpoint: E, handler: T) -> Self
+    // We take the ZST _endpoint as an argument so we don't
+    // need turbofish syntax for this method
+    pub fn single<E: Endpoint, T: Handler<E>>(endpoint: E, handler: T) -> Self
     where
         T: Send + Sync + 'static,
         E: Send + Sync + 'static,
@@ -108,7 +112,7 @@ impl Handlers {
         <E as Endpoint>::Out: Send,
     {
         let mut s = Self::default();
-        s.add::<E, T>(handler);
+        s.add::<E, T>(endpoint, handler);
         s
     }
 

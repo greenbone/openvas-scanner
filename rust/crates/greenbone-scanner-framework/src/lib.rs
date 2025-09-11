@@ -36,7 +36,7 @@ mod get_scans_preferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
-use get_health::{GetHealthAliveHandler, GetHealthReadyHandler, GetHealthStartedHandler};
+use get_health::{AlwaysReady, GetHealthAliveHandler, GetHealthReady, GetHealthStartedHandler};
 
 pub mod models;
 mod post_scans;
@@ -123,6 +123,7 @@ pub struct RuntimeBuilder<T> {
     tls: Option<TLSConfig>,
     api_keys: Option<Vec<String>>,
     handlers: RequestHandlers,
+    new_handlers: Handlers,
     _phantom: PhantomData<T>,
 }
 
@@ -146,8 +147,9 @@ impl<T> RuntimeBuilder<T> {
         let mut handlers = RequestHandlers::default();
         handlers.push(GetScansPreferencesHandler::default());
         handlers.push(GetHealthAliveHandler::default());
-        handlers.push(GetHealthReadyHandler::default());
         handlers.push(GetHealthStartedHandler::default());
+        let mut new_handlers = Handlers::default();
+        new_handlers.add(GetHealthReady, AlwaysReady);
 
         RuntimeBuilder {
             api_version: vec!["1".to_owned()],
@@ -155,6 +157,7 @@ impl<T> RuntimeBuilder<T> {
             tls: None,
             api_keys: None,
             handlers,
+            new_handlers,
             listener_address: ([127, 0, 0, 1], 3000).into(),
             _phantom: PhantomData,
         }
@@ -252,6 +255,7 @@ impl<T> RuntimeBuilder<T> {
             .add_request_handler(DeleteScansIdHandler::from(scans))
             .add_request_handler(GetVTsHandler::from(vts));
         RuntimeBuilder {
+            new_handlers: ior.new_handlers,
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
@@ -320,6 +324,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             .add_request_handler(PostScansIdHandler::from(value.clone()))
             .add_request_handler(DeleteScansIdHandler::from(value));
         RuntimeBuilder {
+            new_handlers: ior.new_handlers,
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
@@ -338,6 +343,7 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     {
         let ior = self.add_request_handler(GetVTsHandler::from(value));
         RuntimeBuilder {
+            new_handlers: ior.new_handlers,
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,

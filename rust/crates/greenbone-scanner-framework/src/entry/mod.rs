@@ -486,7 +486,7 @@ pub mod test_utilities {
         EntryPoint::new(configuration, client_identifier, ir)
     }
 
-    pub fn new_entry_point(
+    pub fn entry_point_new(
         authentication: Authentication,
         handlers: Handlers,
         client_hash: Option<ClientHash>,

@@ -29,7 +29,7 @@ impl Endpoint for GetScansE {
         entry::enforce_client_hash(&data.client_id).to_string()
     }
 
-    fn output_to_data(out: Self::Out) -> BodyKind {
+    fn output_to_data(_: Self::Out) -> BodyKind {
         todo!()
     }
 }
@@ -162,7 +162,7 @@ mod tests {
 
     #[tokio::test]
     async fn internal_server_error() {
-        let entry_point = test_utilities::new_entry_point(
+        let entry_point = test_utilities::entry_point_new(
             Authentication::MTLS,
             Handlers::single(GetScansE, Test),
             Some(ClientHash::from("internal_server_error")),
@@ -179,7 +179,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_scans() {
-        let entry_point = test_utilities::new_entry_point(
+        let entry_point = test_utilities::entry_point_new(
             Authentication::MTLS,
             Handlers::single(GetScansE, Test),
             Some(ClientHash::from("ok")),
