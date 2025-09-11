@@ -36,9 +36,7 @@ mod get_scans_preferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
-use get_health::{
-    AlwaysAlive, AlwaysReady, AlwaysStarted, GetHealthAlive, GetHealthReady, GetHealthStarted,
-};
+use get_health::{Alive, Always, GetHealthAlive, GetHealthReady, GetHealthStarted, Ready, Started};
 
 pub mod models;
 mod post_scans;
@@ -149,9 +147,9 @@ impl<T> RuntimeBuilder<T> {
         let mut handlers = RequestHandlers::default();
         handlers.push(GetScansPreferencesHandler::default());
         let mut new_handlers = Handlers::default();
-        new_handlers.add(GetHealthReady, AlwaysReady);
-        new_handlers.add(GetHealthAlive, AlwaysAlive);
-        new_handlers.add(GetHealthStarted, AlwaysStarted);
+        new_handlers.add(GetHealthReady, Always(Ready::Ready));
+        new_handlers.add(GetHealthAlive, Always(Alive::Alive));
+        new_handlers.add(GetHealthStarted, Always(Started::Started));
 
         RuntimeBuilder {
             api_version: vec!["1".to_owned()],

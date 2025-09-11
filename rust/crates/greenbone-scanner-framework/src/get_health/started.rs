@@ -1,13 +1,12 @@
-use std::pin::Pin;
-
 use hyper::StatusCode;
 
 use crate::{
-    Endpoint, Handler, auth_method_segments_new,
+    Endpoint, auth_method_segments_new,
     endpoint::InputData,
     entry::{Method, response::BodyKind},
 };
 
+#[derive(Clone)]
 pub enum Started {
     Started,
     NotStarted,
@@ -43,33 +42,16 @@ impl Endpoint for GetHealthStarted {
     }
 }
 
-#[derive(Default)]
-pub struct AlwaysStarted;
-
-impl Handler<GetHealthStarted> for AlwaysStarted {
-    fn call(&self, _: ()) -> Pin<Box<dyn Future<Output = Started> + Send>> {
-        Box::pin(async move { Started::Started })
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{AlwaysStarted, GetHealthStarted, Started, *};
-    use crate::{Handler, entry::test_utilities};
-
-    struct NeverStarted;
-
-    impl Handler<GetHealthStarted> for NeverStarted {
-        fn call(&self, _: ()) -> Pin<Box<dyn Future<Output = Started> + Send>> {
-            Box::pin(async move { Started::NotStarted })
-        }
-    }
+    use super::{GetHealthStarted, Started, *};
+    use crate::{entry::test_utilities, get_health::Always};
 
     #[tokio::test]
     async fn get_health_started() {
         let response = test_utilities::test_endpoint_handler(
             GetHealthStarted,
-            AlwaysStarted,
+            Always(Started::Started),
             "/health/started",
         )
         .await;
@@ -80,7 +62,7 @@ mod tests {
     async fn get_health_not_started() {
         let response = test_utilities::test_endpoint_handler(
             GetHealthStarted,
-            NeverStarted,
+            Always(Started::NotStarted),
             "/health/started",
         )
         .await;
