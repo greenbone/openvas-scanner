@@ -97,6 +97,6 @@ fn test_err_product_parse_error() {
 
     let os = "debian_10_product_parse_err";
     assert!(
-        matches!(notus.scan(os, &packages).expect_err("Should fail"), Error::VulnerabilityTestParseError(p, FixedPackage::ByRange { name, range }) if p == os && name == "gitlab-ce" && range.start == "?" && range.end == "=" )
+        matches!(notus.scan(os, &packages).expect_err("Should fail"), Error::VulnerabilityTestParseError(p, FixedPackage::ByRange { name, range, module }) if p == os && name == "gitlab-ce" && range.start == "?" && range.end == "=" && module.is_none())
     );
 }
