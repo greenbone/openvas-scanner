@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::sync::Arc;
 use std::{marker::PhantomData, pin::Pin};
 
@@ -18,13 +19,13 @@ pub struct InputData<'a> {
 pub trait Endpoint: Sync + Send + 'static {
     type In: Send + 'static;
     type Out: Send + 'static;
+    type InErr: Send + 'static + Into<BodyKind>;
 
     fn needs_authentication() -> bool;
     fn path_segments() -> &'static [&'static str];
     fn http_method() -> Method;
 
-    fn data_to_input(data: InputData) -> Self::In;
-
+    fn data_to_input(data: InputData) -> Result<Self::In, Self::InErr>;
     fn output_to_data(out: Self::Out) -> BodyKind;
 }
 
@@ -104,10 +105,13 @@ where
 {
     fn call(&self, data: InputData) -> Pin<Box<dyn Future<Output = BodyKind> + Send + '_>> {
         let input = E::data_to_input(data);
-        Box::pin(async move {
-            let output = self.handler.call(input).await;
-            E::output_to_data(output)
-        })
+        match input {
+            Ok(input) => Box::pin(async move {
+                let output = self.handler.call(input).await;
+                E::output_to_data(output)
+            }),
+            Err(err) => Box::pin(async move { err.into() }),
+        }
     }
 
     fn prefix(&self) -> &'static str {
@@ -309,4 +313,10 @@ fn segments_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) 
         }
     }
     true
+}
+
+impl From<Infallible> for BodyKind {
+    fn from(_: Infallible) -> Self {
+        unreachable!()
+    }
 }

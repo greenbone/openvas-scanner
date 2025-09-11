@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use hyper::StatusCode;
 
 use crate::{
@@ -26,6 +28,7 @@ pub struct GetHealthStarted;
 impl Endpoint for GetHealthStarted {
     type In = ();
     type Out = Started;
+    type InErr = Infallible;
 
     auth_method_segments_new!(
         authenticated: false,
@@ -33,8 +36,8 @@ impl Endpoint for GetHealthStarted {
         "health", "started"
     );
 
-    fn data_to_input(_: InputData) -> Self::In {
-        ()
+    fn data_to_input(_: InputData) -> Result<Self::In, Self::InErr> {
+        Ok(())
     }
 
     fn output_to_data(started: Started) -> BodyKind {
