@@ -459,10 +459,13 @@ pub mod test_utilities {
     };
 
     use http_body_util::{Empty, Full};
-    use hyper::{Request, body::Bytes};
+    use hyper::{Request, Response, body::Bytes, service::Service};
 
-    use super::{ClientHash, ClientIdentifier, EntryPoint, Method, NewEntryPoint, RequestHandlers};
-    use crate::{Authentication, Handlers, Scanner, models::FeedState};
+    use super::{
+        ClientHash, ClientIdentifier, EntryPoint, Method, NewEntryPoint, RequestHandlers,
+        response::BodyKindContent,
+    };
+    use crate::{Authentication, Endpoint, Handler, Handlers, Scanner, models::FeedState};
 
     pub fn entry_point(
         authentication: Authentication,
@@ -558,7 +561,33 @@ pub mod test_utilities {
             Err(std::io::Error::new(std::io::ErrorKind::NotFound, "").into())
         })
     }
+
+    pub async fn test_endpoint_handler<E, H>(
+        endpoint: E,
+        handler: H,
+        uri: &str,
+    ) -> Response<BodyKindContent>
+    where
+        E: Endpoint + Send + Sync + 'static,
+        <E as Endpoint>::Out: Send + Sync + 'static,
+        <E as Endpoint>::In: Send + Sync + 'static,
+        H: Handler<E> + Send + Sync + 'static,
+    {
+        let entry_point = entry_point_new(
+            Authentication::MTLS,
+            Handlers::single(endpoint, handler),
+            Some(ClientHash::from("ok")),
+        );
+        let req = Request::builder()
+            .uri(uri)
+            .method(E::http_method())
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+
+        entry_point.call(req).await.unwrap()
+    }
 }
+
 #[cfg(test)]
 mod tests {
     use http_body_util::Empty;

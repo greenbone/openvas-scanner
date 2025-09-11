@@ -54,14 +54,8 @@ impl Handler<GetHealthReady> for AlwaysReady {
 
 #[cfg(test)]
 mod tests {
-    use http_body_util::Empty;
-    use hyper::{Request, Response, service::Service};
-
     use super::{AlwaysReady, GetHealthReady, Ready, *};
-    use crate::{
-        Authentication, ClientHash, Handler, Handlers,
-        entry::{Bytes, response::BodyKindContent, test_utilities},
-    };
+    use crate::{Handler, entry::test_utilities};
 
     struct NeverReady;
 
@@ -71,32 +65,19 @@ mod tests {
         }
     }
 
-    async fn test_health_ready_handler<H: Handler<GetHealthReady> + Send + Sync + 'static>(
-        handler: H,
-    ) -> Response<BodyKindContent> {
-        let entry_point = test_utilities::entry_point_new(
-            Authentication::MTLS,
-            Handlers::single(GetHealthReady, handler),
-            Some(ClientHash::from("ok")),
-        );
-        let req = Request::builder()
-            .uri("/health/ready")
-            .method(Method::GET)
-            .body(Empty::<Bytes>::new())
-            .unwrap();
-
-        entry_point.call(req).await.unwrap()
-    }
-
     #[tokio::test]
     async fn get_health_ready() {
-        let response = test_health_ready_handler(AlwaysReady).await;
+        let response =
+            test_utilities::test_endpoint_handler(GetHealthReady, AlwaysReady, "/health/ready")
+                .await;
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
     }
 
     #[tokio::test]
     async fn get_health_not_ready() {
-        let response = test_health_ready_handler(NeverReady).await;
+        let response =
+            test_utilities::test_endpoint_handler(GetHealthReady, NeverReady, "/health/ready")
+                .await;
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 }

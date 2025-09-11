@@ -1,15 +1,12 @@
-use std::{pin::Pin, sync::Arc};
+use std::pin::Pin;
 
 use hyper::StatusCode;
 
 use crate::{
-    auth_method_segments,
-    entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
+    Endpoint, Handler, auth_method_segments_new,
+    endpoint::InputData,
+    entry::{Method, response::BodyKind},
 };
-
-pub trait GetHealthStarted: Send + Sync {
-    fn get_health_started(&self) -> Pin<Box<dyn Future<Output = Started> + Send>>;
-}
 
 pub enum Started {
     Started,
@@ -25,130 +22,68 @@ impl From<Started> for StatusCode {
     }
 }
 
-pub struct GetHealthStartedHandler<T> {
-    get_health_started: Arc<T>,
-}
+pub struct GetHealthStarted;
 
-impl<T> Prefixed for GetHealthStartedHandler<T>
-where
-    T: Prefixed,
-{
-    fn prefix(&self) -> &'static str {
-        self.get_health_started.prefix()
-    }
-}
+impl Endpoint for GetHealthStarted {
+    type In = ();
+    type Out = Started;
 
-#[derive(Default)]
-pub struct JustStarted;
-
-impl Prefixed for JustStarted {
-    fn prefix(&self) -> &'static str {
-        ""
-    }
-}
-
-impl GetHealthStarted for JustStarted {
-    fn get_health_started(&self) -> Pin<Box<dyn Future<Output = Started> + Send>> {
-        Box::pin(async move { Started::Started })
-    }
-}
-impl Default for GetHealthStartedHandler<JustStarted> {
-    fn default() -> Self {
-        Self {
-            get_health_started: Arc::new(JustStarted {}),
-        }
-    }
-}
-
-impl<S> RequestHandler for GetHealthStartedHandler<S>
-where
-    S: GetHealthStarted + Prefixed + 'static,
-{
-    auth_method_segments!(
+    auth_method_segments_new!(
         authenticated: false,
         Method::GET,
         "health", "started"
     );
 
-    fn call<'a, 'b>(
-        &'b self,
-        _: Arc<entry::ClientIdentifier>,
-        _: &'a entry::Uri,
-        _: Bytes,
-    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
-    where
-        'b: 'a,
-    {
-        let gsp = self.get_health_started.clone();
-        Box::pin(async move { BodyKind::no_content(gsp.get_health_started().await.into()) })
+    fn data_to_input(_: InputData) -> Self::In {
+        ()
+    }
+
+    fn output_to_data(started: Started) -> BodyKind {
+        BodyKind::no_content(started.into())
     }
 }
 
-impl<T> From<T> for GetHealthStartedHandler<T>
-where
-    T: GetHealthStarted + 'static,
-{
-    fn from(value: T) -> Self {
-        GetHealthStartedHandler {
-            get_health_started: Arc::new(value),
-        }
+#[derive(Default)]
+pub struct AlwaysStarted;
+
+impl Handler<GetHealthStarted> for AlwaysStarted {
+    fn call(&self, _: ()) -> Pin<Box<dyn Future<Output = Started> + Send>> {
+        Box::pin(async move { Started::Started })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use entry::test_utilities;
-    use http_body_util::Empty;
-    use hyper::{Request, service::Service};
+    use super::{AlwaysStarted, GetHealthStarted, Started, *};
+    use crate::{Handler, entry::test_utilities};
 
-    use super::*;
-    use crate::{Authentication, ClientHash, create_single_handler};
+    struct NeverStarted;
 
-    struct NotStarted {}
-
-    impl Prefixed for NotStarted {
-        fn prefix(&self) -> &'static str {
-            ""
-        }
-    }
-
-    impl GetHealthStarted for NotStarted {
-        fn get_health_started(&self) -> Pin<Box<dyn Future<Output = Started> + Send>> {
-            Box::pin(async move { super::Started::NotStarted })
+    impl Handler<GetHealthStarted> for NeverStarted {
+        fn call(&self, _: ()) -> Pin<Box<dyn Future<Output = Started> + Send>> {
+            Box::pin(async move { Started::NotStarted })
         }
     }
 
     #[tokio::test]
     async fn get_health_started() {
-        let entry_point = test_utilities::entry_point(
-            Authentication::MTLS,
-            create_single_handler!(GetHealthStartedHandler::from(super::JustStarted {})),
-            None,
-        );
-
-        let req = Request::builder()
-            .uri("/health/started")
-            .method(Method::GET)
-            .body(Empty::<Bytes>::new())
-            .unwrap();
-        let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+        let response = test_utilities::test_endpoint_handler(
+            GetHealthStarted,
+            AlwaysStarted,
+            "/health/started",
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
     }
 
     #[tokio::test]
     async fn get_health_not_started() {
-        let entry_point = test_utilities::entry_point(
-            Authentication::MTLS,
-            create_single_handler!(GetHealthStartedHandler::from(NotStarted {})),
-            Some(ClientHash::from("ok")),
-        );
-
-        let req = Request::builder()
-            .uri("/health/started")
-            .method(Method::GET)
-            .body(Empty::<Bytes>::new())
-            .unwrap();
-        let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let response = test_utilities::test_endpoint_handler(
+            GetHealthStarted,
+            NeverStarted,
+            "/health/started",
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 }
