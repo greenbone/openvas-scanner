@@ -2,7 +2,8 @@ use std::{pin::Pin, str::FromStr};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{
-    MapScanID, StreamResult, entry::Prefixed, models::HostInfo, prelude::*,
+    EndpointStream, GetScans, MapScanID, StreamHandler, StreamResult, entry::Prefixed,
+    models::HostInfo, prelude::*,
 };
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
@@ -143,8 +144,8 @@ impl MapScanID for Scans {
     }
 }
 
-impl GetScans for Scans {
-    fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
+impl StreamHandler<GetScans> for Scans {
+    fn call(&self, client_id: String) -> EndpointStream<Result<String, GetScansError>> {
         let result = query(
             r#"
                 SELECT scan_id FROM client_scan_map WHERE client_id = ?
@@ -156,7 +157,7 @@ impl GetScans for Scans {
             x.map(|x| x.get::<String, _>("scan_id"))
                 .map_err(GetScansError::from_external)
         });
-        Box::new(result)
+        Box::pin(result)
     }
 }
 
@@ -637,9 +638,8 @@ mod scans_utils {
 
 #[cfg(test)]
 mod test {
-
     use futures::StreamExt;
-    use greenbone_scanner_framework::prelude::*;
+    use greenbone_scanner_framework::{StreamHandler, prelude::*};
     use models::Phase;
 
     use super::scans_utils::second_client_id;
@@ -828,13 +828,13 @@ mod test {
                 .await
                 .expect("post scans should succeed");
         }
-        let result = entry.get_scans(client_id());
+        let result = entry.call(client_id());
 
         assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 5);
-        let result = entry.get_scans(second_client_id());
+        let result = entry.call(second_client_id());
 
         assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 5);
-        let result = entry.get_scans(ClientHash::from("third").to_string());
+        let result = entry.call(ClientHash::from("third").to_string());
         assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 0);
     }
 

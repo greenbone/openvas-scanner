@@ -100,7 +100,7 @@ impl BodyKind {
     /// If it is an empty stgream it will return an BodyKind::Stream with an empty stream
     pub async fn from_result_stream<T, E>(
         status_code: StatusCode,
-        mut input: StreamResult<'static, T, E>,
+        mut input: Box<dyn Stream<Item = Result<T, E>> + Unpin + Send + 'static>,
     ) -> Self
     where
         T: Default + serde::Serialize + Send + 'static,

@@ -9,7 +9,6 @@ use std::{
 use delete_scans_id::{DeleteScansId, DeleteScansIdHandler};
 use entry::Prefixed;
 pub use entry::{ClientHash, ClientIdentifier, RequestHandler, RequestHandlers};
-use get_scans::GetScansE;
 use get_scans_id::GetScansIdHandler;
 use get_scans_id_results::GetScansIdResultsHandler;
 use get_scans_id_results_id::GetScansIdResultsIdHandler;
@@ -22,7 +21,7 @@ mod delete_scans_id;
 pub mod entry;
 pub use entry::response::StreamResult;
 mod get_scans;
-pub use get_scans::GetScansError;
+pub use get_scans::{GetScans, GetScansError};
 //TODO: move
 mod get_scans_id;
 pub use get_scans_id::{GetScansIDError, GetScansId};
@@ -48,7 +47,7 @@ use post_scans::PostScansHandler;
 use post_scans_id::{PostScansId, PostScansIdHandler};
 use tokio::net::TcpListener;
 mod endpoint;
-pub use endpoint::{Endpoint, Handler, Handlers};
+pub use endpoint::{Endpoint, EndpointStream, Handler, Handlers, StreamEndpoint, StreamHandler};
 
 pub trait ExternalError: core::error::Error + Send + Sync + 'static {}
 
@@ -234,7 +233,7 @@ impl<T> RuntimeBuilder<T> {
     ) -> RuntimeBuilder<T>
     where
         S: PostScans
-            + Handler<GetScansE>
+            + StreamHandler<GetScans>
             + GetScansId
             + GetScansIdResults
             + GetScansIdResultsId
@@ -246,7 +245,7 @@ impl<T> RuntimeBuilder<T> {
     {
         let ior = self
             .add_request_handler(PostScansHandler::from(scans.clone()))
-            .add_request_handler_new(GetScansE, scans.clone())
+            .add_stream_handler_new(GetScans, scans.clone())
             .add_request_handler(GetScansIdHandler::from(scans.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(scans.clone()))
             .add_request_handler(GetScansIdResultsIdHandler::from(scans.clone()))
@@ -298,6 +297,19 @@ impl<T> RuntimeBuilder<T> {
         }
     }
 
+    fn add_stream_handler_new<E: StreamEndpoint, H>(
+        mut self,
+        endpoint: E,
+        handler: H,
+    ) -> RuntimeBuilder<T>
+    where
+        H: StreamHandler<E>,
+    {
+        self.new_handlers.add_stream(endpoint, handler);
+        self
+    }
+
+    #[cfg(test)]
     fn add_request_handler_new<E: Endpoint, H>(
         mut self,
         endpoint: E,
@@ -318,7 +330,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     ) -> RuntimeBuilder<runtime_builder_states::DeleteScanIDSet>
     where
         T: PostScans
-            + Handler<GetScansE>
+            + StreamHandler<GetScans>
             + GetScansId
             + GetScansIdResults
             + GetScansIdResultsId
@@ -329,7 +341,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     {
         let ior = self
             .add_request_handler(PostScansHandler::from(value.clone()))
-            .add_request_handler_new(GetScansE, value.clone())
+            .add_stream_handler_new(GetScans, value.clone())
             .add_request_handler(GetScansIdHandler::from(value.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(value.clone()))
             .add_request_handler(GetScansIdStatusHandler::from(value.clone()))

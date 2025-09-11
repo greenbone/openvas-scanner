@@ -45,7 +45,7 @@ impl Endpoint for GetHealthAlive {
 #[cfg(test)]
 mod tests {
     use super::{Alive, GetHealthAlive, *};
-    use crate::{Handler, entry::test_utilities, get_health::Always};
+    use crate::{entry::test_utilities, get_health::Always};
 
     #[tokio::test]
     async fn get_health_alive() {

@@ -26,10 +26,21 @@ pub trait Endpoint: Sync + Send + 'static {
     fn data_to_input(data: InputData) -> Self::In;
 
     fn output_to_data(out: Self::Out) -> BodyKind;
+}
 
-    fn output_to_data_async(out: Self::Out) -> impl Future<Output = BodyKind> + Send {
-        async move { Self::output_to_data(out) }
-    }
+pub trait StreamEndpoint: Sync + Send + 'static {
+    type In: Send + 'static;
+    type Item: Send + 'static;
+
+    fn needs_authentication() -> bool;
+    fn path_segments() -> &'static [&'static str];
+    fn http_method() -> Method;
+
+    fn data_to_input(data: InputData) -> Self::In;
+
+    fn output_to_data(
+        out: impl Stream<Item = Self::Item> + Send + Unpin + 'static,
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send + 'static>>;
 }
 
 pub trait Handler<E: Endpoint>: Sync + Send + 'static {
@@ -43,12 +54,32 @@ pub trait Handler<E: Endpoint>: Sync + Send + 'static {
     ) -> Pin<Box<dyn std::future::Future<Output = <E as Endpoint>::Out> + Send>>;
 }
 
+pub type EndpointStream<T> = Pin<Box<dyn Stream<Item = T> + Send>>;
+
+pub trait StreamHandler<E: StreamEndpoint>: Sync + Send + 'static {
+    fn prefix() -> &'static str {
+        ""
+    }
+
+    fn call(&self, input: <E as StreamEndpoint>::In)
+    -> EndpointStream<<E as StreamEndpoint>::Item>;
+}
+
 impl<T: Handler<E>, E: Endpoint> Handler<E> for Arc<T> {
     fn call(
         &self,
         input: <E as Endpoint>::In,
     ) -> Pin<Box<dyn std::future::Future<Output = <E as Endpoint>::Out> + Send>> {
         <T as Handler<E>>::call(self, input)
+    }
+}
+
+impl<T: StreamHandler<E>, E: StreamEndpoint> StreamHandler<E> for Arc<T> {
+    fn call(
+        &self,
+        input: <E as StreamEndpoint>::In,
+    ) -> EndpointStream<<E as StreamEndpoint>::Item> {
+        <T as StreamHandler<E>>::call(self, input)
     }
 }
 
@@ -60,14 +91,14 @@ trait RequestHandler {
     fn http_method(&self) -> Method;
 }
 
-struct TypeErasedRequestHandler<T, E> {
+struct TypeErasedHandler<T, E> {
     handler: T,
     marker: PhantomData<E>,
 }
 
-impl<T: Handler<E>, E: Endpoint> RequestHandler for TypeErasedRequestHandler<T, E>
+impl<T: Handler<E>, E: Endpoint> RequestHandler for TypeErasedHandler<T, E>
 where
-    TypeErasedRequestHandler<T, E>: Sync,
+    TypeErasedHandler<T, E>: Sync,
     <E as Endpoint>::In: Send,
     <E as Endpoint>::Out: Send,
 {
@@ -75,7 +106,7 @@ where
         let input = E::data_to_input(data);
         Box::pin(async move {
             let output = self.handler.call(input).await;
-            E::output_to_data_async(output).await
+            E::output_to_data(output)
         })
     }
 
@@ -96,6 +127,42 @@ where
     }
 }
 
+struct TypeErasedStreamHandler<T, E> {
+    handler: T,
+    marker: PhantomData<E>,
+}
+
+impl<T: StreamHandler<E>, E: StreamEndpoint> RequestHandler for TypeErasedStreamHandler<T, E>
+where
+    TypeErasedStreamHandler<T, E>: Sync,
+    <E as StreamEndpoint>::In: Send,
+    <E as StreamEndpoint>::Item: Send,
+{
+    fn call(&self, data: InputData) -> Pin<Box<dyn Future<Output = BodyKind> + Send + '_>> {
+        let input = E::data_to_input(data);
+        Box::pin(async move {
+            let output = self.handler.call(input);
+            E::output_to_data(output).await
+        })
+    }
+
+    fn prefix(&self) -> &'static str {
+        <T as StreamHandler<E>>::prefix()
+    }
+
+    fn needs_authentication(&self) -> bool {
+        <E as StreamEndpoint>::needs_authentication()
+    }
+
+    fn path_segments(&self) -> &'static [&'static str] {
+        <E as StreamEndpoint>::path_segments()
+    }
+
+    fn http_method(&self) -> Method {
+        <E as StreamEndpoint>::http_method()
+    }
+}
+
 #[derive(Default)]
 pub struct Handlers {
     inner: Vec<Arc<Box<dyn RequestHandler + Send + Sync>>>,
@@ -111,7 +178,22 @@ impl Handlers {
         <E as Endpoint>::In: Send,
         <E as Endpoint>::Out: Send,
     {
-        self.inner.push(Arc::new(Box::new(TypeErasedRequestHandler {
+        self.inner.push(Arc::new(Box::new(TypeErasedHandler {
+            handler,
+            marker: PhantomData,
+        })));
+    }
+
+    // We take the ZST _endpoint as an argument so we don't
+    // need turbofish syntax for this method
+    pub fn add_stream<E: StreamEndpoint, T: StreamHandler<E>>(&mut self, _endpoint: E, handler: T)
+    where
+        T: Send + Sync + 'static,
+        E: Send + Sync + 'static,
+        <E as StreamEndpoint>::In: Send,
+        <E as StreamEndpoint>::Item: Send,
+    {
+        self.inner.push(Arc::new(Box::new(TypeErasedStreamHandler {
             handler,
             marker: PhantomData,
         })));
@@ -128,6 +210,20 @@ impl Handlers {
     {
         let mut s = Self::default();
         s.add::<E, T>(endpoint, handler);
+        s
+    }
+
+    // We take the ZST _endpoint as an argument so we don't
+    // need turbofish syntax for this method
+    pub fn single_stream<E: StreamEndpoint, T: StreamHandler<E>>(endpoint: E, handler: T) -> Self
+    where
+        T: Send + Sync + 'static,
+        E: Send + Sync + 'static,
+        <E as StreamEndpoint>::In: Send,
+        <E as StreamEndpoint>::Item: Send,
+    {
+        let mut s = Self::default();
+        s.add_stream::<E, T>(endpoint, handler);
         s
     }
 

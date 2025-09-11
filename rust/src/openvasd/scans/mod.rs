@@ -1,7 +1,10 @@
 use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
-use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
+use greenbone_scanner_framework::{
+    EndpointStream, GetScans, StreamEndpoint, StreamHandler, entry::Prefixed,
+    models::AliveTestMethods, prelude::*,
+};
 use scannerlib::models::{FeedState, ResultType};
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
@@ -247,12 +250,12 @@ where
     GetScansError::External(Box::new(value))
 }
 
-impl<E> GetScans for Endpoints<E>
+impl<E> StreamHandler<GetScans> for Endpoints<E>
 where
-    E: Send + Sync,
+    E: Send + Sync + 'static,
 {
-    fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
-        Box::new(
+    fn call(&self, client_id: String) -> EndpointStream<<GetScans as StreamEndpoint>::Item> {
+        Box::pin(
             query("SELECT scan_id FROM client_scan_map WHERE client_id = ?")
                 .bind(client_id)
                 .fetch(&self.pool)
@@ -704,8 +707,8 @@ mod tests {
 
     use futures::StreamExt;
     use greenbone_scanner_framework::{
-        GetScans, GetScansId, GetScansIdResults, GetScansIdStatus, MapScanID, PostScans,
-        PostScansError,
+        GetScansId, GetScansIdResults, GetScansIdStatus, MapScanID, PostScans, PostScansError,
+        StreamHandler,
         models::{
             self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
             ScanPreference, Service,
@@ -1159,11 +1162,11 @@ mod tests {
         for scan in generate_scan() {
             undertest.post_scans(client_id.clone(), scan).await?;
         }
-        let client_ids = undertest.get_scans(client_id).collect::<Vec<_>>().await;
+        let client_ids = undertest.call(client_id).collect::<Vec<_>>().await;
         assert_eq!(client_ids.iter().filter(|x| x.is_err()).count(), 0);
         assert_eq!(client_ids.iter().filter(|x| x.is_ok()).count(), scans.len());
         let client_ids = undertest
-            .get_scans("notme".to_string())
+            .call("notme".to_string())
             .collect::<Vec<_>>()
             .await;
         assert!(client_ids.is_empty());

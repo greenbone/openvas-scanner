@@ -4,18 +4,17 @@ use futures::Stream;
 use hyper::StatusCode;
 
 use crate::{
-    Endpoint, ExternalError, auth_method_segments_new,
-    endpoint::InputData,
+    ExternalError, auth_method_segments_new,
+    endpoint::{InputData, StreamEndpoint},
     entry::{self, Method, response::BodyKind},
     internal_server_error,
 };
 
-pub struct GetScansE;
+pub struct GetScans;
 
-impl Endpoint for GetScansE {
+impl StreamEndpoint for GetScans {
     type In = String;
-
-    type Out = Pin<Box<dyn Stream<Item = Result<String, GetScansError>> + Send>>;
+    type Item = Result<String, GetScansError>;
 
     auth_method_segments_new!(
         authenticated: true,
@@ -27,12 +26,12 @@ impl Endpoint for GetScansE {
         entry::enforce_client_hash(&data.client_id).to_string()
     }
 
-    fn output_to_data(_: Self::Out) -> BodyKind {
-        unimplemented!()
-    }
-
-    fn output_to_data_async(stream: Self::Out) -> impl Future<Output = BodyKind> {
-        async move { BodyKind::from_result_stream(StatusCode::OK, Box::new(stream)).await }
+    fn output_to_data(
+        stream: impl Stream<Item = Self::Item> + Send + Unpin + 'static,
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send + 'static>> {
+        Box::pin(
+            async move { BodyKind::from_result_stream(StatusCode::OK, Box::new(stream)).await },
+        )
     }
 }
 
@@ -78,32 +77,21 @@ mod tests {
     use tokio::io;
 
     use super::*;
-    use crate::{Authentication, ClientHash, Handler, Handlers, entry::Bytes};
+    use crate::{
+        Authentication, ClientHash, EndpointStream, Handlers, StreamHandler, entry::Bytes,
+    };
 
     struct Test;
 
-    fn make_future<T: 'static>(
-        stream: impl Stream<Item = T> + Send + 'static,
-    ) -> Pin<
-        Box<dyn Future<Output = Pin<Box<dyn Stream<Item = T> + Send + 'static>>> + Send + 'static>,
-    > {
-        let stream: Pin<Box<dyn Stream<Item = T> + 'static + Send>> = Box::pin(stream);
-        Box::pin(async move { stream })
-    }
-
-    impl Handler<GetScansE> for Test {
-        fn call(
-            &self,
-            client_id: String,
-        ) -> Pin<Box<dyn std::future::Future<Output = <GetScansE as Endpoint>::Out> + Send>>
-        {
+    impl StreamHandler<GetScans> for Test {
+        fn call(&self, client_id: String) -> EndpointStream<<GetScans as StreamEndpoint>::Item> {
             let ise = ClientHash::from("internal_server_error").to_string();
             if ise == client_id {
-                make_future(stream::iter(vec![Err(GetScansError::External(Box::new(
+                Box::pin(stream::iter(vec![Err(GetScansError::External(Box::new(
                     io::Error::other("oh no"),
                 )))]))
             } else {
-                make_future(stream::iter(vec![Ok(String::default())]))
+                Box::pin(stream::iter(vec![Ok(String::default())]))
             }
         }
     }
@@ -112,7 +100,7 @@ mod tests {
     async fn internal_server_error() {
         let entry_point = test_utilities::entry_point_new(
             Authentication::MTLS,
-            Handlers::single(GetScansE, Test),
+            Handlers::single_stream(GetScans, Test),
             Some(ClientHash::from("internal_server_error")),
         );
 
@@ -129,7 +117,7 @@ mod tests {
     async fn get_scans() {
         let entry_point = test_utilities::entry_point_new(
             Authentication::MTLS,
-            Handlers::single(GetScansE, Test),
+            Handlers::single_stream(GetScans, Test),
             Some(ClientHash::from("ok")),
         );
 
