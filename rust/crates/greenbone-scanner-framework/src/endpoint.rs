@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::{marker::PhantomData, pin::Pin};
 
+use futures::Stream;
 use http_body_util::BodyExt;
 use hyper::StatusCode;
 
@@ -14,9 +15,9 @@ pub struct InputData<'a> {
     pub bytes: Bytes,
 }
 
-pub trait Endpoint {
-    type In;
-    type Out;
+pub trait Endpoint: Sync + Send + 'static {
+    type In: Send + 'static;
+    type Out: Send + 'static;
 
     fn needs_authentication() -> bool;
     fn path_segments() -> &'static [&'static str];
@@ -25,9 +26,13 @@ pub trait Endpoint {
     fn data_to_input(data: InputData) -> Self::In;
 
     fn output_to_data(out: Self::Out) -> BodyKind;
+
+    fn output_to_data_async(out: Self::Out) -> impl Future<Output = BodyKind> + Send {
+        async move { Self::output_to_data(out) }
+    }
 }
 
-pub trait Handler<E: Endpoint> {
+pub trait Handler<E: Endpoint>: Sync + Send + 'static {
     fn prefix() -> &'static str {
         ""
     }
@@ -36,6 +41,15 @@ pub trait Handler<E: Endpoint> {
         &self,
         input: <E as Endpoint>::In,
     ) -> Pin<Box<dyn std::future::Future<Output = <E as Endpoint>::Out> + Send>>;
+}
+
+impl<T: Handler<E>, E: Endpoint> Handler<E> for Arc<T> {
+    fn call(
+        &self,
+        input: <E as Endpoint>::In,
+    ) -> Pin<Box<dyn std::future::Future<Output = <E as Endpoint>::Out> + Send>> {
+        <T as Handler<E>>::call(self, input)
+    }
 }
 
 trait RequestHandler {
@@ -61,9 +75,10 @@ where
         let input = E::data_to_input(data);
         Box::pin(async move {
             let output = self.handler.call(input).await;
-            E::output_to_data(output)
+            E::output_to_data_async(output).await
         })
     }
+
     fn prefix(&self) -> &'static str {
         <T as Handler<E>>::prefix()
     }

@@ -9,7 +9,7 @@ use std::{
 use delete_scans_id::{DeleteScansId, DeleteScansIdHandler};
 use entry::Prefixed;
 pub use entry::{ClientHash, ClientIdentifier, RequestHandler, RequestHandlers};
-use get_scans::GetScansHandler;
+use get_scans::GetScansE;
 use get_scans_id::GetScansIdHandler;
 use get_scans_id_results::GetScansIdResultsHandler;
 use get_scans_id_results_id::GetScansIdResultsIdHandler;
@@ -22,7 +22,7 @@ mod delete_scans_id;
 pub mod entry;
 pub use entry::response::StreamResult;
 mod get_scans;
-pub use get_scans::{GetScans, GetScansError};
+pub use get_scans::GetScansError;
 //TODO: move
 mod get_scans_id;
 pub use get_scans_id::{GetScansIDError, GetScansId};
@@ -60,7 +60,7 @@ pub mod prelude {
     //! To use it call `use greenbone_scanner_framework::preluse::*`.
 
     pub use crate::{
-        ClientHash, GetScans, GetScansError, GetScansIDError, GetScansIDResultsError,
+        ClientHash, GetScansError, GetScansIDError, GetScansIDResultsError,
         GetScansIDResultsIDError, GetScansIDStatusError, GetScansId, GetScansIdResults,
         GetScansIdResultsId, GetScansIdStatus, MapScanID, PostScans, PostScansError, StreamResult,
         delete_scans_id::{DeleteScansIDError, DeleteScansId},
@@ -234,7 +234,7 @@ impl<T> RuntimeBuilder<T> {
     ) -> RuntimeBuilder<T>
     where
         S: PostScans
-            + GetScans
+            + Handler<GetScansE>
             + GetScansId
             + GetScansIdResults
             + GetScansIdResultsId
@@ -246,7 +246,7 @@ impl<T> RuntimeBuilder<T> {
     {
         let ior = self
             .add_request_handler(PostScansHandler::from(scans.clone()))
-            .add_request_handler(GetScansHandler::from(scans.clone()))
+            .add_request_handler_new(GetScansE, scans.clone())
             .add_request_handler(GetScansIdHandler::from(scans.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(scans.clone()))
             .add_request_handler(GetScansIdResultsIdHandler::from(scans.clone()))
@@ -297,6 +297,18 @@ impl<T> RuntimeBuilder<T> {
             authentication,
         }
     }
+
+    fn add_request_handler_new<E: Endpoint, H>(
+        mut self,
+        endpoint: E,
+        handler: H,
+    ) -> RuntimeBuilder<T>
+    where
+        H: Handler<E>,
+    {
+        self.new_handlers.add(endpoint, handler);
+        self
+    }
 }
 
 impl RuntimeBuilder<runtime_builder_states::Start> {
@@ -306,7 +318,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     ) -> RuntimeBuilder<runtime_builder_states::DeleteScanIDSet>
     where
         T: PostScans
-            + GetScans
+            + Handler<GetScansE>
             + GetScansId
             + GetScansIdResults
             + GetScansIdResultsId
@@ -317,7 +329,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     {
         let ior = self
             .add_request_handler(PostScansHandler::from(value.clone()))
-            .add_request_handler(GetScansHandler::from(value.clone()))
+            .add_request_handler_new(GetScansE, value.clone())
             .add_request_handler(GetScansIdHandler::from(value.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(value.clone()))
             .add_request_handler(GetScansIdStatusHandler::from(value.clone()))

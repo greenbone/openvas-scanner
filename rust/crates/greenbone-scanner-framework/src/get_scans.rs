@@ -1,14 +1,12 @@
-use std::{fmt::Debug, pin::Pin, sync::Arc};
+use std::{fmt::Debug, pin::Pin};
 
+use futures::Stream;
 use hyper::StatusCode;
 
 use crate::{
-    Endpoint, ExternalError, auth_method_segments, auth_method_segments_new,
+    Endpoint, ExternalError, auth_method_segments_new,
     endpoint::InputData,
-    entry::{
-        self, Bytes, Method, Prefixed, RequestHandler,
-        response::{BodyKind, StreamResult},
-    },
+    entry::{self, Method, response::BodyKind},
     internal_server_error,
 };
 
@@ -17,7 +15,7 @@ pub struct GetScansE;
 impl Endpoint for GetScansE {
     type In = String;
 
-    type Out = Result<Vec<String>, GetScansError>;
+    type Out = Pin<Box<dyn Stream<Item = Result<String, GetScansError>> + Send>>;
 
     auth_method_segments_new!(
         authenticated: true,
@@ -30,71 +28,11 @@ impl Endpoint for GetScansE {
     }
 
     fn output_to_data(_: Self::Out) -> BodyKind {
-        todo!()
+        unimplemented!()
     }
-}
 
-pub trait GetScans: Send + Sync {
-    fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError>;
-}
-
-pub struct GetScansHandler<T> {
-    get_scans: Arc<T>,
-}
-
-impl<T> Prefixed for GetScansHandler<T>
-where
-    T: Prefixed,
-{
-    fn prefix(&self) -> &'static str {
-        self.get_scans.prefix()
-    }
-}
-
-impl<S> RequestHandler for GetScansHandler<S>
-where
-    S: GetScans + Prefixed + 'static,
-{
-    auth_method_segments!(
-        authenticated: true,
-        Method::GET,
-        "scans"
-    );
-
-    fn call<'a, 'b>(
-        &'b self,
-        client_id: Arc<entry::ClientIdentifier>,
-        _: &'a entry::Uri,
-        _: Bytes,
-    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
-    where
-        'b: 'a,
-    {
-        let gsp = self.get_scans.clone();
-        Box::pin(async move {
-            let input = gsp.get_scans(entry::enforce_client_hash(&client_id).to_string());
-            BodyKind::from_result_stream(StatusCode::OK, input).await
-        })
-    }
-}
-
-impl<T> From<T> for GetScansHandler<T>
-where
-    T: GetScans + 'static,
-{
-    fn from(value: T) -> Self {
-        GetScansHandler {
-            get_scans: Arc::new(value),
-        }
-    }
-}
-
-impl<T> From<Arc<T>> for GetScansHandler<T>
-where
-    T: GetScans + 'static,
-{
-    fn from(value: Arc<T>) -> Self {
-        GetScansHandler { get_scans: value }
+    fn output_to_data_async(stream: Self::Out) -> impl Future<Output = BodyKind> {
+        async move { BodyKind::from_result_stream(StatusCode::OK, Box::new(stream)).await }
     }
 }
 
@@ -134,14 +72,24 @@ impl From<GetScansError> for BodyKind {
 #[cfg(test)]
 mod tests {
     use entry::test_utilities;
+    use futures::stream;
     use http_body_util::{BodyExt, Empty};
     use hyper::{Request, service::Service};
     use tokio::io;
 
     use super::*;
-    use crate::{Authentication, ClientHash, Handler, Handlers};
+    use crate::{Authentication, ClientHash, Handler, Handlers, entry::Bytes};
 
     struct Test;
+
+    fn make_future<T: 'static>(
+        stream: impl Stream<Item = T> + Send + 'static,
+    ) -> Pin<
+        Box<dyn Future<Output = Pin<Box<dyn Stream<Item = T> + Send + 'static>>> + Send + 'static>,
+    > {
+        let stream: Pin<Box<dyn Stream<Item = T> + 'static + Send>> = Box::pin(stream);
+        Box::pin(async move { stream })
+    }
 
     impl Handler<GetScansE> for Test {
         fn call(
@@ -151,11 +99,11 @@ mod tests {
         {
             let ise = ClientHash::from("internal_server_error").to_string();
             if ise == client_id {
-                Box::pin(async move {
-                    Err(GetScansError::External(Box::new(io::Error::other("oh no"))))
-                })
+                make_future(stream::iter(vec![Err(GetScansError::External(Box::new(
+                    io::Error::other("oh no"),
+                )))]))
             } else {
-                Box::pin(async move { Ok(vec![String::default()]) })
+                make_future(stream::iter(vec![Ok(String::default())]))
             }
         }
     }
