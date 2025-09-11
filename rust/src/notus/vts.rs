@@ -130,9 +130,15 @@ where
             FixedPackage::ByFullName {
                 specifier,
                 full_name,
+                app_stream,
             } => {
+                let mut full_name = full_name.clone();
+
+                if let Some(app_stream) = app_stream {
+                    full_name = format!("{}@{}:{}", full_name, app_stream.name, app_stream.stream);
+                }
                 // Parse package from full name
-                let package = P::from_full_name(full_name)?;
+                let package = P::from_full_name(&full_name)?;
                 // Create Vulnerability Test Entry
                 Some((
                     package.get_name(),
@@ -149,9 +155,15 @@ where
                 full_version,
                 specifier,
                 name,
+                app_stream,
             } => {
+                let mut full_version = full_version.clone();
+                if let Some(app_stream) = app_stream {
+                    full_version =
+                        format!("{}@{}:{}", full_version, app_stream.name, app_stream.stream);
+                }
                 // Parse package from name and full version
-                let package = P::from_name_and_full_version(name, full_version)?;
+                let package = P::from_name_and_full_version(name, &full_version)?;
                 // Create Vulnerability Test Entry
                 Some((
                     package.get_name(),
@@ -164,10 +176,20 @@ where
                     },
                 ))
             }
-            FixedPackage::ByRange { range, name } => {
+            FixedPackage::ByRange {
+                range,
+                name,
+                app_stream,
+            } => {
                 // Parse both packages from name and full version
-                let start = P::from_name_and_full_version(name, &range.start)?;
-                let end = P::from_name_and_full_version(name, &range.end)?;
+                let mut start = range.start.clone();
+                let mut end = range.end.clone();
+                if let Some(app_stream) = app_stream {
+                    start = format!("{}@{}:{}", start, app_stream.name, app_stream.stream);
+                    end = format!("{}@{}:{}", end, app_stream.name, app_stream.stream);
+                }
+                let start = P::from_name_and_full_version(name, &start)?;
+                let end = P::from_name_and_full_version(name, &end)?;
                 // Create Vulnerability Test Entry
                 Some((
                     start.get_name(),
