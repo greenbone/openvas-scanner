@@ -4,8 +4,9 @@
 use crate::models::PreferenceValue;
 use crate::nasl::prelude::*;
 use crate::scanner::preferences::preference::PREFERENCES;
-#[nasl_function(named(id))]
-fn script_get_preference(
+use base64::Engine as _;
+
+fn script_get_preference_shared(
     register: &Register,
     config: &ScanCtx,
     name: Option<String>,
@@ -42,6 +43,39 @@ fn script_get_preference(
     None
 }
 
+fn script_get_preference_file_content_shared(
+    register: &Register,
+    config: &ScanCtx,
+    name: Option<String>,
+    id: Option<usize>,
+) -> Option<Vec<u8>> {
+    let content = script_get_preference_shared(register, config, name, id)?;
+    let content = content.as_string().unwrap();
+    base64::engine::general_purpose::STANDARD
+        .decode(content)
+        .ok()
+}
+
+#[nasl_function(named(id))]
+fn script_get_preference_file_content(
+    register: &Register,
+    config: &ScanCtx,
+    name: Option<String>,
+    id: Option<usize>,
+) -> Option<Vec<u8>> {
+    script_get_preference_file_content_shared(register, config, name, id)
+}
+
+#[nasl_function(named(id))]
+fn script_get_preference(
+    register: &Register,
+    config: &ScanCtx,
+    name: Option<String>,
+    id: Option<usize>,
+) -> Option<NaslValue> {
+    script_get_preference_shared(register, config, name, id)
+}
+
 #[nasl_function]
 fn get_preference(config: &ScanCtx, name: String) -> Option<NaslValue> {
     let val = if let Some(pref) = config.scan_params().find(|p| p.id == name) {
@@ -76,5 +110,6 @@ function_set! {
     (
         script_get_preference,
         get_preference,
+        script_get_preference_file_content,
     )
 }
