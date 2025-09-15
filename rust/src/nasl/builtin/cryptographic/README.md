@@ -82,6 +82,7 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - ntlmv2_response
 - lm_owf_gen
 - nt_owf_gen
+- ntv2_owf_gen
 
 ## Not yet implemented
 
@@ -102,7 +103,3 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - prf_sha384
 - rc4_encrypt
 - tls1_prf
-
-## Not in use
-
-- ntv2_owf_gen

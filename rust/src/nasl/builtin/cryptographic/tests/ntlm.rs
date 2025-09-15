@@ -55,3 +55,15 @@ fn nt_owf_gen() {
         decode_hex("e65796bd1b533adde5b71063447b0610").unwrap(),
     );
 }
+
+#[test]
+fn ntv2_owf_gen() {
+    let mut t = TestBuilder::default();
+    t.run(r#"owf = raw_string(0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10);"#);
+    t.run(r#"login = "user";"#);
+    t.run(r#"domain = "domain";"#);
+    t.ok(
+        r#"result = ntv2_owf_gen(owf: owf, login: login, domain: domain);"#,
+        decode_hex("7b313f129d35d795f4505df372cab865").unwrap(),
+    );
+}

@@ -416,6 +416,58 @@ fn nt_owf_gen(pass: StringOrData) -> Vec<u8> {
     hasher.finalize().to_vec()
 }
 
+#[nasl_function(named(owf, login, domain))]
+fn ntv2_owf_gen(
+    owf: StringOrData,
+    login: StringOrData,
+    domain: StringOrData,
+) -> Result<Vec<u8>, FnError> {
+    use hmac::{Hmac, Mac};
+    use md5::Md5;
+
+    if login.0.is_empty() {
+        return Err(FnError::wrong_unnamed_argument(
+            "login of length >= 1",
+            &format!("login of length {}", login.0.len()),
+        ));
+    }
+
+    if domain.0.is_empty() {
+        return Err(FnError::wrong_unnamed_argument(
+            "domain of length >= 1",
+            &format!("domain of length {}", domain.0.len()),
+        ));
+    }
+
+    if owf.0.len() != 16 {
+        return Err(FnError::wrong_unnamed_argument(
+            "owf of length 16",
+            &format!("owf of length {}", owf.0.len()),
+        ));
+    }
+
+    let user: Vec<u8> = login
+        .0
+        .to_uppercase()
+        .as_bytes()
+        .iter()
+        .flat_map(|b| [*b, 0u8])
+        .collect();
+    let domain: Vec<u8> = domain
+        .0
+        .to_uppercase()
+        .as_bytes()
+        .iter()
+        .flat_map(|b| [*b, 0u8])
+        .collect();
+
+    // We can unwrap here, as the key is always 16 bytes.
+    let mut hmac = Hmac::<Md5>::new_from_slice(owf.0.as_bytes()).unwrap();
+    hmac.update(&user);
+    hmac.update(&domain);
+    Ok(hmac.finalize().into_bytes().to_vec())
+}
+
 pub struct Ntlm;
 
 function_set! {
@@ -428,6 +480,7 @@ function_set! {
         (ntlmv2_hash, "NTLMv2_HASH"),
         key_exchange,
         lm_owf_gen,
-        nt_owf_gen
+        nt_owf_gen,
+        ntv2_owf_gen
     )
 }
