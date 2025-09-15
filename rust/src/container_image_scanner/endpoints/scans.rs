@@ -2,7 +2,7 @@ use std::{pin::Pin, str::FromStr};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{
-    EndpointStream, GetScans, MapScanID, StreamHandler, StreamResult, entry::Prefixed,
+    GetScans, MapScanID, StreamHandler, StreamHandlerOutput, StreamResult, entry::Prefixed,
     models::HostInfo, prelude::*,
 };
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
@@ -145,7 +145,7 @@ impl MapScanID for Scans {
 }
 
 impl StreamHandler<GetScans> for Scans {
-    fn call(&self, client_id: String) -> EndpointStream<Result<String, GetScansError>> {
+    fn call(&self, client_id: String) -> StreamHandlerOutput<GetScans> {
         let result = query(
             r#"
                 SELECT scan_id FROM client_scan_map WHERE client_id = ?

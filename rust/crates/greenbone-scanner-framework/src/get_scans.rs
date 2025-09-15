@@ -78,13 +78,13 @@ mod tests {
 
     use super::*;
     use crate::{
-        Authentication, ClientHash, EndpointStream, Handlers, StreamHandler, entry::Bytes,
+        Authentication, ClientHash, Handlers, StreamHandler, StreamHandlerOutput, entry::Bytes,
     };
 
     struct Test;
 
     impl StreamHandler<GetScans> for Test {
-        fn call(&self, client_id: String) -> EndpointStream<<GetScans as StreamEndpoint>::Item> {
+        fn call(&self, client_id: String) -> StreamHandlerOutput<GetScans> {
             let ise = ClientHash::from("internal_server_error").to_string();
             if ise == client_id {
                 Box::pin(stream::iter(vec![Err(GetScansError::External(Box::new(

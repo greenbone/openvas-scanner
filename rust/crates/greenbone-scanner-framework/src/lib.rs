@@ -47,7 +47,9 @@ use post_scans::PostScansHandler;
 use post_scans_id::{PostScansId, PostScansIdHandler};
 use tokio::net::TcpListener;
 mod endpoint;
-pub use endpoint::{Endpoint, EndpointStream, Handler, Handlers, StreamEndpoint, StreamHandler};
+pub use endpoint::{
+    Endpoint, Handler, Handlers, StreamEndpoint, StreamHandler, StreamHandlerOutput,
+};
 
 pub trait ExternalError: core::error::Error + Send + Sync + 'static {}
 

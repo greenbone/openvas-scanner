@@ -2,8 +2,8 @@ use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{
-    EndpointStream, GetScans, StreamEndpoint, StreamHandler, entry::Prefixed,
-    models::AliveTestMethods, prelude::*,
+    GetScans, StreamHandler, StreamHandlerOutput, entry::Prefixed, models::AliveTestMethods,
+    prelude::*,
 };
 use scannerlib::models::{FeedState, ResultType};
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteRow};
@@ -254,7 +254,7 @@ impl<E> StreamHandler<GetScans> for Endpoints<E>
 where
     E: Send + Sync + 'static,
 {
-    fn call(&self, client_id: String) -> EndpointStream<<GetScans as StreamEndpoint>::Item> {
+    fn call(&self, client_id: String) -> StreamHandlerOutput<GetScans> {
         Box::pin(
             query("SELECT scan_id FROM client_scan_map WHERE client_id = ?")
                 .bind(client_id)

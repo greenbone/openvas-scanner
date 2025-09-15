@@ -44,42 +44,34 @@ pub trait StreamEndpoint: Sync + Send + 'static {
     ) -> Pin<Box<dyn Future<Output = BodyKind> + Send + 'static>>;
 }
 
+pub type HandlerOutput<E> = Pin<Box<dyn std::future::Future<Output = <E as Endpoint>::Out> + Send>>;
+
 pub trait Handler<E: Endpoint>: Sync + Send + 'static {
     fn prefix() -> &'static str {
         ""
     }
 
-    fn call(
-        &self,
-        input: <E as Endpoint>::In,
-    ) -> Pin<Box<dyn std::future::Future<Output = <E as Endpoint>::Out> + Send>>;
+    fn call(&self, input: <E as Endpoint>::In) -> HandlerOutput<E>;
 }
 
-pub type EndpointStream<T> = Pin<Box<dyn Stream<Item = T> + Send>>;
+pub type StreamHandlerOutput<E> = Pin<Box<dyn Stream<Item = <E as StreamEndpoint>::Item> + Send>>;
 
 pub trait StreamHandler<E: StreamEndpoint>: Sync + Send + 'static {
     fn prefix() -> &'static str {
         ""
     }
 
-    fn call(&self, input: <E as StreamEndpoint>::In)
-    -> EndpointStream<<E as StreamEndpoint>::Item>;
+    fn call(&self, input: <E as StreamEndpoint>::In) -> StreamHandlerOutput<E>;
 }
 
 impl<T: Handler<E>, E: Endpoint> Handler<E> for Arc<T> {
-    fn call(
-        &self,
-        input: <E as Endpoint>::In,
-    ) -> Pin<Box<dyn std::future::Future<Output = <E as Endpoint>::Out> + Send>> {
+    fn call(&self, input: <E as Endpoint>::In) -> HandlerOutput<E> {
         <T as Handler<E>>::call(self, input)
     }
 }
 
 impl<T: StreamHandler<E>, E: StreamEndpoint> StreamHandler<E> for Arc<T> {
-    fn call(
-        &self,
-        input: <E as StreamEndpoint>::In,
-    ) -> EndpointStream<<E as StreamEndpoint>::Item> {
+    fn call(&self, input: <E as StreamEndpoint>::In) -> StreamHandlerOutput<E> {
         <T as StreamHandler<E>>::call(self, input)
     }
 }
