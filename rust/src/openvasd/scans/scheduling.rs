@@ -11,8 +11,8 @@ use scannerlib::{
     openvas::{self, cmd},
     osp,
     scanner::{
-        DefaultScannerStack, OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind,
-        ScanStarter, ScanStopper, preferences,
+        Lambda, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
+        preferences,
     },
     storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx},
 };
@@ -527,8 +527,7 @@ where
             init_with_scanner(pool, crypter, config, scanner).await
         }
         crate::config::ScannerType::Openvasd => {
-            // TODO
-            let scanner: OpenvasdScanner<DefaultScannerStack> = OpenvasdScanner::fake();
+            let scanner: Lambda = Lambda::default();
             init_with_scanner(pool, crypter, config, scanner).await
         }
     }

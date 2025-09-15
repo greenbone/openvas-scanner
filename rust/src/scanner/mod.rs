@@ -74,10 +74,6 @@ where
             function_executor: Arc::new(executor),
         }
     }
-
-    pub fn fake() -> Self {
-        todo!()
-    }
 }
 
 impl<S: ScannerStack + 'static> OpenvasdScanner<S> {
