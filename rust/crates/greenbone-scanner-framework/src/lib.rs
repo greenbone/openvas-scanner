@@ -12,6 +12,7 @@ pub use entry::{ClientHash, ClientIdentifier, RequestHandler, RequestHandlers};
 use get_scans::GetScansHandler;
 use get_scans_id::GetScansIdHandler;
 use get_scans_id_results::GetScansIdResultsHandler;
+use get_scans_id_results_id::GetScansIdResultsIdHandler;
 use get_scans_id_status::GetScansIdStatusHandler;
 use get_scans_preferences::GetScansPreferencesHandler;
 use get_vts::GetVTsHandler;
@@ -243,6 +244,7 @@ impl<T> RuntimeBuilder<T> {
             .add_request_handler(GetScansHandler::from(scans.clone()))
             .add_request_handler(GetScansIdHandler::from(scans.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(scans.clone()))
+            .add_request_handler(GetScansIdResultsIdHandler::from(scans.clone()))
             .add_request_handler(GetScansIdStatusHandler::from(scans.clone()))
             .add_request_handler(PostScansIdHandler::from(scans.clone()))
             .add_request_handler(DeleteScansIdHandler::from(scans))
