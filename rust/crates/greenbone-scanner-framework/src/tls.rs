@@ -10,6 +10,7 @@ use std::{
 
 use rustls::{
     RootCertStore, ServerConfig,
+    crypto::CryptoProvider,
     pki_types::{
         CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer,
     },
@@ -138,6 +139,11 @@ pub struct TlsConfig {
 }
 
 pub fn tls_config(config: &super::TLSConfig) -> Result<TlsConfig, Error> {
+    // Install default crypto provider if none is set
+    if CryptoProvider::get_default().is_none() {
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+    }
+
     let (key, certs, clients) = config_to_tls_paths(config)?;
 
     let mut roots = RootCertStore::empty();
