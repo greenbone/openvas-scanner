@@ -136,6 +136,7 @@ nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
 greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
 nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 rpmdb = { path = "crates/rpmdb-rs" }
+snmp2 = { version = "0.4.8", features = ["full"] }
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
