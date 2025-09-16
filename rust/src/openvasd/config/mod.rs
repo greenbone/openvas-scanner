@@ -228,6 +228,7 @@ pub struct Endpoints {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
 pub struct Tls {
     pub certs: Option<PathBuf>,
     pub key: Option<PathBuf>,

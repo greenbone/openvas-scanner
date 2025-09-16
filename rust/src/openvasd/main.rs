@@ -95,7 +95,7 @@ async fn main() -> Result<()> {
         .feed_version(feed_state2.clone());
     match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
-            rb = rb.server_tls_cer(ServerCertificate::new(certificate, key))
+            rb = rb.server_tls_cer(ServerCertificate::new(key, certificate))
         }
         (None, None) => {
             // ok no TLS
