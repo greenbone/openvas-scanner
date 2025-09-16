@@ -117,7 +117,10 @@ impl Interpreter<'_> {
         let mut val = NaslValue::Null;
         for _ in 0..num_repeats {
             let span = call.fn_name.span();
-            if let Some(val) = self.fork_reentry_data.try_restore(&span)? {
+            if let Some((val, kind)) = self.fork_reentry_data.try_restore(&span)? {
+                if let Some(kind) = kind {
+                    self.fork_history.insert(kind, val.clone());
+                }
                 return Ok(val);
             }
             let arguments = self.create_arguments_map(call.args.as_ref()).await?;
@@ -136,11 +139,11 @@ impl Interpreter<'_> {
 
 fn replace_empty_or_identity_fork(mut val: NaslValue) -> NaslValue {
     if let NaslValue::Fork(ref mut x) = val {
-        if x.is_empty() {
+        if x.values.is_empty() {
             return NaslValue::Null;
         }
-        if x.len() == 1 {
-            return x.remove(0);
+        if x.values.len() == 1 {
+            return x.values.remove(0);
         }
     }
     val
@@ -168,14 +171,6 @@ mod tests {
     fn multiple_forks() {
         let mut t = TestBuilder::default();
         t.run_all(
-            // r#"
-            // set_kb_item(name: "port", value: 1);
-            // set_kb_item(name: "port", value: 2);
-            // set_kb_item(name: "host", value: "a");
-            // set_kb_item(name: "host", value: "b");
-            // get_kb_item("port");
-            // get_kb_item("host");
-            // "#,
             r#"
             set_kb_item(name: "port", value: 1);
             set_kb_item(name: "port", value: 2);
@@ -203,6 +198,7 @@ mod tests {
             ]
         );
     }
+
     #[test]
     #[tracing_test::traced_test]
     fn empty_fork() {
