@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-Compares two big numbers given as Bytes.
+Compares two big numbers given as Bytes interpreted in big endian.
 
 ## RETURN VALUE
 

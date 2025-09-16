@@ -51,14 +51,14 @@ fn bn_cmp(key1: StringOrData, key2: StringOrData) -> i64 {
 /// A big number is an integer, that is probably to big for any primitive data type. In case of the
 /// c implementation the mpi (multi-precision integer) type of libgcrypt was used.
 #[nasl_function(named(need))]
-fn bn_random(need: u64) -> Option<Vec<u8>> {
+fn bn_random(need: u64) -> Vec<u8> {
     let digits = need / 8;
     let rem = need % 8;
 
     let digits = if rem > 0 { digits + 1 } else { digits };
 
     let mut rng = rng();
-    Some((0..digits).map(|_| rng.random()).collect())
+    (0..digits).map(|_| rng.random()).collect()
 }
 
 pub struct Misc;
