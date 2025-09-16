@@ -457,8 +457,3 @@ pub struct Scanner {
     authentication: Authentication,
     feed_version: Arc<RwLock<FeedState>>,
 }
-
-#[cfg(test)]
-mod tests {
-    // TODO
-}

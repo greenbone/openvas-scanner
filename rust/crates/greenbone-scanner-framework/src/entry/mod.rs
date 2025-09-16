@@ -192,6 +192,11 @@ impl RequestHandlers {
                     let is_authenticated =
                         matches!(&*client_identifier, &ClientIdentifier::Known(_));
                     if !needs_authentication || is_authenticated {
+                        info!(
+                            "Handling request: {}/{}",
+                            rh.prefix(),
+                            rh.path_segments().join("/")
+                        );
                         if req.method() == Method::HEAD {
                             return BodyKind::no_content(StatusCode::OK);
                         }
@@ -239,6 +244,7 @@ impl EntryPoint {
 }
 
 use http_body_util::BodyExt;
+use tracing::info;
 
 fn api_key_to_client_identifier(
     api_keys: &[String],
