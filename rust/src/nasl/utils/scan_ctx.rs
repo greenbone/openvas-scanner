@@ -633,6 +633,7 @@ pub struct ScriptCtx {
     pub alive: bool,
     pub denial_port: Option<u16>,
     pub multicast_groups: Vec<JmpDesc>,
+    pub snmp_next: Option<String>,
 }
 
 pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
