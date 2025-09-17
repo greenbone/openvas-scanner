@@ -88,13 +88,24 @@ pub trait RequestHandler: Prefixed {
     fn path_segments(&self) -> &'static [&'static str];
     fn http_method(&self) -> Method;
     fn ids(&self, uri: &Uri) -> Vec<String> {
-        uri.path()
-            .split('/')
-            .filter(|x| !x.is_empty())
-            .zip(self.path_segments().iter())
-            .filter(|(_, x)| x == &&"*")
-            .map(move |(x, _)| x.to_owned())
-            .collect()
+        if Self::prefix(self) == "" {
+            uri.path()
+                .split('/')
+                .filter(|x| !x.is_empty())
+                .zip(self.path_segments().iter())
+                .filter(|(_, x)| x == &&"*")
+                .map(move |(x, _)| x.to_owned())
+                .collect()
+        } else {
+            uri.path()
+                .split('/')
+                .filter(|x| !x.is_empty())
+                .skip(1)
+                .zip(self.path_segments().iter())
+                .filter(|(_, x)| x == &&"*")
+                .map(move |(x, _)| x.to_owned())
+                .collect()
+        }
     }
 
     fn call<'a, 'b>(
