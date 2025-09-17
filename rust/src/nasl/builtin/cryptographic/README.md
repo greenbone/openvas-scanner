@@ -83,13 +83,13 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - lm_owf_gen
 - nt_owf_gen
 - ntv2_owf_gen
+- bn_cmp
+- bn_random
 
 ## Not yet implemented
 
 - bf_cbc_decrypt
 - bf_cbc_encrypt
-- bn_cmp
-- bn_random
 - close_stream_cipher
 - des_ede_cbc_encrypt
 - dh_compute_key
