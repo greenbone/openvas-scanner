@@ -6,7 +6,7 @@ use crate::nasl::prelude::*;
 use std::{fmt, str::FromStr};
 use thiserror::Error;
 
-use snmp2::{Oid, SyncSession, Version};
+use snmp2::{Oid, SyncSession, Version, v3};
 use std::time::Duration;
 
 #[derive(Debug, Error)]
@@ -19,10 +19,14 @@ pub enum SnmpError {
     Snmp(String),
     #[error("IO error during SNMP: {0}")]
     IO(String),
+    #[error("SNMP Authentication Protocol unsupported")]
+    AuthProtoUnsupported,
+    #[error("SNMP Private Protocol unsupported")]
+    PrivProtoUnsupported,
 }
 
 #[derive(Debug)]
-enum SnmpProtocols {
+enum L4Protocols {
     Tcp,
     Udp,
     Tcp6,
@@ -30,13 +34,13 @@ enum SnmpProtocols {
     Unknown,
 }
 
-impl fmt::Display for SnmpProtocols {
+impl fmt::Display for L4Protocols {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", String::from(self))
     }
 }
 
-impl From<String> for SnmpProtocols {
+impl From<String> for L4Protocols {
     fn from(value: String) -> Self {
         match value.as_str() {
             "tcp" => Self::Tcp,
@@ -48,36 +52,36 @@ impl From<String> for SnmpProtocols {
     }
 }
 
-impl From<&SnmpProtocols> for String {
-    fn from(value: &SnmpProtocols) -> Self {
+impl From<&L4Protocols> for String {
+    fn from(value: &L4Protocols) -> Self {
         match value {
-            SnmpProtocols::Tcp => "tcp".to_string(),
-            SnmpProtocols::Udp => "udp".to_string(),
-            SnmpProtocols::Tcp6 => "tcp6".to_string(),
-            SnmpProtocols::Udp6 => "udp6".to_string(),
-            SnmpProtocols::Unknown => "unknown".to_string(),
+            L4Protocols::Tcp => "tcp".to_string(),
+            L4Protocols::Udp => "udp".to_string(),
+            L4Protocols::Tcp6 => "tcp6".to_string(),
+            L4Protocols::Udp6 => "udp6".to_string(),
+            L4Protocols::Unknown => "unknown".to_string(),
         }
     }
 }
 
-impl<'a> FromNaslValue<'a> for SnmpProtocols {
+impl<'a> FromNaslValue<'a> for L4Protocols {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
         let s = String::from_nasl_value(value)?;
-        Ok(SnmpProtocols::from(s))
+        Ok(L4Protocols::from(s))
     }
 }
 #[allow(clippy::too_many_arguments)]
-fn snmpv1_get_shared(
+fn snmpv1v2c_get_shared(
     config: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
-    protocol: SnmpProtocols,
+    protocol: L4Protocols,
     community: String,
     snmp_ver: snmp2::Version,
     is_next: bool,
 ) -> Result<NaslValue, FnError> {
-    if let SnmpProtocols::Unknown = protocol {
+    if let L4Protocols::Unknown = protocol {
         return Err(SnmpError::Protocol("Bad protocol version".to_string()).into());
     }
 
@@ -132,10 +136,10 @@ fn snmpv1_get(
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
-    protocol: SnmpProtocols,
+    protocol: L4Protocols,
     community: String,
 ) -> Result<NaslValue, FnError> {
-    snmpv1_get_shared(
+    snmpv1v2c_get_shared(
         config,
         script_ctx,
         oid,
@@ -153,10 +157,10 @@ fn snmpv1_getnext(
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
-    protocol: SnmpProtocols,
+    protocol: L4Protocols,
     community: String,
 ) -> Result<NaslValue, FnError> {
-    snmpv1_get_shared(
+    snmpv1v2c_get_shared(
         config,
         script_ctx,
         oid,
@@ -174,10 +178,10 @@ fn snmpv2c_get(
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
-    protocol: SnmpProtocols,
+    protocol: L4Protocols,
     community: String,
 ) -> Result<NaslValue, FnError> {
-    snmpv1_get_shared(
+    snmpv1v2c_get_shared(
         config,
         script_ctx,
         oid,
@@ -195,10 +199,10 @@ fn snmpv2c_getnext(
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
-    protocol: SnmpProtocols,
+    protocol: L4Protocols,
     community: String,
 ) -> Result<NaslValue, FnError> {
-    snmpv1_get_shared(
+    snmpv1v2c_get_shared(
         config,
         script_ctx,
         oid,
@@ -210,24 +214,138 @@ fn snmpv2c_getnext(
     )
 }
 
-#[nasl_function(named(oid, port, protocol, community))]
+#[allow(clippy::too_many_arguments)]
+fn snmpv3_get_shared(
+    config: &ScanCtx,
+    script_ctx: &mut ScriptCtx,
+    oid: Option<String>,
+    port: i64,
+    protocol: L4Protocols,
+    username: String,
+    authpass: String,
+    authproto: String,
+    privpass: String,
+    privproto: String,
+    is_next: bool,
+) -> Result<NaslValue, FnError> {
+    if let L4Protocols::Unknown = protocol {
+        return Err(SnmpError::Protocol("Bad protocol version".to_string()).into());
+    }
+
+    let next_oid = script_ctx.snmp_next.clone().unwrap_or_default();
+    let oid = if is_next && !next_oid.is_empty() {
+        Oid::from_str(&next_oid).map_err(|_| SnmpError::MissingOid)?
+    } else if let Some(oid) = oid {
+        if oid.starts_with('.') {
+            let oid_aux = oid.trim_start_matches('.');
+            Oid::from_str(oid_aux).map_err(|_| SnmpError::MissingOid)?
+        } else {
+            Oid::from_str(&oid).map_err(|_| SnmpError::MissingOid)?
+        }
+    } else {
+        return Err(SnmpError::MissingOid.into());
+    };
+
+    let peername = format!("{}:{}", config.target().ip_addr(), port);
+    let timeout = Duration::from_secs(2);
+
+    let auth_protcol = match authproto.as_str() {
+        "sha1" => v3::AuthProtocol::Sha1,
+        "md5" => v3::AuthProtocol::Md5,
+        _ => return Err(SnmpError::AuthProtoUnsupported.into()),
+    };
+
+    let cipher = match privproto.as_str() {
+        "aes" | "aes128" => v3::Cipher::Aes128,
+        "aes192" => v3::Cipher::Aes192,
+        "aes256" => v3::Cipher::Aes256,
+        "des" => v3::Cipher::Des,
+        _ => return Err(SnmpError::PrivProtoUnsupported.into()),
+    };
+
+    let auth = v3::Auth::AuthPriv {
+        cipher,
+        privacy_password: privpass.into_bytes(),
+    };
+    let security = v3::Security::new(&username.into_bytes(), &authpass.into_bytes())
+        .with_auth_protocol(auth_protcol)
+        .with_auth(auth);
+
+    let mut sess = SyncSession::new_v3(peername, Some(timeout), 0, security)
+        .map_err(|e| SnmpError::IO(e.to_string()))?;
+
+    sess.init().map_err(|e| SnmpError::IO(e.to_string()))?;
+
+    let mut res = vec![];
+    loop {
+        let mut response = if is_next {
+            match sess.getnext(&oid) {
+                Ok(r) => r,
+                Err(snmp2::Error::AuthUpdated) => continue,
+                Err(e) => return Err(SnmpError::Snmp(e.to_string()).into()),
+            }
+        } else {
+            match sess.get(&oid) {
+                Ok(r) => r,
+                Err(snmp2::Error::AuthUpdated) => continue,
+                Err(e) => return Err(SnmpError::Snmp(e.to_string()).into()),
+            }
+        };
+
+        if let Some((oid, val)) = response.varbinds.next() {
+            let aux = format!("{:?}", val).to_string();
+            if let Some((_, val)) = aux.split_once(": ") {
+                script_ctx.snmp_next = Some(oid.clone().to_id_string());
+                res.push(NaslValue::Number(0));
+                res.push(NaslValue::String(val.to_string()));
+                res.push(NaslValue::String(oid.to_id_string()));
+            }
+        }
+        break;
+    }
+
+    Ok(NaslValue::Array(res))
+}
+
+#[nasl_function(named(
+    oid, port, protocol, username, authpass, authproto, privpass, privproto
+))]
 fn snmpv3_get(
     config: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
-    protocol: SnmpProtocols,
-    community: String,
+    protocol: L4Protocols,
+    username: String,
+    authpass: String,
+    authproto: String,
+    privpass: String,
+    privproto: String,
 ) -> Result<NaslValue, FnError> {
-    snmpv1_get_shared(
-        config,
-        script_ctx,
-        oid,
-        port,
-        protocol,
-        community,
-        snmp2::Version::V2C,
-        true,
+    snmpv3_get_shared(
+        config, script_ctx, oid, port, protocol, username, authpass, authproto, privpass,
+        privproto, false,
+    )
+}
+
+#[nasl_function(named(
+    oid, port, protocol, username, authpass, authproto, privpass, privproto
+))]
+fn snmpv3_getnext(
+    config: &ScanCtx,
+    script_ctx: &mut ScriptCtx,
+    oid: Option<String>,
+    port: i64,
+    protocol: L4Protocols,
+    username: String,
+    authpass: String,
+    authproto: String,
+    privpass: String,
+    privproto: String,
+) -> Result<NaslValue, FnError> {
+    snmpv3_get_shared(
+        config, script_ctx, oid, port, protocol, username, authpass, authproto, privpass,
+        privproto, true,
     )
 }
 
@@ -242,5 +360,6 @@ function_set! {
         snmpv2c_get,
         snmpv2c_getnext,
         snmpv3_get,
+        snmpv3_getnext,
     )
 }
