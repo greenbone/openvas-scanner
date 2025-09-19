@@ -111,6 +111,7 @@ rustls-platform-verifier = "0.6.1"
 rustls-webpki = "0.103.4"
 pathdiff = "0.2.3"
 rand_core = "0.6.4"
+snmp2 = { version = "0.4.8", features = ["full"] }
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
