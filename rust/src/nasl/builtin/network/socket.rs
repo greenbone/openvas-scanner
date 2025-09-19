@@ -4,6 +4,7 @@
 
 use crate::nasl::{
     builtin::misc::{NASL_ERR_ECONNRESET, NASL_ERR_ETIMEDOUT, NASL_ERR_NOERR},
+    interpreter::{Fork, ForkKind},
     prelude::*,
     utils::{
         DefineGlobalVars,
@@ -673,16 +674,12 @@ pub fn open_sock_tcp_shared(
         .map(|vhost| open_sock_tcp_vhost(context, addr, timeout, bufsz, port.0, vhost, transport))
         .collect::<Result<_, _>>()?;
 
-    Ok(NaslValue::Fork(
-        sockets
-            .into_iter()
-            .flatten()
-            .map(|socket| {
-                let fd = nasl_sockets.add(socket);
-                NaslValue::Number(fd as i64)
-            })
-            .collect(),
-    ))
+    Ok(Fork::new(sockets.into_iter().flatten().map(|socket| {
+        let fd = nasl_sockets.add(socket);
+        NaslValue::Number(fd as i64)
+    }))
+    .with_kind(ForkKind::Host)
+    .into())
 }
 
 /// Open a TCP socket to the target host.

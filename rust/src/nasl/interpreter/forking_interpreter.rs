@@ -120,7 +120,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
 #[cfg(test)]
 mod tests {
     use crate::nasl::{
-        interpreter::{InterpreterError, InterpreterErrorKind},
+        interpreter::{Fork, ForkKind, InterpreterError, InterpreterErrorKind},
         nasl_std_functions,
         test_prelude::*,
     };
@@ -335,12 +335,20 @@ mod tests {
             self.0 += 1;
             self.0 - 1
         }
+
+        #[nasl_function]
+        fn fork_with_kind(&mut self) -> NaslValue {
+            Fork::new(vec![1.into(), 2.into()].into_iter())
+                .with_kind(ForkKind::Host)
+                .into()
+        }
     }
 
     function_set! {
         MySet,
         (
             (MySet::rand_sim, "rand_sim"),
+            (MySet::fork_with_kind, "fork_with_kind"),
         )
     }
 
@@ -369,6 +377,42 @@ mod tests {
                 NaslValue::Null,
                 NaslValue::Return(Box::new(NaslValue::Number(1))),
                 NaslValue::Return(Box::new(NaslValue::Number(2)))
+            ]
+        );
+    }
+
+    #[test]
+    fn multiple_forks_same_kind() {
+        let mut exec = nasl_std_functions();
+        exec.add_set(MySet(0));
+        let mut t = TestBuilder::default().with_executor(exec);
+        t.run_all(
+            r#"
+            x = fork_with_kind();
+            y = fork_with_kind();
+            z = fork_with_kind();
+            [x, y, z];
+        "#,
+        );
+        assert_eq!(
+            t.values(),
+            vec![
+                NaslValue::Number(1),
+                NaslValue::Number(2),
+                NaslValue::Number(1),
+                NaslValue::Number(2),
+                NaslValue::Number(1),
+                NaslValue::Number(2),
+                NaslValue::Array(vec![
+                    NaslValue::Number(1),
+                    NaslValue::Number(1),
+                    NaslValue::Number(1)
+                ]),
+                NaslValue::Array(vec![
+                    NaslValue::Number(2),
+                    NaslValue::Number(2),
+                    NaslValue::Number(2)
+                ]),
             ]
         );
     }
