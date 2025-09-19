@@ -249,7 +249,7 @@ fn snmpv3_get_shared(
     let peername = format!("{}:{}", config.target().ip_addr(), port);
     let timeout = Duration::from_secs(2);
 
-    let auth_protcol = match authproto.as_str() {
+    let auth_protocol = match authproto.as_str() {
         "sha1" => v3::AuthProtocol::Sha1,
         "md5" => v3::AuthProtocol::Md5,
         _ => return Err(SnmpError::AuthProtoUnsupported.into()),
@@ -268,7 +268,7 @@ fn snmpv3_get_shared(
         privacy_password: privpass.into_bytes(),
     };
     let security = v3::Security::new(&username.into_bytes(), &authpass.into_bytes())
-        .with_auth_protocol(auth_protcol)
+        .with_auth_protocol(auth_protocol)
         .with_auth(auth);
 
     let mut sess = SyncSession::new_v3(peername, Some(timeout), 0, security)
