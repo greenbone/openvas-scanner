@@ -49,16 +49,28 @@ pub enum FixedPackage {
     ByFullName {
         full_name: String,
         specifier: Specifier,
+        app_stream: Option<AppStream>,
     },
     /// Contains a version and a specifier
     ByNameAndFullVersion {
         name: String,
         full_version: String,
         specifier: Specifier,
+        app_stream: Option<AppStream>,
     },
 
     /// Contains a version Range
-    ByRange { name: String, range: Range },
+    ByRange {
+        name: String,
+        range: Range,
+        app_stream: Option<AppStream>,
+    },
+}
+
+#[derive(Deserialize, Debug)]
+pub struct AppStream {
+    pub name: String,
+    pub stream: String,
 }
 
 /// A specifier can be one of: >, <, >=, <=, =
