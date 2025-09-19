@@ -32,6 +32,7 @@ use error::ExprLocation;
 use super::{
     ScanCtx, ScriptCtx,
     syntax::{LiteralKind, grammar::UnaryPrefixOperatorKind},
+    version::NaslVersion,
 };
 
 pub use error::{FunctionCallError, InterpreterError, InterpreterErrorKind};
@@ -247,6 +248,7 @@ struct Interpreter<'ctx> {
     pub(super) fork_reentry_data: ForkReentryData,
     stmt_index: usize,
     state: InterpreterState,
+    version: NaslVersion,
 }
 
 impl<'ctx> Interpreter<'ctx> {
@@ -259,6 +261,7 @@ impl<'ctx> Interpreter<'ctx> {
             script_ctx: ScriptCtx::default(),
             fork_reentry_data: ForkReentryData::new(),
             state: InterpreterState::Running,
+            version: NaslVersion::V1,
         }
     }
 
@@ -520,6 +523,7 @@ impl<'ctx> Interpreter<'ctx> {
             script_ctx: ScriptCtx::default(),
             fork_reentry_data,
             state: InterpreterState::Running,
+            version: self.version,
         }
     }
 

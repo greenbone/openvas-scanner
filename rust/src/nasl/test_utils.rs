@@ -27,6 +27,7 @@ use super::{
         Executor, ScanCtx,
         scan_ctx::{ContextStorage, Ports, Target},
     },
+    version::NaslVersion,
 };
 
 // The following exists to trick the trait solver into
@@ -132,6 +133,7 @@ pub struct TestBuilder<L: Loader, S: ContextStorage> {
     loader: L,
     storage: S,
     executor: Executor,
+    version: NaslVersion,
 }
 
 pub type DefaultTestBuilder = TestBuilder<NoOpLoader, InMemoryStorage>;
@@ -149,6 +151,7 @@ impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
             loader: NoOpLoader::default(),
             storage: InMemoryStorage::default(),
             executor: nasl_std_functions(),
+            version: NaslVersion::default(),
         }
     }
 }
@@ -173,6 +176,7 @@ where
             loader: NoOpLoader::default(),
             storage,
             executor: nasl_std_functions(),
+            version: NaslVersion::default(),
         }
     }
 }
@@ -197,6 +201,7 @@ where
             loader,
             storage: InMemoryStorage::default(),
             executor: nasl_std_functions(),
+            version: NaslVersion::default(),
         }
     }
 }
@@ -314,7 +319,7 @@ where
             .collect();
         let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();
-        ForkingInterpreter::new(ast, register, context)
+        ForkingInterpreter::new(ast, register, context).with_version(self.version)
     }
 
     pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
@@ -460,6 +465,12 @@ where
     /// Return a new `TestBuilder` with the given `Executor`.
     pub fn with_executor(mut self, executor: Executor) -> Self {
         self.executor = executor;
+        self
+    }
+
+    /// Set the NASL version for this test.
+    pub(crate) fn with_nasl_version(mut self, version: NaslVersion) -> Self {
+        self.version = version;
         self
     }
 
