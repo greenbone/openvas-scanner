@@ -86,7 +86,7 @@ impl Package for Alpm {
         let pkgrel = captures
             .name("pkgrel")
             .map(|m| m.as_str())
-            .unwrap_or_else(|| ("1"))
+            .unwrap_or_else(|| "1")
             .into();
 
         Some(Self {

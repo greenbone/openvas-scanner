@@ -47,7 +47,7 @@ fn bn_random() {
     let mut t = TestBuilder::default();
     t.check(
         r#"num = bn_random(need: 20);"#,
-        |r| (matches!(r, Ok(NaslValue::Data(d)) if d.len() == 3)),
+        |r| matches!(r, Ok(NaslValue::Data(d)) if d.len() == 3),
         Some("bn_random(need:20) should return 3 bytes"),
     );
 }
