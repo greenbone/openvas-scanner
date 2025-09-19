@@ -717,7 +717,7 @@ get_kb_item (lex_ctxt *lexic)
   char *kb_entry = get_str_var_by_num (lexic, 0);
   char *val;
   tree_cell *retc;
-  int type, single = get_int_var_by_num (lexic, 1, 0);
+  int type = -1, single = get_int_var_by_num (lexic, 1, 0);
   size_t len;
 
   if (kb_entry == NULL)
