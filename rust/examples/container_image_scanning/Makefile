@@ -24,7 +24,7 @@ STARTED_SCANS := $(wildcard $(STARTED_SCAN_DIR)/*)
 
 START_SCANS := $(basename $(notdir $(JSON_FILES)))
 
-CIS_ADDRESS := http://localhost:3000
+CIS_ADDRESS := http://localhost:3000/container-image-scanner/
 
 .PHONY: stop-notus start-notus rm-notus stop-local-registry start-local-registry rm-local-registry \
         $(CREATE_TARGETS) $(START_TARGETS) $(STOP_TARGETS) $(RM_TARGETS) $(RESULTS_TARGETS) $(STATUS_TARGETS) \
