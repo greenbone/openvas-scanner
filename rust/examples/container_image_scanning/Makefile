@@ -83,10 +83,10 @@ $(STATUS_TARGETS):
 	@ID=$$(cat $(STARTED_SCAN_DIR)/$(TARGET_NAME)) && \
 	curl -s $(CIS_ADDRESS)/scans/$$ID/status | jq
 
-../target/release/container-scanning:
+../../target/release/openvasd:
 	@cargo build --release > /dev/null 2>&1
 
-container-image-scanner.pid: ../target/release/container-scanning 
+container-image-scanner.pid: ../../target/release/openvasd 
 	@sh ./start-container-image-scanner.sh
 
 .PHONY: start-container-image-scanner
@@ -97,7 +97,7 @@ stop-container-image-scanner:
 	@rm -f container-image-scanner.pid
 
 rm-container-image-scanner: stop-container-image-scanner
-	@rm -f ../target/release/container-scanning
+	@rm -f ../../target/release/openvasd
 	@rm -f container-image-scanner.log
 	@rm -f example.db
 	@rm -f example.db-shm
