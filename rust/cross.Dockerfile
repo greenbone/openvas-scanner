@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
   bison \
   flex \
   curl \
+  libsnmp-dev \
   zlib1g-dev
 RUN curl -Lfo /tmp/pcap.tar.gz https://www.tcpdump.org/release/libpcap-1.10.3.tar.gz
 WORKDIR /tmp
