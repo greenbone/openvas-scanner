@@ -244,7 +244,7 @@ sequenceDiagram
 <!-- column: 1 -->
 
 ```bash +exec
-curl -s localhost:3000/scans | jq -C
+curl -s localhost:3000/container-image-scanner/scans | jq -C
 ```
 
 <!-- pause -->
@@ -263,7 +263,7 @@ bat --paging always scans/openeuler.json
 ```
 
 ```bash +exec
-curl -s localhost:3000/scans | jq -C
+curl -s localhost:3000/container-image-scanner/scans | jq -C
 ```
 
 <!-- end_slide -->
@@ -300,20 +300,20 @@ sequenceDiagram
 
 ```bash +exec
 echo "current status"
-curl -s localhost:3000/scans | \
+curl -s localhost:3000/container-image-scanner/scans | \
   jq -r '.[]' | \
   while read id; do 
-    echo -n "$id status: "; curl -s localhost:3000/scans/$id/status | jq -r '.status'; 
+    echo -n "$id status: "; curl -s localhost:3000/container-image-scanner/scans/$id/status | jq -r '.status'; 
   done
 echo "starting scans"
-curl -s localhost:3000/scans | \
+curl -s localhost:3000/container-image-scanner/scans | \
   jq -r '.[]' | \
-  xargs -I{} curl -s -X POST -d '{"action": "start"}' localhost:3000/scans/{}
+  xargs -I{} curl -s -X POST -d '{"action": "start"}' localhost:3000/container-image-scanner/scans/{}
 echo "checking status again"
-curl -s localhost:3000/scans | \
+curl -s localhost:3000/container-image-scanner/scans | \
   jq -r '.[]' | \
   while read id; do 
-    echo -n "$id status: "; curl -s localhost:3000/scans/$id/status | jq -r '.status'; 
+    echo -n "$id status: "; curl -s localhost:3000/container-image-scanner/scans/$id/status | jq -r '.status'; 
   done
 ```
 
@@ -352,19 +352,19 @@ sequenceDiagram
 ```bash +exec
 cd ../../ 
 echo "current status"
-curl -s localhost:3000/scans | \
+curl -s localhost:3000/container-image-scanner/scans | \
   jq -r '.[]' | \
   while read id; do 
-    echo -n "$id status: "; curl -s localhost:3000/scans/$id/status | jq -r '.status'; 
+    echo -n "$id status: "; curl -s localhost:3000/container-image-scanner/scans/$id/status | jq -r '.status'; 
   done
 make create-catalog
 make start-catalog
 make stop-catalog
 echo "current status"
-curl -s localhost:3000/scans | \
+curl -s localhost:3000/container-image-scanner/scans | \
   jq -r '.[]' | \
   while read id; do 
-    echo -n "$id status: "; curl -s localhost:3000/scans/$id/status | jq -r '.status'; 
+    echo -n "$id status: "; curl -s localhost:3000/container-image-scanner/scans/$id/status | jq -r '.status'; 
   done
 ```
 <!-- end_slide -->
@@ -399,26 +399,26 @@ sequenceDiagram
 
 ```bash +exec
 echo "current status"
-curl -s localhost:3000/scans | \
+curl -s localhost:3000/container-image-scanner/scans | \
   jq -r '.[]' | \
   while read id; do 
-    echo -n "$id status: "; curl -s localhost:3000/scans/$id/status | jq -r '.status'; 
+    echo -n "$id status: "; curl -s localhost:3000/container-image-scanner/scans/$id/status | jq -r '.status'; 
   done
 echo "start a stopped scan"
-curl -s localhost:3000/scans | jq -r '.[]' | while read id; do \
-  status=$(curl -s localhost:3000/scans/$id/status | \
+curl -s localhost:3000/container-image-scanner/scans | jq -r '.[]' | while read id; do \
+  status=$(curl -s localhost:3000/container-image-scanner/scans/$id/status | \
   jq -r '.status'); 
   if [ "$status" = "stopped" ]; then
     echo "Starting scan $id..."; 
-    curl -s -X POST -H "Content-Type: application/json" -d '{"action": "start"}' localhost:3000/scans/$id; 
+    curl -s -X POST -H "Content-Type: application/json" -d '{"action": "start"}' localhost:3000/container-image-scanner/scans/$id; 
     break; 
   fi; 
 done
 echo "checking status again"
-curl -s localhost:3000/scans | \
+curl -s localhost:3000/container-image-scanner/scans | \
   jq -r '.[]' | \
   while read id; do 
-    echo -n "$id status: "; curl -s localhost:3000/scans/$id/status | jq -r '.status'; 
+    echo -n "$id status: "; curl -s localhost:3000/container-image-scanner/scans/$id/status | jq -r '.status'; 
   done
 ```
 
@@ -476,12 +476,12 @@ Example status json
 Show the amount of results and execution time for each scan:
 ```bash +exec +acquire_terminal
 while true; do
-  ids=($(curl -s localhost:3000/scans | jq -r '.[]'))
+  ids=($(curl -s localhost:3000/container-image-scanner/scans | jq -r '.[]'))
   total=${#ids[@]}
   completed=0
 
   for id in "${ids[@]}"; do
-    status=$(curl -s "localhost:3000/scans/$id/status" | jq -r '.status')
+    status=$(curl -s "localhost:3000/container-image-scanner/scans/$id/status" | jq -r '.status')
     if [ "$status" == "succeeded" ] || [ "$status" == "failed" ]; then
       ((completed++))
     else
@@ -497,11 +497,11 @@ done
 
 <!-- pause -->
 ```bash +exec
-curl -s localhost:3000/scans | jq -r '.[]' | while read id; do
-  status_json=$(curl -s localhost:3000/scans/$id/status)
+curl -s localhost:3000/container-image-scanner/scans | jq -r '.[]' | while read id; do
+  status_json=$(curl -s localhost:3000/container-image-scanner/scans/$id/status)
   status=$(echo "$status_json" | jq -r '.status')
   duration=$(echo "$status_json" | jq -r '"\(.end_time - .start_time)"')
-  results=$(curl -s localhost:3000/scans/$id/results | jq 'length')
+  results=$(curl -s localhost:3000/container-image-scanner/scans/$id/results | jq 'length')
   echo "$id ($status): results: $results in ${duration}s"
 done
 ```
@@ -534,11 +534,11 @@ make results-openeuler | bat --paging always
 ```
 <!-- pause -->
 ```bash +exec
-curl -s localhost:3000/scans | jq -r '.[]' | while read id; do
-  curl -X DELETE -s localhost:3000/scans/$id
+curl -s localhost:3000/container-image-scanner/scans | jq -r '.[]' | while read id; do
+  curl -X DELETE -s localhost:3000/container-image-scanner/scans/$id
 done
 echo "All scans should be deleted"
-curl -s localhost:3000/scans | jq
+curl -s localhost:3000/container-image-scanner/scans | jq
 ```
 
 <!-- end_slide -->
