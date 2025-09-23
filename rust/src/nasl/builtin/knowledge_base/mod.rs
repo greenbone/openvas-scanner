@@ -7,6 +7,7 @@ mod tests;
 
 use thiserror::Error;
 
+use crate::nasl::interpreter::Fork;
 use crate::nasl::prelude::*;
 use crate::storage::items::kb::KbKey;
 use nasl_function_proc_macro::nasl_function;
@@ -36,9 +37,8 @@ fn set_kb_item(
 #[nasl_function]
 fn get_kb_item(c: &ScanCtx, key: &str) -> Result<NaslValue, FnError> {
     let kbs = c.get_kb_item(&KbKey::Custom(key.to_string()))?;
-    let ret = NaslValue::Fork(kbs.into_iter().map(NaslValue::from).collect());
-
-    Ok(ret)
+    let ret = Fork::new(kbs.into_iter().map(NaslValue::from));
+    Ok(ret.into())
 }
 
 /// NASL function to replace a kb list
