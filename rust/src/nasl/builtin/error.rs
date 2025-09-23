@@ -17,6 +17,7 @@ use super::isotime::IsotimeError;
 #[cfg(feature = "nasl-builtin-raw-ip")]
 use super::raw_ip::RawIpError;
 use super::regex::RegexError;
+use super::snmp::SnmpError;
 use super::sys::SysError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
 
@@ -48,6 +49,8 @@ pub enum BuiltinError {
     Sys(SysError),
     #[error("{0}")]
     FindService(FindServiceError),
+    #[error("{0}")]
+    Snmp(SnmpError),
     #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
     RawIp(RawIpError),
@@ -97,6 +100,7 @@ builtin_error_variant!(HostError, Host);
 builtin_error_variant!(CertError, Cert);
 builtin_error_variant!(SysError, Sys);
 builtin_error_variant!(FindServiceError, FindService);
+builtin_error_variant!(SnmpError, Snmp);
 
 #[cfg(feature = "nasl-builtin-raw-ip")]
 builtin_error_variant!(RawIpError, RawIp);
