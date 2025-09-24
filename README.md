@@ -20,6 +20,13 @@ the [Greenbone Community Feed integrity key](https://community.greenbone.net/t/g
 This gpg key can be downloaded at https://www.greenbone.net/GBCommunitySigningKey.asc
 and the fingerprint is `8AE4 BE42 9B60 A59B 311C  2E73 9823 FAA6 0ED1 E580`.
 
+## Changelog
+
+Changelogs are automatically generated for every release using [git-cliff](https://github.com/orhun/git-cliff).
+You can view the latest changes in [CHANGELOG.md](CHANGELOG.md) or in the release notes.
+
+*No manual changelog editing is required—just follow Conventional Commit messages for your PRs and commits.*
+
 ## Installation
 
 This module can be configured, built and installed with following commands:
@@ -76,6 +83,8 @@ request](https://github.com/greenbone/openvas-scanner/pulls) on GitHub.
 Remember to commit the contribution agreement as explained in [RELICENSING](https://github.com/greenbone/openvas-scanner/tree/main/RELICENSE) folder with your first PR.
 Bigger changes should be discussed with the development team via the [issues section at GitHub](https://github.com/greenbone/openvas-scanner/issues) first.
 
+> **Note:** The changelog is now automatically generated with git-cliff for every release. You do not need to manually edit CHANGELOG.md—just use Conventional Commit messages.
+
 ## License
 
 This repository consists of two scanner implementation, one in programming language C and one in programming language Rust.
@@ -83,4 +92,3 @@ This repository consists of two scanner implementation, one in programming langu
 This module except for the Rust-implementation in directory rust/ is licensed under the GNU General Public License v2.0 only. Single files, however, are licensed either under the GNU General Public License v2.0 only or under GNU General Public License v2.0 or later, please see the [license-details.md](license-details.md) file for details.
 
 The Rust-implementation in directory rust/ is licensed under the GNU General Public License v2.0 or later with OpenSSL exception. Single files, however, are additionally licensed under MIT.
-

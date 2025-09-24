@@ -1,0 +1,87 @@
+[changelog]
+# template for the changelog header
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
+"""
+# template for the changelog body
+# https://keats.github.io/tera/docs/#introduction
+body = """
+{%- macro remote_url() -%}
+  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
+{%- endmacro -%}
+
+{% if version -%}
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+    ## [Unreleased]
+{% endif -%}
+
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | upper_first }}
+    {% for commit in commits %}
+        - {{ commit.message | split(pat="\n") | first | upper_first | trim }}\
+            {% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){%- endif -%}
+            {% if commit.remote.pr_number %} in \
+            [#{{ commit.remote.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.remote.pr_number }}) \
+            {% elif commit.id %} in \
+            [{{ commit.id | truncate(length=7, end="") }}]({{ self::remote_url() }}/commit/{{ commit.id }})\
+            {%- endif -%}
+    {% endfor %}
+{% endfor -%}
+"""
+# template for the changelog footer
+footer = """
+{%- macro remote_url() -%}
+  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
+{%- endmacro -%}
+
+{% for release in releases %}
+    {% if release.version -%}
+        {% if release.previous.version -%}
+            [{{ release.version | trim_start_matches(pat="v") }}]: \
+                {{ self::remote_url() }}/compare/{{ release.previous.version }}..{{ release.version }}
+        {% endif -%}
+    {% else -%}
+        [unreleased]: {{ self::remote_url() }}/compare/{{ release.previous.version }}..HEAD
+    {% endif -%}
+{%- endfor -%}
+"""
+# remove the leading and trailing whitespace from the templates
+trim = true
+
+[git]
+# parse the commits based on https://www.conventionalcommits.org
+conventional_commits = true
+# filter out the commits that are not following the conventional commits format
+filter_unconventional = false
+# process each line of a commit as an individual commit
+split_commits = false
+# regex for preprocessing the commit messages
+commit_preprocessors = [
+  # remove issue numbers from commits
+  { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "" },
+]
+# regex for parsing and grouping commits
+commit_parsers = [
+  { message = "^[a|A]dd", group = "<!-- 1 -->:sparkles: Added" },
+  { message = "^[c|C]hange", group = "<!-- 2 -->:construction_worker: Changed" },
+  { message = "^[f|F]ix", group = "<!-- 3 -->:bug: Bug Fixes" },
+  { message = "^[r|R]emove", group = "<!-- 4 -->:fire: Removed" },
+  { message = "^[d|D]rop", group = "<!-- 4 -->:fire: Removed" },
+  { message = "^[d|D]oc", group = "<!-- 5 -->:books: Documentation" },
+  { message = "^[t|T]est", group = "<!-- 6 -->:white_check_mark: Testing" },
+  { message = "^[c|C]hore", group = "<!-- 7 -->:wrench: Miscellaneous" },
+  { message = "^[c|C]i", group = "<!-- 7 -->️:wrench: Miscellaneous" },
+  { message = "^[m|M]isc", group = "<!-- 7 -->:wrench: Miscellaneous" },
+  { message = "^[d|D]eps", group = "<!-- 8 -->:ship: Dependencies" },
+]
+# filter out the commits that are not matched by commit parsers
+filter_commits = true
+# sort the tags topologically
+topo_order = false
+# sort the commits inside sections by oldest/newest order
+sort_commits = "oldest"

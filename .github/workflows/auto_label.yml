@@ -13,5 +13,4 @@ jobs:
     steps:
         - uses: greenbone/actions/pr-conventional-commit-labeler@main
           with:
-            configuration-toml: release_tag.toml
-
+            configuration-toml: cliff.toml
