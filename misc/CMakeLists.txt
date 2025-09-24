@@ -64,6 +64,15 @@ execute_process (COMMAND gpgme-config --cflags
   OUTPUT_VARIABLE GPGME_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+message (STATUS "Looking for libmagic...")
+find_library (MAGIC magic)
+message (STATUS "Looking for libmagic... ${MAGIC} ${MAGIC_LDFLAFS} ${MAGIC_INCLUDE_DIRS}")
+if (MAGIC)
+    set (MAGIC_LDFLAGS "-L/usr/lib -lmagic")
+else (MAGIC)
+  message (SEND_ERROR "The magic library is required.")
+endif (MAGIC)
+
 set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Werror")
 
 
@@ -95,7 +104,7 @@ set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION
 
 target_link_libraries (openvas_misc_shared LINK_PRIVATE
                        ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
-                       ${GLIB_LDFLAGS} ${GLIB_JSON_LDFLAGS}
+                       ${GLIB_LDFLAGS} ${GLIB_JSON_LDFLAGS} ${MAGIC_LDFLAGS}
                        ${PCAP_LDFLAGS} ${LIBGVM_BOREAS_LDFLAGS} ${CURL_LDFLAGS} ${KRB5_LDFLAGS} ${KRB5_GSSAPI_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
@@ -138,7 +147,7 @@ enable_testing ()
 set (LINK_LIBS_FOR_TESTS cgreen
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS}
-                       ${PCAP_LDFLAGS}
+                       ${PCAP_LDFLAGS} ${MAGIC_LDFLAGS}
                        ${CURL_LDFLAGS} ${KRB5_LDFLAGS} ${KRB5_GSSAPI_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
                        ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
@@ -179,6 +188,7 @@ target_include_directories (lsc-test PRIVATE ${CGREEN_INCLUDE_DIRS})
 target_link_libraries (lsc-test cgreen
                        ${LIBGVM_BASE_LDFLAGS}
                        ${LIBGVM_UTIL_LDFLAGS}
+                       ${MAGIC_LDFLAGS}
                        ${GLIB_LDFLAGS}
                        ${GLIB_JSON_LDFLAGS}
                        ${CURL_LDFLAGS} ${KRB5_LDFLAGS} ${KRB5_GSSAPI_LDFLAGS}
