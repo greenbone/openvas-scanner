@@ -85,12 +85,14 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - ntv2_owf_gen
 - bn_cmp
 - bn_random
+- open_rc4_cipher
+- rc4_encrypt
+- close_stream_cipher
 
 ## Not yet implemented
 
 - bf_cbc_decrypt
 - bf_cbc_encrypt
-- close_stream_cipher
 - des_ede_cbc_encrypt
 - dh_compute_key
 - dh_generate_key
@@ -98,8 +100,6 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - dsa_do_verify
 - get_signature
 - get_smb2_signature
-- open_rc4_cipher
 - prf_sha256
 - prf_sha384
-- rc4_encrypt
 - tls1_prf
