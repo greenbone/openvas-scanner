@@ -74,15 +74,22 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - smb_cmac_aes_signature
 - smb_gmac_aes_signature
 - insert_hexzeros
+- key_exchange
+- NTLMv1_HASH
+- NTLMv2_HASH
+- ntlm2_response
+- ntlm_response
+- ntlmv2_response
+- lm_owf_gen
+- nt_owf_gen
+- ntv2_owf_gen
+- bn_cmp
+- bn_random
 
 ## Not yet implemented
 
-- NTLMv1_HASH
-- NTLMv2_HASH
 - bf_cbc_decrypt
 - bf_cbc_encrypt
-- bn_cmp
-- bn_random
 - close_stream_cipher
 - des_ede_cbc_encrypt
 - dh_compute_key
@@ -91,16 +98,8 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - dsa_do_verify
 - get_signature
 - get_smb2_signature
-- key_exchange
-- lm_owf_gen
-- nt_owf_gen
-- ntlm2_response
-- ntlm_response
-- ntlmv2_response
-- ntv2_owf_gen
 - open_rc4_cipher
 - prf_sha256
 - prf_sha384
 - rc4_encrypt
 - tls1_prf
-

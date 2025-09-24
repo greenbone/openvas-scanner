@@ -8,6 +8,7 @@ mod tests;
 use dns_lookup::lookup_addr;
 use thiserror::Error;
 
+use crate::nasl::interpreter::{Fork, ForkKind};
 use crate::nasl::utils::hosts::resolve_hostname;
 use crate::nasl::{prelude::*, utils::scan_ctx::TargetKind};
 
@@ -79,7 +80,7 @@ fn get_host_name(_register: &Register, context: &ScanCtx) -> Result<NaslValue, F
     //TODO: don't fork if expand_vhost is disabled.
     //TODO: don't fork if already in a vhost
     if !v.is_empty() {
-        return Ok(NaslValue::Fork(v));
+        return Ok(Fork::new(v.into_iter()).with_kind(ForkKind::Host).into());
     }
 
     let host = match context.target().kind() {

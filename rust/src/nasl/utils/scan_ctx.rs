@@ -13,7 +13,7 @@ use tokio::sync::RwLock;
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
 use crate::nasl::{FromNaslValue, WithErrorInfo};
-use crate::scanner::preferences::preference::ScanPrefs;
+use crate::scanner::preferences::preference::{ScanPrefs, pref_is_true};
 use crate::storage::error::StorageError;
 use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
@@ -569,10 +569,8 @@ impl<'a> ScanCtx<'a> {
     }
 
     fn get_preference_bool(&self, key: &str) -> Option<bool> {
-        self.scan_preferences
-            .iter()
-            .find(|x| x.id == key)
-            .map(|x| matches!(x.value.as_str(), "true" | "1" | "yes"))
+        let prefs = &self.scan_preferences;
+        pref_is_true(prefs, key)
     }
 
     pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {

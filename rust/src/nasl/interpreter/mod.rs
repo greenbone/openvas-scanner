@@ -11,7 +11,7 @@ mod register;
 #[cfg(test)]
 mod tests;
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
     Code,
@@ -37,6 +37,7 @@ use super::{
 pub use error::{FunctionCallError, InterpreterError, InterpreterErrorKind};
 pub use forking_interpreter::ForkingInterpreter;
 pub use nasl_value::NaslValue;
+pub use nasl_value::{Fork, ForkKind};
 pub use register::Register;
 
 type Result<T = NaslValue, E = Error> = std::result::Result<T, E>;
@@ -60,6 +61,10 @@ impl InterpreterState {
 struct FunctionCallData {
     value: NaslValue,
     span: Span,
+    /// If the value was created as an item of a fork,
+    /// save the fork kind here, so we can remember
+    /// it for later.
+    fork_kind: Option<ForkKind>,
 }
 
 /// This type contains the necessary data to reproduce the execution
@@ -92,6 +97,8 @@ enum ForkReentryData {
         data: VecDeque<FunctionCallData>,
     },
 }
+
+type ForkHistory = HashMap<ForkKind, NaslValue>;
 
 impl ForkReentryData {
     fn drain(&mut self) -> VecDeque<FunctionCallData> {
@@ -128,23 +135,28 @@ impl ForkReentryData {
     /// do nothing.
     pub(crate) fn try_collect(&mut self, value: NaslValue, span: &Span) {
         match self {
-            ForkReentryData::Collecting { data, .. } => {
-                data.push(FunctionCallData { value, span: *span })
-            }
+            ForkReentryData::Collecting { data, .. } => data.push(FunctionCallData {
+                value,
+                span: *span,
+                fork_kind: None,
+            }),
             ForkReentryData::Restoring { data: _ } => {}
         }
     }
 
     /// If in `Restoring` mode, remove and return the first stored
     /// result from the queue. Otherwise do nothing.
-    pub(crate) fn try_restore(&mut self, span: &Span) -> Result<Option<NaslValue>, Error> {
+    pub(crate) fn try_restore(
+        &mut self,
+        span: &Span,
+    ) -> Result<Option<(NaslValue, Option<ForkKind>)>, Error> {
         match self {
             Self::Restoring { data } => {
                 if let Some(data) = data.pop_front() {
                     if *span != data.span {
                         return Err(ErrorKind::InvalidFork.with_span(&data.span));
                     }
-                    Ok(Some(data.value))
+                    Ok(Some((data.value, data.fork_kind)))
                 } else {
                     Ok(None)
                 }
@@ -153,10 +165,10 @@ impl ForkReentryData {
         }
     }
 
-    fn create_forks(&mut self) -> Vec<Self> {
+    fn create_forks(&mut self, fork_history: &ForkHistory) -> Vec<Self> {
         let mut data = vec![self.drain()];
         loop {
-            let (changed, new_data) = expand_first_fork(data);
+            let (changed, new_data) = expand_first_fork(data, fork_history);
             data = new_data;
             if !changed {
                 break;
@@ -198,14 +210,35 @@ impl ForkReentryData {
 /// no expansion took place (that is, if there was no `NaslValue::Fork` in the data).
 fn expand_first_fork(
     data: Vec<VecDeque<FunctionCallData>>,
+    fork_history: &ForkHistory,
 ) -> (bool, Vec<VecDeque<FunctionCallData>>) {
     let first_fork = data[0]
         .iter()
         .enumerate()
         .filter_map(|(index, data)| {
-            let FunctionCallData { value, span } = data;
-            if let NaslValue::Fork(vals) = value {
-                Some((index, vals.clone(), *span))
+            let FunctionCallData { value, span, .. } = data;
+            if let NaslValue::Fork(fork) = value {
+                let values = if let Some(kind) = fork.kind {
+                    match fork_history.get(&kind) {
+                        // We are trying to fork for a kind that has already been forked:
+                        // Retrieve the value from the fork history and return it instead
+                        // of forking again.
+                        Some(val) => vec![val.clone()],
+                        // We have never forked for this fork kind: Leave the values
+                        // unmodified and fork.
+                        None => fork.values.clone(),
+                    }
+                } else {
+                    fork.values.clone()
+                };
+                Some((
+                    index,
+                    Fork {
+                        values,
+                        kind: fork.kind,
+                    },
+                    *span,
+                ))
             } else {
                 None
             }
@@ -225,15 +258,17 @@ fn expand_first_fork(
 fn expand_fork_at(
     data: VecDeque<FunctionCallData>,
     index: usize,
-    vals: Vec<NaslValue>,
+    fork: Fork,
     span: Span,
 ) -> Vec<VecDeque<FunctionCallData>> {
-    vals.iter()
+    fork.values
+        .iter()
         .map(|val| {
             let mut data = data.clone();
             data[index] = FunctionCallData {
                 value: val.clone(),
                 span,
+                fork_kind: fork.kind,
             };
             data
         })
@@ -245,6 +280,7 @@ struct Interpreter<'ctx> {
     pub(super) scan_ctx: &'ctx ScanCtx<'ctx>,
     pub(super) script_ctx: ScriptCtx,
     pub(super) fork_reentry_data: ForkReentryData,
+    fork_history: ForkHistory,
     stmt_index: usize,
     state: InterpreterState,
 }
@@ -258,6 +294,7 @@ impl<'ctx> Interpreter<'ctx> {
             scan_ctx,
             script_ctx: ScriptCtx::default(),
             fork_reentry_data: ForkReentryData::new(),
+            fork_history: ForkHistory::default(),
             state: InterpreterState::Running,
         }
     }
@@ -498,7 +535,7 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     pub(crate) fn make_forks(mut self) -> Vec<Interpreter<'ctx>> {
-        let forks = self.fork_reentry_data.create_forks();
+        let forks = self.fork_reentry_data.create_forks(&self.fork_history);
         let register = self.fork_reentry_data.register();
         let stmt_index = self.fork_reentry_data.stmt_index();
         forks
@@ -520,6 +557,7 @@ impl<'ctx> Interpreter<'ctx> {
             script_ctx: ScriptCtx::default(),
             fork_reentry_data,
             state: InterpreterState::Running,
+            fork_history: self.fork_history.clone(),
         }
     }
 
