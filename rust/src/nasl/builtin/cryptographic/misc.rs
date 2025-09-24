@@ -11,7 +11,7 @@ use rand::{Rng, rng};
 fn insert_hexzeros(register: &Register) -> Result<Vec<u8>, FnError> {
     // As in is a keyword in rust, we cannot use the nasl_function annotation for named arguments.
     let data = register
-        .nasl_value("in")
+        .local_nasl_value("in")
         .map_err(|_| ArgumentError::MissingNamed(vec!["in".into()]))?;
     let data = match data {
         NaslValue::Data(x) => x,

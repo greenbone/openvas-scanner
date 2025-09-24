@@ -320,7 +320,7 @@ fn send_frame(
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
 #[nasl_function]
 fn nasl_send_arp_request(register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
-    let timeout = match register.nasl_value("pcap_timeout") {
+    let timeout = match register.local_nasl_value("pcap_timeout") {
         Ok(NaslValue::Number(x)) => *x as i32 * 1000i32, // to milliseconds
         Ok(_) => {
             return Err(FnError::wrong_unnamed_argument(
@@ -404,14 +404,14 @@ fn nasl_get_local_mac_address_from_ip(register: &Register) -> Result<NaslValue, 
 /// - payload: is any data, which is then attached as payload to the frame.
 #[nasl_function]
 fn nasl_forge_frame(register: &Register) -> Result<NaslValue, FnError> {
-    let src_haddr = validate_mac_address(register.nasl_value("src_haddr").ok())?;
-    let dst_haddr = validate_mac_address(register.nasl_value("dst_haddr").ok())?;
-    let ether_proto = match register.nasl_value("ether_proto") {
+    let src_haddr = validate_mac_address(register.local_nasl_value("src_haddr").ok())?;
+    let dst_haddr = validate_mac_address(register.local_nasl_value("dst_haddr").ok())?;
+    let ether_proto = match register.local_nasl_value("ether_proto") {
         Ok(NaslValue::Number(x)) => *x as u16,
         _ => ETHERTYPE_IP,
     };
 
-    let payload: Vec<u8> = match register.nasl_value("payload") {
+    let payload: Vec<u8> = match register.local_nasl_value("payload") {
         Ok(NaslValue::String(x)) => x.clone().into_bytes(),
         Ok(NaslValue::Data(x)) => x.clone(),
         _ => vec![],
@@ -461,7 +461,7 @@ fn nasl_send_frame(
 /// This function is meant to be used for debugging.
 #[nasl_function]
 fn nasl_dump_frame(register: &Register) -> Result<NaslValue, FnError> {
-    let frame: Frame = match register.nasl_value("frame") {
+    let frame: Frame = match register.local_nasl_value("frame") {
         Ok(NaslValue::Data(x)) => (x as &[u8]).try_into()?,
         _ => return Err(FnError::wrong_unnamed_argument("Data", "Invalid data type")),
     };
