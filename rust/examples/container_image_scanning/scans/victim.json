@@ -1,0 +1,22 @@
+{
+  "target": {
+    "hosts": [
+      "oci://localhost:5000/nichtsfrei/victim"
+    ],
+   "credentials": [
+      {
+        "service": "generic",
+        "up": {
+          "username": "holla",
+          "password": "diewaldfee"
+        }
+      }
+    ]
+  },
+  "scan_preferences": [
+    {
+      "id": "accept_invalid_certs",
+      "value": "true"
+    }
+  ]
+}

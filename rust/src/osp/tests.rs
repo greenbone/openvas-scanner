@@ -4,10 +4,8 @@
 
 use std::fs::read_to_string;
 
-use crate::{
-    models::Result,
-    osp::{OspResponse, OspScan, OspScanStatus},
-};
+use crate::osp::{OspResponse, OspScan, OspScanStatus};
+use greenbone_scanner_framework::models::Result;
 
 fn load_response(filename: &str) -> OspScan {
     let path = format!("data/osp/{filename}");

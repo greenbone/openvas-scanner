@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::nasl::syntax::{FSPluginLoader, Loader};
+use crate::nasl::syntax::Loader;
 
 use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, SchedulerStorage, VTError};
@@ -28,7 +28,3 @@ where
     type Storage = S;
     type Loader = L;
 }
-
-/// A scanner stack, consisting of a generic storage type,
-/// and `FSPluginLoader`.
-pub type ScannerStackWithStorage<S> = (S, FSPluginLoader);

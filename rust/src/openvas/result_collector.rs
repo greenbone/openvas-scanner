@@ -222,12 +222,10 @@ where
 
 #[cfg(test)]
 mod tests {
-
-    use crate::{
-        models::{self, Protocol, Result, ResultType},
-        openvas::openvas_redis::test::FakeRedis,
-    };
+    use greenbone_scanner_framework::models::{self, Protocol, Result, ResultType};
     use std::collections::HashMap;
+
+    use crate::openvas::openvas_redis::test::FakeRedis;
 
     use super::ResultHelper;
     #[test]

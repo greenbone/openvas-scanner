@@ -1,7 +1,8 @@
+use greenbone_scanner_framework::models::PreferenceValue;
+
 // SPDX-FileCopyrightText: 2025 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
-use crate::models::PreferenceValue;
 use crate::nasl::prelude::*;
 use crate::scanner::preferences::preference::PREFERENCES;
 use base64::Engine as _;

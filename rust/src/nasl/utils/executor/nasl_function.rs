@@ -12,7 +12,7 @@ use crate::nasl::{NaslResult, Register, ScanCtx, ScriptCtx};
 /// https://users.rust-lang.org/t/lifetimes-with-async-function-parameters/51338
 /// Unfortunately, this trait needs to be public, but it should
 /// not be implemented on any struct other than two-argument functions.
-pub trait AsyncTripleArgFn<Arg1, Arg2, Arg3>:
+trait AsyncTripleArgFn<Arg1, Arg2, Arg3>:
     Fn(Arg1, Arg2, Arg3) -> <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Fut
 {
     type Fut: Future<Output = <Self as AsyncTripleArgFn<Arg1, Arg2, Arg3>>::Output> + Send;
@@ -34,7 +34,7 @@ where
 /// https://users.rust-lang.org/t/lifetimes-with-async-function-parameters/51338
 /// Unfortunately, this trait needs to be public, but it should
 /// not be implemented on any struct other than three-argument functions.
-pub trait AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4>:
+trait AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4>:
     Fn(Arg1, Arg2, Arg3, Arg4) -> <Self as AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4>>::Fut + Send
 {
     type Fut: Future<Output = <Self as AsyncQuadrupleArgFn<Arg1, Arg2, Arg3, Arg4>>::Output> + Send;

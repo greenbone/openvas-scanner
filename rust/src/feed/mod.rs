@@ -12,7 +12,6 @@ mod update_tests;
 pub use update::Error as UpdateError;
 pub use update::ErrorKind as UpdateErrorKind;
 pub use update::Update;
-pub use update::feed_version as version;
 pub use verify::Error as VerifyError;
 pub use verify::FakeVerifier;
 pub use verify::HashSumNameLoader;
