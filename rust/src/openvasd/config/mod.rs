@@ -88,10 +88,6 @@ pub enum ScannerType {
     #[serde(rename = "openvasd")]
     Openvasd,
 }
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-enum ImageExtractionLocation {
-    File(PathBuf),
-}
 
 impl Default for ScannerType {
     fn default() -> Self {

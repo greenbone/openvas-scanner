@@ -26,6 +26,7 @@ mod vt_runner;
 #[cfg(test)]
 mod tests;
 //TODO: export trairs directly to get rid of scanner::scanner:ScanStopper, ...
+#[allow(clippy::module_inception)]
 mod scanner;
 pub use scanner::*;
 

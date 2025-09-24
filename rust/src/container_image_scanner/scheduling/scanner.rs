@@ -46,9 +46,9 @@ pub enum ScannerError {
     NonInterrupting(Vec<String>),
 }
 
-async fn scan_arch_image<'a, L, T>(
+async fn scan_arch_image<L, T>(
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
-    locator: &'a L,
+    locator: &L,
     image: String,
 ) -> Result<Vec<models::Result>, ScannerArchImageError>
 where

@@ -27,7 +27,7 @@ enum PageType {
 }
 
 fn hash_page_value_indexes(data: Vec<u8>, entries: u16) -> Result<Vec<u16>, RpmdbError> {
-    if entries % 2 != 0 {
+    if !entries.is_multiple_of(2) {
         let msg = format!("invalid entries {entries}");
         return Err(RpmdbError::ParseBdbFile(msg));
     }

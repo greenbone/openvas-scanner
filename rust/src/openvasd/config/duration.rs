@@ -87,9 +87,9 @@ fn parse(s: &str) -> Result<Duration, String> {
 }
 
 fn format_duration(duration: &Duration) -> String {
-    if duration.as_nanos() % 1_000 == 0 {
+    if duration.as_nanos().is_multiple_of(1_000) {
         let ms = duration.as_millis();
-        if ms % 1000 == 0 {
+        if ms.is_multiple_of(1000) {
             format!("{}s", ms / 1000)
         } else {
             format!("{ms}ms")

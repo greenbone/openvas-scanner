@@ -88,7 +88,7 @@ pub trait RequestHandler: Prefixed {
     fn path_segments(&self) -> &'static [&'static str];
     fn http_method(&self) -> Method;
     fn ids(&self, uri: &Uri) -> Vec<String> {
-        if Self::prefix(self) == "" {
+        if Self::prefix(self).is_empty() {
             uri.path()
                 .split('/')
                 .filter(|x| !x.is_empty())
