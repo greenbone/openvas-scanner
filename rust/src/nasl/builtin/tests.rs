@@ -107,3 +107,39 @@ fn functions_added_properly() {
     t.ok("sync_stateless();", 5);
     t.ok("async_stateless();", 6);
 }
+
+#[nasl_function(named(x))]
+fn take_arg(x: usize) -> usize {
+    x
+}
+
+#[nasl_function(named(x))]
+fn take_optional_arg(x: Option<usize>) -> usize {
+    x.unwrap_or(0)
+}
+
+struct IgnoreGlobals;
+
+function_set! {
+    IgnoreGlobals,
+    (
+        take_optional_arg,
+        take_arg,
+    )
+}
+
+// Regression test to make sure that nasl_functions with named
+// arguments only look up local variables and ignore the global scope.
+#[test]
+fn optional_named_args_ignore_globals() {
+    let mut t = TestBuilder::default().with_executor(Executor::single(IgnoreGlobals));
+    t.ok("x = 3;", 3);
+    t.ok("take_optional_arg(x: 4);", 4);
+    t.ok("take_optional_arg();", 0);
+    t.ok("take_arg(x: 4);", 4);
+    t.check(
+        "take_arg();",
+        |result| result.is_err(),
+        Some("Expected error."),
+    );
+}

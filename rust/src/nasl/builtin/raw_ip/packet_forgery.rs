@@ -1824,7 +1824,7 @@ fn forge_igmp_packet(
     let mut igmp_pkt = igmp::MutableIgmpPacket::new(&mut buf).unwrap();
 
     // use register since type is codeword
-    match register.nasl_value("type") {
+    match register.local_nasl_value("type") {
         Ok(NaslValue::Number(x)) => igmp_pkt.set_igmp_type(igmp::IgmpType::new(*x as u8)),
         _ => igmp_pkt.set_igmp_type(igmp::IgmpTypes::Default),
     };

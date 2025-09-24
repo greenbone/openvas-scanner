@@ -72,13 +72,13 @@ macro_rules! make_storage_function {
             )?
             $(
             $(
-            let value = registrat.nasl_value(stringify!($value))?;
+            let value = registrat.global_nasl_value(stringify!($value))?;
             variables.push(value);
             )+
             )?
             $(
             $(
-            if let Ok(value) = registrat.nasl_value(stringify!($optional_value)) {
+            if let Ok(value) = registrat.global_nasl_value(stringify!($optional_value)) {
                variables.push(value);
             }
             )+
