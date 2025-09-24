@@ -32,6 +32,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libcurl4 \
     libcurl4-gnutls-dev \
     libhiredis-dev \
+    libmagic-dev \
     && rm -rf /var/lib/apt/lists/*
 
 curl -L -o cgreen.tar.gz https://github.com/cgreen-devs/cgreen/archive/refs/tags/1.6.3.tar.gz -k

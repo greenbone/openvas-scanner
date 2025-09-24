@@ -22,11 +22,12 @@
 #include <gvm/base/prefs.h>      // for prefs_get_bool
 #include <gvm/util/mqtt.h>       // for mqtt_reset
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
-#include <stdio.h>               // for snprintf
-#include <stdlib.h>              // for exit
-#include <string.h>              // for strcmp
-#include <sys/wait.h>            // for wait
-#include <unistd.h>              // for fork
+#include <magic.h>
+#include <stdio.h>    // for snprintf
+#include <stdlib.h>   // for exit
+#include <string.h>   // for strcmp
+#include <sys/wait.h> // for wait
+#include <unistd.h>   // for fork
 
 #undef G_LOG_DOMAIN
 /**
@@ -659,6 +660,35 @@ kb_item_add_int_unique_with_main_kb_check (kb_t kb, const char *name, int value)
   return result == 0 ? kb_item_add_int_unique (kb, name, value) : -1;
 }
 
+static int
+is_utf8_encoded (const char *filename)
+{
+  magic_t magic_cookie = magic_open (MAGIC_MIME_ENCODING);
+  if (!magic_cookie)
+    {
+      g_warning ("%s: It is not possible initialize magic db", __func__);
+      return -1;
+    }
+  if (magic_load (magic_cookie, NULL) != 0)
+    {
+      g_warning ("%s: It was not possible to load the default magic db",
+                 __func__);
+      return -1;
+    }
+  const char *file_encoding = magic_file (magic_cookie, filename);
+  if (!file_encoding)
+    {
+      g_warning ("%s: It was not possible to identify the file encoding for %s",
+                 __func__, filename);
+      return -1;
+    }
+
+  if (g_strstr_len (file_encoding, strlen (file_encoding), "utf-8"))
+    return 1;
+
+  return 0;
+}
+
 /**
  * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
  *
@@ -705,8 +735,13 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                             msg_type_to_str (msg_type), ip_str,
                             hostname ? hostname : " ", port_s, proto, oid,
                             action_str->str, uri ? uri : "");
-  /* Convert to UTF-8 before sending to Manager. */
-  data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, &err);
+
+  /* Convert to UTF-8 before sending to Manager only if necessary. */
+  if (is_utf8_encoded (desc->name) > 0)
+    data = g_strdup (buffer);
+  else
+    data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, &err);
+
   if (!data)
     {
       g_warning ("%s: Error converting to UTF-8: %s\nOriginal string: %s",

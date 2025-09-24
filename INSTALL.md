@@ -28,6 +28,7 @@ Prerequisites:
 * libcurl4-gnutls-dev
 * libbsd
 * krb5-multidev
+* libmagic-dev
 
 Prerequisites for building documentation:
 * Doxygen
@@ -57,7 +58,7 @@ Install prerequisites on Debian GNU/Linux 'Bullseye' 11:
     apt-get install gcc pkg-config libssh-gcrypt-dev libgnutls28-dev \
     libglib2.0-dev libjson-glib-dev libpcap-dev libgpgme-dev bison libksba-dev \
     libsnmp-dev libgcrypt20-dev redis-server libbsd-dev libcurl4-gnutls-dev \
-    krb5-multidev
+    krb5-multidev libmagic-dev
  
 
 
