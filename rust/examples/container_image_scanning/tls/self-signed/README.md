@@ -1,4 +1,4 @@
-Genereates self signed client and server certificates that can be used for testing
+Generates self signed client and server certificates that can be used for testing
 
 To generate a
 - server.rsa

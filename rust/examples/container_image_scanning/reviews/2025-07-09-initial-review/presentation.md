@@ -51,7 +51,7 @@ speaker_note: |
 <!-- column: 1 -->
 
 
-Key Take-Aways
+Key Take-Away
 ---
 - It is integrated into a scanner
 - For a user it is transparent over the classical GSA
@@ -141,7 +141,7 @@ speaker_note: |
   - start scans,
   - verify the status
   - get results
-  - delte the scans
+  - delete the scans
 
   In the background the container-image-scanner will authenticate itself to the local docker registry, 
 
@@ -172,7 +172,7 @@ make rm-container-image-scanner
 make start
 ```
 <!-- column: 0 -->
-What will we demonstate in the next few minutes:
+What will we demonstrate in the next few minutes:
 
 ```mermaid +render
 sequenceDiagram
@@ -216,7 +216,7 @@ sequenceDiagram
 ===
 <!--
 speaker_note: |
-  Throughout the demonstration you will see an abstration in form of a diagram on the left side that simplifies what is executed on the right side. 
+  Throughout the demonstration you will see an abstraction in form of a diagram on the left side that simplifies what is executed on the right side. 
   As a good magician I will show my secrets in form of source-code that is executed on the right side as well as going through the results.
 
   Here I will demonstrate that we can create scans, first we check if we already have scans.
@@ -322,7 +322,7 @@ curl -s localhost:3000/container-image-scanner/scans | \
 ===
 <!--
 speaker_note: |
-  Similiar to starting scans we can also stop scans. 
+  Similar to starting scans we can also stop scans. 
   In this case we will create a new scan with the catalog.json, start that and then stop it immediately. 
   This simulates as user that changed their mind.
   And now we can see 4 scans, 3 of them are in ... but one is stopped.
@@ -431,7 +431,7 @@ speaker_note: |
   It does not only contain the status but also the start and the endtime of the scan.
   Which we will use to calculate how long each scan took.
 
-  Additionally we will call scans/results to show the amount of resuls each scan has.
+  Additionally we will call scans/results to show the amount of results each scan has.
 
   For that we may need to wait until each scan is finished. 
   WARNING: may returns immediately may stick to bash
@@ -542,7 +542,7 @@ curl -s localhost:3000/container-image-scanner/scans | jq
 ```
 
 <!-- end_slide -->
-(Demonstration) Take-Aways
+(Demonstration) Take-Away
 ===
 <!--
 speaker_note: |
