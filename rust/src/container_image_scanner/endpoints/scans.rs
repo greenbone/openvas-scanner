@@ -2,7 +2,10 @@ use std::{pin::Pin, str::FromStr};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{
-    MapScanID, StreamResult, entry::Prefixed, models::HostInfo, prelude::*,
+    MapScanID, StreamResult,
+    entry::Prefixed,
+    models::{HostInfo, PreferenceValue, ScanPreferenceInformation},
+    prelude::*,
 };
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
@@ -164,7 +167,23 @@ impl GetScansPreferences for Scans {
     fn get_scans_preferences(
         &self,
     ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
-        Box::pin(async move { vec![] })
+        Box::pin(async move {
+            vec![
+                ScanPreferenceInformation {
+                    id: "accept_invalid_certs",
+                    name: "Accepts certificates without trust chain verification",
+                    default: PreferenceValue::Bool(true),
+                    description: "This disables the CA chain verification for TLS certificates when connecting to a registry. \
+                    This is useful for self-signed certificates.",
+                },
+                ScanPreferenceInformation {
+                    id: "registry_allow_insecure",
+                    name: "Use HTTP instead of HTTPS",
+                    default: PreferenceValue::Bool(false),
+                    description: "This allows unencrypted communication with an registry (HTTP instead of HTTPS).",
+                },
+            ]
+        })
     }
 }
 
@@ -844,6 +863,14 @@ mod test {
         assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 5);
         let result = entry.get_scans(ClientHash::from("third").to_string());
         assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn get_scans_preferences() {
+        let entry = Fakes::init().await.entry;
+        let result = entry.get_scans_preferences().await;
+
+        insta::assert_ron_snapshot!(result);
     }
 
     mod results {

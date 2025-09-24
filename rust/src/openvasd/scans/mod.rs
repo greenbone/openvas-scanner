@@ -2,7 +2,10 @@ use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
-use scannerlib::models::{FeedState, ResultType};
+use scannerlib::{
+    models::{FeedState, ResultType},
+    scanner,
+};
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
 
@@ -268,7 +271,7 @@ where
     fn get_scans_preferences(
         &self,
     ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
-        Box::pin(async move { vec![] })
+        Box::pin(async move { scanner::preferences::preference::PREFERENCES.to_vec() })
     }
 }
 
@@ -715,15 +718,18 @@ mod tests {
 
     use futures::StreamExt;
     use greenbone_scanner_framework::{
-        GetScans, GetScansId, GetScansIdResults, GetScansIdStatus, MapScanID, PostScans,
-        PostScansError,
+        GetScans, GetScansId, GetScansIdResults, GetScansIdStatus, GetScansPreferences, MapScanID,
+        PostScans, PostScansError,
         models::{
             self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
             ScanPreference, Service,
         },
         prelude::PostScansId,
     };
-    use scannerlib::models::{FeedState, Phase};
+    use scannerlib::{
+        models::{FeedState, Phase},
+        scanner,
+    };
     use sqlx::SqlitePool;
 
     use crate::{
@@ -1060,6 +1066,19 @@ mod tests {
                 result.target.credentials.len()
             );
         }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn get_scans_preferences() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = init(pool, &config).await;
+        let result = undertest.get_scans_preferences().await;
+        assert_eq!(
+            result,
+            scanner::preferences::preference::PREFERENCES.to_vec()
+        );
 
         Ok(())
     }
