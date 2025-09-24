@@ -18,29 +18,6 @@ pub struct GetScansPreferencesHandler<T> {
     get_scans_preferences: Arc<T>,
 }
 
-#[derive(Default)]
-pub struct NoPreferences;
-impl Prefixed for NoPreferences {
-    fn prefix(&self) -> &'static str {
-        ""
-    }
-}
-
-impl GetScansPreferences for NoPreferences {
-    fn get_scans_preferences<'b>(
-        &self,
-    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
-        Box::pin(async move { vec![] })
-    }
-}
-impl Default for GetScansPreferencesHandler<NoPreferences> {
-    fn default() -> Self {
-        Self {
-            get_scans_preferences: Arc::new(NoPreferences {}),
-        }
-    }
-}
-
 impl<T> Prefixed for GetScansPreferencesHandler<T>
 where
     T: Prefixed,
@@ -83,6 +60,17 @@ where
     fn from(value: T) -> Self {
         GetScansPreferencesHandler {
             get_scans_preferences: Arc::new(value),
+        }
+    }
+}
+
+impl<T> From<Arc<T>> for GetScansPreferencesHandler<T>
+where
+    T: GetScansPreferences + 'static,
+{
+    fn from(value: Arc<T>) -> Self {
+        GetScansPreferencesHandler {
+            get_scans_preferences: value,
         }
     }
 }

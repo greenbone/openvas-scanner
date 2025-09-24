@@ -160,6 +160,14 @@ impl GetScans for Scans {
     }
 }
 
+impl GetScansPreferences for Scans {
+    fn get_scans_preferences(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
+        Box::pin(async move { vec![] })
+    }
+}
+
 impl Scans {
     async fn get_scan(pool: SqlitePool, id: String) -> Result<models::Scan, sqlx::error::Error> {
         let mut conn = pool.acquire().await?;

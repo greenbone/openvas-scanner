@@ -261,6 +261,17 @@ where
     }
 }
 
+impl<E> GetScansPreferences for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn get_scans_preferences(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
+        Box::pin(async move { vec![] })
+    }
+}
+
 async fn get_scan<C>(
     tx: &mut sqlx::SqliteConnection,
     crypter: &C,

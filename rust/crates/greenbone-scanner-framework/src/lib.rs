@@ -33,6 +33,7 @@ pub use get_scans_id_results_id::{GetScansIDResultsIDError, GetScansIdResultsId}
 mod get_scans_id_status;
 pub use get_scans_id_status::{GetScansIDStatusError, GetScansIdStatus};
 mod get_scans_preferences;
+pub use get_scans_preferences::GetScansPreferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
@@ -60,7 +61,8 @@ pub mod prelude {
     pub use crate::{
         ClientHash, GetScans, GetScansError, GetScansIDError, GetScansIDResultsError,
         GetScansIDResultsIDError, GetScansIDStatusError, GetScansId, GetScansIdResults,
-        GetScansIdResultsId, GetScansIdStatus, MapScanID, PostScans, PostScansError, StreamResult,
+        GetScansIdResultsId, GetScansIdStatus, GetScansPreferences, MapScanID, PostScans,
+        PostScansError, StreamResult,
         delete_scans_id::{DeleteScansIDError, DeleteScansId},
         models,
         post_scans_id::{PostScansIDError, PostScansId},
@@ -142,7 +144,8 @@ impl Default for RuntimeBuilder<runtime_builder_states::Start> {
 impl<T> RuntimeBuilder<T> {
     pub fn new() -> RuntimeBuilder<runtime_builder_states::Start> {
         let mut handlers = RequestHandlers::default();
-        handlers.push(GetScansPreferencesHandler::default());
+        //handlers.push(GetScansPreferencesHandler::default());
+        // TODO: do per prefix?
         handlers.push(GetHealthAliveHandler::default());
         handlers.push(GetHealthReadyHandler::default());
         handlers.push(GetHealthStartedHandler::default());
@@ -221,7 +224,7 @@ impl<T> RuntimeBuilder<T> {
         self
     }
 
-    // TODO: find a better name
+    // TODO: find a better name add health endpoints
     pub fn insert_additional_scan_endpoints<S, V>(
         self,
         scans: Arc<S>,
@@ -230,18 +233,21 @@ impl<T> RuntimeBuilder<T> {
     where
         S: PostScans
             + GetScans
+            + GetScansPreferences
             + GetScansId
             + GetScansIdResults
             + GetScansIdResultsId
             + GetScansIdStatus
             + PostScansId
             + DeleteScansId
+            + Prefixed
             + 'static,
         V: GetVts + Prefixed + 'static,
     {
         let ior = self
             .add_request_handler(PostScansHandler::from(scans.clone()))
             .add_request_handler(GetScansHandler::from(scans.clone()))
+            .add_request_handler(GetScansPreferencesHandler::from(scans.clone()))
             .add_request_handler(GetScansIdHandler::from(scans.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(scans.clone()))
             .add_request_handler(GetScansIdResultsIdHandler::from(scans.clone()))
@@ -301,6 +307,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
     where
         T: PostScans
             + GetScans
+            + GetScansPreferences
             + GetScansId
             + GetScansIdResults
             + GetScansIdResultsId
@@ -312,11 +319,13 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
         let ior = self
             .add_request_handler(PostScansHandler::from(value.clone()))
             .add_request_handler(GetScansHandler::from(value.clone()))
+            .add_request_handler(GetScansPreferencesHandler::from(value.clone()))
             .add_request_handler(GetScansIdHandler::from(value.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(value.clone()))
             .add_request_handler(GetScansIdStatusHandler::from(value.clone()))
             .add_request_handler(PostScansIdHandler::from(value.clone()))
             .add_request_handler(DeleteScansIdHandler::from(value));
+
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,

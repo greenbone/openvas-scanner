@@ -94,6 +94,7 @@ pub async fn init(
     products: Arc<tokio::sync::RwLock<Notus<HashsumProductLoader>>>,
     config: Config,
 ) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
+    // that's wrong
     let pool = config.database.create_pool().await?;
     MIGRATOR.run(&pool).await?;
 
@@ -112,18 +113,5 @@ pub async fn init(
         scheduling: sender,
     };
     let vts = VTEndpoints::new(vt_pool, feed_state, Some(scan.prefix()));
-    // RuntimeBuilder::<greenbone_scanner_framework::End>::new()
-    //     .feed_version("bla".to_owned())
-    //     .insert_post_scans(scan.clone())
-    //     .insert_get_scans(scan.clone())
-    //     .insert_get_scans_id(scan.clone())
-    //     .insert_get_scans_id_results(scan.clone())
-    //     .insert_get_scans_id_results_id(scan.clone())
-    //     .insert_get_scans_id_status(scan.clone())
-    //     .insert_post_scans_id(scan.clone())
-    //     .insert_delete_scans_id(scan.clone())
-    //     .insert_get_vts(vts.clone())
-    //     .run_blocking()
-    //     .await?;
     Ok((scan, vts))
 }
