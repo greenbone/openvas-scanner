@@ -14,7 +14,7 @@ use scannerlib::{
         Lambda, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
         preferences,
     },
-    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx},
+    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisStorageResult, RedisWrapper},
 };
 use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
 use tokio::sync::mpsc::Sender;
@@ -393,8 +393,8 @@ async fn init_redis_storage(redis_url: &str) -> R<(RedisCtx, RedisCtx)> {
     Ok((nvt, notus))
 }
 
-async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str) -> () {
-    tracing::info!("synchornizing redis with vt feed");
+async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str, feed_version: String) -> () {
+    tracing::debug!("synchronizing redis with vt feed");
     let (vtc, nc) = match init_redis_storage(redis_url).await {
         Ok(x) => x,
         Err(error) => {
@@ -402,6 +402,7 @@ async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str) -> () {
             return;
         }
     };
+    tracing::info!("synchronized redis with vt feed");
     let nc = Arc::new(RwLock::new(nc));
     let vtc = Arc::new(RwLock::new(vtc));
     let rows = query("SELECT feed_type, json_blob FROM plugins").fetch(&pool);
@@ -447,7 +448,7 @@ async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str) -> () {
                     });
                 }
                 Err(error) => {
-                    tracing::warn!(%error, "Unable to fetch plygins");
+                    tracing::warn!(%error, "Unable to fetch plugins");
                 }
             }
         }
@@ -459,6 +460,19 @@ async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str) -> () {
         let mut nv = nc.write().unwrap();
         if let Err(error) = nv.redis_add_advisory(None) {
             tracing::warn!(%error, "Unable set notus feed to be available");
+        }
+    });
+
+    let vtc = vtc.clone();
+
+    tokio::task::spawn_blocking(move || {
+        // TODO: block scans until nvticache is available otherwise we cannot start scans anyway
+        let mut vtc = vtc.write().unwrap();
+        if let Err(error) = vtc
+            .del("nvticache")
+            .and_then(move |_| vtc.rpush("nvticache", &[&feed_version]))
+        {
+            tracing::warn!(%error, "Unable set nvticache for openvas. Scans might be unavailable");
         }
     });
 }
@@ -508,12 +522,13 @@ where
                 let mut previous_feed_state = FeedState::Unknown;
                 loop {
                     let new_feed_state = feed_state().await;
-                    if matches!(new_feed_state, FeedState::Synced(_, _))
-                        && new_feed_state != previous_feed_state
+                    if new_feed_state != previous_feed_state
+                        && let FeedState::Synced(feed_version, _) = &new_feed_state
                     {
                         tracing::info!(from=?previous_feed_state, to=?new_feed_state, "feed changed");
+                        let feed_version = feed_version.clone();
                         previous_feed_state = new_feed_state;
-                        synchronize_redis_feed(fpool.clone(), &redis_url).await;
+                        synchronize_redis_feed(fpool.clone(), &redis_url, feed_version).await;
                     }
                     // check often in an initial state
                     if !matches!(previous_feed_state, FeedState::Synced(_, _)) {
