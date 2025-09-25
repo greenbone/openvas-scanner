@@ -138,7 +138,7 @@ impl Scanner {
         let nvtcache = Arc::new(Mutex::new(
             match RedisCtx::open(&self.redis_socket, &[NameSpaceSelector::Key("nvticache")]) {
                 Ok(x) => x,
-                Err(e) => return Err(ScanError::Connection(format!("{e}"))),
+                Err(e) => return Err(ScanError::Connection(format!("nvticache: {e}"))),
             },
         ));
         Ok(RedisHelper::<RedisCtx>::new(nvtcache, kbctx))
