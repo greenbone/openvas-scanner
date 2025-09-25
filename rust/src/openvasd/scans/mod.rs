@@ -86,7 +86,7 @@ where
         .execute(&mut *tx)
         .await?;
     if !scan.vts.is_empty() {
-        let mut builder = QueryBuilder::new("INSERT INTO vts (id, vt)");
+        let mut builder = QueryBuilder::new("INSERT OR REPLACE INTO vts (id, vt)");
         builder.push_values(&scan.vts, |mut b, vt| {
             b.push_bind(&mapped_id).push_bind(&vt.oid);
         });
@@ -204,7 +204,10 @@ where
                 .await
                 .map_err(|x| match x {
                     Error::Sqlx(sqlx::Error::Database(db))
-                        if matches!(db.kind(), sqlx::error::ErrorKind::UniqueViolation) =>
+                        if matches!(db.kind(), sqlx::error::ErrorKind::UniqueViolation)
+                            && db.message().ends_with(
+                                "client_scan_map.client_id, client_scan_map.scan_id",
+                            ) =>
                     {
                         PostScansError::DuplicateId(annoying)
                     }
@@ -936,8 +939,17 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/examples/openvasd/discovery.json"
         ));
-        let discovery = serde_json::from_slice(discovery).unwrap();
-        let mut results = vec![discovery];
+        let mut discovery: models::Scan = serde_json::from_slice(discovery).unwrap();
+        discovery.scan_id = "discovery".to_string();
+        let simple_auth_ssh_scan = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/examples/openvasd/simple_auth_ssh_scan.json"
+        ));
+        let mut simple_auth_ssh_scan: models::Scan =
+            serde_json::from_slice(simple_auth_ssh_scan).unwrap();
+        simple_auth_ssh_scan.scan_id = "simple_auth_ssh_scan".to_string();
+
+        let mut results = vec![simple_auth_ssh_scan, discovery];
         results.extend(generate_targets().into_iter().map(|target| models::Scan {
             scan_id: uuid::Uuid::new_v4().to_string(),
             target,
@@ -995,9 +1007,8 @@ mod tests {
         let client_id = "moep".to_string();
         for scan in generate_scan() {
             let id = scan.scan_id.clone();
-            let result = undertest.post_scans(client_id.clone(), scan).await;
-            assert!(result.is_ok(), "scan must be successfully added");
-            assert_eq!(id, result.unwrap());
+            let result = undertest.post_scans(client_id.clone(), scan).await.unwrap();
+            assert_eq!(id, result);
         }
 
         Ok(())
