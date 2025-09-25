@@ -137,12 +137,12 @@ fn retrieve_and_reset_client_identifier(id: Arc<RwLock<ClientIdentifier>>) -> Cl
 
 impl Default for RuntimeBuilder<runtime_builder_states::Start> {
     fn default() -> Self {
-        Self::new()
+        Self::new(([127, 0, 0, 1], 3000).into())
     }
 }
 
 impl<T> RuntimeBuilder<T> {
-    pub fn new() -> RuntimeBuilder<runtime_builder_states::Start> {
+    pub fn new(listener_address: SocketAddr) -> RuntimeBuilder<runtime_builder_states::Start> {
         let mut handlers = RequestHandlers::default();
         //handlers.push(GetScansPreferencesHandler::default());
         // TODO: do per prefix?
@@ -156,7 +156,7 @@ impl<T> RuntimeBuilder<T> {
             tls: None,
             api_keys: None,
             handlers,
-            listener_address: ([127, 0, 0, 1], 3000).into(),
+            listener_address,
             _phantom: PhantomData,
         }
     }
