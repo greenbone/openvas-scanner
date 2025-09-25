@@ -76,13 +76,9 @@ where
 
     let mapped_id = row.last_insert_rowid().to_string();
     let auth_data = {
-        if !scan.target.credentials.is_empty() {
-            let bytes = serde_json::to_vec(&scan.target.credentials)?;
-            let bytes = crypter.encrypt(bytes).await;
-            Some(bytes.to_string())
-        } else {
-            None
-        }
+        let bytes = serde_json::to_vec(&scan.target.credentials)?;
+        let bytes = crypter.encrypt(bytes).await;
+        bytes.to_string()
     };
     query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
         .bind(&mapped_id)
@@ -96,21 +92,24 @@ where
         });
         let query = builder.build();
         query.execute(&mut *tx).await?;
-        let mut builder =
-            QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
-        builder.push_values(
-            scan.vts
-                .iter()
-                .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value))),
-            |mut b, (oid, param_id, param_value)| {
+        let vt_params = scan
+            .vts
+            .iter()
+            .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value)))
+            .collect::<Vec<_>>();
+        if !vt_params.is_empty() {
+            let mut builder =
+                QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
+
+            builder.push_values(vt_params, |mut b, (oid, param_id, param_value)| {
                 b.push_bind(&mapped_id)
                     .push_bind(oid)
                     .push_bind(param_id as i64)
                     .push_bind(param_value);
-            },
-        );
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
+            });
+            let query = builder.build();
+            query.execute(&mut *tx).await?;
+        }
     }
 
     if !scan.target.hosts.is_empty() {
@@ -200,6 +199,7 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
         let annoying = scan.scan_id.clone();
         Box::pin(async move {
+            tracing::debug!(client_id, ?scan);
             scan_insert(&self.pool, self.crypter.as_ref(), &client_id, scan)
                 .await
                 .map_err(|x| match x {
@@ -403,13 +403,10 @@ where
         .fetch_all(&mut *tx)
         .await?;
 
-    let credentials = if let Some(auth_data) = scan_row.get::<Option<String>, _>("auth_data") {
-        let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
-        let auth_data = crypter.decrypt(encrypted).await;
-        serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?
-    } else {
-        vec![]
-    };
+    let auth_data = scan_row.get::<String, _>("auth_data");
+    let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
+    let auth_data = crypter.decrypt(encrypted).await;
+    let credentials = serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?;
 
     let scan = models::Scan {
         scan_id,
@@ -935,15 +932,19 @@ mod tests {
     }
 
     pub fn generate_scan() -> Vec<models::Scan> {
-        generate_targets()
-            .into_iter()
-            .map(|target| models::Scan {
-                scan_id: uuid::Uuid::new_v4().to_string(),
-                target,
-                scan_preferences: generate_scan_prefs(),
-                vts: generate_vts(),
-            })
-            .collect()
+        let discovery = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/examples/openvasd/discovery.json"
+        ));
+        let discovery = serde_json::from_slice(discovery).unwrap();
+        let mut results = vec![discovery];
+        results.extend(generate_targets().into_iter().map(|target| models::Scan {
+            scan_id: uuid::Uuid::new_v4().to_string(),
+            target,
+            scan_preferences: generate_scan_prefs(),
+            vts: generate_vts(),
+        }));
+        results
     }
 
     pub async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
