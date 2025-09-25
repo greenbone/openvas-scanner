@@ -18,4 +18,7 @@ runs:
       shell: bash
     - run: rustup update stable && rustup default stable || rustup default stable
       shell: bash
-
+    - run: rustup component add rustfmt
+      shell: bash
+    - run: rustup component add clippy
+      shell: bash
