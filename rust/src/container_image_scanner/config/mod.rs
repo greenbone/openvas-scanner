@@ -154,11 +154,12 @@ impl SqliteConfiguration {
         let options = SqliteConnectOptions::from_str(&self.location.sqlite_address())?
             .journal_mode(SqliteJournalMode::Wal)
             .busy_timeout(self.busy_timeout)
-            // Although this can lead to data loss in the case that the application crashes we usually
-            // need to either restart that scan anyway.
+            // Although this can lead to data loss in the case that the application crashes, we usually
+            // need to restart that scan anyway.
             .synchronous(SqliteSynchronous::Off)
             .create_if_missing(true);
         PoolOptions::<Sqlite>::new()
+            .min_connections(1) // otherwise it may drop in-memory db
             .max_connections(self.max_connections)
             .connect_with(options)
             .await
