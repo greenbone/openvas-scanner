@@ -89,7 +89,8 @@ async fn main() -> Result<()> {
     let vts = Arc::new(vts);
     let scan = scans::init(pool.clone(), &config, get_feed_state(vts.clone())).await?;
     let (get_notus, post_notus) = notus::init(products.clone());
-    let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new()
+
+    let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
         // TODO: use a lambda like in scanner instead.
         // That way we don't need to manage tokio::spawn_blocking all over the place
         .feed_version(feed_state2.clone());
