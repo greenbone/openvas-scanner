@@ -159,7 +159,12 @@ impl SqliteConfiguration {
             .synchronous(SqliteSynchronous::Off)
             .create_if_missing(true);
         PoolOptions::<Sqlite>::new()
-            .min_connections(1) // otherwise it may drop in-memory db
+            // To prevent losing a in-memory DB we have to override max_lifetime and idle_timeout.
+            // It seems that min_connections is not reliable enough for now to ensure at least one
+            // connection being open.
+            .max_lifetime(None)
+            .idle_timeout(None)
+            // To prevent exhausting of the DB we limit the connections.
             .max_connections(self.max_connections)
             .connect_with(options)
             .await
