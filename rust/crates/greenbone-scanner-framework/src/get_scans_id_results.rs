@@ -83,11 +83,7 @@ where
                             Some(x) => x.parse().ok(),
                             None => None,
                         };
-                        if from.is_some() && to.is_none() {
-                            (None, from)
-                        } else {
-                            (from, to)
-                        }
+                        (from, to)
                     })
                     .next()
                     .unwrap_or_default(),
@@ -174,8 +170,13 @@ mod tests {
                     io::Error::other("oh no"),
                 )))]));
             }
+            let to = if from.is_some() {
+                // for the test case ?range=99
+                to.unwrap_or(101)
+            } else {
+                to.unwrap_or_default()
+            };
             let from = from.unwrap_or_default();
-            let to = to.unwrap_or_default();
             let result: Vec<Result<models::Result, _>> = (from..to)
                 .map(|id| {
                     Ok(models::Result {
@@ -248,7 +249,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn scan_results_to() {
+    async fn scan_results_from() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
             create_single_handler!(GetScansIdResultsHandler::from(Test {})),
@@ -256,7 +257,7 @@ mod tests {
         );
 
         let req = Request::builder()
-            .uri("/scans/id/results?range=100")
+            .uri("/scans/id/results?range=99")
             .method(Method::GET)
             .body(Empty::<Bytes>::new())
             .unwrap();
@@ -264,7 +265,7 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
         let bytes = resp.into_body().collect().await.unwrap().to_bytes();
         let resp: Vec<models::Result> = serde_json::from_slice(bytes.as_ref()).unwrap();
-        assert_eq!(resp.len(), 100);
+        assert_eq!(resp.len(), 2);
         insta::assert_ron_snapshot!(resp);
     }
 
