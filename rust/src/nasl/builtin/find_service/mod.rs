@@ -12,10 +12,22 @@ use std::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::nasl::prelude::*;
+use crate::nasl::{
+    builtin::{
+        host::get_host_name_shared,
+        network::{OpenvasEncaps, socket::open_sock_tcp_vhost},
+    },
+    prelude::*,
+};
 use crate::storage::items::kb::{self, KbItem, KbKey};
 
-use super::network::socket::{NaslSocket, SocketError, make_tcp_socket};
+use super::{
+    network::socket::{NaslSocket, SocketError, make_tcp_socket},
+    preferences::{
+        get_plugin_preference_fname, plug_set_ssl_ca_file, plug_set_ssl_cert, plug_set_ssl_key,
+        plug_set_ssl_password,
+    },
+};
 
 const TIMEOUT_MILLIS: u64 = 5000;
 
@@ -64,6 +76,7 @@ pub enum Detection {
     Banner(BannerDetection),
     Https,
     Http,
+    Ssh,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -172,6 +185,7 @@ impl Detection {
             }
             Detection::Https => Ok(Self::detect_https(banner_or_http_response)),
             Detection::Http => Ok(Self::detect_http_response(banner_or_http_response)),
+            Detection::Ssh => Ok(Self::detect_ssh_banner(banner_or_http_response)),
         }
     }
 
@@ -184,6 +198,11 @@ impl Detection {
         response.contains("HTTP/1.0")
             || response.contains("HTTP/1.1")
             || response.contains("HTTP/2")
+    }
+
+    fn detect_ssh_banner(banner: &[u8]) -> bool {
+        let response = String::from_utf8_lossy(banner);
+        response.contains("ssh")
     }
 }
 
@@ -294,8 +313,34 @@ fn add_kb_entries(
     Ok(())
 }
 
-fn read_from_tcp_at_port(target: IpAddr, port: u16) -> Result<ReadResult, FindServiceError> {
-    let mut socket = make_tcp_socket(target, port, 0)?;
+fn read_from_tcp_at_port(
+    context: &ScanCtx,
+    target: IpAddr,
+    port: u16,
+    test_tls: bool,
+) -> Result<ReadResult, FindServiceError> {
+    let mut socket = if test_tls {
+        make_tcp_socket(target, port, 0)?
+    } else {
+        let vhost = get_host_name_shared(context).unwrap().to_string();
+        match open_sock_tcp_vhost(
+            context,
+            target,
+            Duration::from_millis(TIMEOUT_MILLIS),
+            None,
+            port,
+            &vhost,
+            OpenvasEncaps::Auto.into(),
+        ) {
+            Ok(Some(s)) => s,
+            _ => {
+                return Err(SocketError::FailedTlsNegotiation(
+                    "It was not possible to create a tls socket".into(),
+                )
+                .into());
+            }
+        }
+    };
     let mut buf = vec![0; 1024];
     let result = socket.read_with_timeout(&mut buf, Duration::from_millis(TIMEOUT_MILLIS));
     match result {
@@ -333,6 +378,7 @@ fn try_http_request(target: IpAddr, port: u16) -> Result<Vec<u8>, FindServiceErr
 }
 
 fn scan_port(
+    context: &ScanCtx,
     detector: &ServiceDetector,
     target: IpAddr,
     port: u16,
@@ -349,9 +395,19 @@ fn scan_port(
     let banner = if needs_http_request && let Ok(http_response) = try_http_request(target, port) {
         http_response
     } else {
-        match read_from_tcp_at_port(target, port)? {
-            ReadResult::Data(data) => data,
-            ReadResult::Timeout => return Ok(ScanPortResult::Timeout),
+        match read_from_tcp_at_port(context, target, port, false) {
+            Ok(ReadResult::Data(data)) => data,
+            Ok(ReadResult::Timeout) => return Ok(ScanPortResult::Timeout),
+            Err(e) => {
+                tracing::debug!(
+                    "Error connecting to IP Socket. Trying with a TLS socket {}",
+                    e.to_string()
+                );
+                match read_from_tcp_at_port(context, target, port, true)? {
+                    ReadResult::Data(data) => data,
+                    ReadResult::Timeout => return Ok(ScanPortResult::Timeout),
+                }
+            }
         }
     };
 
@@ -361,12 +417,60 @@ fn scan_port(
     }
 }
 
+const TEST_SSL_PREF: usize = 1;
+const CERT_FILE: usize = 6;
+const KEY_FILE: usize = 7;
+const PEM_PASS: usize = 8;
+const CA_FILE: usize = 9;
+
+fn find_service_ssl_set_prefs(context: &ScanCtx, register: &Register) -> Result<(), FnError> {
+    let mut cert = match get_plugin_preference_fname(register, context, None, Some(CERT_FILE)) {
+        Ok(cert) => cert,
+        _ => "".to_string(),
+    };
+    let mut key = match get_plugin_preference_fname(register, context, None, Some(KEY_FILE)) {
+        Ok(key) => key,
+        _ => "".to_string(),
+    };
+
+    dbg!(&cert);
+    if !key.is_empty() || !cert.is_empty() {
+        if key.is_empty() {
+            key = cert.clone();
+        };
+        if cert.is_empty() {
+            cert = key.clone();
+        };
+
+        plug_set_ssl_cert(context, cert)?;
+        plug_set_ssl_key(context, key)?;
+    };
+
+    if let Ok(pem_pass) = get_plugin_preference_fname(register, context, None, Some(PEM_PASS)) {
+        plug_set_ssl_password(context, pem_pass)?;
+    };
+
+    if let Ok(ca) = get_plugin_preference_fname(register, context, None, Some(CA_FILE)) {
+        plug_set_ssl_ca_file(context, ca)?;
+    };
+
+    Ok(())
+}
+
 #[nasl_function]
-fn plugin_run_find_service(context: &ScanCtx<'_>) -> NaslResult {
+fn plugin_run_find_service(context: &ScanCtx<'_>, register: &Register) -> NaslResult {
+    if let NaslValue::String(val) = register
+        .script_param(TEST_SSL_PREF)
+        .unwrap_or(NaslValue::String("All".to_string()))
+        && val.as_str() == "All"
+    {
+        find_service_ssl_set_prefs(context, register)?;
+    }
+
     let detector = ServiceDetector::new()?;
     let open_ports = context.get_open_tcp_ports()?;
     for port in open_ports {
-        match scan_port(&detector, context.target().ip_addr(), port) {
+        match scan_port(context, &detector, context.target().ip_addr(), port) {
             Ok(ScanPortResult::Service(service)) => {
                 detector.handle_detected_service(context, service, port)?;
             }

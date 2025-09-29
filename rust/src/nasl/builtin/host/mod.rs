@@ -64,9 +64,7 @@ fn add_host_name(
     Ok(NaslValue::Null)
 }
 
-/// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
-#[nasl_function]
-fn get_host_name(_register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
+pub fn get_host_name_shared(context: &ScanCtx) -> Result<NaslValue, FnError> {
     let vh = context.target().vhosts();
     let v = if !vh.is_empty() {
         vh.iter()
@@ -94,6 +92,12 @@ fn get_host_name(_register: &Register, context: &ScanCtx) -> Result<NaslValue, F
         TargetKind::Hostname => context.target().original_target_str().to_string(),
     };
     Ok(NaslValue::String(host))
+}
+
+/// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
+#[nasl_function]
+fn get_host_name(context: &ScanCtx) -> Result<NaslValue, FnError> {
+    get_host_name_shared(context)
 }
 
 /// This function returns the source of detection of a given hostname.
