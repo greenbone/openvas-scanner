@@ -27,24 +27,24 @@ pub fn new_client(
     let cli = reqwest::Client::builder().default_headers(headers);
 
     // There are key-cert credentials
-    if let Some(k) = key {
-        if let Some(c) = cert {
-            let mut file = File::open(k).unwrap_or_else(|_| panic!("{k} not found"));
-            let mut ident = String::new();
-            file.read_to_string(&mut ident).unwrap();
+    if let Some(k) = key
+        && let Some(c) = cert
+    {
+        let mut file = File::open(k).unwrap_or_else(|_| panic!("{k} not found"));
+        let mut ident = String::new();
+        file.read_to_string(&mut ident).unwrap();
 
-            let mut file = File::open(c).unwrap_or_else(|_| panic!("{c} not found"));
-            let mut aux = String::new();
-            file.read_to_string(&mut aux).unwrap();
+        let mut file = File::open(c).unwrap_or_else(|_| panic!("{c} not found"));
+        let mut aux = String::new();
+        file.read_to_string(&mut aux).unwrap();
 
-            ident.push_str(&aux);
-            let identity = reqwest::Identity::from_pem(&ident.into_bytes()).unwrap();
-            return cli
-                .identity(identity)
-                .danger_accept_invalid_certs(true)
-                .build()
-                .unwrap();
-        }
+        ident.push_str(&aux);
+        let identity = reqwest::Identity::from_pem(&ident.into_bytes()).unwrap();
+        return cli
+            .identity(identity)
+            .danger_accept_invalid_certs(true)
+            .build()
+            .unwrap();
     }
 
     cli.build().unwrap()
