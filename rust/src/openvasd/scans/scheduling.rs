@@ -14,7 +14,7 @@ use scannerlib::{
         Lambda, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
         preferences,
     },
-    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisStorageResult, RedisWrapper},
+    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisWrapper},
 };
 use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
 use tokio::sync::mpsc::Sender;
@@ -130,8 +130,22 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    async fn scan_insert_results(&self, id: i64, results: Vec<models::Result>) -> R<()> {
+    async fn scan_insert_results(
+        &self,
+        id: i64,
+        results: Vec<models::Result>,
+        kind: &ScanResultKind,
+    ) -> R<()> {
         if !results.is_empty() {
+            let offset: Option<i64> = match kind {
+                ScanResultKind::StatusOverride => None,
+                ScanResultKind::StatusAddition => Some(
+                    query_scalar("SELECT count(result_id) AS count FROM results WHERE id = ?")
+                        .bind(id)
+                        .fetch_one(&self.pool)
+                        .await?,
+                ),
+            };
             QueryBuilder::new(
                 r#"INSERT INTO results (
                     id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
@@ -139,9 +153,11 @@ impl<T, C> ScanScheduler<T, C> {
                     source_type, source_name, source_description
                 )"#,
             )
-            .push_values(results, |mut b, result| {
+            .push_values(results.into_iter().enumerate(), |mut b, (idx, result)| {
                 b.push_bind(id)
-                    .push_bind(result.id as i64)
+                    .push_bind(
+                        result.id as i64 + offset.map(|x| x + idx as i64).unwrap_or_default(),
+                    )
                     .push_bind(result.r_type.to_string())
                     .push_bind(result.ip_address)
                     .push_bind(result.hostname)
@@ -260,9 +276,9 @@ where
             e => e?,
         };
 
-        self.scan_insert_results(internal_id, results.results)
-            .await?;
         let kind = self.scanner.scan_result_status_kind();
+        self.scan_insert_results(internal_id, results.results, &kind)
+            .await?;
         let previous_status = super::scan_get_status(&self.pool, internal_id).await?;
         let status = match &kind {
             ScanResultKind::StatusOverride => results.status,
