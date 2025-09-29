@@ -1,6 +1,5 @@
 pub mod config;
 use std::{
-    pin::Pin,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -16,12 +15,7 @@ pub mod endpoints;
 mod image;
 mod notus;
 mod scheduling;
-
-type PinBoxFut<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
-type PinBoxFutRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
-type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
-
-type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub(crate) use crate::{ExternalError, PinBoxFut, PinBoxFutRef, Streamer};
 
 /// combines slices on compile time
 #[macro_export]
