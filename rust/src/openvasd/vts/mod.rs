@@ -14,6 +14,7 @@ use scannerlib::{
 use sqlx::{Acquire, SqlitePool, query, query_scalar};
 
 use crate::config::Config;
+mod orchestrator;
 pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

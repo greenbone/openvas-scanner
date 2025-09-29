@@ -19,4 +19,12 @@ pub mod scanner;
 pub mod scheduling;
 pub mod storage;
 
+use std::pin::Pin;
+
+use futures::Stream;
 pub use greenbone_scanner_framework::models;
+
+pub type PinBoxFut<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
+pub type PinBoxFutRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
+pub type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
+pub type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
