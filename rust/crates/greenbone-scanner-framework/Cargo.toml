@@ -9,23 +9,20 @@ http-body = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
 hyper-util = { workspace = true }
-hyper-rustls = { workspace = true }
 rustls = { workspace = true }
-rustls-pemfile = { workspace = true }
 # TODO: although it is not harmful, as we just use it to extract
 # subject identifier, we should find a way to achieve that goal using version 2
 rustls-pemfile-old = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
+time = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-rustls = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 futures = { workspace = true }
-time = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
-tokio-test = "0"
