@@ -578,7 +578,7 @@ fn make_tls_client_connection(
     })
 }
 
-fn open_sock_tcp_vhost(
+pub fn open_sock_tcp_vhost(
     context: &ScanCtx<'_>,
     addr: IpAddr,
     timeout: Duration,
