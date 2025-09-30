@@ -48,12 +48,8 @@ async fn find_path_of_command(cmd: &str) -> Result<PathBuf, SysError> {
     }
 }
 
-#[nasl_function(named(cd))]
-async fn pread(
-    cmd: &str,
-    cd: Option<bool>,
-    argv: CheckedPositionals<String>,
-) -> Result<String, FnError> {
+#[nasl_function(named(cmd, cd, argv))]
+async fn pread(cmd: &str, cd: Option<bool>, argv: Vec<String>) -> Result<String, FnError> {
     let mut real_cmd = Command::new(cmd);
     if let Some(true) = cd {
         // If `cd` is true, we need to change the cwd to
@@ -62,9 +58,12 @@ async fn pread(
         let dir = find_path_of_command(cmd).await?;
         real_cmd.current_dir(dir);
     };
-    for arg in argv.iter() {
+    let mut args_aux = argv.clone();
+    args_aux.remove(0);
+    for arg in args_aux.iter() {
         real_cmd.arg(arg);
     }
+
     let out = real_cmd.output().await.map_err(SysError::SpawnProcess)?;
     let stdout = String::from_utf8(out.stdout).unwrap();
     Ok(stdout)
@@ -136,7 +135,10 @@ mod tests {
     #[tokio::test]
     async fn pread() {
         let mut t = TestBuilder::default();
-        t.ok(r#"pread("basename", "/a/b/c");"#, "c\n");
+        t.ok(
+            r#"pread(cmd: "basename", argv: make_list("basename","/a/b/c"));"#,
+            "c\n",
+        );
         t.async_verify().await;
     }
 
