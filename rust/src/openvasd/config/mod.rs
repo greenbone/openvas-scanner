@@ -19,15 +19,14 @@ use scannerlib::{
     scanner::preferences::preference::{PREFERENCES, ScanPrefValue},
 };
 use serde::{Deserialize, Serialize};
-mod duration;
 mod logging;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Feed {
     pub path: PathBuf,
     #[serde(
-        deserialize_with = "duration::deserialize",
-        serialize_with = "duration::serialize"
+        deserialize_with = "scannerlib::utils::duration::deserialize",
+        serialize_with = "scannerlib::utils::duration::serialize"
     )]
     pub check_interval: Duration,
     pub signature_check: bool,
@@ -53,8 +52,8 @@ pub struct Scheduler {
     #[serde(default)]
     pub min_free_mem: Option<u64>,
     #[serde(
-        deserialize_with = "duration::deserialize",
-        serialize_with = "duration::serialize"
+        deserialize_with = "scannerlib::utils::duration::deserialize",
+        serialize_with = "scannerlib::utils::duration::serialize"
     )]
     pub check_interval: Duration,
 }

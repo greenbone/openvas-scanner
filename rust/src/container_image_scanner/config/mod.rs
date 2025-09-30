@@ -2,7 +2,6 @@ use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteSynchronous;
-mod duration;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DBLocation {
@@ -124,8 +123,8 @@ pub struct SqliteConfiguration {
     )]
     pub location: DBLocation,
     #[serde(
-        deserialize_with = "duration::deserialize",
-        serialize_with = "duration::serialize"
+        deserialize_with = "crate::utils::duration::deserialize",
+        serialize_with = "crate::utils::duration::serialize"
     )]
     pub busy_timeout: Duration,
     pub max_connections: u32,
