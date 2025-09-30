@@ -18,5 +18,6 @@ pub mod osp;
 pub mod scanner;
 pub mod scheduling;
 pub mod storage;
+pub mod utils;
 
 pub use greenbone_scanner_framework::models;
