@@ -88,6 +88,7 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - open_rc4_cipher
 - rc4_encrypt
 - close_stream_cipher
+- get_smb2_signature
 
 ## Not yet implemented
 
@@ -99,7 +100,6 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - dsa_do_sign
 - dsa_do_verify
 - get_signature
-- get_smb2_signature
 - prf_sha256
 - prf_sha384
 - tls1_prf
