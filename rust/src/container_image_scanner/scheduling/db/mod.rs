@@ -408,7 +408,7 @@ impl RequestedScans {
     }
 }
 
-pub async fn set_scans_to_finished(pool: Arc<Pool<Sqlite>>) -> Result<(), ExternalError> {
+pub async fn set_scans_to_finished(pool: &Pool<Sqlite>) -> Result<(), ExternalError> {
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
 
@@ -421,7 +421,6 @@ pub async fn set_scans_to_finished(pool: Arc<Pool<Sqlite>>) -> Result<(), Extern
                             ELSE 'failed'
                         END
             WHERE status = 'running'
-              AND host_dead = 0
               AND host_queued = 0
               AND NOT EXISTS (
                 SELECT 1
@@ -458,4 +457,48 @@ pub(crate) fn preferences<'a>(
         let value: String = row.get("value");
         Some((key, value))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::{SqlitePool, query, query_scalar};
+
+    use crate::container_image_scanner::{MIGRATOR, config::DBLocation};
+
+    #[tokio::test]
+    async fn status_failed() {
+        let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address())
+            .await
+            .unwrap();
+
+        MIGRATOR.run(&pool).await.unwrap();
+
+        let scan_id = "itsamemario";
+        let client_id = "Roehrich";
+        let row = query(
+            r#"
+            INSERT INTO client_scan_map(scan_id, client_id) VALUES (?, ?)
+            "#,
+        )
+        .bind(scan_id)
+        .bind(client_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        let id = row.last_insert_rowid();
+        let _ = query("INSERT INTO scans(id, status, host_all, host_queued, host_alive, host_dead) VALUES (?, 'running', 3, 0, 2, 1)")
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        super::set_scans_to_finished(&pool).await.unwrap();
+
+        let status: String = query_scalar("SELECT status FROM scans WHERE id = ?")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(&status, "failed");
+    }
 }
