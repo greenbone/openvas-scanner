@@ -182,7 +182,7 @@ where
             }
         }
         Self::scan_images::<T>(config, pool.clone(), products).await;
-        if let Err(error) = db::set_scans_to_finished(pool.clone()).await {
+        if let Err(error) = db::set_scans_to_finished(pool.as_ref()).await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
     }
