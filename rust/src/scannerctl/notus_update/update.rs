@@ -53,7 +53,7 @@ where
 
     if signature_check {
         match advisories_files.verify_signature() {
-            Ok(_) => tracing::info!("Signature check succsessful"),
+            Ok(_) => tracing::info!("Signature check successful"),
             Err(feed::VerifyError::MissingKeyring) => {
                 tracing::warn!("Signature check enabled but missing keyring");
                 return Err(feed::VerifyError::MissingKeyring.into());

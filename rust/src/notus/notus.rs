@@ -119,7 +119,7 @@ where
     fn signature_check(&self) -> Result<(), Error> {
         if self.signature_check {
             match self.loader.verify_signature() {
-                Ok(_) => tracing::trace!("Signature check succsessful"),
+                Ok(_) => tracing::trace!("Signature check successful"),
                 Err(VerifyError::MissingKeyring) => {
                     tracing::warn!("Signature check enabled but missing keyring");
                     return Err(Error::SignatureCheckError(VerifyError::MissingKeyring));
