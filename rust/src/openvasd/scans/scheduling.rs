@@ -17,7 +17,7 @@ use scannerlib::{
     storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisWrapper},
 };
 use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
-use tokio::sync::mpsc::Sender;
+use tokio::{sync::mpsc::Sender, time::MissedTickBehavior};
 
 use crate::{config::Config, crypt::Crypt};
 mod nasl;
@@ -27,6 +27,13 @@ struct ScanScheduler<Scanner, Cryptor> {
     cryptor: Arc<Cryptor>,
     scanner: Arc<Scanner>,
     max_concurrent_scan: usize,
+    // Exists to prevent a bug in which scans were accidentally started twice due to deferred writes in sqlite.
+    // To address this bug, this field keeps track of all requested scans manually, instead of relying on
+    // sqlite for this information.
+    //
+    // This is a hack, if there are any better solutions that work as reliably this can be removed
+    // without functional harm.
+    requested_guard: Arc<RwLock<Vec<i64>>>,
 }
 
 #[derive(Debug)]
@@ -95,38 +102,6 @@ impl<T, C> ScanScheduler<T, C> {
             .execute(&self.pool)
             .await?;
         tracing::warn!(id, reason, "Set scan from running to failed.");
-        Ok(())
-    }
-
-    async fn scan_update_status(&self, id: i64, status: models::Status) -> R<()> {
-        let host_info = status.host_info.unwrap_or_default();
-
-        let row = query(
-            r#"
-    UPDATE scans SET
-        start_time    = COALESCE(?, start_time),
-        end_time      = COALESCE(?, end_time),
-        host_dead     = COALESCE(NULLIF(?, 0), host_dead),
-        host_alive    = COALESCE(NULLIF(?, 0), host_alive),
-        host_queued   = COALESCE(NULLIF(?, 0), host_queued),
-        host_excluded = COALESCE(NULLIF(?, 0), host_excluded),
-        host_all      = COALESCE(NULLIF(?, 0), host_all),
-        status        = COALESCE(NULLIF(?, 'stored'), status)
-    WHERE id = ?
-    "#,
-        )
-        .bind(status.start_time.map(|x| x as i64))
-        .bind(status.end_time.map(|x| x as i64))
-        .bind(host_info.dead as i64)
-        .bind(host_info.alive as i64)
-        .bind(host_info.queued as i64)
-        .bind(host_info.excluded as i64)
-        .bind(host_info.all as i64)
-        .bind(status.status.as_ref())
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
-        tracing::debug!(id, rows_affected=row.rows_affected(), status = %status.status, "Set status.");
         Ok(())
     }
 
@@ -207,16 +182,7 @@ where
     Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     C: Crypt + Send + Sync + 'static,
 {
-    /// Checks for scans that are requested and may start them
-    ///
-    /// After verifying concurrently running scans it starts a scan when the scan was started
-    /// successfully than it sets it to 'running', if the start fails then it sets it to failed.
-    ///
-    /// In the case that the ScanStarter implementation blocks start_scan is spawned as a
-    /// background task.
-    async fn requested_to_running(&self) -> R<()> {
-        let mut tx = self.pool.begin().await?;
-
+    async fn fetch_requested(&self) -> R<Vec<i64>> {
         let ids: Vec<i64> = match self.max_concurrent_scan {
             0 => query_scalar(
                 "SELECT id FROM scans WHERE status = 'requested' ORDER BY created_at ASC ",
@@ -240,34 +206,81 @@ where
             )
             .bind(m as i64),
         }
-        .fetch_all(&mut *tx)
+        .fetch_all(&self.pool)
         .await?;
+
+        Ok(ids)
+    }
+
+    async fn is_already_started(&self, id: i64) -> bool {
+        let guard = self.requested_guard.clone();
+        tokio::task::spawn_blocking(move || {
+            let cached = guard.read().unwrap();
+            cached.contains(&id)
+        })
+        .await
+        .unwrap()
+    }
+
+    async fn set_to_running(&self, id: i64) -> R<()> {
+        let row = query("UPDATE scans SET status = 'running' WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        let mut tx = self.pool.begin().await?;
+        let scan = super::get_scan(&mut tx, self.cryptor.as_ref(), id).await?;
+        tx.commit().await?;
+        if self.is_already_started(id).await {
+            tracing::trace!(id, "Has been already started, skipping");
+            return Ok(());
+        }
+
+        tracing::info!(id, running = row.rows_affected(), "Started scan");
+
+        let guard = self.requested_guard.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut x = guard.write().unwrap();
+            x.push(id);
+        })
+        .await
+        .unwrap();
+
+        scan_start(self.pool.clone(), self.scanner.clone(), id, scan).await;
+        Ok(())
+    }
+    /// Checks for scans that are requested and may start them
+    ///
+    /// After verifying concurrently running scans it starts a scan when the scan was started
+    /// successfully than it sets it to 'running', if the start fails then it sets it to failed.
+    async fn requested_to_running(&self) -> R<()> {
+        let ids = self.fetch_requested().await?;
+
         for id in ids {
-            if !self.scanner.can_start_scan().await {
+            // To prevent accidental state change from running -> requested based on an old
+            // snapshot we only do a resource when a scan has not already been started.
+            if !self.is_already_started(id).await && !self.scanner.can_start_scan().await {
                 break;
             }
 
-            let scan = super::get_scan(&mut tx, self.cryptor.as_ref(), id).await?;
-            let row = query("UPDATE scans SET status = 'running' WHERE id = ?")
-                .bind(id)
-                .execute(&mut *tx)
-                .await?;
-            tracing::info!(id, running = row.rows_affected(), "Started scan");
-            tokio::task::spawn(scan_start(
-                self.pool.clone(),
-                self.scanner.clone(),
-                id,
-                scan,
-            ));
+            self.set_to_running(id).await?;
         }
-
-        tx.commit().await?;
 
         Ok(())
     }
 
+    async fn remove_id_from_guard(&self, id: i64) {
+        let cache = self.requested_guard.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut cache = cache.write().unwrap();
+            if let Some(index) = cache.iter().position(|x| x == &id) {
+                cache.swap_remove(index);
+            }
+        });
+    }
+
     async fn scan_import_results(&self, internal_id: i64, scan_id: String) -> R<()> {
-        let mut results = match self.scanner.fetch_results(scan_id).await {
+        let mut results = match self.scanner.fetch_results(scan_id.clone()).await {
             Ok(x) => x,
             Err(scannerlib::scanner::Error::ScanNotFound(scan_id)) => {
                 let reason = format!("Tried to get results of an unknown scan ({scan_id})");
@@ -277,6 +290,7 @@ where
         };
 
         let kind = self.scanner.scan_result_status_kind();
+
         self.scan_insert_results(internal_id, results.results, &kind)
             .await?;
         let previous_status = super::scan_get_status(&self.pool, internal_id).await?;
@@ -289,7 +303,11 @@ where
             }
         };
 
-        self.scan_update_status(internal_id, status).await
+        self.scan_update_status(internal_id, &status).await?;
+        if status.is_done() {
+            self.scanner_delete_scan(internal_id, scan_id).await?;
+        }
+        Ok(())
     }
 
     async fn import_results(&self) -> R<()> {
@@ -311,6 +329,44 @@ where
         Ok(())
     }
 
+    async fn scan_update_status(&self, id: i64, status: &models::Status) -> R<()> {
+        let host_info = status.host_info.clone().unwrap_or_default();
+
+        let row = query(
+            r#"
+    UPDATE scans SET
+        start_time    = COALESCE(?, start_time),
+        end_time      = COALESCE(?, end_time),
+        host_dead     = COALESCE(NULLIF(?, 0), host_dead),
+        host_alive    = COALESCE(NULLIF(?, 0), host_alive),
+        host_queued   = COALESCE(NULLIF(?, 0), host_queued),
+        host_excluded = COALESCE(NULLIF(?, 0), host_excluded),
+        host_all      = COALESCE(NULLIF(?, 0), host_all),
+        status        = COALESCE(NULLIF(?, 'stored'), status)
+    WHERE id = ?
+    "#,
+        )
+        .bind(status.start_time.map(|x| x as i64))
+        .bind(status.end_time.map(|x| x as i64))
+        .bind(host_info.dead as i64)
+        .bind(host_info.alive as i64)
+        .bind(host_info.queued as i64)
+        .bind(host_info.excluded as i64)
+        .bind(host_info.all as i64)
+        .bind(status.status.as_ref())
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        tracing::debug!(id, rows_affected=row.rows_affected(), status = %status.status, "Set status.");
+        Ok(())
+    }
+
+    async fn scanner_delete_scan(&self, internal_id: i64, scan_id: String) -> R<()> {
+        self.remove_id_from_guard(internal_id).await;
+        self.scanner.delete_scan(scan_id).await?;
+        Ok(())
+    }
+
     async fn scan_stop(&self, id: i64) -> R<()> {
         let scan_id: String = query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
             .bind(id)
@@ -318,7 +374,7 @@ where
             .await?;
         self.scanner.stop_scan(scan_id.clone()).await?;
         self.scan_import_results(id, scan_id.clone()).await?;
-        self.scanner.delete_scan(scan_id.clone()).await?;
+
         self.scan_running_to_stopped(id).await?;
 
         Ok(())
@@ -353,6 +409,11 @@ where
         tracing::warn!(%error, "Unable to set not stopped runs from a previous session to failed.")
     }
     let mut interval = tokio::time::interval(check_interval);
+    // The default on missed ticks is bursted. Which means when a tick was missed instead of
+    // ticking in the interval after the new time it is immediately triggering missed ticks
+    // resulting in immediately calling scheduler.on_schedule. What we would rather do on a missed
+    // tick is waiting for that interval until we check again.
+    interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
     let (sender, mut recv) = tokio::sync::mpsc::channel(10);
     tokio::spawn(async move {
         loop {
@@ -397,6 +458,7 @@ where
         cryptor: crypter,
         max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
         scanner: Arc::new(scanner),
+        requested_guard: Arc::new(RwLock::new(vec![])),
     };
 
     run_scheduler(config.scheduler.check_interval, scheduler).await
@@ -610,6 +672,7 @@ pub(crate) mod tests {
             scanner,
             cryptor,
             max_concurrent_scan: 4,
+            requested_guard: Arc::new(RwLock::new(vec![])),
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
         Ok((under_test, known_scans))
