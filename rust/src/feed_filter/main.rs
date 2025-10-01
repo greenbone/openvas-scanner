@@ -260,7 +260,9 @@ impl ScriptReader {
         ast.iter_stmts()
             .filter_map(|stmt| {
                 if let Statement::Include(include) = stmt {
-                    Some(ScriptPath(include.path.clone()))
+                    let sp = search_path::SearchPath::from(self.feed_path.clone());
+                    sp.find_file(&PathBuf::from(include.path.as_str()))
+                        .map(|i| ScriptPath::new(&self.feed_path, &i))
                 } else {
                     None
                 }
@@ -302,8 +304,9 @@ impl RunnableScripts {
                         assert!(
                             resolved.keys().any(|k| k.0 == dep.0)
                                 || unresolved.keys().any(|k| k.0 == dep.0),
-                            "Reference to non-existent file: {}",
-                            k.0
+                            "References to non-existent file: {}. dep: {}",
+                            k.0,
+                            dep.0
                         );
                     }
                 }

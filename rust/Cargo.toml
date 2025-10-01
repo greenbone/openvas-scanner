@@ -16,7 +16,6 @@ hyper = { version = "1", features = ["full"] }
 hyper-rustls = "0"
 hyper-util = { version = "0", features = ["tokio"] }
 insta = { version = "1.41.1", features = ["ron", "toml"] }
-reqwest = "0.12.23"
 rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
 rustls-pemfile-old = { version = "1.0.2", package = "rustls-pemfile" }
@@ -136,6 +135,7 @@ nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
 greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
 nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 rpmdb = { path = "crates/rpmdb-rs" }
+search_path = "0.1.4"
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
