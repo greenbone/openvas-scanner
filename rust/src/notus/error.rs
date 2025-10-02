@@ -4,8 +4,8 @@
 
 use std::io;
 
-use crate::models::FixedPackage;
 use crate::nasl::syntax::LoadError;
+use greenbone_scanner_framework::models::FixedPackage;
 use thiserror::Error;
 
 use crate::feed::VerifyError;

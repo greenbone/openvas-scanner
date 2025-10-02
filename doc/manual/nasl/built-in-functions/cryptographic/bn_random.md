@@ -2,22 +2,28 @@
 
 ## NAME
 
-**bn_random** - takes one named arguments need to returns a message passing interface with the given amount of bits.
+**bn_random** - generates a random big number
 
 ## SYNOPSIS
 
-*str* **bn_random**(key: str, buf: str);
+*str* **bn_random**(need: int);
 
-**bn_random** It takes one named arguments need to returns a message passing interface with the given amount of bits.
+**bn_random** takes one named argument
 
 ## DESCRIPTION
 
-bn_random generates a MPI (message passing interface) with a given amount of bits.
+This function generates a big number (bn) with the given amount of bits.
+As this function generates the number as bytes, it actually takes the number of bits, divides them by 8
+and rounds them up. It does not only generate the desired number of bits for the last byte, but a whole
+random byte.
+
+A big number is an integer, that is probably to big for any primitive data type. In case of the
+c implementation the mpi (multi-precision integer) type of libgcrypt was used.
 
 
 ## RETURN VALUE
 
-bn_random
+A random big number as bytes
 
 ## ERRORS
 

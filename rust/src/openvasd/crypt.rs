@@ -14,7 +14,7 @@ use sha2::Sha256;
 use sha2::digest::generic_array::GenericArray;
 
 #[derive(Clone, Debug)]
-struct Key(GenericArray<u8, U32>);
+pub struct Key(GenericArray<u8, U32>);
 
 impl Default for Key {
     fn default() -> Self {
@@ -43,13 +43,9 @@ impl From<String> for Key {
 
 #[async_trait]
 pub trait Crypt {
-    #[cfg(test)]
     async fn encrypt(&self, data: Vec<u8>) -> Encrypted;
-    fn encrypt_sync(&self, data: Vec<u8>) -> Encrypted;
 
-    #[cfg(test)]
     async fn decrypt(&self, encrypted: Encrypted) -> Vec<u8>;
-    fn decrypt_sync(&self, encrypted: &Encrypted) -> Vec<u8>;
 }
 
 #[derive(Clone, Debug, Default)]
@@ -58,6 +54,13 @@ pub struct ChaCha20Crypt {
 }
 
 impl ChaCha20Crypt {
+    pub fn new<K>(k: K) -> Self
+    where
+        K: Into<Key>,
+    {
+        ChaCha20Crypt { key: k.into() }
+    }
+
     fn encrypt_sync(key: &Key, mut data: Vec<u8>) -> Encrypted {
         let mut nonce = [0u8; 12];
         let mut rng = rand::rng();
@@ -79,7 +82,6 @@ impl ChaCha20Crypt {
 
 #[async_trait]
 impl Crypt for ChaCha20Crypt {
-    #[cfg(test)]
     async fn encrypt(&self, data: Vec<u8>) -> Encrypted {
         let key = self.key.clone();
         tokio::task::spawn_blocking(move || Self::encrypt_sync(&key, data))
@@ -87,20 +89,11 @@ impl Crypt for ChaCha20Crypt {
             .unwrap()
     }
 
-    fn encrypt_sync(&self, data: Vec<u8>) -> Encrypted {
-        Self::encrypt_sync(&self.key, data)
-    }
-
-    #[cfg(test)]
     async fn decrypt(&self, encrypted: Encrypted) -> Vec<u8> {
         let key = self.key.clone();
         tokio::task::spawn_blocking(move || Self::decrypt_sync(&key, &encrypted))
             .await
             .unwrap()
-    }
-
-    fn decrypt_sync(&self, encrypted: &Encrypted) -> Vec<u8> {
-        Self::decrypt_sync(&self.key, encrypted)
     }
 }
 

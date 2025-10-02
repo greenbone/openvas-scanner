@@ -16,7 +16,7 @@ pub const HEADER_LENGTH: u8 = 5;
 pub const FIX_IPV6_HEADER_LENGTH: usize = 40;
 pub const IPPROTO_IPV6: u8 = 6;
 
-pub fn new_raw_socket_v4() -> Result<Socket, AliveTestError> {
+fn new_raw_socket_v4() -> Result<Socket, AliveTestError> {
     Socket::new_raw(
         Domain::IPV4,
         socket2::Type::RAW,
@@ -25,7 +25,7 @@ pub fn new_raw_socket_v4() -> Result<Socket, AliveTestError> {
     .map_err(|e| AliveTestError::NoSocket(e.to_string()))
 }
 
-pub fn new_raw_socket_v6() -> Result<Socket, AliveTestError> {
+fn new_raw_socket_v6() -> Result<Socket, AliveTestError> {
     Socket::new_raw(
         Domain::IPV6,
         socket2::Type::RAW,

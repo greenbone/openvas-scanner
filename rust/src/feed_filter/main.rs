@@ -35,7 +35,7 @@ fn init_logging() {
     about = "Filters scripts from the feed which aren't runnable with the current set of builtins in the openvasd implementation.",
     version = env!("CARGO_PKG_VERSION")
 )]
-pub struct FilterArgs {
+struct FilterArgs {
     /// Path to the feed that should be read and filtered.
     feed_path: PathBuf,
     /// Output path: If present, a copy of the feed containing only
@@ -168,7 +168,7 @@ impl Script {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ScriptPath(String);
+struct ScriptPath(String);
 
 impl ScriptPath {
     fn new(feed_path: &Path, path: &Path) -> Self {
@@ -260,7 +260,9 @@ impl ScriptReader {
         ast.iter_stmts()
             .filter_map(|stmt| {
                 if let Statement::Include(include) = stmt {
-                    Some(ScriptPath(include.path.clone()))
+                    let sp = search_path::SearchPath::from(self.feed_path.clone());
+                    sp.find_file(&PathBuf::from(include.path.as_str()))
+                        .map(|i| ScriptPath::new(&self.feed_path, &i))
                 } else {
                     None
                 }
@@ -269,7 +271,7 @@ impl ScriptReader {
     }
 }
 
-pub struct RunnableScripts(Scripts);
+struct RunnableScripts(Scripts);
 
 impl RunnableScripts {
     fn new(unresolved: Scripts) -> Self {
@@ -302,8 +304,9 @@ impl RunnableScripts {
                         assert!(
                             resolved.keys().any(|k| k.0 == dep.0)
                                 || unresolved.keys().any(|k| k.0 == dep.0),
-                            "Reference to non-existent file: {}",
-                            k.0
+                            "References to non-existent file: {}. dep: {}",
+                            k.0,
+                            dep.0
                         );
                     }
                 }

@@ -12,9 +12,8 @@ use super::dberror::RedisStorageResult;
 use itertools::Itertools;
 use redis::*;
 
-use crate::models;
-use crate::models::Vulnerability;
-
+use crate::notus::advisories::Vulnerability;
+use crate::notus::advisories::VulnerabilityData;
 use crate::storage::StorageError;
 use crate::storage::items::nvt::ACT;
 use crate::storage::items::nvt::Nvt;
@@ -263,10 +262,7 @@ pub trait RedisAddAdvisory: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    fn redis_add_advisory(
-        &mut self,
-        adv: Option<models::VulnerabilityData>,
-    ) -> RedisStorageResult<()> {
+    fn redis_add_advisory(&mut self, adv: Option<VulnerabilityData>) -> RedisStorageResult<()> {
         match adv {
             Some(data) => {
                 let key = format!("internal/notus/advisories/{}", &data.adv.oid);
@@ -601,14 +597,6 @@ impl RedisCtx {
             .arg("FLUSHDB")
             .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
         self.release_namespace()?;
-        Ok(())
-    }
-
-    /// Clean up the namespace.
-    pub fn flush_namespace(&mut self) -> RedisStorageResult<()> {
-        Cmd::new()
-            .arg("FLUSHDB")
-            .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
         Ok(())
     }
 }

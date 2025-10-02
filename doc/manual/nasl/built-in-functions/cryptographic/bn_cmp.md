@@ -2,21 +2,21 @@
 
 ## NAME
 
-**bn_cmp** - takes two named arguments key1, key2. Returns 0 when they're equal, -1 when key1 > key2, +1 when key2 > key1
+**bn_cmp** - compares two big numbers
 
 ## SYNOPSIS
 
-*str* **bn_cmp**(key: str, buf: str);
+*str* **bn_cmp**(key1: str, key2: str);
 
-**bn_cmp** It takes two named arguments key1, key2. Returns 0 when they're equal, -1 when key1 > key2, +1 when key2 > key1.
+**bn_cmp** It takes two named arguments
 
 ## DESCRIPTION
 
-Compares key1 with key2.
+Compares two big numbers given as Bytes interpreted in big endian.
 
 ## RETURN VALUE
 
-0 when key and key2 are equal, -1 when key1 > key2 and +1 when key1 < key2.
+0 when key and key2 are equal, -1 when key1 < key2 and 1 when key1 > key2.
 
 ## SEE ALSO
 

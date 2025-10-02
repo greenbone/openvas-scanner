@@ -1,0 +1,18 @@
+---
+source: src/container_image_scanner/endpoints/scans.rs
+expression: result
+---
+[
+  ScanPreferenceInformation(
+    id: "accept_invalid_certs",
+    name: "Accepts certificates without trust chain verification",
+    default: true,
+    description: "This disables the CA chain verification for TLS certificates when connecting to a registry. This is useful for self-signed certificates.",
+  ),
+  ScanPreferenceInformation(
+    id: "registry_allow_insecure",
+    name: "Use HTTP instead of HTTPS",
+    default: false,
+    description: "This allows unencrypted communication with an registry (HTTP instead of HTTPS).",
+  ),
+]

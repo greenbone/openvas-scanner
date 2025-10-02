@@ -1,0 +1,5 @@
+---
+source: src/config.rs
+expression: config
+---
+db = '/tmp/test.db'

@@ -15,7 +15,7 @@ use crate::storage::{
     items::{
         kb::{GetKbContextKey, KbContextKey, KbItem},
         nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
-        result::{ResultContextKeyAll, ResultContextKeySingle, ResultItem},
+        result::{ResultContextKeySingle, ResultItem},
     },
 };
 
@@ -180,9 +180,9 @@ impl<S: Write> Retriever<ResultContextKeySingle> for JsonStorage<S> {
         unimplemented!()
     }
 }
-impl<S: Write> Retriever<ResultContextKeyAll> for JsonStorage<S> {
+impl<S: Write> Retriever<ScanID> for JsonStorage<S> {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
@@ -192,9 +192,9 @@ impl<S: Write> Remover<ResultContextKeySingle> for JsonStorage<S> {
         unimplemented!()
     }
 }
-impl<S: Write> Remover<ResultContextKeyAll> for JsonStorage<S> {
+impl<S: Write> Remover<ScanID> for JsonStorage<S> {
     type Item = Vec<ResultItem>;
-    fn remove(&self, _: &ResultContextKeyAll) -> Result<Option<Self::Item>, StorageError> {
+    fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }

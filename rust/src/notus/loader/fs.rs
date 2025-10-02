@@ -9,9 +9,9 @@ use std::{
     time::SystemTime,
 };
 
-use crate::{feed::check_signature, models::Product};
+use greenbone_scanner_framework::models::Product;
 
-use crate::feed::SignatureChecker;
+use crate::feed::{SignatureChecker, check_signature};
 use crate::{
     feed::VerifyError,
     notus::error::{Error, LoadProductErrorKind},

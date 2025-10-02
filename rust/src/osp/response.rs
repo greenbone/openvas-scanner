@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 //! # Responses of OSPD commands
+use std::str::FromStr;
 use std::{collections::HashMap, fmt};
 
 use serde::{Deserialize, de::Visitor};
@@ -243,13 +244,13 @@ impl TryFrom<Response> for Scan {
     }
 }
 
-impl From<Scan> for Vec<crate::models::Result> {
+impl From<Scan> for Vec<greenbone_scanner_framework::models::Result> {
     fn from(scan: Scan) -> Self {
         scan.results.into()
     }
 }
 
-impl TryFrom<Response> for Vec<crate::models::Result> {
+impl TryFrom<Response> for Vec<greenbone_scanner_framework::models::Result> {
     type Error = Error;
     fn try_from(response: Response) -> Result<Self, Self::Error> {
         let scan = Scan::try_from(response)?;
@@ -359,7 +360,8 @@ pub struct ScanResult {
     pub description: String,
 }
 
-impl From<&ScanResult> for crate::models::ResultType {
+use greenbone_scanner_framework::models::ResultType as RT;
+impl From<&ScanResult> for RT {
     fn from(sr: &ScanResult) -> Self {
         match (
             sr.port.clone().unwrap_or("".to_string()).as_str(),
@@ -367,16 +369,16 @@ impl From<&ScanResult> for crate::models::ResultType {
             &sr.result_type,
         ) {
             // Not only the Host Details script produces host details. Therefore, check the port
-            ("general/Host_Details", _, ResultType::Log) => crate::models::ResultType::HostDetail,
-            (_, "HOST_START", ResultType::Log) => crate::models::ResultType::HostStart,
-            (_, "HOST_END", ResultType::Log) => crate::models::ResultType::HostEnd,
-            (_, "DEADHOST", ResultType::Log) => crate::models::ResultType::DeadHost,
-            (_, "Host Details", ResultType::Log) => crate::models::ResultType::HostDetail,
-            (_, _, ResultType::Log) => crate::models::ResultType::Log,
-            (_, _, ResultType::Alarm) => crate::models::ResultType::Alarm,
-            (_, _, ResultType::Error) => crate::models::ResultType::Error,
-            (_, _, ResultType::HostStart) => crate::models::ResultType::HostStart,
-            (_, _, ResultType::HostEnd) => crate::models::ResultType::HostEnd,
+            ("general/Host_Details", _, ResultType::Log) => RT::HostDetail,
+            (_, "HOST_START", ResultType::Log) => RT::HostStart,
+            (_, "HOST_END", ResultType::Log) => RT::HostEnd,
+            (_, "DEADHOST", ResultType::Log) => RT::DeadHost,
+            (_, "Host Details", ResultType::Log) => RT::HostDetail,
+            (_, _, ResultType::Log) => RT::Log,
+            (_, _, ResultType::Alarm) => RT::Alarm,
+            (_, _, ResultType::Error) => RT::Error,
+            (_, _, ResultType::HostStart) => RT::HostStart,
+            (_, _, ResultType::HostEnd) => RT::HostEnd,
             // host details are sent via log messages
             (_, _, ResultType::HostDetail) => unreachable!(),
         }
@@ -385,25 +387,23 @@ impl From<&ScanResult> for crate::models::ResultType {
 
 #[derive(Deserialize, Debug, Default)]
 struct HostDetail {
-    detail: Vec<crate::models::Detail>,
+    detail: Vec<Detail>,
 }
 
 impl HostDetail {
-    fn extract(&self) -> Option<crate::models::Detail> {
+    fn extract(&self) -> Option<Detail> {
         self.detail.first().cloned()
     }
 }
 
-impl From<&ScanResult> for crate::models::Result {
+use greenbone_scanner_framework::models::{self, Detail, Phase, Protocol, Result as Vulnerability};
+impl From<&ScanResult> for Vulnerability {
     fn from(result: &ScanResult) -> Self {
         // name == script_name can be found via oid and is ignored here
         let (port, protocol) = {
             result.clone().port.map_or((None, None), |port| {
                 let (m_port, m_protocol) = port.split_once('/').unwrap_or((port.as_str(), ""));
-                (
-                    m_port.parse().ok(),
-                    crate::models::Protocol::try_from(m_protocol).ok(),
-                )
+                (m_port.parse().ok(), Protocol::from_str(m_protocol).ok())
             })
         };
         let r_type = result.into();
@@ -411,16 +411,19 @@ impl From<&ScanResult> for crate::models::Result {
             "" => None,
             _ => Some(result.description.clone()),
         };
-        let detail = match r_type {
-            crate::models::ResultType::HostDetail => match urlencoding::decode(&result.description)
-            {
-                Ok(decoded) => quick_xml::de::from_str::<HostDetail>(&decoded).unwrap_or_default(),
-                Err(_) => Default::default(),
-            },
-            _ => Default::default(),
+        let detail = {
+            match r_type {
+                RT::HostDetail => match urlencoding::decode(&result.description) {
+                    Ok(decoded) => {
+                        quick_xml::de::from_str::<HostDetail>(&decoded).unwrap_or_default()
+                    }
+                    Err(_) => Default::default(),
+                },
+                _ => Default::default(),
+            }
         };
 
-        crate::models::Result {
+        Vulnerability {
             id: 0,
             hostname: result.hostname.clone(),
             ip_address: result.host.clone(),
@@ -439,10 +442,10 @@ impl From<&ScanResult> for crate::models::Result {
 pub struct Results {
     /// Results
     #[serde(default)]
-    pub result: Vec<ScanResult>,
+    result: Vec<ScanResult>,
 }
 
-impl From<Results> for Vec<crate::models::Result> {
+impl From<Results> for Vec<Vulnerability> {
     fn from(results: Results) -> Self {
         results
             .result
@@ -575,18 +578,18 @@ impl Default for Scan {
     }
 }
 // TODO when traits moved to models create From for ScanResults
-impl From<Scan> for crate::models::Status {
+impl From<Scan> for models::Status {
     fn from(value: Scan) -> Self {
-        let phase: crate::models::Phase = match value.status {
-            ScanStatus::Queued => crate::models::Phase::Requested,
-            ScanStatus::Requested => crate::models::Phase::Requested,
-            ScanStatus::Init => crate::models::Phase::Requested,
-            ScanStatus::Running => crate::models::Phase::Running,
-            ScanStatus::Stopped => crate::models::Phase::Stopped,
-            ScanStatus::Failed => crate::models::Phase::Failed,
-            ScanStatus::Finished => crate::models::Phase::Succeeded,
-            ScanStatus::Succeeded => crate::models::Phase::Succeeded,
-            ScanStatus::Interrupted => crate::models::Phase::Failed,
+        let phase: Phase = match value.status {
+            ScanStatus::Queued => Phase::Requested,
+            ScanStatus::Requested => Phase::Requested,
+            ScanStatus::Init => Phase::Requested,
+            ScanStatus::Running => Phase::Running,
+            ScanStatus::Stopped => Phase::Stopped,
+            ScanStatus::Failed => Phase::Failed,
+            ScanStatus::Finished => Phase::Succeeded,
+            ScanStatus::Succeeded => Phase::Succeeded,
+            ScanStatus::Interrupted => Phase::Failed,
         };
 
         let mut scanning: HashMap<String, i32> = HashMap::new();
@@ -595,12 +598,13 @@ impl From<Scan> for crate::models::Status {
                 scanning.insert(host.name.clone(), 0);
             }
         }
-        crate::models::Status {
+        use greenbone_scanner_framework::models::HostInfo as HI;
+        models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
             end_time: value.end_time.map(|s| s.0),
             host_info: value.host_info.map(|host_info| {
-                crate::models::HostInfoBuilder {
+                HI {
                     all: host_info.count_total.content.0,
                     excluded: host_info.count_excluded.content.0,
                     dead: host_info.count_dead.content.0,
@@ -613,8 +617,9 @@ impl From<Scan> for crate::models::Status {
                     // Not used by OSP but necessary for Openvas and Openvasd
                     // scanner types respectively
                     scanning: Some(scanning),
+
+                    ..Default::default()
                 }
-                .build()
             }),
         }
     }
@@ -833,8 +838,9 @@ mod tests {
 </get_scans_response>
             "#;
         let response: Response = from_str(xml).unwrap();
-        let results: Vec<crate::models::Result> = response.try_into().unwrap();
-        use crate::models::ResultType::*;
+        let results: Vec<greenbone_scanner_framework::models::Result> =
+            response.try_into().unwrap();
+        use greenbone_scanner_framework::models::ResultType::*;
         let expected = [HostStart, HostDetail, HostEnd];
         assert_eq!(results.len(), expected.len());
         for (result, expected) in results.iter().zip(expected.iter()) {
@@ -855,7 +861,9 @@ mod tests {
 </get_scans_response>
             "#;
         let response: Response = from_str(xml).unwrap();
-        let results: Vec<crate::models::Result> = response.try_into().unwrap();
+        dbg!(&response);
+        let results: Vec<greenbone_scanner_framework::models::Result> =
+            response.try_into().unwrap();
         assert_eq!(results.len(), 1);
         let result = results.first().unwrap();
         let detail = result.detail.clone().unwrap();

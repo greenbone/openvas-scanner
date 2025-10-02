@@ -24,7 +24,7 @@ All settings for running the smoke-tests are set via environmental variables. Th
 |TARGET_PASSWORD|Password for login in the target during the authenticated scan|empty string|no|Necessary for authenticated scans|
 |API_KEY|API Key for authenticated communication with `openvasd`|None|no||
 |OPENVASD_SERVER|Socket where openvasd listen on|http://127.0.0.1:3000|no|Must be specified with port|
-|CLIENT_CERT|PEM file combinating public certificate and any 3rd party intermediate certificates ||yes for mTLS|Necessary for mTLS enabled|
+|CLIENT_CERT|PEM file combining public certificate and any 3rd party intermediate certificates ||yes for mTLS|Necessary for mTLS enabled|
 |CLIENT_KEY|Client private key||yes for mTLS|Necessary for mTLS enabled|
 |SCAN_CONFIG|Scan config in json file format to be run against the target|simple_scan_ssh_only.json|yes||
 

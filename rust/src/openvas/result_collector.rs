@@ -4,11 +4,7 @@
 
 /// This file contains structs and methods for retrieve scan information from redis
 /// and store it into the given storage to be collected later for the clients.
-use std::{
-    collections::HashMap,
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, str::FromStr};
 
 use crate::openvas::openvas_redis::{KbAccess, VtHelper};
 use crate::osp::{OspResultType, OspScanResult};
@@ -35,9 +31,22 @@ pub struct Results {
     pub scan_status: String,
 }
 
+impl Results {
+    pub fn extend(&mut self, other: Results) {
+        self.results.extend(other.results);
+        self.count_total += other.count_total;
+        self.count_excluded += other.count_excluded;
+        self.count_alive += other.count_alive;
+        self.count_dead += other.count_dead;
+        self.host_status.extend(other.host_status);
+        if !other.scan_status.is_empty() {
+            self.scan_status = other.scan_status;
+        };
+    }
+}
+
 pub struct ResultHelper<'a, H> {
     pub redis_connector: &'a mut H,
-    pub results: Arc<Mutex<Results>>,
 }
 
 impl<'a, H> ResultHelper<'a, H>
@@ -45,13 +54,10 @@ where
     H: KbAccess + VtHelper,
 {
     pub fn init(redis_connector: &'a mut H) -> Self {
-        Self {
-            redis_connector,
-            results: Arc::new(Mutex::new(Results::default())),
-        }
+        Self { redis_connector }
     }
 
-    fn process_results(&mut self, ov_results: Vec<String>) -> RedisStorageResult<()> {
+    fn process_results(&mut self, ov_results: Vec<String>) -> RedisStorageResult<Results> {
         let mut new_dead = 0;
         let mut count_total = 0;
         let mut count_excluded = 0;
@@ -142,24 +148,23 @@ where
                 count_excluded = i64::from_str(&value).expect("Valid amount of excluded hosts");
             }
         }
-        if let Ok(mut results) = Arc::as_ref(&self.results).lock() {
-            results.results = scan_results;
-            results.count_dead += new_dead;
-            results.count_excluded = count_excluded;
-            results.count_total = count_total;
-        }
 
-        Ok(())
+        // TODO: create specialized struct for easier handling
+        Ok(Results {
+            results: scan_results,
+            count_dead: new_dead,
+            count_excluded,
+            count_total,
+            ..Default::default()
+        })
     }
 
-    pub async fn collect_results(&mut self) -> RedisStorageResult<()> {
-        if let Ok(redis_results) = self.redis_connector.results() {
-            self.process_results(redis_results)?;
-        }
-        Ok(())
+    pub async fn collect_results(&mut self) -> RedisStorageResult<Results> {
+        let redis_results = self.redis_connector.results()?;
+        self.process_results(redis_results)
     }
 
-    fn process_status(&self, redis_status: Vec<String>) -> RedisStorageResult<()> {
+    fn process_status(&self, redis_status: Vec<String>) -> RedisStorageResult<Results> {
         enum ScanProgress {
             DeadHost = -1,
         }
@@ -194,40 +199,30 @@ where
 
             tracing::debug!("Host {} has progress: {}", current_host, host_progress);
         }
-        if let Ok(mut results) = Arc::as_ref(&self.results).lock() {
-            results.host_status.extend(all_hosts);
-            results.count_alive += new_alive;
-            results.count_dead += new_dead;
-        }
-
-        Ok(())
+        Ok(Results {
+            host_status: all_hosts,
+            count_alive: new_alive,
+            count_dead: new_dead,
+            ..Default::default()
+        })
     }
 
-    pub async fn collect_host_status(&mut self) -> RedisStorageResult<()> {
-        if let Ok(redis_status) = self.redis_connector.status() {
-            self.process_status(redis_status)?;
-        }
-        Ok(())
+    pub async fn collect_host_status(&mut self) -> RedisStorageResult<Results> {
+        let redis_status = self.redis_connector.status()?;
+        self.process_status(redis_status)
     }
 
-    pub async fn collect_scan_status(&mut self, scan_id: String) -> RedisStorageResult<()> {
-        if let Ok(scan_status) = self.redis_connector.scan_status(scan_id)
-            && let Ok(mut results) = Arc::as_ref(&self.results).lock()
-        {
-            results.scan_status = scan_status.to_string();
-        }
-        Ok(())
+    pub async fn collect_scan_status(&mut self, scan_id: String) -> RedisStorageResult<String> {
+        self.redis_connector.scan_status(scan_id)
     }
 }
 
 #[cfg(test)]
 mod tests {
-
-    use crate::{
-        models::{self, Protocol, Result, ResultType},
-        openvas::openvas_redis::test::FakeRedis,
-    };
+    use greenbone_scanner_framework::models::{self, Protocol, Result, ResultType};
     use std::collections::HashMap;
+
+    use crate::openvas::openvas_redis::test::FakeRedis;
 
     use super::ResultHelper;
     #[test]
@@ -249,7 +244,7 @@ mod tests {
 
         let mut resh = ResultHelper::init(&mut rc);
 
-        resh.process_results(results).unwrap();
+        let results = resh.process_results(results).unwrap();
 
         let single_r = Result {
             id: 0,
@@ -263,15 +258,7 @@ mod tests {
             detail: None,
         };
         assert_eq!(
-            models::Result::from(
-                resh.results
-                    .as_ref()
-                    .lock()
-                    .unwrap()
-                    .results
-                    .first()
-                    .unwrap()
-            ),
+            models::Result::from(results.results.first().unwrap()),
             single_r
         );
 
@@ -287,15 +274,7 @@ mod tests {
             detail: None,
         };
         assert_eq!(
-            models::Result::from(
-                resh.results
-                    .as_ref()
-                    .lock()
-                    .unwrap()
-                    .results
-                    .get(1)
-                    .unwrap()
-            ),
+            models::Result::from(results.results.get(1).unwrap()),
             single_r
         );
 
@@ -311,20 +290,12 @@ mod tests {
             detail: None,
         };
         assert_eq!(
-            models::Result::from(
-                resh.results
-                    .as_ref()
-                    .lock()
-                    .unwrap()
-                    .results
-                    .get(2)
-                    .unwrap()
-            ),
+            models::Result::from(results.results.get(2).unwrap()),
             single_r
         );
 
-        assert_eq!(resh.results.as_ref().lock().unwrap().count_dead, 4);
-        assert_eq!(resh.results.as_ref().lock().unwrap().count_total, 12);
+        assert_eq!(results.count_dead, 4);
+        assert_eq!(results.count_total, 12);
     }
 
     #[test]
@@ -345,7 +316,7 @@ mod tests {
         };
 
         let resh = ResultHelper::init(&mut rc);
-        resh.process_status(status).unwrap();
+        let results = resh.process_status(status).unwrap();
 
         let mut r = HashMap::new();
         r.insert("127.0.0.1".to_string(), 12);
@@ -354,8 +325,8 @@ mod tests {
         r.insert("127.0.0.2".to_string(), -1);
         r.insert("127.0.0.5".to_string(), -1);
 
-        assert_eq!(resh.results.as_ref().lock().unwrap().host_status, r);
-        assert_eq!(resh.results.as_ref().lock().unwrap().count_alive, 1);
-        assert_eq!(resh.results.as_ref().lock().unwrap().count_dead, 2);
+        assert_eq!(results.host_status, r);
+        assert_eq!(results.count_alive, 1);
+        assert_eq!(results.count_dead, 2);
     }
 }

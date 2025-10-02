@@ -1,0 +1,161 @@
+---
+default:
+  margin:
+    percent: 8
+  colors:
+    foreground: palette:white
+    background: "171717"
+
+slide_title:
+  alignment: center
+  padding_bottom: 1
+  padding_top: 1
+  colors:
+    foreground: palette:gb_mc
+  bold: true
+  font_size: 2
+
+code:
+  alignment: center
+  minimum_size: 50
+  minimum_margin:
+    percent: 8
+  theme_name: base16-eighties.dark
+  padding:
+    horizontal: 2
+    vertical: 1
+
+execution_output:
+  colors:
+    foreground: palette:white
+    background: palette:black
+  status:
+    running:
+      foreground: palette:light_blue
+    success:
+      foreground: palette:light_green
+    failure:
+      foreground: palette:red
+    not_started:
+      foreground: palette:orange
+  padding:
+    horizontal: 2
+    vertical: 1
+
+inline_code:
+  colors:
+    foreground: "04de20"
+    background: "455045"
+
+intro_slide:
+  title:
+    alignment: center
+    colors:
+      foreground: palette:gb_mc
+    font_size: 2
+  subtitle:
+    alignment: center
+    colors:
+      foreground: palette:gb_hc
+  event:
+    alignment: center
+    colors:
+      foreground: palette:light_blue
+  location:
+    alignment: center
+    colors:
+      foreground: palette:aqua
+  date:
+    alignment: center
+    colors:
+      foreground: palette:orange
+  author:
+    alignment: center
+    colors:
+      foreground: palette:white
+    positioning: page_bottom
+  footer: false
+
+headings:
+  h1:
+    prefix: "██"
+    colors:
+      foreground: palette:gb_mc
+  h2:
+    prefix: "▓▓▓"
+    colors:
+      foreground: palette:light_green
+  h3:
+    prefix: "▒▒▒▒"
+    colors:
+      foreground: palette:red
+  h4:
+    prefix: "░░░░░"
+    colors:
+      foreground: palette:gray
+  h5:
+    prefix: "░░░░░░"
+    colors:
+      foreground: palette:gray
+  h6:
+    prefix: "░░░░░░░"
+    colors:
+      foreground: palette:gray
+
+block_quote:
+  prefix: "▍ "
+  colors:
+    foreground: palette:light_gray
+    background: palette:blue_gray
+    prefix: palette:orange
+
+alert:
+  prefix: "▍ "
+  base_colors:
+    foreground: palette:light_gray
+    background: palette:blue_gray
+  styles:
+    note:
+      color: palette:blue
+    tip:
+      color: palette:light_green
+    important:
+      color: palette:purple
+    warning:
+      color: palette:orange
+    caution:
+      color: palette:red
+
+typst:
+  colors:
+    foreground: palette:light_gray
+    background: palette:blue_gray
+
+footer:
+  style: template
+  right: "{current_slide} / {total_slides}"
+
+modals:
+  selection_colors:
+    foreground: palette:orange
+
+mermaid:
+  background: transparent
+  theme: dark
+
+palette:
+  colors:
+    blue: "3085c3"
+    light_blue: "b4ccff"
+    blue_gray: "292e42"
+    aqua: "a5d7e8"
+    light_green: "a8df8e"
+    red: "f78ca2"
+    orange: "ee9322"
+    gb_mc: "11AB51"
+    gb_hc: "49BE7A"
+    purple: "986ee2"
+    white: "e6e6e6"
+    black: "2d2d2d"
+    gray: "d2d2d2"
+    light_gray: "f0f0f0"

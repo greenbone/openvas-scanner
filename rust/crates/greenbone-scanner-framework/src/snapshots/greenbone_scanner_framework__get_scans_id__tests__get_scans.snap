@@ -1,0 +1,5 @@
+---
+source: crates/greenbone-scanner-framework/src/get_scans_id.rs
+expression: resp
+---
+{"scan_id":"2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df","target":{"hosts":[],"ports":[],"excluded_hosts":[],"credentials":[],"alive_test_ports":[],"alive_test_methods":[],"reverse_lookup_unify":null,"reverse_lookup_only":null},"scan_preferences":[],"vts":[]}

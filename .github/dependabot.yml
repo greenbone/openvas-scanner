@@ -1,11 +1,19 @@
 version: 2
 updates:
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     groups:
       github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "cargo"
+    directory: "rust"
+    schedule:
+      interval: "weekly"
+    groups:
+      cargo:
         patterns:
           - "*"

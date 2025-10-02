@@ -1,0 +1,20 @@
+server:
+  addr: ":5001"
+  certificate: "/certs/domain.crt"
+  key: "/certs/domain.key"
+
+token:
+  issuer: "MyAuthServer"
+  expiration: 900
+
+# allow all usernames and password
+# we just use to replicate token based registry
+ext_auth:
+  command: "true"
+  args: []
+
+acl:
+  - match: { account: "/.+/" }
+    actions: ["*"]
+    comment: "Allow full access to any user"
+

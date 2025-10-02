@@ -1,0 +1,4 @@
+test.sh
+container-image-scanner.log
+example.db*
+container-image-scanner.pid

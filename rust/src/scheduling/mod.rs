@@ -7,17 +7,15 @@ mod wave;
 
 use std::{collections::HashMap, fmt::Display, io::Write, sync::Arc};
 
-use crate::{
-    models::{Parameter, VT},
-    storage::{
-        Retriever,
-        error::StorageError,
-        infisto::json::JsonStorage,
-        inmemory::InMemoryStorage,
-        items::nvt::{ACT, FileName, Nvt, Oid},
-        redis::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper},
-    },
+use crate::storage::{
+    Retriever,
+    error::StorageError,
+    infisto::json::JsonStorage,
+    inmemory::InMemoryStorage,
+    items::nvt::{ACT, FileName, Nvt, Oid},
+    redis::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper},
 };
+use greenbone_scanner_framework::models::{Parameter, VT};
 use thiserror::Error;
 
 pub use wave::WaveExecutionPlan;
@@ -258,7 +256,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::models::VT;
+    use greenbone_scanner_framework::models::VT;
 
     use crate::scanner::Scan;
     use crate::scheduling::ExecutionPlaner;

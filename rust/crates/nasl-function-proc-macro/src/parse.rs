@@ -74,7 +74,7 @@ impl Attrs {
         }
     }
 
-    pub fn verify_attrs(&self, args: &[Arg<'_>]) -> Result<()> {
+    fn verify_attrs(&self, args: &[Arg<'_>]) -> Result<()> {
         // Check that no argument is named twice in an attribute
         self.check_no_arg_mentioned_twice()?;
         // Check that all arguments that are mentioned in the attributes actually exist.
@@ -137,7 +137,7 @@ impl<'a> Arg<'a> {
         matches!(self.kind, ArgKind::Positional(_)) && !self.optional
     }
 
-    pub fn is_positional(&self) -> bool {
+    fn is_positional(&self) -> bool {
         matches!(
             self.kind,
             ArgKind::Positional(_) | ArgKind::MaybeNamed(_, _)
@@ -146,7 +146,7 @@ impl<'a> Arg<'a> {
 }
 
 impl ReceiverType {
-    pub fn new(inputs: &Punctuated<FnArg, Comma>) -> Result<Self> {
+    fn new(inputs: &Punctuated<FnArg, Comma>) -> Result<Self> {
         let first_input = inputs.iter().next();
         if let Some(first_input) = first_input {
             let make_err = |kind| {
