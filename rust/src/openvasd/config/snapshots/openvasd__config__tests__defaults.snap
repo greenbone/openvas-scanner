@@ -30,7 +30,7 @@ busy_timeout = '2s'
 max_connections = 1
 
 [scheduler]
-check_interval = '500ms'
+check_interval = '2s'
 
 [scanner]
 type = 'ospd'

@@ -62,7 +62,7 @@ pub struct Scheduler {
 impl Default for Scheduler {
     fn default() -> Self {
         Self {
-            check_interval: Duration::from_millis(500),
+            check_interval: Duration::from_secs(2),
             max_queued_scans: None,
             max_running_scans: None,
             min_free_mem: None,
