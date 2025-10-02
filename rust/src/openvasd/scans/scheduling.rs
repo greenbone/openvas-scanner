@@ -105,22 +105,14 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    async fn scan_insert_results(
-        &self,
-        id: i64,
-        results: Vec<models::Result>,
-        kind: &ScanResultKind,
-    ) -> R<()> {
+    async fn scan_insert_results(&self, id: i64, results: Vec<models::Result>) -> R<()> {
         if !results.is_empty() {
-            let offset: Option<i64> = match kind {
-                ScanResultKind::StatusOverride => None,
-                ScanResultKind::StatusAddition => Some(
-                    query_scalar("SELECT count(result_id) AS count FROM results WHERE id = ?")
-                        .bind(id)
-                        .fetch_one(&self.pool)
-                        .await?,
-                ),
-            };
+            let offset: i64 =
+                query_scalar("SELECT count(result_id) AS count FROM results WHERE id = ?")
+                    .bind(id)
+                    .fetch_one(&self.pool)
+                    .await?;
+            tracing::trace!(offset, id, ?results);
             QueryBuilder::new(
                 r#"INSERT INTO results (
                     id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
@@ -130,9 +122,7 @@ impl<T, C> ScanScheduler<T, C> {
             )
             .push_values(results.into_iter().enumerate(), |mut b, (idx, result)| {
                 b.push_bind(id)
-                    .push_bind(
-                        result.id as i64 + offset.map(|x| x + idx as i64).unwrap_or_default(),
-                    )
+                    .push_bind(offset + idx as i64)
                     .push_bind(result.r_type.to_string())
                     .push_bind(result.ip_address)
                     .push_bind(result.hostname)
@@ -291,7 +281,7 @@ where
 
         let kind = self.scanner.scan_result_status_kind();
 
-        self.scan_insert_results(internal_id, results.results, &kind)
+        self.scan_insert_results(internal_id, results.results)
             .await?;
         let previous_status = super::scan_get_status(&self.pool, internal_id).await?;
         let status = match &kind {
