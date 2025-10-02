@@ -610,7 +610,7 @@ impl From<models::Credential> for Credential {
                 credentials.push(("password".to_string(), password));
                 credentials.push(("community".to_string(), community));
                 credentials.push(("auth_algorithm".to_string(), auth_algorithm));
-                credentials.push(("privacy_passwor".to_string(), privacy_password));
+                credentials.push(("privacy_password".to_string(), privacy_password));
                 credentials.push(("privacy_algorithm".to_string(), privacy_algorithm));
             }
         };

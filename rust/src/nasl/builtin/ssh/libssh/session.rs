@@ -235,7 +235,7 @@ impl SshSession {
     }
 }
 
-/// Conveniene macro to implement a method of the underlying
+/// Convenience macro to implement a method of the underlying
 /// libssh::Session by calling it with all given arguments and
 /// transforming the Err variant according to the given SshError
 /// variant, giving it the session id and the error message.
