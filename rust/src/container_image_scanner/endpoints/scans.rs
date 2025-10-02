@@ -462,7 +462,7 @@ impl DeleteScansId for Scans {
         &self,
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
-        const DELETE_SQL: &str = "DELETE FROM scans WHERE id = ?";
+        const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
         Box::pin(async move {
             let phase = self
                 .get_phase(&id)
@@ -668,6 +668,7 @@ mod test {
     use futures::StreamExt;
     use greenbone_scanner_framework::prelude::*;
     use models::Phase;
+    use sqlx::query_scalar;
 
     use super::scans_utils::second_client_id;
     use crate::container_image_scanner::endpoints::scans::scans_utils::{Fakes, client_id};
@@ -820,11 +821,19 @@ mod test {
             .collect();
         assert!(!result.is_empty(), "expected results");
         fakes.entry.delete_scans_id(scan_id.clone()).await.unwrap();
-        let result = fakes.entry.get_scans_id_results(scan_id, None, None);
+        let result = fakes
+            .entry
+            .get_scans_id_results(scan_id.clone(), None, None);
         let result: Vec<_> = result.collect().await;
 
         let result = result.len();
         assert_eq!(result, 0);
+        let count: i64 = query_scalar("SELECT count(id) FROM client_scan_map WHERE id = ?")
+            .bind(scan_id)
+            .fetch_one(&fakes.entry.pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
     }
 
     #[tokio::test]
