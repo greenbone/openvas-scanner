@@ -162,9 +162,21 @@ impl Register {
         self.scopes.pop();
     }
 
-    /// Gets a reference to a ContextType by name
+    /// Gets a reference to a RuntimeValue by name
     pub(super) fn named<'a>(&'a self, name: &'a str) -> Option<&'a RuntimeValue> {
         Some(self.get_val(self.get(name)?))
+    }
+
+    /// Gets a reference to a RuntimeValue in the innermost scope by name
+    fn named_local<'a>(&'a self, name: &'a str) -> Option<&'a RuntimeValue> {
+        let scope_index = &self.scopes.len() - 1;
+        let scope = &self.scopes[scope_index];
+        let var = if scope.variables.contains_key(name) {
+            Some(Var { name, scope_index })
+        } else {
+            None
+        };
+        var.map(|var| self.get_val(var))
     }
 
     pub(crate) fn function_exists(&self, name: &str) -> bool {
@@ -182,16 +194,22 @@ impl Register {
             .map(|x| x.variables.keys().map(|x| x.as_str()))
     }
 
-    /// Find a named argument and return its value as a variable
-    /// or an error otherwise
-    pub(crate) fn nasl_value<'a>(&'a self, arg: &'a str) -> Result<&'a NaslValue, ArgumentError> {
-        match self.named(arg) {
-            Some(RuntimeValue::Value(val)) => Ok(val),
-            Some(_) => Err(ArgumentError::WrongArgument(format!(
-                "Argument {arg} is a function but should be a value."
-            ))),
-            None => Err(ArgumentError::MissingNamed(vec![arg.to_string()])),
-        }
+    /// Find a named variable (up to global scope) and return its
+    /// value as a variable or an error otherwise
+    pub(crate) fn global_nasl_value<'a>(
+        &'a self,
+        arg: &'a str,
+    ) -> Result<&'a NaslValue, ArgumentError> {
+        get_nasl_value(arg, self.named(arg))
+    }
+
+    /// Find a named variable (in the innermost scope) and return its
+    /// value as a variable or an error otherwise
+    pub(crate) fn local_nasl_value<'a>(
+        &'a self,
+        arg: &'a str,
+    ) -> Result<&'a NaslValue, ArgumentError> {
+        get_nasl_value(arg, self.named_local(arg))
     }
 
     /// Retrieves all positional definitions
@@ -265,6 +283,19 @@ impl Register {
             }
             None => println!("No context available"),
         };
+    }
+}
+
+fn get_nasl_value<'a>(
+    arg_name: &'a str,
+    val: Option<&'a RuntimeValue>,
+) -> Result<&'a NaslValue, ArgumentError> {
+    match val {
+        Some(RuntimeValue::Value(val)) => Ok(val),
+        Some(_) => Err(ArgumentError::WrongArgument(format!(
+            "Argument {arg_name} is a function but should be a value."
+        ))),
+        None => Err(ArgumentError::MissingNamed(vec![arg_name.to_string()])),
     }
 }
 
