@@ -1,6 +1,6 @@
 use futures::{Stream, stream};
 
-use crate::nasl::{Register, ScanCtx, syntax::grammar::Ast};
+use crate::nasl::{NaslVersion, Register, ScanCtx, syntax::grammar::Ast};
 
 use super::{Interpreter, Result};
 
@@ -114,6 +114,13 @@ impl<'ctx> ForkingInterpreter<'ctx> {
     /// If there is only one interpreter, get its register.
     pub fn register(&self) -> &Register {
         &self.interpreters[0].register
+    }
+
+    pub fn with_version(mut self, version: NaslVersion) -> ForkingInterpreter<'ctx> {
+        for interpreter in self.interpreters.iter_mut() {
+            interpreter.version = version;
+        }
+        self
     }
 }
 

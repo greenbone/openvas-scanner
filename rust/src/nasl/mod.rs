@@ -8,6 +8,7 @@ pub mod error;
 pub mod interpreter;
 pub mod syntax;
 pub mod utils;
+mod version;
 
 #[cfg(test)]
 mod test_utils;
@@ -37,6 +38,7 @@ pub mod prelude {
     pub use super::utils::scan_ctx::ScanCtx;
     pub use super::utils::scan_ctx::ScanCtxBuilder;
     pub use super::utils::scan_ctx::ScriptCtx;
+    pub use super::version::NaslVersion;
     pub use crate::function_set;
     pub use nasl_function_proc_macro::nasl_function;
 }
