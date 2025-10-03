@@ -156,10 +156,22 @@ impl Interpreter<'_> {
 
     pub(crate) async fn resolve_increment(&mut self, increment: &Increment) -> Result {
         let (var, indices) = self.eval_place_expr(&increment.expr).await?;
-        let var = var.ok_or_else(|| {
-            ErrorKind::AssignmentToUndefinedVar(increment.expr.ident.clone())
-                .with_span(&increment.expr.ident)
-        })?;
+        let var = match var {
+            None => {
+                // If the variable could not be found in the current scope,
+                // we implicitly declare a new variable in the innermost scope
+                // and leave it uninitialized for now.
+                match increment.op.kind {
+                    IncrementOperatorKind::PlusPlus | IncrementOperatorKind::MinusMinus => {
+                        self.register.add_local(
+                            increment.expr.ident.to_str(),
+                            RuntimeValue::Value(NaslValue::Null),
+                        )
+                    }
+                }
+            }
+            Some(var) => var,
+        };
         let val_mut = self
             .register
             .get_val_mut(var)
