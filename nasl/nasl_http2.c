@@ -366,7 +366,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
       curl_easy_setopt (handle, CURLOPT_CUSTOMREQUEST, "DELETE");
       break;
     case HEAD:
-      curl_easy_setopt (handle, CURLOPT_NOBODY, 1);
+      curl_easy_setopt (handle, CURLOPT_NOBODY, 1L);
       break;
     case PUT:
       curl_easy_setopt (handle, CURLOPT_CUSTOMREQUEST, "PUT");
@@ -377,7 +377,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
         }
       break;
     case GET:
-      curl_easy_setopt (handle, CURLOPT_HTTPGET, 1);
+      curl_easy_setopt (handle, CURLOPT_HTTPGET, 1L);
       break;
     case POST:
       // Set body. POST is set automatically with this options
