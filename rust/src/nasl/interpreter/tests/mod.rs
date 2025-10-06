@@ -223,7 +223,7 @@ interpreter_test_ok!(
 );
 
 interpreter_test_ok!(increment_assign, "j++; j;", NaslValue::Null, 1,);
-interpreter_test_err!(nonexistent_variable, "a += 12;");
+interpreter_test_ok!(nonexistent_variable, "a += 12;", 12);
 
 interpreter_test_err!(function_instead_of_variable, "function foo() { } a = foo;");
 interpreter_test_err!(variable_instead_of_function, "foo = 3; foo();");
