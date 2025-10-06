@@ -1,0 +1,33 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install minimal services for testing
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    openssh-server \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure SSH
+RUN mkdir /var/run/sshd
+RUN echo 'root:testpassword' | chpasswd
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Configure Apache
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+RUN echo '<html><body><h1>OpenVAS Test Target</h1></body></html>' > /var/www/html/index.html
+
+# Create startup script
+RUN echo '#!/usr/bin/env bash\n\
+service apache2 start\n\
+service ssh start\n\
+echo "Services started - ready for scanning"\n\
+exec tail -f /dev/null' > /usr/local/bin/start-services.sh
+
+RUN chmod +x /usr/local/bin/start-services.sh
+
+EXPOSE 22 80
+
+CMD ["/usr/local/bin/start-services.sh"]
