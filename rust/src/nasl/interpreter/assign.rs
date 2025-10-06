@@ -20,8 +20,6 @@ use super::Interpreter;
 use super::NaslValue;
 use super::Result;
 
-use super::InterpreterErrorKind as ErrorKind;
-
 fn convert_value_to_array(val: &mut NaslValue, idx: usize) {
     let mut temp = NaslValue::Null;
     std::mem::swap(&mut temp, val);
@@ -97,25 +95,14 @@ impl Interpreter<'_> {
     pub(crate) async fn resolve_assignment(&mut self, assignment: &Assignment) -> Result {
         let rhs = self.resolve_expr(&assignment.rhs).await?;
         let (var, indices) = self.eval_place_expr(&assignment.lhs).await?;
-        // match instead of unwrap_or to make returning errors easier.
         let var = match var {
             None => {
                 // If the variable could not be found in the current scope,
-                // we implicitly declare a new variable in the innermost scope
-                // and leave it uninitialized for now.
-                if let AssignmentOperatorKind::Equal = assignment.op.kind {
-                    self.register.add_local(
-                        assignment.lhs.ident.to_str(),
-                        RuntimeValue::Value(NaslValue::Null),
-                    )
-                }
-                // Otherwise, we return an error.
-                else {
-                    return Err(
-                        ErrorKind::AssignmentToUndefinedVar(assignment.lhs.ident.clone())
-                            .with_span(&assignment.lhs.ident),
-                    );
-                }
+                // we implicitly declare a new variable in the innermost scope.
+                self.register.add_local(
+                    assignment.lhs.ident.to_str(),
+                    RuntimeValue::Value(NaslValue::Null),
+                )
             }
             Some(var) => var,
         };
@@ -161,14 +148,10 @@ impl Interpreter<'_> {
                 // If the variable could not be found in the current scope,
                 // we implicitly declare a new variable in the innermost scope
                 // and leave it uninitialized for now.
-                match increment.op.kind {
-                    IncrementOperatorKind::PlusPlus | IncrementOperatorKind::MinusMinus => {
-                        self.register.add_local(
-                            increment.expr.ident.to_str(),
-                            RuntimeValue::Value(NaslValue::Null),
-                        )
-                    }
-                }
+                self.register.add_local(
+                    increment.expr.ident.to_str(),
+                    RuntimeValue::Value(NaslValue::Null),
+                )
             }
             Some(var) => var,
         };
