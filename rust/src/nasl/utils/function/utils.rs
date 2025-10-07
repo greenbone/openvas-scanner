@@ -48,7 +48,7 @@ pub fn get_optional_named_arg<'a, T: FromNaslValue<'a>>(
     name: &'a str,
 ) -> Result<Option<T>, FnError> {
     register
-        .nasl_value(name)
+        .local_nasl_value(name)
         .ok()
         .map(|arg| <T as FromNaslValue>::from_nasl_value(arg))
         .transpose()
@@ -60,7 +60,7 @@ pub fn get_named_arg<'a, T: FromNaslValue<'a>>(
     register: &'a Register,
     name: &'a str,
 ) -> Result<T, FnError> {
-    <T as FromNaslValue>::from_nasl_value(register.nasl_value(name)?)
+    <T as FromNaslValue>::from_nasl_value(register.local_nasl_value(name)?)
 }
 
 /// A convenience function to obtain an argument
