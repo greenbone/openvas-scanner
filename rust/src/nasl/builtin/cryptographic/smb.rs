@@ -6,6 +6,7 @@ use crate::function_set;
 use crate::nasl::builtin::cryptographic::CryptographicError;
 use crate::nasl::builtin::cryptographic::aes_cmac::aes_cmac;
 use crate::nasl::builtin::cryptographic::hmac::hmac;
+use crate::nasl::utils::function::StringOrData;
 use crate::nasl::{FnError, NaslValue};
 use nasl_function_proc_macro::nasl_function;
 use sha2::Sha256;
@@ -21,6 +22,30 @@ fn smb_gmac_aes_signature(key: &[u8], buf: &[u8], iv: &[u8]) -> Result<NaslValue
     use crate::nasl::builtin::cryptographic::aes_gmac::aes_gmac;
 
     aes_gmac(buf, key, iv)
+}
+
+#[nasl_function(named(key, buf))]
+fn get_smb2_signature(key: StringOrData, buf: StringOrData) -> Result<Vec<u8>, FnError> {
+    let key = key.0.as_bytes();
+    let mut buf = buf.0.as_bytes().to_vec();
+    if buf.len() < 64 {
+        return Err(FnError::wrong_unnamed_argument(
+            "buf of at least 64 bytes required",
+            &format!("got {} bytes", buf.len()),
+        ));
+    }
+    if key.len() < 16 {
+        return Err(FnError::wrong_unnamed_argument(
+            "key of at least 16 bytes required",
+            &format!("got {} bytes", key.len()),
+        ));
+    }
+    buf[48..64].fill(0);
+
+    let sign = hmac::<Sha256>(key, &buf)?;
+
+    buf[48..64].copy_from_slice(&sign[..16]);
+    Ok(buf)
 }
 
 #[nasl_function(named(key, label, ctx, lvalue))]
@@ -53,9 +78,10 @@ pub struct Smb;
 function_set! {
     Smb,
     (
-        (smb_gmac_aes_signature, "smb_gmac_aes_signature"),
-        (smb_cmac_aes_signature, "smb_cmac_aes_signature"),
-        (smb3kdf, "smb3kdf"),
+        smb_gmac_aes_signature,
+        smb_cmac_aes_signature,
+        smb3kdf,
+        get_smb2_signature,
     )
 }
 
@@ -65,5 +91,6 @@ function_set! {
     (
         smb_cmac_aes_signature,
         smb3kdf,
+        get_smb2_signature,
     )
 }
