@@ -38,11 +38,6 @@ pub struct Notus {
     pub advisories_path: PathBuf,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Redis {
-    url: String,
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Scheduler {
     #[serde(default)]
@@ -149,14 +144,6 @@ impl Default for Notus {
         Notus {
             products_path: PathBuf::from("/var/lib/notus/products"),
             advisories_path: PathBuf::from("/var/lib/notus/advisories"),
-        }
-    }
-}
-
-impl Default for Redis {
-    fn default() -> Self {
-        Redis {
-            url: "unix:///run/redis-openvas/redis.sock".to_string(),
         }
     }
 }
@@ -323,8 +310,6 @@ pub struct StorageV1 {
     pub storage_type: StorageType,
     #[serde(default)]
     pub fs: FileStorage,
-    #[serde(default)]
-    pub redis: Redis,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -780,6 +765,7 @@ mod tests {
 
         toml::from_str::<super::Config>(&content).unwrap();
     }
+
     #[test]
     fn downards_compatible() {
         let mut path = env!("CARGO_MANIFEST_DIR").to_string();
