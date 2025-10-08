@@ -6,8 +6,8 @@ use greenbone_scanner_framework::models::PreferenceValue;
 
 use crate::nasl::prelude::*;
 use crate::scanner::preferences::preference::PREFERENCES;
-use crate::storage::items::kb::Ssl;
 use crate::storage::items::kb::KbKey;
+use crate::storage::items::kb::Ssl;
 use base64::Engine as _;
 use std::io::Write;
 use tempfile::NamedTempFile;
