@@ -7,7 +7,7 @@ COPY . /source
 RUN mkdir -p /install/usr/local/bin
 WORKDIR /source/rust
 RUN apt update && apt install -y ca-certificates
-RUN cargo build --release
+RUN RUSTFLAGS="-Clinker-plugin-lto" cargo build --release
 RUN cp target/release/openvasd /install/usr/local/bin
 RUN cp target/release/scannerctl /install/usr/local/bin
 RUN cp target/release/feed-verifier /install/usr/local/bin
@@ -25,12 +25,12 @@ RUN sh /source/.github/install-openvas-dependencies.sh
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DINSTALL_OLD_SYNC_SCRIPT=OFF -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
-WORKDIR /source/rust
-COPY --from=rust /usr/local/cargo/ /usr/local/cargo/
-COPY --from=rust /usr/local/rustup/ /usr/local/rustup/
-ENV RUSTUP_HOME=/usr/local/rustup \
-    CARGO_HOME=/usr/local/cargo \
-    PATH=/usr/local/cargo/bin:$PATH
+# WORKDIR /source/rust
+# COPY --from=rust /usr/local/cargo/ /usr/local/cargo/
+# COPY --from=rust /usr/local/rustup/ /usr/local/rustup/
+# ENV RUSTUP_HOME=/usr/local/rustup \
+#     CARGO_HOME=/usr/local/cargo \
+#     PATH=/usr/local/cargo/bin:$PATH
 #RUN rustup update stable && rustup default stable || rustup default stable
 # RUN apt update && apt install -y ca-certificates
 # RUN cargo build --release
