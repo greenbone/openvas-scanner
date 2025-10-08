@@ -22,17 +22,6 @@ jobs:
       - run: docker run --rm test ldd /usr/local/sbin/openvas
       - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
       - run: docker rmi test || true
-  build-rs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/compile-x86_64
-      - name: archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: rs-binaries
-          path: assets/*
-          retention-days: 1
   build-image:
     runs-on: ubuntu-latest
     steps:
@@ -66,6 +55,7 @@ jobs:
           metrics-enabled: false
           docker-enabled: true
       - uses: actions/checkout@v5
+
       - name: Download artifact
         uses: actions/download-artifact@v5
         with:
@@ -124,7 +114,6 @@ jobs:
       #     key: openvas-cache-${{ github.run_id }}
   tests:
     runs-on: ubuntu-latest
-    needs: [build-rs]
     services:
       redis:
         image: redis
@@ -137,6 +126,7 @@ jobs:
       image: registry.community.greenbone.net/community/gvm-libs:stable
       options: --privileged
     steps:
+      # why?
       - uses: actions/checkout@v5
       - name: install dependencies
         run: |
@@ -145,10 +135,16 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build -- install
-      - uses: actions/download-artifact@v5
+      - name: download rs binaries
+        uses: actions/download-artifact@v5
         with:
-          name: rs-binaries
-          path: assets
+          pattern: rs-binaries-*
+          merge-multiple: true
+          path: ./assets
+      - run: ls -las assets/
+      - run: ls -las assets/linux
+      - run: ls -las assets/linux/amd64
+      - run: ls -las assets/linux/arm64
       - name: prepare setup
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
