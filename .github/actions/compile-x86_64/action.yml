@@ -1,25 +1,44 @@
-name: "Compile Rust x86_64"
+name: "Compile Rust"
 runs:
   using: "composite"
   steps:
-    - uses: ./.github/actions/setup-rust
-    - run: cargo install cross || true
-      shell: bash
-    - run: CROSS_CONFIG=Cross.toml cross build --profile release-lto --target x86_64-unknown-linux-gnu
-      working-directory: rust
-      shell: bash
-    - name: "patch for debian stable"
-      working-directory: rust
+    - uses: docker/build-push-action@v6
+      with:
+        file: .docker/prod.Dockerfile
+        context: .
+        load: true
+        tags: openvasd:export
+        push: false
+
+    - name: build openvasd
       shell: bash
       run: |
-        find . -type f -name "scannerctl"
-        patchelf --replace-needed libpcap.so.1 libpcap.so.0.8 target/x86_64-unknown-linux-gnu/release-lto/scannerctl
-        patchelf --replace-needed libz.so libz.so.1 target/x86_64-unknown-linux-gnu/release-lto/scannerctl
-    - run: mkdir -p assets/linux/amd64
-      shell: bash
-    - run: mv rust/target/x86_64-unknown-linux-gnu/release-lto/openvasd assets/linux/amd64/openvasd
-      shell: bash
-    - run: mv rust/target/x86_64-unknown-linux-gnu/release-lto/scannerctl assets/linux/amd64/scannerctl
-      shell: bash
-    - run: mv rust/target/x86_64-unknown-linux-gnu/release-lto/feed-verifier assets/linux/amd64/feed-verifier
-      shell: bash
+        docker buildx create --use --name ci-builder
+        docker buildx inspect --bootstrap
+        docker run --privileged --rm tonistiigi/binfmt --install all
+        docker buildx build \
+          --pull \
+          --target prepared \
+          --platform linux/amd64 \
+          -o type=local,dest=./dist-amd64 \
+          -f .docker/prod.Dockerfile .
+        mkdir -p assets/linux/amd64
+        cp ./dist-amd64/install/usr/local/bin/openvasd assets/linux/amd64/openvasd
+        cp ./dist-amd64/install/usr/local/bin/scannerctl assets/linux/amd64/scannerctl
+        cp ./dist-amd64/install/usr/local/bin/feed-verifier assets/linux/amd64/feed-verifier
+        # build aarch64
+        docker buildx build \
+          --pull \
+          --target prepared \
+          --platform linux/arm64 \
+          -o type=local,dest=./dist-arm64 \
+          -f .docker/prod.Dockerfile .
+        mkdir -p assets/linux/arm64
+        cp ./dist-arm64/install/usr/local/bin/openvasd assets/linux/arm64/openvasd
+        cp ./dist-arm64/install/usr/local/bin/scannerctl assets/linux/arm64/scannerctl
+        cp ./dist-arm64/install/usr/local/bin/feed-verifier assets/linux/arm64/feed-verifier
+        # cleanup
+        rm -rf ./dist-amd64
+        rm -rf ./dist-arm64
+
+

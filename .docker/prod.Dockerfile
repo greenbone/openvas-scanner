@@ -18,12 +18,17 @@ COPY --from=rust /usr/local/rustup/ /usr/local/rustup/
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
+#RUN rustup update stable && rustup default stable || rustup default stable
 RUN apt update && apt install -y ca-certificates
 RUN cargo build --release
 RUN cp target/release/openvasd /install/usr/local/bin
 RUN cp target/release/scannerctl /install/usr/local/bin
 # Do we want to copy feed verifier as well?
-# RUN cp release/feed-verifier /install/bin
+RUN cp target/release/feed-verifier /install/usr/local/bin
+
+
+FROM scratch AS prepared
+COPY --from=build /install /install
 
 FROM ${GVM_LIBS}:${VERSION}
 # we set the VERSION_CODENAME instead of stable to prevent accidental
@@ -61,7 +66,9 @@ COPY .docker/openvas.conf /etc/openvas/
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
-COPY --from=build /install/ /
+COPY --from=prepared /install/ /
+#we just need that for testing
+RUN rm /usr/local/bin/feed-verifier
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/
 RUN ldconfig
