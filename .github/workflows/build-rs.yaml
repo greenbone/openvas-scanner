@@ -1,0 +1,51 @@
+name: "Build Rust binaries"
+
+on: [workflow_call]
+
+jobs:
+  x86-64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: build
+        shell: bash
+        run: |
+          docker build \
+            --pull \
+            --target rs-binaries \
+            --platform linux/amd64 \
+            -o type=local,dest=./dist-amd64 \
+            -f .docker/prod.Dockerfile .
+          mkdir -p assets/linux/amd64
+          cp ./dist-amd64/install/usr/local/bin/openvasd assets/linux/amd64/openvasd
+          cp ./dist-amd64/install/usr/local/bin/scannerctl assets/linux/amd64/scannerctl
+          cp ./dist-amd64/install/usr/local/bin/feed-verifier assets/linux/amd64/feed-verifier
+      - name: archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: rs-binaries-amd64
+          path: assets/*
+          retention-days: 1
+  aarch64:
+    runs-on: self-hosted-generic-arm64
+    steps:
+      - uses: actions/checkout@v5
+      - name: build
+        shell: bash
+        run: |
+          docker build \
+            --pull \
+            --target rs-binaries \
+            --platform linux/arm64 \
+            -o type=local,dest=./dist-arm64 \
+            -f .docker/prod.Dockerfile .
+          mkdir -p assets/linux/arm64
+          cp ./dist-arm64/install/usr/local/bin/openvasd assets/linux/arm64/openvasd
+          cp ./dist-arm64/install/usr/local/bin/scannerctl assets/linux/arm64/scannerctl
+          cp ./dist-arm64/install/usr/local/bin/feed-verifier assets/linux/arm64/feed-verifier
+      - name: archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: rs-binaries-arm64
+          path: assets/*
+          retention-days: 1

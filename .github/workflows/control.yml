@@ -78,8 +78,10 @@ jobs:
     uses: ./.github/workflows/build.yml
   linting:
     uses: ./.github/workflows/linting.yml
+  build-rs:
+    uses: ./.github/workflows/build-rs.yaml
   functional:
-    # needs: [unittests, build]
+    needs: [build-rs]
     uses: ./.github/workflows/functional.yaml
   container:
     needs: [build, init]
