@@ -18,8 +18,8 @@ pub fn interpret(code: &str) -> Vec<NaslResult> {
     t.results()
 }
 
-fn interpret_err(file_name: &str, code: &str) -> String {
-    let mut t = TestBuilder::default();
+fn interpret_err(file_name: &str, code: &str, version: NaslVersion) -> String {
+    let mut t = TestBuilder::default().with_nasl_version(version);
     t.run_all(code);
     let err = t
         .interpreter_results()
@@ -53,12 +53,30 @@ macro_rules! interpreter_test_ok {
 
 #[macro_export]
 macro_rules! interpreter_test_err {
+    ($name: ident, $code: literal, $version: expr) => {
+        #[test]
+        fn $name() {
+            insta::assert_snapshot!($crate::nasl::interpreter::tests::interpret_err(
+                stringify!($name),
+                $code,
+                $version,
+            ));
+        }
+    };
+    ($name: ident, $code: literal) => {
+        interpreter_test_err!($name, $code, $crate::nasl::prelude::NaslVersion::default());
+    };
+}
+
+#[macro_export]
+macro_rules! interpreter_test_err_v2 {
     ($name: ident, $code: literal) => {
         #[test]
         fn $name() {
             insta::assert_snapshot!($crate::nasl::interpreter::tests::interpret_err(
                 stringify!($name),
-                $code
+                $code,
+                $crate::nasl::prelude::NaslVersion::V2
             ));
         }
     };
