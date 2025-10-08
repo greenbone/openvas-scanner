@@ -3,6 +3,19 @@ ARG VERSION=edge
 ARG GVM_LIBS=registry.community.greenbone.net/community/gvm-libs
 
 FROM rust AS rust
+COPY . /source
+RUN mkdir -p /install/usr/local/bin
+WORKDIR /source/rust
+RUN apt update && apt install -y ca-certificates
+RUN cargo build --release
+RUN cp target/release/openvasd /install/usr/local/bin
+RUN cp target/release/scannerctl /install/usr/local/bin
+RUN cp target/release/feed-verifier /install/usr/local/bin
+
+# this is needed when we just want to copy the build binaries onto our dest dir
+FROM scratch AS rs-binaries
+COPY --from=rust /install /install
+
 
 FROM greenbone/openvas-smb AS openvas-smb
 
@@ -19,16 +32,18 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
 #RUN rustup update stable && rustup default stable || rustup default stable
-RUN apt update && apt install -y ca-certificates
-RUN cargo build --release
-RUN cp target/release/openvasd /install/usr/local/bin
-RUN cp target/release/scannerctl /install/usr/local/bin
-# Do we want to copy feed verifier as well?
-RUN cp target/release/feed-verifier /install/usr/local/bin
+# RUN apt update && apt install -y ca-certificates
+# RUN cargo build --release
+# RUN cp target/release/openvasd /install/usr/local/bin
+# RUN cp target/release/scannerctl /install/usr/local/bin
+# # Do we want to copy feed verifier as well?
+# RUN cp target/release/feed-verifier /install/usr/local/bin
 
 
 FROM scratch AS prepared
 COPY --from=build /install /install
+COPY --from=rs-binaries /install/usr/local/bin/openvasd /install/usr/local/bin/openvasd
+COPY --from=rs-binaries /install/usr/local/bin/scannerctl /install/usr/local/bin/scannerctl
 
 FROM ${GVM_LIBS}:${VERSION}
 # we set the VERSION_CODENAME instead of stable to prevent accidental
@@ -67,8 +82,6 @@ COPY .docker/openvas.conf /etc/openvas/
 # usually this image is created within in a ci ensuring that the
 # binary is available.
 COPY --from=prepared /install/ /
-#we just need that for testing
-RUN rm /usr/local/bin/feed-verifier
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/
 RUN ldconfig

@@ -81,7 +81,12 @@ jobs:
           git checkout -b "$BRANCH_NAME" && git push origin "$BRANCH_NAME" || true
       # create binaries
       - uses: greenbone/actions/setup-pontos@v3
-      - uses: ./.github/actions/compile-x86_64
+      # should be build by functional which is a dependency of release
+      - uses: actions/download-artifact@v5
+        with:
+          name: rs-binaries
+          path: assets
+      #- uses: ./.github/actions/compile-x86_64
       # - uses: ./.github/actions/compile-aarch64
       - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
       - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu

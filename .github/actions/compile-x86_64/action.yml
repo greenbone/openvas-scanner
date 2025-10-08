@@ -10,15 +10,18 @@ runs:
         tags: openvasd:export
         push: false
 
-    - name: build openvasd
+    - name: prepare buildx
       shell: bash
       run: |
         docker buildx create --use --name ci-builder
         docker buildx inspect --bootstrap
         docker run --privileged --rm tonistiigi/binfmt --install all
+    - name: build amd64
+      shell: bash
+      run: |
         docker buildx build \
           --pull \
-          --target prepared \
+          --target rs-binaries \
           --platform linux/amd64 \
           -o type=local,dest=./dist-amd64 \
           -f .docker/prod.Dockerfile .
@@ -26,13 +29,20 @@ runs:
         cp ./dist-amd64/install/usr/local/bin/openvasd assets/linux/amd64/openvasd
         cp ./dist-amd64/install/usr/local/bin/scannerctl assets/linux/amd64/scannerctl
         cp ./dist-amd64/install/usr/local/bin/feed-verifier assets/linux/amd64/feed-verifier
+
+    - name: build arm64
+      shell: bash
+      run: |
         # build aarch64
         docker buildx build \
           --pull \
-          --target prepared \
+          --target rs-binaries \
           --platform linux/arm64 \
           -o type=local,dest=./dist-arm64 \
           -f .docker/prod.Dockerfile .
+    - name: copy binaries
+      shell: bash
+      run: |
         mkdir -p assets/linux/arm64
         cp ./dist-arm64/install/usr/local/bin/openvasd assets/linux/arm64/openvasd
         cp ./dist-arm64/install/usr/local/bin/scannerctl assets/linux/arm64/scannerctl
