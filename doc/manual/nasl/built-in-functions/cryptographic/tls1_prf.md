@@ -2,7 +2,9 @@
 
 ## NAME
 
-**tls1_prf** - takes four named arguments secret, seed, label, outlen
+DEPRECATED
+
+**tls1_prf** - takes four named arguments secret, seed, label, outlen. This function is deprecated and will not longer be supported!
 ## SYNOPSIS
 
 *str* **tls1_prf**(secret: str, seed: str, label: str, outlen: int);
@@ -15,6 +17,9 @@ tls1_prf is pseudo random function based on [rfc-4346§5](https://www.rfc-editor
 
 It uses given seed and label as a basis for the pseudo random generator while the secret is the basis of the hash limited by the given outlen parameter. 
 
+## DEPRECATED
+
+This function is deprecated and **[prf_sha256(3)](prf_sha256.md)** or **[prf_sha384(3)](prf_sha384.md)** should be used instead.
 
 ## RETURN VALUE
 
