@@ -3,49 +3,43 @@ name: "Build Rust binaries"
 on: [workflow_call]
 
 jobs:
-  x86-64:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            dist: dist-amd64
+          - arch: arm64
+            platform: linux/arm64
+            dist: dist-arm64
     steps:
-      - uses: actions/checkout@v5
-      - name: build
-        shell: bash
+      - uses: actions/checkout@v4
+
+      - name: prepare buildx
         run: |
-          docker build \
+          docker buildx create --use --name ci-builder
+          docker buildx inspect --bootstrap
+          docker run --privileged --rm tonistiigi/binfmt --install all
+
+      - name: build
+        run: |
+          docker buildx build \
             --pull \
             --target rs-binaries \
-            --platform linux/amd64 \
-            -o type=local,dest=./dist-amd64 \
+            --platform ${{ matrix.platform }} \
+            -o type=local,dest=./${{ matrix.dist }} \
             -f .docker/prod.Dockerfile .
-          mkdir -p assets/linux/amd64
-          cp ./dist-amd64/install/usr/local/bin/openvasd assets/linux/amd64/openvasd
-          cp ./dist-amd64/install/usr/local/bin/scannerctl assets/linux/amd64/scannerctl
-          cp ./dist-amd64/install/usr/local/bin/feed-verifier assets/linux/amd64/feed-verifier
-      - name: archive
+          mkdir -p assets/linux/${{ matrix.arch }}
+          cp ./${{ matrix.dist }}/install/usr/local/bin/openvasd assets/linux/${{ matrix.arch }}/openvasd
+          cp ./${{ matrix.dist }}/install/usr/local/bin/scannerctl assets/linux/${{ matrix.arch }}/scannerctl
+          cp ./${{ matrix.dist }}/install/usr/local/bin/feed-verifier assets/linux/${{ matrix.arch }}/feed-verifier
+
+      - name: upload binaries
         uses: actions/upload-artifact@v4
         with:
-          name: rs-binaries-amd64
-          path: assets/*
-          retention-days: 1
-  aarch64:
-    runs-on: ubuntu-latest-arm64
-    steps:
-      - uses: actions/checkout@v5
-      - name: build
-        shell: bash
-        run: |
-          docker build \
-            --pull \
-            --target rs-binaries \
-            --platform linux/arm64 \
-            -o type=local,dest=./dist-arm64 \
-            -f .docker/prod.Dockerfile .
-          mkdir -p assets/linux/arm64
-          cp ./dist-arm64/install/usr/local/bin/openvasd assets/linux/arm64/openvasd
-          cp ./dist-arm64/install/usr/local/bin/scannerctl assets/linux/arm64/scannerctl
-          cp ./dist-arm64/install/usr/local/bin/feed-verifier assets/linux/arm64/feed-verifier
-      - name: archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: rs-binaries-arm64
-          path: assets/*
+          name: rs-binaries-${{ matrix.arch }}
+          path: assets/linux/${{ matrix.arch }}/*
           retention-days: 1
