@@ -467,7 +467,7 @@ mod tests {
 
     #[tokio::test]
     async fn status_failed() {
-        let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address())
+        let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address("test"))
             .await
             .unwrap();
 

@@ -95,7 +95,10 @@ pub async fn init(
     config: Config,
 ) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
     // that's wrong
-    let pool = config.database.create_pool().await?;
+    let pool = config
+        .database
+        .create_pool("container-image-scanner")
+        .await?;
     MIGRATOR.run(&pool).await?;
 
     //TODO get rid of arc

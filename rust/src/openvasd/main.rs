@@ -57,7 +57,7 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
         }
         config::StorageTypes::V2(sqlite_configuration) => sqlite_configuration,
     }
-    .create_pool()
+    .create_pool("openvasd")
     .await?;
     MIGRATOR.run(&result).await?;
     Ok(result)

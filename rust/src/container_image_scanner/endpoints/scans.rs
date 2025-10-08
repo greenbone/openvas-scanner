@@ -513,7 +513,7 @@ mod scans_utils {
     async fn in_memory_scheduler_and_scan<R, E>(
         config: crate::container_image_scanner::Config,
     ) -> (Scheduler<R, E>, Scans) {
-        let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address())
+        let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address("test"))
             .await
             .expect("inmemory database must be available");
 

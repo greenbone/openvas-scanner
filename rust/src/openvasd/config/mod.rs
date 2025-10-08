@@ -689,14 +689,27 @@ impl Config {
         if let Some(stype) = cmds.get_one::<StorageType>("storage_type") {
             config.storage = StorageTypes::V2(match stype {
                 StorageType::InMemory | StorageType::Redis => SqliteConfiguration::default(),
-                StorageType::FileSystem => SqliteConfiguration::default_file_location(),
+                StorageType::FileSystem => SqliteConfiguration::default_file_location("openvasd"),
             });
+
+            // although openvasd and container-image-scanner can be configured separately we just
+            // allow one configuration to net get the arguments even more cluttered.
+            config.container_image_scanner.database = match stype {
+                StorageType::InMemory | StorageType::Redis => SqliteConfiguration::default(),
+                StorageType::FileSystem => {
+                    SqliteConfiguration::default_file_location("container-image-scanner")
+                }
+            };
         }
         if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
             config.storage = StorageTypes::V2(SqliteConfiguration {
                 location: DBLocation::File(path.clone()),
                 ..Default::default()
             });
+            config.container_image_scanner.database = SqliteConfiguration {
+                location: DBLocation::File(path.clone()),
+                ..Default::default()
+            };
         }
         if let Some(mode) = cmds.get_one::<Mode>("mode") {
             config.mode = mode.clone();

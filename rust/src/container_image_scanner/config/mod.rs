@@ -11,22 +11,26 @@ pub enum DBLocation {
 }
 
 impl DBLocation {
-    pub fn sqlite_address(&self) -> String {
+    pub fn sqlite_address(&self, name: &str) -> String {
         match &self {
             Self::InMemory => "sqlite::memory:".to_owned(),
-            Self::File(path_buf) => format!("sqlite:{}", path_buf.to_string_lossy()),
+            Self::File(path_buf) => {
+                format!(
+                    "sqlite:{}",
+                    path_buf.join(format!("{name}.sql")).to_string_lossy()
+                )
+            }
         }
     }
 
-    fn default_file_location() -> Self {
+    fn default_file_location(name: &str) -> Self {
         let cache_dir = if let Some(xdg_cache) = std::env::var_os("XDG_CACHE_HOME") {
             PathBuf::from(&xdg_cache)
         } else {
             PathBuf::from(".")
         };
-        let cache_dir = cache_dir.join("container-image-scanner");
-        let cache_dir = cache_dir.join("database.sql");
 
+        let cache_dir = cache_dir.join(name);
         Self::File(cache_dir)
     }
 }
@@ -143,14 +147,14 @@ impl Default for SqliteConfiguration {
 }
 
 impl SqliteConfiguration {
-    pub async fn create_pool(&self) -> Result<sqlx::Pool<sqlx::Sqlite>, sqlx::Error> {
+    pub async fn create_pool(&self, name: &str) -> Result<sqlx::Pool<sqlx::Sqlite>, sqlx::Error> {
         use sqlx::{
             Sqlite,
             pool::PoolOptions,
             sqlite::{SqliteConnectOptions, SqliteJournalMode},
         };
 
-        let options = SqliteConnectOptions::from_str(&self.location.sqlite_address())?
+        let options = SqliteConnectOptions::from_str(&self.location.sqlite_address(name))?
             .journal_mode(SqliteJournalMode::Wal)
             .busy_timeout(self.busy_timeout)
             // Although this can lead to data loss in the case that the application crashes, we usually
@@ -169,9 +173,9 @@ impl SqliteConfiguration {
             .await
     }
 
-    pub fn default_file_location() -> Self {
+    pub fn default_file_location(name: &str) -> Self {
         Self {
-            location: DBLocation::default_file_location(),
+            location: DBLocation::default_file_location(name),
             ..Default::default()
         }
     }
