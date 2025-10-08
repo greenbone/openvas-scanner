@@ -67,7 +67,7 @@ check_category(cat: "cryptographic",
                                         "rsa_private_decrypt","rsa_public_decrypt",
                                         "rsa_public_encrypt","rsa_sign","SHA1","SHA256",
                                         "SHA512","smb3kdf","smb_cmac_aes_signature",
-                                        "smb_gmac_aes_signature","tls1_prf"));
+                                        "smb_gmac_aes_signature"));
 check_category(cat: "description-functions",
                function_list: make_list("script_add_preference","script_category",
                                         "script_copyright","script_cve_id","script_dependencies","script_exclude_keys",

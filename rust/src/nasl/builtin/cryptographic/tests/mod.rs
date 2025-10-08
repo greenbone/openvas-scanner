@@ -16,6 +16,7 @@ mod hmac;
 mod misc;
 mod ntlm;
 mod pem_to;
+mod prf;
 mod rc4;
 mod rsa;
 mod smb;
