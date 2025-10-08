@@ -82,10 +82,10 @@ jobs:
       # create binaries
       - uses: greenbone/actions/setup-pontos@v3
       - uses: ./.github/actions/compile-x86_64
-      - uses: ./.github/actions/compile-aarch64
-      - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
+      # - uses: ./.github/actions/compile-aarch64
+      # - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
+      # - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
       - run: mv assets/linux/amd64/openvasd assets/openvasd-x86_64-unknown-linux-gnu
-      - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
       - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
       - run: rm -rf assets/linux
       - run: ls -las assets/
