@@ -15,3 +15,6 @@ Remove the forking concept altogether.
 
 ## FCT_ANON_ARGS
 Think of a cleaner construct to allow variadics.
+
+## Implicit variable declaration
+Operators such as `++` and `+=` will currently implicitly declare a variable if the identifier cannot be found, so that `x++` results in `1` if x did not exist prior to this statement. This can potentially cause confusion for the NASL programmer and we'd prefer for this statement to return a runtime error.
