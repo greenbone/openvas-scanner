@@ -4,7 +4,10 @@ ARG GVM_LIBS=registry.community.greenbone.net/community/gvm-libs
 
 FROM rust AS rust
 COPY . /source
+# if we have already binaries available we don't need to build them again
+RUN mv /source/.docker/install /install || true
 RUN mkdir -p /install/usr/local/bin
+RUN ls -las /install/usr/local/bin/
 WORKDIR /source/rust
 RUN apt update && apt install -y \
     ca-certificates \
@@ -12,10 +15,13 @@ RUN apt update && apt install -y \
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/source/rust/target \
-  cargo build --release && \
-  install -Dm755 target/release/openvasd /install/usr/local/bin/openvasd && \
-  install -Dm755 target/release/scannerctl /install/usr/local/bin/scannerctl && \
-  install -Dm755 target/release/feed-verifier /install/usr/local/bin/feed-verifier
+  [ -f /install/usr/local/bin/openvasd ] && \
+  [ -f /install/usr/local/bin/scannerctl ] && \
+  [ -f /install/usr/local/bin/feed-verifier ] || \
+    ( cargo build --release && \
+    install -Dm755 target/release/openvasd /install/usr/local/bin/openvasd && \
+    install -Dm755 target/release/scannerctl /install/usr/local/bin/scannerctl && \
+    install -Dm755 target/release/feed-verifier /install/usr/local/bin/feed-verifier )
 
 # this is needed when we just want to copy the build binaries onto our dest dir
 FROM scratch AS rs-binaries
