@@ -93,7 +93,7 @@ jobs:
     needs: [build-rs-amd64]
     uses: ./.github/workflows/functional.yaml
   container:
-    needs: [build, init]
+    needs: [build, init, build-rs-arm64, build-rs-amd64]
     uses: ./.github/workflows/push-container.yml
     secrets:
       dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
