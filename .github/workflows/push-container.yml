@@ -137,6 +137,8 @@ jobs:
       GREENBONE_REGISTRY: ${{ secrets.greenbone_registry }}
       GREENBONE_REGISTRY_USER: ${{ secrets.greenbone_registry_user }}
       GREENBONE_REGISTRY_TOKEN: ${{ secrets.greenbone_registry_token }}
+      GREENBONE_REGISTRY_READ_USER: ${{ secrets.greenbone_registry_read_user }}
+      GREENBONE_REGISTRY_READ_TOKEN: ${{ secrets.greenbone_registry_read_token }}
       GREENBONE_REGISTRY_REPLICATION_USER: ${{ secrets.greenbone_registry_replication_user }}
       GREENBONE_REGISTRY_REPLICATION_TOKEN: ${{ secrets.greenbone_registry_replication_token }}
       MATTERMOST_WEBHOOK_URL: ${{ secrets.mattermost_webhook_url }}
