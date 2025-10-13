@@ -424,26 +424,12 @@ const PEM_PASS: usize = 8;
 const CA_FILE: usize = 9;
 
 fn find_service_ssl_set_prefs(context: &ScanCtx, register: &Register) -> Result<(), FnError> {
-    let mut cert = match get_plugin_preference_fname(register, context, None, Some(CERT_FILE)) {
-        Ok(cert) => cert,
-        _ => "".to_string(),
-    };
-    let mut key = match get_plugin_preference_fname(register, context, None, Some(KEY_FILE)) {
-        Ok(key) => key,
-        _ => "".to_string(),
-    };
+    let cert = get_plugin_preference_fname(register, context, None, Some(CERT_FILE)).ok();
+    let key = get_plugin_preference_fname(register, context, None, Some(KEY_FILE)).ok();
 
-    dbg!(&cert);
-    if !key.is_empty() || !cert.is_empty() {
-        if key.is_empty() {
-            key = cert.clone();
-        };
-        if cert.is_empty() {
-            cert = key.clone();
-        };
-
-        plug_set_ssl_cert(context, cert)?;
-        plug_set_ssl_key(context, key)?;
+    if key.is_some() || cert.is_some() {
+        plug_set_ssl_cert(context, cert.clone().unwrap_or(key.clone().unwrap()))?;
+        plug_set_ssl_key(context, key.unwrap_or(cert.unwrap()))?;
     };
 
     if let Ok(pem_pass) = get_plugin_preference_fname(register, context, None, Some(PEM_PASS)) {
