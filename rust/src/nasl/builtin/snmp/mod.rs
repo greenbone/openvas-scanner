@@ -9,6 +9,8 @@ use thiserror::Error;
 use snmp2::{Oid, SyncSession, Version, v3};
 use std::time::Duration;
 
+const SNMPTIMEOUT: Duration = Duration::from_secs(2);
+
 #[derive(Debug, Error)]
 pub enum SnmpError {
     #[error("Unknown protocol {0}")]
@@ -70,6 +72,29 @@ impl<'a> FromNaslValue<'a> for L4Protocols {
         Ok(L4Protocols::from(s))
     }
 }
+
+fn get_oid(
+    script_ctx: &mut ScriptCtx,
+    oid: Option<String>,
+    is_next: bool,
+) -> Result<Oid<'_>, FnError> {
+    let next_oid = script_ctx.snmp_next.clone().unwrap_or_default();
+    let oid = if is_next && !next_oid.is_empty() {
+        Oid::from_str(&next_oid)
+    } else if let Some(oid) = oid {
+        if oid.starts_with('.') {
+            let oid_aux = oid.trim_start_matches('.');
+            Oid::from_str(oid_aux)
+        } else {
+            Oid::from_str(&oid)
+        }
+    } else {
+        return Err(SnmpError::MissingOid.into());
+    };
+
+    oid.map_err(|_| SnmpError::MissingOid.into())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn snmpv1v2c_get_shared(
     config: &ScanCtx,
@@ -84,28 +109,14 @@ fn snmpv1v2c_get_shared(
     if let L4Protocols::Unknown = protocol {
         return Err(SnmpError::Protocol("Bad protocol version".to_string()).into());
     }
-
-    let next_oid = script_ctx.snmp_next.clone().unwrap_or_default();
-    let oid = if is_next && !next_oid.is_empty() {
-        Oid::from_str(&next_oid).map_err(|_| SnmpError::MissingOid)?
-    } else if let Some(oid) = oid {
-        if oid.starts_with('.') {
-            let oid_aux = oid.trim_start_matches('.');
-            Oid::from_str(oid_aux).map_err(|_| SnmpError::MissingOid)?
-        } else {
-            Oid::from_str(&oid).map_err(|_| SnmpError::MissingOid)?
-        }
-    } else {
-        return Err(SnmpError::MissingOid.into());
-    };
+    let oid = get_oid(script_ctx, oid, is_next)?;
 
     let peername = format!("{}:{}", config.target().ip_addr(), port);
-    let timeout = Duration::from_secs(2);
 
     let mut sess = match snmp_ver {
-        Version::V1 => SyncSession::new_v1(peername, community.as_bytes(), Some(timeout), 0)
+        Version::V1 => SyncSession::new_v1(peername, community.as_bytes(), Some(SNMPTIMEOUT), 0)
             .map_err(|e| SnmpError::IO(e.to_string()))?,
-        Version::V2C => SyncSession::new_v2c(peername, community.as_bytes(), Some(timeout), 0)
+        Version::V2C => SyncSession::new_v2c(peername, community.as_bytes(), Some(SNMPTIMEOUT), 0)
             .map_err(|e| SnmpError::IO(e.to_string()))?,
         _ => unimplemented!(),
     };
@@ -232,23 +243,8 @@ fn snmpv3_get_shared(
         return Err(SnmpError::Protocol("Bad protocol version".to_string()).into());
     }
 
-    let next_oid = script_ctx.snmp_next.clone().unwrap_or_default();
-    let oid = if is_next && !next_oid.is_empty() {
-        Oid::from_str(&next_oid).map_err(|_| SnmpError::MissingOid)?
-    } else if let Some(oid) = oid {
-        if oid.starts_with('.') {
-            let oid_aux = oid.trim_start_matches('.');
-            Oid::from_str(oid_aux).map_err(|_| SnmpError::MissingOid)?
-        } else {
-            Oid::from_str(&oid).map_err(|_| SnmpError::MissingOid)?
-        }
-    } else {
-        return Err(SnmpError::MissingOid.into());
-    };
-
+    let oid = get_oid(script_ctx, oid, is_next)?;
     let peername = format!("{}:{}", config.target().ip_addr(), port);
-    let timeout = Duration::from_secs(2);
-
     let auth_protocol = match authproto.as_str() {
         "sha1" => v3::AuthProtocol::Sha1,
         "md5" => v3::AuthProtocol::Md5,
@@ -271,7 +267,7 @@ fn snmpv3_get_shared(
         .with_auth_protocol(auth_protocol)
         .with_auth(auth);
 
-    let mut sess = SyncSession::new_v3(peername, Some(timeout), 0, security)
+    let mut sess = SyncSession::new_v3(peername, Some(SNMPTIMEOUT), 0, security)
         .map_err(|e| SnmpError::IO(e.to_string()))?;
 
     sess.init().map_err(|e| SnmpError::IO(e.to_string()))?;
