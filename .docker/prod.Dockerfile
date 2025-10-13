@@ -6,11 +6,16 @@ FROM rust AS rust
 COPY . /source
 RUN mkdir -p /install/usr/local/bin
 WORKDIR /source/rust
-RUN apt update && apt install -y ca-certificates libsnmp-dev
-RUN cargo build --release
-RUN cp target/release/openvasd /install/usr/local/bin
-RUN cp target/release/scannerctl /install/usr/local/bin
-RUN cp target/release/feed-verifier /install/usr/local/bin
+RUN apt update && apt install -y \
+    ca-certificates \
+    libsnmp-dev
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/source/rust/target \
+  cargo build --release && \
+  install -Dm755 target/release/openvasd /install/usr/local/bin/openvasd && \
+  install -Dm755 target/release/scannerctl /install/usr/local/bin/scannerctl && \
+  install -Dm755 target/release/feed-verifier /install/usr/local/bin/feed-verifier
 
 # this is needed when we just want to copy the build binaries onto our dest dir
 FROM scratch AS rs-binaries
