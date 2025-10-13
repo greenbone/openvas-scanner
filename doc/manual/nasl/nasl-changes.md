@@ -15,3 +15,7 @@ Remove the forking concept altogether.
 
 ## FCT_ANON_ARGS
 Think of a cleaner construct to allow variadics.
+
+## Implicit variable creation
+Multiple operations currently implicitly create a variable if it was not defined before the operation. Example: Increment/Decrement operators, array indexing. `a++` will implicitly create a variable `a` and initialize it to zero.
+The proposed change makes code referencing a non-existent variable return an error instead.
