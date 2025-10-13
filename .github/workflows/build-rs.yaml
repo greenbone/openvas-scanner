@@ -39,6 +39,8 @@ jobs:
             --pull \
             --target rs-binaries \
             --platform "${PLATFORM}" \
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
             -o type=local,dest="./${DIST}" \
             -f .docker/prod.Dockerfile .
           mkdir -p "${ASSETS_SUBDIR}"
