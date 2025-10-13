@@ -141,10 +141,6 @@ jobs:
           pattern: rs-binaries-*
           merge-multiple: true
           path: ./assets
-      - run: ls -las assets/
-      - run: ls -las assets/linux
-      - run: ls -las assets/linux/amd64
-      - run: ls -las assets/linux/arm64
       - name: prepare setup
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
