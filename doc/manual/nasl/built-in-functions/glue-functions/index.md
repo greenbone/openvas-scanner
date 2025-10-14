@@ -14,4 +14,5 @@ This part contains functions that are dependent on openVAS.
 - **[script_get_preference_file_content](script_get_preference_file_content.md)** - get the file contents of a plugins preference that is of type "file"
 - **[script_get_preference_file_location](script_get_preference_file_location.md)** - get the location of a plugin preference of type "file"
 - **[script_get_preference](script_get_preference.md)** - get the value of a plugin preference
+- **[update_table_driven_lsc_data](update_table_driven_lsc_data.md)** - Set information, so that openvas can start a table driven lsc
 - **[vendor_version](vendor_version.md)** - get vendor version
