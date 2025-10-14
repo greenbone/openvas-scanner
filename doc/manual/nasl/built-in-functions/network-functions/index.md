@@ -11,7 +11,6 @@ In case of error, all those functions returns a value that can be interpreted as
 - **[ftp_get_pasv_port](ftp_get_pasv_port.md)** - sends the “PASV” command on the open socket, parses the returned data and returns the chosen “passive” port
 - **[ftp_log_in](ftp_log_in.md)** - performs a FTP identification / authentication on an open socket
 - **[get_host_ip](get_host_ip.md)** - get the IP of the currently scanned host
-- **[get_host_name](get_host_name.md)** - get_host_names the given socket
 - **[get_host_open_port](get_host_open_port.md)** - get an open TCP port on the target host
 - **[get_mtu](get_mtu.md)** - get the maximum transition unit for the scanned host
 - **[get_port_state](get_port_state.md)** - get a port state
