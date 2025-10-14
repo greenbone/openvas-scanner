@@ -21,7 +21,6 @@ Here you can find general purpose functions.
 - **[make_list](make_list.md)** - takes any number of unnamed arguments and returns an array made from them.
 - **[max_index](max_index.md)** - returns the length of an array.
 - **[mktime](mktime.md)** - takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
-- **[open_sock_kdc](open_sock_kdc.md)** - open a kdc socket
 - **[rand](rand.md)** - returns a pseudo random number.
 - **[safe_checks](safe_checks.md)** - takes no argument and returns the boolean value of the “safe checks” option.
 - **[sleep](sleep.md)** - takes an integer and sleeps the amount of seconds

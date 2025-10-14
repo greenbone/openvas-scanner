@@ -24,6 +24,7 @@ In case of error, all those functions returns a value that can be interpreted as
 - **[leave_multicast_group](leave_multicast_group.md)** - leaves a multicast group.
 - **[open_priv_sock_tcp](open_priv_sock_tcp.md)** - opens a “privileged” TCP socket to the target host.
 - **[open_priv_sock_udp](open_priv_sock_udp.md)** - opens a “privileged” UDP socket to the target host.
+- **[open_sock_kdc](open_sock_kdc.md)** - open a kdc socket
 - **[open_sock_tcp](open_sock_tcp.md)** - opens a TCP socket to the target host.
 - **[open_sock_udp](open_sock_udp.md)** - opens a UDP socket to the target host.
 - **[recv_line](recv_line.md)** - receives data from a TCP or UDP socket.
