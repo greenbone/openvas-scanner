@@ -2,7 +2,7 @@
 
 ## NAME
 
-**krb5_find_kdc** - Find the KDC for a given realm
+**krb5_find_kdc** - Find the KDC for a given realm.
 
 ## SYNOPSIS
 

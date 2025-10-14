@@ -2,7 +2,7 @@
 
 ## NAME
 
-**krb5_gss_init** - initialize the krb5 GSS-API library
+**krb5_gss_init** - initialize the krb5 GSS-API library.
 
 ## SYNOPSIS
 
