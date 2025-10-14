@@ -22,7 +22,6 @@ Here you can find general purpose functions.
 - **[max_index](max_index.md)** - returns the length of an array.
 - **[mktime](mktime.md)** - takes seven named arguments sec, min, hour, mday, mon, year, isdst and returns the Unix time.
 - **[rand](rand.md)** - returns a pseudo random number.
-- **[safe_checks](safe_checks.md)** - takes no argument and returns the boolean value of the “safe checks” option.
 - **[sleep](sleep.md)** - takes an integer and sleeps the amount of seconds
 - **[sort](sort.md)** - sorts the value of a dict/array. WARNING: drops the keys of a dict and returns an array.
 - **[typeof](typeof.md)** - returns the type of given unnamed argument.
