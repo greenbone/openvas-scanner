@@ -9,6 +9,7 @@ mod aes_ctr;
 mod aes_gcm;
 mod bf_cbc;
 mod des;
+mod dh;
 mod hash;
 mod helper;
 mod hmac;

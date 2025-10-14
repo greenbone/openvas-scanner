@@ -17,6 +17,7 @@ mod aes_gcm;
 mod aes_gmac;
 mod bf_cbc;
 mod des;
+mod dh;
 mod hash;
 mod hmac;
 mod misc;
@@ -147,6 +148,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(smb::Smb);
         set.add_set(misc::Misc);
         set.add_set(ntlm::Ntlm);
+        set.add_set(dh::Dh);
         set
     }
 }
