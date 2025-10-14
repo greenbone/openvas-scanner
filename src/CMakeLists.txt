@@ -156,7 +156,16 @@ add_executable (attack-test
 
 set_target_properties (attack-test PROPERTIES LINKER_LANGUAGE C)
 
+target_compile_options(attack-test PRIVATE "-fsanitize=address")
+target_link_options(attack-test PRIVATE "-fsanitize=address")
+
 add_test (attack-test attack-test)
+
+set_tests_properties(
+  attack-test
+  PROPERTIES
+    ENVIRONMENT "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:abort_on_error=1"
+)
 
 target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LIBOPENVAS_NASL_LDFLAGS}
