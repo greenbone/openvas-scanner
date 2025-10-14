@@ -8,6 +8,8 @@ This part contains functions that are dependent on openVAS.
 
 - **[get_preference](get_preference.md)** - get a preference
 - **[get_script_oid](get_script_oid.md)** - get the OID of the current script
+- **[notus_error](notus_error.md)** - Get the last notus error as string
+- **[notus](notus.md)** - Starts a notus scan with given data
 - **[safe_checks](safe_checks.md)** - takes no argument and returns the boolean value of the “safe checks” option.
 - **[script_get_preference_file_content](script_get_preference_file_content.md)** - get the file contents of a plugins preference that is of type "file"
 - **[script_get_preference_file_location](script_get_preference_file_location.md)** - get the location of a plugin preference of type "file"
