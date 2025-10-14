@@ -46,10 +46,7 @@ impl From<FeedStatusChange> for Message {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FeedStatusChange {
-    // Communicate downstream that we need to synchronize a feed
-    //
-    // This means a scan scheduler should finish running scans while not allowing new scans until
-    // Synced. When all the o scans are finished then it MUST send Allow back.
+    // Synced. When all the running scans are finished, it MUST send `Allow` back.
     Need(FeedType),
     // Communicate upstream that we can synchronize a feed
     //
