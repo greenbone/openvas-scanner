@@ -41,6 +41,8 @@ use crate::nasl::syntax::grammar::UnaryPrefixOperatorKind;
 use cursor::Cursor;
 use cursor::Peek;
 
+const MAX_RECURSION_DEPTH: usize = 128;
+
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 pub trait Parse: Sized {
@@ -77,6 +79,7 @@ impl<T> From<OptionalBlock<T>> for Block<T> {
 pub struct Parser {
     cursor: Cursor,
     errors: Vec<SpannedError>,
+    depth: usize,
 }
 
 impl Peek for Parser {
@@ -102,6 +105,7 @@ impl Parser {
         Self {
             cursor: Cursor::new(tokenizer).unwrap(),
             errors: vec![],
+            depth: 0,
         }
     }
 
@@ -189,7 +193,13 @@ impl Parser {
     }
 
     pub fn parse<T: Parse>(&mut self) -> Result<T> {
-        T::parse(self)
+        self.depth += 1;
+        if self.depth > MAX_RECURSION_DEPTH {
+            return Err(ErrorKind::RecursionLimitExceeded.into());
+        }
+        let result = T::parse(self);
+        self.depth -= 1;
+        result
     }
 
     pub fn advance(&mut self) -> Token {
@@ -556,7 +566,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
     let mut lhs = if parser.matches::<Atom>() {
         Expr::Atom(parser.parse()?)
     } else if parser.consume_if_matches(TokenKind::LeftParen) {
-        let lhs = pratt_parse_expr(parser, 0)?;
+        let lhs = parser.parse()?;
         parser.consume(TokenKind::RightParen)?;
         lhs
     } else if parser.matches::<UnaryPrefixOperatorWithIncrement>() {
@@ -686,7 +696,7 @@ fn pratt_parse_expr(parser: &mut Parser, min_bp: usize) -> Result<Expr> {
 impl Parse for Atom {
     fn parse(parser: &mut Parser) -> Result<Self> {
         if parser.matches::<Literal>() {
-            Ok(Atom::Literal(parser.parse().unwrap()))
+            Ok(Atom::Literal(parser.parse()?))
         } else if parser.token_matches(TokenKind::LeftBracket) {
             Ok(Atom::Array(parser.parse()?))
         } else {
