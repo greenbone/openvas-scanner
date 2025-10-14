@@ -2,7 +2,7 @@
 
 ## NAME
 
-**krb5_find_kdc** - Find the KDC for a given realm 
+**krb5_find_kdc** - Find the KDC for a given realm
 
 ## SYNOPSIS
 
@@ -13,7 +13,6 @@
 ## DESCRIPTION
 
 This function opens the krb5.conf file (located either by environment variable KRB5_CONFIG or /etc/ktrb5.conf) and looks for an kdc entry for the given realm.
-
 
 ## RETURN VALUE
 
@@ -29,5 +28,3 @@ Returns *NULL* if the realm is not found or the krb5.conf file could not be open
 kdc = insstr(realm: 'EXAMPLE.COM');
 display(kdc);
 ```
-
-

@@ -8,7 +8,6 @@
 
 *str* **krb5_gss_update_context_out**();
 
-
 ## DESCRIPTION
 
 This function is used to get the data that the application should send to the service.
@@ -43,4 +42,3 @@ if ((out = krb5_gss_update_context_out())) {
 	send(socket:soc, data:out);
 }
 ```
-
