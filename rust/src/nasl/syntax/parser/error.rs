@@ -33,6 +33,7 @@ pub enum ErrorKind {
     ExpectedBinaryOperator,
     NotAllowedInPlaceExpr,
     InvalidDescriptionBlock(String),
+    RecursionLimitExceeded,
 }
 
 impl Error {
@@ -96,6 +97,9 @@ impl Display for ErrorKind {
             }
             ErrorKind::InvalidDescriptionBlock(s) => {
                 write!(f, "Invalid description block. {s}")
+            }
+            ErrorKind::RecursionLimitExceeded => {
+                write!(f, "Recursion limit exceeded")
             }
         }
     }
