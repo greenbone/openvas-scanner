@@ -157,7 +157,7 @@ impl SqliteConfiguration {
             && !path.exists()
         {
             // we panic when we cannot create the dir
-            std::fs::create_dir_all(path).unwrap();
+            std::fs::create_dir_all(path).ok_or_else(|| panic!("Failed to create dir at {path:?}"));
         }
 
         let options = SqliteConnectOptions::from_str(&self.location.sqlite_address(name))?
