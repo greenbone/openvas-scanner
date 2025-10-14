@@ -26,6 +26,10 @@ on:
         required: true
       greenbone_registry_token:
         required: true
+      greenbone_registry_read_user:
+        required: true
+      greenbone_registry_read_token:
+        required: true
       greenbone_registry_replication_user:
         required: false
       greenbone_registry_replication_token:
