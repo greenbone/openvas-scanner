@@ -628,7 +628,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
                          " /proc/net/route line");
               continue;
             }
-          strncpy (iface, p, sizeof (iface));
+          strncpy (iface, p, sizeof (iface) - 1);
           iface[MAX_IFACE_NAME_LEN - 1] = '\0';
           if ((p = strchr (iface, ':')))
             {
@@ -1121,7 +1121,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                              " /proc/net/route line");
                   continue;
                 }
-              strncpy (iface, p, sizeof (iface));
+              strncpy (iface, p, sizeof (iface) - 1);
               iface[MAX_IFACE_NAME_LEN - 1] = '\0';
               if ((p = strchr (iface, ':')))
                 {

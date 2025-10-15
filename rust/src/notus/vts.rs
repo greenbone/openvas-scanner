@@ -132,9 +132,15 @@ where
             FixedPackage::ByFullName {
                 specifier,
                 full_name,
+                module,
             } => {
+                let mut full_name = full_name.clone();
+
+                if let Some(module) = module {
+                    full_name = format!("{}@{}:{}", full_name, module.name, module.stream);
+                }
                 // Parse package from full name
-                let package = P::from_full_name(full_name)?;
+                let package = P::from_full_name(&full_name)?;
                 // Create Vulnerability Test Entry
                 Some((
                     package.get_name(),
@@ -151,9 +157,14 @@ where
                 full_version,
                 specifier,
                 name,
+                module,
             } => {
+                let mut full_version = full_version.clone();
+                if let Some(module) = module {
+                    full_version = format!("{}@{}:{}", full_version, module.name, module.stream);
+                }
                 // Parse package from name and full version
-                let package = P::from_name_and_full_version(name, full_version)?;
+                let package = P::from_name_and_full_version(name, &full_version)?;
                 // Create Vulnerability Test Entry
                 Some((
                     package.get_name(),
@@ -166,10 +177,20 @@ where
                     },
                 ))
             }
-            FixedPackage::ByRange { range, name } => {
+            FixedPackage::ByRange {
+                range,
+                name,
+                module,
+            } => {
                 // Parse both packages from name and full version
-                let start = P::from_name_and_full_version(name, &range.start)?;
-                let end = P::from_name_and_full_version(name, &range.end)?;
+                let mut start = range.start.clone();
+                let mut end = range.end.clone();
+                if let Some(module) = module {
+                    start = format!("{}@{}:{}", start, module.name, module.stream);
+                    end = format!("{}@{}:{}", end, module.name, module.stream);
+                }
+                let start = P::from_name_and_full_version(name, &start)?;
+                let end = P::from_name_and_full_version(name, &end)?;
                 // Create Vulnerability Test Entry
                 Some((
                     start.get_name(),
