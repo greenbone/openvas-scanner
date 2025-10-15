@@ -139,6 +139,8 @@ pub struct IncludeSyntaxError {
     errs: Vec<ParseError>,
 }
 
+// TODO Get rid of this once we have a proper implementation of spans
+// for InterpreterError as well.
 impl std::fmt::Display for IncludeSyntaxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         emit_errors(&self.file, self.errs.iter().cloned(), Level::Error);

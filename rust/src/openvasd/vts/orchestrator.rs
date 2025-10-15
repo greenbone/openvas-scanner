@@ -1,46 +1,120 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::RwLock;
 
 use greenbone_scanner_framework::GetVTsError;
 use greenbone_scanner_framework::models::FeedType;
 use scannerlib::models::FeedState;
 use scannerlib::{PinBoxFut, feed};
-use tokio::sync::broadcast::{self, Receiver, Sender};
+use tokio::sync::mpsc;
 
 use crate::vts::FeedHashes;
 
-// Use message instead of directly FeedStatusChange if we want to add meta data later.
-#[derive(Debug, Clone)]
-pub struct Message {
-    change: FeedStatusChange,
+pub type Allow = FeedType;
+
+#[derive(Debug)]
+pub struct Communicator {
+    from_orchestrator: Arc<RwLock<mpsc::Receiver<FeedStatusChange>>>,
+    to_orchestrator: mpsc::Sender<Allow>,
+    needs_approval_advisories: Arc<RwLock<bool>>,
+    needs_approval_nasl: Arc<RwLock<bool>>,
 }
 
-impl Message {
-    pub fn change(&self) -> &FeedStatusChange {
-        &self.change
+impl Communicator {
+    pub fn init() -> (mpsc::Sender<FeedStatusChange>, mpsc::Receiver<Allow>, Self) {
+        let (txsc, rx) = mpsc::channel(1);
+        let (tx, rxallow) = mpsc::channel(2);
+        let me = Self {
+            from_orchestrator: Arc::new(tokio::sync::RwLock::new(rx)),
+            to_orchestrator: tx,
+            needs_approval_advisories: Default::default(),
+            needs_approval_nasl: Default::default(),
+        };
+        (txsc, rxallow, me)
     }
+}
 
-    pub fn is_need(&self) -> bool {
-        matches!(&self.change, FeedStatusChange::Need(_))
+#[cfg(test)]
+// This is just for test cases don't need an Orchestrator
+impl Default for Communicator {
+    fn default() -> Self {
+        let (_, _, me) = Self::init();
+        me
     }
+}
 
-    pub fn is_allow(&self) -> bool {
-        matches!(&self.change, FeedStatusChange::Allow(_))
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum CommunicationIssues {
+    #[error("Trying to approve without request.")]
+    NeedsRequest,
+    #[error("Receiver is not available.")]
+    ReceiverUnavailable,
+}
 
-    pub fn to_allow(&self) -> Option<Message> {
-        match &self.change {
-            FeedStatusChange::Need(ft) => Some(Message {
-                change: FeedStatusChange::Allow(*ft),
-            }),
-            _ => None,
+impl Communicator {
+    fn new(
+        from_orchestrator: mpsc::Receiver<FeedStatusChange>,
+        to_orchestrator: mpsc::Sender<Allow>,
+    ) -> Self {
+        Self {
+            from_orchestrator: Arc::new(tokio::sync::RwLock::new(from_orchestrator)),
+            to_orchestrator,
+            needs_approval_advisories: Default::default(),
+            needs_approval_nasl: Default::default(),
         }
     }
-}
 
-impl From<FeedStatusChange> for Message {
-    fn from(value: FeedStatusChange) -> Self {
-        Message { change: value }
+    async fn set_false_when_true(b: Arc<RwLock<bool>>) -> bool {
+        let mut adv = b.write().await;
+        if *adv {
+            *adv = false;
+            true
+        } else {
+            false
+        }
+    }
+
+    async fn toggle_advisories(&self) -> bool {
+        Self::set_false_when_true(self.needs_approval_advisories.clone()).await
+    }
+
+    async fn toggle_nasl(&self) -> bool {
+        Self::set_false_when_true(self.needs_approval_nasl.clone()).await
+    }
+
+    pub async fn approve(&self, feed: Allow) -> Result<(), CommunicationIssues> {
+        match &feed {
+            FeedType::Products => Ok(()),
+            FeedType::Advisories if self.toggle_advisories().await => self
+                .to_orchestrator
+                .send(feed)
+                .await
+                .map_err(|_| CommunicationIssues::ReceiverUnavailable),
+            FeedType::NASL if self.toggle_nasl().await => self
+                .to_orchestrator
+                .send(feed)
+                .await
+                .map_err(|_| CommunicationIssues::ReceiverUnavailable),
+            _ => Err(CommunicationIssues::NeedsRequest),
+        }
+    }
+    pub async fn receive_state_changes(&self) -> Option<FeedStatusChange> {
+        let mut from_orchestrator = self.from_orchestrator.write().await;
+        let result = from_orchestrator.recv().await;
+        if let Some(fsc) = result.as_ref() {
+            match fsc {
+                FeedStatusChange::Need(FeedType::Advisories) => {
+                    let mut adv = self.needs_approval_advisories.write().await;
+                    *adv = true;
+                }
+                FeedStatusChange::Need(FeedType::NASL) => {
+                    let mut nasl = self.needs_approval_nasl.write().await;
+                    *nasl = true;
+                }
+                _ => {}
+            }
+        }
+        result
     }
 }
 
@@ -48,23 +122,8 @@ impl From<FeedStatusChange> for Message {
 pub enum FeedStatusChange {
     // Synced. When all the running scans are finished, it MUST send `Allow` back.
     Need(FeedType),
-    // Communicate upstream that we can synchronize a feed
-    //
-    // This means a scan scheduler should finish running scans while not allowing new scans until
-    // Synced.
-    Allow(FeedType),
     // Communicate downstream that the feed is synchronized.
     Synced(FeedType),
-}
-
-impl FeedStatusChange {
-    pub fn feed_type(&self) -> &FeedType {
-        match self {
-            FeedStatusChange::Need(feed_type)
-            | FeedStatusChange::Allow(feed_type)
-            | FeedStatusChange::Synced(feed_type) => feed_type,
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -87,9 +146,9 @@ pub trait Worker {
 
 pub struct Orchestrator<W> {
     /// Feed state for the HTTP header
-    outer_state: Arc<RwLock<FeedState>>,
-    receiver: Receiver<Message>,
-    sender: Sender<Message>,
+    outer_state: Arc<std::sync::RwLock<FeedState>>,
+    receiver: mpsc::Receiver<Allow>,
+    sender: mpsc::Sender<FeedStatusChange>,
     worker: Arc<W>,
 }
 
@@ -98,28 +157,29 @@ where
     W: Worker + Send + Sync + 'static,
 {
     pub(crate) fn new(
-        outer_state: Arc<RwLock<FeedState>>,
+        outer_state: Arc<std::sync::RwLock<FeedState>>,
         worker: W,
-    ) -> (Sender<Message>, Orchestrator<W>) {
-        let (tx, rx) = broadcast::channel(2);
-        let tx2 = tx.clone();
+    ) -> (Communicator, Orchestrator<W>) {
+        let (tx, rx) = mpsc::channel(1);
+        let (tx2, rx2) = mpsc::channel(1);
+        let communicator = Communicator::new(rx, tx2);
         let orc = Orchestrator {
             outer_state,
             worker: Arc::new(worker),
-            receiver: rx,
-            sender: tx2,
+            receiver: rx2,
+            sender: tx,
         };
-        (tx, orc)
+        (communicator, orc)
     }
     pub async fn init(
         interval: Duration,
-        outer_state: Arc<RwLock<FeedState>>,
+        outer_state: Arc<std::sync::RwLock<FeedState>>,
         worker: W,
-    ) -> Sender<Message>
+    ) -> Communicator
     where
         W: Worker,
     {
-        let (tx, orc) = Self::new(outer_state, worker);
+        let (com, orc) = Self::new(outer_state, worker);
         tokio::spawn(async move {
             let mut orc = orc;
             loop {
@@ -130,13 +190,12 @@ where
                 tokio::time::sleep(interval).await;
             }
         });
-        tx
+        com
     }
     async fn change_outer_state(&self, state: FeedState) {
-        let outer_state = self.outer_state.clone();
-
+        let narf = self.outer_state.clone();
         tokio::task::spawn_blocking(move || {
-            let mut out = outer_state.write().unwrap();
+            let mut out = narf.write().unwrap();
             *out = state;
         })
         .await
@@ -145,20 +204,18 @@ where
     pub async fn verify(&mut self) -> Result<(), WorkerError> {
         let cached_hashes = self.worker.cached_hashes().await?;
         let (calc_nasl, calc_advisories) = self.worker.calculated_hashes().await?;
-        let send_need = |kind| {
+        let send_need = async |kind| {
             tracing::info!(?kind, "Sending feed sync request.");
             self.sender
-                .send(Message {
-                    change: FeedStatusChange::Need(kind),
-                })
+                .send(FeedStatusChange::Need(kind))
+                .await
                 .map_err(|_| WorkerError::Send)
         };
-        let send_synced = |kind| {
+        let send_synced = async |kind| {
             tracing::info!(?kind, "Finished feed synchronization.");
             self.sender
-                .send(Message {
-                    change: FeedStatusChange::Synced(kind),
-                })
+                .send(FeedStatusChange::Synced(kind))
+                .await
                 .map_err(|_| WorkerError::Send)
         };
 
@@ -178,10 +235,10 @@ where
             return Ok(());
         }
         if sync_nasl {
-            send_need(FeedType::NASL)?;
+            send_need(FeedType::NASL).await?;
         }
         if sync_advisories {
-            send_need(FeedType::Advisories)?;
+            send_need(FeedType::Advisories).await?;
         }
 
         let mut nasl_handle = None;
@@ -196,8 +253,8 @@ where
             // synchronization is rather limited compared to not having a scheduler and thus not
             // being able to scan anything I think it is fine as is.
             match self.receiver.recv().await {
-                Ok(x) => match x.change {
-                    FeedStatusChange::Allow(FeedType::NASL) if sync_nasl => {
+                Some(x) => match x {
+                    FeedType::NASL if sync_nasl => {
                         if advisory_handle.is_none() {
                             self.change_outer_state(FeedState::Syncing).await;
                         }
@@ -207,7 +264,7 @@ where
                             worker.update_feed(FeedType::NASL, calc_nasl).await
                         }));
                     }
-                    FeedStatusChange::Allow(FeedType::Advisories) if sync_advisories => {
+                    FeedType::Advisories if sync_advisories => {
                         if nasl_handle.is_none() {
                             self.change_outer_state(FeedState::Syncing).await;
                         }
@@ -220,16 +277,17 @@ where
                         }))
                     }
                     msg => {
-                        tracing::trace!(
+                        tracing::warn!(
                             ?msg,
                             sync_nasl,
                             sync_advisories,
-                            "Ignoring mismatching message."
+                            "Received approval without request."
                         )
                     }
                 },
-                Err(error) => tracing::trace!(%error, "ignoring missed messages"),
+                None => tracing::warn!("Sender dropped."),
             }
+
             match (
                 sync_nasl,
                 nasl_handle.is_some(),
@@ -248,13 +306,14 @@ where
                 ),
             }
         }
+
         if let Some(handle) = nasl_handle {
             handle.await.unwrap()?;
-            send_synced(FeedType::NASL)?;
+            send_synced(FeedType::NASL).await?;
         }
         if let Some(handle) = advisory_handle {
             handle.await.unwrap()?;
-            send_synced(FeedType::Advisories)?;
+            send_synced(FeedType::Advisories).await?;
         }
         self.change_outer_state(FeedState::Synced(calc_nasl, calc_advisories))
             .await;
@@ -267,12 +326,12 @@ where
 pub mod test {
 
     use super::*;
-    struct BWLer {
+    struct Yesman {
         cached: Option<FeedHashes>,
         calculated: FeedHashes,
     }
 
-    impl Worker for BWLer {
+    impl Worker for Yesman {
         fn cached_hashes(&self) -> PinBoxFut<Result<Option<FeedHashes>, WorkerError>> {
             let cached = self.cached.clone();
             Box::pin(async move { Ok(cached) })
@@ -290,27 +349,30 @@ pub mod test {
 
     pub async fn verify_allowed_for<Worker>(
         worker: Worker,
-        snapshot: Arc<RwLock<FeedState>>,
+        snapshot: Arc<std::sync::RwLock<FeedState>>,
         fts: &[FeedType],
     ) -> anyhow::Result<()>
     where
         Worker: super::Worker + Send + Sync + 'static,
     {
-        let (tx, mut orc) = Orchestrator::new(snapshot, worker);
-        let mut recv = tx.subscribe();
+        let (communicator, mut orc) = Orchestrator::new(snapshot, worker);
         let expected_wait = fts.len();
         let mut count = 0;
 
         let ov = tokio::spawn(async move { orc.verify().await });
-        while let Ok(msg) = recv.recv().await {
-            if let Some(answer) = msg.to_allow() {
-                count += 1;
-                tx.send(answer)?;
+        while let Some(msg) = communicator.receive_state_changes().await {
+            if let FeedStatusChange::Need(ft) = msg {
+                communicator.approve(ft).await?;
             }
+            if matches!(msg, FeedStatusChange::Synced(_)) {
+                count += 1;
+            }
+
             if count == expected_wait {
                 break;
             }
         }
+
         ov.await??;
         Ok(())
     }
@@ -318,8 +380,8 @@ pub mod test {
     #[tokio::test]
     async fn cached_hash_start() {
         let expected = ("one".to_string(), "two".to_string());
-        let outer_state = Arc::new(RwLock::new(FeedState::Unknown));
-        let worker = BWLer {
+        let outer_state = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
+        let worker = Yesman {
             cached: Some(expected.clone()),
             calculated: expected.clone(),
         };
@@ -329,16 +391,26 @@ pub mod test {
         assert!(matches!(&*outer_state, FeedState::Synced(_, _)));
     }
 
-    #[tokio::test]
-    async fn new_sync_nasl() {
-        let old = ("nasl".to_string(), "two".to_string());
-        let new = ("one".to_string(), "two".to_string());
-        let expected_nasl = Some("one");
-        let expected_advisories = Some("two");
+    async fn change_synced_feed_from_to_verify_expectation(
+        old: (String, String),
+        new: (String, String),
+        expected: (Option<&str>, Option<&str>),
+    ) {
+        let fs = FeedState::Synced(old.0, old.1);
+        change_feed_state_from_to_verify_expectation(fs, new, expected).await
+    }
 
-        let outer_state = Arc::new(RwLock::new(FeedState::Synced(old.0.clone(), old.1.clone())));
-        let worker = BWLer {
-            cached: Some(old),
+    async fn change_feed_state_from_to_verify_expectation(
+        fs: FeedState,
+        new: (String, String),
+        expected: (Option<&str>, Option<&str>),
+    ) {
+        let outer_state = Arc::new(std::sync::RwLock::new(fs.clone()));
+        let worker = Yesman {
+            cached: match fs {
+                FeedState::Unknown | FeedState::Syncing => None,
+                FeedState::Synced(nasl, advisories) => Some((nasl, advisories)),
+            },
             calculated: new,
         };
         verify_allowed_for(worker, outer_state.clone(), &[FeedType::NASL])
@@ -346,80 +418,38 @@ pub mod test {
             .unwrap();
 
         let outer_state = outer_state.read().unwrap();
-        assert_eq!(outer_state.nasl(), expected_nasl);
-        assert_eq!(outer_state.advisories(), expected_advisories);
+        assert_eq!(outer_state.nasl(), expected.0);
+        assert_eq!(outer_state.advisories(), expected.1);
+    }
+
+    #[tokio::test]
+    async fn new_sync_nasl() {
+        let old = ("nasl".to_string(), "two".to_string());
+        let new = ("one".to_string(), "two".to_string());
+        let expected = (Some("one"), Some("two"));
+        change_synced_feed_from_to_verify_expectation(old, new, expected).await;
     }
 
     #[tokio::test]
     async fn new_sync_advisories() {
         let old = ("one".to_string(), "advisories".to_string());
         let new = ("one".to_string(), "two".to_string());
-        let expected_nasl = Some("one");
-        let expected_advisories = Some("two");
-
-        let outer_state = Arc::new(RwLock::new(FeedState::Synced(old.0.clone(), old.1.clone())));
-        let worker = BWLer {
-            cached: Some(old),
-            calculated: new,
-        };
-
-        verify_allowed_for(worker, outer_state.clone(), &[FeedType::Advisories])
-            .await
-            .unwrap();
-
-        let outer_state = outer_state.read().unwrap();
-        assert_eq!(outer_state.nasl(), expected_nasl);
-        assert_eq!(outer_state.advisories(), expected_advisories);
+        let expected = (Some("one"), Some("two"));
+        change_synced_feed_from_to_verify_expectation(old, new, expected).await;
     }
 
     #[tokio::test]
     async fn new_sync() {
         let old = ("nasl".to_string(), "advisories".to_string());
         let new = ("one".to_string(), "two".to_string());
-        let expected_nasl = Some("one");
-        let expected_advisories = Some("two");
-
-        let outer_state = Arc::new(RwLock::new(FeedState::Synced(old.0.clone(), old.1.clone())));
-        let worker = BWLer {
-            cached: Some(old),
-            calculated: new,
-        };
-
-        verify_allowed_for(
-            worker,
-            outer_state.clone(),
-            &[FeedType::Advisories, FeedType::NASL],
-        )
-        .await
-        .unwrap();
-
-        let outer_state = outer_state.read().unwrap();
-        assert_eq!(outer_state.nasl(), expected_nasl);
-        assert_eq!(outer_state.advisories(), expected_advisories);
+        let expected = (Some("one"), Some("two"));
+        change_synced_feed_from_to_verify_expectation(old, new, expected).await;
     }
 
     #[tokio::test]
     async fn sync_no_old() {
         let new = ("one".to_string(), "two".to_string());
-        let expected_nasl = Some("one");
-        let expected_advisories = Some("two");
-
-        let outer_state = Arc::new(RwLock::new(FeedState::Unknown));
-        let worker = BWLer {
-            cached: None,
-            calculated: new,
-        };
-
-        verify_allowed_for(
-            worker,
-            outer_state.clone(),
-            &[FeedType::Advisories, FeedType::NASL],
-        )
-        .await
-        .unwrap();
-
-        let outer_state = outer_state.read().unwrap();
-        assert_eq!(outer_state.nasl(), expected_nasl);
-        assert_eq!(outer_state.advisories(), expected_advisories);
+        let expected = (Some("one"), Some("two"));
+        change_feed_state_from_to_verify_expectation(FeedState::Unknown, new, expected).await
     }
 }

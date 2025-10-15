@@ -1,10 +1,4 @@
-use std::{
-    marker::PhantomData,
-    net::SocketAddr,
-    path::PathBuf,
-    pin::Pin,
-    sync::{Arc, RwLock},
-};
+use std::{marker::PhantomData, net::SocketAddr, path::PathBuf, pin::Pin, sync::Arc, sync::RwLock};
 
 use delete_scans_id::{DeleteScansId, DeleteScansIdHandler};
 use entry::Prefixed;
