@@ -1,7 +1,8 @@
+use std::sync::RwLock;
 use std::{
     io::BufReader,
     path::{Path, PathBuf},
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 use futures::StreamExt;
@@ -13,7 +14,6 @@ use scannerlib::{
     notus::{AdvisoryLoader, HashsumAdvisoryLoader, advisories::VulnerabilityData},
 };
 use sqlx::{Row, SqlitePool, query, sqlite::SqliteRow};
-use tokio::sync::broadcast::Sender;
 
 use crate::config::Config;
 pub mod orchestrator;
@@ -331,12 +331,13 @@ pub async fn init(
     pool: SqlitePool,
     config: &Config,
     snapshot: Arc<RwLock<FeedState>>,
-) -> (Sender<orchestrator::Message>, Endpoints) {
+) -> (orchestrator::Communicator, Endpoints) {
     let endpoints = Endpoints::new(pool.clone(), snapshot.clone(), None);
     let worker = FeedSynchronizer::new(pool, config);
-    let sender =
+
+    let communicator =
         orchestrator::Orchestrator::init(config.feed.check_interval, snapshot, worker).await;
-    (sender, endpoints)
+    (communicator, endpoints)
 }
 
 #[cfg(test)]

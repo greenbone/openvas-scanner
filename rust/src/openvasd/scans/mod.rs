@@ -1,9 +1,4 @@
-use std::{
-    num::ParseIntError,
-    pin::Pin,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
@@ -12,7 +7,7 @@ use scannerlib::{
     scanner,
 };
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteRow};
-use tokio::sync::{broadcast, mpsc::Sender};
+use tokio::sync::mpsc::Sender;
 
 use crate::{
     config::Config,
@@ -703,8 +698,8 @@ pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
 pub async fn init(
     pool: SqlitePool,
     config: &Config,
-    feed_status: broadcast::Sender<orchestrator::Message>,
-    feed_snapshot: Arc<RwLock<FeedState>>,
+    feed_status: orchestrator::Communicator,
+    feed_snapshot: Arc<std::sync::RwLock<FeedState>>,
 ) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
     let crypter = Arc::new(config_to_crypt(config));
     let scheduler_sender = scheduling::init(
@@ -724,10 +719,9 @@ pub async fn init(
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        sync::{Arc, RwLock},
-        time::Duration,
-    };
+    use std::time::Duration;
+
+    use super::*;
 
     use futures::StreamExt;
     use greenbone_scanner_framework::{
@@ -752,9 +746,13 @@ mod tests {
     };
 
     async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {
-        let feed_snapshot = Arc::new(RwLock::new(FeedState::Synced("0".into(), "2".into())));
-        let (feed_state, _) = tokio::sync::broadcast::channel(2);
-        super::init(pool, config, feed_state, feed_snapshot)
+        let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Synced(
+            "0".into(),
+            "2".into(),
+        )));
+        let ignored = Default::default();
+
+        super::init(pool, config, ignored, feed_snapshot)
             .await
             .unwrap()
     }
@@ -1114,13 +1112,13 @@ mod tests {
         let (config, pool) = create_pool().await?;
 
         let crypter = Arc::new(config_to_crypt(&config));
-        let (feed, _) = tokio::sync::broadcast::channel(1);
+        let (_, _, communicator) = orchestrator::Communicator::init();
         let scheduler_sender = scheduling::init_with_scanner(
             pool.clone(),
             crypter.clone(),
             &config,
             scheduling::tests::scanner_succeeded().build(),
-            feed,
+            communicator,
         )
         .await?;
         let undertest = super::Endpoints {
