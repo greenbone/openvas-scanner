@@ -91,12 +91,12 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - get_smb2_signature
 - dh_compute_key
 - dh_generate_key
+- des_ede_cbc_encrypt
 
 ## Not yet implemented
 
 - bf_cbc_decrypt
 - bf_cbc_encrypt
-- des_ede_cbc_encrypt
 - dsa_do_sign
 - dsa_do_verify
 - get_signature

@@ -139,6 +139,19 @@ fn aes256_cbc_decrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<Aes256>(register, Crypt::Decrypt)
 }
 
+/// NASL function to decrypt data with triple des ede cbc.
+///
+/// This function expects 3 named arguments key, data and iv either in a string or data type.
+/// - The data is divided into blocks of 8 bytes. The last block is filled so it also has 8 bytes.
+///   Currently the data is filled with zeroes. Therefore the length of the encrypted data must be
+///   known for decryption. If no length is given, the last block is decrypted as a whole.
+/// - The iv must have a length of 8 bytes
+/// - The key must have a length of 24 bytes
+#[nasl_function]
+fn des_ede_cbc_encrypt(register: &Register) -> Result<NaslValue, FnError> {
+    cbc::<des::TdesEde3>(register, Crypt::Encrypt)
+}
+
 pub struct AesCbc;
 
 function_set! {
@@ -150,5 +163,6 @@ function_set! {
         aes192_cbc_decrypt,
         aes256_cbc_encrypt,
         aes256_cbc_decrypt,
+        des_ede_cbc_encrypt,
     )
 }
