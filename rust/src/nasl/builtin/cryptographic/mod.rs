@@ -9,13 +9,13 @@ use crate::nasl::prelude::*;
 
 use crate::nasl::utils::{IntoFunctionSet, Register, StoredFunctionSet};
 
-mod aes_cbc;
 mod aes_ccm;
 mod aes_cmac;
 mod aes_ctr;
 mod aes_gcm;
 mod aes_gmac;
 mod bf_cbc;
+mod cbc;
 mod des;
 mod dh;
 mod hash;
@@ -135,7 +135,7 @@ impl IntoFunctionSet for Cryptographic {
         let mut set = StoredFunctionSet::new(self);
         set.add_set(aes_ccm::AesCcm);
         set.add_set(hmac::HmacFns);
-        set.add_set(aes_cbc::AesCbc);
+        set.add_set(cbc::AesCbc);
         set.add_set(aes_ctr::AesCtr);
         set.add_set(aes_gcm::AesGcmFns);
         set.add_set(aes_cmac::AesCmac);

@@ -73,3 +73,15 @@ fn padding() {
         results[results.len() - 1].as_ref().unwrap()
     );
 }
+
+#[test]
+fn des_ede_cbc_encrypt() {
+    let mut t = TestBuilder::default();
+    t.run(r#"key = hexstr_to_data("104691348998013110469134899801311046913489980131");"#);
+    t.run(r#"data = hexstr_to_data("0000000000000000");"#);
+    t.run(r#"iv = hexstr_to_data("0000000000000000");"#);
+    t.ok(
+        r#"des_ede_cbc_encrypt(data: data, key: key, iv: iv);"#,
+        decode_hex("88d55e54f54c97b4").unwrap(),
+    );
+}
