@@ -23,6 +23,7 @@ use tokio::{
 use crate::{
     config::Config,
     crypt::Crypt,
+    scans::state_change::ScanStateChange,
     vts::orchestrator::{self, FeedStatusChange},
 };
 
@@ -107,13 +108,7 @@ struct ScanScheduler<Scanner, Cryptor> {
     // We use the fact that we don't handle products as a differentiation between need and allow
     // otherwise we would need to store two separate lists.
     feed_sync_in_progress: Arc<RwLock<IsInProgress>>,
-    // Exists to prevent a bug in which scans were accidentally started twice due to deferred writes in sqlite.
-    // To address this bug, this field keeps track of all requested scans manually, instead of relying on
-    // sqlite for this information.
-    //
-    // This is a hack, if there are any better solutions that work as reliably this can be removed
-    // without functional harm.
-    requested_guard: Arc<RwLock<Vec<i64>>>,
+    change_scan_status: ScanStateChange,
 }
 
 #[derive(Debug)]
@@ -131,12 +126,14 @@ impl<T, C> ScanScheduler<T, C> {
     ///
     /// This is to safe guard against ghost scans that will never finish.
     async fn running_to_failed(&self) -> R<()> {
-        let rows = query("UPDATE scans SET status = 'failed' WHERE status = 'running'")
-            .execute(&self.pool)
+        let affected = self
+            .change_scan_status
+            .change_state_all("running", "failed")
             .await?;
-        if rows.rows_affected() > 0 {
+
+        if affected > 0 {
             tracing::warn!(
-                scans_failed = rows.rows_affected(),
+                scans_failed = affected,
                 "Set scans to failed from previous runs."
             );
         }
@@ -144,43 +141,31 @@ impl<T, C> ScanScheduler<T, C> {
     }
 
     async fn scan_stored_to_requested(&self, id: i64) -> R<()> {
-        let row = query("UPDATE scans SET status = 'requested' WHERE id = ? AND status = 'stored'")
-            .bind(id)
-            .execute(&self.pool)
+        self.change_scan_status
+            .change_state(id, "stored", "requested")
             .await?;
-        if row.rows_affected() > 0 {
-            tracing::debug!(id, "Changed scan from stored to requested");
-        } else {
-            tracing::info!(
-                id,
-                "Unable to change scan from stored to requested because the status is not in stored."
-            );
-        }
         Ok(())
     }
 
     async fn scan_running_to_stopped(&self, id: i64) -> R<()> {
-        let row = query("UPDATE scans SET status = 'stopped' WHERE id = ? AND status = 'running'")
-            .bind(id)
-            .execute(&self.pool)
+        let changed = self
+            .change_scan_status
+            .change_state(id, "running", "stopped")
             .await?;
-        if row.rows_affected() > 0 {
-            tracing::debug!(id, "Changed scan from running to stopped");
-        } else {
-            tracing::info!(
-                id,
-                "Unable to change scan from stored to stopped because the status is not in 'running'."
-            );
-        }
+        tracing::debug!(changed, id, "Changed scan from running to stopped");
+
         Ok(())
     }
 
     async fn scan_running_to_failed(&self, id: i64, reason: &str) -> R<()> {
-        query("UPDATE scans SET status = 'failed' WHERE id = ? AND status = 'running'")
-            .bind(id)
-            .execute(&self.pool)
+        let changed = self
+            .change_scan_status
+            .change_state(id, "running", "failed")
             .await?;
-        tracing::warn!(id, reason, "Set scan from running to failed.");
+
+        if changed {
+            tracing::warn!(id, reason, "Set scan from running to failed.");
+        }
         Ok(())
     }
 
@@ -223,34 +208,31 @@ impl<T, C> ScanScheduler<T, C> {
     }
 }
 
-async fn scan_start<S>(pool: SqlitePool, scanner: Arc<S>, internal_id: i64, scan: Scan)
-where
-    S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
-{
-    match scanner.start_scan(scan).await {
-        Ok(()) => {}
-        Err(error) => {
-            tracing::warn!(internal_id, %error, "Unable to start scan");
-            if let Err(error) = query("UPDATE scans SET status = 'failed' WHERE id = ?")
-                .bind(internal_id)
-                .execute(&pool)
-                .await
-            {
-                tracing::warn!(
-                    internal_id,
-                    %error,
-                    "Unable to set scan to failed. This scan will be kept in running until restart"
-                );
-            }
-        }
-    }
-}
-
 impl<Scanner, C> ScanScheduler<Scanner, C>
 where
     Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     C: Crypt + Send + Sync + 'static,
 {
+    async fn scan_start(&self, id: i64, scan: Scan) {
+        match self.scanner.start_scan(scan).await {
+            Ok(()) => {}
+            Err(error) => {
+                tracing::warn!(id, %error, "Unable to start scan");
+                if let Err(error) = self
+                    .change_scan_status
+                    .change_state(id, "running", "failed")
+                    .await
+                {
+                    tracing::warn!(
+                        id,
+                        %error,
+                        "Unable to set scan to failed. This scan will be kept in running until restart"
+                    );
+                }
+            }
+        }
+    }
+
     async fn fetch_requested(&self) -> R<Vec<i64>> {
         let ids: Vec<i64> = match self.max_concurrent_scan {
             0 => query_scalar(
@@ -281,11 +263,6 @@ where
         Ok(ids)
     }
 
-    async fn is_already_started(&self, id: i64) -> bool {
-        let cached = self.requested_guard.read().await;
-        cached.contains(&id)
-    }
-
     async fn is_feed_sync_in_progress(&self) -> bool {
         self.feed_sync_in_progress
             .read()
@@ -294,24 +271,18 @@ where
     }
 
     async fn set_to_running(&self, id: i64) -> R<()> {
-        let row = query("UPDATE scans SET status = 'running' WHERE id = ?")
-            .bind(id)
-            .execute(&self.pool)
+        let running = self
+            .change_scan_status
+            .change_state(id, "requested", "running")
             .await?;
 
         let mut tx = self.pool.begin().await?;
         let scan = super::get_scan(&mut tx, self.cryptor.as_ref(), id).await?;
         tx.commit().await?;
-        if self.is_already_started(id).await {
-            tracing::trace!(id, "Has been already started, skipping");
-            return Ok(());
-        }
 
-        tracing::info!(id, running = row.rows_affected(), "Started scan");
+        tracing::info!(id, running, "Started scan");
 
-        self.requested_guard.write().await.push(id);
-
-        scan_start(self.pool.clone(), self.scanner.clone(), id, scan).await;
+        self.scan_start(id, scan).await;
         Ok(())
     }
 
@@ -333,7 +304,7 @@ where
         for id in ids {
             // To prevent accidental state change from running -> requested based on an old
             // snapshot we only do a resource when a scan has not already been started.
-            if !self.is_already_started(id).await && !self.scanner.can_start_scan().await {
+            if !self.scanner.can_start_scan().await {
                 break;
             }
 
@@ -341,13 +312,6 @@ where
         }
 
         Ok(())
-    }
-
-    async fn remove_id_from_guard(&self, id: i64) {
-        let mut cache = self.requested_guard.write().await;
-        if let Some(index) = cache.iter().position(|x| x == &id) {
-            cache.swap_remove(index);
-        }
     }
 
     async fn scan_import_results(&self, internal_id: i64, scan_id: String) -> R<()> {
@@ -435,7 +399,6 @@ where
 
     async fn scanner_delete_scan(&self, internal_id: i64, scan_id: String) -> R<()> {
         tracing::debug!(internal_id, scan_id, "deleting scan from scanner");
-        self.remove_id_from_guard(internal_id).await;
         self.scanner.delete_scan(scan_id).await?;
         Ok(())
     }
@@ -613,13 +576,14 @@ where
     S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
+    let change_scan_status = pool.clone().into();
     let scheduler = ScanScheduler {
         pool,
         cryptor: crypter,
         max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
         scanner: Arc::new(scanner),
         feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
-        requested_guard: Default::default(),
+        change_scan_status,
     };
 
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await
@@ -818,26 +782,13 @@ pub(crate) mod tests {
 
     use super::*;
     use crate::{
-        config::Config,
         crypt::ChaCha20Crypt,
-        scans::{self, tests::create_pool},
+        scans::{
+            self,
+            tests::{create_pool, prepare_scans},
+        },
     };
     type TR = R<()>;
-
-    async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
-        let client_id = "moep".to_string();
-        let scans = scans::tests::generate_scan();
-        let crypter = scans::config_to_crypt(config);
-        for scan in scans {
-            scans::scan_insert(&pool, &crypter, &client_id, scan)
-                .await
-                .unwrap();
-        }
-        query_scalar("SELECT id FROM scans")
-            .fetch_all(&pool)
-            .await
-            .unwrap()
-    }
 
     async fn setup_test_env() -> R<(ScanScheduler<scanner::Lambda, ChaCha20Crypt>, Vec<i64>)> {
         setup_test_env_with_scanner(LambdaBuilder::default()).await
@@ -857,13 +808,14 @@ pub(crate) mod tests {
         let scanner = Arc::new(builder.build());
         let cryptor = Arc::new(scans::config_to_crypt(&config));
 
+        let change_scan_status = pool.clone().into();
         let under_test = ScanScheduler {
             pool: pool.clone(),
             scanner,
             cryptor,
             max_concurrent_scan: 4,
             feed_sync_in_progress: Arc::new(RwLock::new(feed_changes)),
-            requested_guard: Default::default(),
+            change_scan_status,
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
         Ok((under_test, known_scans))

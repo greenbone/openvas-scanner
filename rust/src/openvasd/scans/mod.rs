@@ -15,6 +15,7 @@ use crate::{
     vts::orchestrator,
 };
 mod scheduling;
+mod state_change;
 pub struct Endpoints<E> {
     pool: SqlitePool,
     crypter: Arc<E>,
@@ -1011,6 +1012,21 @@ mod tests {
         Ok((config, pool))
     }
 
+    pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        let crypter = config_to_crypt(config);
+        for scan in scans {
+            scan_insert(&pool, &crypter, &client_id, scan)
+                .await
+                .unwrap();
+        }
+        query_scalar("SELECT id FROM scans")
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn post_scan() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
@@ -1141,6 +1157,9 @@ mod tests {
             let result = undertest.get_scans_id_status(result).await?;
             assert_eq!(result.status, Phase::Stored);
         }
+
+        dbg!("after stored");
+
         for scan in scans.iter() {
             let id = undertest
                 .contains_scan_id(&client_id, &scan.scan_id)
@@ -1159,11 +1178,13 @@ mod tests {
             }
             assert!(matches!(status.status, Phase::Requested | Phase::Running));
         }
+        dbg!("after running");
         for scan in scans.iter() {
             let id = undertest
                 .contains_scan_id(&client_id, &scan.scan_id)
                 .await
                 .unwrap();
+            dbg!(&id, scans.len());
 
             undertest
                 .post_scans_id(id.clone(), models::Action::Start)
@@ -1171,6 +1192,7 @@ mod tests {
             let mut status;
             loop {
                 status = undertest.get_scans_id_status(id.clone()).await?;
+                dbg!(&status);
                 if status.is_done() {
                     break;
                 }
