@@ -2,6 +2,7 @@
 OpenVAS = "OpenVAS"
 des_ede_cbc_encrypt = "des_ede_cbc_encrypt"
 ede = "ede"
+TdesEde3 = "TdesEde3"
 typ = "typ"
 
 [default.extend-words]
