@@ -6,7 +6,12 @@ use scannerlib::{
     models::{FeedState, ResultType},
     scanner,
 };
-use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteRow};
+use sqlx::{
+    Acquire, QueryBuilder, Row, Sqlite, SqlitePool, query,
+    query::Query,
+    query_scalar,
+    sqlite::{SqliteArguments, SqliteRow},
+};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -15,6 +20,7 @@ use crate::{
     vts::orchestrator,
 };
 mod scheduling;
+mod state_change;
 pub struct Endpoints<E> {
     pool: SqlitePool,
     crypter: Arc<E>,
@@ -573,7 +579,7 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
         Box::pin(async move {
-            let maybe_row = query(
+            let maybe_row = sqlx::query(
                 r#"
 SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
         detail_name, detail_value, 
@@ -595,12 +601,16 @@ AND result_id = ?"#,
     }
 }
 
-async fn scan_get_status(pool: &SqlitePool, id: i64) -> Result<models::Status, sqlx::error::Error> {
-    let scan_row = query(r#"
+pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments<'a>> {
+    sqlx::query(r#"
         SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
         FROM scans
         WHERE id = ?
-        "#).bind(id).fetch_one(pool).await?;
+        "#)
+        .bind(id)
+}
+
+pub(crate) fn row_to_models_status(scan_row: SqliteRow) -> models::Status {
     let excluded = scan_row.get("host_excluded");
     let dead = scan_row.get("host_dead");
     let alive = scan_row.get("host_alive");
@@ -623,7 +633,18 @@ async fn scan_get_status(pool: &SqlitePool, id: i64) -> Result<models::Status, s
         host_info: Some(host_info),
     };
 
-    Ok(status)
+    status
+}
+
+pub(crate) async fn scan_get_status<'a, E>(
+    pool: E,
+    id: i64,
+) -> Result<models::Status, sqlx::error::Error>
+where
+    E: sqlx::Executor<'a, Database = Sqlite>,
+{
+    let scan_row = status_query(id).fetch_one(pool).await?;
+    Ok(row_to_models_status(scan_row))
 }
 
 impl<E> GetScansIdStatus for Endpoints<E>
@@ -1011,6 +1032,21 @@ mod tests {
         Ok((config, pool))
     }
 
+    pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        let crypter = config_to_crypt(config);
+        for scan in scans {
+            scan_insert(&pool, &crypter, &client_id, scan)
+                .await
+                .unwrap();
+        }
+        query_scalar("SELECT id FROM scans")
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn post_scan() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
@@ -1141,6 +1177,7 @@ mod tests {
             let result = undertest.get_scans_id_status(result).await?;
             assert_eq!(result.status, Phase::Stored);
         }
+
         for scan in scans.iter() {
             let id = undertest
                 .contains_scan_id(&client_id, &scan.scan_id)
