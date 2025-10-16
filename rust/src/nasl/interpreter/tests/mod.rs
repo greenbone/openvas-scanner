@@ -160,6 +160,8 @@ mod operator {
 use crate::nasl::test_prelude::*;
 
 interpreter_test_ok!(block, "{ 3; 4; }", NaslValue::Null);
+
+#[cfg(feature = "naslv2")]
 interpreter_test_ok!(
     block_scope,
     "a = 1; b = 2; { local_var a; a = 3; b = 4; } a; b;",
@@ -167,6 +169,17 @@ interpreter_test_ok!(
     2,
     NaslValue::Null,
     1,
+    4,
+);
+
+#[cfg(not(feature = "naslv2"))]
+interpreter_test_ok!(
+    block_scope,
+    "a = 1; b = 2; { local_var a; a = 3; b = 4; } a; b;",
+    1,
+    2,
+    NaslValue::Null,
+    3,
     4,
 );
 

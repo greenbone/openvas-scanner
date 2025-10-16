@@ -290,6 +290,10 @@ struct Interpreter<'ctx> {
 impl<'ctx> Interpreter<'ctx> {
     /// Creates a new Interpreter
     fn new(register: Register, scan_ctx: &'ctx ScanCtx) -> Self {
+        #[cfg(not(feature = "naslv2"))]
+        let version = NaslVersion::V1;
+        #[cfg(feature = "naslv2")]
+        let version = NaslVersion::V2;
         Interpreter {
             register,
             stmt_index: 0,
@@ -298,7 +302,7 @@ impl<'ctx> Interpreter<'ctx> {
             fork_reentry_data: ForkReentryData::new(),
             fork_history: ForkHistory::default(),
             state: InterpreterState::Running,
-            version: NaslVersion::V1,
+            version: version,
         }
     }
 
