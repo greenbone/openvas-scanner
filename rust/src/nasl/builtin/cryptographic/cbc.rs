@@ -10,6 +10,7 @@ use aes::{
         block_padding::{NoPadding, ZeroPadding},
     },
 };
+use blowfish::Blowfish;
 use cbc::{Decryptor, Encryptor};
 
 use crate::nasl::prelude::*;
@@ -152,10 +153,40 @@ fn des_ede_cbc_encrypt(register: &Register) -> Result<NaslValue, FnError> {
     cbc::<des::TdesEde3>(register, Crypt::Encrypt)
 }
 
-pub struct AesCbc;
+/// NASL function to encrypt data with blowfish cbc.
+///
+/// Encrypt the plaintext data using the blowfish algorithm in CBC mode
+/// with the key key and the initialization vector iv.  The key must be
+/// 16 bytes long.  The iv must be at least 8 bytes long. Data must be a
+/// multiple of 8 bytes long.
+///
+/// The return value is an array a with a[0] being the encrypted data and
+/// a[1] the new initialization vector to use for the next part of the
+/// data.
+#[nasl_function]
+fn bf_cbc_encrypt(register: &Register) -> Result<NaslValue, FnError> {
+    cbc::<Blowfish>(register, Crypt::Encrypt)
+}
+
+/// NASL function to decrypt data with blowfish cbc.
+///
+/// Decrypt the cipher text data using the blowfish algorithm in CBC mode
+/// with the key key and the initialization vector iv.  The key must be
+/// 16 bytes long.  The iv must be at least 8 bytes long.  data must be a
+/// multiple of 8 bytes long.
+///
+/// The return value is an array a with a[0] being the plaintext data
+/// and a[1] the new initialization vector to use for the next part of
+/// the data.
+#[nasl_function]
+fn bf_cbc_decrypt(register: &Register) -> Result<NaslValue, FnError> {
+    cbc::<Blowfish>(register, Crypt::Decrypt)
+}
+
+pub struct Cbc;
 
 function_set! {
-    AesCbc,
+    Cbc,
     (
         aes128_cbc_encrypt,
         aes128_cbc_decrypt,
@@ -163,6 +194,8 @@ function_set! {
         aes192_cbc_decrypt,
         aes256_cbc_encrypt,
         aes256_cbc_decrypt,
+        bf_cbc_encrypt,
+        bf_cbc_decrypt,
         des_ede_cbc_encrypt,
     )
 }
