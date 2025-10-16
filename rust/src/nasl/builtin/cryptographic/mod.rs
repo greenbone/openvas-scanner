@@ -14,7 +14,6 @@ mod aes_cmac;
 mod aes_ctr;
 mod aes_gcm;
 mod aes_gmac;
-mod bf_cbc;
 mod cbc;
 mod des;
 mod dh;
@@ -135,7 +134,7 @@ impl IntoFunctionSet for Cryptographic {
         let mut set = StoredFunctionSet::new(self);
         set.add_set(aes_ccm::AesCcm);
         set.add_set(hmac::HmacFns);
-        set.add_set(cbc::AesCbc);
+        set.add_set(cbc::Cbc);
         set.add_set(aes_ctr::AesCtr);
         set.add_set(aes_gcm::AesGcmFns);
         set.add_set(aes_cmac::AesCmac);
@@ -143,7 +142,6 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(hash::Hash);
         set.add_set(des::Des);
         set.add_set(rsa::Rsa);
-        set.add_set(bf_cbc::BfCbc);
         set.add_set(pem_to::PemTo);
         set.add_set(smb::Smb);
         set.add_set(misc::Misc);
