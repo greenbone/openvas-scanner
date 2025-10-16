@@ -153,6 +153,14 @@ impl SqliteConfiguration {
             pool::PoolOptions,
             sqlite::{SqliteConnectOptions, SqliteJournalMode},
         };
+        if let DBLocation::File(path) = &self.location
+            && !path.exists()
+        {
+            // we panic when we cannot create the dir
+            std::fs::create_dir_all(path)
+                .ok()
+                .or_else(|| panic!("Failed to create dir at {path:?}"));
+        }
 
         let options = SqliteConnectOptions::from_str(&self.location.sqlite_address(name))?
             .journal_mode(SqliteJournalMode::Wal)

@@ -1,13 +1,10 @@
-use std::{
-    pin::Pin,
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use futures::StreamExt;
 use greenbone_scanner_framework::models::{self, Scan};
 use scannerlib::{
-    models::FeedState,
+    models::{FeedState, FeedType},
     openvas::{self, cmd},
     osp,
     scanner::{
@@ -17,16 +14,99 @@ use scannerlib::{
     storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisWrapper},
 };
 use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
-use tokio::{sync::mpsc::Sender, time::MissedTickBehavior};
+use tokio::{
+    select,
+    sync::mpsc::{self, Sender},
+    time::MissedTickBehavior,
+};
 
-use crate::{config::Config, crypt::Crypt};
-mod nasl;
+use crate::{
+    config::Config,
+    crypt::Crypt,
+    vts::orchestrator::{self, FeedStatusChange},
+};
+
+#[derive(Default, Debug)]
+struct IsInProgress {
+    need_approval_nasl: bool,
+    need_approval_advisories: bool,
+    approved_nasl: bool,
+    approved_advisories: bool,
+}
+
+impl IsInProgress {
+    fn set_based_on_message(&mut self, msg: &orchestrator::FeedStatusChange) {
+        match msg {
+            FeedStatusChange::Need(FeedType::Advisories) => {
+                self.need_approval_advisories = true;
+            }
+            FeedStatusChange::Need(FeedType::NASL) => {
+                self.need_approval_nasl = true;
+            }
+            FeedStatusChange::Synced(FeedType::Advisories) => {
+                self.need_approval_advisories = false;
+                self.approved_advisories = false;
+            }
+            FeedStatusChange::Synced(FeedType::NASL) => {
+                self.need_approval_nasl = false;
+                self.approved_nasl = false;
+            }
+            _ => {
+                // ignore products
+            }
+        }
+    }
+
+    fn approve(&mut self) -> Vec<FeedType> {
+        let mut result = Vec::with_capacity(2);
+        if self.need_approve(&FeedType::NASL) {
+            self.approved_nasl = true;
+            result.push(FeedType::NASL);
+        }
+        if self.need_approve(&FeedType::Advisories) {
+            self.approved_advisories = true;
+            result.push(FeedType::Advisories);
+        };
+        result
+    }
+
+    fn scans_allowed(&self) -> bool {
+        !self.need_approval_nasl
+            && !self.approved_nasl
+            && !self.need_approval_advisories
+            && !self.approved_advisories
+    }
+
+    fn is_feed_sync_in_progress(&self) -> bool {
+        !self.scans_allowed()
+    }
+
+    fn need_approve(&self, ft: &FeedType) -> bool {
+        match ft {
+            FeedType::Products => false,
+            FeedType::Advisories => self.need_approval_advisories && !self.approved_advisories,
+            FeedType::NASL => self.need_approval_nasl && !self.approved_nasl,
+        }
+    }
+
+    fn contains_need(&self) -> bool {
+        (self.need_approval_nasl && !self.approved_nasl)
+            || (self.need_approval_advisories && !self.approved_advisories)
+    }
+}
 
 struct ScanScheduler<Scanner, Cryptor> {
     pool: SqlitePool,
     cryptor: Arc<Cryptor>,
     scanner: Arc<Scanner>,
     max_concurrent_scan: usize,
+    // we store the need and allow requests in the case of a feed sync
+    //
+    // On need we know that we actually need to send the allows because we waited for the scans to
+    // finish. One allow we just wait for synced.
+    // We use the fact that we don't handle products as a differentiation between need and allow
+    // otherwise we would need to store two separate lists.
+    feed_sync_in_progress: Arc<RwLock<IsInProgress>>,
     // Exists to prevent a bug in which scans were accidentally started twice due to deferred writes in sqlite.
     // To address this bug, this field keeps track of all requested scans manually, instead of relying on
     // sqlite for this information.
@@ -63,7 +143,6 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    //TODO: too wet
     async fn scan_stored_to_requested(&self, id: i64) -> R<()> {
         let row = query("UPDATE scans SET status = 'requested' WHERE id = ? AND status = 'stored'")
             .bind(id)
@@ -203,13 +282,15 @@ where
     }
 
     async fn is_already_started(&self, id: i64) -> bool {
-        let guard = self.requested_guard.clone();
-        tokio::task::spawn_blocking(move || {
-            let cached = guard.read().unwrap();
-            cached.contains(&id)
-        })
-        .await
-        .unwrap()
+        let cached = self.requested_guard.read().await;
+        cached.contains(&id)
+    }
+
+    async fn is_feed_sync_in_progress(&self) -> bool {
+        self.feed_sync_in_progress
+            .read()
+            .await
+            .is_feed_sync_in_progress()
     }
 
     async fn set_to_running(&self, id: i64) -> R<()> {
@@ -228,22 +309,25 @@ where
 
         tracing::info!(id, running = row.rows_affected(), "Started scan");
 
-        let guard = self.requested_guard.clone();
-        tokio::task::spawn_blocking(move || {
-            let mut x = guard.write().unwrap();
-            x.push(id);
-        })
-        .await
-        .unwrap();
+        self.requested_guard.write().await.push(id);
 
         scan_start(self.pool.clone(), self.scanner.clone(), id, scan).await;
         Ok(())
     }
+
     /// Checks for scans that are requested and may start them
     ///
     /// After verifying concurrently running scans it starts a scan when the scan was started
     /// successfully than it sets it to 'running', if the start fails then it sets it to failed.
+    ///
+    /// In the case that the ScanStarter implementation blocks start_scan is spawned as a
+    /// background task.
     async fn requested_to_running(&self) -> R<()> {
+        if self.is_feed_sync_in_progress().await {
+            tracing::debug!("Skipping to set new scans to running because of feed sync.");
+            return Ok(());
+        }
+
         let ids = self.fetch_requested().await?;
 
         for id in ids {
@@ -260,13 +344,10 @@ where
     }
 
     async fn remove_id_from_guard(&self, id: i64) {
-        let cache = self.requested_guard.clone();
-        tokio::task::spawn_blocking(move || {
-            let mut cache = cache.write().unwrap();
-            if let Some(index) = cache.iter().position(|x| x == &id) {
-                cache.swap_remove(index);
-            }
-        });
+        let mut cache = self.requested_guard.write().await;
+        if let Some(index) = cache.iter().position(|x| x == &id) {
+            cache.swap_remove(index);
+        }
     }
 
     async fn scan_import_results(&self, internal_id: i64, scan_id: String) -> R<()> {
@@ -295,6 +376,7 @@ where
 
         self.scan_update_status(internal_id, &status).await?;
         if status.is_done() {
+            tracing::info!(internal_id, scan_id, status=%status.status, "Scan is finished.");
             self.scanner_delete_scan(internal_id, scan_id).await?;
         }
         Ok(())
@@ -352,6 +434,7 @@ where
     }
 
     async fn scanner_delete_scan(&self, internal_id: i64, scan_id: String) -> R<()> {
+        tracing::debug!(internal_id, scan_id, "deleting scan from scanner");
         self.remove_id_from_guard(internal_id).await;
         self.scanner.delete_scan(scan_id).await?;
         Ok(())
@@ -370,7 +453,7 @@ where
         Ok(())
     }
 
-    async fn on_message(&self, message: Message) -> R<()> {
+    async fn on_user_action(&self, message: &Message) -> R<()> {
         match message {
             Message::Start(id) => self.scan_stored_to_requested(id.parse()?).await?,
             Message::Stop(id) => self.scan_stop(id.parse()?).await?,
@@ -378,18 +461,80 @@ where
         Ok(())
     }
 
-    async fn on_schedule(&self) -> R<()> {
+    async fn on_feed_action(
+        &self,
+        message: &orchestrator::FeedStatusChange,
+    ) -> R<Option<Vec<orchestrator::Allow>>> {
+        let msg = message.clone();
+        self.feed_sync_in_progress
+            .write()
+            .await
+            .set_based_on_message(&msg);
+        let result = match message {
+            FeedStatusChange::Need(_) => {
+                let count_running: i64 = self.get_running_count().await;
+                if count_running == 0 {
+                    Some(self.feed_sync_in_progress.write().await.approve())
+                } else {
+                    None
+                }
+            }
+            FeedStatusChange::Synced(ft) => {
+                let scans_allowed = self.feed_sync_in_progress.read().await.scans_allowed();
+                tracing::info!(allowing_new_scans=scans_allowed, feed=?ft, "Synchronized");
+                None
+            }
+        };
+
+        Ok(result)
+    }
+
+    async fn get_running_count(&self) -> i64 {
+        match query_scalar("SELECT count(id) FROM scans WHERE status = 'running'")
+            .fetch_one(&self.pool)
+            .await
+        {
+            Ok(x) => x,
+            Err(error) => {
+                tracing::warn!(
+                    %error,
+                    "Unable to count running scans, still preventing start of new scans"
+                );
+                1
+            }
+        }
+    }
+
+    async fn contains_need(&self) -> bool {
+        self.feed_sync_in_progress.read().await.contains_need()
+    }
+
+    async fn need_to_allow(&self) -> Vec<orchestrator::Allow> {
+        self.feed_sync_in_progress.write().await.approve()
+    }
+
+    async fn on_schedule(&self) -> R<Vec<orchestrator::Allow>> {
+        if self.contains_need().await {
+            let count_running: i64 =
+                query_scalar("SELECT count(id) FROM scans WHERE status = 'running'")
+                    .fetch_one(&self.pool)
+                    .await?;
+            if count_running == 0 {
+                return Ok(self.need_to_allow().await);
+            }
+        }
         self.requested_to_running().await?;
         self.import_results().await?;
 
-        Ok(())
+        Ok(vec![])
     }
 }
 
 async fn run_scheduler<S, E>(
     check_interval: std::time::Duration,
     scheduler: ScanScheduler<S, E>,
-) -> R<Sender<Message>>
+    feed: orchestrator::Communicator,
+) -> R<mpsc::Sender<Message>>
 where
     S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
@@ -404,20 +549,44 @@ where
     // resulting in immediately calling scheduler.on_schedule. What we would rather do on a missed
     // tick is waiting for that interval until we check again.
     interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
-    let (sender, mut recv) = tokio::sync::mpsc::channel(10);
+    let (sender, mut recv) = mpsc::channel(10);
     tokio::spawn(async move {
+        let send_allow = async |msgs: Vec<orchestrator::Allow>| {
+            for msg in msgs {
+                tracing::info!(feed_type=?msg, "Sending feed sync allow.");
+                if let Err(error) = feed.approve(msg).await {
+                    tracing::warn!(%error, "Unable to send allow message to orchestrator");
+                }
+            }
+        };
         loop {
             tokio::select! {
+                Some(msg) = feed.receive_state_changes() => {
+                    match scheduler.on_feed_action(&msg).await {
+                       Ok(Some(msg)) => {
+                            send_allow(msg).await;
+                        }
+                        Ok(None) => {},
+                        Err(error) =>  tracing::warn!(?msg, %error, "Unable to react on feed message"),
+
+                    }
+
+
+                }
                 Some(msg) = recv.recv() => {
-                    if let Err(error) = scheduler.on_message(msg).await {
-                        tracing::warn!(%error, "Unable to react on message");
+                    if let Err(error) = scheduler.on_user_action(&msg).await {
+                        tracing::warn!(?msg, %error, "Unable to react on message");
                     }
 
                 }
 
                 _ = interval.tick() => {
-                    if let Err(error) = scheduler.on_schedule().await {
-                        tracing::warn!(%error, "Unable to schedule");
+                    match scheduler.on_schedule().await {
+                        Err(error) => tracing::warn!(%error, "Unable to schedule"),
+                        Ok(msgs) => {
+                                send_allow(msgs).await;
+                        }
+
                     }
                 }
 
@@ -438,6 +607,7 @@ pub(super) async fn init_with_scanner<E, S>(
     crypter: Arc<E>,
     config: &Config,
     scanner: S,
+    feed: orchestrator::Communicator,
 ) -> R<Sender<Message>>
 where
     S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
@@ -448,10 +618,11 @@ where
         cryptor: crypter,
         max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
         scanner: Arc::new(scanner),
-        requested_guard: Arc::new(RwLock::new(vec![])),
+        feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
+        requested_guard: Default::default(),
     };
 
-    run_scheduler(config.scheduler.check_interval, scheduler).await
+    run_scheduler(config.scheduler.check_interval, scheduler, feed).await
 }
 
 async fn init_redis_storage(redis_url: &str) -> R<(RedisCtx, RedisCtx)> {
@@ -461,7 +632,7 @@ async fn init_redis_storage(redis_url: &str) -> R<(RedisCtx, RedisCtx)> {
     Ok((nvt, notus))
 }
 
-async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str, feed_version: String) -> () {
+async fn synchronize_redis_feed(pool: &SqlitePool, redis_url: &str, feed_version: String) -> () {
     tracing::debug!("synchronizing redis with vt feed");
     let (vtc, nc) = match init_redis_storage(redis_url).await {
         Ok(x) => x,
@@ -473,7 +644,7 @@ async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str, feed_version:
     tracing::info!("synchronized redis with vt feed");
     let nc = Arc::new(RwLock::new(nc));
     let vtc = Arc::new(RwLock::new(vtc));
-    let rows = query("SELECT feed_type, json_blob FROM plugins").fetch(&pool);
+    let rows = query("SELECT feed_type, json_blob FROM plugins").fetch(pool);
 
     const CONCURRENCY_LIMIT: usize = 1024;
     rows.for_each_concurrent(CONCURRENCY_LIMIT, |x| {
@@ -482,38 +653,38 @@ async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str, feed_version:
         async move {
             match x {
                 Ok(row) => {
-                    tokio::task::spawn_blocking(move || {
-                        match row.get("feed_type") {
-                            "advisories" => {
-                                tracing::trace!(feed_type = "advisories", "Mirroring");
-                                let mut nc = nc.write().unwrap();
-                                match serde_json::from_slice(row.get("json_blob")) {
-                                    Ok(x) => {
-                                        if let Err(error) = nc.redis_add_advisory(Some(x)) {
-                                            tracing::warn!(%error,  "unable to mirror advisory")
-                                        }
+                    match row.get("feed_type") {
+                        "advisories" => {
+                            tracing::trace!(feed_type = "advisories", "Mirroring");
+                            let mut nc = nc.write().await;
+                            //TODO blocking
+                            match serde_json::from_slice(row.get("json_blob")) {
+                                Ok(x) => {
+                                    if let Err(error) = nc.redis_add_advisory(Some(x)) {
+                                        tracing::warn!(%error,  "unable to mirror advisory")
                                     }
-                                    Err(error) => {
-                                        tracing::warn!(%error, "Unable to parse advisory")
+                                }
+                                Err(error) => {
+                                    tracing::warn!(%error, "Unable to parse advisory")
+                                }
+                            };
+                        }
+                        feed_type => {
+                            tracing::trace!(feed_type, "Mirroring");
+                            let mut vtc = vtc.write().await;
+                            //TODO blocking, wet
+                            match serde_json::from_slice(row.get("json_blob")) {
+                                Ok(x) => {
+                                    if let Err(error) = vtc.redis_add_nvt(x) {
+                                        tracing::warn!(%error,  "unable to mirror NASL plugin")
                                     }
-                                };
-                            }
-                            feed_type => {
-                                tracing::trace!(feed_type, "Mirroring");
-                                let mut vtc = vtc.write().unwrap();
-                                match serde_json::from_slice(row.get("json_blob")) {
-                                    Ok(x) => {
-                                        if let Err(error) = vtc.redis_add_nvt(x) {
-                                            tracing::warn!(%error,  "unable to mirror NASL plugin")
-                                        }
-                                    }
-                                    Err(error) => {
-                                        tracing::warn!(%error, "Unable to parse NASL plugin")
-                                    }
-                                };
-                            }
-                        };
-                    });
+                                }
+                                Err(error) => {
+                                    tracing::warn!(%error, "Unable to parse NASL plugin")
+                                }
+                            };
+                        }
+                    };
                 }
                 Err(error) => {
                     tracing::warn!(%error, "Unable to fetch plugins");
@@ -523,37 +694,58 @@ async fn synchronize_redis_feed(pool: SqlitePool, redis_url: &str, feed_version:
     })
     .await;
 
-    let nc = nc.clone();
-    tokio::task::spawn_blocking(move || {
-        let mut nv = nc.write().unwrap();
-        if let Err(error) = nv.redis_add_advisory(None) {
-            tracing::warn!(%error, "Unable set notus feed to be available");
-        }
-    });
+    let mut nv = nc.write().await;
+    if let Err(error) = nv.redis_add_advisory(None) {
+        tracing::warn!(%error, "Unable set notus feed to be available");
+    }
 
-    let vtc = vtc.clone();
-
-    tokio::task::spawn_blocking(move || {
-        // TODO: block scans until nvticache is available otherwise we cannot start scans anyway
-        let mut vtc = vtc.write().unwrap();
-        if let Err(error) = vtc
-            .del("nvticache")
-            .and_then(move |_| vtc.rpush("nvticache", &[&feed_version]))
-        {
-            tracing::warn!(%error, "Unable set nvticache for openvas. Scans might be unavailable");
-        }
-    });
+    let mut vtc = vtc.write().await;
+    if let Err(error) = vtc
+        .del("nvticache")
+        .and_then(move |_| vtc.rpush("nvticache", &[&feed_version]))
+    {
+        tracing::warn!(%error, "Unable set nvticache for openvas. Scans might be unavailable");
+    }
 }
 
-pub async fn init<E, FS>(
+pub async fn on_orchestrator_msg(
+    pool: &SqlitePool,
+    feed_snapshot: Arc<std::sync::RwLock<FeedState>>,
+    redis_url: &str,
+    tx: &mpsc::Sender<orchestrator::FeedStatusChange>,
+    msg: orchestrator::FeedStatusChange,
+) {
+    match msg {
+        FeedStatusChange::Synced(FeedType::NASL) => {
+            let fv = feed_snapshot
+                .read()
+                .unwrap()
+                .nasl()
+                .map(|x| x.to_string())
+                .unwrap_or_default();
+            synchronize_redis_feed(pool, redis_url, fv).await;
+            tracing::info!(?msg, "Redis sync finished sending to scheduler.");
+            tx.send(msg).await.unwrap();
+        }
+        FeedStatusChange::Need(_) => {
+            tx.send(msg).await.unwrap();
+        }
+        _ => {
+            tracing::info!(?msg, "Sending to scheduler.");
+            tx.send(msg).await.unwrap();
+        }
+    }
+}
+
+pub async fn init<E>(
     pool: SqlitePool,
     crypter: Arc<E>,
-    feed_state: FS,
     config: &Config,
+    feed_status: orchestrator::Communicator,
+    feed_snapshot: Arc<std::sync::RwLock<FeedState>>,
 ) -> R<Sender<Message>>
 where
     E: Crypt + Send + Sync + 'static,
-    FS: Fn() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> + Send + 'static,
 {
     match config.scanner.scanner_type {
         crate::config::ScannerType::Ospd => {
@@ -570,7 +762,7 @@ where
                 config.scanner.ospd.socket.clone(),
                 config.scanner.ospd.read_timeout,
             );
-            init_with_scanner(pool, crypter, config, scanner).await
+            init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
         crate::config::ScannerType::Openvas => {
             let redis_url = cmd::get_redis_socket();
@@ -582,36 +774,37 @@ where
                 redis_url.clone(),
                 preferences::preference::PREFERENCES.to_vec(),
             );
-            let initial_check_interval = config.scheduler.check_interval;
-            let slow_check_interval = config.feed.check_interval + Duration::from_secs(60);
 
             let fpool = pool.clone();
+            // TODO: maybe we are in the state that it is actually easier to write a redis worker?
+
+            let (sender, mut receiver, black_mirror) = orchestrator::Communicator::init();
+
+            //TODO: create a redis worker that can read from redis as well, instead of duplicating
+            //the whole feed into redis.
             tokio::task::spawn(async move {
-                let mut previous_feed_state = FeedState::Unknown;
                 loop {
-                    let new_feed_state = feed_state().await;
-                    if new_feed_state != previous_feed_state
-                        && let FeedState::Synced(feed_version, _) = &new_feed_state
-                    {
-                        tracing::info!(from=?previous_feed_state, to=?new_feed_state, "feed changed");
-                        let feed_version = feed_version.clone();
-                        previous_feed_state = new_feed_state;
-                        synchronize_redis_feed(fpool.clone(), &redis_url, feed_version).await;
-                    }
-                    // check often in an initial state
-                    if !matches!(previous_feed_state, FeedState::Synced(_, _)) {
-                        tokio::time::sleep(initial_check_interval).await
-                    } else {
-                        tokio::time::sleep(slow_check_interval).await
+                    select! {
+                        Some(msg) = feed_status.receive_state_changes() => {
+                            on_orchestrator_msg(&fpool, feed_snapshot.clone(), &redis_url, &sender, msg).await;
+                        }
+                        Some(msg) = receiver.recv() => {
+                            if let Err(error) = feed_status.approve(msg).await {
+                               tracing::warn!(%error, "Unable to inform orchestrator about allow. VTs are stuck");
+                            }
+
+
+                        }
+
                     }
                 }
             });
 
-            init_with_scanner(pool, crypter, config, scanner).await
+            init_with_scanner(pool, crypter, config, scanner, black_mirror).await
         }
         crate::config::ScannerType::Openvasd => {
             let scanner: Lambda = Lambda::default();
-            init_with_scanner(pool, crypter, config, scanner).await
+            init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
     }
 }
@@ -653,6 +846,13 @@ pub(crate) mod tests {
     async fn setup_test_env_with_scanner(
         builder: LambdaBuilder,
     ) -> R<(ScanScheduler<scanner::Lambda, ChaCha20Crypt>, Vec<i64>)> {
+        setup_test_env_with_scanner_and_feed_messages(builder, Default::default()).await
+    }
+
+    async fn setup_test_env_with_scanner_and_feed_messages(
+        builder: LambdaBuilder,
+        feed_changes: IsInProgress,
+    ) -> R<(ScanScheduler<scanner::Lambda, ChaCha20Crypt>, Vec<i64>)> {
         let (config, pool) = create_pool().await?;
         let scanner = Arc::new(builder.build());
         let cryptor = Arc::new(scans::config_to_crypt(&config));
@@ -662,7 +862,8 @@ pub(crate) mod tests {
             scanner,
             cryptor,
             max_concurrent_scan: 4,
-            requested_guard: Arc::new(RwLock::new(vec![])),
+            feed_sync_in_progress: Arc::new(RwLock::new(feed_changes)),
+            requested_guard: Default::default(),
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
         Ok((under_test, known_scans))
@@ -674,7 +875,7 @@ pub(crate) mod tests {
 
         for id in known_scans.iter() {
             under_test
-                .on_message(Message::Start(id.to_string()))
+                .on_user_action(&Message::Start(id.to_string()))
                 .await?;
         }
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
@@ -694,7 +895,7 @@ pub(crate) mod tests {
         let (under_test, known_scans) = setup_test_env().await?;
         for id in known_scans.iter() {
             under_test
-                .on_message(Message::Start(id.to_string()))
+                .on_user_action(&Message::Start(id.to_string()))
                 .await?;
         }
         under_test.on_schedule().await?;
@@ -771,7 +972,7 @@ pub(crate) mod tests {
         let (under_test, known_scans) = setup_test_env_with_scanner(scanner_succeeded()).await?;
         for id in known_scans.iter() {
             under_test
-                .on_message(Message::Start(id.to_string()))
+                .on_user_action(&Message::Start(id.to_string()))
                 .await?;
         }
         under_test.on_schedule().await?;
@@ -810,7 +1011,7 @@ pub(crate) mod tests {
         .await?;
         for id in known_scans.iter() {
             under_test
-                .on_message(Message::Start(id.to_string()))
+                .on_user_action(&Message::Start(id.to_string()))
                 .await?;
         }
         under_test.on_schedule().await?;
@@ -837,13 +1038,39 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn dont_run_scans() -> TR {
+    async fn do_not_start_when_scanner_cannot_start_scan() -> TR {
         let (under_test, known_scans) =
             setup_test_env_with_scanner(LambdaBuilder::new().with_can_start(|| false)).await?;
 
         for id in known_scans.iter() {
             under_test
-                .on_message(Message::Start(id.to_string()))
+                .on_user_action(&Message::Start(id.to_string()))
+                .await?;
+        }
+        let status: Vec<String> = query_scalar("SELECT status FROM scans")
+            .fetch_all(&under_test.pool)
+            .await?;
+        assert_eq!(status.len(), known_scans.len());
+        assert_eq!(
+            status.iter().filter(|s| s as &str == "requested").count(),
+            status.len()
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn do_not_start_on_feed_sync() -> TR {
+        let iip = IsInProgress {
+            need_approval_nasl: true,
+            ..Default::default()
+        };
+        let (under_test, known_scans) =
+            setup_test_env_with_scanner_and_feed_messages(LambdaBuilder::new(), iip).await?;
+
+        for id in known_scans.iter() {
+            under_test
+                .on_user_action(&Message::Start(id.to_string()))
                 .await?;
         }
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
