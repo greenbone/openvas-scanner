@@ -2,7 +2,7 @@
 
 ## NAME
 
-**krb5_gss_init** - initialize the krb5 GSS-API library
+**krb5_gss_init** - initialize the krb5 GSS-API library.
 
 ## SYNOPSIS
 
@@ -20,7 +20,6 @@ When there is an already initialized context it will be destroyed and a new one 
 
 Returns 0 on success otherwise it is an failure.
 
-
 ## EXAMPLES
 
 ```c#
@@ -29,5 +28,3 @@ if (krb5_is_failure(result)) {
 	exit(42);
 }
 ```
-
-

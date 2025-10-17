@@ -2,7 +2,7 @@
 
 ## NAME
 
-**ssh_connect** - connect ot the target via TCP and setup an SSH connection
+**ssh_connect** - connect to the target via TCP and setup an SSH connection
 
 ## SYNOPSIS
 

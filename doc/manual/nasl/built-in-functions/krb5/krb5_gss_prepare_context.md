@@ -23,11 +23,9 @@ When krb5_gss_prepare_context is called it creates the initial ticket request fo
 
 It can be used directly without calling krb5_gss_init first.
 
-
 ## RETURN VALUE
 
 Returns 0 on success otherwise it is an failure.
-
 
 ## EXAMPLES
 
@@ -43,4 +41,3 @@ if (krb5_is_failure(result)) {
 	exit(42);
 }
 ```
-

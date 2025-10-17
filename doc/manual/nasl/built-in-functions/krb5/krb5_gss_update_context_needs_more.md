@@ -16,7 +16,6 @@ This method is used to verify if the previous `krb5_gss_update_context` requires
 
 ## RETURN VALUE
 
-
 Returns 1 if the previous `krb5_gss_update_context` requires further information/calls, 0 otherwise.
 
 ## EXAMPLES
@@ -40,4 +39,3 @@ if (krb5_gss_update_context_needs_more()) {
 	exit(0);	
 }
 ```
-
