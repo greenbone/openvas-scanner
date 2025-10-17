@@ -6,7 +6,7 @@ FROM rust AS rust
 COPY . /source
 RUN mkdir -p /install/usr/local/bin
 WORKDIR /source/rust
-RUN apt update && apt install -y ca-certificates
+RUN apt update && apt install -y ca-certificates libsnmp-dev
 RUN cargo build --release
 RUN cp target/release/openvasd /install/usr/local/bin
 RUN cp target/release/scannerctl /install/usr/local/bin
