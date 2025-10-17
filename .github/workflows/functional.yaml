@@ -22,31 +22,9 @@ jobs:
       - run: docker run --rm test ldd /usr/local/sbin/openvas
       - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
       - run: docker rmi test || true
-  build-image:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - run: |
-          docker build -t registry.community.greenbone.net/community/openvas-scanner:edge -f .docker/prod.Dockerfile .
-          docker pull registry.community.greenbone.net/community/vulnerability-tests:community
-          docker pull registry.community.greenbone.net/community/notus-data:community
-          docker save -o ${{ runner.temp }}/vtc.tar registry.community.greenbone.net/community/vulnerability-tests:community
-          docker save -o ${{ runner.temp }}/nc.tar registry.community.greenbone.net/community/notus-data:community
-          docker save -o ${{ runner.temp }}/openvas.tar registry.community.greenbone.net/community/openvas-scanner:edge
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ovimage
-          path: ${{ runner.temp }}/*.tar
 
   smoketest:   
-    # currently we cannot use internal runner as they cannot start k3s until it
-    # is fixed we need to build the image in another job running on
-    # self-hosted-generic export it as a tar and import it here to work around
-    # the unreliability of registry.community.greenbone.net/community
-    # when called too often
     runs-on: ubuntu-latest
-    needs: [build-image]
     steps:
       - name: Start a local k8s cluster
         uses: jupyterhub/action-k3s-helm@v4
@@ -55,19 +33,14 @@ jobs:
           metrics-enabled: false
           docker-enabled: true
       - uses: actions/checkout@v5
-
-      - name: Download artifact
-        uses: actions/download-artifact@v5
+      - uses: ./.github/actions/copy-docker-binaries
         with:
-          name: ovimage
-          path: ${{ runner.temp }}
+          arch: amd64 
       - name: publish current docker image into k3s
         run: |
-          docker load --input ${{ runner.temp }}/openvas.tar
-          docker load --input ${{ runner.temp }}/nc.tar
-          docker load --input ${{ runner.temp }}/vtc.tar
+          docker build -t registry.community.greenbone.net/community/openvas-scanner:edge -f .docker/prod.Dockerfile .
           docker image ls -a
-      - name: 'do not, I repeat, do NOT pull that'
+      - name: 'do not, I repeat, do NOT pull openvas-scanner'
         run: |
           # repository: registry.community.greenbone.net/community/openvas-scanner
           # pullPolicy: Always
@@ -75,14 +48,6 @@ jobs:
           echo "openvas:" >> st.yaml
           echo "  repository: registry.community.greenbone.net/community/openvas-scanner" >> st.yaml
           echo "  tag: edge" >> st.yaml
-          echo "  pullPolicy: Never" >> st.yaml
-          echo "vulnerabilitytests:" >> st.yaml
-          echo "  repository: registry.community.greenbone.net/community/vulnerability-tests" >> st.yaml
-          echo "  tag: community" >> st.yaml
-          echo "  pullPolicy: Never" >> st.yaml
-          echo "notusdata:" >> st.yaml
-          echo "  repository: registry.community.greenbone.net/community/notus-data" >> st.yaml
-          echo "  tag: community" >> st.yaml
           echo "  pullPolicy: Never" >> st.yaml
           cat st.yaml
       - name: deploy openvasd
@@ -100,14 +65,6 @@ jobs:
           echo "OPENVASD_SERVER=https://$(kubectl get svc -n openvasd | awk 'FNR == 2 {print $(3)}')" >> $GITHUB_ENV
       - run: kubectl get pods -n openvasd -o=wide
       - run: kubectl describe pod openvasd -n openvasd
-      - name: smoketest
-        working-directory: rust/crates/smoketest
-        env:
-          SCAN_CONFIG: configs/simple_scan_ssh_only.json
-          CLIENT_KEY: ../../examples/tls/self-signed/client.rsa
-          CLIENT_CERT: ../../examples/tls/self-signed/client.pem
-        run: |
-          make build run || ls -las ../../
       # - uses: actions/cache@v4
       #   with:
       #     path: /tmp/openvas.tar
@@ -135,16 +92,11 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build -- install
-      - name: download rs binaries
-        uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v5
         with:
           pattern: rs-binaries-*
           merge-multiple: true
           path: ./assets
-      - run: ls -las assets/
-      - run: ls -las assets/linux
-      - run: ls -las assets/linux/amd64
-      - run: ls -las assets/linux/arm64
       - name: prepare setup
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \

@@ -1,0 +1,22 @@
+name: "Setup Rust Environment"
+description: "Install necessary dependencies and set up Rust stable"
+inputs:
+  arch:
+    description: "amd64 or arm64"
+    required: true
+    type: string
+runs:
+  using: "composite"
+  steps:
+    - name: download rs binaries
+      uses: actions/download-artifact@v5
+      with:
+        pattern: rs-binaries-${{ inputs.arch }}
+        merge-multiple: true
+        path: ./assets
+    - run: mkdir -p .docker/install/usr/local
+      shell: bash
+    - run: mv assets/linux/${{ inputs.arch }} .docker/install/usr/local/bin
+      shell: bash
+    - run: ls -las .docker/install/usr/local/bin
+      shell: bash
