@@ -8,11 +8,9 @@
 
 *str* **krb5_gss_update_context_session_key**();
 
-
 ## DESCRIPTION
 
 Returns the session key found within the context when the last `krb5_gss_update_context` was called. If no session key was found, NULL is returned.
-
 
 ## RETURN VALUE
 
@@ -38,4 +36,3 @@ if (krb5_update_context_needs_more()) {
    session_key = krb5_gss_session_key();
 }
 ```
-
