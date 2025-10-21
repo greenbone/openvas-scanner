@@ -7,9 +7,12 @@ use sqlx::{
 };
 use tracing::debug;
 
-use crate::container_image_scanner::{
-    ExternalError,
-    image::{Credential, Image, ImageID, ImageParseError},
+use crate::{
+    SQLITE_LIMIT_VARIABLE_NUMBER,
+    container_image_scanner::{
+        ExternalError,
+        image::{Credential, Image, ImageID, ImageParseError},
+    },
 };
 
 impl From<SqliteRow> for ImageID {
@@ -222,26 +225,29 @@ pub async fn store_results(
             "#,
     );
 
-    builder.push_values(results, |mut b, result| {
-        let detail = result.detail.unwrap_or_default();
-        b.push_bind(id)
-            .push_bind(result.id as i64 + base_id)
-            .push_bind(result.r_type.to_string())
-            .push_bind(result.ip_address.unwrap_or_default())
-            .push_bind(result.hostname.unwrap_or_default())
-            .push_bind(result.oid.unwrap_or_default())
-            .push_bind(result.port.unwrap_or_default())
-            .push_bind(result.protocol.map(|x| x.to_string()).unwrap_or_default())
-            .push_bind(result.message.unwrap_or_default())
-            .push_bind(detail.name)
-            .push_bind(detail.value)
-            .push_bind(detail.source.s_type)
-            .push_bind(detail.source.name)
-            .push_bind(detail.source.description);
-    });
+    for results in results.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 14) {
+        builder.push_values(results, |mut b, result| {
+            let result = result.to_owned();
+            let detail = result.detail.unwrap_or_default();
+            b.push_bind(id)
+                .push_bind(result.id as i64 + base_id)
+                .push_bind(result.r_type.to_string())
+                .push_bind(result.ip_address.unwrap_or_default())
+                .push_bind(result.hostname.unwrap_or_default())
+                .push_bind(result.oid.unwrap_or_default())
+                .push_bind(result.port.unwrap_or_default())
+                .push_bind(result.protocol.map(|x| x.to_string()).unwrap_or_default())
+                .push_bind(result.message.unwrap_or_default())
+                .push_bind(detail.name)
+                .push_bind(detail.value)
+                .push_bind(detail.source.s_type)
+                .push_bind(detail.source.name)
+                .push_bind(detail.source.description);
+        });
 
-    let query = builder.build();
-    query.execute(&mut *tx).await?;
+        let query = builder.build();
+        query.execute(&mut *tx).await?;
+    }
 
     tx.commit().await?;
 

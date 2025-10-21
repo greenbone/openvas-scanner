@@ -3,6 +3,7 @@ use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
 use scannerlib::{
+    SQLITE_LIMIT_VARIABLE_NUMBER,
     models::{FeedState, ResultType},
     scanner,
 };
@@ -90,29 +91,33 @@ where
         .execute(&mut *tx)
         .await?;
     if !scan.vts.is_empty() {
-        let mut builder = QueryBuilder::new("INSERT OR REPLACE INTO vts (id, vt)");
-        builder.push_values(&scan.vts, |mut b, vt| {
-            b.push_bind(&mapped_id).push_bind(&vt.oid);
-        });
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
+        for vts in scan.vts.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 2) {
+            let mut builder = QueryBuilder::new("INSERT OR REPLACE INTO vts (id, vt)");
+            builder.push_values(vts, |mut b, vt| {
+                b.push_bind(&mapped_id).push_bind(&vt.oid);
+            });
+            let query = builder.build();
+            query.execute(&mut *tx).await?;
+        }
         let vt_params = scan
             .vts
             .iter()
             .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value)))
             .collect::<Vec<_>>();
         if !vt_params.is_empty() {
-            let mut builder =
-                QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
+            for vt_params in vt_params.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 3) {
+                let mut builder =
+                    QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
 
-            builder.push_values(vt_params, |mut b, (oid, param_id, param_value)| {
-                b.push_bind(&mapped_id)
-                    .push_bind(oid)
-                    .push_bind(param_id as i64)
-                    .push_bind(param_value);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
+                builder.push_values(vt_params, |mut b, (oid, param_id, param_value)| {
+                    b.push_bind(&mapped_id)
+                        .push_bind(oid)
+                        .push_bind(*param_id as i64)
+                        .push_bind(param_value);
+                });
+                let query = builder.build();
+                query.execute(&mut *tx).await?;
+            }
         }
     }
 
@@ -142,26 +147,30 @@ where
     }
 
     if !scan.target.ports.is_empty() {
-        let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
-        builder.push_values(
-            scan.target
-                .ports
-                .into_iter()
-                .flat_map(|port| port.range.into_iter().map(move |r| (port.protocol, r))),
-            |mut b, (protocol, range)| {
-                b.push_bind(&mapped_id)
-                    .push_bind(match protocol {
-                        None => "udp_tcp",
-                        Some(models::Protocol::TCP) => "tcp",
-                        Some(models::Protocol::UDP) => "udp",
-                    })
-                    .push_bind(range.start as i64)
-                    .push_bind(range.end.map(|x| x as i64));
-            },
-        );
-        let query = builder.build();
+        for ports in scan.target.ports.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 4) {
+            let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
+            builder.push_values(
+                ports.into_iter().flat_map(|port| {
+                    port.range
+                        .clone()
+                        .into_iter()
+                        .map(move |r| (port.protocol, r))
+                }),
+                |mut b, (protocol, range)| {
+                    b.push_bind(&mapped_id)
+                        .push_bind(match protocol {
+                            None => "udp_tcp",
+                            Some(models::Protocol::TCP) => "tcp",
+                            Some(models::Protocol::UDP) => "udp",
+                        })
+                        .push_bind(range.start as i64)
+                        .push_bind(range.end.map(|x| x as i64));
+                },
+            );
+            let query = builder.build();
 
-        query.execute(&mut *tx).await?;
+            query.execute(&mut *tx).await?;
+        }
     }
     let mut scan_preferences = scan.scan_preferences;
     if scan.target.reverse_lookup_unify.unwrap_or_default() {
