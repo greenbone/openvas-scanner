@@ -7,10 +7,7 @@ use scannerlib::{
     scanner,
 };
 use sqlx::{
-    Acquire, QueryBuilder, Row, Sqlite, SqlitePool, query,
-    query::Query,
-    query_scalar,
-    sqlite::{SqliteArguments, SqliteRow},
+    Acquire, QueryBuilder, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow,
 };
 use tokio::sync::mpsc::Sender;
 
@@ -601,41 +598,6 @@ AND result_id = ?"#,
     }
 }
 
-pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments<'a>> {
-    sqlx::query(r#"
-        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
-        FROM scans
-        WHERE id = ?
-        "#)
-        .bind(id)
-}
-
-pub(crate) fn row_to_models_status(scan_row: SqliteRow) -> models::Status {
-    let excluded = scan_row.get("host_excluded");
-    let dead = scan_row.get("host_dead");
-    let alive = scan_row.get("host_alive");
-    let finished = excluded + dead + alive;
-    let host_info = models::HostInfo {
-        all: scan_row.get("host_all"),
-        excluded,
-        dead,
-        alive,
-        queued: scan_row.get("host_queued"),
-        finished,
-        scanning: None,
-        remaining_vts_per_host: Default::default(),
-    };
-    let status = models::Status {
-        start_time: scan_row.get("start_time"),
-        end_time: scan_row.get("end_time"),
-        // should never fail as we just allow parseable values to be stored in the DB
-        status: scan_row.get::<String, _>("status").parse().unwrap(),
-        host_info: Some(host_info),
-    };
-
-    status
-}
-
 pub(crate) async fn scan_get_status<'a, E>(
     pool: E,
     id: i64,
@@ -643,8 +605,8 @@ pub(crate) async fn scan_get_status<'a, E>(
 where
     E: sqlx::Executor<'a, Database = Sqlite>,
 {
-    let scan_row = status_query(id).fetch_one(pool).await?;
-    Ok(row_to_models_status(scan_row))
+    let scan_row = state_change::status_query(id).fetch_one(pool).await?;
+    Ok(state_change::row_to_models_status(scan_row))
 }
 
 impl<E> GetScansIdStatus for Endpoints<E>

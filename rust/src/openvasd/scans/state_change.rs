@@ -1,10 +1,11 @@
-use std::{sync::Arc, time::Duration};
+use sqlx::Row;
+use std::sync::Arc;
 
 use scannerlib::models;
 use sqlx::{
     FromRow, IntoArguments, Sqlite, SqliteConnection, SqlitePool,
     query::{Query, QueryScalar},
-    sqlite::{SqliteQueryResult, SqliteRow},
+    sqlite::{SqliteArguments, SqliteQueryResult, SqliteRow},
 };
 use tokio::sync::Mutex;
 
@@ -47,6 +48,39 @@ macro_rules! retry_sql_connection_call {
 
         }
     }};
+}
+
+pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments<'a>> {
+    sqlx::query(r#"
+        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
+        FROM scans
+        WHERE id = ?
+        "#)
+        .bind(id)
+}
+
+pub(crate) fn row_to_models_status(scan_row: SqliteRow) -> models::Status {
+    let excluded = scan_row.get("host_excluded");
+    let dead = scan_row.get("host_dead");
+    let alive = scan_row.get("host_alive");
+    let finished = excluded + dead + alive;
+    let host_info = models::HostInfo {
+        all: scan_row.get("host_all"),
+        excluded,
+        dead,
+        alive,
+        queued: scan_row.get("host_queued"),
+        finished,
+        scanning: None,
+        remaining_vts_per_host: Default::default(),
+    };
+    models::Status {
+        start_time: scan_row.get("start_time"),
+        end_time: scan_row.get("end_time"),
+        // should never fail as we just allow parseable values to be stored in the DB
+        status: scan_row.get::<String, _>("status").parse().unwrap(),
+        host_info: Some(host_info),
+    }
 }
 
 impl SqliteConnectionContainer {
@@ -114,7 +148,6 @@ impl SqliteConnectionContainer {
 
 pub struct ScanStateController {
     connection_container: Arc<Mutex<SqliteConnectionContainer>>,
-    retry: Duration,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -127,7 +160,6 @@ impl From<Arc<Mutex<SqliteConnectionContainer>>> for ScanStateController {
     fn from(value: Arc<Mutex<SqliteConnectionContainer>>) -> Self {
         Self {
             connection_container: value,
-            retry: Duration::from_secs(1),
         }
     }
 }
@@ -139,25 +171,6 @@ impl ScanStateController {
         Ok(Self::from(connection_container))
     }
 
-    // async fn block_on(&self, on: &str, mut ids: Vec<i64>) -> Result<(), ScanStateChangeError> {
-    //     while !ids.is_empty() {
-    //         let id = ids.first().unwrap();
-    //         let q = || sqlx::query_scalar("SELECT status FROM scans WHERE id = ?").bind(id);
-    //         let status: Option<String> = self
-    //             .connection_container
-    //             .lock()
-    //             .await
-    //             .fetch_one_scalar(q)
-    //             .await?;
-    //
-    //         if status.as_deref() == Some(on) {
-    //             ids.swap_remove(0);
-    //         }
-    //
-    //         tokio::time::sleep(self.retry).await;
-    //     }
-    //     Ok(())
-    // }
     pub async fn change_state(
         &self,
         id: i64,
@@ -185,7 +198,6 @@ impl ScanStateController {
             "Scan status change"
         );
 
-        //        self.block_on(to, vec![id]).await?;
         Ok(rows.rows_affected() > 0)
     }
     pub async fn change_state_all(
@@ -205,7 +217,6 @@ impl ScanStateController {
             .await?;
         let scans = rows.len();
         tracing::debug!(affected = scans, from, to, "Scans status change");
-        //self.block_on(to, rows).await?;
         Ok(scans)
     }
 
@@ -228,9 +239,9 @@ impl ScanStateController {
 
     pub async fn scan_get_status(&self, id: i64) -> Result<models::Status, ScanStateChangeError> {
         let mut guard = self.connection_container.lock().await;
-        let q = || crate::scans::status_query(id);
+        let q = || status_query(id);
         let row = guard.fetch_one(q).await?;
-        let result = crate::scans::row_to_models_status(row);
+        let result = row_to_models_status(row);
         Ok(result)
     }
 
