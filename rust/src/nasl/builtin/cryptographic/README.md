@@ -96,9 +96,13 @@ let functions = nasl_builtin_utils::NaslfunctionRegisterBuilder::new()
 - prf_sha256
 - prf_sha384
 - des_ede_cbc_encrypt
-
-## Not yet implemented
-
 - dsa_do_sign
 - dsa_do_verify
+- get_signature
+- bf_cbc_decrypt
+- bf_cbc_encrypt
+- dsa_do_sign
+- dsa_do_verify
+- prf_sha256
+- prf_sha384
 - get_signature
