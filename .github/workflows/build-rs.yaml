@@ -41,6 +41,9 @@ jobs:
       - name: verify
         shell: bash
         run: |
+          # I think it is not good that we rely on dynamic libs
+          apt update && apt install -y \
+              libsnmp-dev
           ${ASSETS_SUBDIR}/openvasd -h
           ${ASSETS_SUBDIR}/scannerctl -h
       - name: archive
