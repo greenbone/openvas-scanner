@@ -23,15 +23,6 @@ jobs:
       ASSETS_SUBDIR: assets/linux/${{ inputs.arch }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            rust/target/
-          key: ${{ env.ARCH }}-cargo
       - name: build
         shell: bash
         run: |
@@ -47,7 +38,11 @@ jobs:
           cp "./${DIST}/install/usr/local/bin/openvasd"      "${ASSETS_SUBDIR}/openvasd"
           cp "./${DIST}/install/usr/local/bin/scannerctl"    "${ASSETS_SUBDIR}/scannerctl"
           cp "./${DIST}/install/usr/local/bin/feed-verifier" "${ASSETS_SUBDIR}/feed-verifier"
-
+      - name: verify
+        shell: bash
+        run: |
+          ${ASSETS_SUBDIR}/openvasd -h
+          ${ASSETS_SUBDIR}/scannerctl -h
       - name: archive
         uses: actions/upload-artifact@v4
         with:
