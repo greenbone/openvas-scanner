@@ -29,3 +29,5 @@ pub type PinBoxFut<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 pub type PinBoxFutRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
 pub type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send + Sync>>;
 pub type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+pub const SQLITE_LIMIT_VARIABLE_NUMBER: usize = 32766;
