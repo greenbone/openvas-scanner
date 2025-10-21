@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use digest::typenum;
+use md5::Digest;
 use rand::Rng;
 
 use crate::nasl::{builtin::cryptographic::hmac::hmac, prelude::*, utils::function::StringOrData};
@@ -468,6 +469,74 @@ fn ntv2_owf_gen(
     Ok(hmac.finalize().into_bytes().to_vec())
 }
 
+fn netbios_payload_len(buf: &[u8]) -> Option<usize> {
+    // requires at least 4 bytes like the C code that indexes buf[1..3]
+    if buf.len() < 4 {
+        return None;
+    }
+    let b1 = buf[1] as usize;
+    let b2 = buf[2] as usize;
+    let b3 = buf[3] as usize;
+
+    // Equivalent to:
+    // (((unsigned)buf[3]) | (((unsigned)buf[2]) << 8) | ((((unsigned)buf[1]) & 1) << 16))
+    let len = b3 | (b2 << 8) | ((b1 & 1) << 16);
+    Some(len)
+}
+
+#[nasl_function(named(key, buf, buflen, seq_number))]
+fn get_signature(
+    key: &[u8],
+    buf: &[u8],
+    buflen: usize,
+    seq_number: u32,
+) -> Result<Vec<u8>, FnError> {
+    use md5::Md5;
+
+    let mut buf = buf.to_vec();
+    if buf.len() < 26 {
+        return Err(FnError::wrong_unnamed_argument(
+            "buf of length >= 26",
+            &format!("buf of length {}", buf.len()),
+        ));
+    }
+
+    // Unwrap here is safe, as we have already checked the length of buf >= 26.
+    let size = netbios_payload_len(&buf).unwrap();
+
+    if buf.len() < size + 4 {
+        return Err(FnError::wrong_unnamed_argument(
+            &format!("buf of length >= {}", size + 4),
+            &format!("buf of length {}", buf.len()),
+        ));
+    }
+
+    let mut key = key.to_vec();
+    key.resize(16, 0);
+
+    let mut sequence_bytes = seq_number.to_le_bytes().to_vec();
+    sequence_bytes.resize(8, 0);
+
+    println!("Key: {:02x?}", key);
+    println!("Signature: {:02x?}", &buf[4..18]);
+    println!("Sequence Bytes: {:02x?}", sequence_bytes);
+    println!("Payload: {:02x?}", &buf[26..size + 4]);
+
+    let ret = Md5::new()
+        .chain_update(&key)
+        .chain_update(&buf[4..18])
+        .chain_update(&sequence_bytes)
+        .chain_update(&buf[26..size + 4])
+        .finalize()
+        .to_vec();
+
+    println!("MD5 Hash: {:02x?}", ret);
+
+    buf[18..26].clone_from_slice(&ret[..8]);
+    buf.resize(buflen, 0);
+    Ok(buf)
+}
+
 pub struct Ntlm;
 
 function_set! {
@@ -481,6 +550,7 @@ function_set! {
         key_exchange,
         lm_owf_gen,
         nt_owf_gen,
-        ntv2_owf_gen
+        ntv2_owf_gen,
+        get_signature,
     )
 }
