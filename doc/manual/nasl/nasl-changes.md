@@ -19,3 +19,6 @@ Think of a cleaner construct to allow variadics.
 ## Implicit variable creation
 Multiple operations currently implicitly create a variable if it was not defined before the operation. Example: Increment/Decrement operators, array indexing. `a++` will implicitly create a variable `a` and initialize it to zero.
 The proposed change makes code referencing a non-existent variable return an error instead.
+
+## Variable owner scope
+NASL C interpreter handles variables in local or global scopes. A variable created and set inside e.g. in an `if` scope, it can be accessed from outside the scope. The proposed change makes the code to remove the variable once the scope is dropped. The new behavior is already implemented under the `naslv2` feature. Default is nasl v1, for backward compatibility.
