@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           # I think it is not good that we rely on dynamic libs
-          apt update && apt install -y \
+          sudo apt update && sudo apt install -y \
               libsnmp-dev
           ${ASSETS_SUBDIR}/openvasd -h
           ${ASSETS_SUBDIR}/scannerctl -h
