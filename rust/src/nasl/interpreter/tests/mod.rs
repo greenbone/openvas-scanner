@@ -12,8 +12,8 @@ mod description;
 mod local_var;
 mod retry;
 
-pub fn interpret(code: &str) -> Vec<NaslResult> {
-    let mut t = TestBuilder::default();
+pub fn interpret(code: &str, version: NaslVersion) -> Vec<NaslResult> {
+    let mut t = TestBuilder::default().with_nasl_version(version);
     t.run_all(code);
     t.results()
 }
@@ -34,11 +34,11 @@ fn interpret_err(file_name: &str, code: &str, version: NaslVersion) -> String {
 }
 
 #[macro_export]
-macro_rules! interpreter_test_ok {
-    ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
+macro_rules! interpreter_test_ok_internal {
+    ($version: expr, $name: ident, $code: literal, $($expected: expr),* $(,)?) => {
         #[test]
         fn $name() {
-            let mut results = $crate::nasl::interpreter::tests::interpret($code);
+            let mut results = $crate::nasl::interpreter::tests::interpret($code, $version);
             let mut count = 0;
             $(
                 count += 1;
@@ -52,7 +52,21 @@ macro_rules! interpreter_test_ok {
 }
 
 #[macro_export]
-macro_rules! interpreter_test_err {
+macro_rules! interpreter_test_ok_v2 {
+    ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
+        $crate::interpreter_test_ok_internal!($crate::nasl::prelude::NaslVersion::V2, $name, $code, $($expected), * );
+    };
+}
+
+#[macro_export]
+macro_rules! interpreter_test_ok {
+    ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
+        $crate::interpreter_test_ok_internal!($crate::nasl::prelude::NaslVersion::V1, $name, $code, $($expected), *);
+    };
+}
+
+#[macro_export]
+macro_rules! interpreter_test_err_internal {
     ($name: ident, $code: literal, $version: expr) => {
         #[test]
         fn $name() {
@@ -63,22 +77,27 @@ macro_rules! interpreter_test_err {
             ));
         }
     };
-    ($name: ident, $code: literal) => {
-        interpreter_test_err!($name, $code, $crate::nasl::prelude::NaslVersion::default());
-    };
 }
 
 #[macro_export]
 macro_rules! interpreter_test_err_v2 {
     ($name: ident, $code: literal) => {
-        #[test]
-        fn $name() {
-            insta::assert_snapshot!($crate::nasl::interpreter::tests::interpret_err(
-                stringify!($name),
-                $code,
-                $crate::nasl::prelude::NaslVersion::V2
-            ));
-        }
+        $crate::interpreter_test_err_internal!(
+            $name,
+            $code,
+            $crate::nasl::prelude::NaslVersion::V2
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! interpreter_test_err {
+    ($name: ident, $code: literal) => {
+        $crate::interpreter_test_err_internal!(
+            $name,
+            $code,
+            $crate::nasl::prelude::NaslVersion::default()
+        );
     };
 }
 
@@ -161,9 +180,8 @@ use crate::nasl::test_prelude::*;
 
 interpreter_test_ok!(block, "{ 3; 4; }", NaslValue::Null);
 
-#[cfg(feature = "naslv2")]
-interpreter_test_ok!(
-    block_scope,
+interpreter_test_ok_v2!(
+    block_scope_v2,
     "a = 1; b = 2; { local_var a; a = 3; b = 4; } a; b;",
     1,
     2,
@@ -172,7 +190,6 @@ interpreter_test_ok!(
     4,
 );
 
-#[cfg(not(feature = "naslv2"))]
 interpreter_test_ok!(
     block_scope,
     "a = 1; b = 2; { local_var a; a = 3; b = 4; } a; b;",

@@ -214,6 +214,12 @@ impl TestBuilder<NoOpLoader, InMemoryStorage> {
         t.run_all(code.as_ref());
         t
     }
+
+    pub fn from_code_v2(code: impl AsRef<str>) -> Self {
+        let mut t = Self::default().with_nasl_version(NaslVersion::V2);
+        t.run_all(code.as_ref());
+        t
+    }
 }
 
 impl<L, S> TestBuilder<L, S>
