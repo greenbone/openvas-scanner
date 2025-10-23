@@ -7,9 +7,8 @@
 use crate::nasl::test_prelude::*;
 
 #[test]
-#[cfg(feature = "naslv2")]
-fn in_if() {
-    let t = TestBuilder::from_code(
+fn in_if_naslv2() {
+    let t = TestBuilder::from_code_v2(
         r###"
 a = 1;
 if (a) {
@@ -25,7 +24,7 @@ a;
     ));
 }
 
-#[cfg(not(feature = "naslv2"))]
+#[test]
 fn in_if() {
     let t = TestBuilder::from_code(
         r###"

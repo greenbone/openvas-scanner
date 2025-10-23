@@ -290,10 +290,6 @@ struct Interpreter<'ctx> {
 impl<'ctx> Interpreter<'ctx> {
     /// Creates a new Interpreter
     fn new(register: Register, scan_ctx: &'ctx ScanCtx) -> Self {
-        #[cfg(not(feature = "naslv2"))]
-        let version = NaslVersion::V1;
-        #[cfg(feature = "naslv2")]
-        let version = NaslVersion::V2;
         Interpreter {
             register,
             stmt_index: 0,
@@ -302,7 +298,7 @@ impl<'ctx> Interpreter<'ctx> {
             fork_reentry_data: ForkReentryData::new(),
             fork_history: ForkHistory::default(),
             state: InterpreterState::Running,
-            version: version,
+            version: NaslVersion::V1,
         }
     }
 
@@ -503,7 +499,13 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
-        self.register.create_child();
+        let add_scope = match self.version {
+            NaslVersion::V1 => false,
+            NaslVersion::V2 => true,
+        };
+        if add_scope {
+            self.register.create_child();
+        }
         for stmt in block.items.iter() {
             match Box::pin(self.resolve(stmt)).await {
                 Ok(x) => {
@@ -514,14 +516,18 @@ impl<'ctx> Interpreter<'ctx> {
                             | NaslValue::Break
                             | NaslValue::Continue
                     ) {
-                        self.register.drop_last();
+                        if add_scope {
+                            self.register.drop_last();
+                        }
                         return Ok(x);
                     }
                 }
                 Err(e) => return Err(e),
             }
         }
-        self.register.drop_last();
+        if add_scope {
+            self.register.drop_last();
+        }
         // currently blocks return null
         Ok(NaslValue::Null)
     }

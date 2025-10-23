@@ -166,7 +166,6 @@ nasl-builtin-raw-ip = [
 nasl-builtin-libssh = ["libssh-rs"]
 experimental = ["nasl-builtin-raw-ip", "nasl-builtin-libssh", "nasl-c-lib"]
 enforce-no-trailing-arguments = []
-naslv2 = []
 
 [workspace.package]
 version = "0.1.0"
