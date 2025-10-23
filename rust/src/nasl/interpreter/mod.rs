@@ -499,7 +499,14 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
-        self.register.create_child();
+        let mut fncall = false;
+        if let Some(Statement::FnDecl(_)) = block.items.first() {
+            fncall = true;
+        }
+
+        if (fncall && self.version == NaslVersion::V1) || self.version == NaslVersion::V2 {
+            self.register.create_child();
+        }
         for stmt in block.items.iter() {
             match Box::pin(self.resolve(stmt)).await {
                 Ok(x) => {
@@ -510,14 +517,20 @@ impl<'ctx> Interpreter<'ctx> {
                             | NaslValue::Break
                             | NaslValue::Continue
                     ) {
-                        self.register.drop_last();
+                        if (fncall && self.version == NaslVersion::V1)
+                            || self.version == NaslVersion::V2
+                        {
+                            self.register.drop_last();
+                        }
                         return Ok(x);
                     }
                 }
                 Err(e) => return Err(e),
             }
         }
-        self.register.drop_last();
+        if (fncall && self.version == NaslVersion::V1) || self.version == NaslVersion::V2 {
+            self.register.drop_last();
+        }
         // currently blocks return null
         Ok(NaslValue::Null)
     }
