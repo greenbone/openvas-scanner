@@ -5,7 +5,6 @@ edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-libgcrypt-sys = { path = "libgcrypt-sys" }
 
 [build-dependencies]
 cc = { workspace = true }
