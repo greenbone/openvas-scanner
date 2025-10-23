@@ -12,8 +12,8 @@ mod description;
 mod local_var;
 mod retry;
 
-pub fn interpret(code: &str) -> Vec<NaslResult> {
-    let mut t = TestBuilder::default();
+pub fn interpret(code: &str, version: NaslVersion) -> Vec<NaslResult> {
+    let mut t = TestBuilder::default().with_nasl_version(version);
     t.run_all(code);
     t.results()
 }
@@ -38,7 +38,39 @@ macro_rules! interpreter_test_ok {
     ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
         #[test]
         fn $name() {
-            let mut results = $crate::nasl::interpreter::tests::interpret($code);
+            let mut results = $crate::nasl::interpreter::tests::interpret($code, $crate::nasl::prelude::NaslVersion::default());
+            let mut count = 0;
+            $(
+                count += 1;
+                let result = results.remove(0).unwrap();
+                let expected = $expected.to_nasl_result().unwrap();
+                assert_eq!(expected, result, "mismatch in result #{count}. Expected: {expected:?}, found {result:?}.");
+            )*
+            assert_eq!(results.len(), 0);
+        }
+    };
+    ($name: ident, $code: literal, $version: expr, $($expected: expr),* $(,)?) => {
+        #[test]
+        fn $name() {
+            let mut results = $crate::nasl::interpreter::tests::interpret($code, $version);
+            let mut count = 0;
+            $(
+                count += 1;
+                let result = results.remove(0).unwrap();
+                let expected = $expected.to_nasl_result().unwrap();
+                assert_eq!(expected, result, "mismatch in result #{count}. Expected: {expected:?}, found {result:?}.");
+            )*
+            assert_eq!(results.len(), 0);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! interpreter_test_ok_v2 {
+    ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
+        #[test]
+        fn $name() {
+            let mut results = $crate::nasl::interpreter::tests::interpret($code, $crate::nasl::prelude::NaslVersion::V2);
             let mut count = 0;
             $(
                 count += 1;
@@ -161,9 +193,8 @@ use crate::nasl::test_prelude::*;
 
 interpreter_test_ok!(block, "{ 3; 4; }", NaslValue::Null);
 
-#[cfg(feature = "naslv2")]
-interpreter_test_ok!(
-    block_scope,
+interpreter_test_ok_v2!(
+    block_scope_v2,
     "a = 1; b = 2; { local_var a; a = 3; b = 4; } a; b;",
     1,
     2,
@@ -172,7 +203,6 @@ interpreter_test_ok!(
     4,
 );
 
-#[cfg(not(feature = "naslv2"))]
 interpreter_test_ok!(
     block_scope,
     "a = 1; b = 2; { local_var a; a = 3; b = 4; } a; b;",

@@ -19,9 +19,6 @@ struct Scope {
     index: usize,
     /// The defined variables and functions.
     variables: HashMap<String, RuntimeValue>,
-    #[cfg(not(feature = "naslv2"))]
-    /// Is function scope
-    is_fn_scope: bool,
 }
 
 impl Scope {
@@ -44,11 +41,6 @@ impl Scope {
                 None => None,
             },
         }
-    }
-
-    #[cfg(not(feature = "naslv2"))]
-    fn parent_index(&self) -> usize {
-        self.parent.unwrap_or_default()
     }
 }
 
@@ -89,32 +81,8 @@ impl Register {
         self.scopes.len()
     }
 
-    #[cfg(feature = "naslv2")]
     fn current_index(&self) -> usize {
         self.scopes.len() - 1
-    }
-
-    #[cfg(not(feature = "naslv2"))]
-    fn root_scope_index(&mut self) -> usize {
-        let mut parent_index = self
-            .scopes
-            .last()
-            .map(|x| x.parent.unwrap_or_default())
-            .unwrap_or_default();
-        if parent_index == 0 {
-            return 0;
-        } else {
-            loop {
-                let parent_scope = &self.scopes[parent_index];
-                if parent_scope.is_fn_scope || parent_scope.parent_index() == 0 {
-                    return parent_index;
-                } else if parent_scope.parent_index() == 0 {
-                    return 0;
-                } else {
-                    parent_index = parent_scope.parent_index();
-                }
-            }
-        }
     }
 
     /// Creates a child scope using the last scope as a parent
@@ -124,8 +92,6 @@ impl Register {
             parent: Some(parent_index),
             index: self.next_index(),
             variables: HashMap::default(),
-            #[cfg(not(feature = "naslv2"))]
-            is_fn_scope: false,
         };
         self.scopes.push(result);
     }
@@ -136,8 +102,6 @@ impl Register {
             parent: Some(0),
             index: self.next_index(),
             variables: defined,
-            #[cfg(not(feature = "naslv2"))]
-            is_fn_scope: true,
         };
         self.scopes.push(result);
     }
@@ -154,18 +118,6 @@ impl Register {
         global.add_named(name, value);
     }
 
-    #[cfg(not(feature = "naslv2"))]
-    /// Adds a named variable to the innermost scope
-    pub(super) fn add_local<'a>(&mut self, name: &'a str, value: RuntimeValue) -> Var<'a> {
-        let s_i = self.root_scope_index();
-        let scope = self.scopes.get_mut(s_i).unwrap();
-        scope.add_named(name, value);
-        Var {
-            name,
-            scope_index: s_i,
-        }
-    }
-    #[cfg(feature = "naslv2")]
     /// Adds a named variable to the innermost scope
     pub(super) fn add_local<'a>(&mut self, name: &'a str, value: RuntimeValue) -> Var<'a> {
         let scope = self.scopes.last_mut().unwrap();

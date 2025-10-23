@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub enum NaslVersion {
     #[default]
     V1,
