@@ -150,7 +150,7 @@ where
         for ports in scan.target.ports.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 4) {
             let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
             builder.push_values(
-                ports.into_iter().flat_map(|port| {
+                ports.iter().flat_map(|port| {
                     port.range
                         .clone()
                         .into_iter()
