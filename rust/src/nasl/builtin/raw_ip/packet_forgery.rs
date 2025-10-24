@@ -2451,7 +2451,6 @@ fn dump_ip_v6_packet(positional: CheckedPositionals<Ipv6Packet>) {
 /// - th_win: is the TCP window size. NASL will convert it into network order if necessary. 0 by default.
 /// - th_sum: is the TCP checksum. By default, the right value is computed.
 /// - th_urp: is the urgent pointer. 0 by default.
-/// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
 ///
 /// The modified IP datagram or NULL on error.
 #[nasl_function(named(

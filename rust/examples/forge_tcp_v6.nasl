@@ -43,10 +43,7 @@ tcp = forge_tcp_v6_packet(ip6       : ip6,
                        th_off   : 5,
                        th_win   : 1024,
                        th_urp   : 0,
-                       tcp_opt  : 3,
-                       tcp_opt_val  : 7,
                        data: "123456",
-                       update_ip_len: TRUE
                        );
 
 dump_tcp_v6_packet(tcp);
