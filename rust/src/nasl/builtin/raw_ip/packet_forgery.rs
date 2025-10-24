@@ -3317,6 +3317,8 @@ function_set! {
         (nasl_send_capture, "send_capture"),
 
       //IPv6
+
+        (forge_ip_v6_packet, "forge_ipv6_packet"), // this alias is deprecated.
         forge_ip_v6_packet,
         get_ip_v6_element,
         set_ip_v6_elements,
