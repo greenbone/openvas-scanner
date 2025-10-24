@@ -2451,7 +2451,6 @@ fn dump_ip_v6_packet(positional: CheckedPositionals<Ipv6Packet>) {
 /// - th_win: is the TCP window size. NASL will convert it into network order if necessary. 0 by default.
 /// - th_sum: is the TCP checksum. By default, the right value is computed.
 /// - th_urp: is the urgent pointer. 0 by default.
-/// - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
 ///
 /// The modified IP datagram or NULL on error.
 #[nasl_function(named(
@@ -3317,10 +3316,16 @@ function_set! {
         (nasl_send_capture, "send_capture"),
 
       //IPv6
+
+        (forge_ip_v6_packet, "forge_ipv6_packet"), // this alias is deprecated.
         forge_ip_v6_packet,
+        (get_ip_v6_element, "get_ipv6_element"),
         get_ip_v6_element,
+        (set_ip_v6_elements,"set_ipv6_elements"),
         set_ip_v6_elements,
+        (insert_ip_v6_options, "insert_ipv6_options"),
         insert_ip_v6_options,
+        (dump_ip_v6_packet,"dump_ipv6_packet"),
         dump_ip_v6_packet,
         forge_tcp_v6_packet,
         (get_tcp_element, "get_tcp_v6_element"),

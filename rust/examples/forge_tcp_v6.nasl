@@ -26,10 +26,9 @@ dport = 63322;
 
 filter = string("tcp and src ", src, " and dst ", dst);
 
-ip6 = forge_ip_v6_packet( ip6_v: 6, # IP6_v,
-                         ip6_p: 6, #IP6_P,
-                         ip6_plen:40,
-                         ip6_hlim:IP6_HLIM,
+ip6 = forge_ip_v6_packet( ip6_p: 6, #IP6_P,
+                         ip6_hlim: 64, #IP6_HLIM,
+                         ip6_v: 6, # IP6_v,
                          ip6_src: src,
                          ip6_dst: dst);
 
@@ -44,10 +43,7 @@ tcp = forge_tcp_v6_packet(ip6       : ip6,
                        th_off   : 5,
                        th_win   : 1024,
                        th_urp   : 0,
-                       tcp_opt  : 3,
-                       tcp_opt_val  : 7,
                        data: "123456",
-                       update_ip_len: TRUE
                        );
 
 dump_tcp_v6_packet(tcp);
