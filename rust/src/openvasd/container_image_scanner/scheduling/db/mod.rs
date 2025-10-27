@@ -7,13 +7,11 @@ use sqlx::{
 };
 use tracing::debug;
 
-use crate::{
-    SQLITE_LIMIT_VARIABLE_NUMBER,
-    container_image_scanner::{
-        ExternalError,
-        image::{Credential, Image, ImageID, ImageParseError},
-    },
+use crate::container_image_scanner::{
+    ExternalError,
+    image::{Credential, Image, ImageID, ImageParseError},
 };
+use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 
 impl From<SqliteRow> for ImageID {
     fn from(row: SqliteRow) -> Self {

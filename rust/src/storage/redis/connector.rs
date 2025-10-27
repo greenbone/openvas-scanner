@@ -15,13 +15,14 @@ use redis::*;
 use crate::notus::advisories::Vulnerability;
 use crate::notus::advisories::VulnerabilityData;
 use crate::storage::StorageError;
+use crate::storage::items::nvt;
 use crate::storage::items::nvt::ACT;
-use crate::storage::items::nvt::Nvt;
 use crate::storage::items::nvt::NvtKey;
 use crate::storage::items::nvt::NvtPreference;
 use crate::storage::items::nvt::NvtRef;
 use crate::storage::items::nvt::TagKey;
 use crate::storage::items::nvt::TagValue;
+use greenbone_scanner_framework::models::VTData;
 
 enum KbNvtPos {
     Filename,
@@ -105,7 +106,7 @@ pub enum NameSpaceSelector {
 }
 
 pub const CACHE_KEY: &str = "nvticache";
-const NOTUS_KEY: &str = "notuscache";
+pub const NOTUS_KEY: &str = "notuscache";
 const DB_INDEX: &str = "GVM.__GlobalDBIndex";
 
 impl NameSpaceSelector {
@@ -262,6 +263,9 @@ pub trait RedisAddAdvisory: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
+    ///
+    /// To call with None is only required when using ospd-openvas and updating the feed into
+    /// redis.
     fn redis_add_advisory(&mut self, adv: Option<VulnerabilityData>) -> RedisStorageResult<()> {
         match adv {
             Some(data) => {
@@ -342,7 +346,7 @@ pub trait RedisGetNvt: RedisWrapper {
         tag_map
     }
 
-    fn redis_get_advisory(&mut self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
+    fn redis_get_advisory(&mut self, oid: &str) -> RedisStorageResult<Option<VTData>> {
         let keyname = format!("internal/notus/advisories/{oid}");
         let nvt_data = self.lindex(&keyname, 0)?;
         if nvt_data.is_empty() {
@@ -350,7 +354,7 @@ pub trait RedisGetNvt: RedisWrapper {
         }
 
         if let Ok(adv) = serde_json::from_str::<Vulnerability>(&nvt_data) {
-            Ok(Some(Nvt::from((oid, adv))))
+            Ok(Some(nvt::Nvt::from((oid, adv)).data))
         } else {
             Ok(None)
         }
@@ -359,7 +363,7 @@ pub trait RedisGetNvt: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    fn redis_get_vt(&mut self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
+    fn redis_get_vt(&mut self, oid: &str) -> RedisStorageResult<Option<VTData>> {
         let keyname = format!("nvt:{oid}");
         let nvt_data = self.lrange(&keyname, 0, -1)?;
 
@@ -367,7 +371,7 @@ pub trait RedisGetNvt: RedisWrapper {
             return Ok(None);
         }
 
-        let nvt = Nvt {
+        let nvt = VTData {
             oid: oid.to_string(),
             name: nvt_data[KbNvtPos::Name as usize].clone(),
             filename: nvt_data[KbNvtPos::Filename as usize].clone(),
@@ -489,7 +493,7 @@ pub trait RedisAddNvt: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    fn redis_add_nvt(&mut self, nvt: Nvt) -> RedisStorageResult<()> {
+    fn redis_add_nvt(&mut self, nvt: VTData) -> RedisStorageResult<()> {
         let oid = nvt.oid;
         let name = nvt.name;
         let required_keys = nvt.required_keys.join(", ");

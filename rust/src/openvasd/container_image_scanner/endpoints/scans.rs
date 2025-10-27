@@ -489,18 +489,16 @@ mod scans_utils {
     use sqlx::SqlitePool;
 
     use super::Scans;
-    use crate::{
-        container_image_scanner::{
-            Config, MIGRATOR,
-            config::DBLocation,
-            image::{
-                DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
-                packages::AllTypes,
-            },
-            scheduling::Scheduler,
+    use crate::container_image_scanner::{
+        Config, MIGRATOR,
+        config::DBLocation,
+        image::{
+            DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
+            packages::AllTypes,
         },
-        notus::path_to_products,
+        scheduling::Scheduler,
     };
+    use scannerlib::notus::path_to_products;
 
     pub fn client_id() -> String {
         ClientHash::default().to_string()

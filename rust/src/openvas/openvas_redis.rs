@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::storage::items::nvt::Nvt;
 use crate::storage::redis::{DbError, RedisCtx, RedisGetNvt, RedisStorageResult, RedisWrapper};
+use greenbone_scanner_framework::models::VTData;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug, Default)]
@@ -103,11 +103,11 @@ impl KbAccess for RedisHelper<RedisCtx> {
 }
 
 pub trait VtHelper {
-    fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<Nvt>>;
+    fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>>;
 }
 
 impl VtHelper for RedisHelper<RedisCtx> {
-    fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
+    fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>> {
         self.lock_cache()?.redis_get_vt(oid)
     }
 }
@@ -119,10 +119,11 @@ pub mod test {
     use crate::{
         openvas::openvas_redis::{KbAccess, VtHelper},
         storage::{
-            items::nvt::{ACT, Nvt, NvtPreference, PreferenceType},
+            items::nvt::{ACT, NvtPreference},
             redis::RedisStorageResult,
         },
     };
+    use greenbone_scanner_framework::models::{PreferenceType, VTData};
 
     pub struct FakeRedis {
         pub data: HashMap<String, Vec<Vec<u8>>>,
@@ -141,9 +142,9 @@ pub mod test {
     }
 
     impl VtHelper for FakeRedis {
-        fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<Nvt>> {
+        fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>> {
             match oid {
-                "123" => Ok(Some(Nvt {
+                "123" => Ok(Some(VTData {
                     oid: "123".to_string(),
                     name: "test".to_string(),
                     filename: "test.nasl".to_string(),

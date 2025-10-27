@@ -7,6 +7,7 @@
 // but should eventually solve this.
 
 mod config;
+mod container_image_scanner;
 mod crypt;
 mod json_stream;
 mod notus;
@@ -20,15 +21,10 @@ use std::{
 };
 
 use config::{Config, StorageType};
+use container_image_scanner::config::{DBLocation, SqliteConfiguration};
 use greenbone_scanner_framework::{RuntimeBuilder, ServerCertificate};
 use notus::config_to_products;
-use scannerlib::{
-    container_image_scanner::{
-        self,
-        config::{DBLocation, SqliteConfiguration},
-    },
-    models::FeedState,
-};
+use scannerlib::models::FeedState;
 use sqlx::SqlitePool;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -70,16 +66,16 @@ async fn main() -> Result<()> {
     //TODO: AsRef impl for Config
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
-    let feed_state2 = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
-    let (sender, vts) = vts::init(pool.clone(), &config, feed_state2.clone()).await;
+    let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
+    let (sender, vts) = vts::init(pool.clone(), &config, feed_snapshot.clone()).await;
     let vts = Arc::new(vts);
-    let scan = scans::init(pool.clone(), &config, sender, feed_state2.clone()).await?;
+    let scan = scans::init(pool.clone(), &config, sender).await?;
     let (get_notus, post_notus) = notus::init(products.clone());
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
         // TODO: use a lambda like in scanner instead.
         // That way we don't need to manage tokio::spawn_blocking all over the place
-        .feed_version(feed_state2.clone());
+        .feed_version(feed_snapshot.clone());
     match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
             rb = rb.server_tls_cer(ServerCertificate::new(key, certificate))
@@ -99,7 +95,7 @@ async fn main() -> Result<()> {
 
     let (cis_scans, cis_vts) = container_image_scanner::init(
         pool.clone(),
-        feed_state2,
+        feed_snapshot,
         products,
         config.container_image_scanner,
     )

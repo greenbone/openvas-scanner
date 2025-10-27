@@ -24,7 +24,6 @@ use crate::storage::items::kb::KbContextKey;
 use crate::storage::items::kb::KbItem;
 use crate::storage::items::kb::KbKey;
 use crate::storage::items::nvt::FileName;
-use crate::storage::items::nvt::Nvt;
 use greenbone_scanner_framework::models::Phase;
 use greenbone_scanner_framework::models::Protocol;
 use greenbone_scanner_framework::models::VT;
@@ -36,8 +35,9 @@ use tokio::time::Instant;
 use tracing_test::traced_test;
 
 type TestStack = (Arc<InMemoryStorage>, fn(&str) -> String);
+use greenbone_scanner_framework::models::VTData;
 
-fn setup(scripts: &[(String, Nvt)]) -> (TestStack, Executor, Scan) {
+fn setup(scripts: &[(String, VTData)]) -> (TestStack, Executor, Scan) {
     let storage = InMemoryStorage::new();
     scripts.iter().map(|(_, v)| v).for_each(|n| {
         storage
@@ -68,12 +68,12 @@ fn make_scanner_and_scan_success() -> (OpenvasdScanner<TestStack>, Scan) {
     (OpenvasdScanner::new(storage, loader, executor), scan)
 }
 
-fn make_scanner_and_scan(scripts: &[(String, Nvt)]) -> (OpenvasdScanner<TestStack>, Scan) {
+fn make_scanner_and_scan(scripts: &[(String, VTData)]) -> (OpenvasdScanner<TestStack>, Scan) {
     let ((storage, loader), executor, scan) = setup(scripts);
     (OpenvasdScanner::new(storage, loader, executor), scan)
 }
 
-fn only_success() -> [(String, Nvt); 3] {
+fn only_success() -> [(String, VTData); 3] {
     [
         GenerateScript::with_dependencies("0", &[]).generate(),
         GenerateScript::with_dependencies("1", &["0.nasl"]).generate(),
@@ -158,7 +158,7 @@ impl GenerateScript {
         }
     }
 
-    fn generate(&self) -> (String, Nvt) {
+    fn generate(&self) -> (String, VTData) {
         let keys = |x: &[String]| -> String {
             x.iter().fold(String::default(), |acc, e| {
                 let acc = if acc.is_empty() {
@@ -211,7 +211,7 @@ exit({rc});
     }
 }
 
-fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
+fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
     let initial = vec![
         ("description".to_owned(), true.into()),
         ("OPENVAS_VERSION".to_owned(), "testus".into()),
@@ -254,7 +254,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<Nvt> {
         .expect("nvt for id")
 }
 
-fn prepare_vt_storage(scripts: &[(String, Nvt)]) -> InMemoryStorage {
+fn prepare_vt_storage(scripts: &[(String, VTData)]) -> InMemoryStorage {
     let dispatcher = InMemoryStorage::new();
     scripts.iter().map(|(_, v)| v).for_each(|n| {
         dispatcher
@@ -265,7 +265,7 @@ fn prepare_vt_storage(scripts: &[(String, Nvt)]) -> InMemoryStorage {
 }
 
 async fn run(
-    scripts: Vec<(String, Nvt)>,
+    scripts: Vec<(String, VTData)>,
     storage: Arc<InMemoryStorage>,
 ) -> Result<Vec<Result<ScriptResult, ExecuteError>>, ExecuteError> {
     let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
@@ -297,7 +297,7 @@ async fn run(
 }
 
 async fn get_all_results(
-    vts: &[(String, Nvt)],
+    vts: &[(String, VTData)],
     storage: Arc<InMemoryStorage>,
 ) -> (Vec<ScriptResult>, Vec<ScriptResult>) {
     let result = run(vts.to_vec(), storage).await.expect("success run");
@@ -357,7 +357,7 @@ async fn required_ports() {
     assert_eq!(failure.len(), 4);
 }
 
-fn make_test_storage(vts: &[(String, Nvt)]) -> Arc<InMemoryStorage> {
+fn make_test_storage(vts: &[(String, VTData)]) -> Arc<InMemoryStorage> {
     let storage = prepare_vt_storage(vts);
     storage
         .dispatch(

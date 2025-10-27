@@ -10,9 +10,10 @@ mod dberror;
 
 use std::sync::Mutex;
 
-use connector::CACHE_KEY;
+pub use connector::CACHE_KEY;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
+pub use connector::NOTUS_KEY;
 pub use connector::NOTUSUPDATE_SELECTOR;
 pub use connector::NameSpaceSelector;
 pub use connector::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt, RedisWrapper};
@@ -32,8 +33,9 @@ use super::items::notus_advisory::NotusCache;
 use super::items::nvt::Feed;
 use super::items::nvt::FeedVersion;
 use super::items::nvt::FileName;
-use super::items::nvt::Nvt;
 use super::items::nvt::Oid;
+//TODO: rename
+use greenbone_scanner_framework::models::VTData;
 
 use super::items::result::ResultContextKeySingle;
 use super::items::result::ResultItem;
@@ -117,7 +119,7 @@ impl<S: RedisAddNvt> Dispatcher<FileName> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
-    type Item = Nvt;
+    type Item = VTData;
     fn dispatch(
         &self,
         _: FileName,
@@ -156,7 +158,7 @@ impl<S: RedisWrapper> Retriever<Feed> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
-    type Item = Vec<Nvt>;
+    type Item = Vec<VTData>;
     fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
@@ -165,7 +167,7 @@ impl<S: RedisWrapper> Retriever<Oid> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
-    type Item = Nvt;
+    type Item = VTData;
     fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
@@ -174,7 +176,7 @@ impl<S: RedisWrapper> Retriever<FileName> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
-    type Item = Nvt;
+    type Item = VTData;
     fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
@@ -260,9 +262,11 @@ mod tests {
     use crate::storage::Dispatcher;
     use crate::storage::inmemory::kb::InMemoryKbStorage;
     use crate::storage::items::nvt::{
-        ACT, FeedVersion, FileName, Nvt, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue,
+        ACT, FeedVersion, FileName, NvtPreference, NvtRef, TagKey, TagValue,
     };
     use crate::storage::redis::RedisStorage;
+    use greenbone_scanner_framework::models::PreferenceType;
+    use greenbone_scanner_framework::models::VTData;
 
     use super::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorageResult, RedisWrapper};
 
@@ -314,7 +318,7 @@ mod tests {
         let filename = "test.nasl".to_owned();
         let mut tag = BTreeMap::new();
         tag.insert(TagKey::CreationDate, TagValue::Number(23));
-        let nvt = Nvt {
+        let nvt = VTData {
             oid: "0.0.0.0.0.0.0.0.0.1".to_owned(),
             name: "fancy name".to_owned(),
             filename: filename.clone(),

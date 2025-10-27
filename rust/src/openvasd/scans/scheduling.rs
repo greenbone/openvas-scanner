@@ -1,21 +1,18 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use futures::StreamExt;
 use greenbone_scanner_framework::models::{self, Scan};
 use scannerlib::{
-    models::{FeedState, FeedType},
+    models::FeedType,
     openvas::{self, cmd},
     osp,
     scanner::{
         Lambda, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
         preferences,
     },
-    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisWrapper},
 };
-use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
+use sqlx::{QueryBuilder, SqlitePool, query_scalar};
 use tokio::{
-    select,
     sync::mpsc::{self, Sender},
     time::MissedTickBehavior,
 };
@@ -270,7 +267,7 @@ where
     /// background task.
     async fn requested_to_running(&self) -> R<()> {
         if self.is_feed_sync_in_progress().await {
-            tracing::debug!("Skipping to set new scans to running because of feed sync.");
+            tracing::trace!("Skipping to set new scans to running because of feed sync.");
             return Ok(());
         }
 
@@ -539,124 +536,11 @@ where
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await
 }
 
-async fn init_redis_storage(redis_url: &str) -> R<(RedisCtx, RedisCtx)> {
-    use scannerlib::storage::redis::*;
-    let notus = RedisCtx::open(redis_url, NOTUSUPDATE_SELECTOR)?;
-    let nvt = RedisCtx::open(redis_url, FEEDUPDATE_SELECTOR)?;
-    Ok((nvt, notus))
-}
-
-async fn synchronize_redis_feed(pool: &SqlitePool, redis_url: &str, feed_version: String) -> () {
-    tracing::debug!("synchronizing redis with vt feed");
-    let (vtc, nc) = match init_redis_storage(redis_url).await {
-        Ok(x) => x,
-        Err(error) => {
-            tracing::warn!(%error, "Unable to create redis cache connections");
-            return;
-        }
-    };
-    tracing::info!("synchronized redis with vt feed");
-    let nc = Arc::new(RwLock::new(nc));
-    let vtc = Arc::new(RwLock::new(vtc));
-    let rows = query("SELECT feed_type, json_blob FROM plugins").fetch(pool);
-
-    const CONCURRENCY_LIMIT: usize = 1024;
-    rows.for_each_concurrent(CONCURRENCY_LIMIT, |x| {
-        let nc = nc.clone();
-        let vtc = vtc.clone();
-        async move {
-            match x {
-                Ok(row) => {
-                    match row.get("feed_type") {
-                        "advisories" => {
-                            tracing::trace!(feed_type = "advisories", "Mirroring");
-                            let mut nc = nc.write().await;
-                            //TODO blocking
-                            match serde_json::from_slice(row.get("json_blob")) {
-                                Ok(x) => {
-                                    if let Err(error) = nc.redis_add_advisory(Some(x)) {
-                                        tracing::warn!(%error,  "unable to mirror advisory")
-                                    }
-                                }
-                                Err(error) => {
-                                    tracing::warn!(%error, "Unable to parse advisory")
-                                }
-                            };
-                        }
-                        feed_type => {
-                            tracing::trace!(feed_type, "Mirroring");
-                            let mut vtc = vtc.write().await;
-                            //TODO blocking, wet
-                            match serde_json::from_slice(row.get("json_blob")) {
-                                Ok(x) => {
-                                    if let Err(error) = vtc.redis_add_nvt(x) {
-                                        tracing::warn!(%error,  "unable to mirror NASL plugin")
-                                    }
-                                }
-                                Err(error) => {
-                                    tracing::warn!(%error, "Unable to parse NASL plugin")
-                                }
-                            };
-                        }
-                    };
-                }
-                Err(error) => {
-                    tracing::warn!(%error, "Unable to fetch plugins");
-                }
-            }
-        }
-    })
-    .await;
-
-    let mut nv = nc.write().await;
-    if let Err(error) = nv.redis_add_advisory(None) {
-        tracing::warn!(%error, "Unable set notus feed to be available");
-    }
-
-    let mut vtc = vtc.write().await;
-    if let Err(error) = vtc
-        .del("nvticache")
-        .and_then(move |_| vtc.rpush("nvticache", &[&feed_version]))
-    {
-        tracing::warn!(%error, "Unable set nvticache for openvas. Scans might be unavailable");
-    }
-}
-
-pub async fn on_orchestrator_msg(
-    pool: &SqlitePool,
-    feed_snapshot: Arc<std::sync::RwLock<FeedState>>,
-    redis_url: &str,
-    tx: &mpsc::Sender<orchestrator::FeedStatusChange>,
-    msg: orchestrator::FeedStatusChange,
-) {
-    match msg {
-        FeedStatusChange::Synced(FeedType::NASL) => {
-            let fv = feed_snapshot
-                .read()
-                .unwrap()
-                .nasl()
-                .map(|x| x.to_string())
-                .unwrap_or_default();
-            synchronize_redis_feed(pool, redis_url, fv).await;
-            tracing::info!(?msg, "Redis sync finished sending to scheduler.");
-            tx.send(msg).await.unwrap();
-        }
-        FeedStatusChange::Need(_) => {
-            tx.send(msg).await.unwrap();
-        }
-        _ => {
-            tracing::info!(?msg, "Sending to scheduler.");
-            tx.send(msg).await.unwrap();
-        }
-    }
-}
-
 pub async fn init<E>(
     pool: SqlitePool,
     crypter: Arc<E>,
     config: &Config,
     feed_status: orchestrator::Communicator,
-    feed_snapshot: Arc<std::sync::RwLock<FeedState>>,
 ) -> R<Sender<Message>>
 where
     E: Crypt + Send + Sync + 'static,
@@ -689,32 +573,31 @@ where
                 preferences::preference::PREFERENCES.to_vec(),
             );
 
-            let fpool = pool.clone();
             // TODO: maybe we are in the state that it is actually easier to write a redis worker?
 
-            let (sender, mut receiver, black_mirror) = orchestrator::Communicator::init();
-
-            //TODO: create a redis worker that can read from redis as well, instead of duplicating
-            //the whole feed into redis.
-            tokio::task::spawn(async move {
-                loop {
-                    select! {
-                        Some(msg) = feed_status.receive_state_changes() => {
-                            on_orchestrator_msg(&fpool, feed_snapshot.clone(), &redis_url, &sender, msg).await;
-                        }
-                        Some(msg) = receiver.recv() => {
-                            if let Err(error) = feed_status.approve(msg).await {
-                               tracing::warn!(%error, "Unable to inform orchestrator about allow. VTs are stuck");
-                            }
-
-
-                        }
-
-                    }
-                }
-            });
-
-            init_with_scanner(pool, crypter, config, scanner, black_mirror).await
+            // let (sender, mut receiver, black_mirror) = orchestrator::Communicator::init();
+            //
+            // //TODO: create a redis worker that can read from redis as well, instead of duplicating
+            // //the whole feed into redis.
+            // tokio::task::spawn(async move {
+            //     loop {
+            //         select! {
+            //             Some(msg) = feed_status.receive_state_changes() => {
+            //                 on_orchestrator_msg(&fpool, feed_snapshot.clone(), &redis_url, &sender, msg).await;
+            //             }
+            //             Some(msg) = receiver.recv() => {
+            //                 if let Err(error) = feed_status.approve(msg).await {
+            //                    tracing::warn!(%error, "Unable to inform orchestrator about allow. VTs are stuck");
+            //                 }
+            //
+            //
+            //             }
+            //
+            //         }
+            //     }
+            // });
+            //
+            init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
         crate::config::ScannerType::Openvasd => {
             let scanner: Lambda = Lambda::default();

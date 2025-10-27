@@ -6,6 +6,8 @@
 
 use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 
+use crate::time::AsUnixTimeStamp;
+
 use super::KbItem;
 
 /// Attack Category either set by script_category
@@ -72,13 +74,37 @@ pub enum ACT {
     End,
 }
 
-#[derive(Debug, Clone)]
+impl std::fmt::Display for ACT {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ACT::Attack => write!(f, "ACT_ATTACK"),
+            ACT::Denial => write!(f, "ACT_DENIAL"),
+            ACT::DestructiveAttack => write!(f, "ACT_DESTRUCTIVE_ATTACK"),
+            ACT::End => write!(f, "ACT_END"),
+            ACT::Flood => write!(f, "ACT_FLOOD"),
+            ACT::GatherInfo => write!(f, "ACT_GATHER_INFO"),
+            ACT::Init => write!(f, "ACT_INIT"),
+            ACT::KillHost => write!(f, "ACT_KILL_HOST"),
+            ACT::MixedAttack => write!(f, "ACT_MIXED_ATTACK"),
+            ACT::Scanner => write!(f, "ACT_SCANNER"),
+            ACT::Settings => write!(f, "ACT_SETTINGS"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum VtDataError {
+    #[error("ACT: ${0}")]
     ACT(String),
+    #[error("TagKey: ${0}")]
     TagKey(String),
+    #[error("SolutionType: ${0}")]
     SolutionType(String),
+    #[error("QodType: ${0}")]
     QodType(String),
+    #[error("PreferenceType: ${0}")]
     PreferenceType(String),
+    #[error("TagValue: ${0}")]
     TagValue(String),
 }
 
@@ -228,7 +254,7 @@ make_str_lookup_enum! {
     Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Serialize, serde::Deserialize,
 )]
 #[serde(rename_all = "lowercase")]
-enum PreferenceType {
+pub enum PreferenceType {
     #[doc = "checkbox"]
     CheckBox,
     #[doc = "entry"]
@@ -359,13 +385,13 @@ Category will be used to identify the type of the NASL plugin."### =>
 #[serde(rename_all = "snake_case")]
 pub struct NvtPreference {
     /// Preference ID
-    id: Option<i32>,
+    pub id: Option<i32>,
     /// Preference type
-    class: PreferenceType,
+    pub class: PreferenceType,
     /// Name of the preference
-    name: String,
+    pub name: String,
     /// Default value of the preference
-    default: String,
+    pub default: String,
 }
 
 /// References defines where the information for that vulnerability attack is from.
@@ -373,9 +399,19 @@ pub struct NvtPreference {
 #[serde(rename_all = "snake_case")]
 pub struct NvtRef {
     /// Reference type ("cve", "bid", ...)
-    class: String,
+    pub class: String,
     /// Actual reference ID ("CVE-2018-1234", etc)
-    id: String,
+    pub id: String,
+}
+
+impl NvtRef {
+    pub fn class(&self) -> &str {
+        &self.class
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 impl From<(&str, &str)> for NvtRef {
@@ -400,17 +436,21 @@ impl From<(&str, String)> for NvtRef {
 
 impl NvtPreference {
     /// Returns id
-    fn id(&self) -> Option<i32> {
+    pub fn id(&self) -> Option<i32> {
         self.id
     }
 
     /// Returns name
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         self.name.as_ref()
     }
 
+    pub fn class(&self) -> &PreferenceType {
+        &self.class
+    }
+
     /// Returns default
-    fn default(&self) -> &str {
+    pub fn default(&self) -> &str {
         self.default.as_ref()
     }
 }
@@ -469,6 +509,41 @@ impl From<QodType> for i64 {
 /// TagValue is a type containing value types of script_tag
 pub type TagValue = KbItem;
 
+impl TagValue {
+    /// Parse the given Value based on the key to TagValue
+    // TODO move naslvalue out of syntax to own crate so we can use it here
+    pub fn parse<V: ToString>(key: TagKey, value: V) -> Result<Self, VtDataError> {
+        let error = || VtDataError::TagKey(format!("{key:?} => {}", value.to_string()));
+        match key {
+            TagKey::CreationDate | TagKey::LastModification | TagKey::SeverityDate => value
+                .to_string()
+                .as_timestamp()
+                .ok_or_else(error)
+                .map(Self::from),
+            // CvssBase is obsolete and has been replaced by CvssBaseVector.
+            // It remains handled solely for backward compatibility.
+            // We ignore it, as all current feed entries use CvssBaseVector.
+            TagKey::CvssBase => Ok(TagValue::Null),
+            TagKey::Deprecated => match value.to_string().as_str() {
+                "TRUE" | "true" | "1" => Ok(TagValue::Boolean(true)),
+                "FALSE" | "false" | "0" => Ok(TagValue::Boolean(false)),
+                _ => Err(error()),
+            },
+            TagKey::SolutionType => SolutionType::from_str(value.to_string().as_str())
+                .map(|x| TagValue::String(x.as_ref().to_owned())),
+            TagKey::QodType => QodType::from_str(value.to_string().as_str())
+                .map(|x| TagValue::String(x.as_ref().to_owned())),
+            TagKey::Qod => value
+                .to_string()
+                .as_str()
+                .parse::<i64>()
+                .map(Self::from)
+                .map_err(|_| error()),
+            _ => Ok(Self::from(value.to_string())),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 /// Structure to hold a NVT
@@ -501,4 +576,10 @@ pub struct VTData {
     pub category: ACT,
     /// Family
     pub family: String,
+}
+
+impl Display for VTData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "VT {} ({})", self.oid, self.filename)
+    }
 }
