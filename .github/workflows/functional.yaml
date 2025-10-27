@@ -92,7 +92,7 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build -- install
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           pattern: rs-binaries-*
           merge-multiple: true
