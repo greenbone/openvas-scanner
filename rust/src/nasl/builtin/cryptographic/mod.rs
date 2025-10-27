@@ -22,6 +22,7 @@ mod hmac;
 mod misc;
 mod ntlm;
 mod pem_to;
+mod prf;
 pub mod rc4;
 mod rsa;
 mod smb;
@@ -147,6 +148,7 @@ impl IntoFunctionSet for Cryptographic {
         set.add_set(misc::Misc);
         set.add_set(ntlm::Ntlm);
         set.add_set(dh::Dh);
+        set.add_set(prf::Prf);
         set
     }
 }
