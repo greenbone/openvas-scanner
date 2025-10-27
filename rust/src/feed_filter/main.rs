@@ -2,21 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-mod all_builtins;
 mod error;
 
-use all_builtins::ALL_BUILTINS;
 use clap::Parser;
 use scannerlib::models::{Scan, VT};
 use scannerlib::nasl::syntax::grammar::{Ast, Atom, Expr, FnCall, Statement};
 use scannerlib::nasl::{Code, FSPluginLoader, nasl_std_functions};
+use std::collections::HashSet;
+use std::fmt::Display;
 use std::io::{self};
 use std::path::PathBuf;
-use std::{
-    collections::{HashMap, HashSet},
-    fs,
-    path::Path,
-};
+use std::{collections::HashMap, fs, path::Path};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use walkdir::WalkDir;
 
@@ -38,58 +34,268 @@ fn init_logging() {
 struct FilterArgs {
     /// Path to the feed that should be read and filtered.
     feed_path: PathBuf,
+    /// Path to the documentation nasl builtin base directory.
+    /// The expected path looks something like /path/to/openvas-scanner/doc/manual/nasl/built-in-functions/
+    doc_path: PathBuf,
     /// Output path: If present, a copy of the feed containing only
     /// the runnable scripts will be copied to this directory. If
     /// the directory does not exist, it will be created.
+    #[clap(long)]
+    feed_out: Option<PathBuf>,
+    /// Output file: If present, a file containing statistics about
+    /// unimplemented built-in function usage will be written to this file.
+    #[clap(long)]
+    stat_out: Option<PathBuf>,
+    /// List all runnable scripts to stdout
     #[clap(short, long)]
-    output_path: Option<PathBuf>,
+    list: bool,
     /// If present, a template scan json containing the OIDs of all
     /// runnable scripts will be written to this path.
     #[clap(short, long)]
     scan_config: Option<PathBuf>,
 }
 
-struct Builtins {
-    builtins: Vec<String>,
-    counts: HashMap<String, usize>,
+#[derive(Eq, Hash, PartialEq, Clone)]
+enum BuiltinStatus {
+    Used,
+    Unused,
+    Deprecated,
 }
 
-impl Builtins {
-    fn unimplemented() -> Self {
-        let exec = nasl_std_functions();
-        let implemented: Vec<_> = exec.iter().collect();
-        let mut unimplemented: HashSet<_> = ALL_BUILTINS.iter().map(|x| x.to_string()).collect();
-        for f in implemented {
-            unimplemented.remove(f);
-        }
-        let counts = unimplemented.iter().map(|name| (name.clone(), 0)).collect();
-        Self {
-            builtins: unimplemented.into_iter().collect(),
-            counts,
-        }
-    }
+struct CategoryStats {
+    implemented: Vec<String>,
+    unimplemented: HashMap<BuiltinStatus, Vec<(String, usize)>>,
+}
 
-    fn script_is_runnable(&mut self, ast: &Ast) -> bool {
-        let mut is_runnable = true;
-        let fn_calls: Vec<&FnCall> = iter_fn_calls(ast).collect();
-        for builtin in self.builtins.iter() {
-            if fn_calls
-                .iter()
-                .any(|fn_call| fn_call.fn_name.to_string() == *builtin)
-            {
-                is_runnable = false;
-                *self.counts.get_mut(builtin).unwrap() += 1;
+struct BuiltinStats {
+    undocumented: Vec<String>,
+    categories: HashMap<String, CategoryStats>,
+}
+
+impl BuiltinStats {
+    fn new(scripts: &Scripts, builtins: &DocumentedFunctions) -> Self {
+        let mut category_stats = HashMap::new();
+        let mut undocumented = vec![];
+        let mut function_calls = HashMap::new();
+
+        for func in builtins.undocumented.iter() {
+            undocumented.push(func.clone());
+        }
+
+        for (_, script) in scripts.iter() {
+            for call in iter_fn_calls(&script.ast) {
+                let function = call.fn_name.to_string();
+                *function_calls.entry(function).or_insert(0) += 1;
             }
         }
-        is_runnable
+
+        for (func, _) in builtins.unimplemented().iter() {
+            function_calls.entry(func.clone()).or_insert(0);
+        }
+
+        for (func, _) in builtins.implemented().iter() {
+            function_calls.entry(func.clone()).or_insert(0);
+        }
+
+        for (func, calls) in function_calls.iter() {
+            if let Some((category, _)) = builtins.implemented().get(func) {
+                let stats = category_stats
+                    .entry(category.clone())
+                    .or_insert(CategoryStats {
+                        implemented: vec![],
+                        unimplemented: HashMap::new(),
+                    });
+                stats.implemented.push(func.clone());
+            } else if let Some((category, deprecated)) = builtins.unimplemented().get(func) {
+                let stats = category_stats
+                    .entry(category.clone())
+                    .or_insert(CategoryStats {
+                        implemented: vec![],
+                        unimplemented: HashMap::new(),
+                    });
+                let status = if *deprecated {
+                    BuiltinStatus::Deprecated
+                } else if *calls > 0 {
+                    BuiltinStatus::Used
+                } else {
+                    BuiltinStatus::Unused
+                };
+                stats
+                    .unimplemented
+                    .entry(status)
+                    .or_insert(vec![])
+                    .push((func.clone(), *calls));
+            }
+        }
+
+        Self {
+            undocumented,
+            categories: category_stats,
+        }
+    }
+}
+
+impl Display for BuiltinStats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "# Coverage of NASL built-in functions per Category\n")?;
+        let mut num_functions = 0;
+        let mut num_implemented = 0;
+        for (category, stats) in self.categories.iter() {
+            let num_unimplemented: usize = stats.unimplemented.values().map(|v| v.len()).sum();
+            num_functions += stats.implemented.len() + num_unimplemented;
+            num_implemented += stats.implemented.len();
+            writeln!(f, "## {}\n", category)?;
+            writeln!(f, "<b>")?;
+            writeln!(
+                f,
+                "Functions: {}\n",
+                stats.implemented.len() + num_unimplemented
+            )?;
+            writeln!(f, "Implemented: {}\n", stats.implemented.len())?;
+            writeln!(
+                f,
+                "Percentage implemented: {:.2}%",
+                (stats.implemented.len() as f64
+                    / (stats.implemented.len() + num_unimplemented) as f64)
+                    * 100.0
+            )?;
+            writeln!(f, "</b>\n")?;
+            if !stats.implemented.is_empty() {
+                writeln!(f, "### Implemented Functions\n")?;
+                for func in stats.implemented.iter() {
+                    writeln!(f, "- {}", func)?;
+                }
+                writeln!(f, "")?;
+            }
+            writeln!(f, "### Unimplemented Functions\n")?;
+            let statuses = [
+                BuiltinStatus::Used,
+                BuiltinStatus::Unused,
+                BuiltinStatus::Deprecated,
+            ];
+            for status in statuses {
+                if let Some(funcs) = stats.unimplemented.get(&status)
+                    && !funcs.is_empty()
+                {
+                    match status {
+                        BuiltinStatus::Used => {
+                            writeln!(f, "#### Used\n")?;
+                        }
+                        BuiltinStatus::Unused => {
+                            writeln!(f, "#### Unused\n")?;
+                        }
+                        BuiltinStatus::Deprecated => {
+                            writeln!(f, "#### Deprecated\n")?;
+                        }
+                    }
+                    let mut funcs = funcs.clone();
+                    funcs.sort_by(|(_, a), (_, b)| a.cmp(b));
+                    funcs.reverse();
+                    for (func, count) in funcs {
+                        writeln!(f, "- {} (used {} times)", func, count)?;
+                    }
+                    writeln!(f, "")?;
+                }
+            }
+        }
+        writeln!(f, "# Overall Coverage\n")?;
+        writeln!(f, "<b>")?;
+        writeln!(f, "Total Functions: {}\n", num_functions)?;
+        writeln!(f, "Total Implemented: {}\n", num_implemented)?;
+        writeln!(f, "Total Missing: {}\n", num_functions - num_implemented)?;
+        writeln!(
+            f,
+            "Overall Percentage implemented: {:.2}%",
+            (num_implemented as f64 / num_functions as f64) * 100.0
+        )?;
+        writeln!(f, "</b>\n")?;
+        writeln!(f, "## Undocumented Functions\n")?;
+        for func in self.undocumented.iter() {
+            writeln!(f, "- {}", func)?;
+        }
+        Ok(())
+    }
+}
+
+/// DocumentedFunctions holds implemented and unimplemented built-in functions
+struct DocumentedFunctions {
+    /// HashMap<function_name, (category, deprecated)>
+    implemented: HashMap<String, (String, bool)>,
+    /// HashMap<function_name, (category, deprecated)>
+    unimplemented: HashMap<String, (String, bool)>,
+    /// Set of undocumented functions
+    undocumented: HashSet<String>,
+}
+
+impl DocumentedFunctions {
+    fn new(doc_path: PathBuf) -> Self {
+        let mut implemented = HashMap::new();
+        let mut unimplemented = HashMap::new();
+
+        let exec = nasl_std_functions();
+        let mut implemented_funcs = exec.iter().map(|f| f.to_string()).collect::<HashSet<_>>();
+
+        for entry in fs::read_dir(doc_path).unwrap() {
+            let entry = entry.unwrap();
+            let category_path = entry.path();
+            let category = category_path
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned();
+
+            if category_path.is_dir() {
+                for func_entry in fs::read_dir(category_path).unwrap() {
+                    let func_path = func_entry.unwrap().path();
+                    let function = func_path
+                        .file_stem()
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned();
+
+                    if function == "index" {
+                        continue;
+                    }
+
+                    let content = fs::read_to_string(func_path.clone())
+                        .unwrap()
+                        .to_ascii_lowercase();
+
+                    let deprecated = content.contains("## deprecated");
+
+                    if let Some(_) = implemented_funcs.take(&function) {
+                        implemented.insert(function, (category.clone(), deprecated));
+                    } else {
+                        unimplemented.insert(function, (category.clone(), deprecated));
+                    }
+                }
+            }
+        }
+        Self {
+            implemented,
+            unimplemented,
+            undocumented: implemented_funcs,
+        }
     }
 
-    fn print_counts(&self) {
-        let mut sorted: Vec<_> = self.counts.iter().collect();
-        sorted.sort_by_key(|(_, count)| **count);
-        for (builtin, count) in sorted.iter() {
-            println!("{builtin} {count}");
+    fn implemented(&self) -> &HashMap<String, (String, bool)> {
+        &self.implemented
+    }
+
+    fn unimplemented(&self) -> &HashMap<String, (String, bool)> {
+        &self.unimplemented
+    }
+
+    fn script_is_runnable(&self, ast: &Ast) -> bool {
+        for call in iter_fn_calls(ast) {
+            let function = call.fn_name.to_string();
+            if let Some((_, deprecated)) = self.unimplemented().get(&function) {
+                if !*deprecated {
+                    return false;
+                }
+            }
         }
+        true
     }
 }
 
@@ -106,48 +312,71 @@ fn iter_fn_calls(ast: &Ast) -> impl Iterator<Item = &FnCall> {
 // poor mans TQDM
 fn progress<T>(x: Vec<T>) -> impl Iterator<Item = T> {
     let num = x.len();
-    let mut percentages: Vec<_> = (0..100).step_by(5).map(|x| x as f64).collect();
+    let mut last_whole = 0;
+    eprintln!("Reading Scripts...");
     x.into_iter().enumerate().map(move |(i, x)| {
-        let completed_fraction = i as f64 / num as f64;
-        let next_percentage = percentages.first().cloned().unwrap_or(100.0);
-        if completed_fraction * 100.0 > next_percentage {
-            percentages.remove(0);
-            println!("{next_percentage}%.");
+        let completed_fraction = (i + 1) as f64 / num as f64;
+        let percentage = (completed_fraction * 100.0) as usize;
+        if percentage > last_whole {
+            last_whole = percentage;
+            if i + 1 == num {
+                eprintln!("\rProgress: 100%");
+            } else {
+                eprint!("\rProgress: {}%", percentage);
+            }
         }
         x
     })
 }
 
+fn oid_from_ast(ast: &Ast) -> Option<String> {
+    iter_fn_calls(ast)
+        .find(|call| call.fn_name.to_string() == "script_oid")
+        .map(|call| {
+            call.args
+                .items
+                .first()
+                .unwrap()
+                .to_string()
+                .replace('\"', "")
+        })
+}
+
 type Scripts = HashMap<ScriptPath, Script>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 enum ScriptKind {
     Runnable,
     NotRunnable,
     Dependencies(Vec<ScriptPath>),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 struct Script {
     kind: ScriptKind,
+    ast: Ast,
     oid: Option<String>,
 }
 
 impl Script {
-    fn new(kind: ScriptKind, oid: Option<String>) -> Self {
-        Self { kind, oid }
+    fn new(kind: ScriptKind, ast: Ast) -> Self {
+        Self {
+            kind,
+            oid: oid_from_ast(&ast),
+            ast,
+        }
     }
 
-    fn runnable(oid: Option<String>) -> Self {
-        Self::new(ScriptKind::Runnable, oid)
+    fn runnable(ast: Ast) -> Self {
+        Self::new(ScriptKind::Runnable, ast)
     }
 
-    fn not_runnable(oid: Option<String>) -> Self {
-        Self::new(ScriptKind::NotRunnable, oid)
+    fn not_runnable(ast: Ast) -> Self {
+        Self::new(ScriptKind::NotRunnable, ast)
     }
 
-    fn dependencies(deps: Vec<ScriptPath>, oid: Option<String>) -> Self {
-        Self::new(ScriptKind::Dependencies(deps), oid)
+    fn dependencies(deps: Vec<ScriptPath>, ast: Ast) -> Self {
+        Self::new(ScriptKind::Dependencies(deps), ast)
     }
 
     fn iter_dependencies(&self) -> impl Iterator<Item = &ScriptPath> {
@@ -177,24 +406,20 @@ impl ScriptPath {
     }
 }
 
-struct ScriptReader {
-    builtins: Builtins,
+struct ScriptReader<'a> {
     feed_path: PathBuf,
     loader: FSPluginLoader,
+    builtins: &'a DocumentedFunctions,
 }
 
-impl ScriptReader {
-    fn read_scripts_from_path(feed_path: PathBuf) -> Scripts {
-        let builtins = Builtins::unimplemented();
+impl<'a> ScriptReader<'a> {
+    fn new(feed_path: PathBuf, builtins: &'a DocumentedFunctions) -> Self {
         let loader = FSPluginLoader::new(&feed_path);
-        let mut reader = Self {
-            builtins,
+        Self {
             feed_path,
             loader,
-        };
-        let scripts = reader.read_scripts();
-        reader.builtins.print_counts();
-        scripts
+            builtins,
+        }
     }
 
     fn read_scripts(&mut self) -> Scripts {
@@ -213,10 +438,6 @@ impl ScriptReader {
                 let script_path = ScriptPath::new(&self.feed_path, path);
                 if let Some(script) = self.script_from_path(path) {
                     scripts.insert(script_path, script);
-                } else {
-                    // If a script cannot be read, we assume
-                    // it's not runnable.
-                    scripts.insert(script_path, Script::not_runnable(None));
                 }
             }
         }
@@ -224,36 +445,27 @@ impl ScriptReader {
     }
 
     fn script_from_path(&mut self, path: &Path) -> Option<Script> {
-        let code = Code::load(&self.loader, path).unwrap();
-        let ast = code.parse().emit_errors().unwrap();
-        let script = self.script_from_ast(&ast);
+        let ast = self.ast_from_path(path)?;
+        let script = self.script_from_ast(ast);
         Some(script)
     }
 
-    fn script_from_ast(&mut self, ast: &Ast) -> Script {
-        let oid = self.oid_from_ast(ast);
-        let is_runnable = self.builtins.script_is_runnable(ast);
-        let dependencies = self.get_dependencies(ast);
-        if !is_runnable {
-            Script::not_runnable(oid)
-        } else if dependencies.is_empty() {
-            Script::runnable(oid)
-        } else {
-            Script::dependencies(dependencies, oid)
-        }
+    fn ast_from_path(&mut self, path: &Path) -> Option<Ast> {
+        let code = Code::load(&self.loader, path).unwrap();
+        let ast = code.parse().emit_errors().unwrap();
+        Some(ast)
     }
 
-    fn oid_from_ast(&self, ast: &Ast) -> Option<String> {
-        iter_fn_calls(ast)
-            .find(|call| call.fn_name.to_string() == "script_oid")
-            .map(|call| {
-                call.args
-                    .items
-                    .first()
-                    .unwrap()
-                    .to_string()
-                    .replace('\"', "")
-            })
+    fn script_from_ast(&mut self, ast: Ast) -> Script {
+        let is_runnable = self.builtins.script_is_runnable(&ast);
+        let dependencies = self.get_dependencies(&ast);
+        if !is_runnable {
+            Script::not_runnable(ast)
+        } else if dependencies.is_empty() {
+            Script::runnable(ast)
+        } else {
+            Script::dependencies(dependencies, ast)
+        }
     }
 
     fn get_dependencies(&self, ast: &Ast) -> Vec<ScriptPath> {
@@ -380,15 +592,22 @@ fn get_scan_config(_feed_path: &Path, runnable: &RunnableScripts) -> Scan {
 }
 
 fn run(args: FilterArgs) -> Result<(), CliError> {
-    let scripts = ScriptReader::read_scripts_from_path(args.feed_path.to_owned());
+    let builtins = DocumentedFunctions::new(args.doc_path.clone());
+    let mut reader = ScriptReader::new(args.feed_path.to_owned(), &builtins);
+    let scripts = reader.read_scripts();
+    let builtin_stats = BuiltinStats::new(&scripts, &builtins);
     let runnable = RunnableScripts::new(scripts);
-    if let Some(ref output_path) = args.output_path {
+    if let Some(ref output_path) = args.feed_out {
         copy_feed(&runnable, &args.feed_path, output_path)?;
-    } else {
+    }
+    if args.list {
         print_scripts(&runnable);
     }
     if let Some(ref scan_config) = args.scan_config {
         write_scan_config(&runnable, &args.feed_path, scan_config)?;
+    }
+    if let Some(ref stat_out) = args.stat_out {
+        fs::write(stat_out, format!("{}", builtin_stats))?;
     }
     Ok(())
 }
@@ -401,6 +620,8 @@ fn main() -> Result<(), CliError> {
 
 #[cfg(test)]
 mod tests {
+    use scannerlib::nasl::syntax::grammar::Ast;
+
     use super::{RunnableScripts, ScriptPath};
 
     use super::{Script, Scripts};
@@ -410,15 +631,15 @@ mod tests {
     }
 
     fn dependencies(paths: &[&str]) -> Script {
-        Script::dependencies(paths.iter().map(|p| path(p)).collect(), None)
+        Script::dependencies(paths.iter().map(|p| path(p)).collect(), Ast::new(vec![]))
     }
 
     fn runnable() -> Script {
-        Script::runnable(None)
+        Script::runnable(Ast::new(vec![]))
     }
 
     fn not_runnable() -> Script {
-        Script::not_runnable(None)
+        Script::not_runnable(Ast::new(vec![]))
     }
 
     fn make_scripts(scripts: &[(&str, Script)]) -> Scripts {
@@ -447,13 +668,31 @@ mod tests {
     fn transitive_resolution() {
         let scripts = [
             ("a1", runnable()),
-            ("b1", Script::dependencies(vec![path("a1")], None)),
-            ("c1", Script::dependencies(vec![path("b1")], None)),
-            ("d1", Script::dependencies(vec![path("c1")], None)),
+            (
+                "b1",
+                Script::dependencies(vec![path("a1")], Ast::new(vec![])),
+            ),
+            (
+                "c1",
+                Script::dependencies(vec![path("b1")], Ast::new(vec![])),
+            ),
+            (
+                "d1",
+                Script::dependencies(vec![path("c1")], Ast::new(vec![])),
+            ),
             ("a2", not_runnable()),
-            ("b2", Script::dependencies(vec![path("a2")], None)),
-            ("c2", Script::dependencies(vec![path("b2")], None)),
-            ("d2", Script::dependencies(vec![path("c2")], None)),
+            (
+                "b2",
+                Script::dependencies(vec![path("a2")], Ast::new(vec![])),
+            ),
+            (
+                "c2",
+                Script::dependencies(vec![path("b2")], Ast::new(vec![])),
+            ),
+            (
+                "d2",
+                Script::dependencies(vec![path("c2")], Ast::new(vec![])),
+            ),
         ];
         let resolved = RunnableScripts::resolve(make_scripts(&scripts));
         assert!(resolved[&path("a1")].is_runnable());
