@@ -11,7 +11,7 @@ use scannerlib::{
         Lambda, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
         preferences,
     },
-    storage::redis::{RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisWrapper},
+    storage::redis::{CACHE_KEY, RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisWrapper},
 };
 use sqlx::{QueryBuilder, Row, SqlitePool, query, query_scalar};
 use tokio::{
@@ -615,8 +615,8 @@ async fn synchronize_redis_feed(pool: &SqlitePool, redis_url: &str, feed_version
 
     let mut vtc = vtc.write().await;
     if let Err(error) = vtc
-        .del("nvticache")
-        .and_then(move |_| vtc.rpush("nvticache", &[&feed_version]))
+        .del(CACHE_KEY)
+        .and_then(move |_| vtc.rpush(CACHE_KEY, &[&feed_version]))
     {
         tracing::warn!(%error, "Unable set nvticache for openvas. Scans might be unavailable");
     }

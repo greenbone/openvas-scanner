@@ -19,7 +19,7 @@ use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
-use crate::storage::items::nvt::{Feed, FeedVersion, FileName, Nvt};
+use crate::storage::items::nvt::{Feed, FeedVersion, FileName};
 use crate::storage::items::nvt::{NvtField, Oid};
 use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::redis::{
@@ -27,6 +27,8 @@ use crate::storage::redis::{
 };
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
+//TODO: rename
+use greenbone_scanner_framework::models::VTData;
 use std::collections::BTreeSet;
 use std::sync::MutexGuard;
 
@@ -241,11 +243,11 @@ pub trait ContextStorage:
     + Retriever<ScanID, Item = Vec<ResultItem>>
     + Remover<ScanID, Item = Vec<ResultItem>>
     // nvt
-    + Dispatcher<FileName, Item = Nvt>
+    + Dispatcher<FileName, Item = VTData>
     + Dispatcher<FeedVersion, Item = String>
     + Retriever<FeedVersion, Item = String>
-    + Retriever<Feed, Item = Vec<Nvt>>
-    + Retriever<Oid, Item = Nvt> + Retriever<FileName, Item = Nvt>
+    + Retriever<Feed, Item = Vec<VTData>>
+    + Retriever<Oid, Item = VTData> + Retriever<FileName, Item = VTData>
 {
     /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
     /// KbKey, the value is appended to the existing list. This function is used to replace the
@@ -279,7 +281,7 @@ pub struct ScanCtx<'a> {
     /// Function executor.
     executor: &'a Executor,
     /// NVT object, which is put into the storage, when set
-    nvt: Mutex<Option<Nvt>>,
+    nvt: Mutex<Option<VTData>>,
     sockets: RwLock<NaslSockets>,
     /// Scanner preferences
     pub scan_preferences: ScanPrefs,
@@ -385,31 +387,31 @@ impl<'a> ScanCtx<'a> {
         let mut nvt = self.nvt.lock().unwrap();
         match nvt.as_mut() {
             Some(nvt) => {
-                nvt.set_from_field(field);
+                field.move_to_data(nvt);
             }
             _ => {
-                let mut new = Nvt {
+                let mut new = VTData {
                     filename: self.filename().to_string_lossy().to_string(),
                     ..Default::default()
                 };
-                new.set_from_field(field);
+                field.move_to_data(&mut new);
                 *nvt = Some(new);
             }
         }
     }
 
-    fn dispatch_nvt(&self, nvt: Nvt) {
+    fn dispatch_nvt(&self, nvt: VTData) {
         self.storage
             .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
             .unwrap();
     }
 
-    pub fn set_nvt(&self, vt: Nvt) {
+    pub fn set_nvt(&self, vt: VTData) {
         let mut nvt = self.nvt.lock().unwrap();
         *nvt = Some(vt);
     }
 
-    pub fn nvt(&self) -> MutexGuard<'_, Option<Nvt>> {
+    pub fn nvt(&self) -> MutexGuard<'_, Option<VTData>> {
         self.nvt.lock().unwrap()
     }
 

@@ -159,6 +159,23 @@ ID_LIKE=debian"#;
     }
 
     #[tokio::test]
+    async fn test_eulerosv2() {
+        let content = r#"
+        Name="EulerOS"
+        VERSION="2.0 (SP12)"
+        ID="euleros"
+        VERSION_ID="2.0"
+        PRETTY_NAME="EulerOS 2.0 (SP12)"
+        ANSI_COLOR="0;31"
+        "#;
+        let detector = OperatingSystemDetector::from(content);
+        let os = detector.detect_operating_system().await.unwrap();
+        assert_eq!(os.name, "euleros");
+        assert_eq!(os.version_id, "2.0");
+        assert_eq!(os.version, "2.0 (SP12)");
+    }
+
+    #[tokio::test]
     async fn test_os_detection_debian() {
         let content = r#"PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
     NAME="Debian GNU/Linux"

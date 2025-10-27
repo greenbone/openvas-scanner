@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use crate::storage::items::nvt::Nvt;
+use greenbone_scanner_framework::models::VTData;
 
 use super::{ExecutionPlan, RuntimeVT, VTError};
 
@@ -38,7 +38,7 @@ impl WaveExecutionPlan {
         }
     }
 
-    fn find_index(&self, vt: &Nvt) -> Option<usize> {
+    fn find_index(&self, vt: &VTData) -> Option<usize> {
         if vt.dependencies.is_empty() {
             Some(0)
         } else {
@@ -72,7 +72,7 @@ impl ExecutionPlan for WaveExecutionPlan {
     fn append_vt(
         &mut self,
         vt: RuntimeVT,
-        dependencies: &HashMap<String, Nvt>,
+        dependencies: &HashMap<String, VTData>,
     ) -> Result<(), VTError> {
         if !self.dependencies_added {
             self.dependencies_added = true;
@@ -149,7 +149,8 @@ mod tests {
     use crate::storage::inmemory::InMemoryStorage;
 
     use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, SchedulerStorage, Stage};
-    use crate::storage::items::nvt::{ACT, FileName, Nvt};
+    use crate::storage::items::nvt::{ACT, FileName};
+    use greenbone_scanner_framework::models::VTData;
 
     use super::WaveExecutionPlan;
     use crate::storage::Dispatcher;
@@ -209,12 +210,12 @@ mod tests {
             oid_gen: &mut OidGenerator,
             amount: usize,
             f: &dyn Fn(usize) -> ACT,
-        ) -> Vec<Nvt> {
+        ) -> Vec<VTData> {
             (0..amount)
                 .map(|i| {
                     let oid = oid_gen.generate(0);
 
-                    Nvt {
+                    VTData {
                         oid: oid.clone(),
                         category: f(i),
                         filename: format!("/{oid}"),
@@ -223,7 +224,7 @@ mod tests {
                 })
                 .collect::<Vec<_>>()
         }
-        fn generate(&self) -> Vec<Nvt> {
+        fn generate(&self) -> Vec<VTData> {
             let mut oid_gen = OidGenerator { latest_number: 0 };
             let mut results =
                 Self::generate_stage(&mut oid_gen, self.discovery, &Self::pick_discovery_stage);
@@ -245,8 +246,8 @@ mod tests {
             oid_gen: &mut OidGenerator,
             lowest: usize,
             f: &dyn Fn(usize) -> ACT,
-        ) -> Vec<Nvt> {
-            let mut results: Vec<Nvt> = Vec::with_capacity(lowest * (lowest + 1) / 2);
+        ) -> Vec<VTData> {
+            let mut results: Vec<VTData> = Vec::with_capacity(lowest * (lowest + 1) / 2);
             for i in (0..=lowest).rev() {
                 let mut dependencies = Self::generate_stage(oid_gen, i, f);
                 if i != lowest {
@@ -265,7 +266,7 @@ mod tests {
             results
         }
 
-        fn generate_pyramid(&self) -> Vec<Nvt> {
+        fn generate_pyramid(&self) -> Vec<VTData> {
             let mut oid_gen = OidGenerator { latest_number: 0 };
             let mut results = Self::generate_pyramid_stage(
                 &mut oid_gen,
@@ -296,8 +297,8 @@ mod tests {
         pick: F2,
     ) -> Result<Vec<ConcurrentVTResult>, super::VTError>
     where
-        F: Fn() -> Vec<Nvt>,
-        F2: Fn(Vec<Nvt>) -> Vec<Nvt>,
+        F: Fn() -> Vec<VTData>,
+        F2: Fn(Vec<VTData>) -> Vec<VTData>,
     {
         let nvts = vt_gen();
         let storage = InMemoryStorage::new();
@@ -326,8 +327,8 @@ mod tests {
 
     fn create_results<F, F2>(vt_gen: F, pick: F2) -> Vec<ConcurrentVTResult>
     where
-        F: Fn() -> Vec<Nvt>,
-        F2: Fn(Vec<Nvt>) -> Vec<Nvt>,
+        F: Fn() -> Vec<VTData>,
+        F2: Fn(Vec<VTData>) -> Vec<VTData>,
     {
         create_results_iter(vt_gen, pick).expect("expected results")
     }

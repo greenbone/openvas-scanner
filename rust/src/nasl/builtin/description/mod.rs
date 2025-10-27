@@ -4,11 +4,11 @@
 
 use std::str::FromStr;
 
+use greenbone_scanner_framework::models::PreferenceType;
+
 use crate::nasl::prelude::*;
 
-use crate::storage::items::nvt::{
-    NvtField, NvtPreference, NvtRef, PreferenceType, TagKey, TagValue,
-};
+use crate::storage::items::nvt::{NvtField, NvtPreference, NvtRef, TagKey, TagValue};
 
 /// Makes a storage function based on a very small DSL.
 ///

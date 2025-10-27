@@ -1,35 +1,72 @@
-use std::io::BufReader;
 use std::path::PathBuf;
 
 use super::FeedHashes;
 use super::Plugin;
 use super::error_vts_error;
-use super::sumfile_hash;
 use futures::StreamExt;
-use greenbone_scanner_framework::GetVTsError;
 use scannerlib::PinBoxFut;
-use scannerlib::feed;
 use scannerlib::models::FeedType;
-use scannerlib::models::VTData;
-use scannerlib::nasl::FSPluginLoader;
-use scannerlib::notus::AdvisoryLoader;
-use scannerlib::notus::HashsumAdvisoryLoader;
-use scannerlib::notus::advisories::VulnerabilityData;
 use sqlx::Row;
 use sqlx::SqlitePool;
 use sqlx::query;
 use sqlx::sqlite::SqliteRow;
 
 use crate::config::Config;
-use crate::json_stream;
 use crate::vts::FeedHash;
+use crate::vts::PluginStorer;
 use crate::vts::orchestrator;
+use crate::vts::orchestrator::WorkerError;
 
 pub struct FeedSynchronizer {
     pool: SqlitePool,
     plugin_feed: PathBuf,
     advisory_feed: PathBuf,
     signature_check: bool,
+    plugin_storer: SqlPluginStorer,
+}
+
+#[derive(Debug, Clone)]
+pub struct SqlPluginStorer {
+    pool: SqlitePool,
+}
+
+impl PluginStorer for SqlPluginStorer {
+    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> PinBoxFut<Result<(), WorkerError>>
+    where
+        T: Plugin + Send + Sync + 'static,
+    {
+        let pool = self.pool.clone();
+        let typus = hash.typus;
+        Box::pin(async move {
+            let json = serde_json::to_vec(&plugin).map_err(error_vts_error)?;
+            query(r#" INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)"#)
+                .bind(plugin.oid())
+                .bind(&json)
+                .bind(typus.as_ref())
+                .execute(&pool)
+                .await
+                .map_err(error_vts_error)?;
+
+            Ok(())
+        })
+    }
+
+    fn store_hash(&self, hash: &FeedHash) -> PinBoxFut<Result<(), WorkerError>> {
+        let pool = self.pool.clone();
+        let path = hash.path.to_str().unwrap_or_default().to_string();
+        let ht = hash.typus;
+        let hash = hash.hash.clone();
+        Box::pin(async move {
+            query("INSERT OR REPLACE INTO feed (hash, path, type) VALUES (?, ?, ?)")
+                .bind(hash)
+                .bind(path)
+                .bind(ht.as_ref())
+                .execute(&pool)
+                .await
+                .map_err(error_vts_error)?;
+            Ok(())
+        })
+    }
 }
 
 impl orchestrator::Worker for FeedSynchronizer {
@@ -59,232 +96,46 @@ impl orchestrator::Worker for FeedSynchronizer {
         })
     }
 
-    fn calculated_hashes(&self) -> PinBoxFut<Result<FeedHashes, orchestrator::WorkerError>> {
-        let signature_check = self.signature_check;
-        let plugin_feed = self.plugin_feed.clone();
-        let advisory_feed = self.advisory_feed.clone();
-        Box::pin(async move {
-            let nasl_hash = Self::calculate_hash(signature_check, plugin_feed).await?;
-            let advisories_hash = Self::calculate_hash(signature_check, advisory_feed).await?;
-            Ok((nasl_hash, advisories_hash))
-        })
-    }
-
     fn update_feed(
         &self,
         kind: FeedType,
         new_hash: String,
     ) -> PinBoxFut<Result<(), orchestrator::WorkerError>> {
-        let pool = self.pool.clone();
-        let adv_path = self.advisory_feed.clone();
-        let nasl_path = self.plugin_feed.clone();
-        Box::pin(async move {
-            match kind {
-                FeedType::Products => tracing::debug!(?kind, "Not supported, ignoring."),
-                FeedType::Advisories => {
-                    Self::synchronize_advisories(&pool, adv_path, new_hash).await?
-                }
-                FeedType::NASL => Self::synchronize_plugins(&pool, nasl_path, new_hash).await?,
-            };
-            Ok(())
-        })
+        let ps = self.plugin_storer.clone();
+        let path = match kind {
+            FeedType::Products | FeedType::Advisories => self.advisory_feed(),
+            FeedType::NASL => self.plugin_feed(),
+        };
+        let feed_hash = FeedHash {
+            hash: new_hash,
+            path,
+            typus: kind,
+        };
+        Box::pin(async move { super::synchronize_feed(&ps, feed_hash).await })
+    }
+
+    fn signature_check(&self) -> bool {
+        self.signature_check
+    }
+
+    fn plugin_feed(&self) -> PathBuf {
+        self.plugin_feed.clone()
+    }
+
+    fn advisory_feed(&self) -> PathBuf {
+        self.advisory_feed.clone()
     }
 }
 
 impl FeedSynchronizer {
     pub fn new(pool: SqlitePool, config: &Config) -> Self {
         Self {
-            pool,
+            pool: pool.clone(),
             plugin_feed: config.feed.path.clone(),
             advisory_feed: config.notus.advisories_path.clone(),
             signature_check: config.feed.signature_check,
+            plugin_storer: SqlPluginStorer { pool },
         }
-    }
-
-    async fn calculate_hash(
-        signature_check: bool,
-        path: PathBuf,
-    ) -> Result<String, feed::VerifyError> {
-        tokio::task::spawn_blocking(move || {
-            if signature_check {
-                scannerlib::feed::check_signature(&path)?;
-            }
-            sumfile_hash(&path)
-        })
-        .await
-        .unwrap()
-    }
-
-    async fn insert_feed_hash(
-        pool: &SqlitePool,
-        path: &str,
-        typus: FeedType,
-        new_hash: &str,
-    ) -> Result<(), sqlx::Error> {
-        query("INSERT OR REPLACE INTO feed (hash, path, type) VALUES (?, ?, ?)")
-            .bind(new_hash)
-            .bind(path)
-            .bind(typus.as_ref())
-            .execute(pool)
-            .await?;
-        Ok(())
-    }
-
-    async fn store_plugin<T>(
-        pool: &SqlitePool,
-        feed_hash: &FeedHash,
-        plugin: T,
-    ) -> Result<(), GetVTsError>
-    where
-        T: Plugin,
-    {
-        let json = serde_json::to_vec(&plugin).map_err(error_vts_error)?;
-        query(r#" INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)"#)
-            .bind(plugin.oid())
-            .bind(&json)
-            .bind(feed_hash.typus.as_ref())
-            .execute(pool)
-            .await
-            .map_err(error_vts_error)?;
-
-        Ok(())
-    }
-
-    async fn synchronize_json<F, T>(
-        pool: &SqlitePool,
-        hash: &FeedHash,
-        f: F,
-    ) -> Result<(), GetVTsError>
-    where
-        F: Fn(std::sync::mpsc::Sender<T>) -> Result<(), GetVTsError> + Send + 'static,
-        T: Plugin + Send + Sync + 'static,
-    {
-        let (tx_async, mut rx_async) = tokio::sync::mpsc::channel::<T>(1);
-
-        let (tx_blocking, rx_blocking) = std::sync::mpsc::channel::<T>();
-
-        // background task to bridge between sync and async.
-        // If we don't do that we may block the runtime
-        let forwarder = tokio::spawn(async move {
-            for item in rx_blocking {
-                if tx_async.send(item).await.is_err() {
-                    break;
-                }
-            }
-        });
-
-        let serde_handler = tokio::task::spawn_blocking(move || f(tx_blocking));
-
-        while let Some(plugin) = rx_async.recv().await {
-            Self::store_plugin(pool, hash, plugin).await?;
-        }
-
-        serde_handler
-            .await
-            .expect("tokio::task::spawn_blocking to be executed to run")
-            .map_err(error_vts_error)?;
-        forwarder
-            .await
-            .expect("tokio::task::spawn_blocking to be executed to run");
-
-        Ok(())
-    }
-
-    async fn synchronize_plugins(
-        pool: &SqlitePool,
-        mut path: PathBuf,
-        new_hash: String,
-    ) -> Result<(), GetVTsError> {
-        Self::insert_feed_hash(
-            pool,
-            path.to_str().unwrap_or_default(),
-            FeedType::NASL,
-            &new_hash,
-        )
-        .await
-        .map_err(error_vts_error)?;
-        let not_found = || {
-            GetVTsError::External(Box::new(std::io::Error::other(
-                "vt-metadata.json not found",
-            )))
-        };
-        // if a feedpath is provided we expect a vt-metadata.json
-        // if it is not a dir we assume it is the json file and continue
-        if path.is_dir() {
-            // TODO: validate hash_sum if required? For that we would need load the sha256sums, find
-            // vt-metadata.json and then verify the sha256sum
-            path.push("vt-metadata.json");
-            if !path.is_file() {
-                return Err(not_found());
-            }
-        }
-        let hash = FeedHash {
-            hash: new_hash,
-            path: path.clone(),
-            typus: FeedType::NASL,
-        };
-
-        Self::synchronize_json(pool, &hash, move |sender| {
-            let file = std::fs::File::open(&path).map_err(|_| not_found())?;
-            let reader = BufReader::new(file);
-            for element in json_stream::iter_json_array::<VTData, _>(reader).filter_map(|x| x.ok())
-            {
-                if sender.send(element).is_err() {
-                    break;
-                }
-            }
-
-            Ok(())
-        })
-        .await
-    }
-    // TODO: create struct to simplify parameter?
-    async fn synchronize_advisories(
-        pool: &SqlitePool,
-        path: PathBuf,
-        new_hash: String,
-    ) -> Result<(), GetVTsError> {
-        Self::insert_feed_hash(
-            pool,
-            path.to_str().unwrap_or_default(),
-            FeedType::Advisories,
-            &new_hash,
-        )
-        .await
-        .map_err(error_vts_error)?;
-        let hash = FeedHash {
-            hash: new_hash,
-            path: path.clone(),
-            typus: FeedType::Advisories,
-        };
-
-        Self::synchronize_json::<_, VulnerabilityData>(pool, &hash, move |sender| {
-            let loader = FSPluginLoader::new(&path);
-            let advisories_files =
-                HashsumAdvisoryLoader::new(loader.clone()).map_err(error_vts_error)?;
-            for filename in advisories_files
-                .get_advisories()
-                .map_err(error_vts_error)?
-                .iter()
-            {
-                let advisories = advisories_files
-                    .load_advisory(filename)
-                    .map_err(error_vts_error)?;
-                for adv in advisories.advisories {
-                    let data = VulnerabilityData {
-                        adv,
-                        family: advisories.family.clone(),
-                        filename: filename.to_owned(),
-                    };
-
-                    if sender.send(data).is_err() {
-                        break;
-                    }
-                }
-            }
-            Ok(())
-        })
-        .await
     }
 }
 
@@ -293,7 +144,7 @@ mod tests {
 
     use std::sync::{Arc, RwLock};
 
-    use greenbone_scanner_framework::GetVts;
+    use greenbone_scanner_framework::{GetVTsError, GetVts};
     use scannerlib::{container_image_scanner::endpoints::vts::VTEndpoints, models::FeedState};
 
     use crate::setup_sqlite;

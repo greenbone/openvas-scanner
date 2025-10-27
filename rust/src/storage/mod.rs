@@ -10,8 +10,6 @@ pub mod inmemory;
 pub mod items;
 pub mod redis;
 
-mod time;
-
 use std::{fmt::Display, sync::Arc};
 
 use error::StorageError;

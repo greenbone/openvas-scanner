@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use greenbone_scanner_framework::models::VtDataError;
 use thiserror::Error;
 
 use crate::nasl::builtin::BuiltinError;
@@ -38,6 +39,12 @@ impl FnError {
             return_behavior: ReturnBehavior::ExitScript,
             retryable: false,
         }
+    }
+}
+
+impl From<VtDataError> for FnError {
+    fn from(value: VtDataError) -> Self {
+        Self::from(ArgumentError::WrongArgument(value.to_string()))
     }
 }
 

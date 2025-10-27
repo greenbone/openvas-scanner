@@ -11,6 +11,7 @@ use get_scans_id_status::GetScansIdStatusHandler;
 use get_scans_preferences::GetScansPreferencesHandler;
 use get_vts::GetVTsHandler;
 use hyper_util::rt::{TokioExecutor, TokioIo};
+pub mod time;
 
 mod delete_scans_id;
 pub mod entry;
