@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -21,6 +22,7 @@ pub struct Communicator {
 }
 
 impl Communicator {
+    #[cfg(test)]
     pub fn init() -> (mpsc::Sender<FeedStatusChange>, mpsc::Receiver<Allow>, Self) {
         let (txsc, rx) = mpsc::channel(1);
         let (tx, rxallow) = mpsc::channel(2);
@@ -134,14 +136,46 @@ pub enum WorkerError {
     Calculation(#[from] feed::VerifyError),
     #[error("Unable to synchronize: {0}")]
     Sync(#[from] GetVTsError),
+    #[error("Unable to serialize: {0}")]
+    Serialization(#[from] serde_json::Error),
     #[error("Unable to send message. Receiver dropped.")]
     Send,
 }
 
 pub trait Worker {
     fn cached_hashes(&self) -> PinBoxFut<Result<Option<FeedHashes>, WorkerError>>;
-    fn calculated_hashes(&self) -> PinBoxFut<Result<FeedHashes, WorkerError>>;
+
+    fn signature_check(&self) -> bool;
+    fn plugin_feed(&self) -> PathBuf;
+    fn advisory_feed(&self) -> PathBuf;
+
+    fn calculated_hashes(&self) -> PinBoxFut<Result<FeedHashes, WorkerError>> {
+        let signature_check = self.signature_check();
+        let plugin_feed = self.plugin_feed();
+        let advisory_feed = self.advisory_feed();
+        Box::pin(async move {
+            let nasl_hash = Self::calculate_hash(signature_check, plugin_feed).await?;
+            let advisories_hash = Self::calculate_hash(signature_check, advisory_feed).await?;
+            Ok((nasl_hash, advisories_hash))
+        })
+    }
     fn update_feed(&self, kind: FeedType, new_hash: String) -> PinBoxFut<Result<(), WorkerError>>;
+
+    fn calculate_hash(
+        signature_check: bool,
+        path: PathBuf,
+    ) -> PinBoxFut<Result<String, feed::VerifyError>> {
+        Box::pin(async move {
+            tokio::task::spawn_blocking(move || {
+                if signature_check {
+                    scannerlib::feed::check_signature(&path)?;
+                }
+                super::sumfile_hash(&path)
+            })
+            .await
+            .unwrap()
+        })
+    }
 }
 
 pub struct Orchestrator<W> {
@@ -344,6 +378,18 @@ pub mod test {
 
         fn update_feed(&self, _: FeedType, _: String) -> PinBoxFut<Result<(), WorkerError>> {
             Box::pin(async move { Ok(()) })
+        }
+
+        fn signature_check(&self) -> bool {
+            false
+        }
+
+        fn plugin_feed(&self) -> PathBuf {
+            PathBuf::default()
+        }
+
+        fn advisory_feed(&self) -> PathBuf {
+            PathBuf::default()
         }
     }
 

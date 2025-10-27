@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use greenbone_scanner_framework::models::PreferenceType::Password;
+use greenbone_scanner_framework::models::VTData;
+
 use crate::storage::Retriever;
 use crate::storage::inmemory::InMemoryStorage;
-use crate::storage::items::nvt::{
-    ACT::Denial, FileName, Nvt, NvtPreference, NvtRef, PreferenceType::Password, TagKey,
-};
+use crate::storage::items::nvt::{ACT::Denial, FileName, NvtPreference, NvtRef, TagKey};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -55,7 +56,7 @@ if(description)
     let nvt = storage.retrieve(&key).unwrap().unwrap();
     assert_eq!(
         nvt,
-        Nvt {
+        VTData {
             oid: "0.0.0.0.0.0.0.0.0.1".into(),
             name: "that is a very long and descriptive name".into(),
             filename: "test.nasl".into(),

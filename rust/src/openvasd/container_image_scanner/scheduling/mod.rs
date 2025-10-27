@@ -20,10 +20,8 @@ use tokio::{
 };
 use tracing::{debug, warn};
 
-use crate::{
-    container_image_scanner,
-    notus::{HashsumProductLoader, Notus},
-};
+use crate::container_image_scanner;
+use scannerlib::notus::{HashsumProductLoader, Notus};
 
 mod db;
 mod scanner;

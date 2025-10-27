@@ -9,6 +9,11 @@ use std::{
 };
 
 use futures::StreamExt;
+use scannerlib::nasl::{
+    FSPluginLoader, Loader, NaslValue, WithErrorInfo,
+    interpreter::InterpreterErrorKind,
+    syntax::{LoadError, load_non_utf8_path},
+};
 use scannerlib::{
     feed,
     nasl::{
@@ -28,14 +33,8 @@ use scannerlib::{
     },
 };
 use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
-use scannerlib::{
-    nasl::{
-        FSPluginLoader, Loader, NaslValue, WithErrorInfo,
-        interpreter::InterpreterErrorKind,
-        syntax::{LoadError, load_non_utf8_path},
-    },
-    storage::items::nvt::Nvt,
-};
+
+use greenbone_scanner_framework::models::VTData;
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 
@@ -114,7 +113,7 @@ fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliE
     let buf = fs::read_to_string(path).map_err(|e| {
         CliErrorKind::LoadError(LoadError::Dirty(format!("{e}"))).with(Filename(path))
     })?;
-    let vts: Vec<Nvt> = serde_json::from_str(&buf)?;
+    let vts: Vec<VTData> = serde_json::from_str(&buf)?;
     let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();
 
     store

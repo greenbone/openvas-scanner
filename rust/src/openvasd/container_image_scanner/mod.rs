@@ -15,7 +15,7 @@ pub mod endpoints;
 mod image;
 mod notus;
 mod scheduling;
-pub(crate) use crate::{ExternalError, PinBoxFut, PinBoxFutRef, Streamer};
+pub(crate) use scannerlib::{ExternalError, PinBoxFut, PinBoxFutRef, Streamer};
 
 /// combines slices on compile time
 #[macro_export]
@@ -74,14 +74,16 @@ trait ParsePreferences<T> {
     }
 }
 
-static MIGRATOR: Migrator = sqlx::migrate!("./src/container_image_scanner/migrations");
+static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scanner/migrations");
 
 use endpoints::scans::Scans;
 //TODO: move endpoints to openvasd?
 use endpoints::vts::VTEndpoints;
 use sqlx::SqlitePool;
 
-use crate::notus::{HashsumProductLoader, Notus};
+use scannerlib::notus::{HashsumProductLoader, Notus};
+
+use crate::vts::sql::SqlPluginStorage;
 pub async fn init(
     vt_pool: SqlitePool,
     feed_state: Arc<RwLock<FeedState>>,
@@ -109,6 +111,10 @@ pub async fn init(
         pool,
         scheduling: sender,
     };
-    let vts = VTEndpoints::new(vt_pool, feed_state, Some(scan.prefix()));
+    let vts = VTEndpoints::new(
+        SqlPluginStorage::from(vt_pool),
+        feed_state,
+        Some(scan.prefix()),
+    );
     Ok((scan, vts))
 }

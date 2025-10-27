@@ -2,11 +2,7 @@ use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
-use scannerlib::{
-    SQLITE_LIMIT_VARIABLE_NUMBER,
-    models::{FeedState, ResultType},
-    scanner,
-};
+use scannerlib::{SQLITE_LIMIT_VARIABLE_NUMBER, models::ResultType, scanner};
 use sqlx::{
     Acquire, QueryBuilder, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow,
 };
@@ -691,17 +687,10 @@ pub async fn init(
     pool: SqlitePool,
     config: &Config,
     feed_status: orchestrator::Communicator,
-    feed_snapshot: Arc<std::sync::RwLock<FeedState>>,
 ) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
     let crypter = Arc::new(config_to_crypt(config));
-    let scheduler_sender = scheduling::init(
-        pool.clone(),
-        crypter.clone(),
-        config,
-        feed_status,
-        feed_snapshot,
-    )
-    .await?;
+    let scheduler_sender =
+        scheduling::init(pool.clone(), crypter.clone(), config, feed_status).await?;
     Ok(Endpoints {
         pool,
         crypter,
@@ -725,10 +714,7 @@ mod tests {
         },
         prelude::PostScansId,
     };
-    use scannerlib::{
-        models::{FeedState, Phase},
-        scanner,
-    };
+    use scannerlib::{models::Phase, scanner};
     use sqlx::SqlitePool;
 
     use crate::{
@@ -738,15 +724,9 @@ mod tests {
     };
 
     async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {
-        let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Synced(
-            "0".into(),
-            "2".into(),
-        )));
         let ignored = Default::default();
 
-        super::init(pool, config, ignored, feed_snapshot)
-            .await
-            .unwrap()
+        super::init(pool, config, ignored).await.unwrap()
     }
 
     fn generate_hosts() -> Vec<Vec<String>> {

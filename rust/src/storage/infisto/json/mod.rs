@@ -14,10 +14,12 @@ use crate::storage::{
     inmemory::kb::InMemoryKbStorage,
     items::{
         kb::{GetKbContextKey, KbContextKey, KbItem},
-        nvt::{Feed, FeedVersion, FileName, Nvt, Oid},
+        nvt::{Feed, FeedVersion, FileName, Oid},
         result::{ResultContextKeySingle, ResultItem},
     },
 };
+
+use greenbone_scanner_framework::models::VTData;
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -72,7 +74,7 @@ where
     }
 }
 
-/// It will transform a Nvt to json and write it into the given Writer.
+/// It will transform a VTData to json and write it into the given Writer.
 pub struct JsonStorage<W: Write> {
     w: Mutex<W>,
     kbs: InMemoryKbStorage,
@@ -89,7 +91,7 @@ where
         }
     }
 
-    fn as_json(&self, nvt: Nvt) -> Result<(), storage::StorageError> {
+    fn as_json(&self, nvt: VTData) -> Result<(), storage::StorageError> {
         let mut context = self.w.lock()?;
         serde_json::to_vec(&nvt)
             .map_err(|e| StorageError::Dirty(format!("{e:?}")))
@@ -126,7 +128,7 @@ impl<S: Write> Remover<KbContextKey> for JsonStorage<S> {
 }
 
 impl<S: Write> Dispatcher<FileName> for JsonStorage<S> {
-    type Item = Nvt;
+    type Item = VTData;
     fn dispatch(&self, _: FileName, item: Self::Item) -> Result<(), StorageError> {
         self.as_json(item)
     }
@@ -148,21 +150,21 @@ impl<S: Write> Retriever<FeedVersion> for JsonStorage<S> {
 }
 
 impl<S: Write> Retriever<Feed> for JsonStorage<S> {
-    type Item = Vec<Nvt>;
+    type Item = Vec<VTData>;
     fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
 impl<S: Write> Retriever<Oid> for JsonStorage<S> {
-    type Item = Nvt;
+    type Item = VTData;
     fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
 impl<S: Write> Retriever<FileName> for JsonStorage<S> {
-    type Item = Nvt;
+    type Item = VTData;
     fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
@@ -204,10 +206,11 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::storage::items::nvt::{
-        ACT, NvtPreference, NvtRef, PreferenceType,
+        ACT, NvtPreference, NvtRef,
         TagKey::{self, *},
         TagValue,
     };
+    use greenbone_scanner_framework::models::PreferenceType;
 
     use super::*;
 
@@ -283,8 +286,8 @@ mod tests {
         })
         .collect()
     }
-    fn generate_nvt(name: &str, category: ACT) -> Nvt {
-        Nvt {
+    fn generate_nvt(name: &str, category: ACT) -> VTData {
+        VTData {
             oid: name_to_oid_fake(name),
             name: "zeroone".to_owned(),
             filename: "zeroone.nasl".to_owned(),
@@ -316,7 +319,7 @@ mod tests {
         let dispatcher = JsonStorage::new(&mut buf);
         dispatcher.as_json(nvt.clone()).unwrap();
         let single_json = String::from_utf8(buf).unwrap();
-        let result: Nvt = serde_json::from_str(&single_json).unwrap();
+        let result: VTData = serde_json::from_str(&single_json).unwrap();
         assert_eq!(result, nvt);
     }
 
@@ -347,7 +350,7 @@ mod tests {
         ja.end().unwrap();
 
         let json_arr = String::from_utf8(buf).unwrap();
-        let result: Vec<Nvt> = serde_json::from_str(&json_arr).unwrap();
+        let result: Vec<VTData> = serde_json::from_str(&json_arr).unwrap();
         assert_eq!(result.len(), 11);
     }
 }

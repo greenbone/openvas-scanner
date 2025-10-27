@@ -127,8 +127,8 @@ pub struct SqliteConfiguration {
     )]
     pub location: DBLocation,
     #[serde(
-        deserialize_with = "crate::utils::duration::deserialize",
-        serialize_with = "crate::utils::duration::serialize"
+        deserialize_with = "scannerlib::utils::duration::deserialize",
+        serialize_with = "scannerlib::utils::duration::serialize"
     )]
     pub busy_timeout: Duration,
     pub max_connections: u32,

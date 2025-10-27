@@ -6,18 +6,16 @@ use sqlx::Sqlite;
 use tokio::sync::RwLock;
 
 use super::db;
-use crate::{
-    container_image_scanner::{
-        Config, ExternalError, detection,
-        image::{
-            Image, ImageParseError, Registry,
-            extractor::{self, Extractor, Locator},
-            packages::ToNotus,
-        },
-        notus,
+use crate::container_image_scanner::{
+    Config, ExternalError, detection,
+    image::{
+        Image, ImageParseError, Registry,
+        extractor::{self, Extractor, Locator},
+        packages::ToNotus,
     },
-    notus::{HashsumProductLoader, Notus},
+    notus,
 };
+use scannerlib::notus::{HashsumProductLoader, Notus};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScannerArchImageError {

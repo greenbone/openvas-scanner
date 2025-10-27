@@ -11,10 +11,10 @@ use std::{
     time::Duration,
 };
 
+use crate::container_image_scanner::config::{DBLocation, SqliteConfiguration};
 use clap::{ArgAction, builder::TypedValueParser};
 use logging::SerLevel;
 use scannerlib::{
-    container_image_scanner::config::{DBLocation, SqliteConfiguration},
     models::PreferenceValue,
     scanner::preferences::preference::{PREFERENCES, ScanPrefValue},
 };
@@ -327,7 +327,7 @@ pub struct Config {
     pub scheduler: Scheduler,
     pub scanner: Scanner,
     #[serde(alias = "container-image-scanner")]
-    pub container_image_scanner: scannerlib::container_image_scanner::Config,
+    pub container_image_scanner: crate::container_image_scanner::Config,
 }
 
 impl Display for Config {
@@ -764,11 +764,9 @@ impl Config {
 #[cfg(test)]
 mod tests {
 
+    use crate::container_image_scanner::config::ImageExtractionLocation;
     use insta::assert_toml_snapshot;
-    use scannerlib::{
-        container_image_scanner::config::ImageExtractionLocation,
-        scanner::preferences::preference::ScanPrefValue,
-    };
+    use scannerlib::scanner::preferences::preference::ScanPrefValue;
 
     #[test]
     fn current_example_parseable() {
