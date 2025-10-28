@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+// Until the Crypto scene is moving away from GenericArray
+#![allow(deprecated)]
 use std::fmt::Display;
 
 use async_trait::async_trait;
@@ -11,6 +13,7 @@ use generic_array::typenum::U32;
 use pbkdf2::pbkdf2_hmac;
 use rand::{self, RngCore};
 use sha2::Sha256;
+
 use sha2::digest::generic_array::GenericArray;
 
 #[derive(Clone, Debug)]
