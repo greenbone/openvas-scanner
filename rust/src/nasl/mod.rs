@@ -16,6 +16,8 @@ mod test_utils;
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod raw_ip_utils {
     pub use super::builtin::raw_ip::raw_ip_utils;
+    pub use super::builtin::raw_ip::tcp_ping;
+    pub use super::builtin::raw_ip::RawIpError;
 }
 
 pub mod prelude {

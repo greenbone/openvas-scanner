@@ -21,6 +21,13 @@ use pnet::{
     packet::{ipv4::Ipv4Packet, ipv6::Ipv6Packet, tcp::*, udp::MutableUdpPacket},
 };
 
+pub const DEFAULT_TTL: u8 = 255;
+pub const IP_PPRTO_VERSION_IPV4: u8 = 4;
+pub const IP_LENGTH: usize = 20;
+pub const HEADER_LENGTH: u8 = 5;
+pub const FIX_IPV6_HEADER_LENGTH: usize = 40;
+pub const IPPROTO_IPV6: u8 = 6;
+
 /// Return the MAC address, given the interface name
 pub fn get_local_mac_address(name: &str) -> Result<MacAddr, FnError> {
     interfaces()
