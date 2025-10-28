@@ -9,12 +9,6 @@ use std::net::{IpAddr, SocketAddr};
 use super::AliveTestError;
 
 const IPPROTO_RAW: i32 = 255;
-pub const DEFAULT_TTL: u8 = 255;
-pub const IP_PPRTO_VERSION_IPV4: u8 = 4;
-pub const IP_LENGTH: usize = 20;
-pub const HEADER_LENGTH: u8 = 5;
-pub const FIX_IPV6_HEADER_LENGTH: usize = 40;
-pub const IPPROTO_IPV6: u8 = 6;
 
 fn new_raw_socket_v4() -> Result<Socket, AliveTestError> {
     Socket::new_raw(

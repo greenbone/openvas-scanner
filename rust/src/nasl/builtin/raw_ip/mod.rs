@@ -4,8 +4,10 @@
 
 mod denial;
 mod frame_forgery;
-mod packet_forgery;
+pub mod packet_forgery;
+mod synscan;
 pub mod raw_ip_utils;
+pub mod tcp_ping;
 use std::io;
 
 use crate::nasl::{
@@ -15,6 +17,7 @@ use crate::nasl::{
 use denial::Denial;
 use frame_forgery::FrameForgery;
 use packet_forgery::PacketForgery;
+use synscan::SynScan;
 use thiserror::Error;
 
 #[cfg(test)]
@@ -36,6 +39,8 @@ pub enum RawIpError {
     NoRouteToDestination,
     #[error("{0}")]
     PacketForgery(PacketForgeryError),
+    #[error("{0}")]
+    TcpPing(String),
 }
 
 #[derive(Debug, Error)]
@@ -74,6 +79,7 @@ impl IntoFunctionSet for RawIp {
         set.add_set(PacketForgery);
         set.add_set(FrameForgery);
         set.add_set(Denial);
+        set.add_set(SynScan);
         set
     }
 }

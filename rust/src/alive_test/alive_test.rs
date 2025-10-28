@@ -6,7 +6,7 @@ use crate::alive_test::AliveTestError;
 use crate::alive_test::arp::forge_arp_request;
 use crate::alive_test::common::{alive_test_send_v4_packet, alive_test_send_v6_packet};
 use crate::alive_test::icmp::{forge_icmp_v4, forge_icmp_v6, forge_neighbor_solicit};
-use crate::alive_test::tcp_ping::{FILTER_PORT, forge_tcp_ping_ipv4, forge_tcp_ping_ipv6};
+use crate::nasl::raw_ip_utils::{raw_ip_utils::FIX_IPV6_HEADER_LENGTH, tcp_ping::{FILTER_PORT, forge_tcp_ping_ipv4, forge_tcp_ping_ipv6}};
 
 use crate::models::{AliveTestMethods, Host};
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
@@ -30,7 +30,6 @@ use pnet::packet::{
     ipv4::Ipv4Packet,
 };
 
-use super::common::FIX_IPV6_HEADER_LENGTH;
 
 const DEFAULT_PORT_LIST: [u16; 20] = [
     21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995, 1723, 3306, 3389, 5900,

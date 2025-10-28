@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use thiserror::Error;
+use crate::nasl::raw_ip_utils::RawIpError;
 
 /// Errors that might occur, when working with the alive test library.
 #[derive(Debug, Error)]
@@ -36,4 +37,10 @@ pub enum Error {
     GetMacAddress(String),
     #[error("Fail starting capture {0}")]
     OpenCapture(String),
+}
+
+impl From<RawIpError> for Error {
+    fn from(value: RawIpError) -> Self {
+        Self::InvalidDestinationAddr(value.to_string())
+    }
 }
