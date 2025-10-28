@@ -11,10 +11,10 @@ runs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           rust/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+        key: amd64-cargo
     - run: sudo apt update || true
       shell: bash
-    - run: sudo apt-get install -y libpcap-dev libclang-dev patchelf
+    - run: sudo apt-get install -y libpcap-dev libclang-dev libsnmp-dev patchelf 
       shell: bash
     - run: rustup update stable && rustup default stable || rustup default stable
       shell: bash

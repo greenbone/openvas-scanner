@@ -75,3 +75,19 @@ pub enum FeedState {
     Syncing,
     Synced(String, String),
 }
+
+impl FeedState {
+    pub fn nasl(&self) -> Option<&str> {
+        match self {
+            Self::Synced(nasl, _) => Some(nasl),
+            _ => None,
+        }
+    }
+
+    pub fn advisories(&self) -> Option<&str> {
+        match self {
+            Self::Synced(_, advisories) => Some(advisories),
+            _ => None,
+        }
+    }
+}

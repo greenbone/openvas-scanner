@@ -3,17 +3,22 @@ use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
 use scannerlib::{
+    SQLITE_LIMIT_VARIABLE_NUMBER,
     models::{FeedState, ResultType},
     scanner,
 };
-use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, query_scalar, sqlite::SqliteRow};
+use sqlx::{
+    Acquire, QueryBuilder, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow,
+};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     config::Config,
     crypt::{self, ChaCha20Crypt, Crypt, Encrypted},
+    vts::orchestrator,
 };
 mod scheduling;
+mod state_change;
 pub struct Endpoints<E> {
     pool: SqlitePool,
     crypter: Arc<E>,
@@ -86,29 +91,33 @@ where
         .execute(&mut *tx)
         .await?;
     if !scan.vts.is_empty() {
-        let mut builder = QueryBuilder::new("INSERT OR REPLACE INTO vts (id, vt)");
-        builder.push_values(&scan.vts, |mut b, vt| {
-            b.push_bind(&mapped_id).push_bind(&vt.oid);
-        });
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
+        for vts in scan.vts.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 2) {
+            let mut builder = QueryBuilder::new("INSERT OR REPLACE INTO vts (id, vt)");
+            builder.push_values(vts, |mut b, vt| {
+                b.push_bind(&mapped_id).push_bind(&vt.oid);
+            });
+            let query = builder.build();
+            query.execute(&mut *tx).await?;
+        }
         let vt_params = scan
             .vts
             .iter()
             .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value)))
             .collect::<Vec<_>>();
         if !vt_params.is_empty() {
-            let mut builder =
-                QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
+            for vt_params in vt_params.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 3) {
+                let mut builder =
+                    QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
 
-            builder.push_values(vt_params, |mut b, (oid, param_id, param_value)| {
-                b.push_bind(&mapped_id)
-                    .push_bind(oid)
-                    .push_bind(param_id as i64)
-                    .push_bind(param_value);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
+                builder.push_values(vt_params, |mut b, (oid, param_id, param_value)| {
+                    b.push_bind(&mapped_id)
+                        .push_bind(oid)
+                        .push_bind(*param_id as i64)
+                        .push_bind(param_value);
+                });
+                let query = builder.build();
+                query.execute(&mut *tx).await?;
+            }
         }
     }
 
@@ -138,26 +147,30 @@ where
     }
 
     if !scan.target.ports.is_empty() {
-        let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
-        builder.push_values(
-            scan.target
-                .ports
-                .into_iter()
-                .flat_map(|port| port.range.into_iter().map(move |r| (port.protocol, r))),
-            |mut b, (protocol, range)| {
-                b.push_bind(&mapped_id)
-                    .push_bind(match protocol {
-                        None => "udp_tcp",
-                        Some(models::Protocol::TCP) => "tcp",
-                        Some(models::Protocol::UDP) => "udp",
-                    })
-                    .push_bind(range.start as i64)
-                    .push_bind(range.end.map(|x| x as i64));
-            },
-        );
-        let query = builder.build();
+        for ports in scan.target.ports.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 4) {
+            let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
+            builder.push_values(
+                ports.iter().flat_map(|port| {
+                    port.range
+                        .clone()
+                        .into_iter()
+                        .map(move |r| (port.protocol, r))
+                }),
+                |mut b, (protocol, range)| {
+                    b.push_bind(&mapped_id)
+                        .push_bind(match protocol {
+                            None => "udp_tcp",
+                            Some(models::Protocol::TCP) => "tcp",
+                            Some(models::Protocol::UDP) => "udp",
+                        })
+                        .push_bind(range.start as i64)
+                        .push_bind(range.end.map(|x| x as i64));
+                },
+            );
+            let query = builder.build();
 
-        query.execute(&mut *tx).await?;
+            query.execute(&mut *tx).await?;
+        }
     }
     let mut scan_preferences = scan.scan_preferences;
     if scan.target.reverse_lookup_unify.unwrap_or_default() {
@@ -572,7 +585,7 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
         Box::pin(async move {
-            let maybe_row = query(
+            let maybe_row = sqlx::query(
                 r#"
 SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
         detail_name, detail_value, 
@@ -594,35 +607,15 @@ AND result_id = ?"#,
     }
 }
 
-async fn scan_get_status(pool: &SqlitePool, id: i64) -> Result<models::Status, sqlx::error::Error> {
-    let scan_row = query(r#"
-        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
-        FROM scans
-        WHERE id = ?
-        "#).bind(id).fetch_one(pool).await?;
-    let excluded = scan_row.get("host_excluded");
-    let dead = scan_row.get("host_dead");
-    let alive = scan_row.get("host_alive");
-    let finished = excluded + dead + alive;
-    let host_info = models::HostInfo {
-        all: scan_row.get("host_all"),
-        excluded,
-        dead,
-        alive,
-        queued: scan_row.get("host_queued"),
-        finished,
-        scanning: None,
-        remaining_vts_per_host: Default::default(),
-    };
-    let status = models::Status {
-        start_time: scan_row.get("start_time"),
-        end_time: scan_row.get("end_time"),
-        // should never fail as we just allow parseable values to be stored in the DB
-        status: scan_row.get::<String, _>("status").parse().unwrap(),
-        host_info: Some(host_info),
-    };
-
-    Ok(status)
+pub(crate) async fn scan_get_status<'a, E>(
+    pool: E,
+    id: i64,
+) -> Result<models::Status, sqlx::error::Error>
+where
+    E: sqlx::Executor<'a, Database = Sqlite>,
+{
+    let scan_row = state_change::status_query(id).fetch_one(pool).await?;
+    Ok(state_change::row_to_models_status(scan_row))
 }
 
 impl<E> GetScansIdStatus for Endpoints<E>
@@ -694,17 +687,21 @@ pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
         .unwrap_or_else(|| ChaCha20Crypt::new("insecure"))
 }
 
-pub async fn init<F>(
+pub async fn init(
     pool: SqlitePool,
     config: &Config,
-    feed_state: F,
-) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>>
-where
-    F: Fn() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> + Send + 'static,
-{
+    feed_status: orchestrator::Communicator,
+    feed_snapshot: Arc<std::sync::RwLock<FeedState>>,
+) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
     let crypter = Arc::new(config_to_crypt(config));
-    let scheduler_sender =
-        scheduling::init(pool.clone(), crypter.clone(), feed_state, config).await?;
+    let scheduler_sender = scheduling::init(
+        pool.clone(),
+        crypter.clone(),
+        config,
+        feed_status,
+        feed_snapshot,
+    )
+    .await?;
     Ok(Endpoints {
         pool,
         crypter,
@@ -714,7 +711,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{pin::Pin, sync::Arc, time::Duration};
+    use std::time::Duration;
+
+    use super::*;
 
     use futures::StreamExt;
     use greenbone_scanner_framework::{
@@ -738,11 +737,16 @@ mod tests {
         scans::{config_to_crypt, scheduling},
     };
 
-    fn feed_state() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
-        Box::pin(async { FeedState::Synced("0".into(), "2".into()) })
-    }
     async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {
-        super::init(pool, config, feed_state).await.unwrap()
+        let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Synced(
+            "0".into(),
+            "2".into(),
+        )));
+        let ignored = Default::default();
+
+        super::init(pool, config, ignored, feed_snapshot)
+            .await
+            .unwrap()
     }
 
     fn generate_hosts() -> Vec<Vec<String>> {
@@ -999,6 +1003,21 @@ mod tests {
         Ok((config, pool))
     }
 
+    pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        let crypter = config_to_crypt(config);
+        for scan in scans {
+            scan_insert(&pool, &crypter, &client_id, scan)
+                .await
+                .unwrap();
+        }
+        query_scalar("SELECT id FROM scans")
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn post_scan() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
@@ -1100,11 +1119,13 @@ mod tests {
         let (config, pool) = create_pool().await?;
 
         let crypter = Arc::new(config_to_crypt(&config));
+        let (_, _, communicator) = orchestrator::Communicator::init();
         let scheduler_sender = scheduling::init_with_scanner(
             pool.clone(),
             crypter.clone(),
             &config,
             scheduling::tests::scanner_succeeded().build(),
+            communicator,
         )
         .await?;
         let undertest = super::Endpoints {
@@ -1127,6 +1148,7 @@ mod tests {
             let result = undertest.get_scans_id_status(result).await?;
             assert_eq!(result.status, Phase::Stored);
         }
+
         for scan in scans.iter() {
             let id = undertest
                 .contains_scan_id(&client_id, &scan.scan_id)

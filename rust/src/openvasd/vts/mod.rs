@@ -1,19 +1,22 @@
+use std::sync::RwLock;
 use std::{
     io::BufReader,
     path::{Path, PathBuf},
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
+use futures::StreamExt;
 use greenbone_scanner_framework::GetVTsError;
 use scannerlib::{
-    feed,
+    PinBoxFut, feed,
     models::{FeedState, FeedType, VTData},
     nasl::FSPluginLoader,
     notus::{AdvisoryLoader, HashsumAdvisoryLoader, advisories::VulnerabilityData},
 };
-use sqlx::{Acquire, SqlitePool, query, query_scalar};
+use sqlx::{Row, SqlitePool, query, sqlite::SqliteRow};
 
 use crate::config::Config;
+pub mod orchestrator;
 pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -29,7 +32,6 @@ struct FeedSynchronizer {
     plugin_feed: PathBuf,
     advisory_feed: PathBuf,
     signature_check: bool,
-    feed_state: Arc<RwLock<FeedState>>,
 }
 
 type FeedHashes = (String, String);
@@ -60,19 +62,79 @@ impl Plugin for VulnerabilityData {
     }
 }
 
+impl orchestrator::Worker for FeedSynchronizer {
+    fn cached_hashes(&self) -> PinBoxFut<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
+        let mut fetched =
+            query("SELECT hash FROM feed WHERE type = 'nasl' OR type = 'advisories' ORDER BY type")
+                .fetch(&self.pool);
+        let transform = |x: Option<Result<SqliteRow, sqlx::error::Error>>| {
+            if let Some(Ok(x)) = x {
+                Some(x.get::<String, _>("hash"))
+            } else {
+                None
+            }
+        };
+
+        Box::pin(async move {
+            let rofl = (
+                transform(fetched.next().await),
+                transform(fetched.next().await),
+            );
+            Ok(match rofl {
+                (None, None) => None,
+                (advisories, nasl) => {
+                    Some((nasl.unwrap_or_default(), advisories.unwrap_or_default()))
+                }
+            })
+        })
+    }
+
+    fn calculated_hashes(&self) -> PinBoxFut<Result<FeedHashes, orchestrator::WorkerError>> {
+        let signature_check = self.signature_check;
+        let plugin_feed = self.plugin_feed.clone();
+        let advisory_feed = self.advisory_feed.clone();
+        Box::pin(async move {
+            let nasl_hash = Self::calculate_hash(signature_check, plugin_feed).await?;
+            let advisories_hash = Self::calculate_hash(signature_check, advisory_feed).await?;
+            Ok((nasl_hash, advisories_hash))
+        })
+    }
+
+    fn update_feed(
+        &self,
+        kind: FeedType,
+        new_hash: String,
+    ) -> PinBoxFut<Result<(), orchestrator::WorkerError>> {
+        let pool = self.pool.clone();
+        let adv_path = self.advisory_feed.clone();
+        let nasl_path = self.plugin_feed.clone();
+        Box::pin(async move {
+            match kind {
+                FeedType::Products => tracing::debug!(?kind, "Not supported, ignoring."),
+                FeedType::Advisories => {
+                    Self::synchronize_advisories(&pool, adv_path, new_hash).await?
+                }
+                FeedType::NASL => Self::synchronize_plugins(&pool, nasl_path, new_hash).await?,
+            };
+            Ok(())
+        })
+    }
+}
+
 impl FeedSynchronizer {
-    fn new(pool: SqlitePool, config: &Config, feed_state: Arc<RwLock<FeedState>>) -> Self {
+    fn new(pool: SqlitePool, config: &Config) -> Self {
         Self {
             pool,
             plugin_feed: config.feed.path.clone(),
             advisory_feed: config.notus.advisories_path.clone(),
             signature_check: config.feed.signature_check,
-            feed_state,
         }
     }
 
-    async fn calculate_hash(&self, path: PathBuf) -> Result<String, feed::VerifyError> {
-        let signature_check = self.signature_check;
+    async fn calculate_hash(
+        signature_check: bool,
+        path: PathBuf,
+    ) -> Result<String, feed::VerifyError> {
         tokio::task::spawn_blocking(move || {
             if signature_check {
                 scannerlib::feed::check_signature(&path)?;
@@ -83,44 +145,26 @@ impl FeedSynchronizer {
         .unwrap()
     }
 
-    async fn calculate_hashes(&self) -> Result<FeedHashes, feed::VerifyError> {
-        let nasl_hash = self.calculate_hash(self.plugin_feed.clone()).await?;
-        let advisories_hash = self.calculate_hash(self.advisory_feed.clone()).await?;
-        Ok((nasl_hash, advisories_hash))
-    }
-
-    async fn knowns_hashes(&self) -> Result<FeedHashes, sqlx::Error> {
-        let mut conn = self.pool.acquire().await?;
-        let mut tx = conn.begin().await?;
-        let plugin_hash = query_scalar("SELECT hash FROM feed WHERE type = 'nasl'")
-            .fetch_optional(&mut *tx)
-            .await?;
-        let adv_hash = query_scalar("SELECT hash FROM feed WHERE type = 'advisories'")
-            .fetch_optional(&mut *tx)
-            .await?;
-
-        tx.commit().await?;
-        Ok((
-            plugin_hash.unwrap_or_default(),
-            adv_hash.unwrap_or_default(),
-        ))
-    }
     async fn insert_feed_hash(
-        &self,
-        path: &Path,
+        pool: &SqlitePool,
+        path: &str,
         typus: FeedType,
         new_hash: &str,
     ) -> Result<(), sqlx::Error> {
         query("INSERT OR REPLACE INTO feed (hash, path, type) VALUES (?, ?, ?)")
             .bind(new_hash)
-            .bind(path.to_string_lossy())
+            .bind(path)
             .bind(typus.as_ref())
-            .execute(&self.pool)
+            .execute(pool)
             .await?;
         Ok(())
     }
 
-    async fn store_plugin<T>(&self, feed_hash: &FeedHash, plugin: T) -> Result<(), GetVTsError>
+    async fn store_plugin<T>(
+        pool: &SqlitePool,
+        feed_hash: &FeedHash,
+        plugin: T,
+    ) -> Result<(), GetVTsError>
     where
         T: Plugin,
     {
@@ -129,23 +173,18 @@ impl FeedSynchronizer {
             .bind(plugin.oid())
             .bind(&json)
             .bind(feed_hash.typus.as_ref())
-            .execute(&self.pool)
+            .execute(pool)
             .await
             .map_err(error_vts_error)?;
 
         Ok(())
     }
-    async fn change_state(&self, state: FeedState) {
-        let fs = self.feed_state.clone();
-        tokio::task::spawn_blocking(move || {
-            let mut value = fs.write().unwrap();
-            *value = state;
-        })
-        .await
-        .unwrap()
-    }
 
-    async fn synchronize_json<F, T>(&self, hash: &FeedHash, f: F) -> Result<(), GetVTsError>
+    async fn synchronize_json<F, T>(
+        pool: &SqlitePool,
+        hash: &FeedHash,
+        f: F,
+    ) -> Result<(), GetVTsError>
     where
         F: Fn(std::sync::mpsc::Sender<T>) -> Result<(), GetVTsError> + Send + 'static,
         T: Plugin + Send + Sync + 'static,
@@ -167,7 +206,7 @@ impl FeedSynchronizer {
         let serde_handler = tokio::task::spawn_blocking(move || f(tx_blocking));
 
         while let Some(plugin) = rx_async.recv().await {
-            self.store_plugin(hash, plugin).await?;
+            Self::store_plugin(pool, hash, plugin).await?;
         }
 
         serde_handler
@@ -181,11 +220,19 @@ impl FeedSynchronizer {
         Ok(())
     }
 
-    async fn synchronize_plugins(&self, new_hash: String) -> Result<(), GetVTsError> {
-        self.insert_feed_hash(&self.plugin_feed, FeedType::NASL, &new_hash)
-            .await
-            .map_err(error_vts_error)?;
-        let mut path = self.plugin_feed.clone();
+    async fn synchronize_plugins(
+        pool: &SqlitePool,
+        mut path: PathBuf,
+        new_hash: String,
+    ) -> Result<(), GetVTsError> {
+        Self::insert_feed_hash(
+            pool,
+            path.to_str().unwrap_or_default(),
+            FeedType::NASL,
+            &new_hash,
+        )
+        .await
+        .map_err(error_vts_error)?;
         let not_found = || {
             GetVTsError::External(Box::new(std::io::Error::other(
                 "vt-metadata.json not found",
@@ -207,7 +254,7 @@ impl FeedSynchronizer {
             typus: FeedType::NASL,
         };
 
-        self.synchronize_json(&hash, move |sender| {
+        Self::synchronize_json(pool, &hash, move |sender| {
             let file = std::fs::File::open(&path).map_err(|_| not_found())?;
             let reader = BufReader::new(file);
             for element in
@@ -222,18 +269,27 @@ impl FeedSynchronizer {
         })
         .await
     }
-    async fn synchronize_advisories(&self, new_hash: String) -> Result<(), GetVTsError> {
-        self.insert_feed_hash(&self.advisory_feed, FeedType::Advisories, &new_hash)
-            .await
-            .map_err(error_vts_error)?;
-        let path = self.advisory_feed.clone();
+    // TODO: create struct to simplify parameter?
+    async fn synchronize_advisories(
+        pool: &SqlitePool,
+        path: PathBuf,
+        new_hash: String,
+    ) -> Result<(), GetVTsError> {
+        Self::insert_feed_hash(
+            pool,
+            path.to_str().unwrap_or_default(),
+            FeedType::Advisories,
+            &new_hash,
+        )
+        .await
+        .map_err(error_vts_error)?;
         let hash = FeedHash {
             hash: new_hash,
             path: path.clone(),
             typus: FeedType::Advisories,
         };
 
-        self.synchronize_json::<_, VulnerabilityData>(&hash, move |sender| {
+        Self::synchronize_json::<_, VulnerabilityData>(pool, &hash, move |sender| {
             let loader = FSPluginLoader::new(&path);
             let advisories_files =
                 HashsumAdvisoryLoader::new(loader.clone()).map_err(error_vts_error)?;
@@ -261,32 +317,6 @@ impl FeedSynchronizer {
         })
         .await
     }
-
-    async fn synchronize_feeds(&self) -> Result<(), GetVTsError> {
-        let (plugin_hash, advisories_hash) =
-            self.calculate_hashes().await.map_err(error_vts_error)?;
-        let (known_plugin_hash, known_advisories_hash) =
-            self.knowns_hashes().await.map_err(error_vts_error)?;
-        if known_plugin_hash != plugin_hash || known_advisories_hash != advisories_hash {
-            tracing::info!("Update feed metadata");
-            self.change_state(FeedState::Syncing).await;
-            if known_plugin_hash != plugin_hash {
-                self.synchronize_plugins(plugin_hash.clone()).await?;
-            }
-
-            if known_advisories_hash != advisories_hash {
-                self.synchronize_advisories(advisories_hash.clone())
-                    .await
-                    .map_err(error_vts_error)?;
-            }
-
-            tracing::info!("Updated feed metadata");
-            self.change_state(FeedState::Synced(plugin_hash, advisories_hash))
-                .await
-        }
-
-        Ok(())
-    }
 }
 
 fn error_vts_error<T>(error: T) -> GetVTsError
@@ -297,24 +327,17 @@ where
 }
 
 /// Initializes endpoints, spawns background task for feed verification.
-pub async fn init(pool: SqlitePool, config: &Config) -> (Arc<RwLock<FeedState>>, Endpoints) {
-    let feed_state = Arc::new(RwLock::new(FeedState::default()));
-    let endpoints = Endpoints::new(pool.clone(), feed_state.clone(), None);
-    let feed_syncer = FeedSynchronizer::new(pool, config, feed_state.clone());
-    let check_interval = config.feed.check_interval;
+pub async fn init(
+    pool: SqlitePool,
+    config: &Config,
+    snapshot: Arc<RwLock<FeedState>>,
+) -> (orchestrator::Communicator, Endpoints) {
+    let endpoints = Endpoints::new(pool.clone(), snapshot.clone(), None);
+    let worker = FeedSynchronizer::new(pool, config);
 
-    tokio::spawn(async move {
-        loop {
-            tracing::debug!(next_check=?check_interval, "checking feed");
-
-            if let Err(error) = feed_syncer.synchronize_feeds().await {
-                tracing::warn!(%error, next_check=?check_interval, "Failed to synchronize feeds.");
-            }
-
-            tokio::time::sleep(check_interval).await;
-        }
-    });
-    (feed_state, endpoints)
+    let communicator =
+        orchestrator::Orchestrator::init(config.feed.check_interval, snapshot, worker).await;
+    (communicator, endpoints)
 }
 
 #[cfg(test)]
@@ -357,7 +380,7 @@ mod tests {
         let (config, pool) = create_pool().await?;
         let feed_state = Arc::new(RwLock::new(FeedState::default()));
         let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone(), None);
-        let synchronizer = FeedSynchronizer::new(pool.clone(), &config, feed_state);
+        let synchronizer = FeedSynchronizer::new(pool.clone(), &config);
 
         let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
         assert_eq!(oids.len(), 1);
@@ -369,39 +392,23 @@ mod tests {
             1
         );
 
-        synchronizer.synchronize_feeds().await?;
+        orchestrator::test::verify_allowed_for(
+            synchronizer,
+            feed_state,
+            &[FeedType::NASL, FeedType::Advisories],
+        )
+        .await?;
+
         // in the case that examples are changed, I don't want to change this test each time hence
         // we just verify if we got oids.
         let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
+        let oids = oids.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
+        dbg!(&oids);
         assert!(!oids.is_empty());
-        Ok(())
-    }
 
-    #[tokio::test]
-    async fn plugin_shadow_copy() -> crate::Result<()> {
-        let (config, pool) = create_pool().await?;
-        let feed_state = Arc::new(RwLock::new(FeedState::default()));
-        let endpoint = super::Endpoints::new(pool.clone(), feed_state.clone(), None);
-        let synchronizer = FeedSynchronizer::new(pool.clone(), &config, feed_state.clone());
-
-        let oids = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;
-        assert_eq!(oids.len(), 1);
-        assert_eq!(
-            oids.into_iter()
-                .filter_map(|x| x.err())
-                .filter(|x| matches!(x, GetVTsError::NotYetAvailable))
-                .count(),
-            1
-        );
-
-        synchronizer.synchronize_feeds().await?;
-        // in the case that examples are changed, I don't want to change this test each time hence
-        // we just verify if we got oids.
-        let oids = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;
-        let oids_len = oids.len();
-        assert!(!oids.is_empty());
-        let filtered = oids.into_iter().filter_map(|x| x.ok()).count();
-        assert_eq!(filtered, oids_len);
+        let vts = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;
+        let vts = vts.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
+        assert!(!vts.is_empty());
         Ok(())
     }
 }

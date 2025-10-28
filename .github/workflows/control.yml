@@ -78,13 +78,22 @@ jobs:
     uses: ./.github/workflows/build.yml
   linting:
     uses: ./.github/workflows/linting.yml
-  build-rs:
+  build-rs-amd64:
     uses: ./.github/workflows/build-rs.yaml
+    with:
+      arch: amd64
+      runner: ubuntu-latest
+  build-rs-arm64:
+    uses: ./.github/workflows/build-rs.yaml
+    with:
+      arch: arm64
+      runner: self-hosted-generic-arm64
+  # maybe create functional tests for arm64 as well?
   functional:
-    needs: [build-rs]
+    needs: [build-rs-amd64]
     uses: ./.github/workflows/functional.yaml
   container:
-    needs: [build, init]
+    needs: [build, init, build-rs-arm64, build-rs-amd64]
     uses: ./.github/workflows/push-container.yml
     secrets:
       dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -128,11 +137,8 @@ jobs:
       contents: write
     # we release after container build so that we can release on a closed pr as we don't push the release container yet
     # instead it is pushed after the tag is created.
-    #
-    # For now we just don't use it as a dependency for releases which may is counter intuitive
-    needs: [functional, init]
+    needs: [functional, build-rs-arm64, init]
     if: ( needs.init.outputs.release_kind == 'major' || needs.init.outputs.release_kind == 'minor' || needs.init.outputs.release_kind == 'patch' )
-
     uses: ./.github/workflows/release.yml
     with:
       new_version: ${{ needs.init.outputs.release_new_version }}

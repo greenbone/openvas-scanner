@@ -16,7 +16,6 @@ mod vts;
 use sqlx::migrate::Migrator;
 use std::{
     marker::{Send, Sync},
-    pin::Pin,
     sync::Arc,
 };
 
@@ -63,15 +62,6 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     Ok(result)
 }
 
-fn get_feed_state(
-    vts: Arc<vts::Endpoints>,
-) -> impl Fn() -> Pin<Box<dyn Future<Output = FeedState> + Send + 'static>> {
-    move || {
-        let vts = vts.clone();
-        Box::pin(async move { vts.feed_state().await })
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
@@ -80,9 +70,10 @@ async fn main() -> Result<()> {
     //TODO: AsRef impl for Config
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
-    let (feed_state2, vts) = vts::init(pool.clone(), &config).await;
+    let feed_state2 = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
+    let (sender, vts) = vts::init(pool.clone(), &config, feed_state2.clone()).await;
     let vts = Arc::new(vts);
-    let scan = scans::init(pool.clone(), &config, get_feed_state(vts.clone())).await?;
+    let scan = scans::init(pool.clone(), &config, sender, feed_state2.clone()).await?;
     let (get_notus, post_notus) = notus::init(products.clone());
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
