@@ -8,13 +8,11 @@
 
 *str* **krb5_error_code_to_string**(int);
 
-
 ## DESCRIPTION
 
 Returns a string representation of either the given code or the cached code.
 
 The cached code reflects the error code of the last krb5 function call.
-
 
 ## RETURN VALUE
 
