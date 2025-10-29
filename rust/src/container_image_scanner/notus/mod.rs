@@ -25,7 +25,9 @@ fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
     let nos = os.name.to_lowercase();
 
     match (architecture, &nos as &str) {
-        (_, "openeuler") => format!("openeuler_{}", normalize_euler_version()),
+        // TODO: figure out if there is some kind of rule behind the _sp versioning scheme or if
+        // that is really per OS.
+        (_, "openeuler") | (_, "euleros") => format!("{}_{}", &nos, normalize_euler_version()),
         (_, name) => format!("{}_{}", name, os.version_id),
     }
 }
@@ -133,6 +135,18 @@ mod key_generation_tests {
         };
         let result = super::generate_key("", &os);
         assert_eq!("openeuler_24.03_lts_sp1".to_owned(), result);
+    }
+
+    #[test]
+    fn euleros() {
+        let os = OperatingSystem {
+            name: "euleros".to_owned(),
+            version: "2.0 (SP12)".to_owned(),
+            version_id: "2.0".to_owned(),
+        };
+
+        let result = super::generate_key("", &os);
+        assert_eq!("euleros_2.0_sp12".to_owned(), result);
     }
 }
 

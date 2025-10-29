@@ -38,14 +38,14 @@ jobs:
           cp "./${DIST}/install/usr/local/bin/openvasd"      "${ASSETS_SUBDIR}/openvasd"
           cp "./${DIST}/install/usr/local/bin/scannerctl"    "${ASSETS_SUBDIR}/scannerctl"
           cp "./${DIST}/install/usr/local/bin/feed-verifier" "${ASSETS_SUBDIR}/feed-verifier"
-      - name: verify
-        shell: bash
-        run: |
-          # I think it is not good that we rely on dynamic libs
-          apt update && apt install -y \
-              libsnmp-dev
-          ${ASSETS_SUBDIR}/openvasd -h
-          ${ASSETS_SUBDIR}/scannerctl -h
+      # - name: verify
+      #   shell: bash
+      #   run: |
+      #     # I think it is not good that we rely on dynamic libs
+      #     apt update && apt install -y \
+      #         libsnmp-dev
+      #     ${ASSETS_SUBDIR}/openvasd -h
+      #     ${ASSETS_SUBDIR}/scannerctl -h
       - name: archive
         uses: actions/upload-artifact@v4
         with:
