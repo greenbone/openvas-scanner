@@ -160,7 +160,7 @@ impl Display for BuiltinStats {
                 for (func, count) in funcs {
                     writeln!(f, "- {} (used {} times)", func, count)?;
                 }
-                writeln!(f, "")?;
+                writeln!(f)?;
             }
             writeln!(f, "### Unimplemented Functions\n")?;
             let statuses = [
@@ -189,7 +189,7 @@ impl Display for BuiltinStats {
                     for (func, count) in funcs {
                         writeln!(f, "- {} (used {} times)", func, count)?;
                     }
-                    writeln!(f, "")?;
+                    writeln!(f)?;
                 }
             }
         }
@@ -258,7 +258,7 @@ impl DocumentedFunctions {
 
                     let deprecated = content.contains("## deprecated");
 
-                    if let Some(_) = implemented_funcs.take(&function) {
+                    if implemented_funcs.take(&function).is_some() {
                         implemented.insert(function, (category.clone(), deprecated));
                     } else {
                         unimplemented.insert(function, (category.clone(), deprecated));
@@ -284,10 +284,10 @@ impl DocumentedFunctions {
     fn script_is_runnable(&self, ast: &Ast) -> bool {
         for call in iter_fn_calls(ast) {
             let function = call.fn_name.to_string();
-            if let Some((_, deprecated)) = self.unimplemented().get(&function) {
-                if !*deprecated {
-                    return false;
-                }
+            if let Some((_, deprecated)) = self.unimplemented().get(&function)
+                && !deprecated
+            {
+                return false;
             }
         }
         true
