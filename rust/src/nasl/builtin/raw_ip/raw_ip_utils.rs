@@ -18,8 +18,9 @@ use super::{
 
 use pnet::{
     datalink::interfaces,
-    packet::{ipv4::Ipv4Packet, ipv6::Ipv6Packet, tcp::*, udp::MutableUdpPacket},
+    packet::{Packet, ipv4::Ipv4Packet, ipv6::Ipv6Packet, tcp::*, udp::MutableUdpPacket},
 };
+use socket2::{Domain, Protocol, Socket};
 
 pub const DEFAULT_TTL: u8 = 255;
 pub const IP_PPRTO_VERSION_IPV4: u8 = 4;
@@ -213,4 +214,63 @@ pub fn forge_arp_frame(eth_src: MacAddr, src_ip: Ipv4Addr, dst_ip: Ipv4Addr) -> 
 
     frame.set_payload(arp_frame.into());
     frame.into()
+}
+
+const IPPROTO_RAW: i32 = 255;
+
+fn new_raw_socket_v4() -> Result<Socket, RawIpError> {
+    Socket::new_raw(
+        Domain::IPV4,
+        socket2::Type::RAW,
+        Some(Protocol::from(IPPROTO_RAW)),
+    )
+    //    .map_err(|e| AliveTestError::NoSocket(e.to_string()))
+    .map_err(|e| RawIpError::FailedToBind(e))
+}
+
+fn new_raw_socket_v6() -> Result<Socket, RawIpError> {
+    Socket::new_raw(
+        Domain::IPV6,
+        socket2::Type::RAW,
+        Some(Protocol::from(IPPROTO_RAW)),
+    )
+    .map_err(|e| RawIpError::FailedToBind(e))
+}
+
+// Send ipv6 packet
+pub fn alive_test_send_v6_packet(pkt: Ipv6Packet<'static>) -> Result<(), RawIpError> {
+    tracing::debug!("starting sending packet");
+    let sock = new_raw_socket_v6()?;
+    sock.set_header_included_v6(true)
+        .map_err(|e| RawIpError::FailedToBind(e))?;
+
+    let sockaddr = SocketAddr::new(IpAddr::from(pkt.get_destination()), 0);
+    match sock.send_to(pkt.packet(), &sockaddr.into()) {
+        Ok(b) => {
+            tracing::debug!("Sent {} bytes", b);
+        }
+        Err(e) => {
+            return Err(RawIpError::SendPacket(e.to_string()));
+        }
+    };
+    Ok(())
+}
+
+// Send ipv4 packet
+pub fn alive_test_send_v4_packet(pkt: Ipv4Packet<'static>) -> Result<(), RawIpError> {
+    tracing::debug!("starting sending packet");
+    let sock = new_raw_socket_v4()?;
+    sock.set_header_included_v4(true)
+        .map_err(|e| RawIpError::FailedToBind(e))?;
+
+    let sockaddr = SocketAddr::new(IpAddr::from(pkt.get_destination()), 0);
+    match sock.send_to(pkt.packet(), &sockaddr.into()) {
+        Ok(b) => {
+            tracing::debug!("Sent {} bytes", b);
+        }
+        Err(e) => {
+            return Err(RawIpError::SendPacket(e.to_string()));
+        }
+    };
+    Ok(())
 }

@@ -11,13 +11,11 @@ use pnet::packet::{Packet, tcp::MutableTcpPacket};
 
 use super::RawIpError;
 use super::raw_ip_utils::{
-    ChecksumCalculator, get_source_ipv4, get_source_ipv6, DEFAULT_TTL,
-    FIX_IPV6_HEADER_LENGTH, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4,
-    IPPROTO_IPV6,
+    ChecksumCalculator, DEFAULT_TTL, FIX_IPV6_HEADER_LENGTH, HEADER_LENGTH, IP_LENGTH,
+    IP_PPRTO_VERSION_IPV4, IPPROTO_IPV6, get_source_ipv4, get_source_ipv6,
 };
 
 use crate::nasl::builtin::misc::random_impl;
-
 
 pub const FILTER_PORT: u16 = 9910;
 const TCP_LENGTH: usize = 20;
@@ -40,7 +38,7 @@ fn tcp_ping(dport: u16, tcp_flag: u8) -> Vec<u8> {
 fn forge_ipv4_packet_for_tcp(
     tcp_buf: &mut [u8],
     dst: Ipv4Addr,
-) -> Result<Ipv4Packet<'static>, RawIpError > {
+) -> Result<Ipv4Packet<'static>, RawIpError> {
     // We do now the same as above for the IPv4 packet, appending the icmp packet as payload
     let mut ip_buf = vec![0; IP_LENGTH + TCP_LENGTH];
 
@@ -51,9 +49,7 @@ fn forge_ipv4_packet_for_tcp(
     pkt.set_header_length(HEADER_LENGTH);
     pkt.set_next_level_protocol(IpNextHeaderProtocols::Tcp);
     pkt.set_ttl(0x40);
-    pkt.set_source(
-        get_source_ipv4(dst).map_err(|_| RawIpError::InvalidIpAddress)?,
-    );
+    pkt.set_source(get_source_ipv4(dst).map_err(|_| RawIpError::InvalidIpAddress)?);
     pkt.set_destination(dst);
     pkt.set_fragment_offset(0);
     pkt.set_identification(random_impl().unwrap() as u16);
@@ -91,9 +87,7 @@ fn forge_ipv6_packet_for_tcp(
 
     pkt.set_next_header(IpNextHeaderProtocols::Tcp);
     pkt.set_hop_limit(DEFAULT_TTL);
-    pkt.set_source(
-        get_source_ipv6(dst).map_err(|_| RawIpError::InvalidIpAddress)?,
-    );
+    pkt.set_source(get_source_ipv6(dst).map_err(|_| RawIpError::InvalidIpAddress)?);
     pkt.set_destination(dst);
     pkt.set_version(IPPROTO_IPV6);
 
