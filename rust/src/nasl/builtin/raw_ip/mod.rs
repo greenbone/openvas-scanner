@@ -5,8 +5,8 @@
 mod denial;
 mod frame_forgery;
 pub mod packet_forgery;
-mod synscan;
 pub mod raw_ip_utils;
+mod synscan;
 pub mod tcp_ping;
 use std::io;
 
@@ -41,6 +41,8 @@ pub enum RawIpError {
     PacketForgery(PacketForgeryError),
     #[error("{0}")]
     TcpPing(String),
+    #[error("Error sending a packet: {0}")]
+    SendPacket(String),
 }
 
 #[derive(Debug, Error)]

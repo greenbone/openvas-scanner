@@ -8,7 +8,10 @@ use std::net::Ipv6Addr;
 use crate::nasl::raw_ip_utils::raw_ip_utils::get_source_ipv6;
 
 use super::AliveTestError;
-use crate::nasl::raw_ip_utils::raw_ip_utils::{FIX_IPV6_HEADER_LENGTH, IPPROTO_IPV6, DEFAULT_TTL, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4};
+use crate::nasl::raw_ip_utils::raw_ip_utils::{
+    DEFAULT_TTL, FIX_IPV6_HEADER_LENGTH, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4,
+    IPPROTO_IPV6,
+};
 use pnet::packet::icmpv6::Icmpv6Code;
 use pnet::packet::icmpv6::Icmpv6Type;
 use pnet::packet::icmpv6::ndp::MutableNeighborSolicitPacket;
