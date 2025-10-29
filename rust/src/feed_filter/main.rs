@@ -55,7 +55,7 @@ enum BuiltinStatus {
 }
 
 struct CategoryStats {
-    implemented: Vec<String>,
+    implemented: Vec<(String, usize)>,
     unimplemented: HashMap<BuiltinStatus, Vec<(String, usize)>>,
 }
 
@@ -97,7 +97,7 @@ impl BuiltinStats {
                         implemented: vec![],
                         unimplemented: HashMap::new(),
                     });
-                stats.implemented.push(func.clone());
+                stats.implemented.push((func.clone(), *calls));
             } else if let Some((category, deprecated)) = builtins.unimplemented().get(func) {
                 let stats = category_stats
                     .entry(category.clone())
@@ -154,8 +154,11 @@ impl Display for BuiltinStats {
             writeln!(f, "</b>\n")?;
             if !stats.implemented.is_empty() {
                 writeln!(f, "### Implemented Functions\n")?;
-                for func in stats.implemented.iter() {
-                    writeln!(f, "- {}", func)?;
+                let mut funcs = stats.implemented.clone();
+                funcs.sort_by(|(_, a), (_, b)| a.cmp(b));
+                funcs.reverse();
+                for (func, count) in funcs {
+                    writeln!(f, "- {} (used {} times)", func, count)?;
                 }
                 writeln!(f, "")?;
             }
@@ -201,7 +204,7 @@ impl Display for BuiltinStats {
             (num_implemented as f64 / num_functions as f64) * 100.0
         )?;
         writeln!(f, "</b>\n")?;
-        writeln!(f, "## Undocumented Functions\n")?;
+        writeln!(f, "## Undocumented Functions (Rust Only)\n")?;
         for func in self.undocumented.iter() {
             writeln!(f, "- {}", func)?;
         }
