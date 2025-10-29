@@ -13,17 +13,9 @@ use std::fmt::Display;
 use std::io::{self};
 use std::path::PathBuf;
 use std::{collections::HashMap, fs, path::Path};
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use walkdir::WalkDir;
 
 use crate::error::CliError;
-
-fn init_logging() {
-    tracing_subscriber::registry()
-        .with(fmt::layer())
-        .with(EnvFilter::from_default_env())
-        .init();
-}
 
 #[derive(clap::Parser)]
 #[command(
@@ -613,7 +605,6 @@ fn run(args: FilterArgs) -> Result<(), CliError> {
 }
 
 fn main() -> Result<(), CliError> {
-    init_logging();
     let cli = FilterArgs::parse();
     run(cli)
 }
