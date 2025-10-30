@@ -25,7 +25,6 @@ To verify if the process requires further step the caller must call `krb5_gss_up
 
 Returns 0 on success otherwise it is an failure.
 
-
 ## EXAMPLES
 
 ```nasl

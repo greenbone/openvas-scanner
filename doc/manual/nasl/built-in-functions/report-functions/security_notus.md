@@ -1,4 +1,4 @@
-# security_lsc
+# security_notus
 
 ## NAME
 
@@ -8,7 +8,7 @@
 
 *void* **security_notus**(result: *json*);
 
-**security_notus** The security_lsc take following arguments:
+**security_notus** The security_notus take following arguments:
 - *result* This is a notus result given as a json like structure. The structure should have the following format:
 ```json
 {

@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+// Until the Crypto scene is moving away from GenericArray
+#![allow(deprecated)]
+
 use thiserror::Error;
 
 // use crate::nasl::utils::combine_function_sets;

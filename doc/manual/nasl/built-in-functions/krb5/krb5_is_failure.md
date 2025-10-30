@@ -16,11 +16,9 @@ Checks if given result code or cached result code is a failure. If no result cod
 
 The cached result code reflects the error code of the last krb5 function call.
 
-
 ## RETURN VALUE
 
 Returns 1 if the result code is a failure, 0 otherwise.
-
 
 ## EXAMPLES
 
@@ -28,5 +26,3 @@ Returns 1 if the result code is a failure, 0 otherwise.
 failure = krb5_is_failure();
 display(failure);
 ```
-
-
