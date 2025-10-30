@@ -304,6 +304,14 @@ fn get_script_oid(context: &ScanCtx<'_>) -> Option<Vec<u8>> {
     context.nvt().clone().map(|nvt| nvt.oid.into_bytes())
 }
 
+// This function is only for backward compatibility.
+// Some nasl scripts still call it.
+#[nasl_function]
+fn scanner_status() -> NaslValue {
+    NaslValue::Null
+}
+
+
 pub struct Misc;
 
 function_set! {
@@ -327,6 +335,7 @@ function_set! {
         vendor_version,
         safe_checks,
         get_script_oid,
+        scanner_status,
     )
 }
 
