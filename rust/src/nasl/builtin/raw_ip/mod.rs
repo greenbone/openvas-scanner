@@ -39,10 +39,32 @@ pub enum RawIpError {
     NoRouteToDestination,
     #[error("{0}")]
     PacketForgery(PacketForgeryError),
-    #[error("{0}")]
-    TcpPing(String),
     #[error("Error sending a packet: {0}")]
     SendPacket(String),
+    #[error("{0}")]
+    SynScan(SynScanError),
+}
+
+#[derive(Debug, Error)]
+pub enum SynScanError {
+    #[error("{0}")]
+    TcpPing(String),
+    #[error("No valid Interface: {0}")]
+    NoValidInterface(String),
+    #[error("Wrong packet length")]
+    WrongPacketLength,
+    #[error("Invalid EthernetType")]
+    InvalidEtherType,
+    #[error("Wrong buffer size {0}. Not possible to create an IP packet")]
+    CreateIpPacketFromWrongBufferSize(i64),
+    #[error("Wrong buffer size {0}. Not possible to create an TCP packet")]
+    CreateTcpPacketFromWrongBufferSize(i64),
+}
+
+impl From<SynScanError> for FnError {
+    fn from(e: SynScanError) -> Self {
+        RawIpError::SynScan(e).into()
+    }
 }
 
 #[derive(Debug, Error)]
