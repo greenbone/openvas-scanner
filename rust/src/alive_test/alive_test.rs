@@ -6,7 +6,7 @@ use crate::alive_test::AliveTestError;
 use crate::alive_test::arp::forge_arp_request;
 use crate::alive_test::icmp::{forge_icmp_v4, forge_icmp_v6, forge_neighbor_solicit};
 use crate::nasl::raw_ip_utils::{
-    raw_ip_utils::{FIX_IPV6_HEADER_LENGTH, alive_test_send_v4_packet, alive_test_send_v6_packet},
+    raw_ip_utils::{FIX_IPV6_HEADER_LENGTH, send_v4_packet, send_v6_packet},
     tcp_ping::{FILTER_PORT, forge_tcp_ping_ipv4, forge_tcp_ping_ipv6},
 };
 
@@ -119,7 +119,7 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
     }
     if pkt.get_next_level_protocol() == IpNextHeaderProtocols::Tcp {
         let tcp_packet = TcpPacket::new(&packet[l2_and_ip_header..]).ok_or_else(|| {
-            AliveTestError::CreateIcmpPacketFromWrongBufferSize(
+            AliveTestError::CreateTcpPacketFromWrongBufferSize(
                 packet[l2_and_ip_header..].len() as i64
             )
         })?;
@@ -253,11 +253,11 @@ async fn send_task(
             match t {
                 IpAddr::V4(ipv4) => {
                     let icmp = forge_icmp_v4(*ipv4);
-                    alive_test_send_v4_packet(icmp)?;
+                    send_v4_packet(icmp)?;
                 }
                 IpAddr::V6(ipv6) => {
                     let icmp = forge_icmp_v6(*ipv6)?;
-                    alive_test_send_v6_packet(icmp)?;
+                    send_v6_packet(icmp)?;
                 }
             }
         }
@@ -270,12 +270,12 @@ async fn send_task(
                     IpAddr::V4(ipv4) => {
                         let tcp =
                             forge_tcp_ping_ipv4(*ipv4, port, pnet::packet::tcp::TcpFlags::SYN)?;
-                        alive_test_send_v4_packet(tcp)?;
+                        send_v4_packet(tcp)?;
                     }
                     IpAddr::V6(ipv6) => {
                         let tcp =
                             forge_tcp_ping_ipv6(*ipv6, port, pnet::packet::tcp::TcpFlags::SYN)?;
-                        alive_test_send_v6_packet(tcp)?;
+                        send_v6_packet(tcp)?;
                     }
                 };
             }
@@ -289,12 +289,12 @@ async fn send_task(
                     IpAddr::V4(ipv4) => {
                         let tcp =
                             forge_tcp_ping_ipv4(*ipv4, port, pnet::packet::tcp::TcpFlags::ACK)?;
-                        alive_test_send_v4_packet(tcp)?;
+                        send_v4_packet(tcp)?;
                     }
                     IpAddr::V6(ipv6) => {
                         let tcp =
                             forge_tcp_ping_ipv6(*ipv6, port, pnet::packet::tcp::TcpFlags::ACK)?;
-                        alive_test_send_v6_packet(tcp)?;
+                        send_v6_packet(tcp)?;
                     }
                 };
             }
@@ -309,7 +309,7 @@ async fn send_task(
                 }
                 IpAddr::V6(ipv6) => {
                     let ndp = forge_neighbor_solicit(*ipv6)?;
-                    alive_test_send_v6_packet(ndp)?;
+                    send_v6_packet(ndp)?;
                 }
             };
         }

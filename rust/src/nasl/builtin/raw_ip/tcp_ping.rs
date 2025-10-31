@@ -72,6 +72,7 @@ pub fn forge_tcp_ping_ipv4(
     tcp_flag: u8,
 ) -> Result<Ipv4Packet<'static>, RawIpError> {
     let mut tcp_buf = tcp_ping(*dport, tcp_flag);
+    dbg!(&tcp_buf);
     forge_ipv4_packet_for_tcp(&mut tcp_buf, dst)
 }
 

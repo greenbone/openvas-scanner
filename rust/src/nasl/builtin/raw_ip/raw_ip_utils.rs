@@ -238,7 +238,7 @@ fn new_raw_socket_v6() -> Result<Socket, RawIpError> {
 }
 
 // Send ipv6 packet
-pub fn alive_test_send_v6_packet(pkt: Ipv6Packet<'static>) -> Result<(), RawIpError> {
+pub fn send_v6_packet(pkt: Ipv6Packet<'static>) -> Result<(), RawIpError> {
     tracing::debug!("starting sending packet");
     let sock = new_raw_socket_v6()?;
     sock.set_header_included_v6(true)
@@ -257,7 +257,7 @@ pub fn alive_test_send_v6_packet(pkt: Ipv6Packet<'static>) -> Result<(), RawIpEr
 }
 
 // Send ipv4 packet
-pub fn alive_test_send_v4_packet(pkt: Ipv4Packet<'static>) -> Result<(), RawIpError> {
+pub fn send_v4_packet(pkt: Ipv4Packet<'static>) -> Result<(), RawIpError> {
     tracing::debug!("starting sending packet");
     let sock = new_raw_socket_v4()?;
     sock.set_header_included_v4(true)
