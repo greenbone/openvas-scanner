@@ -73,20 +73,15 @@ pub struct Scanner {
     pub preferences: HashMap<String, ScanPrefValue>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Default, Deserialize, Serialize, Debug, Clone)]
 pub enum ScannerType {
     #[serde(rename = "ospd")]
+    #[default]
     Ospd,
     #[serde(rename = "openvas")]
     Openvas,
     #[serde(rename = "openvasd")]
     Openvasd,
-}
-
-impl Default for ScannerType {
-    fn default() -> Self {
-        Self::Ospd
-    }
 }
 
 impl TypedValueParser for ScannerType {
