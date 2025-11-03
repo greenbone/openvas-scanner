@@ -8,7 +8,8 @@ use pcap::{Active, Capture, Inactive, PacketCodec, PacketStream};
 use pnet::packet::{ip::IpNextHeaderProtocols, ipv4::Ipv4Packet, ipv6::Ipv6Packet, tcp::TcpPacket};
 
 use super::SynScanError;
-use crate::nasl::NaslValue;
+use crate::nasl::builtin::network::network::scanner_add_port_shared;
+use crate::nasl::builtin::network::Port;
 use crate::nasl::prelude::*;
 use crate::nasl::raw_ip_utils::{
     raw_ip_utils::{FIX_IPV6_HEADER_LENGTH, send_v4_packet, send_v6_packet},
@@ -17,7 +18,7 @@ use crate::nasl::raw_ip_utils::{
 use crate::nasl::utils::function::utils::DEFAULT_TIMEOUT;
 use futures::StreamExt;
 use std::collections::BTreeSet;
-use std::{collections::HashSet, net::IpAddr, time::Duration};
+use std::{net::IpAddr, time::Duration};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::time::sleep;
 
@@ -134,8 +135,8 @@ async fn capture_task(
     loop {
         tokio::select! {
             packet = stream.next() => { // packet is Option<Result<Box>>
-                if let Some(Ok(data)) = packet && let Ok(Some(alive_host)) = process_packet(&data) {
-                        tx_msg.send(alive_host).await.unwrap()
+                if let Some(Ok(data)) = packet && let Ok(Some(open_port)) = process_packet(&data) {
+                        tx_msg.send(open_port).await.unwrap()
                 }
             },
             ctl = rx_ctl.recv() => {
@@ -149,6 +150,19 @@ async fn capture_task(
     Ok(())
 }
 
+async fn reset_connection (target: IpAddr, port: &u16) -> Result<(), FnError> {
+    match target {
+        IpAddr::V4(ipv4) => {
+            let tcp = forge_tcp_ping_ipv4(ipv4, port, pnet::packet::tcp::TcpFlags::RST)?;
+            send_v4_packet(tcp)?;
+        }
+        IpAddr::V6(ipv6) => {
+            let tcp = forge_tcp_ping_ipv6(ipv6, port, pnet::packet::tcp::TcpFlags::RST)?;
+            send_v6_packet(tcp)?;
+        }
+    };
+    Ok(())
+}
 async fn send_task(
     target: IpAddr,
     ports: BTreeSet<u16>,
@@ -162,7 +176,6 @@ async fn send_task(
         match target {
             IpAddr::V4(ipv4) => {
                 let tcp = forge_tcp_ping_ipv4(ipv4, port, pnet::packet::tcp::TcpFlags::SYN)?;
-                dbg!(&tcp);
                 send_v4_packet(tcp)?;
             }
             IpAddr::V6(ipv6) => {
@@ -180,9 +193,9 @@ async fn send_task(
 }
 
 #[nasl_function]
-async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
+async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<(), FnError> {
     let target_ip = configs.target().ip_addr().clone();
-    let mut open_ports = HashSet::<u16>::new();
+    let mut open_ports = BTreeSet::<u16>::new();
 
     let capture_inactive =
         Capture::from_device("any").map_err(|e| SynScanError::NoValidInterface(e.to_string()))?;
@@ -193,7 +206,6 @@ async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<NaslValue, FnError>
     let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg));
 
     let ports = configs.target().ports_tcp();
-    dbg!(ports);
     let send_handle = tokio::spawn(send_task(
         target_ip,
         ports.clone(),
@@ -203,17 +215,17 @@ async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<NaslValue, FnError>
 
     while let Some(open_port) = rx_msg.recv().await {
         if ports.contains(&open_port) && !open_ports.contains(&open_port) {
+            scanner_add_port_shared(&configs, Port::from(open_port), Some("tcp"))?;
             open_ports.insert(open_port);
-            println!("{} is open", &open_port);
+            reset_connection(target_ip, &open_port).await?;
+            tracing::debug!("{} is open", open_port);
         }
     }
 
     send_handle.await.unwrap().unwrap();
     capture_handle.await.unwrap().unwrap();
 
-    Ok(NaslValue::Array(Vec::from_iter(
-        open_ports.iter().map(|p| NaslValue::Number(*p as i64)),
-    )))
+    Ok(())
 }
 
 pub struct SynScan;

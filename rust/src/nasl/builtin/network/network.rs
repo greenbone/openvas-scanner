@@ -132,9 +132,9 @@ fn islocalnet(context: &ScanCtx) -> Result<bool, SocketError> {
     Ok(false)
 }
 
+
 /// Declares an open port on the target host
-#[nasl_function(named(port, proto))]
-fn scanner_add_port(context: &ScanCtx, port: Port, proto: Option<&str>) -> Result<(), FnError> {
+pub fn scanner_add_port_shared(context: &ScanCtx, port: Port, proto: Option<&str>) -> Result<(), FnError> {
     let kb_key = match proto {
         Some("udp") => KbKey::Port(kb::Port::Udp(port.0.to_string())),
         _ => KbKey::Port(kb::Port::Tcp(port.0.to_string())),
@@ -143,6 +143,12 @@ fn scanner_add_port(context: &ScanCtx, port: Port, proto: Option<&str>) -> Resul
     context.set_single_kb_item(kb_key, KbItem::Number(1))?;
 
     Ok(())
+}
+
+/// Declares an open port on the target host
+#[nasl_function(named(port, proto))]
+fn scanner_add_port(context: &ScanCtx, port: Port, proto: Option<&str>) -> Result<(), FnError> {
+    scanner_add_port_shared(context, port, proto)
 }
 
 #[nasl_function]
