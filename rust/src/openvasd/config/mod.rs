@@ -697,10 +697,12 @@ impl Config {
             };
         }
         if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
+            //TODO: check if dir
             config.storage = StorageTypes::V2(SqliteConfiguration {
                 location: DBLocation::File(path.clone()),
                 ..Default::default()
             });
+            // TODO: add suffix
             config.container_image_scanner.database = SqliteConfiguration {
                 location: DBLocation::File(path.clone()),
                 ..Default::default()

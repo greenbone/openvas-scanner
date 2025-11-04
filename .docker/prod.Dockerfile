@@ -92,4 +92,5 @@ ENV NMAP_PRIVILEGED=1
 RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
 RUN chmod 755 /usr/local/bin/scannerctl
 RUN chmod 755 /usr/local/bin/openvasd
+RUN mkdir -p /var/lib/openvasd/certs
 CMD /usr/local/bin/openvasd

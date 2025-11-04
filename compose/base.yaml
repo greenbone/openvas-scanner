@@ -1,0 +1,148 @@
+name: greenbone-community-edition
+
+services:
+  vulnerability-tests:
+    image: registry.community.greenbone.net/community/vulnerability-tests
+    environment:
+      FEED_RELEASE: "24.10"
+    volumes:
+      - vt_data_vol:/mnt
+
+  notus-data:
+    image: registry.community.greenbone.net/community/notus-data
+    volumes:
+      - notus_data_vol:/mnt
+
+  gpg-data:
+    image: registry.community.greenbone.net/community/gpg-data
+    volumes:
+      - gpg_data_vol:/mnt
+
+  redis-server:
+    image: registry.community.greenbone.net/community/redis-server
+    deploy:
+      resources:
+        limits:
+          memory: ${OPENVAS_REDIS_MEMORY_LIMIT:-0}
+        reservations:
+          memory: ${OPENVAS_REDIS_MEMORY_RESERVATION:-0}
+      restart_policy:
+        condition: ${OPENVAS_REDIS_RESTART_CONDITION:-on-failure}
+        delay: '3s'
+    volumes:
+      - redis_socket_vol:/run/redis/
+
+  # Sets log level of openvas to the set LOG_LEVEL within the env
+  # and changes log output to /var/log/openvas instead /var/log/gvm
+  # to reduce likelyhood of unwanted log interferences
+  configure-openvas-log:
+    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    volumes:
+      - openvas_data_vol:/mnt
+      - openvas_log_data_vol:/var/log/openvas
+    environment:
+      # ERROR -> 4
+      # CRITICAL -> 8
+      # WARNING -> 16
+      # MESSAGE -> 32
+      # INFO -> 64
+      # DEBUG -> 128
+      OPENVAS_LOG_LEVEL: ${OPENVAS_LOG_LEVEL:-64}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        sed "s/127/$OPENVAS_LOG_LEVEL/" /etc/openvas/openvas_log.conf | sed 's/gvm/openvas/' > /mnt/openvas_log.conf
+        chmod 644 /mnt/openvas_log.conf
+        touch /var/log/openvas/openvas.log
+        chmod 666 /var/log/openvas/openvas.log
+
+  configure-openvas:
+    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    volumes:
+      - openvas_data_vol:/mnt
+    environment:
+      OPENVASD_PROTOCOL: http
+      OPENVASD_PORT: 80
+    command:
+      - /bin/sh
+      - -c
+      - |
+        printf "table_driven_lsc = yes\nopenvasd_server = $OPENVASD_PROTOCOL://openvasd:$OPENVASD_PORT\n" > /mnt/openvas.conf
+        chmod 644 /mnt/openvas.conf
+
+
+  # shows logs of openvas
+  openvas:
+    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    restart: on-failure
+    volumes:
+      - openvas_data_vol:/etc/openvas
+      - openvas_log_data_vol:/var/log/openvas
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cat /etc/openvas/openvas.conf
+        tail -f /var/log/openvas/openvas.log
+    depends_on:
+      configure-openvas-log:
+        condition: service_completed_successfully
+      configure-openvas:
+        condition: service_completed_successfully
+
+  openvasd:
+    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    # we need privileged because of:
+    # setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
+    privileged: true 
+    deploy:
+      resources:
+        limits:
+          memory: ${OPENVASD_MEMORY_LIMIT:-0}
+        reservations:
+          memory: ${OPENVASD_RESERVATION:-0}
+      restart_policy:
+        condition: ${OPENVASD_RESTART_CONDITION:-on-failure}
+        delay: '3s'
+    environment:
+      SCANNER_TYPE: openvas
+      GNUPGHOME: /etc/openvas/gnupg
+      XDG_CACHE_HOME: /var/cache/
+      STORAGE_TYPE: ${OPENVAS_SCANNER_STORAGE_TYPE:-fs}
+      LISTENING: 0.0.0.0:80
+    volumes:
+      - openvas_data_vol:/etc/openvas
+      - openvas_log_data_vol:/var/log/openvas
+      - gpg_data_vol:/etc/openvas/gnupg
+      - notus_data_vol:/var/lib/notus
+      - vt_data_vol:/var/lib/openvas/plugins
+      - redis_socket_vol:/run/redis/
+      - openvasd_cache_vol:/var/cache/
+    # enable port forwarding when you want to use the http api from your host machine
+    # TODO: configurable
+    ports:
+      - ${OPENVASD_EXTERNAL_BIND_ADDRESS:-127.0.0.1:3000}:80
+    depends_on:
+      vulnerability-tests:
+        condition: service_completed_successfully
+      configure-openvas-log:
+        condition: service_completed_successfully
+      configure-openvas:
+        condition: service_completed_successfully
+      gpg-data:
+        condition: service_completed_successfully
+    networks:
+      default:
+        aliases:
+          - openvasd
+
+volumes:
+  gpg_data_vol:
+  vt_data_vol:
+  notus_data_vol:
+  ospd_openvas_socket_vol:
+  redis_socket_vol:
+  openvas_data_vol:
+  openvas_log_data_vol:
+  openvasd_cache_vol:
