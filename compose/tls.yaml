@@ -1,0 +1,29 @@
+name: openvasd-community-edition-tls
+
+services:
+
+  configure-openvas:
+    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    volumes:
+      - openvas_data_vol:/mnt
+    environment:
+      OPENVASD_PROTOCOL: https
+      # we stick to port 80 as the rebound of ports has issues within podman-compose
+      OPENVASD_PORT: 80
+    command:
+      - /bin/sh
+      - -c
+      - |
+        printf "table_driven_lsc = yes\nopenvasd_server = $OPENVASD_PROTOCOL://openvasd:$OPENVASD_PORT\n" > /mnt/openvas.conf
+        chmod 644 /mnt/openvas.conf
+
+  openvasd:
+    environment:
+      TLS_CERTS: /var/lib/openvasd/certs/server.pem
+      TLS_KEY: /var/lib/openvasd/certs/server.key
+    volumes:
+      - ${OPENVASD_SERVER_PEM:-./openvasd-server.pem}:/var/lib/openvasd/certs/server.pem:ro
+      - ${OPENVASD_SERVER_KEY:-./openvasd-server.key}:/var/lib/openvasd/certs/server.key:ro
+    # ports:
+    #   - ${OPENVASD_EXTERNAL_BIND_ADDRESS:-127.0.0.1:3000}:443
+
