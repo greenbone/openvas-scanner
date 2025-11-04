@@ -71,6 +71,8 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libcurl4 \
   zlib1g \
   libssh-4 \
+  libmagic1t64 \
+  libcurl4-gnutls-dev \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
 

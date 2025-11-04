@@ -2,6 +2,8 @@
 # Usually it is run within a gvm-libs image.
 #/bin/sh
 set -ex
+# TODO: create a better structure on various install list to not have to add runtime
+# dependencies into the Dockfile, which can easily overlooked.
 apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
     build-essential \
@@ -34,9 +36,7 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libcurl4-gnutls-dev \
     libhiredis-dev \
     libmagic-dev \
+    libcgreen1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-curl -L -o cgreen.tar.gz https://github.com/cgreen-devs/cgreen/archive/refs/tags/1.6.3.tar.gz -k
-tar -xzf cgreen.tar.gz && cd cgreen-1.6.3
-make install
 ldconfig
