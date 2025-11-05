@@ -201,6 +201,17 @@ interpreter_test_ok!(
 );
 
 interpreter_test_ok!(
+    function_scope,
+    "a = 1; b = 2; function foo() { local_var a; a = 3; b = 4; } foo(); a; b;",
+    1,
+    2,
+    NaslValue::Null,
+    NaslValue::Null,
+    1,
+    4,
+);
+
+interpreter_test_ok!(
     array_boolean,
     "a = 1; if ([]) { a = 2; }; a;",
     1,
