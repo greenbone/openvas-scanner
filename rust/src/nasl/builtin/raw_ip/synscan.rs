@@ -8,8 +8,8 @@ use pcap::{Active, Capture, Inactive, PacketCodec, PacketStream};
 use pnet::packet::{ip::IpNextHeaderProtocols, ipv4::Ipv4Packet, ipv6::Ipv6Packet, tcp::TcpPacket};
 
 use super::SynScanError;
-use crate::nasl::builtin::network::network::scanner_add_port_shared;
 use crate::nasl::builtin::network::Port;
+use crate::nasl::builtin::network::network::scanner_add_port_shared;
 use crate::nasl::prelude::*;
 use crate::nasl::raw_ip_utils::{
     raw_ip_utils::{FIX_IPV6_HEADER_LENGTH, send_v4_packet, send_v6_packet},
@@ -150,7 +150,7 @@ async fn capture_task(
     Ok(())
 }
 
-async fn reset_connection (target: IpAddr, port: &u16) -> Result<(), FnError> {
+async fn reset_connection(target: IpAddr, port: &u16) -> Result<(), FnError> {
     match target {
         IpAddr::V4(ipv4) => {
             let tcp = forge_tcp_ping_ipv4(ipv4, port, pnet::packet::tcp::TcpFlags::RST)?;
@@ -194,7 +194,7 @@ async fn send_task(
 
 #[nasl_function]
 async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<(), FnError> {
-    let target_ip = configs.target().ip_addr().clone();
+    let target_ip = configs.target().ip_addr();
     let mut open_ports = BTreeSet::<u16>::new();
 
     let capture_inactive =
@@ -215,7 +215,7 @@ async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<(), FnError> {
 
     while let Some(open_port) = rx_msg.recv().await {
         if ports.contains(&open_port) && !open_ports.contains(&open_port) {
-            scanner_add_port_shared(&configs, Port::from(open_port), Some("tcp"))?;
+            scanner_add_port_shared(configs, Port::from(open_port), Some("tcp"))?;
             open_ports.insert(open_port);
             reset_connection(target_ip, &open_port).await?;
             tracing::debug!("{} is open", open_port);

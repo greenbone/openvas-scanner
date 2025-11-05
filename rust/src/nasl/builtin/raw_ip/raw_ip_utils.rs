@@ -225,7 +225,7 @@ fn new_raw_socket_v4() -> Result<Socket, RawIpError> {
         Some(Protocol::from(IPPROTO_RAW)),
     )
     //    .map_err(|e| AliveTestError::NoSocket(e.to_string()))
-    .map_err(|e| RawIpError::FailedToBind(e))
+    .map_err(RawIpError::FailedToBind)
 }
 
 fn new_raw_socket_v6() -> Result<Socket, RawIpError> {
@@ -234,7 +234,7 @@ fn new_raw_socket_v6() -> Result<Socket, RawIpError> {
         socket2::Type::RAW,
         Some(Protocol::from(IPPROTO_RAW)),
     )
-    .map_err(|e| RawIpError::FailedToBind(e))
+    .map_err(RawIpError::FailedToBind)
 }
 
 // Send ipv6 packet
@@ -242,7 +242,7 @@ pub fn send_v6_packet(pkt: Ipv6Packet<'static>) -> Result<(), RawIpError> {
     tracing::debug!("starting sending packet");
     let sock = new_raw_socket_v6()?;
     sock.set_header_included_v6(true)
-        .map_err(|e| RawIpError::FailedToBind(e))?;
+        .map_err(RawIpError::FailedToBind)?;
 
     let sockaddr = SocketAddr::new(IpAddr::from(pkt.get_destination()), 0);
     match sock.send_to(pkt.packet(), &sockaddr.into()) {
@@ -261,7 +261,7 @@ pub fn send_v4_packet(pkt: Ipv4Packet<'static>) -> Result<(), RawIpError> {
     tracing::debug!("starting sending packet");
     let sock = new_raw_socket_v4()?;
     sock.set_header_included_v4(true)
-        .map_err(|e| RawIpError::FailedToBind(e))?;
+        .map_err(RawIpError::FailedToBind)?;
 
     let sockaddr = SocketAddr::new(IpAddr::from(pkt.get_destination()), 0);
     match sock.send_to(pkt.packet(), &sockaddr.into()) {

@@ -43,6 +43,6 @@ pub enum Error {
 
 impl From<RawIpError> for Error {
     fn from(value: RawIpError) -> Self {
-        Self::RawIpError(value.into())
+        Self::RawIpError(value)
     }
 }

@@ -132,9 +132,12 @@ fn islocalnet(context: &ScanCtx) -> Result<bool, SocketError> {
     Ok(false)
 }
 
-
 /// Declares an open port on the target host
-pub fn scanner_add_port_shared(context: &ScanCtx, port: Port, proto: Option<&str>) -> Result<(), FnError> {
+pub fn scanner_add_port_shared(
+    context: &ScanCtx,
+    port: Port,
+    proto: Option<&str>,
+) -> Result<(), FnError> {
     let kb_key = match proto {
         Some("udp") => KbKey::Port(kb::Port::Udp(port.0.to_string())),
         _ => KbKey::Port(kb::Port::Tcp(port.0.to_string())),
