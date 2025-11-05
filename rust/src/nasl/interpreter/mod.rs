@@ -499,7 +499,13 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
-        self.register.create_child();
+        let add_scope = match self.version {
+            NaslVersion::V1 => false,
+            NaslVersion::V2 => true,
+        };
+        if add_scope {
+            self.register.create_child();
+        }
         for stmt in block.items.iter() {
             match Box::pin(self.resolve(stmt)).await {
                 Ok(x) => {
@@ -510,14 +516,18 @@ impl<'ctx> Interpreter<'ctx> {
                             | NaslValue::Break
                             | NaslValue::Continue
                     ) {
-                        self.register.drop_last();
+                        if add_scope {
+                            self.register.drop_last();
+                        }
                         return Ok(x);
                     }
                 }
                 Err(e) => return Err(e),
             }
         }
-        self.register.drop_last();
+        if add_scope {
+            self.register.drop_last();
+        }
         // currently blocks return null
         Ok(NaslValue::Null)
     }
