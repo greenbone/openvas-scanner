@@ -311,7 +311,6 @@ fn scanner_status() -> NaslValue {
     NaslValue::Null
 }
 
-
 pub struct Misc;
 
 function_set! {
