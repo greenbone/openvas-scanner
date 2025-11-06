@@ -63,7 +63,7 @@ services:
       - openvas_data_vol:/mnt
     environment:
       OPENVASD_PROTOCOL: http
-      OPENVASD_PORT: 80
+      OPENVASD_PORT: 3000
     command:
       - /bin/sh
       - -c
@@ -110,7 +110,7 @@ services:
       GNUPGHOME: /etc/openvas/gnupg
       XDG_CACHE_HOME: /var/cache/
       STORAGE_TYPE: ${OPENVAS_SCANNER_STORAGE_TYPE:-fs}
-      LISTENING: 0.0.0.0:80
+      LISTENING: 0.0.0.0:3000
     volumes:
       - openvas_data_vol:/etc/openvas
       - openvas_log_data_vol:/var/log/openvas
@@ -122,7 +122,7 @@ services:
     # enable port forwarding when you want to use the http api from your host machine
     # TODO: configurable
     ports:
-      - ${OPENVASD_EXTERNAL_BIND_ADDRESS:-127.0.0.1:3000}:80
+      - ${OPENVASD_EXTERNAL_BIND_ADDRESS:-127.0.0.1:3000}:3000
     depends_on:
       vulnerability-tests:
         condition: service_completed_successfully

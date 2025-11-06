@@ -7,7 +7,7 @@ services:
       - openvas_data_vol:/mnt
     environment:
       OPENVASD_PROTOCOL: https
-      OPENVASD_PORT: 80
+      OPENVASD_PORT: 3000
     command:
       - /bin/sh
       - -c
