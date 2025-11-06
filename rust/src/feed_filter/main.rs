@@ -65,28 +65,24 @@ struct BuiltinStats {
 }
 
 impl BuiltinStats {
-    fn new(scripts: &Scripts, builtins: &DocumentedFunctions) -> Self {
+    fn new(scripts: &Scripts, builtins: &BuiltinFunctions) -> Self {
         let mut category_stats = HashMap::new();
-        let mut undocumented = vec![];
         let mut function_calls = HashMap::new();
 
-        for func in builtins.undocumented.iter() {
-            undocumented.push(func.clone());
+        // Initialize all built-in functions with zero calls
+        for (func, _) in builtins.unimplemented().iter() {
+            function_calls.entry(func.clone()).or_insert(0);
+        }
+        for (func, _) in builtins.implemented().iter() {
+            function_calls.entry(func.clone()).or_insert(0);
         }
 
+        // Count function calls in all scripts
         for (_, script) in scripts.iter() {
             for call in iter_fn_calls(&script.ast) {
                 let function = call.fn_name.to_string();
                 *function_calls.entry(function).or_insert(0) += 1;
             }
-        }
-
-        for (func, _) in builtins.unimplemented().iter() {
-            function_calls.entry(func.clone()).or_insert(0);
-        }
-
-        for (func, _) in builtins.implemented().iter() {
-            function_calls.entry(func.clone()).or_insert(0);
         }
 
         for (func, calls) in function_calls.iter() {
@@ -121,7 +117,7 @@ impl BuiltinStats {
         }
 
         Self {
-            undocumented,
+            undocumented: builtins.undocumented.iter().cloned().collect(),
             categories: category_stats,
         }
     }
@@ -212,8 +208,10 @@ impl Display for BuiltinStats {
     }
 }
 
-/// DocumentedFunctions holds implemented and unimplemented built-in functions
-struct DocumentedFunctions {
+/// This struct holds information about implemented and unimplemented built-in functions
+/// based on the documentation files and rust implementation of NASL. It also tracks
+/// functions that are present in the rust implementation but not documented.
+struct BuiltinFunctions {
     /// HashMap<function_name, (category, deprecated)>
     implemented: HashMap<String, (String, bool)>,
     /// HashMap<function_name, (category, deprecated)>
@@ -222,7 +220,7 @@ struct DocumentedFunctions {
     undocumented: HashSet<String>,
 }
 
-impl DocumentedFunctions {
+impl BuiltinFunctions {
     fn new(doc_path: PathBuf) -> Self {
         let mut implemented = HashMap::new();
         let mut unimplemented = HashMap::new();
@@ -404,11 +402,11 @@ impl ScriptPath {
 struct ScriptReader<'a> {
     feed_path: PathBuf,
     loader: FSPluginLoader,
-    builtins: &'a DocumentedFunctions,
+    builtins: &'a BuiltinFunctions,
 }
 
 impl<'a> ScriptReader<'a> {
-    fn new(feed_path: PathBuf, builtins: &'a DocumentedFunctions) -> Self {
+    fn new(feed_path: PathBuf, builtins: &'a BuiltinFunctions) -> Self {
         let loader = FSPluginLoader::new(&feed_path);
         Self {
             feed_path,
@@ -587,7 +585,7 @@ fn get_scan_config(_feed_path: &Path, runnable: &RunnableScripts) -> Scan {
 }
 
 fn run(args: FilterArgs) -> Result<(), CliError> {
-    let builtins = DocumentedFunctions::new(args.doc_path.clone());
+    let builtins = BuiltinFunctions::new(args.doc_path.clone());
     let mut reader = ScriptReader::new(args.feed_path.to_owned(), &builtins);
     let scripts = reader.read_scripts();
     let builtin_stats = BuiltinStats::new(&scripts, &builtins);
