@@ -111,7 +111,7 @@ where
 
                 let vt_aux = self.redis_connector.get_vt(roid)?;
                 match vt_aux {
-                    None => tracing::warn!("Invalid oid"),
+                    None => tracing::warn!(roid, "Invalid oid"),
                     Some(vt) => {
                         rname = vt.name;
                     }
