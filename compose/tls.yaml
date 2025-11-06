@@ -8,8 +8,8 @@ services:
       - openvas_data_vol:/mnt
     environment:
       OPENVASD_PROTOCOL: https
-      # we stick to port 80 as the rebound of ports has issues within podman-compose
-      OPENVASD_PORT: 80
+      # we stick to port 3000 as the rebound of ports has issues within podman-compose
+      OPENVASD_PORT: 3000
     command:
       - /bin/sh
       - -c
@@ -24,6 +24,3 @@ services:
     volumes:
       - ${OPENVASD_SERVER_PEM:-./openvasd-server.pem}:/var/lib/openvasd/certs/server.pem:ro
       - ${OPENVASD_SERVER_KEY:-./openvasd-server.key}:/var/lib/openvasd/certs/server.key:ro
-    # ports:
-    #   - ${OPENVASD_EXTERNAL_BIND_ADDRESS:-127.0.0.1:3000}:443
-
