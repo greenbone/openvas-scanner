@@ -573,30 +573,6 @@ where
                 preferences::preference::PREFERENCES.to_vec(),
             );
 
-            // TODO: maybe we are in the state that it is actually easier to write a redis worker?
-
-            // let (sender, mut receiver, black_mirror) = orchestrator::Communicator::init();
-            //
-            // //TODO: create a redis worker that can read from redis as well, instead of duplicating
-            // //the whole feed into redis.
-            // tokio::task::spawn(async move {
-            //     loop {
-            //         select! {
-            //             Some(msg) = feed_status.receive_state_changes() => {
-            //                 on_orchestrator_msg(&fpool, feed_snapshot.clone(), &redis_url, &sender, msg).await;
-            //             }
-            //             Some(msg) = receiver.recv() => {
-            //                 if let Err(error) = feed_status.approve(msg).await {
-            //                    tracing::warn!(%error, "Unable to inform orchestrator about allow. VTs are stuck");
-            //                 }
-            //
-            //
-            //             }
-            //
-            //         }
-            //     }
-            // });
-            //
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
         crate::config::ScannerType::Openvasd => {
