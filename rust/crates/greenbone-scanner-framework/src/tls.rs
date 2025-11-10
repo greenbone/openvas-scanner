@@ -11,12 +11,10 @@ use std::{
 use rustls::{
     RootCertStore, ServerConfig,
     crypto::CryptoProvider,
-    pki_types::{
-        CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer,
-    },
+    pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
     server::{WebPkiClientVerifier, danger::ClientCertVerifier},
 };
-use rustls_pemfile_old::{Item, read_one};
+use rustls_pemfile::{Item, read_one};
 
 use crate::entry::ClientIdentifier;
 
@@ -196,8 +194,9 @@ where
     let certfile =
         fs::File::open(filename).map_err(|e| error(format!("failed to open {filename:?}: {e}")))?;
     let mut reader = io::BufReader::new(certfile);
-    rustls_pemfile_old::certs(&mut reader)
-        .map(|x| x.into_iter().map(CertificateDer::from).collect())
+    CertificateDer::pem_reader_iter(&mut reader)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| error(format!("{e}")))
 }
 
 // Load private key from file.
@@ -213,13 +212,15 @@ where
     loop {
         match read_one(&mut reader)? {
             None => break,
-            Some(Item::RSAKey(key)) => {
-                return Ok(PrivateKeyDer::from(PrivatePkcs1KeyDer::from(key)));
+            Some(Item::Pkcs1Key(key)) => {
+                return Ok(PrivateKeyDer::from(key));
             }
-            Some(Item::PKCS8Key(key)) => {
-                return Ok(PrivateKeyDer::from(PrivatePkcs8KeyDer::from(key)));
+            Some(Item::Pkcs8Key(key)) => {
+                return Ok(PrivateKeyDer::from(key));
             }
-            Some(Item::ECKey(key)) => return Ok(PrivateKeyDer::from(PrivateSec1KeyDer::from(key))),
+            Some(Item::Sec1Key(key)) => {
+                return Ok(PrivateKeyDer::from(key));
+            }
             _ => {}
         }
     }
