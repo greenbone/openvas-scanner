@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::nasl::error::{AsCodespanError, Span};
+use crate::nasl::error::{AsCodespanError, Level, Span};
 
 #[derive(Clone, Debug)]
 pub struct TokenizerError {
@@ -29,5 +29,9 @@ impl AsCodespanError for TokenizerError {
 
     fn message(&self) -> String {
         self.kind.to_string()
+    }
+
+    fn level(&self) -> Level {
+        Level::Error
     }
 }

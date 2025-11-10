@@ -15,7 +15,6 @@ use scannerlib::storage::error::StorageError;
 use scannerlib::{feed, notus};
 
 #[derive(Debug, thiserror::Error)]
-
 pub enum CliErrorKind {
     #[error("openvas ({args:?}) failed: {err_msg}.")]
     Openvas {
@@ -24,6 +23,8 @@ pub enum CliErrorKind {
     },
     #[error("{0}")]
     InterpretError(InterpreterError),
+    #[error("Error during linting.")]
+    LinterError,
     #[error("{0}")]
     ExecuteError(#[from] ExecuteError),
     #[error("{0}")]

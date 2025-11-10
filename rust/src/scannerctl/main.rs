@@ -13,10 +13,10 @@ mod error;
 mod execute;
 mod feed;
 mod interpret;
+mod linter;
 mod notus_update;
 mod osp;
 mod scan_config;
-mod syntax;
 mod utils;
 
 use configparser::ini::Ini;
@@ -24,12 +24,12 @@ use error::*;
 
 use execute::ExecuteArgs;
 use feed::FeedArgs;
+use linter::LinterArgs;
 use notus_update::scanner::NotusUpdateArgs;
 use osp::OspArgs;
 use scan_config::ScanConfigArgs;
 use scannerlib::storage::error::StorageError;
 use std::{path::PathBuf, process};
-use syntax::SyntaxArgs;
 use tracing::Level;
 
 use clap::{Parser, Subcommand, arg};
@@ -81,12 +81,13 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Action {
-    Syntax(SyntaxArgs),
     ScanConfig(ScanConfigArgs),
     Osp(OspArgs),
     Execute(ExecuteArgs),
     NotusUpdate(NotusUpdateArgs),
     Feed(FeedArgs),
+    Syntax(LinterArgs),
+    Lint(LinterArgs),
     #[cfg(feature = "nasl-builtin-raw-ip")]
     Alivetest(alivetest::AliveTestArgs),
 }
@@ -104,7 +105,9 @@ async fn main() {
                 "BrokenPipe" => {}
                 _ => panic!("Unexpected data within dispatcher: {x}"),
             },
-            CliErrorKind::InterpretError(_) | CliErrorKind::SyntaxError(_) => {
+            CliErrorKind::InterpretError(_)
+            | CliErrorKind::SyntaxError(_)
+            | CliErrorKind::LinterError => {
                 std::process::exit(1);
             }
             CliErrorKind::InvalidCmdOpt(_) => {
@@ -118,12 +121,13 @@ async fn main() {
 
 async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError> {
     match action {
-        Action::Syntax(args) => syntax::run(args, verbose, quiet).await,
         Action::ScanConfig(args) => scan_config::run(args).await,
         Action::Osp(args) => osp::run(args).await,
         Action::Execute(args) => execute::run(args).await,
         Action::NotusUpdate(args) => notus_update::scanner::run(args).await,
         Action::Feed(args) => feed::run(args).await,
+        Action::Lint(args) => linter::run(args, verbose, quiet, false).await,
+        Action::Syntax(args) => linter::run(args, verbose, quiet, true).await,
         #[cfg(feature = "nasl-builtin-raw-ip")]
         Action::Alivetest(args) => alivetest::run(args).await,
     }
