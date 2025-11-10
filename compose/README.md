@@ -13,22 +13,50 @@ It is divided into three definitions:
 2. tls.yaml - overrides the settings within base.yaml to start OpenVASD in TLS mode
 3. mtls.yaml - overrides the settings within base.yaml to start OpenVASD in mTLS mode (preferred)
 
-Which means to start openvasd with http:
+## How to start
+
+### HTTP
+
+To start the scanner compose with http you can use the base.yaml:
 
 ```
-podman-compose -f base.yaml
+podman-compose -f base.yaml up
 ```
 
-in TLS mode
+### HTTPS
+
+By default the compose definitions (tls.yaml as well as mtls.yaml) use the certificates:
+- ./openvasd-server.key
+- ./openvasd-server.pem
+the directory
+- ./client-certs
+for the client certificates.
+
+You can either copy your certificates into that location or set the environment variables:
+- OPENVASD_SERVER_KEY - the key file of your certificate
+- OPENVASD_SERVER_PEM - the pem file of your certificate
+- OPENVASD_CLIENT_CERTS - the directory containing public certificates of clients that are allowed to use OpenVASD 
+
+NOTE: if the files specified by OPENVASD_SERVER_KEY, OPENVASD_SERVER_PEM or the
+directory OPENVASD_CLIENT_CERTS are not available directories with that path
+may be created.
+
+If you don't have certificates you can use the Makefile to create some:
 
 ```
-podman-compose -f base.yaml -f tls.yaml
+make
 ```
 
-in mTLS mode:
+To start scanner compose with TLS but without client-certificates:
 
 ```
-podman-compose -f base.yaml -f mtls.yaml
+podman-compose -f base.yaml -f tls.yaml up
+```
+
+To start scanner compose with mTLS:
+
+```
+podman-compose -f base.yaml -f mtls.yaml up
 ```
 
 when in mTLS mode you have to provide the client-certificate and the corresponding key when connecting to OpenVASD:
@@ -40,30 +68,15 @@ curl -vk \
     https://localhost:3000/scans
 ```
 
-On default the compose definitions (tls.yaml as well as mtls.yaml) use the certificates:
-- ./openvasd-server.key
-- ./openvasd-server.pem
-the directory
-- ./client-certs
-for the client certificates.
+## How to test
 
-You can either copy your certificates into that location or set the environment variables:
-- OPENVASD_SERVER_KEY - the key file of your certificate
-- OPENVASD_SERVER_PEM - the pem file of your certificate
-- OPENVASD_CLIENT_KEYS - the directory containing public certificates of clients that are allowed to use OpenVASD 
-
-If you don't have certificates, but want to test OpenVASD you can call:
-
-```
-make
-```
 
 Additionally to the OpenVASD compose definition we also provide a possibility to verify the setup.
 
-This is done by adding `test/victim.yaml` to the compose chain like
+This is done by adding `tests/victim.yaml` to the compose chain like
 
 ```
-podman-compose -f base.yaml -f mtls.yaml -f tests/victim.yaml
+podman-compose -f base.yaml -f mtls.yaml -f tests/victim.yaml up
 ```
 
 and then use `make` within the `tests` directory to create and start predefined scans:

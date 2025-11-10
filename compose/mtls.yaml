@@ -23,4 +23,4 @@ services:
     volumes:
       - ${OPENVASD_SERVER_PEM:-./openvasd-server.pem}:/var/lib/openvasd/certs/server.pem:ro
       - ${OPENVASD_SERVER_KEY:-./openvasd-server.key}:/var/lib/openvasd/certs/server.key:ro
-      - ${OPENVASD_CLIENT_KEYS:-./client-certs}:/var/lib/openvasd/certs/clients:ro
+      - ${OPENVASD_CLIENT_CERTS:-./client-certs}:/var/lib/openvasd/certs/clients:ro
