@@ -10,9 +10,7 @@ http-body-util = { workspace = true }
 hyper = { workspace = true }
 hyper-util = { workspace = true }
 rustls = { workspace = true }
-# TODO: although it is not harmful, as we just use it to extract
-# subject identifier, we should find a way to achieve that goal using version 2
-rustls-pemfile-old = { workspace = true }
+rustls-pemfile = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
