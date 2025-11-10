@@ -1,7 +1,9 @@
 use std::fmt::Display;
 
+use codespan_reporting::diagnostic::Diagnostic;
+
 use crate::nasl::{
-    error::{AsCodespanError, Level, Span, Spanned},
+    error::{IntoDiagnostic, Span, Spanned, basic_error_diagnostic},
     syntax::{Keyword, TokenKind, TokenizerError, tokenizer::TokenizerErrorKind},
 };
 
@@ -114,16 +116,9 @@ impl From<TokenizerError> for SpannedError {
     }
 }
 
-impl AsCodespanError for SpannedError {
-    fn span(&self) -> Span {
-        self.span
-    }
-
-    fn message(&self) -> String {
-        format!("{}", self.kind)
-    }
-
-    fn level(&self) -> Level {
-        Level::Error
+impl IntoDiagnostic for SpannedError {
+    fn into_diagnostic(self) -> Diagnostic<()> {
+        let msg = self.kind.to_string();
+        basic_error_diagnostic(msg, self.span)
     }
 }

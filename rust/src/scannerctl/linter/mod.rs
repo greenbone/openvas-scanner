@@ -1,16 +1,14 @@
 mod cli;
-mod error;
-mod lint;
+mod lints;
 
 use std::path::PathBuf;
 
 pub use cli::LinterArgs;
 use cli::get_files;
-use error::LintMsg;
-use lint::Lint;
+use lints::{Lint, LintMsg, all_lints};
 use scannerlib::nasl::{
     Code,
-    error::emit_errors,
+    error::{IntoDiagnostic, emit_errors},
     syntax::{ParseError, grammar::Ast},
 };
 
@@ -59,16 +57,17 @@ impl Linter {
         let ast = match result {
             Ok(ast) => ast,
             Err(e) => {
-                return e.into_iter().map(LintMsg::from).collect();
+                return e
+                    .into_iter()
+                    .map(ParseError::into_diagnostic)
+                    .map(|diagnostic| diagnostic.into())
+                    .collect();
             }
         };
         if self.only_syntax {
             vec![]
         } else {
-            self.lints
-                .iter()
-                .filter_map(|lint| lint.lint(&ast))
-                .collect()
+            self.lints.iter().flat_map(|lint| lint.lint(&ast)).collect()
         }
     }
 }
@@ -80,12 +79,13 @@ pub(crate) async fn run(
     only_syntax: bool,
 ) -> Result<(), CliError> {
     let files = get_files(&args.path)?;
+    let lints = all_lints();
     let mut linter = Linter {
         files,
         verbose,
         quiet,
         only_syntax,
-        lints: vec![],
+        lints,
         stats: Statistics::default(),
     };
     linter.run()?;
