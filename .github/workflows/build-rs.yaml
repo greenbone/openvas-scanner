@@ -33,7 +33,7 @@ jobs:
             --cache-from=type=gha \
             --cache-to=type=gha,mode=max \
             -o type=local,dest="./${DIST}" \
-            -f .docker/prod.Dockerfile .
+            -f .docker/prod-oldstable.Dockerfile .
           mkdir -p "${ASSETS_SUBDIR}"
           cp "./${DIST}/install/usr/local/bin/openvasd"      "${ASSETS_SUBDIR}/openvasd"
           cp "./${DIST}/install/usr/local/bin/scannerctl"    "${ASSETS_SUBDIR}/scannerctl"

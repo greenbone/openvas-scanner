@@ -85,7 +85,7 @@ sequoia-ipc = "0.36.0"
 sequoia-openpgp = { version = "2.0.0", default-features = false, features = ["crypto-openssl",] }
 sha1 = "0.10.5"
 socket2 = { version = "0.6.0", features = ["all"] }
-sqlx = { version = "0.8.3", features = ["sqlite", "runtime-tokio-rustls" ] }
+sqlx = { version = "0", features = ["sqlite", "runtime-tokio-rustls"] }
 sysinfo = "0.37.0"
 nt-time = "0.12.1"
 toml = "0.9.5"
