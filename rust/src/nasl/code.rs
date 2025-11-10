@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    error::Level,
-    syntax::{DescriptionBlock, LoadError, Loader, ParseError, Parser, Tokenizer, grammar::Ast},
+    Loader,
+    syntax::{DescriptionBlock, LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
 fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
@@ -60,7 +60,7 @@ impl ParseResult {
         match self.result {
             Ok(result) => Ok(result),
             Err(errors) => {
-                super::error::emit_errors(&self.file, errors.iter().cloned(), Level::Error);
+                super::error::emit_errors(&self.file, errors.iter().cloned());
                 Err(errors)
             }
         }
@@ -70,7 +70,7 @@ impl ParseResult {
         match self.result {
             Ok(result) => Ok((result, self.file)),
             Err(errors) => {
-                super::error::emit_errors(&self.file, errors.iter().cloned(), Level::Error);
+                super::error::emit_errors(&self.file, errors.iter().cloned());
                 Err(errors)
             }
         }
@@ -152,10 +152,7 @@ mod tokenize {
     use codespan_reporting::files::SimpleFile;
     use itertools::{Either, Itertools};
 
-    use crate::nasl::{
-        error::Level,
-        syntax::{Token, Tokenizer, TokenizerError},
-    };
+    use crate::nasl::syntax::{Token, Tokenizer, TokenizerError};
 
     use super::{super::error, SourceFile};
 
@@ -187,7 +184,7 @@ mod tokenize {
             match self.result {
                 Ok(result) => Some(result),
                 Err(errors) => {
-                    error::emit_errors(&self.file, errors.into_iter(), Level::Error);
+                    error::emit_errors(&self.file, errors.into_iter());
                     None
                 }
             }

@@ -143,7 +143,7 @@ pub struct IncludeSyntaxError {
 // for InterpreterError as well.
 impl std::fmt::Display for IncludeSyntaxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        emit_errors(&self.file, self.errs.iter().cloned(), Level::Error);
+        emit_errors(&self.file, self.errs.iter().cloned());
         write!(f, "Syntax error while including file.")
     }
 }
@@ -161,6 +161,10 @@ impl AsCodespanError for &InterpreterError {
 
     fn message(&self) -> String {
         self.kind.to_string()
+    }
+
+    fn level(&self) -> Level {
+        Level::Error
     }
 }
 

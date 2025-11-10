@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::nasl::{
-    error::{AsCodespanError, Span, Spanned},
+    error::{AsCodespanError, Level, Span, Spanned},
     syntax::{Keyword, TokenKind, TokenizerError, tokenizer::TokenizerErrorKind},
 };
 
@@ -121,5 +121,9 @@ impl AsCodespanError for SpannedError {
 
     fn message(&self) -> String {
         format!("{}", self.kind)
+    }
+
+    fn level(&self) -> Level {
+        Level::Error
     }
 }
