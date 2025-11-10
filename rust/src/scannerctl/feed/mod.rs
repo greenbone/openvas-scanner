@@ -85,7 +85,11 @@ async fn update_vts(
         get_vts_path_from_openvas_config()
     });
     let redis_storage = make_redis_storage(redis, FEEDUPDATE_SELECTOR)?;
-    update::run(redis_storage, &path, signature_check).await
+    if signature_check {
+        update::run(redis_storage, &path, signature_check).await
+    } else {
+        update::run_no_verifier(redis_storage, &path).await
+    }
 }
 
 async fn update_notus(

@@ -118,7 +118,7 @@ impl AdvisoryLoader for HashsumAdvisoryLoader {
         Ok(ret)
     }
 
-    fn load_advisory(&self, os: &str) -> Result<ProductsAdvisories, Error> {
+    fn load_advisory(&self, os: &str, signature_check: bool) -> Result<ProductsAdvisories, Error> {
         let mut loader =
             HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
         let file_item = loader
@@ -131,7 +131,9 @@ impl AdvisoryLoader for HashsumAdvisoryLoader {
             .ok_or_else(|| Error::UnknownProduct(os.to_string()))?
             .map_err(Error::HashsumLoadError)?;
 
-        file_item.verify().map_err(Error::HashsumLoadError)?;
+        if signature_check {
+            file_item.verify().map_err(Error::HashsumLoadError)?;
+        }
 
         let file = self
             .loader
