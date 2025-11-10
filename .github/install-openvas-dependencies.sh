@@ -4,7 +4,9 @@
 set -ex
 # TODO: create a better structure on various install list to not have to add runtime
 # dependencies into the Dockfile, which can easily overlooked.
-apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
+apt-get update 
+
+apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
     build-essential \
     clang \
@@ -35,8 +37,13 @@ apt-get update && apt-get install --no-install-recommends --no-install-suggests 
     libcurl4 \
     libcurl4-gnutls-dev \
     libhiredis-dev \
-    libmagic-dev \
-    libcgreen1-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libmagic-dev 
+
+apt-get install --no-install-recommends --no-install-suggests -y \
+    libcgreen1-dev || \
+    echo "no cgreen available, tests won't run"
+
+rm -rf /var/lib/apt/lists/*
+
 
 ldconfig

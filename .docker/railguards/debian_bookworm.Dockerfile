@@ -7,15 +7,14 @@
 # together from a main branch.
 #
 # If it builds without error everything is as expected.
-FROM debian:stable AS rs-binaries
+
+
+# this is needed when we just want to copy the build binaries onto our dest dir
+FROM debian:bookworm AS rs-binaries
 COPY . /source
 RUN mv /source/.docker/install /install || true
 
-FROM debian:stable
-# CLONE gvm-libs
-# CLONE openvas-smb
-# Install dependencies
-# check ld
+FROM debian:bookworm
 COPY . /source
 RUN apt update && apt install -y git
 RUN bash /source/.devcontainer/github-clone.sh greenbone/gvm-libs
@@ -34,5 +33,3 @@ COPY --from=rs-binaries /install/usr/local/bin/scannerctl /usr/local/bin/scanner
 RUN chmod 755 /usr/local/bin/scannerctl
 RUN chmod 755 /usr/local/bin/openvasd
 RUN ls -las /usr/local/bin/
-
-

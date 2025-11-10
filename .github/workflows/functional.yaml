@@ -16,11 +16,17 @@ jobs:
       matrix:
         system:
           - debian_stable
+          - debian_bookworm
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/copy-docker-binaries
+        with:
+          arch: amd64 
       - run: docker build -t test -f .docker/railguards/${{matrix.system}}.Dockerfile .
       - run: docker run --rm test ldd /usr/local/sbin/openvas
       - run: docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient
+      - run: docker run --rm test /usr/local/bin/openvasd -h
+      - run: docker run --rm test /usr/local/bin/scannerctl -h
       - run: docker rmi test || true
 
   smoketest:   
