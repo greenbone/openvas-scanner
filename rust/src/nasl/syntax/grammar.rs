@@ -41,6 +41,16 @@ impl Ast {
         ExprIterator::new(self)
     }
 
+    pub fn iter_fn_calls(&self) -> impl Iterator<Item = &FnCall> {
+        ExprIterator::new(self).filter_map(|expr| {
+            if let Expr::Atom(Atom::FnCall(call)) = expr {
+                Some(call)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn iter_stmts(&self) -> impl Iterator<Item = &Statement> {
         StmtIterator::new(self)
     }

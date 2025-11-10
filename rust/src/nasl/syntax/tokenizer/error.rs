@@ -1,6 +1,7 @@
+use codespan_reporting::diagnostic::Diagnostic;
 use thiserror::Error;
 
-use crate::nasl::error::{AsCodespanError, Level, Span};
+use crate::nasl::error::{IntoDiagnostic, Span, basic_error_diagnostic};
 
 #[derive(Clone, Debug)]
 pub struct TokenizerError {
@@ -22,16 +23,8 @@ pub enum TokenizerErrorKind {
     UnclosedData,
 }
 
-impl AsCodespanError for TokenizerError {
-    fn span(&self) -> Span {
-        self.span
-    }
-
-    fn message(&self) -> String {
-        self.kind.to_string()
-    }
-
-    fn level(&self) -> Level {
-        Level::Error
+impl IntoDiagnostic for TokenizerError {
+    fn into_diagnostic(self) -> Diagnostic<()> {
+        basic_error_diagnostic(self.kind.to_string(), self.span)
     }
 }
