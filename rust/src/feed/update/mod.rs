@@ -10,7 +10,6 @@ pub use error::ErrorKind;
 use futures::{Stream, StreamExt, stream};
 use tracing::trace;
 
-use crate::nasl::error::Level;
 use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_functions;
@@ -185,7 +184,7 @@ where
                 }
                 Ok(_) => {}
                 Err(e) => {
-                    emit_errors(&file, std::iter::once(&e), Level::Error);
+                    emit_errors(&file, std::iter::once(&e));
                     return Err(e.into());
                 }
             }

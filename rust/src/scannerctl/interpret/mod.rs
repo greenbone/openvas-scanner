@@ -18,7 +18,7 @@ use scannerlib::{
     feed,
     nasl::{
         Code, Register, ScanCtx, ScanCtxBuilder,
-        error::{Level, emit_errors},
+        error::emit_errors,
         interpreter::ForkingInterpreter,
         nasl_std_functions,
         utils::{
@@ -69,16 +69,16 @@ async fn run_with_context(context: ScanCtx<'_>, script: &Path) -> Result<(), Cli
                 if let InterpreterErrorKind::FunctionCallError(ref fe) = e.kind {
                     match fe.kind.return_behavior() {
                         ReturnBehavior::ExitScript => {
-                            emit_errors(&file, std::iter::once(&e), Level::Error);
+                            emit_errors(&file, std::iter::once(&e));
                             return Err(e.into());
                         }
                         ReturnBehavior::ReturnValue(val) => {
-                            emit_errors(&file, std::iter::once(&e), Level::Warn);
+                            emit_errors(&file, std::iter::once(&e));
                             val.clone()
                         }
                     }
                 } else {
-                    emit_errors(&file, std::iter::once(&e), Level::Error);
+                    emit_errors(&file, std::iter::once(&e));
                     return Err(e.into());
                 }
             }

@@ -57,22 +57,20 @@ impl Spanned for Span {
 pub trait AsCodespanError {
     fn span(&self) -> Span;
     fn message(&self) -> String;
+    fn level(&self) -> Level;
 }
 
+#[derive(Copy, Clone)]
 pub enum Level {
     Warn,
     Error,
 }
 
-pub fn emit_errors<T: AsCodespanError>(
-    file: &SourceFile,
-    errs: impl Iterator<Item = T>,
-    level: Level,
-) {
+pub fn emit_errors<T: AsCodespanError>(file: &SourceFile, errs: impl Iterator<Item = T>) {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let config = codespan_reporting::term::Config::default();
     for err in errs {
-        let diagnostic = match level {
+        let diagnostic = match err.level() {
             Level::Warn => Diagnostic::warning(),
             Level::Error => Diagnostic::error(),
         };

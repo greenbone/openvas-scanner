@@ -4,7 +4,7 @@ use codespan_reporting::files::SimpleFile;
 
 use crate::nasl::{
     Code,
-    error::{self, Level, emit_errors},
+    error::{self, emit_errors},
     syntax::{
         Tokenizer,
         grammar::{Expr, If},
@@ -32,7 +32,7 @@ fn parse_program_ok(file_name: &str, code: &str) -> Vec<Statement> {
     match results {
         Err(errs) => {
             let file = SimpleFile::new(file_name.to_string(), code_str);
-            emit_errors(&file, errs.into_iter(), Level::Error);
+            emit_errors(&file, errs.into_iter());
             panic!("Errors during parsing");
         }
         Ok(results) => results.stmts(),
