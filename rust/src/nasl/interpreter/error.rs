@@ -4,11 +4,12 @@
 
 use crate::nasl::NaslValue;
 use crate::nasl::code::SourceFile;
-use crate::nasl::error::{AsCodespanError, Level, Span, Spanned, emit_errors};
+use crate::nasl::error::{IntoDiagnostic, Span, Spanned, basic_error_diagnostic, emit_errors};
 use crate::nasl::syntax::grammar::Expr;
 use crate::nasl::syntax::{CharIndex, ParseError};
 use crate::nasl::syntax::{Ident, LoadError};
 use crate::nasl::utils::error::FnError;
+use codespan_reporting::diagnostic::Diagnostic;
 use codespan_reporting::files::SimpleFile;
 use thiserror::Error;
 
@@ -154,17 +155,9 @@ impl InterpreterError {
     }
 }
 
-impl AsCodespanError for &InterpreterError {
-    fn span(&self) -> Span {
-        self.span
-    }
-
-    fn message(&self) -> String {
-        self.kind.to_string()
-    }
-
-    fn level(&self) -> Level {
-        Level::Error
+impl IntoDiagnostic for &InterpreterError {
+    fn into_diagnostic(self) -> Diagnostic<()> {
+        basic_error_diagnostic(self.kind.to_string(), self.span)
     }
 }
 

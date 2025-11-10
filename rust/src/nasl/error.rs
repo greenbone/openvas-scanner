@@ -54,45 +54,33 @@ impl Spanned for Span {
     }
 }
 
-pub trait AsCodespanError {
-    fn span(&self) -> Span;
-    fn message(&self) -> String;
-    fn level(&self) -> Level;
+pub trait IntoDiagnostic {
+    fn into_diagnostic(self) -> Diagnostic<()>;
 }
 
-#[derive(Copy, Clone)]
-pub enum Level {
-    Warn,
-    Error,
+pub fn basic_error_diagnostic(msg: String, span: Span) -> Diagnostic<()> {
+    Diagnostic::error()
+        .with_message(msg.clone())
+        .with_labels(vec![Label::primary((), span).with_message(msg)])
 }
 
-pub fn emit_errors<T: AsCodespanError>(file: &SourceFile, errs: impl Iterator<Item = T>) {
+pub fn emit_errors<T: IntoDiagnostic>(file: &SourceFile, errs: impl Iterator<Item = T>) {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let config = codespan_reporting::term::Config::default();
     for err in errs {
-        let diagnostic = match err.level() {
-            Level::Warn => Diagnostic::warning(),
-            Level::Error => Diagnostic::error(),
-        };
-        let diagnostic = diagnostic.with_message(err.message()).with_labels(vec![
-            Label::primary((), err.span()).with_message(err.message()),
-        ]);
+        let diagnostic = err.into_diagnostic();
         term::emit(&mut writer.lock(), &config, file, &diagnostic).unwrap();
     }
 }
 
-pub fn emit_errors_str<T: AsCodespanError>(
+pub fn emit_errors_str<T: IntoDiagnostic>(
     file: &SourceFile,
     errs: impl Iterator<Item = T>,
 ) -> String {
     let mut writer = Buffer::no_color();
     let config = codespan_reporting::term::Config::default();
     for err in errs {
-        let diagnostic = Diagnostic::error()
-            .with_message(err.message())
-            .with_labels(vec![
-                Label::primary((), err.span()).with_message(err.message()),
-            ]);
+        let diagnostic = err.into_diagnostic();
         term::emit(&mut writer, &config, file, &diagnostic).unwrap();
     }
     String::from_utf8(writer.into_inner()).unwrap()
