@@ -20,6 +20,10 @@ struct Statistics {
     errors: usize,
 }
 
+struct LintCtx<'a> {
+    ast: &'a Ast,
+}
+
 struct Linter {
     files: Vec<PathBuf>,
     verbose: bool,
@@ -67,7 +71,8 @@ impl Linter {
         if self.only_syntax {
             vec![]
         } else {
-            self.lints.iter().flat_map(|lint| lint.lint(&ast)).collect()
+            let ctx = LintCtx { ast: &ast };
+            self.lints.iter().flat_map(|lint| lint.lint(&ctx)).collect()
         }
     }
 }
