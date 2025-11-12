@@ -50,6 +50,12 @@ impl Linter {
                 emit_errors(&file, msgs.into_iter());
             }
         }
+        if self.verbose {
+            println!(
+                "Checked: {}, Errors: {}",
+                self.stats.checked, self.stats.errors
+            );
+        }
         if self.stats.errors > 0 {
             Err(CliErrorKind::LinterError.into())
         } else {
