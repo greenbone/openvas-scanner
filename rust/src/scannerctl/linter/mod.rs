@@ -1,10 +1,12 @@
 mod cli;
+mod ctx;
 mod lints;
 
 use std::path::PathBuf;
 
 pub use cli::LinterArgs;
 use cli::get_files;
+use ctx::{Cache, LintCtx};
 use lints::{Lint, LintMsg, all_lints};
 use scannerlib::nasl::{
     Code,
@@ -20,23 +22,20 @@ struct Statistics {
     errors: usize,
 }
 
-struct LintCtx<'a> {
-    ast: &'a Ast,
-}
-
 struct Linter {
-    files: Vec<PathBuf>,
     verbose: bool,
     quiet: bool,
     only_syntax: bool,
 
     stats: Statistics,
     lints: Vec<Box<dyn Lint>>,
+
+    cache: Cache,
 }
 
 impl Linter {
-    fn run(&mut self) -> Result<(), CliError> {
-        for file in self.files.iter() {
+    fn run(&mut self, files: &[PathBuf]) -> Result<(), CliError> {
+        for file in files.iter() {
             if self.verbose {
                 println!("Linting file: {:?}", file);
             }
@@ -44,7 +43,7 @@ impl Linter {
             let code = Code::load(todo!(), file)?;
             let parsed = code.parse();
             let file = parsed.file().clone();
-            let msgs = self.lint_file(parsed.result());
+            let msgs = self.lint_file(file.name().into(), parsed.result());
             self.stats.errors += msgs.len();
             if !self.quiet {
                 emit_errors(&file, msgs.into_iter());
@@ -63,7 +62,11 @@ impl Linter {
         }
     }
 
-    fn lint_file(&self, result: Result<Ast, Vec<ParseError>>) -> Vec<LintMsg> {
+    fn lint_file(
+        &mut self,
+        file_path: std::path::PathBuf,
+        result: Result<Ast, Vec<ParseError>>,
+    ) -> Vec<LintMsg> {
         let ast = match result {
             Ok(ast) => ast,
             Err(e) => {
@@ -77,7 +80,10 @@ impl Linter {
         if self.only_syntax {
             vec![]
         } else {
-            let ctx = LintCtx { ast: &ast };
+            self.cache
+                .add_file_functions(file_path.to_string_lossy().to_string(), &ast);
+
+            let ctx = LintCtx::new(&ast, &mut self.cache);
             self.lints.iter().flat_map(|lint| lint.lint(&ctx)).collect()
         }
     }
@@ -92,13 +98,13 @@ pub(crate) async fn run(
     let files = get_files(&args.path)?;
     let lints = all_lints();
     let mut linter = Linter {
-        files,
         verbose,
         quiet,
         only_syntax,
         lints,
         stats: Statistics::default(),
+        cache: Cache::default(),
     };
-    linter.run()?;
+    linter.run(&files)?;
     Ok(())
 }
