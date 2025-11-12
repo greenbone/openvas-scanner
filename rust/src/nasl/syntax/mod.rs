@@ -21,3 +21,4 @@ pub use token::{Ident, Token};
 pub use tokenizer::CharIndex;
 pub use tokenizer::Tokenizer;
 pub use tokenizer::TokenizerError;
+pub use visitor::{Visitor, walk_ast};
