@@ -4,6 +4,8 @@ use codespan_reporting::diagnostic::Diagnostic;
 use scannerlib::nasl::error::IntoDiagnostic;
 use scannerlib::nasl::syntax::grammar::Ast;
 
+use super::LintCtx;
+
 pub(super) struct LintMsg {
     diagnostic: Diagnostic<()>,
 }
@@ -21,7 +23,7 @@ impl IntoDiagnostic for LintMsg {
 }
 
 pub(super) trait Lint {
-    fn lint(&self, ast: &Ast) -> Vec<LintMsg>;
+    fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg>;
 }
 
 struct FnLint<T>(T);
@@ -30,13 +32,14 @@ impl<T> Lint for FnLint<T>
 where
     T: Fn(&Ast) -> Vec<LintMsg>,
 {
-    fn lint(&self, ast: &Ast) -> Vec<LintMsg> {
-        (self.0)(ast)
+    fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg> {
+        (self.0)(ctx.ast)
     }
 }
 
 pub fn all_lints() -> Vec<Box<dyn Lint>> {
-    vec![Box::new(FnLint(
-        duplicate_function_arg::duplicate_function_args,
-    ))]
+    let mut lints = vec![];
+    let mut add_fn_lint = |f| lints.push(Box::new(FnLint(f)) as Box<dyn Lint>);
+    add_fn_lint(duplicate_function_arg::duplicate_function_args);
+    lints
 }
