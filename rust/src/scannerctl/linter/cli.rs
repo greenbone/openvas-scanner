@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use scannerlib::nasl::Loader;
-
 use crate::error::CliError;
+use scannerlib::nasl::Loader;
 
 #[derive(clap::Parser)]
 pub struct LinterArgs {

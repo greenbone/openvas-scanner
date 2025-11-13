@@ -11,20 +11,25 @@ pub(crate) struct CachedFile {
     fns: HashMap<String, FnDecl>,
 }
 
+impl CachedFile {
+    pub(crate) fn new(ast: &Ast) -> Self {
+        let mut collector = FnDefinitionCollector::default();
+        walk_ast(&mut collector, ast);
+
+        CachedFile {
+            fns: collector.functions,
+        }
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct Cache {
     files: HashMap<String, CachedFile>,
 }
 
 impl Cache {
-    pub fn add_file_functions(&mut self, file_path: String, ast: &Ast) {
-        let mut collector = FnDefinitionCollector::default();
-        walk_ast(&mut collector, ast);
-
-        let cached_file = CachedFile {
-            fns: collector.functions,
-        };
-        self.files.insert(file_path, cached_file);
+    pub(crate) fn insert(&mut self, rel_path: &str, file: CachedFile) {
+        self.files.insert(rel_path.to_owned(), file);
     }
 }
 

@@ -23,6 +23,7 @@ pub mod raw_ip_utils {
 pub mod prelude {
     pub use super::builtin::BuiltinError;
     pub use super::code::Code;
+    pub use super::code::SourceFile;
     pub use super::interpreter::NaslValue;
     pub use super::interpreter::Register;
     pub use super::syntax::Loader;
