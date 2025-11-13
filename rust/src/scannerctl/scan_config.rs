@@ -246,7 +246,8 @@ struct ScanConfigNvtSelector {
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 struct ScanConfigPreferences {
-    preference: Option<Vec<ScanConfigPreference>>,
+    #[serde(default)]
+    preference: Vec<ScanConfigPreference>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -276,18 +277,17 @@ where
 {
     let result = quick_xml::de::from_reader::<R, ScanConfig>(sc)
         .map_err(|e| Error::ParseError(format!("Error parsing vts: {e}")))?;
-    tracing::info!(
-        "transforming vts {} {} ({}) with {:?} entries.",
+    tracing::debug!(
+        "transforming vts {} {} ({}) with {} entries.",
         &result.id,
         result.name.as_deref().unwrap_or(""),
         result.comment.as_deref().unwrap_or(""),
-        &result.preferences.preference,
+        &result.preferences.preference.len(),
     );
-    let has_prefs = &result.preferences.preference.is_some();
+
     let preference_lookup: HashMap<String, Vec<Parameter>> = result
         .preferences
         .preference
-        .unwrap_or_default()
         .iter()
         .fold(HashMap::new(), |mut acc, p| {
             let oid = p.nvt.oid.clone();
@@ -300,21 +300,12 @@ where
         });
 
     let oid_to_vt = |oid: &String| -> Result<VT, Error> {
-        match has_prefs {
-            true => {
-                let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
-                Ok(VT {
-                    oid: oid.clone(),
-                    parameters,
-                })
-            }
-            false => Ok(VT {
-                oid: oid.clone(),
-                parameters: vec![],
-            }),
-        }
+        let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
+        Ok(VT {
+            oid: oid.clone(),
+            parameters,
+        })
     };
-
     let is_not_already_present = |oid: &String| -> bool { !vts.iter().any(|vt| vt.oid == *oid) };
     result
         .nvt_selectors
@@ -491,7 +482,7 @@ mod tests {
     </config>"#;
         let result = quick_xml::de::from_str::<ScanConfig>(sc).unwrap();
         assert_eq!(result.nvt_selectors.nvt_selector.len(), 2);
-        assert_eq!(result.preferences.preference.unwrap().len(), 3);
+        assert_eq!(result.preferences.preference.len(), 3);
         let shop: InMemoryStorage = InMemoryStorage::default();
         let add_product_detection = |oid: &str| {
             shop.dispatch(
