@@ -5,11 +5,11 @@ mod lints;
 use std::path::PathBuf;
 
 pub use cli::LinterArgs;
-use cli::get_files;
+use cli::get_files_and_loader;
 use ctx::{Cache, LintCtx};
 use lints::{Lint, LintMsg, all_lints};
 use scannerlib::nasl::{
-    Code,
+    Code, Loader,
     error::{IntoDiagnostic, emit_errors},
     syntax::{ParseError, grammar::Ast},
 };
@@ -27,6 +27,8 @@ struct Linter {
     quiet: bool,
     only_syntax: bool,
 
+    loader: Loader,
+
     stats: Statistics,
     lints: Vec<Box<dyn Lint>>,
 
@@ -40,7 +42,7 @@ impl Linter {
                 println!("Linting file: {:?}", file);
             }
             self.stats.checked += 1;
-            let code = Code::load(todo!(), file)?;
+            let code = Code::load(&self.loader, file)?;
             let parsed = code.parse();
             let file = parsed.file().clone();
             let msgs = self.lint_file(file.name().into(), parsed.result());
@@ -95,7 +97,7 @@ pub(crate) async fn run(
     quiet: bool,
     only_syntax: bool,
 ) -> Result<(), CliError> {
-    let files = get_files(&args.path)?;
+    let (loader, files) = get_files_and_loader(&args.path)?;
     let lints = all_lints();
     let mut linter = Linter {
         verbose,
@@ -104,6 +106,8 @@ pub(crate) async fn run(
         lints,
         stats: Statistics::default(),
         cache: Cache::default(),
+
+        loader,
     };
     linter.run(&files)?;
     Ok(())
