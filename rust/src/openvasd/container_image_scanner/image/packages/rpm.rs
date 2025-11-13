@@ -54,10 +54,15 @@ impl ResolvePackages for RPMDBSqliteFile {
         T: Locator,
     {
         let mut result = Vec::new();
+        dbg!("Enter");
 
         for path in Self::wanted_files() {
+            dbg!(&path);
             match locator.locate(path).await {
-                Ok(rpmdb_path) => result.extend(Self::read_rpmdb(rpmdb_path.into_inner()).await?),
+                Ok(rpmdb_path) => {
+                    dbg!(&rpmdb_path.0);
+                    result.extend(dbg!(Self::read_rpmdb(rpmdb_path.into_inner()).await?))
+                }
                 Err(LocatorError::NotFound(x)) => {
                     tracing::trace!(path = x, "Skipping because not found")
                 }

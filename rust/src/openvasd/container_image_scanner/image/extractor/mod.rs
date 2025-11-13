@@ -14,7 +14,7 @@ pub enum ExtractorError {
     Io(#[from] std::io::Error),
 }
 
-pub struct Location(PathBuf);
+pub struct Location(pub PathBuf);
 
 impl Location {
     /// Opens the underlying PathBuf
