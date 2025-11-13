@@ -173,4 +173,8 @@ impl super::Locator for FileSystemLocator {
     fn architecture(&self) -> &str {
         &self.arch
     }
+
+    fn give_me_the_path_please(&self) -> PathBuf {
+        self.base.clone()
+    }
 }

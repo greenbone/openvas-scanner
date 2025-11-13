@@ -57,6 +57,8 @@ pub trait Locator {
     ///
     /// It MUST ensure that the returned Location is available and readable.
     fn locate(&self, name: &str) -> PinBoxFutRef<'_, Result<Location, LocatorError>>;
+
+    fn give_me_the_path_please(&self) -> PathBuf;
 }
 
 #[derive(Error, Debug)]

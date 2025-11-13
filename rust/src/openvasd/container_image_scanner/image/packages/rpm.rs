@@ -1,5 +1,7 @@
 use std::{io, path::PathBuf};
 
+use walkdir::WalkDir;
+
 use super::{PackageError, ResolvePackages};
 use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
 
@@ -54,10 +56,17 @@ impl ResolvePackages for RPMDBSqliteFile {
         T: Locator,
     {
         let mut result = Vec::new();
-        dbg!("Enter");
 
         for path in Self::wanted_files() {
-            dbg!(&path);
+            let base = locator.give_me_the_path_please();
+            let entries: Vec<_> = WalkDir::new(base.canonicalize().unwrap())
+                .into_iter()
+                .collect();
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    println!("PATH: {:?}", entry.path());
+                }
+            }
             match locator.locate(path).await {
                 Ok(rpmdb_path) => {
                     dbg!(&rpmdb_path.0);

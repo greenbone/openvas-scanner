@@ -107,6 +107,10 @@ mod fakes {
             "amd64"
         }
     }
+
+    fn give_me_the_path_please(&self) -> PathBuf {
+        todo!()
+    }
 }
 
 #[cfg(test)]
