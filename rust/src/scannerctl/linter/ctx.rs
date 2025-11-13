@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
-use scannerlib::nasl::syntax::{
-    Visitor,
-    grammar::{Ast, FnDecl},
-    walk_ast,
+use scannerlib::nasl::{
+    nasl_std_functions,
+    syntax::{
+        Visitor,
+        grammar::{Ast, FnDecl},
+        walk_ast,
+    },
 };
 
 #[derive(Default)]
@@ -11,20 +14,40 @@ pub(crate) struct CachedFile {
     fns: HashMap<String, FnDecl>,
 }
 
-#[derive(Default)]
-pub(crate) struct Cache {
-    files: HashMap<String, CachedFile>,
-}
-
-impl Cache {
-    pub fn add_file_functions(&mut self, file_path: String, ast: &Ast) {
+impl CachedFile {
+    pub(crate) fn new(ast: &Ast) -> Self {
         let mut collector = FnDefinitionCollector::default();
         walk_ast(&mut collector, ast);
 
-        let cached_file = CachedFile {
+        CachedFile {
             fns: collector.functions,
-        };
-        self.files.insert(file_path, cached_file);
+        }
+    }
+}
+
+pub struct BuiltinFn;
+
+pub(crate) struct Cache {
+    files: HashMap<String, CachedFile>,
+    builtin_fns: HashMap<String, BuiltinFn>,
+}
+
+impl Default for Cache {
+    fn default() -> Self {
+        let builtin_fns = nasl_std_functions()
+            .iter()
+            .map(|name| (name.to_owned(), BuiltinFn))
+            .collect();
+        Self {
+            files: HashMap::new(),
+            builtin_fns,
+        }
+    }
+}
+
+impl Cache {
+    pub(crate) fn insert(&mut self, rel_path: &str, file: CachedFile) {
+        self.files.insert(rel_path.to_owned(), file);
     }
 }
 
@@ -43,6 +66,10 @@ impl<'a> LintCtx<'a> {
             .files
             .values()
             .any(|file| file.fns.contains_key(fn_name))
+    }
+
+    pub(crate) fn builtin_defined(&self, fn_name: &str) -> bool {
+        self.cache.builtin_fns.contains_key(fn_name)
     }
 }
 

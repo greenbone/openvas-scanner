@@ -6,7 +6,10 @@ use crate::linter::{LintMsg, ctx::LintCtx};
 pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
     ctx.ast
         .iter_fn_calls()
-        .filter(|call| !ctx.fn_defined(&call.fn_name.to_string()))
+        .filter(|call| {
+            let name = call.fn_name.to_string();
+            !ctx.fn_defined(&name) && !ctx.builtin_defined(&name)
+        })
         .map(|call| {
             Diagnostic::error()
                 .with_message(format!("Undefined function '{}'", call.fn_name))

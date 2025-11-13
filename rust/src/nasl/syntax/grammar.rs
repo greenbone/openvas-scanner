@@ -55,6 +55,16 @@ impl Ast {
         StmtIterator::new(self)
     }
 
+    pub fn iter_includes(&self) -> impl Iterator<Item = &Include> {
+        StmtIterator::new(self).filter_map(|stmt| {
+            if let Statement::Include(include) = stmt {
+                Some(include)
+            } else {
+                None
+            }
+        })
+    }
+
     pub(crate) fn get(&self, stmt_index: usize) -> Option<&Statement> {
         self.stmts.get(stmt_index)
     }

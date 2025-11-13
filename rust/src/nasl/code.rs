@@ -132,6 +132,16 @@ impl Code {
         }
     }
 
+    pub fn file(&self) -> SourceFile {
+        SimpleFile::new(
+            self.path
+                .clone()
+                .map(|path| path.to_string_lossy().into())
+                .unwrap_or("".into()),
+            self.code.to_owned(),
+        )
+    }
+
     pub fn parse_description_block(self) -> ParseResult {
         let path = self.path.unwrap_or(Path::new("").to_owned());
         ParseResult::new_with_parse_fn(&self.code, &path, parse_description_block)
