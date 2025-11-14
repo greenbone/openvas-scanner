@@ -65,7 +65,7 @@ macro_rules! generate_all_types {
                         }
                     )+
 
-                    tracing::warn!("No supported package manager found. OS might be unsupported.");
+                    tracing::debug!("No packages found, might be because the package DB got deleted or unsupported OS.");
                     vec![]
                 })
             }
