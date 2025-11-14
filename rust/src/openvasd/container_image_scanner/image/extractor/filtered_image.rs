@@ -7,6 +7,7 @@ use super::{ExtractorError, LocatorError};
 use crate::container_image_scanner::{
     self, detection,
     image::{Image, ImageID, PackedLayer, packages},
+    scheduling::scanner::check_shit,
 };
 
 pub struct Extractor {
@@ -87,6 +88,7 @@ impl super::Extractor for Extractor {
     }
 
     fn push(&mut self, layer: PackedLayer) -> super::PinBoxFut<Result<(), ExtractorError>> {
+        check_shit();
         if !(layer.index == 0 && self.last_index == 0)
             && layer.index != self.last_index + 1 + self.offset
         {
@@ -97,36 +99,44 @@ impl super::Extractor for Extractor {
             );
             self.offset += 1;
         }
+        check_shit();
 
         self.last_index = layer.index;
+        check_shit();
         let base = self.base.clone().join(&layer.arch);
+        check_shit();
         if !self.architecture.contains(&layer.arch) {
             self.architecture.push(layer.arch);
         }
+        check_shit();
         Box::pin(async move {
+            check_shit();
             if !base.exists() {
                 tokio::fs::create_dir_all(&base).await?;
             }
+            check_shit();
 
-            tokio::task::spawn_blocking(move || {
-                render::filter_unpack(&[layer.data], &base, |p| {
-                    let result = detection::OS_FILES
-                        .iter()
-                        .chain(packages::PACKAGE_FILES.iter())
-                        .filter(|x| !x.is_empty())
-                        .any(|x| p.ends_with(x));
+            // tokio::task::spawn_blocking(move || {
+            check_shit();
+            render::filter_unpack(&[layer.data], &base, |p| {
+                let result = detection::OS_FILES
+                    .iter()
+                    .chain(packages::PACKAGE_FILES.iter())
+                    .filter(|x| !x.is_empty())
+                    .any(|x| p.ends_with(x));
 
-                    tracing::trace!(
-                        base=?base,
-                        path = ?p,
-                        result,
-                        "Checked for white listing"
-                    );
+                tracing::trace!(
+                    base=?base,
+                    path = ?p,
+                    result,
+                    "Checked for white listing"
+                );
 
-                    result
-                })
-            })
-            .await??;
+                result
+            })?;
+            // })
+            // .await??;
+            check_shit();
             Ok(())
         })
     }

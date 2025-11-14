@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, path::Path, sync::Arc};
 
 use futures::{StreamExt, TryFutureExt};
 use greenbone_scanner_framework::models;
@@ -66,6 +66,25 @@ where
     Ok(results)
 }
 
+#[track_caller]
+pub fn check_shit() {
+    let caller = std::panic::Location::caller();
+    let path = "/tmp/openvasd/cis/images/1/ct-harborv1.devel.greenbone.net/euleros/deploymgr/25.0.7.B043/amd64/var/lib/rpm/Packages.db";
+    if Path::new(path).exists() {
+        println!(
+            "PATH EXISTS - called from {}:{}",
+            caller.file(),
+            caller.line()
+        );
+    } else {
+        println!(
+            "PATH DOES NOT EXIST - called from {}:{}",
+            caller.file(),
+            caller.line()
+        );
+    }
+}
+
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
     pool: Arc<sqlx::Pool<Sqlite>>,
@@ -89,17 +108,21 @@ where
         ));
     };
     while let Some(packet) = layers.next().await {
+        check_shit();
         match packet {
             Ok(layer) => {
                 let lindex = layer.index;
-                match extractor.push(layer).await {
+                let piece_of_shit = extractor.push(layer);
+                match piece_of_shit.await {
                     Ok(()) => {}
                     Err(x) => {
                         add_warning(&format!("Layer({lindex})"), &x);
                     }
                 }
+                check_shit();
             }
             Err(e) => {
+                check_shit();
                 add_warning(&"Packet", &e);
             }
         }

@@ -7,6 +7,7 @@ use greenbone_scanner_framework::{
     models::{HostInfo, PreferenceValue, ScanPreferenceInformation},
     prelude::*,
 };
+use scannerlib::models::CredentialType;
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
 

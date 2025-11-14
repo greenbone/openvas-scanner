@@ -24,7 +24,7 @@ use crate::container_image_scanner;
 use scannerlib::notus::{HashsumProductLoader, Notus};
 
 mod db;
-mod scanner;
+pub mod scanner;
 
 #[derive(Debug)]
 pub struct Message {
