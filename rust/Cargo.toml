@@ -138,6 +138,8 @@ rustls-platform-verifier = "0.6.1"
 rustls-webpki = "0.103.4"
 tempfile = "3.23.0"
 snmp2 = { version = "0.4.8", features = ["full"] }
+tar = "0"
+libflate = "2.2.1"
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
