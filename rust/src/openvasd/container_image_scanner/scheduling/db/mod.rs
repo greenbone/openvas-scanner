@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr};
 
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::models::{self};
@@ -175,14 +175,14 @@ pub async fn on_message(pool: &Pool<Sqlite>, msg: &super::Message) -> Result<(),
 }
 
 pub async fn store_results(
-    pool: Arc<sqlx::Pool<Sqlite>>,
+    pool: sqlx::Pool<Sqlite>,
     id: &str,
     results: Vec<models::Result>,
 ) -> Result<(), sqlx::Error> {
     if results.is_empty() {
         return Ok(());
     }
-    let mut conn = pool.as_ref().acquire().await?;
+    let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
     // x.map(|x| x.get::<String, _>("scan_id"))
     let base_id = match query(
