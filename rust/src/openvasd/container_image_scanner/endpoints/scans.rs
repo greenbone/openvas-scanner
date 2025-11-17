@@ -483,7 +483,6 @@ impl DeleteScansId for Scans {
 
 #[cfg(test)]
 mod scans_utils {
-    use std::sync::Arc;
 
     use greenbone_scanner_framework::prelude::*;
     use sqlx::SqlitePool;
@@ -522,10 +521,9 @@ mod scans_utils {
         let products_path: &str =
             concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
-        // TODO: get rid of arc
         let (sender, scheduler) = Scheduler::<R, E>::init(
             config.into(),
-            Arc::new(pool.clone()),
+            pool.clone(),
             path_to_products(products_path, false),
         );
         let scans = super::Scans {

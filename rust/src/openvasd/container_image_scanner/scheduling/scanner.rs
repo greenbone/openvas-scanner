@@ -68,7 +68,7 @@ where
 
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
-    pool: Arc<sqlx::Pool<Sqlite>>,
+    pool: sqlx::Pool<Sqlite>,
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     registry: &'a super::InitializedRegistry<'a, R>,
 ) -> Result<(), ScannerError>
