@@ -224,11 +224,11 @@ pub async fn store_results(
     );
 
     for results in results.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 14) {
-        builder.push_values(results, |mut b, result| {
+        builder.push_values(results.iter().enumerate(), |mut b, (idx, result)| {
             let result = result.to_owned();
             let detail = result.detail.unwrap_or_default();
             b.push_bind(id)
-                .push_bind(result.id as i64 + base_id)
+                .push_bind(idx as i64 + base_id)
                 .push_bind(result.r_type.to_string())
                 .push_bind(result.ip_address.unwrap_or_default())
                 .push_bind(result.hostname.unwrap_or_default())

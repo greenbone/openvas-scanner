@@ -87,10 +87,10 @@ fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
         .collect()
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Unexpected response format from Notus.")]
-    UnExpectedResponseFormat,
+    #[error("Notus Error: {0}")]
+    FormatError(#[from] scannerlib::notus::NotusError),
 }
 
 type Oz = Notus<HashsumProductLoader>;
@@ -113,7 +113,8 @@ pub async fn vulnerabilities(
         Ok(x) => Ok(to_result(image, x)),
         Err(error) => {
             tracing::warn!(%error, "Unable to get results from Notus.");
-            Err(Error::UnExpectedResponseFormat)
+
+            Err(error.into())
         }
     }
     //
