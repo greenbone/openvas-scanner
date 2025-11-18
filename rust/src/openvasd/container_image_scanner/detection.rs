@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use thiserror::Error;
 use tokio::{
@@ -70,43 +70,61 @@ where
     async fn detect_operating_system(
         self,
     ) -> Result<OperatingSystem, OperatingSystemDetectionError> {
+        const CODE_NAME_LOOKUP: &[(&str, &str, &str)] = &[
+            // At least for debian: as soon as they are stable we can delete that
+            // To improve that we could generate a lookup table automatically based on
+            // https://www.debian.org/releases/
+            // and string include it here instead of doing that manually.
+            // For now I am too lazy to do that (Philipp)
+            ("forky", "14", "14 (forky)"),
+            ("duke", "15", "15 (duke)"),
+            // dear rustfmt don't collapse
+        ];
+        const OS_RELEASE_KEYS: &[&str] = &[
+            "ID",
+            "VERSION_ID",
+            "VERSION",
+            "VERSION_CODENAME",
+            // dear rustfmt don't collapse
+        ];
         let mut lines = self.reader.lines();
-        let mut os_name = None;
-        let mut os_version_id = None;
-        let mut os_version = None;
+        let mut findings: HashMap<&str, String> = HashMap::with_capacity(4);
 
         while let Ok(Some(line)) = lines.next_line().await {
             let line = line.trim();
-            if line.starts_with("ID=") {
-                os_name = Some(
-                    line.split('=')
-                        .nth(1)
-                        .unwrap_or("")
-                        .trim_matches('"')
-                        .to_string(),
-                );
-            }
-            if line.starts_with("VERSION_ID=") {
-                os_version_id = Some(
-                    line.split('=')
-                        .nth(1)
-                        .unwrap_or("")
-                        .trim_matches('"')
-                        .to_string(),
-                );
-            }
-            if line.starts_with("VERSION=") {
-                os_version = Some(
-                    line.split('=')
-                        .nth(1)
-                        .unwrap_or("")
-                        .trim_matches('"')
-                        .to_string(),
-                );
+            for key in OS_RELEASE_KEYS {
+                if line.starts_with(key) && line.as_bytes().get(key.len()) == Some(&b'=') {
+                    findings.insert(
+                        key,
+                        line.split('=')
+                            .nth(1)
+                            .unwrap_or("")
+                            .trim_matches('"')
+                            .to_string(),
+                    );
+                }
             }
         }
-        tracing::debug!(?os_name, ?os_version_id, ?os_version, "parsed");
-        if os_name.is_none() || os_version_id.is_none() || os_version.is_none() {
+        tracing::debug!(?findings, "parsed");
+        let os_name = findings.get(OS_RELEASE_KEYS[0]).cloned();
+        let mut os_version_id = findings.get(OS_RELEASE_KEYS[1]).cloned();
+        let mut os_version = findings.get(OS_RELEASE_KEYS[2]).cloned();
+        if os_name.is_none() {
+            return Err(OperatingSystemDetectionError::Unknown);
+        }
+
+        if (os_version_id.is_none() || os_version.is_none())
+            && let Some(code_name) = findings.get(OS_RELEASE_KEYS[3])
+        {
+            for (cn, vi, v) in CODE_NAME_LOOKUP {
+                if *cn == code_name {
+                    os_version_id = Some(vi.to_string());
+                    os_version = Some(v.to_string());
+                }
+            }
+        }
+        if os_version.is_none() || os_version_id.is_none() {
+            tracing::debug!("Version is missing");
             return Err(OperatingSystemDetectionError::Unknown);
         }
         Ok(OperatingSystem {
@@ -222,5 +240,23 @@ ID_LIKE=debian"#;
         assert_eq!(os.name, "debian");
         assert_eq!(os.version_id, "12");
         assert_eq!(os.version, "12 (bookworm)");
+    }
+
+    #[tokio::test]
+    async fn test_debian_weirdness() {
+        let content = r#"
+    PRETTY_NAME="Debian GNU/Linux forky/sid"
+    NAME="Debian GNU/Linux"
+    VERSION_CODENAME=forky
+    ID=debian
+    HOME_URL="https://www.debian.org/"
+    SUPPORT_URL="https://www.debian.org/support"
+    BUG_REPORT_URL="https://bugs.debian.org/"
+    "#;
+        let detector = OperatingSystemDetector::from(content);
+        let os = detector.detect_operating_system().await.unwrap();
+        assert_eq!(os.name, "debian");
+        assert_eq!(os.version_id, "14");
+        assert_eq!(os.version, "14 (forky)");
     }
 }
