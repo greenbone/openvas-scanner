@@ -19,7 +19,8 @@ where
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
         let s = StringOrData::from_nasl_value(value)?;
         Ok(Self(
-            s.0.split(",")
+            s.string()
+                .split(",")
                 .filter(|s| s != &"")
                 .map(|substr| {
                     let nasl_val = NaslValue::String(substr.to_string());

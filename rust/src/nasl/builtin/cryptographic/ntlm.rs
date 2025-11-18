@@ -258,8 +258,8 @@ fn ntlmssp_genauth_keyexchg(session_key: &[u8]) -> (Vec<u8>, Vec<u8>) {
 
 #[nasl_function(named(cryptkey, passhash))]
 fn ntlmv1_hash(cryptkey: StringOrData, passhash: StringOrData) -> Vec<u8> {
-    let cryptkey = cryptkey.0.as_bytes();
-    let passhash = passhash.0.as_bytes();
+    let cryptkey = cryptkey.data();
+    let passhash = passhash.data();
 
     ep24(cryptkey, passhash)
 }
@@ -280,9 +280,9 @@ fn ntlmv2_hash(
     passhash: StringOrData,
     length: i64,
 ) -> Result<Vec<u8>, FnError> {
-    let mut cryptkey = cryptkey.0.as_bytes().to_vec();
+    let mut cryptkey = cryptkey.data().to_vec();
     cryptkey.resize(8, 0);
-    let passhash = passhash.0.as_bytes();
+    let passhash = passhash.data();
 
     if passhash.len() != 16 {
         return Err(FnError::wrong_unnamed_argument(
@@ -313,11 +313,11 @@ fn ntlm_response(
     nt_hash: StringOrData,
     neg_flags: i64,
 ) -> Result<Vec<u8>, FnError> {
-    let cryptkey = cryptkey.0.as_bytes();
-    let nt_hash = nt_hash.0.as_bytes();
+    let cryptkey = cryptkey.data();
+    let nt_hash = nt_hash.data();
 
     let (mut lm_response, mut nt_response, mut session_key) =
-        ntlmssp_genauth_ntlm(&password.0, cryptkey, nt_hash, neg_flags);
+        ntlmssp_genauth_ntlm(&password.string(), cryptkey, nt_hash, neg_flags);
 
     lm_response.append(&mut nt_response);
     lm_response.append(&mut session_key);
@@ -352,9 +352,9 @@ fn ntlm2_response(
     #[allow(unused)] password: StringOrData,
     nt_hash: StringOrData,
 ) -> Result<Vec<u8>, FnError> {
-    let mut cryptkey = cryptkey.0.as_bytes().to_vec();
+    let mut cryptkey = cryptkey.data().to_vec();
     cryptkey.resize(8, 0);
-    let nt_hash = nt_hash.0.as_bytes();
+    let nt_hash = nt_hash.data();
     ntlm2_response_gen(&cryptkey, nt_hash, &mut rand::rng())
 }
 
@@ -367,9 +367,9 @@ fn ntlmv2_response(
     address_list: StringOrData,
     #[allow(unused)] address_list_len: usize,
 ) -> Result<Vec<u8>, FnError> {
-    let cryptkey = cryptkey.0.as_bytes();
-    let ntlmv2_hash = ntlmv2_hash.0.as_bytes();
-    let address_list = address_list.0.as_bytes();
+    let cryptkey = cryptkey.data();
+    let ntlmv2_hash = ntlmv2_hash.data();
+    let address_list = address_list.data();
 
     let (mut lm_response, mut nt_response, mut user_session_key) =
         smb_ntlmv2_encrypt_hash_ntlmssp(ntlmv2_hash, cryptkey, address_list, &mut rand::rng());
@@ -386,7 +386,7 @@ fn key_exchange(
     session_key: StringOrData,
     #[allow(unused)] nt_hash: StringOrData,
 ) -> Result<Vec<u8>, FnError> {
-    let session_key = session_key.0.as_bytes();
+    let session_key = session_key.data();
 
     let (mut encrypted_session_key, mut new_session_key) = ntlmssp_genauth_keyexchg(session_key);
     new_session_key.append(&mut encrypted_session_key);
@@ -396,7 +396,7 @@ fn key_exchange(
 
 #[nasl_function]
 fn lm_owf_gen(pass: StringOrData) -> Vec<u8> {
-    let binding = pass.0.to_ascii_uppercase();
+    let binding = pass.string().to_ascii_uppercase();
     let pass = binding.as_bytes();
 
     ep16(pass)
@@ -407,7 +407,7 @@ fn nt_owf_gen(pass: StringOrData) -> Vec<u8> {
     use md4::{Digest, Md4};
 
     let pass_utf16: Vec<u8> = pass
-        .0
+        .string()
         .encode_utf16()
         .flat_map(|c| c.to_le_bytes())
         .collect();
@@ -426,36 +426,38 @@ fn ntv2_owf_gen(
     use hmac::{Hmac, Mac};
     use md5::Md5;
 
-    if login.0.is_empty() {
+    let login = login.string();
+    let domain = domain.string();
+    let owf = owf.data();
+
+    if login.is_empty() {
         return Err(FnError::wrong_unnamed_argument(
             "login of length >= 1",
-            &format!("login of length {}", login.0.len()),
+            &format!("login of length {}", login.len()),
         ));
     }
 
-    if domain.0.is_empty() {
+    if domain.is_empty() {
         return Err(FnError::wrong_unnamed_argument(
             "domain of length >= 1",
-            &format!("domain of length {}", domain.0.len()),
+            &format!("domain of length {}", domain.len()),
         ));
     }
 
-    if owf.0.len() != 16 {
+    if owf.len() != 16 {
         return Err(FnError::wrong_unnamed_argument(
             "owf of length 16",
-            &format!("owf of length {}", owf.0.len()),
+            &format!("owf of length {}", owf.len()),
         ));
     }
 
     let user: Vec<u8> = login
-        .0
         .to_uppercase()
         .as_bytes()
         .iter()
         .flat_map(|b| [*b, 0u8])
         .collect();
     let domain: Vec<u8> = domain
-        .0
         .to_uppercase()
         .as_bytes()
         .iter()
@@ -463,7 +465,7 @@ fn ntv2_owf_gen(
         .collect();
 
     // We can unwrap here, as the key is always 16 bytes.
-    let mut hmac = Hmac::<Md5>::new_from_slice(owf.0.as_bytes()).unwrap();
+    let mut hmac = Hmac::<Md5>::new_from_slice(owf).unwrap();
     hmac.update(&user);
     hmac.update(&domain);
     Ok(hmac.finalize().into_bytes().to_vec())
@@ -516,11 +518,6 @@ fn get_signature(
 
     let mut sequence_bytes = seq_number.to_le_bytes().to_vec();
     sequence_bytes.resize(8, 0);
-
-    println!("Key: {:02x?}", key);
-    println!("Signature: {:02x?}", &buf[4..18]);
-    println!("Sequence Bytes: {:02x?}", sequence_bytes);
-    println!("Payload: {:02x?}", &buf[26..size + 4]);
 
     let ret = Md5::new()
         .chain_update(&key)

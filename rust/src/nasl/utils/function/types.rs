@@ -2,19 +2,22 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::time::Duration;
+use std::{borrow::Cow, time::Duration};
 
 use crate::nasl::prelude::*;
 
-/// `Some(string)` if constructed from either a `NaslValue::String`
-/// or `NaslValue::Data`.
-pub struct StringOrData(pub String);
+/// Represents either a string slice or a byte slice, Based on
+/// a given NaslValue.
+pub enum StringOrData<'a> {
+    String(&'a str),
+    Data(&'a [u8]),
+}
 
-impl<'a> FromNaslValue<'a> for StringOrData {
+impl<'a> FromNaslValue<'a> for StringOrData<'a> {
     fn from_nasl_value(value: &'a NaslValue) -> Result<Self, FnError> {
         match value {
-            NaslValue::String(string) => Ok(Self(string.clone())),
-            NaslValue::Data(buffer) => Ok(Self(bytes_to_str(buffer))),
+            NaslValue::String(string) => Ok(Self::String(string)),
+            NaslValue::Data(buffer) => Ok(Self::Data(buffer)),
             _ => Err(
                 ArgumentError::WrongArgument("Expected string or byte buffer.".to_string()).into(),
             ),
@@ -22,8 +25,19 @@ impl<'a> FromNaslValue<'a> for StringOrData {
     }
 }
 
-pub fn bytes_to_str(bytes: &[u8]) -> String {
-    bytes.iter().map(|x| *x as char).collect::<String>()
+impl<'a> StringOrData<'a> {
+    pub fn string(self) -> Cow<'a, str> {
+        match self {
+            StringOrData::String(s) => Cow::Borrowed(s),
+            StringOrData::Data(b) => String::from_utf8_lossy(b),
+        }
+    }
+    pub fn data(self) -> &'a [u8] {
+        match self {
+            StringOrData::String(s) => s.as_bytes(),
+            StringOrData::Data(b) => b,
+        }
+    }
 }
 
 pub struct Seconds(pub u64);

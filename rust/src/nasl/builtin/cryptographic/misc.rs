@@ -34,8 +34,8 @@ fn insert_hexzeros(register: &Register) -> Result<Vec<u8>, FnError> {
 /// 0 if key1 == key2, or 1 if key1 > key2.
 #[nasl_function(named(key1, key2))]
 fn bn_cmp(key1: StringOrData, key2: StringOrData) -> i64 {
-    let a = BigUint::from_bytes_be(key1.0.as_bytes());
-    let b = BigUint::from_bytes_be(key2.0.as_bytes());
+    let a = BigUint::from_bytes_be(key1.data());
+    let b = BigUint::from_bytes_be(key2.data());
     match a.cmp(&b) {
         std::cmp::Ordering::Less => -1,
         std::cmp::Ordering::Equal => 0,

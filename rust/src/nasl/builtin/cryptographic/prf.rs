@@ -31,16 +31,15 @@ where
     <D::Core as BlockSizeUser>::BlockSize: IsLess<U256>,
     Le<<D::Core as BlockSizeUser>::BlockSize, U256>: NonZero,
 {
-    let secret = secret.0.as_bytes();
-    let label_seed = label.0 + &seed.0;
-    let label_seed = label_seed.as_bytes();
+    let secret = secret.data();
+    let label_seed = [label.data(), seed.data()].concat();
 
-    let mut ai = hmac::<D>(secret, label_seed)?;
+    let mut ai = hmac::<D>(secret, &label_seed)?;
 
     let mut result = vec![];
     while result.len() < outlen {
         let mut tmp = ai.clone();
-        tmp.extend_from_slice(label_seed);
+        tmp.extend_from_slice(&label_seed);
         let tmp2 = hmac::<D>(secret, &tmp)?;
         result.extend_from_slice(&tmp2);
         ai = hmac::<D>(secret, &ai)?;
