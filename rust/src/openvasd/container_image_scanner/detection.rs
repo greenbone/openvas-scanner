@@ -105,6 +105,7 @@ where
                 );
             }
         }
+        tracing::debug!(?os_name, ?os_version_id, ?os_version, "parsed");
         if os_name.is_none() || os_version_id.is_none() || os_version.is_none() {
             return Err(OperatingSystemDetectionError::Unknown);
         }

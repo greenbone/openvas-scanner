@@ -7,7 +7,7 @@ use container_image_scanner::{
     image::{Credential, Image, ImageID, packages::ToNotus},
 };
 use db::{ProcessingImage, RequestedScans};
-use futures::{StreamExt, stream::FuturesUnordered};
+use futures::future::join_all;
 use greenbone_scanner_framework::models;
 use scanner::ScannerError;
 use sqlx::{Sqlite, SqlitePool};
@@ -281,45 +281,42 @@ where
         let scans = Self::set_images_to_scanning(config.clone(), &pool)
             .await
             .unwrap();
-        let mut join_handler = FuturesUnordered::new();
+        let mut join_handler = Vec::with_capacity(scans.len());
         for (id, credentials) in scans {
             let pool = pool.clone();
             let config = config.clone();
             let products = products.clone();
 
-            join_handler.push(async move {
-                let result = Self::scan_image::<T>(config, pool, products, &id, credentials).await;
-                (id, result)
-            });
-        }
-
-        while let Some((id, result)) = join_handler.next().await {
-            match result {
-                Ok(_) => {
-                    if let Err(e) = db::image_success(&pool, &id).await {
-                        warn!(error = %e, ?id, "Unable to update scan hosts information.");
-                    }
-                }
-                Err(err) => {
-                    match &err {
-                        ScanImageError::ScannerError(scanner::ScannerError::NonInterrupting(
-                            items,
-                        )) => {
-                            warn!(error = %err, "Image failed");
-                            for e in items {
-                                warn!(error = %e, "Underlying issue");
-                            }
+            join_handler.push(tokio::task::spawn(async move {
+                let result =
+                    Self::scan_image::<T>(config, pool.clone(), products, &id, credentials).await;
+                match result {
+                    Ok(_) => {
+                        if let Err(e) = db::image_success(&pool, &id).await {
+                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
                         }
-                        e => warn!(error = %e, "Image failed"),
                     }
+                    Err(err) => {
+                        match &err {
+                            ScanImageError::ScannerError(
+                                scanner::ScannerError::NonInterrupting(items),
+                            ) => {
+                                warn!(error = %err, "Image failed");
+                                for e in items {
+                                    warn!(error = %e, "Underlying issue");
+                                }
+                            }
+                            e => warn!(error = %e, "Image failed"),
+                        }
 
-                    if let Err(e) = db::image_failed(&pool, &id).await {
-                        warn!(error = %e, ?id, "Unable to update scan hosts information.");
+                        if let Err(e) = db::image_failed(&pool, &id).await {
+                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
+                        }
                     }
                 }
-            }
+            }));
         }
-        //
+        join_all(join_handler).await;
     }
 
     pub(crate) async fn check_for_message(&mut self) -> Option<()> {
