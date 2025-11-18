@@ -281,41 +281,44 @@ where
         let scans = Self::set_images_to_scanning(config.clone(), &pool)
             .await
             .unwrap();
-        let mut join_handler = Vec::with_capacity(scans.len());
-        for (id, credentials) in scans {
-            let pool = pool.clone();
-            let config = config.clone();
-            let products = products.clone();
-
-            join_handler.push(tokio::task::spawn(async move {
-                let result =
-                    Self::scan_image::<T>(config, pool.clone(), products, &id, credentials).await;
-                match result {
-                    Ok(_) => {
-                        if let Err(e) = db::image_success(&pool, &id).await {
-                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
-                        }
-                    }
-                    Err(err) => {
-                        match &err {
-                            ScanImageError::ScannerError(
-                                scanner::ScannerError::NonInterrupting(items),
-                            ) => {
-                                warn!(error = %err, "Image failed");
-                                for e in items {
-                                    warn!(error = %e, "Underlying issue");
-                                }
+        let join_handler = scans
+            .into_iter()
+            .map(|(id, credentials)| {
+                let pool = pool.clone();
+                let config = config.clone();
+                let products = products.clone();
+                tokio::task::spawn(async move {
+                    let result =
+                        Self::scan_image::<T>(config, pool.clone(), products, &id, credentials)
+                            .await;
+                    match result {
+                        Ok(_) => {
+                            if let Err(e) = db::image_success(&pool, &id).await {
+                                warn!(error = %e, ?id, "Unable to update scan hosts information.");
                             }
-                            e => warn!(error = %e, "Image failed"),
                         }
+                        Err(err) => {
+                            match &err {
+                                ScanImageError::ScannerError(
+                                    scanner::ScannerError::NonInterrupting(items),
+                                ) => {
+                                    warn!(error = %err, "Image failed");
+                                    for e in items {
+                                        warn!(error = %e, "Underlying issue");
+                                    }
+                                }
+                                e => warn!(error = %e, "Image failed"),
+                            }
 
-                        if let Err(e) = db::image_failed(&pool, &id).await {
-                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
+                            if let Err(e) = db::image_failed(&pool, &id).await {
+                                warn!(error = %e, ?id, "Unable to update scan hosts information.");
+                            }
                         }
                     }
-                }
-            }));
-        }
+                })
+            })
+            .collect::<Vec<_>>();
+
         join_all(join_handler).await;
     }
 

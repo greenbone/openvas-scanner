@@ -70,6 +70,7 @@ where
     async fn detect_operating_system(
         self,
     ) -> Result<OperatingSystem, OperatingSystemDetectionError> {
+        #[rustfmt::skip]
         const CODE_NAME_LOOKUP: &[(&str, &str, &str)] = &[
             // At least for debian: as soon as they are stable we can delete that
             // To improve that we could generate a lookup table automatically based on
@@ -78,14 +79,13 @@ where
             // For now I am too lazy to do that (Philipp)
             ("forky", "14", "14 (forky)"),
             ("duke", "15", "15 (duke)"),
-            // dear rustfmt don't collapse
         ];
+        #[rustfmt::skip]
         const OS_RELEASE_KEYS: &[&str] = &[
             "ID",
             "VERSION_ID",
             "VERSION",
             "VERSION_CODENAME",
-            // dear rustfmt don't collapse
         ];
         let mut lines = self.reader.lines();
         let mut findings: HashMap<&str, String> = HashMap::with_capacity(4);
