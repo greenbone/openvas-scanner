@@ -5,10 +5,7 @@
 //! This module defines the TokenTypes as well as Token and extends Cursor with advance_token
 use std::{fmt::Display, net::Ipv4Addr};
 
-use crate::{
-    nasl::{error::Span, utils::function::bytes_to_str},
-    storage::items::nvt::ACT,
-};
+use crate::{nasl::error::Span, storage::items::nvt::ACT};
 
 use crate::nasl::error::Spanned;
 
@@ -164,7 +161,7 @@ impl Literal {
     pub(crate) fn into_string(self) -> Option<String> {
         match self.kind {
             LiteralKind::String(s) => Some(s),
-            LiteralKind::Data(bytes) => Some(bytes_to_str(&bytes)),
+            LiteralKind::Data(bytes) => String::from_utf8(bytes).ok(),
             _ => None,
         }
     }

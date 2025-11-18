@@ -20,7 +20,7 @@ where
 {
     if let Some(data) = data {
         let mut hash = D::new();
-        hash.update(data.0.as_bytes());
+        hash.update(data.data());
         Ok(NaslValue::Data(hash.finalize().as_slice().to_vec()))
     } else {
         Ok(NaslValue::Null)

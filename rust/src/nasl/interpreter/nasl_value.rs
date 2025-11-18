@@ -9,7 +9,6 @@ use regex::Regex;
 
 use crate::nasl::interpreter::error::ExprError;
 use crate::nasl::syntax::grammar::{Block, Statement};
-use crate::nasl::utils::function::bytes_to_str;
 use crate::{
     nasl::interpreter::InterpreterErrorKind as ErrorKind,
     storage::items::{kb::KbItem, nvt::ACT},
@@ -150,7 +149,7 @@ impl NaslValue {
     pub(crate) fn as_string(&self) -> Result<String, ErrorKind> {
         match self {
             NaslValue::String(string) => Ok(string.clone()),
-            NaslValue::Data(buffer) => Ok(bytes_to_str(buffer)),
+            NaslValue::Data(buffer) => Ok(String::from_utf8_lossy(buffer).to_string()),
             _ => Err(ErrorKind::ExpectedString),
         }
     }

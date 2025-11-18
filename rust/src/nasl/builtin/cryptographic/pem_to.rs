@@ -12,7 +12,8 @@ use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey, traits::PrivateKeyParts};
 
 #[nasl_function(named(passphrase))]
 fn pem_to_rsa(register: &Register, passphrase: String) -> Result<NaslValue, FnError> {
-    let ori_pem = StringOrData::from_nasl_value(register.local_nasl_value("priv")?).map(|s| s.0)?;
+    let ori_pem =
+        StringOrData::from_nasl_value(register.local_nasl_value("priv")?).map(|s| s.string())?;
     let decrypted_key = match RsaPrivateKey::from_pkcs8_encrypted_pem(&ori_pem, passphrase) {
         Ok(x) => x,
         Err(e) => return Err(ArgumentError::WrongArgument(format!("{e}")).into()),
@@ -23,7 +24,8 @@ fn pem_to_rsa(register: &Register, passphrase: String) -> Result<NaslValue, FnEr
 
 #[nasl_function(named(passphrase))]
 fn pem_to_dsa(register: &Register, passphrase: String) -> Result<NaslValue, FnError> {
-    let ori_pem = StringOrData::from_nasl_value(register.local_nasl_value("priv")?).map(|s| s.0)?;
+    let ori_pem =
+        StringOrData::from_nasl_value(register.local_nasl_value("priv")?).map(|s| s.string())?;
     let decrypted_key = match SigningKey::from_pkcs8_encrypted_pem(&ori_pem, passphrase) {
         Ok(x) => x,
         Err(e) => return Err(ArgumentError::WrongArgument(format!("{e}")).into()),

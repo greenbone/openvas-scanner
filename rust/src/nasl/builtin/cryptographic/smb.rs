@@ -26,8 +26,8 @@ fn smb_gmac_aes_signature(key: &[u8], buf: &[u8], iv: &[u8]) -> Result<NaslValue
 
 #[nasl_function(named(key, buf))]
 fn get_smb2_signature(key: StringOrData, buf: StringOrData) -> Result<Vec<u8>, FnError> {
-    let key = key.0.as_bytes();
-    let mut buf = buf.0.as_bytes().to_vec();
+    let key = key.data();
+    let mut buf = buf.data().to_vec();
     if buf.len() < 64 {
         return Err(FnError::wrong_unnamed_argument(
             "buf of at least 64 bytes required",
