@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::nasl::prelude::*;
 
-use super::{CryptographicError, get_data, get_key};
+use super::CryptographicError;
 
 /// Structure to hold a Cipher Handler
 struct CipherHandler {
@@ -56,13 +56,8 @@ pub struct CipherHandlers {
 
 impl CipherHandlers {
     /// Closes a stream cipher.
-    #[nasl_function]
-    fn close_stream_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
-        let hd = match register.local_nasl_value("hd") {
-            Ok(NaslValue::Number(x)) => *x as i32,
-            _ => return Err(CryptographicError::Rc4("Handler ID not found".to_string()).into()),
-        };
-
+    #[nasl_function(named(hd))]
+    fn close_stream_cipher(&self, hd: i32) -> Result<NaslValue, FnError> {
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
         match handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd) {
             Some((i, _h)) => {
@@ -75,23 +70,14 @@ impl CipherHandlers {
 
     /// Open RC4 cipher to encrypt a stream of data. The handler can be used to encrypt stream data.
     /// Opened cipher must be closed with (close_stream_cipher)[close_stream_cipher.md] when it is not used anymore.
-    /// -iv: the initival vector
     /// -key: the key used for encryption
     ///  
     /// Returns the id of the encrypted data cipher handler on success.
-    #[nasl_function]
-    fn open_rc4_cipher(&self, register: &Register) -> Result<NaslValue, FnError> {
-        // Get Arguments
-
-        let key = match get_key(register) {
-            Ok(k) if !k.is_empty() => k.to_vec(),
-            _ => return Err(CryptographicError::Rc4("Missing Key argument".to_string()).into()),
-        };
-
-        let rc_handler = Rc4Key::build_handler_from_key(key.to_vec())?;
+    #[nasl_function(named(key))]
+    fn open_rc4_cipher(&self, key: &[u8]) -> Result<NaslValue, FnError> {
+        let rc_handler = Rc4Key::build_handler_from_key(key)?;
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
         let id = get_new_cipher_id(&handlers);
-        //let rc_handler =  Rc4::<Rc4Key>::new_from_slice(key).unwrap(); // new_from_slice(key).unwrap();
 
         let hd = CipherHandler {
             id,
@@ -109,33 +95,29 @@ impl CipherHandlers {
     ///  -hd: the handler index. (mandatory if not key and iv is given)
     ///  -iv: string Initialization vector (mandatory if no handler is given).
     ///  -key: string key (mandatory if no handler is given).
-    #[nasl_function]
-    fn rc4_encrypt(&self, register: &Register) -> Result<NaslValue, FnError> {
-        let data = match get_data(register) {
-            Ok(d) if !d.is_empty() => d.to_vec(),
-            _ => return Err(CryptographicError::Rc4("Missing data argument".to_string()).into()),
-        };
-
-        let hd = match register.local_nasl_value("hd") {
-            Ok(NaslValue::Number(x)) => *x as i32,
-            _ => 0,
-        };
-
+    #[nasl_function(named(hd, key, data))]
+    fn rc4_encrypt(
+        &self,
+        hd: Option<i32>,
+        key: Option<&[u8]>,
+        data: &[u8],
+    ) -> Result<NaslValue, FnError> {
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
 
-        if hd > 0
-            && let Some((_i, h)) = handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd)
-        {
-            let d = h.handler.encode(data);
-            return Ok(NaslValue::Data(d));
+        if let Some(hd) = hd {
+            if let Some((_i, h)) = handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd) {
+                let d = h.handler.encode(data);
+                return Ok(NaslValue::Data(d));
+            } else {
+                return Err(CryptographicError::Rc4(format!("Handler ID {hd} not found")).into());
+            }
         }
 
-        let key = match get_key(register) {
-            Ok(k) if !k.is_empty() => k.to_vec(),
-            _ => return Err(CryptographicError::Rc4("Missing Key argument".to_string()).into()),
-        };
+        let key = key.ok_or(CryptographicError::Rc4(
+            "Either handler ID (hd) or key must be set".to_string(),
+        ))?;
 
-        let mut rc_handler = Rc4Key::build_handler_from_key(key.to_vec())?;
+        let mut rc_handler = Rc4Key::build_handler_from_key(key)?;
         let d = rc_handler.encode(data);
         Ok(NaslValue::Data(d))
     }
@@ -150,17 +132,17 @@ macro_rules! build_rc4key_enum {
         }
 
         impl Rc4Key {
-            fn build_handler_from_key(bl: Vec<u8>) -> Result<Self, FnError> {
+            fn build_handler_from_key(bl: &[u8]) -> Result<Self, FnError> {
                 match bl.len() {
-                    $($l => Ok(Self::$i(Rc4::new_from_slice(bl.as_slice()).unwrap())),)*
+                    $($l => Ok(Self::$i(Rc4::new_from_slice(bl).unwrap())),)*
                     _ => {return Err(CryptographicError::Rc4("RC4 Key size not supported".into()).into())}
                 }
             }
 
-            fn encode (&mut self, data: Vec<u8>) -> Vec<u8> {
+            fn encode (&mut self, data: &[u8]) -> Vec<u8> {
                 match self {
                     $(Rc4Key::$i(e) =>{
-                        let mut d = data.clone();
+                        let mut d = data.to_vec();
                         e.apply_keystream(&mut d);
                         d
                     })*
