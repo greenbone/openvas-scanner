@@ -271,10 +271,6 @@ pub enum StorageTypes {
 }
 
 impl StorageTypes {
-    //TODO: if you credential_key is set and it was not called before we should actually create a
-    //random key and store it as a file into XDG_CACHE or /tmp/ with rights that only the owner can
-    //read it.
-    //Before doing that we should check that file exists and if so return that key.
     pub fn credential_key(&self) -> Option<&str> {
         match self {
             StorageTypes::V1(storage_v1) => storage_v1.fs.key.as_deref(),
