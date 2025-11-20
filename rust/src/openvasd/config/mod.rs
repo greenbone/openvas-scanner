@@ -301,7 +301,7 @@ impl Default for StorageTypes {
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct StorageV1 {
-    #[serde(default, rename = "type")]
+    #[serde(rename = "type")]
     pub storage_type: StorageType,
     #[serde(default)]
     pub fs: FileStorage,
@@ -759,7 +759,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
 
-    use crate::container_image_scanner::config::ImageExtractionLocation;
+    use crate::{config::StorageTypes, container_image_scanner::config::ImageExtractionLocation};
     use insta::assert_toml_snapshot;
     use scannerlib::scanner::preferences::preference::ScanPrefValue;
 
@@ -769,7 +769,8 @@ mod tests {
         path.push_str("/examples/openvasd/config.example.toml");
         let content = std::fs::read_to_string(&path).unwrap();
 
-        toml::from_str::<super::Config>(&content).unwrap();
+        let storage_test = toml::from_str::<super::Config>(&content).unwrap();
+        assert!(matches!(storage_test.storage, StorageTypes::V2(_)));
     }
 
     #[test]
@@ -779,7 +780,8 @@ mod tests {
 
         let content = std::fs::read_to_string(&path).unwrap();
 
-        toml::from_str::<super::Config>(&content).unwrap();
+        let storage_test = toml::from_str::<super::Config>(&content).unwrap();
+        assert!(matches!(storage_test.storage, StorageTypes::V1(_)));
     }
 
     #[test]
