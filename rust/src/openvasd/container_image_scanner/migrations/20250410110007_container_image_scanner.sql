@@ -21,7 +21,6 @@ CREATE TABLE scans (
     host_alive INTEGER DEFAULT 0,
     host_queued INTEGER DEFAULT 0,
     host_finished INTEGER DEFAULT 0,
-
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 

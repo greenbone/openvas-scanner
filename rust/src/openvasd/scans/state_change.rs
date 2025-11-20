@@ -1,5 +1,5 @@
 use sqlx::Row;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use scannerlib::models;
 use sqlx::{
@@ -52,7 +52,7 @@ macro_rules! retry_sql_connection_call {
 
 pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments<'a>> {
     sqlx::query(r#"
-        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
+        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, host_scanning, status
         FROM scans
         WHERE id = ?
         "#)
@@ -64,6 +64,19 @@ pub(crate) fn row_to_models_status(scan_row: SqliteRow) -> models::Status {
     let dead = scan_row.get("host_dead");
     let alive = scan_row.get("host_alive");
     let finished = excluded + dead + alive;
+    let host_scanning: String = scan_row.get("host_scanning");
+
+    let host_progress: HashMap<String, i32> = host_scanning
+        .split(',')
+        .filter_map(|x| {
+            if let Some((h, p)) = x.split_once('=') {
+                Some((h.to_string(), p.parse::<i32>().unwrap()))
+            } else {
+                None
+            }
+        })
+        .collect();
+
     let host_info = models::HostInfo {
         all: scan_row.get("host_all"),
         excluded,
@@ -71,7 +84,7 @@ pub(crate) fn row_to_models_status(scan_row: SqliteRow) -> models::Status {
         alive,
         queued: scan_row.get("host_queued"),
         finished,
-        scanning: None,
+        scanning: Some(host_progress),
         remaining_vts_per_host: Default::default(),
     };
     models::Status {
@@ -152,7 +165,7 @@ pub struct ScanStateController {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScanStateChangeError {
-    #[error("DB issue")]
+    #[error("DB issue {0}")]
     DB(#[from] sqlx::Error),
 }
 
@@ -236,7 +249,6 @@ impl ScanStateController {
             .await
             .map_err(ScanStateChangeError::from)
     }
-
     pub async fn scan_get_status(&self, id: i64) -> Result<models::Status, ScanStateChangeError> {
         let mut guard = self.connection_container.lock().await;
         let q = || status_query(id);
@@ -251,6 +263,14 @@ impl ScanStateController {
         status: &models::Status,
     ) -> Result<(), ScanStateChangeError> {
         let host_info = status.host_info.clone().unwrap_or_default();
+
+        let mut host_scanning = String::new();
+        if let Some(scanning) = host_info.scanning {
+            for (h, p) in scanning {
+                host_scanning.push_str(format!("{}={},", h, p).as_str());
+            }
+        };
+
         let q = || {
             sqlx::query(
                 r#"
@@ -262,6 +282,7 @@ impl ScanStateController {
         host_queued   = COALESCE(NULLIF(?, 0), host_queued),
         host_excluded = COALESCE(NULLIF(?, 0), host_excluded),
         host_all      = COALESCE(NULLIF(?, 0), host_all),
+        host_scanning = COALESCE(NULLIF(?, ''), host_scanning),
         status        = COALESCE(NULLIF(NULLIF(?, 'stored'), 'requested'), status)
     WHERE id = ?
     "#,
@@ -273,10 +294,13 @@ impl ScanStateController {
             .bind(host_info.queued as i64)
             .bind(host_info.excluded as i64)
             .bind(host_info.all as i64)
+            .bind(&host_scanning)
             .bind(status.status.as_ref())
             .bind(id)
         };
+
         self.connection_container.lock().await.execute(q).await?;
+
         Ok(())
     }
 
