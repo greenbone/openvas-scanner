@@ -49,7 +49,7 @@ where
 
     fn load_new_product(&self, os: &str) -> Result<(Product, FeedStamp), Error> {
         tracing::debug!(
-            root=?self.loader.get_root_dir(),
+            root=?self.loader.root_path(),
             "Loading notus product",
         );
         let (product, stamp) = self.loader.load_product(os)?;

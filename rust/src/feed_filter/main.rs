@@ -6,8 +6,9 @@ mod error;
 
 use clap::Parser;
 use scannerlib::models::{Scan, VT};
+use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::syntax::grammar::{Ast, Atom, Expr, FnCall, Statement};
-use scannerlib::nasl::{Code, FSPluginLoader, nasl_std_functions};
+use scannerlib::nasl::{Code, nasl_std_functions};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::io::{self};
@@ -401,13 +402,13 @@ impl ScriptPath {
 
 struct ScriptReader<'a> {
     feed_path: PathBuf,
-    loader: FSPluginLoader,
+    loader: Loader,
     builtins: &'a BuiltinFunctions,
 }
 
 impl<'a> ScriptReader<'a> {
     fn new(feed_path: PathBuf, builtins: &'a BuiltinFunctions) -> Self {
-        let loader = FSPluginLoader::new(&feed_path);
+        let loader = Loader::from_feed_path(&feed_path);
         Self {
             feed_path,
             loader,

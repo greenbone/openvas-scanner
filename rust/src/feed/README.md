@@ -22,11 +22,11 @@ Also, implements a `signature verifier` for checking the signature of the sha256
 ### Example
 
 ```rust,no_run
-use scannerlib::nasl::FSPluginLoader;
+use scannerlib::nasl::Loader;
 // needs to be path that contains a sha256sums file otherwise
 // it will throw an exception.
 let path = "/var/lib/openvas/plugins/";
-let loader = FSPluginLoader::new(path);
+let loader = Loader::from_feed_path(path);
 let verifier = scannerlib::feed::HashSumNameLoader::sha256(&loader).expect("sha256sums");
 ```
 

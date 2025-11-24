@@ -8,7 +8,6 @@ pub use error::Error;
 pub use error::ErrorKind;
 
 use futures::{Stream, StreamExt, stream};
-use std::fs::File;
 use tracing::trace;
 
 use crate::nasl::error::Level;
@@ -16,7 +15,7 @@ use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::*;
-use crate::nasl::syntax::AsBufReader;
+use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::nasl::utils::scan_ctx::Target;
@@ -32,11 +31,11 @@ use super::verify;
 
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
-pub struct Update<'a, S, L, V> {
+pub struct Update<'a, S, V> {
     /// Is used to store data
     storage: &'a S,
     /// Is used to load nasl plugins by a relative path
-    loader: &'a L,
+    loader: Loader,
     /// Initial data, usually set in new.
     initial: Vec<(String, NaslValue)>,
     /// How often loader or storage should retry before giving up when a retryable error occurs.
@@ -48,7 +47,7 @@ pub struct Update<'a, S, L, V> {
 
 /// Loads the plugin_feed_info and returns the feed version
 pub async fn feed_version(
-    loader: &dyn Loader,
+    loader: &Loader,
     dispatcher: &dyn ContextStorage,
 ) -> Result<String, ErrorKind> {
     let feed_info_filename = "plugin_feed_info.inc";
@@ -88,18 +87,16 @@ pub async fn feed_version(
     Ok(feed_version)
 }
 
-impl<'a, S, L, V> SignatureChecker for Update<'a, S, L, V>
+impl<'a, S, V> SignatureChecker for Update<'a, S, V>
 where
     S: Sync + Send + ContextStorage,
-    L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>>,
 {
 }
 
-impl<'a, S, L, V> Update<'a, S, L, V>
+impl<'a, S, V> Update<'a, S, V>
 where
     S: Sync + Send + ContextStorage,
-    L: Sync + Send + Loader + AsBufReader<File>,
     V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>> + 'a,
 {
     /// Creates an updater. This updater is implemented as a iterator.
@@ -112,7 +109,7 @@ where
     pub fn init(
         openvas_version: &str,
         max_retry: usize,
-        loader: &'a L,
+        loader: Loader,
         storage: &'a S,
         verifier: V,
     ) -> Self {
@@ -133,7 +130,7 @@ where
 
     /// Loads the plugin_feed_info and returns the feed version
     async fn feed_version(&self) -> Result<String, ErrorKind> {
-        feed_version(self.loader, self.storage).await
+        feed_version(&self.loader, self.storage).await
     }
 
     /// plugin_feed_info must be handled differently.
@@ -153,7 +150,7 @@ where
 
     /// Runs a single plugin in description mode.
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
-        let code = Code::load(self.loader, &key.0)?;
+        let code = Code::load(&self.loader, &key.0)?;
 
         // Technically, we don't need to set the "description" variable
         // anymore, since the parse_description_block function returns
@@ -169,7 +166,7 @@ where
             ports,
             filename: &key.0,
             storage: self.storage,
-            loader: self.loader,
+            loader: &self.loader,
             executor: &self.executor,
             scan_preferences: scan_params,
             alive_test_methods,
@@ -198,7 +195,7 @@ where
 
     /// Perform a signature check of the sha256sums file
     pub fn verify_signature(&self) -> Result<(), verify::Error> {
-        let path = self.loader.root_path().unwrap();
+        let path = self.loader.root_path();
         check_signature(&path)
     }
 

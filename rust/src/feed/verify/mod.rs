@@ -12,12 +12,11 @@
 
 use std::{
     fs::File,
-    io::{self, BufRead, BufReader, Read},
+    io::{self, BufRead, Read},
     path::{Path, PathBuf},
 };
 
-use crate::nasl::syntax::{AsBufReader, LoadError};
-use crate::nasl::syntax::{FSPluginLoader, Loader};
+use crate::nasl::syntax::{LoadError, Loader};
 use hex::encode;
 use sha2::{Digest, Sha256};
 
@@ -215,14 +214,13 @@ pub enum Hasher {
 }
 
 /// Computes hash of a given reader
-fn compute_hash_with<R, H>(
-    reader: &mut BufReader<R>,
+fn compute_hash_with<H>(
+    reader: &mut dyn BufRead,
     hasher: &dyn Fn() -> H,
     key: &str,
 ) -> Result<String, Error>
 where
     H: Digest,
-    R: Read,
 {
     let mut buffer = [0; 1024];
     let mut hasher = hasher();
@@ -239,6 +237,7 @@ where
     let result = encode(&result[..]);
     Ok(result)
 }
+
 impl Hasher {
     /// Returns the name of the used sums file
     pub fn sum_file(&self) -> &str {
@@ -248,10 +247,7 @@ impl Hasher {
     }
 
     /// Returns the hash of a given reader and key
-    fn hash<R>(&self, reader: &mut BufReader<R>, key: &str) -> Result<String, Error>
-    where
-        R: Read,
-    {
+    fn hash(&self, reader: &mut dyn BufRead, key: &str) -> Result<String, Error> {
         let hasher = match self {
             Hasher::Sha256 => &Sha256::new,
         };
@@ -262,14 +258,14 @@ impl Hasher {
 /// Loads a given hashsums file and lazily verifies the loaded filename key of the sums file and verifies
 /// the hash within the sums file with an calculated hash of the found content.
 pub struct HashSumNameLoader<'a> {
-    reader: &'a FSPluginLoader,
+    reader: &'a Loader,
     hasher: Hasher,
-    buf: io::Lines<BufReader<File>>,
+    buf: io::Lines<Box<dyn BufRead>>,
 }
 
 /// Loads hashsum verified names of the feed based on a sum file.
 impl<'a> HashSumNameLoader<'a> {
-    fn new(buf: io::Lines<BufReader<File>>, reader: &'a FSPluginLoader, hasher: Hasher) -> Self {
+    fn new(buf: io::Lines<Box<dyn BufRead>>, reader: &'a Loader, hasher: Hasher) -> Self {
         Self {
             reader,
             hasher,
@@ -278,7 +274,7 @@ impl<'a> HashSumNameLoader<'a> {
     }
 
     /// Returns a sha256 implementation of HashSumNameLoader
-    pub fn sha256(reader: &'a FSPluginLoader) -> Result<HashSumNameLoader<'a>, Error> {
+    pub fn sha256(reader: &'a Loader) -> Result<HashSumNameLoader<'a>, Error> {
         let buf = reader
             .as_bufreader(Hasher::Sha256.sum_file())
             .map(|x| x.lines())
@@ -319,12 +315,11 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
 }
 
 /// Contains all information  necessary to do a hash sum check
-#[derive(Debug)]
 pub struct HashSumFileItem<'a> {
     pub file_name: String,
     pub hashsum: String,
     pub hasher: Option<Hasher>,
-    pub reader: &'a FSPluginLoader,
+    pub reader: &'a Loader,
 }
 
 impl HashSumFileItem<'_> {
@@ -357,29 +352,25 @@ impl HashSumFileItem<'_> {
     }
 }
 
-fn get_all_plugins(loader: &FSPluginLoader) -> Vec<PathBuf> {
+fn get_all_plugins(loader: &Loader) -> Vec<PathBuf> {
     let mut files = Vec::new();
-    if let Ok(rp) = loader.root_path() {
-        for e in walkdir::WalkDir::new(&rp)
-            .into_iter()
-            .filter_map(|e| e.ok())
-        {
-            if e.path().extension().is_some_and(|ext| ext == "nasl") {
-                let relative_path = e.path().strip_prefix(Path::new(&rp)).unwrap();
-                files.push(relative_path.to_owned());
-            }
+    let rp = loader.root_path();
+    for e in walkdir::WalkDir::new(rp).into_iter().filter_map(|e| e.ok()) {
+        if e.path().extension().is_some_and(|ext| ext == "nasl") {
+            let relative_path = e.path().strip_prefix(Path::new(&rp)).unwrap();
+            files.push(relative_path.to_owned());
         }
     }
     files
 }
 
 pub struct FakeVerifier<'a> {
-    loader: &'a FSPluginLoader,
+    loader: &'a Loader,
     files: Vec<PathBuf>,
 }
 
 impl<'a> FakeVerifier<'a> {
-    pub fn new(loader: &'a FSPluginLoader) -> Self {
+    pub fn new(loader: &'a Loader) -> Self {
         Self {
             loader,
             files: get_all_plugins(loader),

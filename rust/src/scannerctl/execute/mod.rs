@@ -11,7 +11,8 @@ use clap::Subcommand;
 use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
 use scannerlib::models;
-use scannerlib::nasl::{FSPluginLoader, nasl_std_functions};
+use scannerlib::nasl::nasl_std_functions;
+use scannerlib::nasl::syntax::Loader;
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::scanner::{Scan, ScanRunner};
 use scannerlib::scheduling::{ExecutionPlaner, WaveExecutionPlan};
@@ -89,9 +90,9 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
     let storage = Arc::new(InMemoryStorage::new());
     info!("loading feed. This may take a while.");
 
-    let loader = FSPluginLoader::new(args.path);
+    let loader = Loader::from_feed_path(args.path);
     let verifier = HashSumNameLoader::sha256(&loader)?;
-    let updater = Update::init("1", 5, &loader, &storage, verifier);
+    let updater = Update::init("1", 5, loader.clone(), &storage, verifier);
     updater.perform_update().await?;
 
     let vts_cloned = scan.vts.clone();
@@ -114,7 +115,7 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
     } else {
         let executor = nasl_std_functions();
         let scan = Scan::default_to_localhost(scan);
-        let runner: ScanRunner<(_, _)> =
+        let runner: ScanRunner<Arc<InMemoryStorage>> =
             ScanRunner::new(&storage, &loader, &executor, schedule, &scan).unwrap();
         let mut results = Box::pin(runner.stream());
         while let Some(x) = results.next().await {

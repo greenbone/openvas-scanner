@@ -10,7 +10,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::nasl::utils::Executor;
+use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
 use crate::{
     scanner::scan_runner::ScanRunner,
@@ -29,7 +29,7 @@ use super::{ScannerStack, scan::Scan};
 pub struct RunningScan<S: ScannerStack> {
     scan: Scan,
     storage: Arc<S::Storage>,
-    loader: Arc<S::Loader>,
+    loader: Arc<Loader>,
     function_executor: Arc<Executor>,
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<Status>>,
@@ -49,7 +49,7 @@ impl<S: ScannerStack> RunningScan<S> {
     pub fn start<Sch: ExecutionPlan + 'static>(
         scan: Scan,
         storage: Arc<S::Storage>,
-        loader: Arc<S::Loader>,
+        loader: Arc<Loader>,
         function_executor: Arc<Executor>,
     ) -> RunningScanHandle
     where
@@ -106,7 +106,7 @@ impl<S: ScannerStack> RunningScan<S> {
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
             &*self.storage,
-            &*self.loader,
+            &self.loader,
             &self.function_executor,
             schedule,
             &self.scan,
