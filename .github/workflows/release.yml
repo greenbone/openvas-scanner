@@ -62,7 +62,7 @@ jobs:
       PROJECT: ${{inputs.project}}
       REPOSITORY: ${{inputs.repository}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.token }}
           fetch-depth: '0'
@@ -83,7 +83,7 @@ jobs:
       - uses: greenbone/actions/setup-pontos@v3
       # should be build by functional which is a dependency of release
       - name: download rs binaries
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: rs-binaries-*
           merge-multiple: true
