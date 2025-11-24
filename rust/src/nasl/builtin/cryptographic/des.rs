@@ -7,8 +7,8 @@ use aes::cipher::BlockEncrypt;
 use ccm::KeyInit;
 use des::cipher::generic_array::GenericArray;
 
-#[nasl_function(named(key, data))]
-fn encrypt_des(key: StringOrData, data: StringOrData) -> Result<Vec<u8>, FnError> {
+#[nasl_function]
+fn encrypt_des(data: StringOrData, key: StringOrData) -> Result<Vec<u8>, FnError> {
     let key = key.data();
     if key.len() != 8 {
         return Err(ArgumentError::WrongArgument(format!(
