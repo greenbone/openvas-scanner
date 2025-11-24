@@ -18,7 +18,7 @@ jobs:
           - debian_stable
           - debian_bookworm
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/copy-docker-binaries
         with:
           arch: amd64 
@@ -43,7 +43,7 @@ jobs:
       options: --privileged
     steps:
       # why?
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh
@@ -51,7 +51,7 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build -- install
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           pattern: rs-binaries-*
           merge-multiple: true
