@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::Target;
 use futures::{Stream, stream};
@@ -43,7 +44,7 @@ fn all_positions(hosts: Vec<Target>, vts: Vec<ConcurrentVT>) -> impl Iterator<It
 pub struct ScanRunner<'a, S: ScannerStack> {
     scan: &'a Scan,
     storage: &'a S::Storage,
-    loader: &'a S::Loader,
+    loader: &'a Loader,
     executor: &'a Executor,
     concurrent_vts: Vec<ConcurrentVT>,
 }
@@ -51,7 +52,7 @@ pub struct ScanRunner<'a, S: ScannerStack> {
 impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
     pub fn new<Sched>(
         storage: &'a Stack::Storage,
-        loader: &'a Stack::Loader,
+        loader: &'a Loader,
         executor: &'a Executor,
         schedule: Sched,
         scan: &'a Scan,

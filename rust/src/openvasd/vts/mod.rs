@@ -7,7 +7,7 @@ use std::{
 
 use greenbone_scanner_framework::{GetVTsError, StreamResult};
 use scannerlib::PinBoxFut;
-use scannerlib::nasl::FSPluginLoader;
+use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
@@ -39,7 +39,7 @@ fn sumfile_hash<S>(path: S) -> Result<String, scannerlib::feed::VerifyError>
 where
     S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
 {
-    let loader = scannerlib::nasl::FSPluginLoader::new(path);
+    let loader = Loader::from_feed_path(path);
     let verifier = scannerlib::feed::HashSumNameLoader::sha256(&loader)?;
     verifier.sumfile_hash()
 }
@@ -211,7 +211,7 @@ where
     };
 
     synchronize_json::<_, VulnerabilityData, _>(ps, &hash, move |sender| {
-        let loader = FSPluginLoader::new(&path);
+        let loader = Loader::from_feed_path(&path);
         let advisories_files =
             HashsumAdvisoryLoader::new(loader.clone()).map_err(error_vts_error)?;
         for filename in advisories_files

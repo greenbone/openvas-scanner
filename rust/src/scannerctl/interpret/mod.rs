@@ -10,9 +10,9 @@ use std::{
 
 use futures::StreamExt;
 use scannerlib::nasl::{
-    FSPluginLoader, Loader, NaslValue, WithErrorInfo,
+    NaslValue, WithErrorInfo,
     interpreter::InterpreterErrorKind,
-    syntax::{LoadError, load_non_utf8_path},
+    syntax::{LoadError, Loader, read_non_utf8_path},
 };
 use scannerlib::{
     feed,
@@ -39,7 +39,7 @@ use greenbone_scanner_framework::models::VTData;
 use crate::{CliError, CliErrorKind, Db, Filename};
 
 fn load(ctx: &ScanCtx, script: &Path) -> Result<String, CliErrorKind> {
-    match load_non_utf8_path(&script) {
+    match read_non_utf8_path(&script) {
         Ok(x) => Ok(x),
         Err(LoadError::NotFound(_)) => {
             match ctx
@@ -94,7 +94,7 @@ async fn run_with_context(context: ScanCtx<'_>, script: &Path) -> Result<(), Cli
     Ok(())
 }
 
-async fn load_feed_by_exec<S>(storage: &S, pl: &FSPluginLoader) -> Result<(), CliError>
+async fn load_feed_by_exec<S>(storage: &S, pl: &Loader) -> Result<(), CliError>
 where
     S: ContextStorage,
 {
@@ -102,7 +102,7 @@ where
 
     tracing::info!("loading feed. This may take a while.");
     let verifier = feed::HashSumNameLoader::sha256(pl)?;
-    let updater = feed::Update::init("scannerctl", 5, pl, storage, verifier);
+    let updater = feed::Update::init("scannerctl", 5, pl.clone(), storage, verifier);
     updater.perform_update().await?;
     tracing::info!("loaded feed.");
     Ok(())
@@ -123,9 +123,9 @@ fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliE
     Ok(())
 }
 
-async fn run_on_storage<S: ContextStorage, L: Loader>(
+async fn run_on_storage<S: ContextStorage>(
     storage: S,
-    loader: L,
+    loader: Loader,
     target: Target,
     kb: Vec<String>,
     ports: Ports,
@@ -190,7 +190,7 @@ pub async fn run(
         (Db::InMemory, None) => {
             run_on_storage(
                 InMemoryStorage::default(),
-                FSPluginLoader::new(script.parent().unwrap()),
+                Loader::from_feed_path(script.parent().unwrap()),
                 target,
                 kb,
                 ports,
@@ -202,7 +202,7 @@ pub async fn run(
         (Db::InMemory, Some(path)) => {
             let storage = InMemoryStorage::new();
             let guessed_feed_json = path.join("feed.json");
-            let loader = FSPluginLoader::new(path.clone());
+            let loader = Loader::from_feed_path(path.clone());
             if guessed_feed_json.exists() {
                 load_feed_by_json(&storage, &guessed_feed_json)?
             } else {

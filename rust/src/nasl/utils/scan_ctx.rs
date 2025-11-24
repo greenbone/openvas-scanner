@@ -277,7 +277,7 @@ pub struct ScanCtx<'a> {
     /// Storage
     storage: &'a dyn ContextStorage,
     /// Loader
-    loader: &'a dyn Loader,
+    loader: &'a Loader,
     /// Function executor.
     executor: &'a Executor,
     /// NVT object, which is put into the storage, when set
@@ -296,7 +296,7 @@ impl<'a> ScanCtx<'a> {
         target: CtxTarget,
         filename: PathBuf,
         storage: &'a dyn ContextStorage,
-        loader: &'a dyn Loader,
+        loader: &'a Loader,
         executor: &'a Executor,
         scan_preferences: ScanPrefs,
         alive_test_methods: Vec<AliveTestMethods>,
@@ -378,8 +378,9 @@ impl<'a> ScanCtx<'a> {
     pub fn storage(&self) -> &dyn ContextStorage {
         self.storage
     }
+
     /// Get the loader
-    pub fn loader(&self) -> &dyn Loader {
+    pub fn loader(&self) -> &Loader {
         self.loader
     }
 
@@ -640,7 +641,7 @@ pub struct ScriptCtx {
 
 pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
     pub storage: &'a dyn ContextStorage,
-    pub loader: &'a dyn Loader,
+    pub loader: &'a Loader,
     pub executor: &'a Executor,
     pub scan_id: ScanID,
     pub target: Target,

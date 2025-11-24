@@ -3,9 +3,8 @@ use std::path::{Path, PathBuf};
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    Loader,
     error::Level,
-    syntax::{DescriptionBlock, LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
+    syntax::{DescriptionBlock, LoadError, Loader, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
 fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
@@ -88,7 +87,7 @@ pub struct Code {
 }
 
 impl Code {
-    pub fn load(loader: &dyn Loader, path: impl AsRef<Path>) -> Result<Self, LoadError> {
+    pub fn load(loader: &Loader, path: impl AsRef<Path>) -> Result<Self, LoadError> {
         Ok(Self {
             code: loader.load(&path.as_ref().to_string_lossy())?,
             path: Some(path.as_ref().to_owned()),

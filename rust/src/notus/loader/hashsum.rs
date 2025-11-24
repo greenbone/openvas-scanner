@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::path::Path;
+
 use greenbone_scanner_framework::models::Product;
 
-use crate::nasl::syntax::{FSPluginLoader, Loader};
+use crate::nasl::syntax::Loader;
 
 use crate::feed::check_signature;
 use crate::feed::{HashSumNameLoader, SignatureChecker, VerifyError};
@@ -13,15 +15,15 @@ use crate::notus::error::{Error, LoadProductErrorKind};
 
 use super::{AdvisoryLoader, FeedStamp, ProductLoader};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct HashsumProductLoader {
-    loader: FSPluginLoader,
+    loader: Loader,
 }
 
 impl SignatureChecker for HashsumProductLoader {}
 
 impl HashsumProductLoader {
-    pub fn new(loader: FSPluginLoader) -> Self {
+    pub fn new(loader: Loader) -> Self {
         Self { loader }
     }
 }
@@ -84,24 +86,24 @@ impl ProductLoader for HashsumProductLoader {
 
     /// Perform a signature check of the sha256sums file
     fn verify_signature(&self) -> Result<(), VerifyError> {
-        let path = self.loader.root_path().unwrap();
+        let path = self.loader.root_path();
         check_signature(&path)
     }
-    fn get_root_dir(&self) -> Result<String, Error> {
-        let p = self.loader.root_path().unwrap();
-        Ok(p)
+
+    fn root_path(&self) -> &Path {
+        self.loader.root_path()
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct HashsumAdvisoryLoader {
-    loader: FSPluginLoader,
+    loader: Loader,
 }
 
 impl SignatureChecker for HashsumAdvisoryLoader {}
 
 impl HashsumAdvisoryLoader {
-    pub fn new(loader: FSPluginLoader) -> Result<Self, Error> {
+    pub fn new(loader: Loader) -> Result<Self, Error> {
         Ok(Self { loader })
     }
 }
@@ -150,11 +152,10 @@ impl AdvisoryLoader for HashsumAdvisoryLoader {
 
     /// Perform a signature check of the sha256sums file
     fn verify_signature(&self) -> Result<(), VerifyError> {
-        let path = self.loader.root_path().unwrap();
-        check_signature(&path)
+        check_signature(&self.loader.root_path())
     }
-    fn get_root_dir(&self) -> Result<String, Error> {
-        let p = self.loader.root_path().unwrap();
-        Ok(p)
+
+    fn root_path(&self) -> &Path {
+        self.loader.root_path()
     }
 }
