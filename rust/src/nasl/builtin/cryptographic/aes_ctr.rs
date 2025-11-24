@@ -11,7 +11,7 @@ use aes::{
 };
 use digest::typenum::U16;
 
-use crate::nasl::prelude::*;
+use crate::nasl::{prelude::*, utils::function::StringOrData};
 
 use super::Crypt;
 
@@ -55,8 +55,12 @@ where
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 #[nasl_function(named(key, iv, data))]
-fn aes128_ctr_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    ctr::<Aes128>(key, iv, data, None, Crypt::Encrypt)
+fn aes128_ctr_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    ctr::<Aes128>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes128 ctr.
@@ -69,12 +73,12 @@ fn aes128_ctr_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, F
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 #[nasl_function(named(key, iv, data, len))]
 fn aes128_ctr_decrypt(
-    key: &[u8],
-    iv: &[u8],
-    data: &[u8],
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
     len: Option<usize>,
 ) -> Result<NaslValue, FnError> {
-    ctr::<Aes128>(key, iv, data, len, Crypt::Decrypt)
+    ctr::<Aes128>(key.data(), iv.data(), data.data(), len, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes192 ctr.
@@ -85,8 +89,12 @@ fn aes128_ctr_decrypt(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 #[nasl_function(named(key, iv, data))]
-fn aes192_ctr_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    ctr::<Aes192>(key, iv, data, None, Crypt::Encrypt)
+fn aes192_ctr_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    ctr::<Aes192>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes192 ctr.
@@ -99,12 +107,12 @@ fn aes192_ctr_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, F
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 #[nasl_function(named(key, iv, data, len))]
 fn aes192_ctr_decrypt(
-    key: &[u8],
-    iv: &[u8],
-    data: &[u8],
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
     len: Option<usize>,
 ) -> Result<NaslValue, FnError> {
-    ctr::<Aes192>(key, iv, data, len, Crypt::Decrypt)
+    ctr::<Aes192>(key.data(), iv.data(), data.data(), len, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes256 ctr.
@@ -115,8 +123,12 @@ fn aes192_ctr_decrypt(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 #[nasl_function(named(key, iv, data))]
-fn aes256_ctr_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    ctr::<Aes256>(key, iv, data, None, Crypt::Encrypt)
+fn aes256_ctr_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    ctr::<Aes256>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes256 ctr.
@@ -129,12 +141,12 @@ fn aes256_ctr_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, F
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 #[nasl_function(named(key, iv, data, len))]
 fn aes256_ctr_decrypt(
-    key: &[u8],
-    iv: &[u8],
-    data: &[u8],
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
     len: Option<usize>,
 ) -> Result<NaslValue, FnError> {
-    ctr::<Aes256>(key, iv, data, len, Crypt::Decrypt)
+    ctr::<Aes256>(key.data(), iv.data(), data.data(), len, Crypt::Decrypt)
 }
 
 pub struct AesCtr;

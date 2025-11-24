@@ -13,7 +13,7 @@ use aes::{
 use blowfish::Blowfish;
 use cbc::{Decryptor, Encryptor};
 
-use crate::nasl::prelude::*;
+use crate::nasl::{prelude::*, utils::function::StringOrData};
 
 use super::Crypt;
 
@@ -71,8 +71,12 @@ where
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
 #[nasl_function(named(key, iv, data))]
-fn aes128_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    cbc::<Aes128>(key, iv, data, None, Crypt::Encrypt)
+fn aes128_cbc_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    cbc::<Aes128>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes128 cbc.
@@ -85,12 +89,12 @@ fn aes128_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, F
 /// - The iv must have a length of 16 bytes
 #[nasl_function(named(key, iv, data, len))]
 fn aes128_cbc_decrypt(
-    key: &[u8],
-    iv: &[u8],
-    data: &[u8],
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
     len: Option<usize>,
 ) -> Result<NaslValue, FnError> {
-    cbc::<Aes128>(key, iv, data, len, Crypt::Decrypt)
+    cbc::<Aes128>(key.data(), iv.data(), data.data(), len, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes192 cbc.
@@ -101,8 +105,12 @@ fn aes128_cbc_decrypt(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
 #[nasl_function(named(key, iv, data))]
-fn aes192_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    cbc::<Aes192>(key, iv, data, None, Crypt::Encrypt)
+fn aes192_cbc_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    cbc::<Aes192>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes192 cbc.
@@ -115,12 +123,12 @@ fn aes192_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, F
 /// - The iv must have a length of 16 bytes
 #[nasl_function(named(key, iv, data, len))]
 fn aes192_cbc_decrypt(
-    key: &[u8],
-    iv: &[u8],
-    data: &[u8],
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
     len: Option<usize>,
 ) -> Result<NaslValue, FnError> {
-    cbc::<Aes192>(key, iv, data, len, Crypt::Decrypt)
+    cbc::<Aes192>(key.data(), iv.data(), data.data(), len, Crypt::Decrypt)
 }
 
 /// NASL function to encrypt data with aes256 cbc.
@@ -131,8 +139,12 @@ fn aes192_cbc_decrypt(
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes
 #[nasl_function(named(key, iv, data))]
-fn aes256_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    cbc::<Aes256>(key, iv, data, None, Crypt::Encrypt)
+fn aes256_cbc_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    cbc::<Aes256>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with aes256 cbc.
@@ -145,12 +157,12 @@ fn aes256_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, F
 /// - The iv must have a length of 16 bytes
 #[nasl_function(named(key, iv, data, len))]
 fn aes256_cbc_decrypt(
-    key: &[u8],
-    iv: &[u8],
-    data: &[u8],
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
     len: Option<usize>,
 ) -> Result<NaslValue, FnError> {
-    cbc::<Aes256>(key, iv, data, len, Crypt::Decrypt)
+    cbc::<Aes256>(key.data(), iv.data(), data.data(), len, Crypt::Decrypt)
 }
 
 /// NASL function to decrypt data with triple des ede cbc.
@@ -162,8 +174,12 @@ fn aes256_cbc_decrypt(
 /// - The iv must have a length of 8 bytes
 /// - The key must have a length of 24 bytes
 #[nasl_function(named(key, iv, data))]
-fn des_ede_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    cbc::<des::TdesEde3>(key, iv, data, None, Crypt::Encrypt)
+fn des_ede_cbc_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    cbc::<des::TdesEde3>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to encrypt data with blowfish cbc.
@@ -177,8 +193,12 @@ fn des_ede_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, 
 /// a[1] the new initialization vector to use for the next part of the
 /// data.
 #[nasl_function(named(key, iv, data))]
-fn bf_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    cbc::<Blowfish>(key, iv, data, None, Crypt::Encrypt)
+fn bf_cbc_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    cbc::<Blowfish>(key.data(), iv.data(), data.data(), None, Crypt::Encrypt)
 }
 
 /// NASL function to decrypt data with blowfish cbc.
@@ -192,8 +212,12 @@ fn bf_cbc_encrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnErr
 /// and a[1] the new initialization vector to use for the next part of
 /// the data.
 #[nasl_function(named(key, iv, data))]
-fn bf_cbc_decrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    cbc::<Blowfish>(key, iv, data, None, Crypt::Decrypt)
+fn bf_cbc_decrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    cbc::<Blowfish>(key.data(), iv.data(), data.data(), None, Crypt::Decrypt)
 }
 
 pub struct Cbc;
