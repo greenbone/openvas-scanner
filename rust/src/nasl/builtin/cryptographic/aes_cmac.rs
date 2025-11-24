@@ -5,7 +5,7 @@
 use aes::Aes128;
 use cmac::{Cmac, Mac};
 
-use crate::nasl::prelude::*;
+use crate::nasl::{prelude::*, utils::function::StringOrData};
 
 use super::CryptographicError;
 
@@ -22,8 +22,8 @@ pub fn aes_cmac(key: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
 /// It is important to notice, that internally the CMAC algorithm is used and not, as the name
 /// suggests, CBC-MAC.
 #[nasl_function(named(key, data))]
-fn nasl_aes_cmac(key: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    aes_cmac(key, data)
+fn nasl_aes_cmac(key: StringOrData, data: StringOrData) -> Result<NaslValue, FnError> {
+    aes_cmac(key.data(), data.data())
 }
 
 pub struct AesCmac;

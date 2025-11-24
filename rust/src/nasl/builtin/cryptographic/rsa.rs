@@ -5,6 +5,7 @@
 use super::CryptographicError;
 use crate::function_set;
 use crate::nasl::prelude::*;
+use crate::nasl::utils::function::StringOrData;
 use ccm::aead::OsRng;
 use nasl_function_proc_macro::nasl_function;
 use rsa::pkcs8::DecodePrivateKey;
@@ -14,16 +15,17 @@ use sha1::Sha1;
 
 #[nasl_function(named(data, n, e, pad))]
 fn rsa_public_encrypt(
-    data: &[u8],
-    n: &[u8],
-    e: &[u8],
+    data: StringOrData,
+    n: StringOrData,
+    e: StringOrData,
     pad: Option<bool>,
 ) -> Result<NaslValue, CryptographicError> {
+    let data = data.data();
     let pad = pad.unwrap_or_default();
     let mut rng = OsRng;
     let pub_key = RsaPublicKey::new(
-        rsa::BigUint::from_bytes_be(n),
-        rsa::BigUint::from_bytes_be(e),
+        rsa::BigUint::from_bytes_be(n.data()),
+        rsa::BigUint::from_bytes_be(e.data()),
     )
     .map_err(|e| CryptographicError::Rsa(e.to_string()))?;
     let biguint_data = BigUint::from_bytes_be(data);
@@ -41,12 +43,15 @@ fn rsa_public_encrypt(
 
 #[nasl_function(named(data, n, e, d, pad))]
 fn rsa_private_decrypt(
-    data: &[u8],
-    n: &[u8],
-    e: &[u8],
-    d: &[u8],
+    data: StringOrData,
+    n: StringOrData,
+    e: StringOrData,
+    d: StringOrData,
     pad: Option<bool>,
 ) -> Result<NaslValue, FnError> {
+    let n = n.data();
+    let e = e.data();
+    let d = d.data();
     let pad = pad.unwrap_or_default();
     let priv_key = match RsaPrivateKey::from_components(
         rsa::BigUint::from_bytes_be(n),
@@ -67,6 +72,7 @@ fn rsa_private_decrypt(
     }
     .map_err(|e| CryptographicError::Rsa(e.to_string()))?;
     let mut rng = OsRng;
+    let data = data.data();
     let biguint_data = BigUint::from_bytes_be(data);
     let dec_data = if pad {
         match priv_key.decrypt(Pkcs1v15Encrypt, data) {
@@ -87,10 +93,19 @@ fn rsa_private_decrypt(
 }
 
 #[nasl_function(named(data, pem, passphrase))]
-fn rsa_sign(data: &[u8], pem: &[u8], passphrase: Option<&str>) -> Result<NaslValue, FnError> {
+fn rsa_sign(
+    data: StringOrData,
+    pem: StringOrData,
+    passphrase: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    let data = data.data();
+    let pem = pem.data();
+    let passphrase = passphrase.map(|p| p.data());
     let pem_str = std::str::from_utf8(pem).map_err(|e| CryptographicError::Rsa(e.to_string()))?;
-    let rsa: RsaPrivateKey = if passphrase.unwrap_or_default() != "" {
-        pkcs8::DecodePrivateKey::from_pkcs8_encrypted_pem(pem_str, passphrase.unwrap_or_default())
+    let rsa: RsaPrivateKey = if let Some(passphrase) = passphrase
+        && !passphrase.is_empty()
+    {
+        pkcs8::DecodePrivateKey::from_pkcs8_encrypted_pem(pem_str, passphrase)
             .map_err(|e| CryptographicError::Rsa(e.to_string()))?
     } else {
         RsaPrivateKey::from_pkcs8_pem(pem_str)
@@ -106,7 +121,14 @@ fn rsa_sign(data: &[u8], pem: &[u8], passphrase: Option<&str>) -> Result<NaslVal
 }
 
 #[nasl_function(named(sign, n, e))]
-fn rsa_public_decrypt(sign: &[u8], n: &[u8], e: &[u8]) -> Result<NaslValue, FnError> {
+fn rsa_public_decrypt(
+    sign: StringOrData,
+    n: StringOrData,
+    e: StringOrData,
+) -> Result<NaslValue, FnError> {
+    let e = e.data();
+    let n = n.data();
+    let sign = sign.data();
     let e_b = rsa::BigUint::from_bytes_be(e);
     let n_b = rsa::BigUint::from_bytes_be(n);
     let public_key =

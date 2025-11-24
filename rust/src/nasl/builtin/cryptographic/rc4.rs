@@ -7,6 +7,7 @@ use rc4::{KeyInit, StreamCipher, consts::*};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::nasl::prelude::*;
+use crate::nasl::utils::function::StringOrData;
 
 use super::CryptographicError;
 
@@ -74,8 +75,8 @@ impl CipherHandlers {
     ///  
     /// Returns the id of the encrypted data cipher handler on success.
     #[nasl_function(named(key))]
-    fn open_rc4_cipher(&self, key: &[u8]) -> Result<NaslValue, FnError> {
-        let rc_handler = Rc4Key::build_handler_from_key(key)?;
+    fn open_rc4_cipher(&self, key: StringOrData) -> Result<NaslValue, FnError> {
+        let rc_handler = Rc4Key::build_handler_from_key(key.data())?;
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
         let id = get_new_cipher_id(&handlers);
 
@@ -99,14 +100,14 @@ impl CipherHandlers {
     fn rc4_encrypt(
         &self,
         hd: Option<i32>,
-        key: Option<&[u8]>,
-        data: &[u8],
+        key: Option<StringOrData>,
+        data: StringOrData,
     ) -> Result<NaslValue, FnError> {
         let mut handlers = lock_handlers(&self.cipher_handlers)?;
 
         if let Some(hd) = hd {
             if let Some((_i, h)) = handlers.iter_mut().enumerate().find(|(_i, h)| h.id == hd) {
-                let d = h.handler.encode(data);
+                let d = h.handler.encode(data.data());
                 return Ok(NaslValue::Data(d));
             } else {
                 return Err(CryptographicError::Rc4(format!("Handler ID {hd} not found")).into());
@@ -117,8 +118,8 @@ impl CipherHandlers {
             "Either handler ID (hd) or key must be set".to_string(),
         ))?;
 
-        let mut rc_handler = Rc4Key::build_handler_from_key(key)?;
-        let d = rc_handler.encode(data);
+        let mut rc_handler = Rc4Key::build_handler_from_key(key.data())?;
+        let d = rc_handler.encode(data.data());
         Ok(NaslValue::Data(d))
     }
 }

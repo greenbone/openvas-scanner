@@ -488,14 +488,14 @@ fn netbios_payload_len(buf: &[u8]) -> Option<usize> {
 
 #[nasl_function(named(key, buf, buflen, seq_number))]
 fn get_signature(
-    key: &[u8],
-    buf: &[u8],
+    key: StringOrData,
+    buf: StringOrData,
     buflen: usize,
     seq_number: u32,
 ) -> Result<Vec<u8>, FnError> {
     use md5::Md5;
 
-    let mut buf = buf.to_vec();
+    let mut buf = buf.data().to_vec();
     if buf.len() < 26 {
         return Err(FnError::wrong_unnamed_argument(
             "buf of length >= 26",
@@ -513,7 +513,7 @@ fn get_signature(
         ));
     }
 
-    let mut key = key.to_vec();
+    let mut key = key.data().to_vec();
     key.resize(16, 0);
 
     let mut sequence_bytes = seq_number.to_le_bytes().to_vec();

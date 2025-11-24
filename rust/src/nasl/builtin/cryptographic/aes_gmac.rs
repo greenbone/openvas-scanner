@@ -4,7 +4,7 @@
 
 use crate::function_set;
 #[cfg(feature = "nasl-c-lib")]
-use crate::nasl::prelude::*;
+use crate::nasl::{prelude::*, utils::function::StringOrData};
 
 #[cfg(feature = "nasl-c-lib")]
 pub fn aes_gmac(data: &[u8], key: &[u8], iv: &[u8]) -> Result<NaslValue, FnError> {
@@ -23,8 +23,12 @@ pub fn aes_gmac(data: &[u8], key: &[u8], iv: &[u8]) -> Result<NaslValue, FnError
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
 #[cfg(feature = "nasl-c-lib")]
 #[nasl_function(named(key, iv, data))]
-fn nasl_aes_gmac(key: &[u8], iv: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
-    aes_gmac(data, key, iv)
+fn nasl_aes_gmac(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    aes_gmac(data.data(), key.data(), iv.data())
 }
 
 pub struct AesGmac;
