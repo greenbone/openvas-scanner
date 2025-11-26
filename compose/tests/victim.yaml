@@ -1,0 +1,15 @@
+name: victim
+
+services:
+  victim:
+    # This image has various security issues:
+    # - 
+    # The ssh password is:
+    # - u: vuln p: vuln
+    #
+    # The root password is: toor
+    image: docker.io/nichtsfrei/victim:latest
+    networks:
+      default:
+        aliases:
+          - victim

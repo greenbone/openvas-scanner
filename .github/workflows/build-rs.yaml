@@ -22,7 +22,7 @@ jobs:
       ARTIFACT_NAME: rs-binaries-${{ inputs.arch }}
       ASSETS_SUBDIR: assets/linux/${{ inputs.arch }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: build
         shell: bash
         run: |
@@ -47,7 +47,7 @@ jobs:
       #     ${ASSETS_SUBDIR}/openvasd -h
       #     ${ASSETS_SUBDIR}/scannerctl -h
       - name: archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: assets/*
