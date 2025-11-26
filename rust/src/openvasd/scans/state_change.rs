@@ -1,4 +1,4 @@
-use sqlx::Row;
+use sqlx::{Row, query::QueryAs};
 use std::{collections::HashMap, sync::Arc};
 
 use scannerlib::models;
@@ -52,29 +52,38 @@ macro_rules! retry_sql_connection_call {
 
 pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments<'a>> {
     sqlx::query(r#"
-        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, host_scanning, status
+        SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
         FROM scans
         WHERE id = ?
         "#)
         .bind(id)
 }
 
-pub(crate) fn row_to_models_status(scan_row: SqliteRow) -> models::Status {
+pub(crate) fn host_scanning_query<'a>(
+    id: i64,
+) -> QueryAs<'a, Sqlite, ScanningHost, SqliteArguments<'a>> {
+    sqlx::query_as(
+        r#"
+        SELECT host_ip, progress
+        FROM host_scanning
+        WHERE id = ?
+        "#,
+    )
+    .bind(id)
+}
+
+pub(crate) fn row_to_models_status(
+    scan_row: SqliteRow,
+    scanning_hosts_rows: Vec<ScanningHost>,
+) -> models::Status {
     let excluded = scan_row.get("host_excluded");
     let dead = scan_row.get("host_dead");
     let alive = scan_row.get("host_alive");
     let finished = excluded + dead + alive;
-    let host_scanning: String = scan_row.get("host_scanning");
 
-    let host_progress: HashMap<String, i32> = host_scanning
-        .split(',')
-        .filter_map(|x| {
-            if let Some((h, p)) = x.split_once('=') {
-                Some((h.to_string(), p.parse::<i32>().unwrap()))
-            } else {
-                None
-            }
-        })
+    let host_progress: HashMap<String, i32> = scanning_hosts_rows
+        .into_iter()
+        .map(|sh| (sh.host_ip, sh.progress))
         .collect();
 
     let host_info = models::HostInfo {
@@ -94,6 +103,12 @@ pub(crate) fn row_to_models_status(scan_row: SqliteRow) -> models::Status {
         status: scan_row.get::<String, _>("status").parse().unwrap(),
         host_info: Some(host_info),
     }
+}
+
+#[derive(FromRow, Debug)]
+pub struct ScanningHost {
+    pub host_ip: String,
+    pub progress: i32,
 }
 
 impl SqliteConnectionContainer {
@@ -143,6 +158,18 @@ impl SqliteConnectionContainer {
         O: Send + Unpin,
         A: 'a + IntoArguments<'a, Sqlite>,
         (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
+    {
+        retry_sql_connection_call!(self, |c| q().fetch_all(c))
+    }
+
+    pub async fn fetch_all_rows<'a, F, O, A>(
+        &'a mut self,
+        q: F,
+    ) -> Result<Vec<O>, sqlx::error::Error>
+    where
+        F: Fn() -> QueryAs<'a, Sqlite, O, A>,
+        A: 'a + IntoArguments<'a, Sqlite>,
+        O: Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_all(c))
     }
@@ -249,11 +276,14 @@ impl ScanStateController {
             .await
             .map_err(ScanStateChangeError::from)
     }
+
     pub async fn scan_get_status(&self, id: i64) -> Result<models::Status, ScanStateChangeError> {
         let mut guard = self.connection_container.lock().await;
         let q = || status_query(id);
         let row = guard.fetch_one(q).await?;
-        let result = row_to_models_status(row);
+        let q2 = || host_scanning_query(id);
+        let rows: Vec<ScanningHost> = guard.fetch_all_rows(q2).await?;
+        let result = row_to_models_status(row, rows);
         Ok(result)
     }
 
@@ -263,14 +293,6 @@ impl ScanStateController {
         status: &models::Status,
     ) -> Result<(), ScanStateChangeError> {
         let host_info = status.host_info.clone().unwrap_or_default();
-
-        let mut host_scanning = String::new();
-        if let Some(scanning) = host_info.scanning {
-            for (h, p) in scanning {
-                host_scanning.push_str(format!("{}={},", h, p).as_str());
-            }
-        };
-
         let q = || {
             sqlx::query(
                 r#"
@@ -282,7 +304,6 @@ impl ScanStateController {
         host_queued   = COALESCE(NULLIF(?, 0), host_queued),
         host_excluded = COALESCE(NULLIF(?, 0), host_excluded),
         host_all      = COALESCE(NULLIF(?, 0), host_all),
-        host_scanning = COALESCE(NULLIF(?, ''), host_scanning),
         status        = COALESCE(NULLIF(NULLIF(?, 'stored'), 'requested'), status)
     WHERE id = ?
     "#,
@@ -294,12 +315,28 @@ impl ScanStateController {
             .bind(host_info.queued as i64)
             .bind(host_info.excluded as i64)
             .bind(host_info.all as i64)
-            .bind(&host_scanning)
             .bind(status.status.as_ref())
             .bind(id)
         };
-
         self.connection_container.lock().await.execute(q).await?;
+
+        let q = || sqlx::query(r#"DELETE from host_scanning WHERE id = ?"#).bind(id);
+        self.connection_container.lock().await.execute(q).await?;
+
+        if let Some(scanning) = host_info.scanning {
+            for (h, p) in scanning {
+                let q = || {
+                    sqlx::query(
+                        r#"INSERT INTO host_scanning (id, host_ip, progress) VALUES (?, ?, ?)"#,
+                    )
+                    .bind(id)
+                    .bind(h.clone())
+                    .bind(p)
+                };
+
+                self.connection_container.lock().await.execute(q).await?;
+            }
+        };
 
         Ok(())
     }
