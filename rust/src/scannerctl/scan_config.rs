@@ -93,7 +93,6 @@ async fn execute(
     };
     let mut vts = HashSet::new();
     for a in config.iter().map(|f| {
-        tracing::info!("{:?}", &f);
         as_bufreader(f)
             .and_then(|r| parse_vts(r, storage.as_ref(), &scan.vts).map_err(|e| map_error(f, e)))
     }) {
