@@ -82,7 +82,6 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
 //TODO delete
 struct InitializedRegistry<'a, Registry> {
     id: &'a ImageID,
-    //image: Image,
     registry: Registry,
 }
 
@@ -152,15 +151,16 @@ where
         image: ProcessingImage,
         pool: sqlx::Pool<Sqlite>,
     ) -> Result<(), sqlx::Error> {
+        db::set_scan_to_running(&pool, &image.id).await?;
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
-                return Ok(());
+                return db::set_scan_to_failed(&pool, &image.id).await;
             }
             Ok(x) => x,
         };
 
-        db::set_scan_to_running_and_add_images(&pool, &image.id, images).await
+        db::set_scan_images(&pool, &image.id, images).await
     }
 
     pub(crate) async fn start_scans<T>(
