@@ -252,7 +252,38 @@ pub async fn store_results(
     Ok(())
 }
 
-pub async fn set_scan_to_running_and_add_images(
+pub async fn set_scan_to_running(pool: &Pool<Sqlite>, id: &str) -> Result<(), sqlx::Error> {
+    // setting host_queued to 1 to not trigger success, it will be overridden on set_scan_images
+    // later.
+    query(
+        r#"
+            UPDATE scans
+            SET status = 'running',
+                host_queued = 1
+            WHERE id = ? AND status = 'requested'
+            "#,
+    )
+    .bind(id)
+    .execute(pool)
+    .await
+    .map(|_| ())
+}
+
+pub async fn set_scan_to_failed(pool: &Pool<Sqlite>, id: &str) -> Result<(), sqlx::Error> {
+    query(
+        r#"
+            UPDATE scans
+            SET status = 'failed'
+            WHERE id = ?
+            "#,
+    )
+    .bind(id)
+    .execute(pool)
+    .await
+    .map(|_| ())
+}
+
+pub async fn set_scan_images(
     pool: &Pool<Sqlite>,
     id: &str,
     images: Vec<Result<Image, Box<dyn std::error::Error + Send + Sync>>>,
@@ -260,34 +291,27 @@ pub async fn set_scan_to_running_and_add_images(
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
     let success_count = images.iter().filter(|x| x.is_ok()).count();
-    if let Err(err) = query(
+    query(
         r#"
             UPDATE scans
             SET host_all = ?,
-                host_dead = ?,
-                status = 'running'
-            WHERE id = ? AND status = 'requested'
+                host_queued = 0,
+                host_dead = ?
+            WHERE id = ?
             "#,
     )
     .bind(images.len() as i64)
     .bind(images.iter().filter(|x| x.is_err()).count() as i64)
     .bind(id)
     .execute(&mut *tx)
-    .await
-    {
-        unreachable!("The update should not fail. Unable to recover: {err}");
-    };
+    .await?;
     if success_count > 0 {
         let mut builder = QueryBuilder::new("INSERT OR IGNORE INTO images (id, image)");
         builder.push_values(images.into_iter().filter_map(|x| x.ok()), |mut b, image| {
             b.push_bind(id).push_bind(image.to_string());
         });
         let query = builder.build();
-        if let Err(err) = query.execute(&mut *tx).await {
-            tracing::warn!(error=%err, "Unable to insert image, this can happen on duplicated entries.");
-            return Err(err);
-        };
-
+        query.execute(&mut *tx).await?;
         tx.commit().await?;
     }
     Ok(())
