@@ -45,7 +45,10 @@ ctr = "0.9.2"
 des = "0.8.1"
 digest = "0.10.6"
 dns-lookup = "2.0"
-docker-registry = { version = "0.7.0", features = ["reqwest-rustls"] }
+# docker-registry = { version = "0.8.0", features = ["reqwest-rustls"] }
+# there is a PR open: https://github.com/clowdhaus/docker-registry/pull/25
+# when this is merged and released when go back to that
+docker-registry = { git = "https://github.com/nichtsfrei/docker-registry.git", branch = "main" , features = ["reqwest-rustls"] }
 dsa = "0.6.3"
 ecb = "0.1.2"
 flate2 = "1.0.25"
