@@ -587,7 +587,7 @@ where
         result_id: usize,
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
-         Box::pin(async move {
+        Box::pin(async move {
             let maybe_row = sqlx::query(
                 r#"
 SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
