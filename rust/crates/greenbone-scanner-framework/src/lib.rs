@@ -318,6 +318,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             .add_request_handler(GetScansIdHandler::from(value.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(value.clone()))
             .add_request_handler(GetScansIdStatusHandler::from(value.clone()))
+            .add_request_handler(GetScansIdResultsIdHandler::from(value.clone()))
             .add_request_handler(PostScansIdHandler::from(value.clone()))
             .add_request_handler(DeleteScansIdHandler::from(value));
 
