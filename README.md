@@ -56,6 +56,10 @@ for the Greenbone Community Edition.
 
 > Please beware: The Greenbone Community Container are currently under development.
 
+## Community Resources
+
+- [Ansible Role for OpenVAS](https://gitlab.com/ndaal_open_source/ndaal_public_ansible_role_openvas_red_hat_9_debian_12_derivates) - Automated deployment for Debian 12 and AlmaLinux 9 with High Availability support
+
 ## Support
 
 For any question on the usage of `openvas` please use the [Greenbone
