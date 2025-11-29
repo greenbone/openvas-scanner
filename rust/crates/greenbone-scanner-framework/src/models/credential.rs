@@ -37,7 +37,7 @@ pub struct PrivilegeInformation {
 }
 
 /// Enum of available services
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Service {
     #[serde(rename = "ssh")]
     /// SSH, supports [UP](CredentialType::UP) and [USK](CredentialType::USK) as credential types
