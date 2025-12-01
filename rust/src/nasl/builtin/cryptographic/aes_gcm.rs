@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 // FnError::GeneralError
-use crate::nasl::prelude::*;
+use crate::nasl::{prelude::*, utils::function::StringOrData};
 use aes::{
     Aes128, Aes192, Aes256,
     cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit},
@@ -14,9 +14,16 @@ use aes_gcm::{
 };
 use digest::typenum::{U12, U16};
 
-use super::{Crypt, CryptographicError, get_aad, get_data, get_iv, get_key, get_len};
+use super::{Crypt, CryptographicError};
 
-fn gcm<D>(register: &Register, crypt: Crypt, auth: bool) -> Result<NaslValue, FnError>
+fn gcm<D>(
+    key: &[u8],
+    iv: &[u8],
+    data: &[u8],
+    len: Option<usize>,
+    aad: Option<&[u8]>,
+    crypt: Crypt,
+) -> Result<NaslValue, FnError>
 where
     D: BlockSizeUser<BlockSize = U16>
         + aes::cipher::KeyInit
@@ -24,23 +31,14 @@ where
         + BlockEncrypt
         + BlockDecrypt,
 {
-    // Get data
-    let key = get_key(register)?;
-    let data = get_data(register)?;
-    let iv = get_iv(register)?;
-    let len = get_len(register)?;
-    let aad = match auth {
-        true => get_aad(register)?,
-        false => b"",
-    };
-
     let cipher = AesGcm::<D, U12>::new(key.into());
+    let aad = aad.unwrap_or_default();
 
     let mut payload = Payload { msg: data, aad };
 
     let res = match crypt {
         Crypt::Encrypt => {
-            if data.len() % 16 != 0 {
+            if !data.len().is_multiple_of(16) {
                 let blocks_len = data.len() + 16 - data.len() % 16;
 
                 let mut vec = data.to_vec();
@@ -76,9 +74,20 @@ where
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-#[nasl_function]
-fn aes128_gcm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes128>(register, Crypt::Encrypt, false)
+#[nasl_function(named(key, iv, data))]
+fn aes128_gcm_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes128>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        None,
+        None,
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes128 gcm and authentication encryption with associated data (AEAD).
@@ -90,9 +99,21 @@ fn aes128_gcm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-#[nasl_function]
-fn aes128_gcm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes128>(register, Crypt::Encrypt, true)
+#[nasl_function(named(key, iv, data, aad))]
+fn aes128_gcm_encrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes128>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        None,
+        aad.map(|a| a.data()),
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes128 gcm.
@@ -104,9 +125,21 @@ fn aes128_gcm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-#[nasl_function]
-fn aes128_gcm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes128>(register, Crypt::Decrypt, false)
+#[nasl_function(named(key, iv, data, len))]
+fn aes128_gcm_decrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes128>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        len,
+        None,
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes128 gcm and authentication encryption with associated data (AEAD).
@@ -118,9 +151,22 @@ fn aes128_gcm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-#[nasl_function]
-fn aes128_gcm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes128>(register, Crypt::Decrypt, true)
+#[nasl_function(named(key, iv, data, len, aad))]
+fn aes128_gcm_decrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes128>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        len,
+        aad.map(|a| a.data()),
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes192 gcm.
@@ -132,9 +178,20 @@ fn aes128_gcm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-#[nasl_function]
-fn aes192_gcm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes192>(register, Crypt::Encrypt, false)
+#[nasl_function(named(key, iv, data))]
+fn aes192_gcm_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes192>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        None,
+        None,
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes192 gcm and authentication encryption with associated data (AEAD).
@@ -146,9 +203,21 @@ fn aes192_gcm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-#[nasl_function]
-fn aes192_gcm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes192>(register, Crypt::Encrypt, true)
+#[nasl_function(named(key, iv, data, aad))]
+fn aes192_gcm_encrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes192>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        None,
+        aad.map(|a| a.data()),
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes192 gcm.
@@ -160,9 +229,21 @@ fn aes192_gcm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-#[nasl_function]
-fn aes192_gcm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes192>(register, Crypt::Decrypt, false)
+#[nasl_function(named(key, iv, data, len))]
+fn aes192_gcm_decrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes192>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        len,
+        None,
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes192 gcm and authentication encryption with associated data (AEAD).
@@ -174,9 +255,22 @@ fn aes192_gcm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-#[nasl_function]
-fn aes192_gcm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes192>(register, Crypt::Decrypt, true)
+#[nasl_function(named(key, iv, data, len, aad))]
+fn aes192_gcm_decrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes192>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        len,
+        aad.map(|a| a.data()),
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes256 gcm.
@@ -188,9 +282,20 @@ fn aes192_gcm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-#[nasl_function]
-fn aes256_gcm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes256>(register, Crypt::Encrypt, false)
+#[nasl_function(named(key, iv, data))]
+fn aes256_gcm_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes256>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        None,
+        None,
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes256 gcm and authentication encryption with associated data (AEAD).
@@ -202,9 +307,21 @@ fn aes256_gcm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The result contains the ciphertext and the calculated tag in a single data type.
 /// - The tag has a size of 16 Bytes.
-#[nasl_function]
-fn aes256_gcm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes256>(register, Crypt::Encrypt, true)
+#[nasl_function(named(key, iv, data, aad))]
+fn aes256_gcm_encrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes256>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        None,
+        aad.map(|a| a.data()),
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes256 gcm.
@@ -216,9 +333,21 @@ fn aes256_gcm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-#[nasl_function]
-fn aes256_gcm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes256>(register, Crypt::Decrypt, false)
+#[nasl_function(named(key, iv, data, len))]
+fn aes256_gcm_decrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes256>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        len,
+        None,
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes256 gcm and authentication encryption with associated data (AEAD).
@@ -230,9 +359,22 @@ fn aes256_gcm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
 ///   known for decryption. If no length is given, the last block is decrypted as a whole.
 /// - The iv must have a length of 16 bytes. It is used as the initial counter.
 /// - The tag is needed as a postfix in the given data in order to decrypt successfully.
-#[nasl_function]
-fn aes256_gcm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    gcm::<Aes256>(register, Crypt::Decrypt, true)
+#[nasl_function(named(key, iv, data, len, aad))]
+fn aes256_gcm_decrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    gcm::<Aes256>(
+        key.data(),
+        iv.data(),
+        data.data(),
+        len,
+        aad.map(|a| a.data()),
+        Crypt::Decrypt,
+    )
 }
 
 pub struct AesGcmFns;

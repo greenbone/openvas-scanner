@@ -61,9 +61,9 @@ fn string() {
 
 #[test]
 fn substr() {
-    check_code_result("substr('hello', 1);", "ello");
-    check_code_result("substr('hello', 0, 4);", "hell");
-    check_code_result("substr('hello', 6);", Null);
+    check_code_result("substr(\"hello\", 1);", "ello");
+    check_code_result("substr(\"hello\", 0, 4);", "hell");
+    check_code_result("substr(\"hello\", 6);", Null);
 }
 
 #[test]

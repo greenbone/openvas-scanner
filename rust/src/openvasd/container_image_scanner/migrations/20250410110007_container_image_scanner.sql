@@ -69,7 +69,7 @@ CREATE TABLE results (
     source_type TEXT,
     source_name TEXT,
     source_description TEXT,
-    PRIMARY KEY (id, id),
+    PRIMARY KEY (scan_id, id),
     FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE
 );
 

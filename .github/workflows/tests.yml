@@ -8,7 +8,7 @@ jobs:
     container:
       image: registry.community.greenbone.net/community/gvm-libs:stable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh
@@ -22,7 +22,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
       - name: unit-tests
         run: cargo test --lib --tests --workspace

@@ -245,6 +245,7 @@ struct ScanConfigNvtSelector {
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 struct ScanConfigPreferences {
+    #[serde(default)]
     preference: Vec<ScanConfigPreference>,
 }
 
@@ -280,8 +281,9 @@ where
         &result.id,
         result.name.as_deref().unwrap_or(""),
         result.comment.as_deref().unwrap_or(""),
-        &result.preferences.preference.len()
+        &result.preferences.preference.len(),
     );
+
     let preference_lookup: HashMap<String, Vec<Parameter>> = result
         .preferences
         .preference

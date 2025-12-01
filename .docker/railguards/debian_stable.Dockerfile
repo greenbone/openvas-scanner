@@ -7,6 +7,10 @@
 # together from a main branch.
 #
 # If it builds without error everything is as expected.
+FROM debian:stable AS rs-binaries
+COPY . /source
+RUN mv /source/.docker/install /install || true
+
 FROM debian:stable
 # CLONE gvm-libs
 # CLONE openvas-smb
@@ -24,4 +28,11 @@ RUN sh /source/.github/install-openvas-dependencies.sh
 RUN sh /source/.devcontainer/build-cmake-project.sh /workspaces/greenbone/gvm-libs
 RUN sh /source/.devcontainer/build-cmake-project.sh /workspaces/greenbone/openvas-smb
 RUN sh /source/.devcontainer/build-cmake-project.sh /source
+
+COPY --from=rs-binaries /install/usr/local/bin/openvasd /usr/local/bin/openvasd
+COPY --from=rs-binaries /install/usr/local/bin/scannerctl /usr/local/bin/scannerctl
+RUN chmod 755 /usr/local/bin/scannerctl
+RUN chmod 755 /usr/local/bin/openvasd
+RUN ls -las /usr/local/bin/
+
 

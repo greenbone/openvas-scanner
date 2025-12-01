@@ -608,10 +608,15 @@ pub(crate) async fn scan_get_status<'a, E>(
     id: i64,
 ) -> Result<models::Status, sqlx::error::Error>
 where
-    E: sqlx::Executor<'a, Database = Sqlite>,
+    E: sqlx::Executor<'a, Database = Sqlite> + Clone,
 {
-    let scan_row = state_change::status_query(id).fetch_one(pool).await?;
-    Ok(state_change::row_to_models_status(scan_row))
+    let scan_row = state_change::status_query(id)
+        .fetch_one(pool.clone())
+        .await?;
+    let scan_rows = state_change::host_scanning_query(id)
+        .fetch_all(pool)
+        .await?;
+    Ok(state_change::row_to_models_status(scan_row, scan_rows))
 }
 
 impl<E> GetScansIdStatus for Endpoints<E>

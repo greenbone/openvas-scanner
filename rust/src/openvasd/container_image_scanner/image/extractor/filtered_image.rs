@@ -1,6 +1,10 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use docker_registry::render;
+use libflate::gzip;
 use tokio::fs::File;
 
 use super::{ExtractorError, LocatorError};
@@ -109,7 +113,7 @@ impl super::Extractor for Extractor {
             }
 
             tokio::task::spawn_blocking(move || {
-                render::filter_unpack(&[layer.data], &base, |p| {
+                unpack_layer(&layer.data, &base, |p| {
                     let result = detection::OS_FILES
                         .iter()
                         .chain(packages::PACKAGE_FILES.iter())
@@ -173,4 +177,29 @@ impl super::Locator for FileSystemLocator {
     fn architecture(&self) -> &str {
         &self.arch
     }
+}
+
+// This is based on `unpack_filtered` and `_unpack` from the
+// `docker-registry` crate
+fn unpack_layer(
+    layer: &[u8],
+    target_dir: &Path,
+    predicate: impl Fn(&Path) -> bool,
+) -> Result<(), ExtractorError> {
+    if !target_dir.is_absolute() || !target_dir.exists() || !target_dir.is_dir() {
+        return Err(ExtractorError::WrongTargetDir(target_dir.to_path_buf()));
+    }
+    let gz_dec = gzip::Decoder::new(layer)?;
+    let mut archive = tar::Archive::new(gz_dec);
+    archive.set_preserve_permissions(true);
+    archive.set_unpack_xattrs(true);
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let path = entry.path()?;
+
+        if predicate(&path) {
+            entry.unpack_in(target_dir)?;
+        }
+    }
+    Ok(())
 }

@@ -1,0 +1,6 @@
+signal handler for openvasd
+trigger feed update externally would be handy
+
+error message when openvas is not executable is missing
+use greenbone images for openvas-smb etc? it is still using docker.io
+

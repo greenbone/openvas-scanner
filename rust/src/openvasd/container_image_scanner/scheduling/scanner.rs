@@ -21,8 +21,6 @@ use scannerlib::notus::{HashsumProductLoader, Notus};
 pub enum ScannerArchImageError {
     #[error("Unable to detect operating-system: {0}")]
     NoOS(#[from] ExternalError),
-    #[error("No packages found.")]
-    NoPackages,
     #[error("Unable to fetch vulnerabilities: {0}")]
     Notus(#[from] notus::Error),
     #[error("A DB error occurred: {0}")]
@@ -57,10 +55,12 @@ where
     let packages = T::packages(locator).await;
 
     if packages.is_empty() {
-        return Err(ScannerArchImageError::NoPackages);
+        // This can also happen if a container image does not have a package DB anymore (e.g. the
+        // rpm db did get deleted on purpose) hence we treat it as an INFO not as an error.
+        tracing::info!(operating_system=?os, image, "No packages found.");
+        return Ok(vec![]);
     }
 
-    // TODO: abstract notus to allow different implementations
     let results =
         notus::vulnerabilities(products, locator.architecture(), image, &os, packages).await?;
     Ok(results)
@@ -68,7 +68,7 @@ where
 
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
-    pool: Arc<sqlx::Pool<Sqlite>>,
+    pool: sqlx::Pool<Sqlite>,
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     registry: &'a super::InitializedRegistry<'a, R>,
 ) -> Result<(), ScannerError>

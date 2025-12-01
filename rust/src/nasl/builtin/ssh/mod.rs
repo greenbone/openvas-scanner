@@ -405,12 +405,16 @@ impl Ssh {
 
     /// Write the string `cmd` to an ssh shell.
     #[nasl_function]
-    async fn nasl_ssh_shell_write(&self, session_id: SessionId, cmd: StringOrData) -> Result<i32> {
+    async fn nasl_ssh_shell_write(
+        &self,
+        session_id: SessionId,
+        cmd: StringOrData<'_>,
+    ) -> Result<i32> {
         let session = self.get_by_id(session_id).await?;
         let channel = session.get_channel().await?;
         channel.ensure_open()?;
 
-        match channel.stdin().write_all(cmd.0.as_bytes()) {
+        match channel.stdin().write_all(cmd.data()) {
             Ok(_) => Ok(0),
             Err(_) => Ok(-1),
         }

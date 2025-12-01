@@ -15,7 +15,6 @@ use tracing::{error, warn};
 use crate::nasl::builtin::ssh::Output;
 use crate::nasl::builtin::ssh::error::SshErrorKind;
 use crate::nasl::utils::error::WithErrorInfo;
-use crate::nasl::utils::function::bytes_to_str;
 
 use super::super::error::SshError;
 use super::{AuthMethods, Port, SessionId, Socket};
@@ -158,10 +157,10 @@ impl SshSession {
             match msg {
                 // Write data to the terminal
                 ChannelMsg::Data { ref data } => {
-                    stdout.push_str(&bytes_to_str(data));
+                    stdout.push_str(&String::from_utf8_lossy(data));
                 }
                 ChannelMsg::ExtendedData { ref data, .. } => {
-                    stderr.push_str(&bytes_to_str(data));
+                    stderr.push_str(&String::from_utf8_lossy(data));
                 }
                 // The command has returned an exit code
                 ChannelMsg::ExitStatus { exit_status } => {

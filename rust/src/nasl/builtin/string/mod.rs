@@ -11,7 +11,7 @@ use crate::nasl::{
     ArgumentError,
     utils::{
         FnError,
-        function::{CheckedPositionals, Maybe, StringOrData, bytes_to_str},
+        function::{CheckedPositionals, Maybe, StringOrData},
     },
 };
 use core::fmt::Write;
@@ -136,7 +136,7 @@ fn write_nasl_string_value(s: &mut String, value: &NaslValue) -> Result<(), Stri
 #[nasl_function]
 fn toupper(s: Option<Maybe<StringOrData>>) -> Option<String> {
     s.and_then(Maybe::as_option)
-        .map(|inner| inner.0.to_uppercase())
+        .map(|inner| Some(inner.string().to_uppercase()))?
 }
 
 /// NASL function to return lowercase equivalent of a given string
@@ -145,7 +145,7 @@ fn toupper(s: Option<Maybe<StringOrData>>) -> Option<String> {
 #[nasl_function]
 fn tolower(s: Option<Maybe<StringOrData>>) -> Option<String> {
     s.and_then(Maybe::as_option)
-        .map(|inner| inner.0.to_lowercase())
+        .map(|inner| Some(inner.string().to_lowercase()))?
 }
 
 /// NASL function to return the length of string
@@ -154,8 +154,31 @@ fn tolower(s: Option<Maybe<StringOrData>>) -> Option<String> {
 #[nasl_function]
 fn strlen(s: Option<Maybe<StringOrData>>) -> usize {
     s.and_then(Maybe::as_option)
-        .map(|inner| inner.0.len())
+        .map(|inner| inner.string().len())
         .unwrap_or(0)
+}
+
+fn substr_str(s: &str, start: usize, end: Option<usize>) -> Option<NaslValue> {
+    if start > s.len() {
+        return None;
+    }
+    Some(
+        match end {
+            Some(end) => &s[start..end],
+            None => &s[start..],
+        }
+        .into(),
+    )
+}
+
+fn substr_data(data: &[u8], start: usize, end: Option<usize>) -> Option<NaslValue> {
+    if start > data.len() {
+        return None;
+    }
+    match end {
+        Some(end) => Some(NaslValue::Data(data[start..end].to_vec())),
+        None => Some(NaslValue::Data(data[start..].to_vec())),
+    }
 }
 
 /// NASL function to return a substr of a string.
@@ -166,17 +189,10 @@ fn strlen(s: Option<Maybe<StringOrData>>) -> usize {
 /// If not given it is set to the end of the string.
 /// If the start integer is higher than the value of the string NULL is returned.
 #[nasl_function]
-fn substr(s: StringOrData, start: usize, end: Option<usize>) -> Option<String> {
-    if start > s.0.len() {
-        None
-    } else {
-        Some(
-            match end {
-                Some(end) => &s.0[start..end],
-                None => &s.0[start..],
-            }
-            .into(),
-        )
+fn substr(s: StringOrData, start: usize, end: Option<usize>) -> Option<NaslValue> {
+    match s {
+        StringOrData::String(s) => substr_str(s, start, end),
+        StringOrData::Data(b) => substr_data(b, start, end),
     }
 }
 
@@ -243,7 +259,7 @@ fn crap(length: usize, data: Option<NaslValue>) -> String {
 /// Takes one required positional argument of string type.
 #[nasl_function]
 fn chomp(s: StringOrData) -> String {
-    s.0.trim_end().into()
+    s.string().trim_end().to_string()
 }
 
 /// NASL function to lookup position of a substring within a string
@@ -295,7 +311,10 @@ fn ord(s: NaslValue) -> Option<u8> {
 fn int(s: &NaslValue) -> i64 {
     match s {
         NaslValue::String(s) => str_to_int(s),
-        NaslValue::Data(data) => str_to_int(&bytes_to_str(data)),
+        NaslValue::Data(data) => {
+            let data = String::from_utf8_lossy(data);
+            str_to_int(&data)
+        }
         NaslValue::Number(num) => *num,
         NaslValue::Boolean(b) => *b as i64,
         _ => 0,

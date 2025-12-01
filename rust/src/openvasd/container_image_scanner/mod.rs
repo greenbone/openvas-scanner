@@ -97,10 +97,9 @@ pub async fn init(
         .await?;
     MIGRATOR.run(&pool).await?;
 
-    //TODO get rid of arc
     let (sender, scheduler) = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
         config.into(),
-        Arc::new(pool.clone()),
+        pool.clone(),
         products,
     );
     tokio::spawn(async move {

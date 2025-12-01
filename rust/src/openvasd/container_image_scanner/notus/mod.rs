@@ -11,7 +11,7 @@ use scannerlib::notus::{HashsumProductLoader, Notus};
 /// Some examples:
 /// - NAME="openEuler" VERSION="24.03 (LTS-SP1)" -> openeuler_24.03_lts_sp1
 fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
-    let normalize_euler_version = || {
+    let normalize_openeuler_version = || {
         os.version
             .to_lowercase()
             .trim()
@@ -20,12 +20,25 @@ fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
             .replace(")", "")
             .replace("-", "_")
     };
+
+    // TODO: ?????
+    let normalize_euler_version = || {
+        let s1 = os.version.replace(" ", "").to_lowercase();
+        if s1.contains("x") {
+            s1.replace("(sp", "sp")
+                .replace("x86_64)", "(x86_64)")
+                .to_string()
+        } else {
+            s1.clone().replace("(", "").replace(")", "")
+        }
+    };
     let nos = os.name.to_lowercase();
 
     match (architecture, &nos as &str) {
         // TODO: figure out if there is some kind of rule behind the _sp versioning scheme or if
         // that is really per OS.
-        (_, "openeuler") | (_, "euleros") => format!("{}_{}", &nos, normalize_euler_version()),
+        (_, "openeuler") => format!("{}_{}", &nos, normalize_openeuler_version()),
+        (_, "euleros") => format!("{}_v{}", &nos, normalize_euler_version()),
         (_, name) => format!("{}_{}", name, os.version_id),
     }
 }
@@ -74,10 +87,10 @@ fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
         .collect()
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Unexpected response format from Notus.")]
-    UnExpectedResponseFormat,
+    #[error("Notus Error: {0}")]
+    FormatError(#[from] scannerlib::notus::NotusError),
 }
 
 type Oz = Notus<HashsumProductLoader>;
@@ -100,7 +113,8 @@ pub async fn vulnerabilities(
         Ok(x) => Ok(to_result(image, x)),
         Err(error) => {
             tracing::warn!(%error, "Unable to get results from Notus.");
-            Err(Error::UnExpectedResponseFormat)
+
+            Err(error.into())
         }
     }
     //
@@ -144,7 +158,19 @@ mod key_generation_tests {
         };
 
         let result = super::generate_key("", &os);
-        assert_eq!("euleros_2.0_sp12".to_owned(), result);
+        assert_eq!("euleros_v2.0sp12".to_owned(), result);
+    }
+
+    #[test]
+    fn euleros_bug() {
+        let os = OperatingSystem {
+            name: "euleros".into(),
+            version: "2.0 (SP12x86_64)".into(),
+            version_id: "2.0".into(),
+        };
+
+        let result = super::generate_key("", &os);
+        assert_eq!("euleros_v2.0sp12(x86_64)".to_owned(), result);
     }
 }
 

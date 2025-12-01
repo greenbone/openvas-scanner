@@ -57,7 +57,7 @@ jobs:
       project:  ${{ steps.version.outputs.project}}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: "set IS_VERSION_TAG"

@@ -308,6 +308,7 @@ where
                 results.status
             }
         };
+
         self.scan_state
             .scan_update_status(internal_id, &status)
             .await?;

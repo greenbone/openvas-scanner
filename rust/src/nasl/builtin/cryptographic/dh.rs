@@ -21,9 +21,9 @@ fn dh_compute_key(
     #[allow(unused_variables)] pub_key: StringOrData,
     priv_key: StringOrData,
 ) -> Vec<u8> {
-    let p = BigUint::from_bytes_be(p.0.as_bytes());
-    let dh_server_pub = BigUint::from_bytes_be(dh_server_pub.0.as_bytes());
-    let priv_key = BigUint::from_bytes_be(priv_key.0.as_bytes());
+    let p = BigUint::from_bytes_be(p.data());
+    let dh_server_pub = BigUint::from_bytes_be(dh_server_pub.data());
+    let priv_key = BigUint::from_bytes_be(priv_key.data());
 
     dh_server_pub.modpow(&priv_key, &p).to_bytes_be().to_vec()
 }
@@ -40,9 +40,9 @@ fn dh_generate_key(reg: &Register) -> Result<Vec<u8>, FnError> {
         get_named_arg(reg, "g")?,
         get_named_arg(reg, "priv")?,
     );
-    let p = BigUint::from_bytes_be(p.0.as_bytes());
-    let g = BigUint::from_bytes_be(g.0.as_bytes());
-    let priv_key = BigUint::from_bytes_be(priv_key.0.as_bytes());
+    let p = BigUint::from_bytes_be(p.data());
+    let g = BigUint::from_bytes_be(g.data());
+    let priv_key = BigUint::from_bytes_be(priv_key.data());
 
     Ok(g.modpow(&priv_key, &p).to_bytes_be().to_vec())
 }

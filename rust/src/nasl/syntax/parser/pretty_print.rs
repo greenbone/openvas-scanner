@@ -1,7 +1,4 @@
-use crate::nasl::{
-    syntax::{Ident, LiteralKind, token::Literal},
-    utils::function::bytes_to_str,
-};
+use crate::nasl::syntax::{Ident, LiteralKind, token::Literal};
 
 use super::super::grammar::{
     AnonymousFnArg, Array, ArrayAccess, Assignment, Atom, Binary, Block, Exit, Expr, FnArg, FnCall,
@@ -314,7 +311,7 @@ impl Display for Literal {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.kind {
             LiteralKind::String(s) => write!(f, "\"{s}\""),
-            LiteralKind::Data(d) => write!(f, "'{}'", bytes_to_str(d)),
+            LiteralKind::Data(d) => write!(f, "'{}'", String::from_utf8_lossy(d)),
             LiteralKind::Number(n) => write!(f, "{n}"),
             LiteralKind::IPv4Address(ip) => write!(f, "{ip}"),
             LiteralKind::Boolean(b) => write!(f, "{}", if *b { "TRUE" } else { "FALSE" }),

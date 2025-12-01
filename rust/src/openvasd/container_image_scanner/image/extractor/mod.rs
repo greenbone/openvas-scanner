@@ -10,8 +10,10 @@ pub mod filtered_image;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExtractorError {
-    #[error("io error")]
+    #[error("io error {0}")]
     Io(#[from] std::io::Error),
+    #[error("Wrong target path {0}: must be absolute path to existing directory.")]
+    WrongTargetDir(PathBuf),
 }
 
 pub struct Location(PathBuf);

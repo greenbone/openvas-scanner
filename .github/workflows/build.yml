@@ -8,7 +8,7 @@ jobs:
     container:
       image: registry.community.greenbone.net/community/gvm-libs:stable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh
@@ -19,7 +19,7 @@ jobs:
   Rust:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
       # we just check if it is compilable, the actual compilation is now done in:
       # - in the Dockefiles
