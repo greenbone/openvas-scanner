@@ -117,7 +117,9 @@ impl From<PostScansError> for BodyKind {
                 BodyKind::json_content(StatusCode::NOT_ACCEPTABLE, &br)
             }
             PostScansError::DuplicateCredentialService(service) => {
-                let br = format!("Credential service '{service}' defined multiple times. Only one credential per service type is supported.");
+                let br = format!(
+                    "Credential service '{service}' defined multiple times. Only one credential per service type is supported."
+                );
                 BodyKind::json_content(StatusCode::BAD_REQUEST, &br)
             }
             PostScansError::External(e) => internal_server_error!(e),
