@@ -53,7 +53,6 @@ impl HostInfo {
 
     pub fn finish(&mut self) {
         self.remaining_vts_per_host.clear();
-        assert_eq!(self.queued, 0);
     }
 
     pub fn update_with(mut self, other: &HostInfo) -> Self {
