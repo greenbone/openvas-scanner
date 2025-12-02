@@ -312,8 +312,8 @@ pub async fn set_scan_images(
         });
         let query = builder.build();
         query.execute(&mut *tx).await?;
-        tx.commit().await?;
     }
+    tx.commit().await?;
     Ok(())
 }
 
