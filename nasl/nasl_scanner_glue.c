@@ -950,6 +950,11 @@ typedef void (*proto_post_something_t) (const char *, struct script_infos *,
 typedef void (*post_something_t) (const char *, struct script_infos *, int,
                                   const char *, const char *);
 
+/**
+ * @brief Type of Notus scan. This is either Notus or Skiron.
+ */
+static int notus_type = 0;
+
 static tree_cell *
 security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
                     post_something_t post_func)
@@ -1008,41 +1013,20 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
   return FAKE_CELL;
 }
 
-tree_cell *
-security_notus (lex_ctxt *lexic)
+static unsigned char *
+get_notus_result_message (lex_ctxt *lexic, named_nasl_var *var)
 {
-  tree_cell *result;
-  named_nasl_var *oid_var, *var, *vul_packages, *name, *version, *fixed,
-    *fixed_version, *specifier, *start, *end;
+  named_nasl_var *vul_packages, *name, *version, *fixed, *fixed_version,
+    *specifier, *start, *end;
   anon_nasl_var *pkg;
-  unsigned char *oid;
   int i;
   GString *result_buf, *buf;
-  gchar *kb_result;
-
-  result = get_variable_by_name (lexic, "result");
-  if (result == NULL)
-    {
-      nasl_perror (lexic, "security_lsc: oid or result is NULL\n");
-      return FAKE_CELL;
-    }
-
-  var = (named_nasl_var *) result->x.ref_val;
-
-  oid_var = get_var_by_name (&var->u.v.v_arr, "oid");
-  if (oid_var == NULL)
-    {
-      nasl_perror (lexic, "security_lsc: oid not found\n");
-      return FAKE_CELL;
-    }
-
-  oid = oid_var->u.v.v_str.s_val;
 
   vul_packages = get_var_by_name (&var->u.v.v_arr, "vulnerable_packages");
   if (vul_packages == NULL || vul_packages->u.var_type != VAR2_ARRAY)
     {
       nasl_perror (lexic, "security_lsc: vul_packages is not an array\n");
-      return FAKE_CELL;
+      return NULL;
     }
   result_buf = g_string_new (NULL);
   for (i = 0; i < vul_packages->u.v.v_arr.max_idx; i++)
@@ -1100,8 +1084,52 @@ security_notus (lex_ctxt *lexic)
       g_string_append (result_buf, buf->str);
       g_string_free (buf, TRUE);
     }
+  return (unsigned char *) result_buf->str;
+}
 
-  if (result_buf == NULL)
+tree_cell *
+security_notus (lex_ctxt *lexic)
+{
+  tree_cell *result;
+  gchar *kb_result;
+  named_nasl_var *oid_var, *var;
+  unsigned char *oid, *result_string;
+
+  result = get_variable_by_name (lexic, "result");
+  if (result == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: oid or result is NULL\n");
+      return FAKE_CELL;
+    }
+
+  var = (named_nasl_var *) result->x.ref_val;
+
+  oid_var = get_var_by_name (&var->u.v.v_arr, "oid");
+  if (oid_var == NULL)
+    {
+      nasl_perror (lexic, "security_lsc: oid not found\n");
+      return NULL;
+    }
+
+  oid = (unsigned char *) oid_var->u.v.v_str.s_val;
+
+  if (notus_type == NOTUS)
+    {
+      result_string = get_notus_result_message (lexic, var);
+    }
+  else
+    {
+      named_nasl_var *message;
+      message = get_var_by_name (&var->u.v.v_arr, "message");
+      if (message == NULL)
+        {
+          nasl_perror (lexic, "security_lsc: message not found\n");
+          return NULL;
+        }
+      result_string = message->u.v.v_str.s_val;
+    }
+
+  if (result_string == NULL)
     {
       nasl_perror (lexic, "security_lsc: No results to publish\n");
       return FAKE_CELL;
@@ -1110,10 +1138,9 @@ security_notus (lex_ctxt *lexic)
   gchar ip_str[INET6_ADDRSTRLEN];
   addr6_to_str (lexic->script_infos->ip, ip_str);
   // type|||IP|||HOSTNAME|||package|||OID|||the result message|||URI
-  kb_result =
-    g_strdup_printf ("%s|||%s|||%s|||%s|||%s|||%s|||%s", "ALARM", ip_str, " ",
-                     "package", oid, result_buf->str, "");
-  g_string_free (result_buf, TRUE);
+  kb_result = g_strdup_printf ("%s|||%s|||%s|||%s|||%s|||%s|||%s", "ALARM",
+                               ip_str, " ", "package", oid, result_string, "");
+  g_free (result_string);
   kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
                                        kb_result);
   g_free (kb_result);
@@ -1240,54 +1267,11 @@ nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
  */
 static int notus_err = 0;
 
-/**
- * @brief Directly runs a LSC with the given package list and OS release.
- *
- * This function runs a Notus scan using the provided package list and OS
- * release. In case of success, it returns a list of Notus results in a
- * JSON-like format. If an error occurs, it returns NULL and sets the
- * `notus_err` variable to the appropriate error code. The error can be gathered
- * using the `notus_error` function.
- *
- * @naslfn{notus}
- *
- * @naslnparam
- * - @a pkg_list String containing the gathered package list.
- * - @a product The OS release.
- *
- * @param[in] lexic  Lexical context of the NASL interpreter.
- *
- * @return List of Notus results in a JSON-like format, NULL on error.
- */
-tree_cell *
-nasl_notus (lex_ctxt *lexic)
+static tree_cell *
+parse_notus (advisories_t *advisories)
 {
   tree_cell *retc;
-  char *response;
-  advisories_t *advisories = NULL;
   anon_nasl_var element;
-  char *pkg_list = get_str_var_by_name (lexic, "pkg_list");
-  char *product = get_str_var_by_name (lexic, "product");
-
-  if (product == NULL || pkg_list == NULL)
-    {
-      g_warning ("%s: Missing data for running LSC", __func__);
-      notus_err = -1;
-      return NULL;
-    }
-
-  response = notus_get_response (pkg_list, product);
-
-  if (!response)
-    {
-      g_warning ("%s: Unable to get the response", __func__);
-      notus_err = -2;
-
-      return NULL;
-    }
-
-  advisories = process_notus_response (response, strlen (response));
-  g_free (response);
 
   retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
@@ -1391,8 +1375,137 @@ nasl_notus (lex_ctxt *lexic)
   return retc;
 }
 
+static tree_cell *
+parse_skiron (advisories_t *adv)
+{
+  tree_cell *retc;
+  anon_nasl_var element;
+
+  retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+
+  for (size_t i = 0; i < adv->count; i++)
+    {
+      skiron_advisory_t *advisory = adv->skiron_advisory[i];
+      anon_nasl_var msg, oid;
+
+      memset (&element, 0, sizeof (element));
+      element.var_type = VAR2_ARRAY;
+
+      memset (&msg, 0, sizeof (msg));
+      msg.var_type = VAR2_STRING;
+      msg.v.v_str.s_val = (unsigned char *) advisory->message;
+      msg.v.v_str.s_siz = strlen (advisory->message);
+
+      memset (&oid, 0, sizeof (oid));
+      oid.var_type = VAR2_STRING;
+      oid.v.v_str.s_val = (unsigned char *) advisory->oid;
+      oid.v.v_str.s_siz = strlen (advisory->oid);
+
+      add_var_to_array (&element.v.v_arr, "oid", &oid);
+      add_var_to_array (&element.v.v_arr, "message", &msg);
+      add_var_to_list (retc->x.ref_val, i, &element);
+    }
+
+  advisories_free (adv);
+  return retc;
+}
+
+/**
+ * @brief Directly runs a LSC with the given package list and OS release.
+ *
+ * This function runs a Notus scan using the provided package list and OS
+ * release. As there are currently 2 types of LSC scanner, with different
+ * result formats, the result depends on the used scanner type. In case of
+ * Notus it returns a list of results in a JSON-like format. If an error occurs,
+ * it returns NULL and sets the `notus_err` variable to the appropriate error
+ * code. The error can be gathered using the `notus_error` function.
+ * In case of Skiron, it returns a dictionary with the OIDs and corresponding
+ * result messages.
+ *
+ *
+ * @naslfn{notus}
+ *
+ * @naslnparam
+ * - @a pkg_list String containing the gathered package list.
+ * - @a product The OS release.
+ *
+ * @param[in] lexic  Lexical context of the NASL interpreter.
+ *
+ * @return List of Notus results in a JSON-like format, NULL on error.
+ */
+tree_cell *
+nasl_notus (lex_ctxt *lexic)
+{
+  char *response;
+  advisories_t *advisories = NULL;
+  char *pkg_list = get_str_var_by_name (lexic, "pkg_list");
+  char *product = get_str_var_by_name (lexic, "product");
+
+  notus_err = 0;
+
+  if (product == NULL || pkg_list == NULL)
+    {
+      g_warning ("%s: Missing data for running LSC", __func__);
+      notus_err = -1;
+      return NULL;
+    }
+
+  response = lsc_get_response (pkg_list, product);
+
+  if (!response)
+    {
+      g_warning ("%s: Unable to get the response", __func__);
+      notus_err = -2;
+
+      return NULL;
+    }
+
+  advisories = lsc_process_response (response, strlen (response));
+  g_free (response);
+
+  if (!advisories)
+    {
+      g_warning ("%s: Unable to process the response", __func__);
+      notus_err = -4;
+
+      return NULL;
+    }
+
+  notus_type = advisories->type;
+
+  if (notus_type == NOTUS)
+    // TODO: Remove notus, when it is deprecated
+    return parse_notus (advisories);
+  else
+    return parse_skiron (advisories);
+}
+
+/**
+ * @brief Get the Notus scan type.
+ *
+ * 0 for Notus, 1 for Skiron.
+ *
+ * @naslfn{notus_type}
+ *
+ * @param[in] lexic  Lexical context of the NASL interpreter.
+ *
+ * @return Scan type as integer.
+ */
+tree_cell *
+nasl_notus_type (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  (void) lexic;
+
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = (int) notus_type;
+  return retc;
+}
+
 /**
  * @brief Get the last Notus error as string.
+ *
  *
  * @naslfn{notus_error}
  *
@@ -1417,6 +1530,9 @@ nasl_notus_error (lex_ctxt *lexic)
       break;
     case -3:
       notus_err_str = strdup ("Unknown fixed version type for advisory");
+      break;
+    case -4:
+      notus_err_str = strdup ("Unable to process the response");
       break;
     default:
       return NULL;

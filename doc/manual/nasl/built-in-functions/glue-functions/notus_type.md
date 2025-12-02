@@ -1,22 +1,22 @@
-# notus_error
+# notus_type
 
 ## NAME
 
-**notus_error** - Get the last notus error as string
+**notus_type** - Get the type of the notus result
 
 ## SYNOPSIS
 
-*str* **notus_error**();
+*str* **notus_type**();
 
-**notus_error** takes no arguments
+**notus_type** takes no arguments
 
 ## DESCRIPTION
 
-This function yields the last occurred error produced by the **[notus(3)](notus.md)** function.
+This function yields the type of the notus result after calling the **[notus(3)](notus.md)** function.
 
 ## RETURN VALUE
 
-This function returns a error message as string
+0 for Notus, 1 for Skiron
 
 ## EXAMPLE
 
@@ -26,10 +26,13 @@ package_list = 'libzmq3-dev-0:4.3.0-4+deb10u1\nlibzmq5-4.3.1-4+deb10u1\ndosbox-0
 product = "debian_10";
 
 ret = notus(pkg_list: package_list, product: product);
+type = notus_type();
 
-if (!ret)
+if (type == 0)
 {
-    display(notus_error());
+    ...
+} else if (type == 1) {
+    ...
 }
 ```
 
