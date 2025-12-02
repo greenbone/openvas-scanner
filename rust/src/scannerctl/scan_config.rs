@@ -305,20 +305,51 @@ where
             parameters,
         })
     };
+
+    let clone_oid = |oid: &String| -> String { oid.clone() };
+    let excluded: Vec<String> = result
+        .nvt_selectors
+        .nvt_selector
+        .iter()
+        .flat_map(|s| {
+            if s.nvt_type == 2 && s.include == 0 {
+                vec![s.family_or_nvt.clone()]
+            } else if s.nvt_type == 1 && s.include == 0 {
+                let f: Vec<String> = match retriever.retrieve(&Feed) {
+                    Ok(Some(vts)) => {
+                        let excl: Vec<String> = vts
+                            .iter()
+                            .filter(|x| x.family == s.family_or_nvt)
+                            .map(|x| clone_oid(&x.oid))
+                            .collect();
+                        excl
+                    }
+                    Ok(None) => vec![],
+                    Err(_) => vec![],
+                };
+                f
+            } else {
+                vec![]
+            }
+        })
+        .collect();
+    tracing::debug!("Excluded {} oids", excluded.len());
+
     let is_not_already_present = |oid: &String| -> bool { !vts.iter().any(|vt| vt.oid == *oid) };
+    let is_not_excluded = |oid: &String| -> bool { !excluded.iter().any(|vt| vt == oid) };
     result
         .nvt_selectors
         .nvt_selector
         .iter()
         .flat_map(|s| {
+            //is an oid
             if s.nvt_type == 2 {
                 if is_not_already_present(&s.family_or_nvt) {
-                    tracing::debug!("el oid: {}", &s.family_or_nvt);
-
                     vec![oid_to_vt(&s.family_or_nvt)]
                 } else {
                     vec![]
                 }
+            //is a family
             } else if s.nvt_type == 1 {
                 // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
                 // feed, the result will be an empty vector.
@@ -337,7 +368,9 @@ where
                                 .clone()
                                 .into_iter()
                                 .filter(|x| {
-                                    x.family == s.family_or_nvt && is_not_already_present(&x.oid)
+                                    x.family == s.family_or_nvt
+                                        && is_not_already_present(&x.oid)
+                                        && is_not_excluded(&x.oid)
                                 })
                                 .map(|x| oid_to_vt(&x.oid))
                                 .collect();
@@ -352,6 +385,7 @@ where
                     Ok(None) => vec![],
                     Err(e) => vec![Err(e.into())],
                 }
+            //everything
             } else {
                 // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
                 // feed, the result will be an empty vector.
@@ -359,7 +393,8 @@ where
                     Ok(Some(vts)) => {
                         let oids: Vec<_> = vts
                             .iter()
-                            .filter(|x| x.oid == s.family_or_nvt)
+                            .filter(|x| x.oid == s.family_or_nvt || s.family_or_nvt.is_empty())
+                            .filter(|x| is_not_excluded(&x.oid) && is_not_already_present(&x.oid))
                             .map(|x| oid_to_vt(&x.oid))
                             .collect();
                         tracing::debug!("found {} nvt entries", oids.len(),);
