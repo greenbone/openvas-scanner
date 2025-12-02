@@ -122,6 +122,9 @@ tree_cell *
 nasl_notus (lex_ctxt *);
 
 tree_cell *
+nasl_notus_type (lex_ctxt *);
+
+tree_cell *
 nasl_notus_error (lex_ctxt *);
 
 tree_cell *
