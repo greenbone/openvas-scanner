@@ -6,13 +6,13 @@ use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use greenbone_scanner_framework::models::VTData;
-use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
+use scannerlib::models::{Parameter, Port, Protocol, Scan, ScanPreference, VT};
 use scannerlib::nasl::WithErrorInfo;
 use scannerlib::storage::Retriever;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
 use scannerlib::storage::items::nvt::{Feed, Oid};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use crate::{CliError, CliErrorKind, Filename, get_path_from_openvas, read_openvas_config};
 use std::collections::{HashMap, HashSet};
@@ -92,14 +92,22 @@ async fn execute(
         None => vec![],
     };
     let mut vts = HashSet::new();
+    let mut scan_prefs = Vec::new();
     for a in config.iter().map(|f| {
         as_bufreader(f)
             .and_then(|r| parse_vts(r, storage.as_ref(), &scan.vts).map_err(|e| map_error(f, e)))
     }) {
-        vts.extend(a?);
+        match a {
+            Ok(r) => {
+                vts.extend(r.vts_list);
+                scan_prefs.extend(r.scan_preferences);
+            }
+            Err(e) => return Err(e),
+        }
     }
     scan.vts.extend(vts);
     scan.target.ports = ports;
+    scan.scan_preferences = scan_prefs;
     let out =
         serde_json::to_string_pretty(&scan).map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?;
     println!("{out}");
@@ -249,8 +257,17 @@ struct ScanConfigPreferences {
     preference: Vec<ScanConfigPreference>,
 }
 
+fn deserialize_wrong_type_u16<'de, D>(deserializer: D) -> Result<u16, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let deserialized = u16::deserialize(deserializer);
+        Ok(deserialized.unwrap_or_default())
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 struct ScanConfigPreference {
+    #[serde(deserialize_with = "deserialize_wrong_type_u16")]
     id: u16,
     name: String,
     value: String,
@@ -270,7 +287,13 @@ trait OspStorage: Retriever<Oid, Item = VTData> + Retriever<Feed, Item = Vec<VTD
 
 impl OspStorage for InMemoryStorage {}
 
-fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<Vec<VT>, Error>
+#[derive(Clone)]
+struct VtsScanPrefs {
+    pub vts_list: Vec<VT>,
+    pub scan_preferences: Vec<ScanPreference>,
+}
+
+fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<VtsScanPrefs, Error>
 where
     R: BufRead,
 {
@@ -284,19 +307,25 @@ where
         &result.preferences.preference.len(),
     );
 
-    let preference_lookup: HashMap<String, Vec<Parameter>> = result
-        .preferences
-        .preference
-        .iter()
-        .fold(HashMap::new(), |mut acc, p| {
-            let oid = p.nvt.oid.clone();
-            let parameters = acc.entry(oid).or_default();
+    let mut scan_preferences: Vec<ScanPreference> = Vec::new();
+    let mut preference_lookup: HashMap<String, Vec<Parameter>> = HashMap::new();
+    result.preferences.preference.iter().for_each(|p| {
+        let oid = p.nvt.oid.clone();
+        //consider it a scan preference if there is no associated VT
+        if !oid.is_empty() {
+            let parameters = preference_lookup.entry(oid).or_default();
+            dbg! (&p.id, &p.value, &p.name);
             parameters.push(Parameter {
                 id: p.id,
                 value: p.value.clone(),
             });
-            acc
-        });
+        } else {
+            scan_preferences.push(ScanPreference {
+                id: p.name.clone(),
+                value: p.value.clone(),
+            });
+        };
+    });
 
     let oid_to_vt = |oid: &String| -> Result<VT, Error> {
         let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
@@ -337,7 +366,8 @@ where
 
     let is_not_already_present = |oid: &String| -> bool { !vts.iter().any(|vt| vt.oid == *oid) };
     let is_not_excluded = |oid: &String| -> bool { !excluded.iter().any(|vt| vt == oid) };
-    result
+
+    let vt_list = result
         .nvt_selectors
         .nvt_selector
         .iter()
@@ -407,7 +437,15 @@ where
                 }
             }
         })
-        .collect()
+        .collect();
+
+    match vt_list {
+        Ok(vts) => Ok(VtsScanPrefs {
+            vts_list: vts,
+            scan_preferences,
+        }),
+        Err(e) => Err(e),
+    }
 }
 
 #[cfg(test)]
@@ -540,6 +578,6 @@ mod tests {
         }];
 
         let result = super::parse_vts(sc.as_bytes(), &shop, &exists).unwrap();
-        assert_eq!(result.len(), 4);
+        assert_eq!(result.vts_list.len(), 4);
     }
 }
