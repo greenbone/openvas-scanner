@@ -4,25 +4,12 @@
 
 use std::path::Path;
 
-use scannerlib::nasl::syntax::LoadError;
+use scannerlib::nasl::Code;
+use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::syntax::grammar::Statement;
-use scannerlib::nasl::syntax::load_non_utf8_path;
-use scannerlib::nasl::{Code, Loader};
 use walkdir::WalkDir;
 
 use crate::CliError;
-
-struct NonUtf8Loader;
-
-impl Loader for NonUtf8Loader {
-    fn load(&self, key: &str) -> Result<String, LoadError> {
-        load_non_utf8_path(key)
-    }
-
-    fn root_path(&self) -> Result<String, LoadError> {
-        Ok(".".to_owned())
-    }
-}
 
 fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let mut num_errors = 0;
@@ -30,8 +17,8 @@ fn print_results(path: &Path, verbose: bool) -> Result<usize, CliError> {
     let print_stmt = |stmt: &Statement| {
         println!("{}: {}", path.to_string_lossy(), stmt);
     };
-
-    let results = Code::load(&NonUtf8Loader, path)?.parse();
+    let loader = Loader::from_feed_path(".");
+    let results = Code::load(&loader, path)?.parse();
     num_errors += results.num_errors();
     if let Ok(stmts) = results.emit_errors()
         && verbose

@@ -4,9 +4,10 @@
 
 use std::path::Path;
 
+use scannerlib::feed;
 use scannerlib::feed::FakeVerifier;
+use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::scan_ctx::ContextStorage;
-use scannerlib::{feed, nasl::FSPluginLoader};
 
 use crate::CliError;
 use crate::notus_update::update::signature_error;
@@ -18,9 +19,9 @@ where
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path
     // e.g. 2006/something.nasl
-    let loader = FSPluginLoader::new(path);
+    let loader = Loader::from_feed_path(path);
     let verifier = feed::HashSumNameLoader::sha256(&loader)?;
-    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
+    let updater = feed::Update::init("1", 5, loader.clone(), &storage, verifier);
 
     if signature_check {
         match updater.verify_signature() {
@@ -52,9 +53,9 @@ where
     tracing::debug!("description run syntax in {path:?}.");
     // needed to strip the root path so that we can build a relative path
     // e.g. 2006/something.nasl
-    let loader = FSPluginLoader::new(path);
+    let loader = Loader::from_feed_path(path);
     let verifier = FakeVerifier::new(&loader);
-    let updater = feed::Update::init("1", 5, &loader, &storage, verifier);
+    let updater = feed::Update::init("1", 5, loader.clone(), &storage, verifier);
 
     updater.perform_update().await?;
 

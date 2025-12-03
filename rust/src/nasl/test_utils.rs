@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Greenbone AG
+// SPDX-FileCopyrightText:e 2025e Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -11,18 +11,13 @@ use std::{
 };
 
 use crate::storage::{ScanID, inmemory::InMemoryStorage};
-use crate::{
-    nasl::{
-        prelude::*,
-        syntax::{Loader, NoOpLoader},
-    },
-    scanner::preferences::preference::ScanPrefs,
-};
+use crate::{nasl::prelude::*, scanner::preferences::preference::ScanPrefs};
 use futures::{Stream, StreamExt};
 
 use super::{
     interpreter::{ForkingInterpreter, InterpreterError, InterpreterErrorKind},
     nasl_std_functions,
+    syntax::Loader,
     utils::{
         Executor, ScanCtx,
         scan_ctx::{ContextStorage, Ports, Target},
@@ -122,7 +117,7 @@ enum TestResult {
 /// If the `TestBuilder` is dropped, it will automatically verify that
 /// the given code fulfill the requirements (such as producing the right
 /// values or the right errors).
-pub struct TestBuilder<L: Loader, S: ContextStorage> {
+pub struct TestBuilder<S: ContextStorage> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
     scan_id: ScanID,
@@ -130,15 +125,15 @@ pub struct TestBuilder<L: Loader, S: ContextStorage> {
     target: String,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
-    loader: L,
+    loader: Loader,
     storage: S,
     executor: Executor,
     version: NaslVersion,
 }
 
-pub type DefaultTestBuilder = TestBuilder<NoOpLoader, InMemoryStorage>;
+pub type DefaultTestBuilder = TestBuilder<InMemoryStorage>;
 
-impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
+impl Default for TestBuilder<InMemoryStorage> {
     fn default() -> Self {
         Self {
             lines: vec![],
@@ -148,7 +143,7 @@ impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader: NoOpLoader::default(),
+            loader: Loader::test_empty(),
             storage: InMemoryStorage::default(),
             executor: nasl_std_functions(),
             version: NaslVersion::default(),
@@ -156,7 +151,7 @@ impl Default for TestBuilder<NoOpLoader, InMemoryStorage> {
     }
 }
 
-impl<S> TestBuilder<NoOpLoader, S>
+impl<S> TestBuilder<S>
 where
     S: ContextStorage,
 {
@@ -173,7 +168,7 @@ where
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader: NoOpLoader::default(),
+            loader: Loader::test_empty(),
             storage,
             executor: nasl_std_functions(),
             version: NaslVersion::default(),
@@ -181,11 +176,8 @@ where
     }
 }
 
-impl<L> TestBuilder<L, InMemoryStorage>
-where
-    L: Loader,
-{
-    pub fn from_loader(loader: L) -> Self {
+impl TestBuilder<InMemoryStorage> {
+    pub fn from_loader(loader: Loader) -> Self {
         // Unfortunately, we can't really get rid of all this duplication here, since
         // struct update syntax won't work due to different generics.
         // We also can't provide a with_loader method, since there is no way to clone
@@ -206,7 +198,7 @@ where
     }
 }
 
-impl TestBuilder<NoOpLoader, InMemoryStorage> {
+impl TestBuilder<InMemoryStorage> {
     /// Construct a `TestBuilder`, immediately run the
     /// given code on it and return it.
     pub fn from_code(code: impl AsRef<str>) -> Self {
@@ -222,9 +214,8 @@ impl TestBuilder<NoOpLoader, InMemoryStorage> {
     }
 }
 
-impl<L, S> TestBuilder<L, S>
+impl<S> TestBuilder<S>
 where
-    L: Loader,
     S: ContextStorage,
 {
     #[track_caller]
@@ -486,7 +477,7 @@ where
     }
 }
 
-impl<L: Loader, S: ContextStorage> Drop for TestBuilder<L, S> {
+impl<S: ContextStorage> Drop for TestBuilder<S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");

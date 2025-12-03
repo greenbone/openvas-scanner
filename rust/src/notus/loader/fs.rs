@@ -131,10 +131,10 @@ where
         let p = self.root.as_ref().to_str().unwrap_or_default();
         check_signature(p)
     }
+
     /// Get the notus products root directory
-    fn get_root_dir(&self) -> Result<String, Error> {
-        let path = self.root.as_ref().to_str().unwrap();
-        Ok(path.to_string())
+    fn root_path(&self) -> &Path {
+        self.root.as_ref()
     }
 }
 
