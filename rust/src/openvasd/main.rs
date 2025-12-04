@@ -103,6 +103,7 @@ async fn main() -> Result<()> {
 
     rb.insert_scans(Arc::new(scan))
         .insert_get_vts(vts.clone())
+        .max_concurrent_connections(config.storage.max_connections() * 10)
         .add_request_handler(get_notus)
         .add_request_handler(post_notus)
         .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts))

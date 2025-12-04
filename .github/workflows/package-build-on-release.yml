@@ -1,0 +1,27 @@
+# HINT: this is a central workflow over many components and teams.
+#  on failure, ask devops.
+name: Trigger package build on release
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  call_packaging_workflow:
+    name: Call Packaging workflow
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Trigger development-packaging workflow
+        uses: greenbone/actions/trigger-workflow@487dab5354ace3dd575c8cf100a3e522c1dd3a79
+        with:
+          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+          repository: "greenbone/gea-pipeline"
+          ref: "main"
+          workflow: development-packaging.yml
+          inputs: '{"release-info": "${{ github.event.release.name }}", "component-repo-name-to-package": "${{ github.repository }}"}'
+          wait-for-completion-timeout: 10000

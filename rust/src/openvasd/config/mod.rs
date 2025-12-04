@@ -288,6 +288,14 @@ impl StorageTypes {
             }
         }
     }
+
+    pub fn max_connections(&self) -> usize {
+        let result = match self {
+            StorageTypes::V1(_) => SqliteConfiguration::default().max_connections,
+            StorageTypes::V2(sqlite_configuration) => sqlite_configuration.max_connections,
+        };
+        if result > 0 { result as usize } else { 1 }
+    }
 }
 impl Default for StorageTypes {
     fn default() -> Self {
