@@ -535,58 +535,65 @@ where
         from: Option<usize>,
         to: Option<usize>,
     ) -> StreamResult<'static, models::Result, GetScansIDResultsError> {
-        let q = match (from, to) {
-            (None, None) => {
-                r#"
-SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-        detail_name, detail_value, 
-        source_type, source_name, source_description
-FROM results
-WHERE id =  ?"#
-            }
-            (Some(_), None) => {
-                r#"
-SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-        detail_name, detail_value, 
-        source_type, source_name, source_description
-FROM results
-WHERE id =  ?
-AND result_id >= ?"#
-            }
-            (None, Some(_)) => {
-                r#"
-SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-        detail_name, detail_value, 
-        source_type, source_name, source_description
-FROM results
-WHERE id =  ?
-AND result_id <= ?"#
-            }
-            (Some(_), Some(_)) => {
-                r#"
-SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-        detail_name, detail_value, 
-        source_type, source_name, source_description
-FROM results
-WHERE id =  ?
-AND result_id <= ?
-AND result_id >= ?"#
-            }
+        const SQL_BASE: &str = r#"
+    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
+            detail_name, detail_value, 
+            source_type, source_name, source_description
+    FROM results
+    WHERE id =  ?
+"#;
+
+        const SQL_BASE_AND_GTE: &str = r#"
+    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
+            detail_name, detail_value, 
+            source_type, source_name, source_description
+    FROM results
+    WHERE id =  ?
+    AND result_id >= ?
+"#;
+
+        const SQL_BASE_AND_LTE: &str = r#"
+    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
+            detail_name, detail_value, 
+            source_type, source_name, source_description
+    FROM results
+    WHERE id =  ?
+    AND result_id <= ?
+"#;
+
+        const SQL_BASE_AND_GTE_LTE: &str = r#"
+    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
+            detail_name, detail_value, 
+            source_type, source_name, source_description
+    FROM results
+    WHERE id =  ?
+    AND result_id >= ?
+    AND result_id <= ?
+"#;
+
+        let sql: &'static str = match (from, to) {
+            (None, None) => SQL_BASE,
+            (Some(_), None) => SQL_BASE_AND_GTE,
+            (None, Some(_)) => SQL_BASE_AND_LTE,
+            (Some(_), Some(_)) => SQL_BASE_AND_GTE_LTE,
         };
-        let mut q = query(q).bind(id);
-        if let Some(from) = from {
-            q = q.bind(from as i64);
+        let mut query = sqlx::query(sql).bind(id);
+
+        if let Some(from_id) = from {
+            query = query.bind(from_id as i64);
         }
-        if let Some(to) = to {
-            q = q.bind(to as i64);
+        if let Some(to_id) = to {
+            query = query.bind(to_id as i64);
         }
 
-        Box::new(q.fetch(&self.pool).map(|r| {
-            r.map(row_to_result)
-                .map_err(|e| GetScansIDResultsError::External(Box::new(e)))
-        }))
+        let result = query.fetch(&self.pool).map(|x| {
+            x.map(row_to_result)
+                .map_err(GetScansIDResultsError::from_external)
+        });
+        Box::new(result)
     }
 }
+
 impl<E> GetScansIdResultsId for Endpoints<E>
 where
     E: Send + Sync,
