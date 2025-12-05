@@ -271,10 +271,6 @@ pub enum StorageTypes {
 }
 
 impl StorageTypes {
-    //TODO: if you credential_key is set and it was not called before we should actually create a
-    //random key and store it as a file into XDG_CACHE or /tmp/ with rights that only the owner can
-    //read it.
-    //Before doing that we should check that file exists and if so return that key.
     pub fn credential_key(&self) -> Option<&str> {
         match self {
             StorageTypes::V1(storage_v1) => storage_v1.fs.key.as_deref(),
@@ -292,6 +288,14 @@ impl StorageTypes {
             }
         }
     }
+
+    pub fn max_connections(&self) -> usize {
+        let result = match self {
+            StorageTypes::V1(_) => SqliteConfiguration::default().max_connections,
+            StorageTypes::V2(sqlite_configuration) => sqlite_configuration.max_connections,
+        };
+        if result > 0 { result as usize } else { 1 }
+    }
 }
 impl Default for StorageTypes {
     fn default() -> Self {
@@ -301,7 +305,7 @@ impl Default for StorageTypes {
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct StorageV1 {
-    #[serde(default, rename = "type")]
+    #[serde(rename = "type")]
     pub storage_type: StorageType,
     #[serde(default)]
     pub fs: FileStorage,
@@ -697,10 +701,12 @@ impl Config {
             };
         }
         if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
+            //TODO: check if dir
             config.storage = StorageTypes::V2(SqliteConfiguration {
                 location: DBLocation::File(path.clone()),
                 ..Default::default()
             });
+            // TODO: add suffix
             config.container_image_scanner.database = SqliteConfiguration {
                 location: DBLocation::File(path.clone()),
                 ..Default::default()
@@ -759,7 +765,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
 
-    use crate::container_image_scanner::config::ImageExtractionLocation;
+    use crate::{config::StorageTypes, container_image_scanner::config::ImageExtractionLocation};
     use insta::assert_toml_snapshot;
     use scannerlib::scanner::preferences::preference::ScanPrefValue;
 
@@ -769,7 +775,8 @@ mod tests {
         path.push_str("/examples/openvasd/config.example.toml");
         let content = std::fs::read_to_string(&path).unwrap();
 
-        toml::from_str::<super::Config>(&content).unwrap();
+        let storage_test = toml::from_str::<super::Config>(&content).unwrap();
+        assert!(matches!(storage_test.storage, StorageTypes::V2(_)));
     }
 
     #[test]
@@ -779,7 +786,8 @@ mod tests {
 
         let content = std::fs::read_to_string(&path).unwrap();
 
-        toml::from_str::<super::Config>(&content).unwrap();
+        let storage_test = toml::from_str::<super::Config>(&content).unwrap();
+        assert!(matches!(storage_test.storage, StorageTypes::V1(_)));
     }
 
     #[test]

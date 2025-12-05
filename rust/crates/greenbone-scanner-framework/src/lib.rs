@@ -1,4 +1,13 @@
-use std::{marker::PhantomData, net::SocketAddr, path::PathBuf, pin::Pin, sync::Arc, sync::RwLock};
+use std::{
+    marker::PhantomData,
+    net::SocketAddr,
+    path::PathBuf,
+    pin::Pin,
+    sync::{
+        Arc, RwLock,
+        atomic::{AtomicUsize, Ordering},
+    },
+};
 
 use delete_scans_id::{DeleteScansId, DeleteScansIdHandler};
 use entry::Prefixed;
@@ -118,6 +127,7 @@ pub struct RuntimeBuilder<T> {
     tls: Option<TLSConfig>,
     api_keys: Option<Vec<String>>,
     handlers: RequestHandlers,
+    max_concurrent_connections: usize,
     _phantom: PhantomData<T>,
 }
 
@@ -152,6 +162,7 @@ impl<T> RuntimeBuilder<T> {
             api_keys: None,
             handlers,
             listener_address,
+            max_concurrent_connections: 10,
             _phantom: PhantomData,
         }
     }
@@ -193,6 +204,14 @@ impl<T> RuntimeBuilder<T> {
                 path_client_certs: Some(path_client_certs),
             },
         });
+        self
+    }
+
+    pub fn max_concurrent_connections(
+        mut self,
+        max_concurrent_connections: usize,
+    ) -> RuntimeBuilder<T> {
+        self.max_concurrent_connections = max_concurrent_connections;
         self
     }
 
@@ -258,6 +277,7 @@ impl<T> RuntimeBuilder<T> {
             api_keys: ior.api_keys,
             handlers: ior.handlers,
             _phantom: PhantomData,
+            max_concurrent_connections: ior.max_concurrent_connections,
         }
     }
 
@@ -318,6 +338,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             .add_request_handler(GetScansIdHandler::from(value.clone()))
             .add_request_handler(GetScansIdResultsHandler::from(value.clone()))
             .add_request_handler(GetScansIdStatusHandler::from(value.clone()))
+            .add_request_handler(GetScansIdResultsIdHandler::from(value.clone()))
             .add_request_handler(PostScansIdHandler::from(value.clone()))
             .add_request_handler(DeleteScansIdHandler::from(value));
 
@@ -329,6 +350,7 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             api_keys: ior.api_keys,
             handlers: ior.handlers,
             _phantom: PhantomData,
+            max_concurrent_connections: ior.max_concurrent_connections,
         }
     }
 }
@@ -346,6 +368,7 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
             tls: ior.tls,
             api_keys: ior.api_keys,
             handlers: ior.handlers,
+            max_concurrent_connections: ior.max_concurrent_connections,
             _phantom: PhantomData,
         }
     }
@@ -361,6 +384,8 @@ impl RuntimeBuilder<runtime_builder_states::End> {
 
         let incoming = TcpListener::bind(&self.listener_address).await?;
         let handlers = Arc::new(self.handlers);
+        let connection_counter = Arc::new(AtomicUsize::new(0));
+        let max_connections = self.max_concurrent_connections;
 
         if let Some(tls_config) = tls_config {
             use hyper::server::conn::http2::Builder;
@@ -375,6 +400,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                 let identifier = tls_config.client_identifier.clone();
                 let ctx = scanner.clone();
                 let handlers = handlers.clone();
+                let connection_counter = connection_counter.clone();
                 tokio::spawn(async move {
                     let tls_stream = match tls_acceptor.accept(tcp_stream).await {
                         Ok(tls_stream) => tls_stream,
@@ -384,13 +410,23 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                         }
                     };
                     let cci = retrieve_and_reset_client_identifier(identifier);
-                    let service = entry::EntryPoint::new(ctx, Arc::new(cci), handlers);
+                    // count amount of requests
+                    let service = entry::EntryPoint::new(
+                        ctx,
+                        Arc::new(cci),
+                        handlers,
+                        max_connections,
+                        connection_counter.fetch_add(1, Ordering::SeqCst),
+                    );
                     if let Err(err) = Builder::new(TokioExecutor::new())
+                        .max_concurrent_streams(20)
                         .serve_connection(TokioIo::new(tls_stream), service)
                         .await
                     {
                         tracing::debug!("failed to serve connection: {err:#}");
                     }
+                    let released = connection_counter.fetch_sub(1, Ordering::SeqCst);
+                    tracing::debug!(released, "released");
                 });
             }
         } else {
@@ -400,15 +436,25 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                 let (tcp_stream, _remote_addr) = incoming.accept().await?;
                 let ctx = scanner.clone();
                 let handlers = handlers.clone();
+                let connection_counter = connection_counter.clone();
                 tokio::spawn(async move {
                     let cci = ClientIdentifier::Unknown;
-                    let service = entry::EntryPoint::new(ctx, Arc::new(cci), handlers);
+                    let service = entry::EntryPoint::new(
+                        ctx,
+                        Arc::new(cci),
+                        handlers,
+                        max_connections,
+                        connection_counter.fetch_add(1, Ordering::SeqCst),
+                    );
                     if let Err(err) = Builder::new()
                         .serve_connection(TokioIo::new(tcp_stream), service)
                         .await
                     {
                         tracing::debug!("failed to serve connection: {err:#}");
                     }
+
+                    let connection = connection_counter.fetch_sub(1, Ordering::SeqCst);
+                    tracing::debug!(connection, "released");
                 });
             }
         }

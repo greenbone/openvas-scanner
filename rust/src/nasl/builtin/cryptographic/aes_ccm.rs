@@ -12,8 +12,9 @@ use ccm::{
 use digest::generic_array::ArrayLength;
 
 use crate::nasl::prelude::*;
+use crate::nasl::utils::function::StringOrData;
 
-use super::{Crypt, CryptographicError, get_aad, get_data, get_iv, get_key, get_len};
+use super::{Crypt, CryptographicError};
 
 /// Core function to en- and decrypt data. Throws error in case of failure.
 fn ccm_crypt<D, M, N>(
@@ -37,19 +38,22 @@ where
 }
 
 /// Base function for ccm en- and decryption. Sets the tag length to 16.
-fn ccm<D>(register: &Register, crypt: Crypt, auth: bool) -> Result<NaslValue, FnError>
+fn ccm<D>(
+    key: &[u8],
+    data: &[u8],
+    nonce: &[u8],
+    tag_size: Option<usize>,
+    aad: Option<&[u8]>,
+    crypt: Crypt,
+) -> Result<NaslValue, FnError>
 where
     D: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt + KeyInit,
 {
     // Get parameters
-    let key = get_key(register)?;
-    let data = get_data(register)?;
-    let nonce = get_iv(register)?;
-    let tag_size = get_len(register)?.unwrap_or(16);
-    let aad = match auth {
-        true => get_aad(register)?,
-        false => b"",
-    };
+
+    let tag_size = tag_size.unwrap_or(16);
+    let aad = aad.unwrap_or_default();
+
     // Switch mode dependent on iv length
     let res = ccm_typed::<D>(tag_size, nonce.len(), crypt, key, nonce, data, aad)?;
 
@@ -67,9 +71,20 @@ where
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes128_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes128>(register, Crypt::Encrypt, false)
+#[nasl_function(named(key, iv, data))]
+fn aes128_ccm_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes128>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        None,
+        None,
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes128 ccm and authentication encryption with associated data (AEAD).
@@ -79,9 +94,21 @@ fn aes128_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes128_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes128>(register, Crypt::Encrypt, true)
+#[nasl_function(named(key, iv, data, aad))]
+fn aes128_ccm_encrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes128>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        None,
+        aad.map(|a| a.data()),
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to decrypt aes128 ccm encrypted data. The tag size is set to 16.
@@ -91,9 +118,21 @@ fn aes128_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes128_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes128>(register, Crypt::Decrypt, false)
+#[nasl_function(named(key, iv, data, len))]
+fn aes128_ccm_decrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes128>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        len,
+        None,
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes128 ccm and authentication encryption with associated data (AEAD).
@@ -103,9 +142,22 @@ fn aes128_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes128_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes128>(register, Crypt::Decrypt, true)
+#[nasl_function(named(key, iv, data, aad, len))]
+fn aes128_ccm_decrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes128>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        len,
+        aad.map(|a| a.data()),
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes192 ccm. The tag size is set to 16.
@@ -115,9 +167,20 @@ fn aes128_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes192_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes192>(register, Crypt::Encrypt, false)
+#[nasl_function(named(key, iv, data))]
+fn aes192_ccm_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes192>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        None,
+        None,
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes192 ccm and authentication encryption with associated data (AEAD).
@@ -127,9 +190,21 @@ fn aes192_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes192_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes192>(register, Crypt::Encrypt, true)
+#[nasl_function(named(key, iv, data, aad))]
+fn aes192_ccm_encrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes192>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        None,
+        aad.map(|a| a.data()),
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to decrypt aes192 ccm encrypted data. The tag size is set to 16.
@@ -139,9 +214,21 @@ fn aes192_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes192_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes192>(register, Crypt::Decrypt, false)
+#[nasl_function(named(key, iv, data, len))]
+fn aes192_ccm_decrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes192>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        len,
+        None,
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes192 ccm and authentication encryption with associated data (AEAD).
@@ -151,9 +238,22 @@ fn aes192_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes192_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes192>(register, Crypt::Decrypt, true)
+#[nasl_function(named(key, iv, data, aad, len))]
+fn aes192_ccm_decrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes192>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        len,
+        aad.map(|a| a.data()),
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes256 ccm. The tag size is set to 16.
@@ -163,9 +263,20 @@ fn aes192_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes256_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes256>(register, Crypt::Encrypt, false)
+#[nasl_function(named(key, iv, data))]
+fn aes256_ccm_encrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes256>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        None,
+        None,
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to encrypt data with aes256 ccm and authentication encryption with associated data (AEAD).
@@ -175,9 +286,21 @@ fn aes256_ccm_encrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes256_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes256>(register, Crypt::Encrypt, true)
+#[nasl_function(named(key, iv, data, aad))]
+fn aes256_ccm_encrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes256>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        None,
+        aad.map(|a| a.data()),
+        Crypt::Encrypt,
+    )
 }
 
 /// NASL function to decrypt aes256 ccm encrypted data. The tag size is set to 16.
@@ -187,9 +310,21 @@ fn aes256_ccm_encrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes256_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes256>(register, Crypt::Decrypt, false)
+#[nasl_function(named(key, iv, data, len))]
+fn aes256_ccm_decrypt(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes256>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        len,
+        None,
+        Crypt::Decrypt,
+    )
 }
 
 /// NASL function to decrypt data with aes256 ccm and authentication encryption with associated data (AEAD).
@@ -199,9 +334,22 @@ fn aes256_ccm_decrypt(register: &Register) -> Result<NaslValue, FnError> {
 /// - The length of the key should be 16 bytes long
 /// - The iv must have a length of 7-13 bytes
 /// - The tag_size default is 16, it can be set to either 4, 6, 8, 10, 12, 14 or 16
-#[nasl_function]
-fn aes256_ccm_decrypt_auth(register: &Register) -> Result<NaslValue, FnError> {
-    ccm::<Aes256>(register, Crypt::Decrypt, true)
+#[nasl_function(named(key, iv, data, aad, len))]
+fn aes256_ccm_decrypt_auth(
+    key: StringOrData,
+    iv: StringOrData,
+    data: StringOrData,
+    aad: Option<StringOrData>,
+    len: Option<usize>,
+) -> Result<NaslValue, FnError> {
+    ccm::<Aes256>(
+        key.data(),
+        data.data(),
+        iv.data(),
+        len,
+        aad.map(|a| a.data()),
+        Crypt::Decrypt,
+    )
 }
 
 macro_rules! ccm_call_typed {

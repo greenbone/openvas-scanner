@@ -253,7 +253,6 @@ impl super::Registry for Registry {
                     return;
                 }
             };
-            // TODO calculate sum should be better
             let mut digest = Vec::with_capacity(og.len() * 2);
             for r in og {
                 match r {
@@ -417,6 +416,7 @@ pub mod fake {
          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
          "size": {size},
          "digest": "sha256:{hash_victim_layer}"
+
       }}
       "#
             );
@@ -472,7 +472,7 @@ pub mod fake {
                         &format!("/v2/nichtsfrei/victim/blobs/sha256:{hash_blob_config}") as &str,
                     )
                     .with_status(200)
-                    .with_body("{\"architecture\": \"amd64\"}")
+                    .with_body(r#"{"architecture": "amd64", "config": { "Labels": null}}"#)
                     .create(),
                 server
                     .mock(
@@ -624,14 +624,14 @@ mod tests {
             tag: "latest".to_owned().into(),
         };
 
-        //use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-        //let filter = tracing_subscriber::filter::Targets::new()
-        //    .with_default(tracing::Level::TRACE)
-        //    .with_target("hyper_util", tracing::Level::INFO);
-        //tracing_subscriber::registry()
-        //    .with(tracing_subscriber::fmt::layer())
-        //    .with(filter)
-        //    .init();
+        // use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+        // let filter = tracing_subscriber::filter::Targets::new()
+        //     .with_default(tracing::Level::TRACE)
+        //     .with_target("hyper_util", tracing::Level::INFO);
+        // tracing_subscriber::registry()
+        //     .with(tracing_subscriber::fmt::layer())
+        //     .with(filter)
+        //     .init();
 
         let server = RegistryMock::serve_images(vec![image.clone()]).await;
 
