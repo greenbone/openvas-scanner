@@ -44,7 +44,7 @@ pub trait AdvisoryLoader {
     /// used for `load_product`.
     fn get_advisories(&self) -> Result<Vec<String>, Error>;
     /// Load advisories files present in the path.
-    fn load_advisory(&self, os: &str) -> Result<ProductsAdvisories, Error>;
+    fn load_advisory(&self, os: &str, signature_check: bool) -> Result<ProductsAdvisories, Error>;
     /// Verify the signature of the Hashsum file
     fn verify_signature(&self) -> Result<(), VerifyError>;
     /// Get the root directory of the notus products

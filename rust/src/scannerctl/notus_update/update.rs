@@ -71,7 +71,9 @@ where
 
     // Get the all products files and process
     for filename in advisories_files.get_advisories().unwrap().iter() {
-        let advisories = advisories_files.load_advisory(filename).unwrap();
+        let advisories = advisories_files
+            .load_advisory(filename, signature_check)
+            .unwrap();
 
         for adv in advisories.advisories {
             let _ = storage.dispatch(
