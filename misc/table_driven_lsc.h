@@ -23,6 +23,14 @@ enum fixed_type
   SINGLE,  // A single version with a specifier (gt or lt)
 };
 
+enum advisory_type
+{
+  NOTUS,
+  SKIRON,
+};
+
+typedef enum advisory_type advisory_type_t;
+
 /** @brief Fixed version
  */
 struct fixed_version
@@ -59,21 +67,33 @@ typedef struct vulnerable_pkg vuln_pkg_t;
 
 /** brief define an advisory with a list of vulnerable packages
  */
-struct advisory
+struct notus_advisory
 {
   char *oid;             // Advisory OID
   vuln_pkg_t *pkgs[100]; // list of vulnerable packages, installed version and
                          // fixed versions
   size_t count;          // Count of vulnerable packages this advisory has
 };
+typedef struct notus_advisory advisory_t;
 
-typedef struct advisory advisory_t;
+struct skiron_advisory
+{
+  char *oid;
+  char *message;
+};
+
+typedef struct skiron_advisory skiron_advisory_t;
 
 /** brief define a advisories list
  */
 struct advisories
 {
-  advisory_t **advisories;
+  union
+  {
+    advisory_t **advisories;
+    skiron_advisory_t **skiron_advisory;
+  };
+  advisory_type_t type;
   size_t count;
   size_t max_size;
 };
@@ -93,9 +113,9 @@ run_table_driven_lsc (const char *, const char *, const char *, const char *,
                       const char *);
 
 char *
-notus_get_response (const char *pkg_list, const char *os);
+lsc_get_response (const char *pkg_list, const char *os);
 
 advisories_t *
-process_notus_response (const gchar *resp, const size_t len);
+lsc_process_response (const gchar *resp, const size_t len);
 
 #endif // MISC_TABLE_DRIVEN_LSC_H

@@ -1,4 +1,4 @@
-# table_driven_lsc
+# notus
 
 ## NAME
 
@@ -19,8 +19,10 @@ product: identifier for the notus scanner to get list of vulnerable packages
 In contrast to **[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**
 this function does not publish results by itself, but returns a json like structure,
 so information can be adjusted and must be published using
-**[security_lsc(3)](../report-functions/security_lsc.md)**. The json like format has the
-following structure:
+**[security_lsc(3)](../report-functions/security_lsc.md)**. The json like format depends
+one the scanner that is used. There are currently 2 scanner types available: Notus and
+Skiron. Their response have different formats and also will be parsed differently. The
+format for Notus has the following structure:
 ```json
 [
   0: {
@@ -49,6 +51,17 @@ following structure:
 ```
 The root element is a list of results.
 The elements can be accessed by using the normal NASL array handling. For more information see the example.
+
+The format for Skiron has the following structure:
+```json
+{
+  "[oid1]": "some message",
+  "[oid2]": "some message"
+}
+It is just a dictionary with the OID of the result as key and the result message as value.
+
+To determine which format is used, the builtin function **[notus_type(3)](notus_type.md)** can be used.
+
 In case of an Error a NULL value is returned and an Error is set. The error can be gathered using the
 **[notus_error(3)](notus_error.md)** function, which yields the last occurred error.
 
@@ -63,6 +76,7 @@ Possible errors
 - Missing function parameter
 - Unable to get result from Notus
 - Error while parsing Notus results
+- Unable to parse response
 
 ## EXAMPLE
 
@@ -85,27 +99,37 @@ package_list = 'libzmq3-dev-0:4.3.0-4+deb10u1\nlibzmq5-4.3.1-4+deb10u1\ndosbox-0
 product = "debian_10";
 
 ret = notus(pkg_list: package_list, product: product);
+type = notus_type();
 
-foreach result (ret)
-{
-  oid = result["oid"];
-  vul_packages = result["vulnerable_packages"];
-  foreach package (vul_packages)
+if (type == 0) {
+  foreach result (ret)
   {
-    name = package["name"];
-    installed = package["installed"];
-    fixed = package["fixed"];
-    fixed_version = fixed["version"];
-    if (fixed_version.isnull()) {
-        start = fixed["start"];
-        end = fixed["end"];
-    } else {
-        specifier = fixed["specifier"];
+    oid = result["oid"];
+    vul_packages = result["vulnerable_packages"];
+    foreach package (vul_packages)
+    {
+      name = package["name"];
+      installed = package["installed"];
+      fixed = package["fixed"];
+      fixed_version = fixed["version"];
+      if (fixed_version.isnull()) {
+          start = fixed["start"];
+          end = fixed["end"];
+      } else {
+          specifier = fixed["specifier"];
+      }
     }
+  }
+} else if (type == 1) {
+  foreach result (ret)
+  {
+    oid = result["oid"];
+    message = result["message"]
   }
 }
 ```
 
+
 ## SEE ALSO
 
-**[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**, **[security_notus(3)](../report-functions/security_notus.md)**
+**[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**, **[security_notus(3)](../report-functions/security_notus.md)**, **[notus_error(3)](notus_error.md)**, **[notus_type(3)](notus_type.md)**
