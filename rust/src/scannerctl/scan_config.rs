@@ -6,13 +6,13 @@ use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
 use greenbone_scanner_framework::models::VTData;
-use scannerlib::models::{Parameter, Port, Protocol, Scan, VT};
+use scannerlib::models::{Parameter, Port, Protocol, Scan, ScanPreference, VT};
 use scannerlib::nasl::WithErrorInfo;
 use scannerlib::storage::Retriever;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
 use scannerlib::storage::items::nvt::{Feed, Oid};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use crate::{CliError, CliErrorKind, Filename, get_path_from_openvas, read_openvas_config};
 use std::collections::{HashMap, HashSet};
@@ -92,14 +92,22 @@ async fn execute(
         None => vec![],
     };
     let mut vts = HashSet::new();
+    let mut scan_prefs = Vec::new();
     for a in config.iter().map(|f| {
         as_bufreader(f)
             .and_then(|r| parse_vts(r, storage.as_ref(), &scan.vts).map_err(|e| map_error(f, e)))
     }) {
-        vts.extend(a?);
+        match a {
+            Ok(r) => {
+                vts.extend(r.vts_list);
+                scan_prefs.extend(r.scan_preferences);
+            }
+            Err(e) => return Err(e),
+        }
     }
     scan.vts.extend(vts);
     scan.target.ports = ports;
+    scan.scan_preferences = scan_prefs;
     let out =
         serde_json::to_string_pretty(&scan).map_err(|e| CliErrorKind::Corrupt(format!("{e:?}")))?;
     println!("{out}");
@@ -232,7 +240,10 @@ struct ScanConfig {
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 struct ScanConfigNvtSelectors {
+    #[serde(default)]
     nvt_selector: Vec<ScanConfigNvtSelector>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    all_selector: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -249,8 +260,17 @@ struct ScanConfigPreferences {
     preference: Vec<ScanConfigPreference>,
 }
 
+fn deserialize_wrong_type_u16<'de, D>(deserializer: D) -> Result<u16, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let deserialized = u16::deserialize(deserializer);
+    Ok(deserialized.unwrap_or_default())
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 struct ScanConfigPreference {
+    #[serde(deserialize_with = "deserialize_wrong_type_u16")]
     id: u16,
     name: String,
     value: String,
@@ -270,7 +290,13 @@ trait OspStorage: Retriever<Oid, Item = VTData> + Retriever<Feed, Item = Vec<VTD
 
 impl OspStorage for InMemoryStorage {}
 
-fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<Vec<VT>, Error>
+#[derive(Clone)]
+struct VtsScanPrefs {
+    pub vts_list: Vec<VT>,
+    pub scan_preferences: Vec<ScanPreference>,
+}
+
+fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<VtsScanPrefs, Error>
 where
     R: BufRead,
 {
@@ -284,19 +310,25 @@ where
         &result.preferences.preference.len(),
     );
 
-    let preference_lookup: HashMap<String, Vec<Parameter>> = result
-        .preferences
-        .preference
-        .iter()
-        .fold(HashMap::new(), |mut acc, p| {
-            let oid = p.nvt.oid.clone();
-            let parameters = acc.entry(oid).or_default();
+    let mut scan_preferences: Vec<ScanPreference> = Vec::new();
+    let mut preference_lookup: HashMap<String, Vec<Parameter>> = HashMap::new();
+    result.preferences.preference.iter().for_each(|p| {
+        let oid = p.nvt.oid.clone();
+        //consider it a scan preference if there is no associated VT
+        if !oid.is_empty() {
+            let parameters = preference_lookup.entry(oid).or_default();
+            dbg!(&p.id, &p.value, &p.name);
             parameters.push(Parameter {
                 id: p.id,
                 value: p.value.clone(),
             });
-            acc
-        });
+        } else {
+            scan_preferences.push(ScanPreference {
+                id: p.name.clone(),
+                value: p.value.clone(),
+            });
+        };
+    });
 
     let oid_to_vt = |oid: &String| -> Result<VT, Error> {
         let parameters = preference_lookup.get(oid).unwrap_or(&vec![]).clone();
@@ -305,74 +337,140 @@ where
             parameters,
         })
     };
-    let is_not_already_present = |oid: &String| -> bool { !vts.iter().any(|vt| vt.oid == *oid) };
-    result
+
+    let clone_oid = |oid: &String| -> String { oid.clone() };
+    let excluded: Vec<String> = result
         .nvt_selectors
         .nvt_selector
         .iter()
         .flat_map(|s| {
-            if s.nvt_type == 2 {
-                if is_not_already_present(&s.family_or_nvt) {
-                    tracing::debug!("el oid: {}", &s.family_or_nvt);
-
-                    vec![oid_to_vt(&s.family_or_nvt)]
-                } else {
-                    vec![]
-                }
-            } else if s.nvt_type == 1 {
-                // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
-                // feed, the result will be an empty vector.
-                match retriever.retrieve(&Feed) {
+            if s.nvt_type == 2 && s.include == 0 {
+                vec![s.family_or_nvt.clone()]
+            } else if s.nvt_type == 1 && s.include == 0 {
+                let f: Vec<String> = match retriever.retrieve(&Feed) {
                     Ok(Some(vts)) => {
-                        if s.family_or_nvt.is_empty() {
+                        let excl: Vec<String> = vts
+                            .iter()
+                            .filter(|x| x.family == s.family_or_nvt)
+                            .map(|x| clone_oid(&x.oid))
+                            .collect();
+                        excl
+                    }
+                    Ok(None) => vec![],
+                    Err(_) => vec![],
+                };
+                f
+            } else {
+                vec![]
+            }
+        })
+        .collect();
+    tracing::debug!("Excluded {} oids", excluded.len());
+
+    let is_not_already_present = |oid: &String| -> bool { !vts.iter().any(|vt| vt.oid == *oid) };
+    let is_not_excluded = |oid: &String| -> bool { !excluded.iter().any(|vt| vt == oid) };
+
+    let vt_list: Result<Vec<VT>, Error> = if !result.nvt_selectors.nvt_selector.is_empty() {
+        result
+            .nvt_selectors
+            .nvt_selector
+            .iter()
+            .flat_map(|s| {
+                //is an oid
+                if s.nvt_type == 2 {
+                    if is_not_already_present(&s.family_or_nvt) {
+                        vec![oid_to_vt(&s.family_or_nvt)]
+                    } else {
+                        vec![]
+                    }
+                    //is a family
+                } else if s.nvt_type == 1 {
+                    // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
+                    // feed, the result will be an empty vector.
+                    match retriever.retrieve(&Feed) {
+                        Ok(Some(vts)) => {
+                            if s.family_or_nvt.is_empty() {
+                                let oids: Vec<_> = vts
+                                    .iter()
+                                    .filter(|x| is_not_already_present(&x.oid))
+                                    .map(|x| oid_to_vt(&x.oid))
+                                    .collect();
+                                tracing::debug!("found {} nvt entries", oids.len(),);
+                                oids
+                            } else {
+                                let fvts: Vec<_> = vts
+                                    .clone()
+                                    .into_iter()
+                                    .filter(|x| {
+                                        x.family == s.family_or_nvt
+                                            && is_not_already_present(&x.oid)
+                                            && is_not_excluded(&x.oid)
+                                    })
+                                    .map(|x| oid_to_vt(&x.oid))
+                                    .collect();
+                                tracing::debug!(
+                                    "found {} nvt entries for family {}",
+                                    fvts.len(),
+                                    s.family_or_nvt
+                                );
+                                fvts
+                            }
+                        }
+                        Ok(None) => vec![],
+                        Err(e) => vec![Err(e.into())],
+                    }
+                    //a whole family
+                } else {
+                    // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
+                    // feed, the result will be an empty vector.
+                    match retriever.retrieve(&Feed) {
+                        Ok(Some(vts)) => {
                             let oids: Vec<_> = vts
                                 .iter()
-                                .filter(|x| is_not_already_present(&x.oid))
+                                .filter(|x| x.oid == s.family_or_nvt || s.family_or_nvt.is_empty())
+                                .filter(|x| {
+                                    is_not_excluded(&x.oid) && is_not_already_present(&x.oid)
+                                })
                                 .map(|x| oid_to_vt(&x.oid))
                                 .collect();
                             tracing::debug!("found {} nvt entries", oids.len(),);
                             oids
-                        } else {
-                            let fvts: Vec<_> = vts
-                                .clone()
-                                .into_iter()
-                                .filter(|x| {
-                                    x.family == s.family_or_nvt && is_not_already_present(&x.oid)
-                                })
-                                .map(|x| oid_to_vt(&x.oid))
-                                .collect();
-                            tracing::debug!(
-                                "found {} nvt entries for family {}",
-                                fvts.len(),
-                                s.family_or_nvt
-                            );
-                            fvts
                         }
+                        Ok(None) => {
+                            unreachable!();
+                        }
+                        Err(e) => vec![Err(e.into())],
                     }
-                    Ok(None) => vec![],
-                    Err(e) => vec![Err(e.into())],
                 }
-            } else {
-                // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
-                // feed, the result will be an empty vector.
-                match retriever.retrieve(&Feed) {
-                    Ok(Some(vts)) => {
-                        let oids: Vec<_> = vts
-                            .iter()
-                            .filter(|x| x.oid == s.family_or_nvt)
-                            .map(|x| oid_to_vt(&x.oid))
-                            .collect();
-                        tracing::debug!("found {} nvt entries", oids.len(),);
-                        oids
-                    }
-                    Ok(None) => {
-                        unreachable!();
-                    }
-                    Err(e) => vec![Err(e.into())],
-                }
+            })
+            .collect()
+    } else {
+        match retriever.retrieve(&Feed) {
+            Ok(Some(vts)) => {
+                let oids: Vec<_> = vts
+                    .iter()
+                    .filter(|x| is_not_excluded(&x.oid) && is_not_already_present(&x.oid))
+                    .map(|x| oid_to_vt(&x.oid))
+                    .collect();
+                tracing::debug!("found {} nvt entries", oids.len(),);
+                oids
             }
-        })
+            Ok(None) => {
+                unreachable!()
+            }
+            Err(e) => vec![Err(e.into())],
+        }
+        .into_iter()
         .collect()
+    };
+
+    match vt_list {
+        Ok(vts) => Ok(VtsScanPrefs {
+            vts_list: vts,
+            scan_preferences,
+        }),
+        Err(e) => Err(e),
+    }
 }
 
 #[cfg(test)]
@@ -505,6 +603,6 @@ mod tests {
         }];
 
         let result = super::parse_vts(sc.as_bytes(), &shop, &exists).unwrap();
-        assert_eq!(result.len(), 4);
+        assert_eq!(result.vts_list.len(), 4);
     }
 }
