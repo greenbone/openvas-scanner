@@ -121,6 +121,7 @@ pub struct FileName(pub String);
 #[derive(Clone)]
 pub struct FeedVersion;
 
+#[derive(Clone)]
 pub struct Feed;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]

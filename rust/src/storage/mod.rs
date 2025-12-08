@@ -14,6 +14,8 @@ use std::{fmt::Display, sync::Arc};
 
 use error::StorageError;
 
+use crate::PinBoxFut;
+
 // TODO: why?
 /// The identifier of a Scan
 ///
@@ -40,9 +42,13 @@ impl Display for Target {
     }
 }
 
+pub trait StorageRestriction: Clone + Send + Sync + 'static {}
+
+impl<T> StorageRestriction for T where T: Clone + Send + Sync + 'static {}
+
 /// Defines the Dispatcher interface to distribute fields
-pub trait Dispatcher<KEY: Clone> {
-    type Item: Clone;
+pub trait Dispatcher<KEY: StorageRestriction> {
+    type Item: StorageRestriction;
     /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
@@ -65,7 +71,40 @@ pub trait Dispatcher<KEY: Clone> {
     }
 }
 
-impl<KEY: Clone, ITEM: Clone, T> Dispatcher<KEY> for Arc<T>
+/// Defines the Dispatcher interface to distribute fields
+pub trait AsyncDispatcher<KEY>
+where
+    KEY: StorageRestriction,
+{
+    type Item: StorageRestriction;
+    /// Distributes given field under a key
+    ///
+    /// A key is usually a OID that was given when starting a script but in description run it is the filename.
+    fn dispatch(&'static self, key: KEY, item: Self::Item) -> PinBoxFut<Result<(), StorageError>>;
+
+    /// Retries a dispatch for the amount of retries when a retrievable error occurs.
+    fn retry_dispatch(
+        &'static self,
+        key: KEY,
+        item: Self::Item,
+        max_tries: usize,
+    ) -> PinBoxFut<Result<(), StorageError>>
+    where
+        Self: Send + Sync,
+    {
+        Box::pin(async move {
+            for _ in 0..max_tries {
+                match self.dispatch(key.clone(), item.clone()).await {
+                    Err(StorageError::Retry(_)) => continue,
+                    x => return x,
+                }
+            }
+            Err(StorageError::RetryExhausted)
+        })
+    }
+}
+
+impl<KEY: StorageRestriction, ITEM: StorageRestriction, T> Dispatcher<KEY> for Arc<T>
 where
     T: Dispatcher<KEY, Item = ITEM>,
 {
@@ -76,7 +115,7 @@ where
 }
 
 /// Retrieves fields based on a key and scope.
-pub trait Retriever<KEY> {
+pub trait Retriever<KEY: StorageRestriction> {
     type Item;
     /// Gets Fields find by key and scope. This is to get all instances.
     fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
@@ -97,7 +136,103 @@ pub trait Retriever<KEY> {
     }
 }
 
-impl<KEY, ITEM, T> Retriever<KEY> for Arc<T>
+/// Retrieves fields based on a key and scope.
+pub trait AsyncRetriever<KEY>
+where
+    KEY: StorageRestriction,
+{
+    type Item;
+    /// Gets Fields find by key and scope. This is to get all instances.
+    fn retrieve(&'static self, key: &KEY) -> PinBoxFut<Result<Option<Self::Item>, StorageError>>;
+
+    /// Calls retrieve and retries for max_tries time on StorageError::Retry
+    fn retry_retrieve(
+        &'static self,
+        key: &'static KEY,
+        max_tries: u64,
+    ) -> PinBoxFut<Result<Option<Self::Item>, StorageError>>
+    where
+        Self: Send + Sync,
+    {
+        Box::pin(async move {
+            for _ in 0..max_tries {
+                match self.retrieve(key).await {
+                    Err(StorageError::Retry(_)) => continue,
+                    x => return x,
+                }
+            }
+            Err(StorageError::RetryExhausted)
+        })
+    }
+}
+
+impl<T, KEY, ITEM> AsyncRetriever<KEY> for T
+where
+    KEY: StorageRestriction,
+    T: Retriever<KEY, Item = ITEM> + Send + Sync + 'static,
+    ITEM: Send + Sync + 'static,
+{
+    type Item = ITEM;
+
+    fn retry_retrieve(
+        &'static self,
+        key: &'static KEY,
+        max_tries: u64,
+    ) -> PinBoxFut<Result<Option<Self::Item>, StorageError>>
+    where
+        Self: Send + Sync,
+    {
+        Box::pin(async move {
+            tokio::task::spawn_blocking(move || self.retry_retrieve(key, max_tries))
+                .await
+                .expect("tokio runtime")
+        })
+    }
+
+    fn retrieve(&'static self, key: &KEY) -> PinBoxFut<Result<Option<Self::Item>, StorageError>> {
+        let key = key.clone();
+        Box::pin(async move {
+            tokio::task::spawn_blocking(move || self.retrieve(&key))
+                .await
+                .expect("tokio runtime")
+        })
+    }
+}
+
+impl<T, KEY, ITEM> AsyncDispatcher<KEY> for T
+where
+    KEY: StorageRestriction,
+    T: Dispatcher<KEY, Item = ITEM> + Send + Sync + 'static,
+    ITEM: StorageRestriction,
+{
+    type Item = ITEM;
+
+    fn dispatch(&'static self, key: KEY, item: Self::Item) -> PinBoxFut<Result<(), StorageError>> {
+        Box::pin(async move {
+            tokio::task::spawn_blocking(|| self.dispatch(key, item))
+                .await
+                .expect("tokio runtime")
+        })
+    }
+
+    fn retry_dispatch(
+        &'static self,
+        key: KEY,
+        item: Self::Item,
+        max_tries: usize,
+    ) -> PinBoxFut<Result<(), StorageError>>
+    where
+        Self: Send + Sync,
+    {
+        Box::pin(async move {
+            tokio::task::spawn_blocking(move || self.retry_dispatch(key, item, max_tries))
+                .await
+                .expect("tokio runtime")
+        })
+    }
+}
+
+impl<KEY: StorageRestriction, ITEM, T> Retriever<KEY> for Arc<T>
 where
     T: Retriever<KEY, Item = ITEM>,
 {

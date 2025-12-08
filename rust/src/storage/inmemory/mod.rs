@@ -41,6 +41,7 @@ type Vts = HashMap<VTKey, VTData>;
 type Results = HashMap<ScanID, Vec<ResultItem>>;
 
 // Artificial type for fetching all OIDs
+#[derive(Clone)]
 struct OIDs;
 
 /// Is a in-memory dispatcher that behaves like a Storage.
