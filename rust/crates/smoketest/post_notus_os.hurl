@@ -14,10 +14,3 @@ jsonpath "$.*[0].fixed_version.specifier" first == ">="
 #     "BAD_REQUEST_BODY"
 # ]
 # HTTP 400
-
-# POST {{server}}/notus/{{os}}
-# Content-Type: application/json
-# {
-#     "force": "501" 
-# }
-# HTTP 501
