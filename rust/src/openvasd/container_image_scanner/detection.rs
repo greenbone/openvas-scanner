@@ -22,8 +22,8 @@ impl Display for OperatingSystem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "name: '{}', version_id: '{}'",
-            self.name, self.version_id
+            "name: '{}', version: '{}', version_id: '{}'",
+            self.name, self.version, self.version_id
         )
     }
 }

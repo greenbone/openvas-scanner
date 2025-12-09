@@ -890,12 +890,26 @@ mod test {
             let result = fakes.entry.get_scans_id_results(scan_id, None, None);
             let result: Vec<_> = result.collect().await;
 
-            let result: Vec<_> = result
-                .into_iter()
-                .filter_map(|x| x.ok())
-                .map(|x| x.id)
-                .collect();
-            assert_eq!(result.len(), 275 * fakes.success_scan().target.hosts.len());
+            let result: Vec<_> = result.into_iter().filter_map(|x| x.ok()).collect();
+            // 2 new internal log messages
+            assert_eq!(
+                result
+                    .iter()
+                    .filter_map(|x| x.oid.as_ref())
+                    .filter(|x| x as &str == "openvasd/container-image-scanner")
+                    .count(),
+                2,
+                "Expected internal log messages"
+            );
+            assert_eq!(
+                result
+                    .iter()
+                    .filter_map(|x| x.oid.as_ref())
+                    .filter(|x| x as &str != "openvasd/container-image-scanner")
+                    .count(),
+                275 * fakes.success_scan().target.hosts.len(),
+                "Expected found vulnerabilities"
+            );
         }
 
         #[tokio::test]
