@@ -166,7 +166,6 @@ where
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
         pool: sqlx::Pool<Sqlite>,
-
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,

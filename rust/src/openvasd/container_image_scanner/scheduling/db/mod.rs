@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::models::{self};
@@ -175,7 +175,7 @@ pub async fn on_message(pool: &Pool<Sqlite>, msg: &super::Message) -> Result<(),
 }
 
 pub async fn store_results(
-    pool: sqlx::Pool<Sqlite>,
+    pool: &sqlx::Pool<Sqlite>,
     id: &str,
     results: Vec<models::Result>,
 ) -> Result<(), sqlx::Error> {
@@ -283,6 +283,31 @@ pub async fn set_scan_to_failed(pool: &Pool<Sqlite>, id: &str) -> Result<(), sql
     .map(|_| ())
 }
 
+pub async fn internal_result<T>(
+    pool: &Pool<Sqlite>,
+    scan_id: &str,
+    kind: models::ResultType,
+    image: Option<T>,
+    msg: String,
+) where
+    T: Display,
+{
+    let result = models::Result {
+        id: 0,
+        r_type: kind,
+        ip_address: None,
+        hostname: image.map(|x| x.to_string()),
+        oid: Some("openvasd/container-image-scanner".to_owned()),
+        port: None,
+        protocol: None,
+        message: Some(msg),
+        detail: None,
+    };
+    if let Err(e) = store_results(pool, scan_id, vec![result]).await {
+        tracing::warn!(error=%e, "Cannot store log message.")
+    }
+}
+
 pub async fn set_scan_images(
     pool: &Pool<Sqlite>,
     id: &str,
@@ -291,6 +316,8 @@ pub async fn set_scan_images(
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
     let success_count = images.iter().filter(|x| x.is_ok()).count();
+    let dead_count = images.iter().filter(|x| x.is_err()).count();
+    let count = images.len();
     query(
         r#"
             UPDATE scans
@@ -300,8 +327,8 @@ pub async fn set_scan_images(
             WHERE id = ?
             "#,
     )
-    .bind(images.len() as i64)
-    .bind(images.iter().filter(|x| x.is_err()).count() as i64)
+    .bind(count as i64)
+    .bind(dead_count as i64)
     .bind(id)
     .execute(&mut *tx)
     .await?;
@@ -314,6 +341,7 @@ pub async fn set_scan_images(
         query.execute(&mut *tx).await?;
     }
     tx.commit().await?;
+
     Ok(())
 }
 
