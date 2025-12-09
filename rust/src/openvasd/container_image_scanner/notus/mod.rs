@@ -105,7 +105,6 @@ pub async fn vulnerabilities(
     let mut p = products.write_owned().await;
     let os = generate_key(architecture, os);
 
-    //TODO: here jo
     let result = tokio::task::spawn_blocking(move || p.scan(&os, &packages))
         .await
         .unwrap();
@@ -117,10 +116,6 @@ pub async fn vulnerabilities(
             Err(error.into())
         }
     }
-    //
-    // let request = Request::new(architecture, os, packages);
-    // let response = request.send(config).await?;
-    // Ok(to_result(image, response))
 }
 
 #[cfg(test)]
