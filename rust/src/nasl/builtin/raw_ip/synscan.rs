@@ -169,10 +169,7 @@ async fn send_task(
     timeout: u64,
     tx_ctl: Sender<SynScanCtlStop>,
 ) -> Result<(), FnError> {
-    let mut count = 0;
-
     for port in ports.iter() {
-        count += 1;
         match target {
             IpAddr::V4(ipv4) => {
                 let tcp = forge_tcp_ping_ipv4(ipv4, port, pnet::packet::tcp::TcpFlags::SYN)?;
@@ -185,7 +182,7 @@ async fn send_task(
         };
     }
 
-    tracing::debug!("Finished sending {count} packets");
+    tracing::debug!("Finished sending {} packets", ports.len());
     sleep(Duration::from_millis(timeout)).await;
     // Send only returns error if the receiver is closed, which only happens when it panics.
     tx_ctl.send(SynScanCtlStop).await.unwrap();
@@ -193,8 +190,8 @@ async fn send_task(
 }
 
 #[nasl_function]
-async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<(), FnError> {
-    let target_ip = configs.target().ip_addr();
+async fn plugin_run_synscan(context: &ScanCtx<'_>) -> Result<(), FnError> {
+    let target_ip = context.target().ip_addr();
     let mut open_ports = BTreeSet::<u16>::new();
 
     let capture_inactive =
@@ -205,7 +202,7 @@ async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<(), FnError> {
 
     let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg));
 
-    let ports = configs.target().ports_tcp();
+    let ports = context.target().ports_tcp();
     let send_handle = tokio::spawn(send_task(
         target_ip,
         ports.clone(),
@@ -215,7 +212,7 @@ async fn plugin_run_synscan(configs: &ScanCtx<'_>) -> Result<(), FnError> {
 
     while let Some(open_port) = rx_msg.recv().await {
         if ports.contains(&open_port) && !open_ports.contains(&open_port) {
-            scanner_add_port_shared(configs, Port::from(open_port), Some("tcp"))?;
+            scanner_add_port_shared(context, Port::from(open_port), Some("tcp"))?;
             open_ports.insert(open_port);
             reset_connection(target_ip, &open_port).await?;
             tracing::debug!("{} is open", open_port);

@@ -224,7 +224,6 @@ fn new_raw_socket_v4() -> Result<Socket, RawIpError> {
         socket2::Type::RAW,
         Some(Protocol::from(IPPROTO_RAW)),
     )
-    //    .map_err(|e| AliveTestError::NoSocket(e.to_string()))
     .map_err(RawIpError::FailedToBind)
 }
 
