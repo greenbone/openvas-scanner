@@ -100,5 +100,5 @@ max_connections = 1
 
 [container_image_scanner.image]
 extract_to = '/tmp/openvasd/cis'
-max_scanning = 1
-batch_size = 1
+max_scanning = 23
+batch_size = 5
