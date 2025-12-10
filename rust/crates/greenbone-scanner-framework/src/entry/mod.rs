@@ -142,7 +142,9 @@ macro_rules! create_single_handler {
 
 fn segments_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) -> bool {
     let offset = if !prefix.is_empty() {
-        if handler_parts.len() != request_parts.len() - 1 || prefix != request_parts[0] {
+        if handler_parts.len() as i32 != request_parts.len() as i32 - 1
+            || prefix != request_parts[0]
+        {
             return false;
         }
         1
