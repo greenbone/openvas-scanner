@@ -10,7 +10,7 @@ use crate::container_image_scanner::{
     Config, ExternalError, detection,
     image::{
         Image, ImageParseError, Registry,
-        extractor::{self, Extractor, ExtractorError, Locator},
+        extractor::{self, Extractor, Locator},
         packages::ToNotus,
     },
     notus,
@@ -94,26 +94,8 @@ where
     T: ToNotus,
 {
     let image: Image = registry.id.image().parse()?;
-    let mut extractor = match E::initialize(config.clone(), registry.id.clone()).await {
-        Ok(x) => x,
-        Err(ExtractorError::Io(error)) => match error.kind() {
-            std::io::ErrorKind::Other if error.to_string().contains("GZIP") => {
-                db::internal_result(
-                    &pool,
-                    registry.id.id(),
-                    ResultType::Error,
-                    Some(registry.id.image()),
-                    format!("GZIP is currently not supported: {error}"),
-                )
-                .await;
-                return Ok(());
-            }
-
-            _ => return Err(ExtractorError::Io(error).into()),
-        },
-        Err(e) => return Err(e.into()),
-    };
-    let mut layers = registry.registry.pull_image(image);
+    let mut extractor = E::initialize(config.clone(), registry.id.clone()).await?;
+    let mut layers = registry.registry.pull_image(image.clone());
     let mut warnings = Vec::new();
     let mut add_warning = |prefix: &dyn Display, error: &dyn Display| {
         warnings.push(format!(
@@ -126,6 +108,8 @@ where
         match packet {
             Ok(layer) => {
                 let lindex = layer.index;
+
+                tracing::trace!(%image, lindex, "extracting");
                 match extractor.push(layer).await {
                     Ok(()) => {}
                     Err(x) => {
