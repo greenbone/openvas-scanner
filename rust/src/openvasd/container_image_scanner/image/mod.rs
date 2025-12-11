@@ -31,22 +31,6 @@ pub struct PackedLayer {
     pub arch: String,
 }
 
-// #[derive(Debug, Clone)]
-// pub struct ID {
-//     pub scan_id: String,
-//     pub client_id: String,
-// }
-//
-// impl ID {
-//     pub fn scan_id(&self) -> &str {
-//         &self.scan_id
-//     }
-//
-//     pub fn client_id(&self) -> &str {
-//         &self.client_id
-//     }
-// }
-
 #[derive(Debug, Clone)]
 pub struct ImageID {
     pub id: String,

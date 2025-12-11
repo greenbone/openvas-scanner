@@ -90,7 +90,6 @@ pub async fn init(
     products: Arc<tokio::sync::RwLock<Notus<HashsumProductLoader>>>,
     config: Config,
 ) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
-    // that's wrong
     let pool = config
         .database
         .create_pool("container-image-scanner")

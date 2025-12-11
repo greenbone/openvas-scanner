@@ -426,7 +426,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                         tracing::debug!("failed to serve connection: {err:#}");
                     }
                     let released = connection_counter.fetch_sub(1, Ordering::SeqCst);
-                    tracing::debug!(released, "released");
+                    tracing::trace!(released, "released");
                 });
             }
         } else {
@@ -454,7 +454,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                     }
 
                     let connection = connection_counter.fetch_sub(1, Ordering::SeqCst);
-                    tracing::debug!(connection, "released");
+                    tracing::trace!(connection, "released");
                 });
             }
         }
