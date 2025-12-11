@@ -78,7 +78,7 @@ in_cksum (u_short *p, int n)
 }
 
 static unsigned long
-maketime ()
+maketime (void)
 {
   struct timeval tv;
   unsigned long ret;
