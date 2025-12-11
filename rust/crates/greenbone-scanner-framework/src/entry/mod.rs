@@ -562,7 +562,7 @@ mod tests {
         );
         let req = test_utilities::empty_request(Method::HEAD, "/test////authn//////");
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
         let headers = resp.headers();
         assert_eq!(
             headers.get("authentication").unwrap(),
@@ -636,15 +636,11 @@ mod tests {
             create_single_handler!(Authenticated {}, NotAuthenticated {}),
             Some(ClientHash::default()),
         );
-        for (method, url) in [
-            (Method::HEAD, "/test/authn/not"),
-            (Method::POST, "/test/authn"),
-        ] {
-            let req = test_utilities::empty_request(method, url);
-            let resp = entry_point.call(req).await.unwrap();
-            assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-        }
+        let req = test_utilities::empty_request(Method::POST, "/test/authn");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
+
     #[tokio::test]
     async fn missing_client_id_on_mtls() {
         let entry_point = test_utilities::entry_point(
@@ -687,7 +683,7 @@ mod tests {
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
 
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
     }
 
     struct PrefixedAuth {}
@@ -724,6 +720,25 @@ mod tests {
 
         let req = Request::builder()
             .uri("/achso/test/wtf")
+            .header("x-api-key", "test")
+            .method(Method::HEAD)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+
+        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn prefixed_no_path() {
+        let entry_point = test_utilities::entry_point(
+            Authentication::ApiKey(vec!["test".to_owned()]),
+            create_single_handler!(PrefixedAuth {}),
+            Some(Default::default()),
+        );
+
+        let req = Request::builder()
+            .uri("/achso")
             .header("x-api-key", "test")
             .method(Method::HEAD)
             .body(Empty::<Bytes>::new())
