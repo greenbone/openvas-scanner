@@ -19,7 +19,7 @@ pub enum Alive {
 impl From<Alive> for StatusCode {
     fn from(val: Alive) -> Self {
         match val {
-            Alive::Alive => StatusCode::NO_CONTENT,
+            Alive::Alive => StatusCode::OK,
             Alive::NotAlive => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
@@ -132,7 +132,7 @@ mod tests {
             .body(Empty::<Bytes>::new())
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     #[tokio::test]

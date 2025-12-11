@@ -19,7 +19,7 @@ pub enum Ready {
 impl From<Ready> for StatusCode {
     fn from(val: Ready) -> Self {
         match val {
-            Ready::Ready => StatusCode::NO_CONTENT,
+            Ready::Ready => StatusCode::OK,
             Ready::NotReady => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
@@ -132,7 +132,7 @@ mod tests {
             .body(Empty::<Bytes>::new())
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     #[tokio::test]
