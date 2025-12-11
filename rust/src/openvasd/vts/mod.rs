@@ -173,7 +173,11 @@ where
     Ok(())
 }
 
-async fn synchronize_feed<T>(ps: &T, feed_hash: FeedHash) -> Result<(), WorkerError>
+async fn synchronize_feed<T>(
+    ps: &T,
+    feed_hash: FeedHash,
+    signature_check: bool,
+) -> Result<(), WorkerError>
 where
     T: PluginStorer + Send + Sync + 'static,
 {
@@ -181,7 +185,7 @@ where
         FeedType::Products => tracing::debug!(?feed_hash.typus, "Not supported, ignoring."),
         FeedType::Advisories => {
             ps.store_hash(&feed_hash).await?;
-            synchronize_advisories(ps, feed_hash.path, feed_hash.hash).await?
+            synchronize_advisories(ps, feed_hash.path, feed_hash.hash, signature_check).await?
         }
         FeedType::NASL => {
             ps.store_hash(&feed_hash).await?;
@@ -195,6 +199,7 @@ async fn synchronize_advisories<T>(
     ps: &T,
     path: PathBuf,
     new_hash: String,
+    signature_check: bool,
 ) -> Result<(), WorkerError>
 where
     T: PluginStorer + Send + Sync + 'static,
@@ -215,7 +220,7 @@ where
             .iter()
         {
             let advisories = advisories_files
-                .load_advisory(filename)
+                .load_advisory(filename, signature_check)
                 .map_err(error_vts_error)?;
             for adv in advisories.advisories {
                 let data = VulnerabilityData {

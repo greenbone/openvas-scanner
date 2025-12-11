@@ -62,7 +62,7 @@ Ensure (lsc, process_resp)
 {
   advisories_t *advisories = NULL;
 
-  advisories = process_notus_response (resp_str, strlen (resp_str));
+  advisories = lsc_process_response (resp_str, strlen (resp_str));
   assert_that ((*advisories).count, is_equal_to (2));
 
   assert_that ((*advisories).advisories[0]->count, is_equal_to (2));

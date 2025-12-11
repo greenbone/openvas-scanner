@@ -149,6 +149,12 @@ impl From<Port> for u16 {
     }
 }
 
+impl From<u16> for Port {
+    fn from(value: u16) -> Self {
+        Port(value)
+    }
+}
+
 impl FromNaslValue<'_> for Port {
     fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {
         let port = i64::from_nasl_value(value)?;
