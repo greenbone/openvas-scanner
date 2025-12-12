@@ -21,7 +21,10 @@ use tokio::{
 use tracing::{debug, warn};
 
 use crate::container_image_scanner;
-use scannerlib::notus::{HashsumProductLoader, Notus};
+use scannerlib::{
+    models::ResultType,
+    notus::{HashsumProductLoader, Notus},
+};
 
 mod db;
 mod scanner;
@@ -297,20 +300,37 @@ where
                             }
                         }
                         Err(err) => {
-                            match &err {
-                                ScanImageError::ScannerError(
-                                    scanner::ScannerError::NonInterrupting(items),
-                                ) => {
-                                    warn!(error = %err, "Image failed");
-                                    for e in items {
-                                        warn!(error = %e, "Underlying issue");
-                                    }
-                                }
-                                e => warn!(error = %e, "Image failed"),
-                            }
-
                             if let Err(e) = db::image_failed(&pool, &id).await {
                                 warn!(error = %e, ?id, "Unable to update scan hosts information.");
+                            }
+                            match &err {
+                                ScanImageError::ScannerError(
+                                    //TODO: The name and design is misleading.
+                                    scanner::ScannerError::NonInterrupting(items),
+                                ) => {
+                                    for e in items {
+                                        warn!(error = %e, "Image failed.");
+                                        db::internal_result(
+                                            &pool,
+                                            &id.id,
+                                            ResultType::Error,
+                                            Some(id.image.clone()),
+                                            e.clone(),
+                                        )
+                                        .await;
+                                    }
+                                }
+                                e => {
+                                    db::internal_result(
+                                        &pool,
+                                        &id.id,
+                                        ResultType::Error,
+                                        Some(id.image.clone()),
+                                        e.to_string(),
+                                    )
+                                    .await;
+                                    warn!(error = %e, "Image failed");
+                                }
                             }
                         }
                     }
