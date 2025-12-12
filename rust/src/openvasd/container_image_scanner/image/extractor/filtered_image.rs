@@ -198,7 +198,7 @@ fn unpack_layer(
         Ok(x) => Ok(x),
         Err(error) => {
             tracing::debug!(%error, "We try one more time with cursor as the first file name may start with a magic header");
-            unpack(target_dir, predicate, std::io::Cursor::new(layer))
+            unpack(target_dir, predicate, std::io::Cursor::new(layer)).map_err(|_| error)
         }
     }
 }
