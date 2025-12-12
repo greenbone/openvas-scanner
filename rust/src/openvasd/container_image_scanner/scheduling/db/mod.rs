@@ -123,6 +123,7 @@ async fn start_scan(pool: &Pool<Sqlite>, id: &str) -> Result<(), sqlx::error::Er
         .bind(status)
         .bind(id)
     }
+
     with_scan_status(pool, id, |status| {
         let mut queries = Vec::new();
 
@@ -335,7 +336,9 @@ pub async fn set_scan_images(
     if success_count > 0 {
         let mut builder = QueryBuilder::new("INSERT OR IGNORE INTO images (id, image)");
         builder.push_values(images.into_iter().filter_map(|x| x.ok()), |mut b, image| {
-            b.push_bind(id).push_bind(image.to_string());
+            let oci = image.to_string();
+            tracing::debug!(oci, "Resolved");
+            b.push_bind(id).push_bind(oci);
         });
         let query = builder.build();
         query.execute(&mut *tx).await?;
