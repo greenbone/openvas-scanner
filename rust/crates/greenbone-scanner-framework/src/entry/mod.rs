@@ -215,8 +215,6 @@ impl RequestHandlers {
                         );
                         if req.method() == Method::HEAD && is_authenticated {
                             return BodyKind::no_content(StatusCode::NO_CONTENT);
-                        } else if req.method() == Method::HEAD && !is_authenticated {
-                            return BodyKind::no_content(StatusCode::UNAUTHORIZED);
                         }
                         if req.method() == rh.http_method() {
                             let uri = req.uri().clone();
