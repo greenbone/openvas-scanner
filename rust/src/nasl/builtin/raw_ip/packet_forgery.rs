@@ -1729,7 +1729,13 @@ fn dump_icmp_packet(positional: CheckedPositionals<Ipv4Packet>) -> Result<NaslVa
 // The line just tries to allow another linting rule, so disabling the `unexpected_cfg` lint
 // here should be reasonably safe.
 // https://github.com/libpnet/libpnet/blob/a01aa493e2ecead4c45e7322b6c5f7ab29e8a985/pnet_macros/src/decorator.rs#L1138
-#[allow(unexpected_cfgs)]
+//
+// Allowing this lint on a module basis does not work currently:
+// https://github.com/rust-lang/rust/issues/124735
+// so we have to allow it library wide. See src/lib.rs
+//
+// The following line is useless:
+// #[allow(unexpected_cfgs)]
 mod igmp {
     use std::net::Ipv4Addr;
 
