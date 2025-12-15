@@ -200,10 +200,8 @@ impl RequestHandlers {
                 .filter(|x| !x.is_empty())
                 .collect::<Vec<_>>();
 
-            let mut has_match = false;
             for rh in callbacks {
                 if segments_match(rh.prefix(), rh.path_segments(), &segments) {
-                    has_match = true;
                     let needs_authentication = rh.needs_authentication();
                     let is_authenticated =
                         matches!(&*client_identifier, &ClientIdentifier::Known(_));
@@ -213,9 +211,15 @@ impl RequestHandlers {
                             rh.prefix(),
                             rh.path_segments().join("/")
                         );
-                        if req.method() == Method::HEAD && is_authenticated {
-                            return BodyKind::no_content(StatusCode::NO_CONTENT);
-                        }
+
+                        if (req.method() == Method::HEAD
+                            && rh.path_segments()[0] == "scans"
+                            && is_authenticated)
+                            || (req.method() == Method::HEAD && rh.path_segments()[0] != "scans")
+                        {
+                            return BodyKind::no_content(StatusCode::OK);
+                        };
+
                         if req.method() == rh.http_method() {
                             let uri = req.uri().clone();
                             let body = req.into_body();
@@ -232,9 +236,6 @@ impl RequestHandlers {
                         return BodyKind::no_content(StatusCode::UNAUTHORIZED);
                     }
                 }
-            }
-            if req.method() == Method::HEAD && !has_match {
-                return BodyKind::no_content(StatusCode::OK);
             }
 
             BodyKind::no_content(StatusCode::NOT_FOUND)
