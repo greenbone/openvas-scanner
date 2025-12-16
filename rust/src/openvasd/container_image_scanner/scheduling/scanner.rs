@@ -56,7 +56,22 @@ where
     L: Locator + Send + Sync,
     T: ToNotus,
 {
-    let os = detection::operating_system(locator).await?;
+    use detection::OperatingSystemDetectionError as OSDE;
+    let os = match detection::operating_system(locator).await {
+        Ok(x) => x,
+        Err(OSDE::NotFound | OSDE::Unknown) => {
+            db::internal_result(
+                pool,
+                id,
+                ResultType::Log,
+                Some(image),
+                "No operating system information found.".to_string(),
+            )
+            .await;
+            return Ok(vec![]);
+        }
+        Err(e) => return Err(ScannerArchImageError::NoOS(e.into())),
+    };
     let packages = T::packages(locator).await;
     db::internal_result(
         pool,
