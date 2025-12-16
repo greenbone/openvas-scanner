@@ -2,6 +2,10 @@
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER head.hurl --test
 #HEAD /scans
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER head_scans.hurl --test
+hurl -k --variable server=$OPENVASD_SERVER head_scans_unauthorized.hurl --test
+hurl -k --variable server=$OPENVASD_SERVER head_notus.hurl --test
+hurl -k --variable server=$OPENVASD_SERVER head_vts.hurl --test
+hurl -k --variable server=$OPENVASD_SERVER head_health_alive.hurl --test
 
 #POST /scans
 # scan_id=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER post_scan.hurl --test)
@@ -37,10 +41,6 @@ hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_notus.hurl --test
 #POST /notus/{os}
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=https://integration.openvas-detect.greenbone.io:443 --variables-file config.env post_notus_os.hurl --test
-
-
-
-
 
 
 #Start and Stop a scan
