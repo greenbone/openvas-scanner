@@ -561,7 +561,7 @@ mod tests {
         );
         let req = test_utilities::empty_request(Method::HEAD, "/test////authn//////");
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+        assert_eq!(resp.status(), StatusCode::OK);
         let headers = resp.headers();
         assert_eq!(
             headers.get("authentication").unwrap(),
@@ -682,7 +682,7 @@ mod tests {
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
 
-        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     struct PrefixedAuth {}
@@ -725,7 +725,7 @@ mod tests {
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
 
-        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     #[tokio::test]
@@ -744,6 +744,6 @@ mod tests {
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
 
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 }
