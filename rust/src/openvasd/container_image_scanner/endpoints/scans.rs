@@ -891,14 +891,18 @@ mod test {
             let result: Vec<_> = result.collect().await;
 
             let result: Vec<_> = result.into_iter().filter_map(|x| x.ok()).collect();
-            // 2 new internal log messages
+
+            let internal: Vec<_> = result
+                .iter()
+                .filter(|x| {
+                    x.oid.as_ref().map_or("", |x| x as &str) == "openvasd/container-image-scanner"
+                })
+                .collect();
+            dbg!(&internal);
+            // internal log messages per found host
             assert_eq!(
-                result
-                    .iter()
-                    .filter_map(|x| x.oid.as_ref())
-                    .filter(|x| x as &str == "openvasd/container-image-scanner")
-                    .count(),
-                2,
+                internal.len(),
+                fakes.success_scan().target.hosts.len(),
                 "Expected internal log messages"
             );
             assert_eq!(
