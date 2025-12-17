@@ -7,7 +7,6 @@ use container_image_scanner::{
     image::{Credential, Image, ImageID, packages::ToNotus},
 };
 use db::{ProcessingImage, RequestedScans};
-use futures::future::join_all;
 use greenbone_scanner_framework::models;
 use scanner::ScannerError;
 use sqlx::{Sqlite, SqlitePool};
@@ -16,6 +15,7 @@ use tokio::{
         RwLock,
         mpsc::{Receiver, Sender},
     },
+    task::JoinSet,
     time,
 };
 use tracing::{debug, warn};
@@ -172,11 +172,16 @@ where
         let max_concurrent_scans = 2;
 
         let requested = RequestedScans::fetch(&pool, max_concurrent_scans).await;
+        let mut js = JoinSet::new();
         for r in requested {
-            if let Err(error) = Self::resolve_and_store_images(r, pool.clone()).await {
-                tracing::warn!(%error, "Unable to set image status after fetching the images");
-            }
+            let pool = pool.clone();
+            js.spawn(async move {
+                if let Err(error) = Self::resolve_and_store_images(r, pool).await {
+                    tracing::warn!(%error, "Unable to set image status after fetching the images");
+                }
+            });
         }
+        js.join_all().await;
         Self::scan_images::<T>(config, pool.clone(), products).await;
         if let Err(error) = db::set_scans_to_finished(&pool).await {
             tracing::warn!(%error, "Unable to set scans to finished");
@@ -279,57 +284,53 @@ where
         let scans = Self::set_images_to_scanning(config.clone(), &pool)
             .await
             .unwrap();
-        let join_handler = scans
-            .into_iter()
-            .map(|(id, credentials)| {
-                let pool = pool.clone();
-                let config = config.clone();
-                let products = products.clone();
-                tokio::task::spawn(async move {
-                    let result =
-                        Self::scan_image::<T>(config, pool.clone(), products, &id, credentials)
-                            .await;
-                    match result {
-                        Ok(_) => {
-                            if let Err(e) = db::image_success(&pool, &id).await {
-                                warn!(error = %e, ?id, "Unable to update scan hosts information.");
-                            }
-                        }
-                        Err(err) => {
-                            tracing::warn!(error=%err);
-                            if let Err(e) = db::image_failed(&pool, &id).await {
-                                warn!(error = %e, ?id, "Unable to update scan hosts information.");
-                            }
-                            let msgs = match &err {
-                                ScanImageError::ScannerError(
-                                    //TODO: The name and design is misleading.
-                                    scanner::ScannerError::NonInterrupting(items),
-                                ) => items
-                                    .iter()
-                                    .map(|msg| {
-                                        CustomerMessage::error(
-                                            Some(id.image.clone()),
-                                            msg.to_owned(),
-                                            None,
-                                        )
-                                    })
-                                    .collect(),
-                                e => {
-                                    vec![CustomerMessage::error(
-                                        Some(id.image.clone()),
-                                        format!("Unable to scan image: {e}."),
-                                        None,
-                                    )]
-                                }
-                            };
-                            messages::store(&pool, id.id(), &msgs).await
+        let mut js = JoinSet::new();
+        for (id, credentials) in scans {
+            let pool = pool.clone();
+            let config = config.clone();
+            let products = products.clone();
+            js.spawn(async move {
+                let result =
+                    Self::scan_image::<T>(config, pool.clone(), products, &id, credentials).await;
+                match result {
+                    Ok(_) => {
+                        if let Err(e) = db::image_success(&pool, &id).await {
+                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
                         }
                     }
-                })
-            })
-            .collect::<Vec<_>>();
-
-        join_all(join_handler).await;
+                    Err(err) => {
+                        tracing::warn!(error=%err);
+                        if let Err(e) = db::image_failed(&pool, &id).await {
+                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
+                        }
+                        let msgs = match &err {
+                            ScanImageError::ScannerError(
+                                //TODO: The name and design is misleading.
+                                scanner::ScannerError::NonInterrupting(items),
+                            ) => items
+                                .iter()
+                                .map(|msg| {
+                                    CustomerMessage::error(
+                                        Some(id.image.clone()),
+                                        msg.to_owned(),
+                                        None,
+                                    )
+                                })
+                                .collect(),
+                            e => {
+                                vec![CustomerMessage::error(
+                                    Some(id.image.clone()),
+                                    format!("Unable to scan image: {e}."),
+                                    None,
+                                )]
+                            }
+                        };
+                        messages::store(&pool, id.id(), &msgs).await
+                    }
+                }
+            });
+        }
+        js.join_all().await;
     }
 
     pub(crate) async fn check_for_message(&mut self) -> Option<()> {
