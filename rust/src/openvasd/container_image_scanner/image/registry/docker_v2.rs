@@ -150,7 +150,7 @@ impl Registry {
                         image: Some(repository.to_owned()),
                         tag: Some(x),
                     };
-                    tracing::debug!(%image, "resolved image.");
+                    tracing::trace!(%image, "Found");
                     Ok(image)
                 }
                 Err(x) => {
@@ -335,6 +335,7 @@ impl super::Registry for Registry {
                 .iter()
                 .enumerate()
                 .map(|(i, (architecture, digest))| {
+                    // TODO: abstract client have the chance for relogin
                     let blob = client.get_blob(
                         image
                             .image()
@@ -389,181 +390,356 @@ where
 pub mod fake {
     use std::collections::{HashMap, HashSet};
 
+    use itertools::Itertools;
     use mockito::Matcher;
     use sha2::{Digest, Sha256};
 
     use crate::container_image_scanner::image::Image;
 
-    pub struct RegistryMock {
-        pub server: mockito::ServerGuard,
-        // the mocks must be stored otherwise the Server will return 501
-        mocks: Vec<mockito::Mock>,
+    fn hash_hex(input: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(input);
+        let result = hasher.finalize();
+        hex::encode(result)
     }
 
-    impl RegistryMock {
-        fn authentication_mock(server: &mut mockito::ServerGuard) -> Vec<mockito::Mock> {
-            vec![
-                server
-                    .mock("GET", "/v2/")
-                    .with_status(401)
-                    .with_header(
-                        "WWW-Authenticate",
-                        &format!(r#"Bearer realm="http://{}/token""#, server.host_with_port()),
-                    )
-                    .create(),
-                server
-                    .mock("GET", "/token")
-                    .match_query(Matcher::Any)
-                    .with_status(200)
-                    .with_header("Content-Type", "application/json")
-                    .with_body(r#"{"token": "waldfee"}"#)
-                    .create(),
-            ]
+    fn digest(input: &[u8]) -> String {
+        format!("sha256:{}", hash_hex(input))
+    }
+
+    #[derive(Debug, Clone)]
+    struct Layer<'a> {
+        data: &'a [u8],
+    }
+
+    impl<'a> From<&'a [u8]> for Layer<'a> {
+        fn from(value: &'a [u8]) -> Self {
+            Self { data: value }
+        }
+    }
+
+    impl<'a> Layer<'a> {
+        fn size(&self) -> usize {
+            self.data.len()
         }
 
-        fn catalog_mocks(
-            server: &mut mockito::ServerGuard,
-            repos: Vec<String>,
-        ) -> Vec<mockito::Mock> {
-            let repos = format!(
-                "{{\"repositories\": [{}]}}",
-                repos
-                    .iter()
-                    .map(|x| format!("\"{x}\""))
-                    .collect::<Vec<_>>()
-                    .join(",")
-            );
-
-            vec![
-                server
-                    .mock("GET", "/v2/_catalog")
-                    .with_status(200)
-                    .with_header("Content-Type", "application/json")
-                    .with_body(repos)
-                    .create(),
-            ]
+        fn digest(&self) -> String {
+            digest(self.data)
         }
 
-        fn tag_list_mocks(
+        fn json(&self) -> String {
+            format!(
+                r#" {{ "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip", "size": {}, "digest": "{}" }}"#,
+                self.size(),
+                self.digest()
+            )
+        }
+
+        pub fn mock(
+            &self,
             server: &mut mockito::ServerGuard,
-            image: String,
-            tags: Vec<String>,
-        ) -> Vec<mockito::Mock> {
-            let tags = format!(
-                r#"{{"name": "{}", "tags": [ {} ]}}"#,
+            image: &Image,
+            status_code: usize,
+        ) -> mockito::Mock {
+            let url = format!("/v2/{}/blobs/{}", image.image().unwrap(), self.digest());
+            server
+                .mock("GET", &url as &str)
+                .with_status(status_code)
+                .with_body(self.data)
+                .create()
+        }
+    }
+
+    struct BlobConfig<'a> {
+        image: &'a Image,
+        digest: String,
+        architecture: String,
+        layer: Vec<Layer<'a>>,
+    }
+
+    impl<'a> BlobConfig<'a> {
+        pub fn new(image: &'a Image, architecture: String, layer: Vec<Layer<'a>>) -> Self {
+            let digest = digest(image.to_string().as_bytes());
+            Self {
                 image,
-                tags.iter()
-                    .map(|x| format!("\"{x}\""))
-                    .collect::<Vec<_>>()
-                    .join(",")
+                digest,
+                architecture,
+                layer,
+            }
+        }
+
+        pub fn size(&self) -> usize {
+            self.layer.iter().map(|x| x.size()).sum()
+        }
+
+        pub fn json(&self) -> String {
+            format!(
+                r#"{{"architecture": "{}", "config": {{ "Labels": null}}}}"#,
+                self.architecture
+            )
+        }
+
+        pub fn mock(&self, server: &mut mockito::ServerGuard, status_code: usize) -> mockito::Mock {
+            let bobconfig_url =
+                format!("/v2/{}/blobs/{}", self.image.image().unwrap(), self.digest);
+
+            server
+                .mock("GET", &bobconfig_url as &str)
+                .with_status(status_code)
+                .with_body(self.json())
+                .create()
+        }
+    }
+
+    pub struct Catalog<'a> {
+        images: &'a [Image],
+    }
+
+    impl<'a> Catalog<'a> {
+        pub fn json(&self) -> String {
+            let repos = self
+                .images
+                .iter()
+                .filter_map(|x| x.image.as_ref())
+                .map(|x| format!(r#""{x}""#))
+                .unique()
+                .join(",");
+            format!("{{\"repositories\": [{}]}}", repos)
+        }
+
+        fn mock(&self, server: &mut mockito::ServerGuard, status_code: usize) -> mockito::Mock {
+            server
+                .mock("GET", "/v2/_catalog")
+                .with_status(status_code)
+                .with_header("Content-Type", "application/json")
+                .with_body(self.json())
+                .create()
+        }
+    }
+
+    pub struct Manifest<'a> {
+        blobconfig: BlobConfig<'a>,
+    }
+
+    impl<'a> Manifest<'a> {
+        pub fn json(&self) -> String {
+            let blob_size = self.blobconfig.size();
+            let blob_digest = &self.blobconfig.digest;
+            let layers = self.blobconfig.layer.iter().map(|x| x.json()).join(",");
+            format!(
+                r#"{{ 
+  "schemaVersion": 2,
+  "config": {{
+      "mediaType": "application/vnd.docker.container.image.v1+json",
+      "size": {blob_size},
+      "digest": "{blob_digest}"
+   }},
+  "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+  "layers": [
+    {layers}
+  ]
+}}"#
+            )
+        }
+
+        fn mock(&self, server: &mut mockito::ServerGuard, status_code: usize) -> mockito::Mock {
+            let path = format!(
+                "/v2/{}/manifests/{}",
+                self.blobconfig.image.image().unwrap(),
+                self.blobconfig.image.tag().unwrap()
             );
-            let uri = format!("/v2/{image}/tags/list");
-            //let addr = server.host_with_port();
-            vec![
-                server
-                    .mock("GET", &uri as &str)
-                    .with_status(200)
-                    .with_body(tags)
-                    .with_header("Content-Type", "application/json")
-                    //.with_header(
-                    //    "Link",
-                    //    &format!(r#"<{}/v2/_tags?n=1&next_page=t1>; rel="next""#, addr),
-                    //)
-                    .create(),
-            ]
+            server
+                .mock("GET", &path as &str)
+                .with_status(status_code)
+                .with_header(
+                    "Content-Type",
+                    "application/vnd.docker.distribution.manifest.v2+json",
+                )
+                .with_header(
+                    "docker-content-digest",
+                    "application/vnd.docker.distribution.manifest.v2+json",
+                )
+                .with_body(self.json())
+                .create()
         }
+    }
 
-        fn hash_hex(input: &[u8]) -> String {
-            let mut hasher = Sha256::new();
-            hasher.update(input);
-            let result = hasher.finalize();
-            hex::encode(result)
-        }
+    pub struct Pull<'a> {
+        images: &'a [Image],
+    }
 
-        fn pull_mocks(server: &mut mockito::ServerGuard) -> Vec<mockito::Mock> {
+    impl<'a> Pull<'a> {
+        fn mocks(
+            &self,
+            server: &mut mockito::ServerGuard,
+            status_codes: Vec<usize>,
+        ) -> Vec<mockito::Mock> {
             const NICHTSFREI_VICTIM_LAYER: &[u8] = include_bytes!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/test-data/layers/victim.tar.gz"
             ));
-            let size = NICHTSFREI_VICTIM_LAYER.len();
-            let hash_victim_layer = Self::hash_hex(NICHTSFREI_VICTIM_LAYER);
-            let hash_blob_config = Self::hash_hex("4242".as_bytes());
 
-            let nichtsfrei_victim_latest = format!(
-                r#"
-       {{
-         "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-         "size": {size},
-         "digest": "sha256:{hash_victim_layer}"
+            // we currently just have one layer example and are repeating it for each image.
+            let layer = vec![Layer::from(NICHTSFREI_VICTIM_LAYER)];
 
-      }}
-      "#
-            );
+            let manifests = self.images.iter().map(|image| {
+                let manifest = Manifest {
+                    blobconfig: BlobConfig::new(image, "amd64".to_owned(), layer.clone()),
+                };
+                FakeResponses::Manifest(manifest)
+            });
 
-            let manifest_json = format!(
-                r#"
-{{ 
-  "schemaVersion": 2,
-  "config": {{
-      "mediaType": "application/vnd.docker.container.image.v1+json",
-      "size": {size},
-      "digest": "sha256:{hash_blob_config}"
-   }},
-  "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
-  "layers": [
-    {nichtsfrei_victim_latest}
-  ]
-}}
+            manifests
+                .flat_map(|x| x.mocks(server, status_codes.clone()))
+                .collect()
+        }
+    }
 
-            "#
-            );
+    pub struct Tags<'a> {
+        images: &'a [Image],
+    }
 
-            vec![
-                server
-                    .mock("GET", "/v2/nichtsfrei/victim/manifests/v1")
-                    .with_status(200)
-                    .with_header(
-                        "Content-Type",
-                        "application/vnd.docker.distribution.manifest.v2+json",
-                    )
-                    .with_header(
-                        "docker-content-digest",
-                        "application/vnd.docker.distribution.manifest.v2+json",
-                    )
-                    .with_body(manifest_json.clone())
-                    .create(),
-                server
-                    .mock("GET", "/v2/nichtsfrei/victim/manifests/latest")
-                    .with_status(200)
-                    .with_header(
-                        "Content-Type",
-                        "application/vnd.docker.distribution.manifest.v2+json",
-                    )
-                    .with_header(
-                        "docker-content-digest",
-                        "application/vnd.docker.distribution.manifest.v2+json",
-                    )
-                    .with_body(manifest_json)
-                    .create(),
-                server
-                    .mock(
-                        "GET",
-                        &format!("/v2/nichtsfrei/victim/blobs/sha256:{hash_blob_config}") as &str,
-                    )
-                    .with_status(200)
-                    .with_body(r#"{"architecture": "amd64", "config": { "Labels": null}}"#)
-                    .create(),
-                server
-                    .mock(
-                        "GET",
-                        &format!("/v2/nichtsfrei/victim/blobs/sha256:{hash_victim_layer}") as &str,
-                    )
-                    .with_status(200)
-                    .with_body(NICHTSFREI_VICTIM_LAYER)
-                    .create(),
-            ]
+    impl<'a> Tags<'a> {
+        pub fn mocks(
+            &self,
+            server: &mut mockito::ServerGuard,
+            mut status_codes: Vec<usize>,
+        ) -> Vec<mockito::Mock> {
+            let lookup_table: HashMap<String, HashSet<String>> = self
+                .images
+                .iter()
+                .cloned()
+                .filter_map(|entry| entry.image.map(|image| (image, entry.tag)))
+                .fold(HashMap::new(), |mut table, (image, tag)| {
+                    let entry = table.entry(image).or_default();
+                    if let Some(tag) = tag {
+                        entry.insert(tag);
+                    }
+                    table
+                });
+            let mut mocks = Vec::with_capacity(self.images.len());
+            for (image, tags) in lookup_table {
+                let tags = format!(
+                    r#"{{"name": "{}", "tags": [ {} ]}}"#,
+                    image,
+                    tags.iter()
+                        .map(|x| format!("\"{x}\""))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                );
+
+                let uri = format!("/v2/{image}/tags/list");
+                mocks.push(
+                    server
+                        .mock("GET", &uri as &str)
+                        .with_status(status_codes.pop().unwrap_or(200))
+                        .with_body(tags)
+                        .with_header("Content-Type", "application/json")
+                        //.with_header(
+                        //    "Link",
+                        //    &format!(r#"<{}/v2/_tags?n=1&next_page=t1>; rel="next""#, addr),
+                        //)
+                        .create(),
+                );
+            }
+            mocks
+        }
+    }
+
+    pub enum FakeResponses<'a> {
+        Authenticated,
+        Catalog(Catalog<'a>),
+        Tags(Tags<'a>),
+        Manifest(Manifest<'a>),
+        Pull(Pull<'a>),
+    }
+
+    impl<'a> FakeResponses<'a> {
+        fn mock_count(&self) -> usize {
+            match self {
+                FakeResponses::Manifest(manifest) => 1 + 1 + manifest.blobconfig.layer.len(),
+                FakeResponses::Catalog(_) => 1,
+                FakeResponses::Pull(pull) => pull.images.len() * 3,
+                FakeResponses::Authenticated => 2,
+                FakeResponses::Tags(tags) => tags.images.len(),
+            }
         }
 
+        fn mocks(
+            &self,
+            server: &mut mockito::ServerGuard,
+            mut status_codes: Vec<usize>,
+        ) -> Vec<mockito::Mock> {
+            let mut next_sc = || status_codes.pop().unwrap_or(200);
+
+            match self {
+                FakeResponses::Manifest(manifest) => {
+                    let mut results = Vec::with_capacity(self.mock_count());
+                    results.push(manifest.mock(server, next_sc()));
+                    results.push(manifest.blobconfig.mock(server, next_sc()));
+                    for l in manifest.blobconfig.layer.iter() {
+                        results.push(l.mock(server, manifest.blobconfig.image, next_sc()));
+                    }
+                    results
+                }
+                FakeResponses::Catalog(catalog) => vec![catalog.mock(server, next_sc())],
+                FakeResponses::Pull(pull) => pull.mocks(server, status_codes),
+                FakeResponses::Authenticated => {
+                    vec![
+                        server
+                            .mock("GET", "/v2/")
+                            .with_status(401)
+                            .with_header(
+                                "WWW-Authenticate",
+                                &format!(
+                                    r#"Bearer realm="http://{}/token""#,
+                                    server.host_with_port()
+                                ),
+                            )
+                            .create(),
+                        server
+                            .mock("GET", "/token")
+                            .match_query(Matcher::Any)
+                            .with_status(200)
+                            .with_header("Content-Type", "application/json")
+                            .with_body(r#"{"token": "waldfee"}"#)
+                            .create(),
+                    ]
+                }
+                FakeResponses::Tags(tags) => tags.mocks(server, status_codes),
+            }
+        }
+    }
+
+    pub struct RegistryMock {
+        pub server: mockito::ServerGuard,
+        // the mocks must be stored otherwise the Server will return 501
+        _mocks: Vec<mockito::Mock>,
+    }
+
+    struct PortExpander {
+        ports: Vec<usize>,
+    }
+
+    impl From<&[usize]> for PortExpander {
+        fn from(value: &[usize]) -> Self {
+            let mut ports = value.to_owned();
+            ports.reverse();
+            Self { ports }
+        }
+    }
+
+    impl PortExpander {
+        fn expand(&mut self, fr: &FakeResponses) -> Vec<usize> {
+            let mut result = Vec::with_capacity(fr.mock_count());
+            for _ in 0..fr.mock_count() {
+                result.push(self.ports.pop().unwrap_or(200));
+            }
+            result
+        }
+    }
+
+    impl RegistryMock {
         pub fn supported_images() -> Vec<Image> {
             vec![
                 Image {
@@ -580,12 +756,6 @@ pub mod fake {
             ]
         }
 
-        async fn authenticated() -> Self {
-            let mut server = mockito::Server::new_async().await;
-            let mocks = Self::authentication_mock(&mut server);
-            RegistryMock { server, mocks }
-        }
-
         /// Creates a registry v2 mock that can be used for testing
         ///
         /// Creates caralog and image list for each given image, but manifest as well as bloc
@@ -593,33 +763,32 @@ pub mod fake {
         /// layer available at the moment.
         ///
         /// If new entries are added to the build.rs and inside `test-data/;layers` those
-        /// manifest_mocks needs to be extended.
-        pub async fn serve_images(images: Vec<Image>) -> Self {
-            let mut result = Self::authenticated().await;
-            let lookup_table: HashMap<String, HashSet<String>> = images
-                .into_iter()
-                .filter_map(|entry| entry.image.map(|image| (image, entry.tag)))
-                .fold(HashMap::new(), |mut table, (image, tag)| {
-                    let entry = table.entry(image).or_default();
-                    if let Some(tag) = tag {
-                        entry.insert(tag);
-                    }
-                    table
-                });
+        /// manifest_mocks needs to be extended within FakeResponses::Pull.
+        pub async fn serve_images(images: &[Image], status_codes: &[usize]) -> Self {
+            let mut port_expander: PortExpander = status_codes.into();
+            let mut server = mockito::Server::new_async().await;
+            let mocks = [
+                FakeResponses::Authenticated,
+                FakeResponses::Catalog(Catalog { images }),
+                FakeResponses::Tags(Tags { images }),
+                FakeResponses::Pull(Pull { images }),
+            ]
+            .iter()
+            .flat_map(|x| x.mocks(&mut server, port_expander.expand(x)))
+            .collect();
 
-            let server = &mut result.server;
-            let mocks = &mut result.mocks;
-
-            let repos = lookup_table.keys().cloned().collect();
-            mocks.extend(Self::catalog_mocks(server, repos));
-
-            for (image, tags) in lookup_table {
-                let tags = tags.into_iter().collect();
-                mocks.extend(Self::tag_list_mocks(server, image, tags));
+            Self {
+                server,
+                _mocks: mocks,
             }
-            mocks.extend(Self::pull_mocks(server));
+        }
 
-            result
+        pub async fn from_images(value: &[Image]) -> Self {
+            Self::serve_images(value, &[]).await
+        }
+
+        pub async fn serve_default() -> Self {
+            Self::from_images(&Self::supported_images()).await
         }
 
         pub fn address(&self) -> String {
@@ -673,7 +842,7 @@ mod tests {
             },
         ];
 
-        let server = RegistryMock::serve_images(images.clone()).await;
+        let server = RegistryMock::from_images(&images).await;
 
         let addr = server.server.host_with_port();
 
@@ -703,7 +872,7 @@ mod tests {
             tag: "latest".to_owned().into(),
         };
 
-        let server = RegistryMock::serve_images(vec![image.clone()]).await;
+        let server = RegistryMock::from_images(&[image.clone()]).await;
 
         image.registry = server.server.host_with_port();
 
