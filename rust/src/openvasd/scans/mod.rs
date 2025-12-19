@@ -1,4 +1,4 @@
-use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
+use std::{collections::HashSet, num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
@@ -55,6 +55,18 @@ impl From<crypt::ParseError> for Error {
     fn from(value: crypt::ParseError) -> Self {
         Error::Crypt(value)
     }
+}
+
+fn validate_no_duplicate_credential_services(
+    credentials: &[models::Credential],
+) -> Result<(), String> {
+    let mut seen_services = HashSet::new();
+    for cred in credentials {
+        if !seen_services.insert(&cred.service) {
+            return Err(cred.service.as_ref().to_string());
+        }
+    }
+    Ok(())
 }
 
 async fn scan_insert<C>(
@@ -209,6 +221,11 @@ where
         let annoying = scan.scan_id.clone();
         Box::pin(async move {
             tracing::debug!(client_id, ?scan);
+            if let Err(service) =
+                validate_no_duplicate_credential_services(&scan.target.credentials)
+            {
+                return Err(PostScansError::DuplicateCredentialService(service));
+            }
             scan_insert(&self.pool, self.crypter.as_ref(), &client_id, scan)
                 .await
                 .map_err(|x| match x {
