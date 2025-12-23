@@ -16,7 +16,11 @@ pub mod tests {
         let args = Args::get_all();
         let cli = new_client(args.api_key(), args.cert(), args.key());
 
-        let status = match cli.head(args.openvasd()).send().await {
+        let status = match cli
+            .head(format!("{}/{}", args.openvasd(), "health/alive"))
+            .send()
+            .await
+        {
             Ok(res) => res.status().is_success(),
             Err(_) => false,
         };
