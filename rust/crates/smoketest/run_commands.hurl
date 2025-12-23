@@ -1,3 +1,10 @@
+#!/bin/bash
+
+## Required environment variables:
+# CLIENT_CERT
+# CLIENT_KEY
+# OPENVASD_SERVER
+
 #HEAD /
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER head.hurl --test
 #HEAD /scans
@@ -18,9 +25,14 @@ hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file config.env --variables-file hurl_variables get_scans_id.hurl --test
 #POST /scans/{id}
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables start_scan.hurl --test
-hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables stop_scan.hurl --test
-#DELETE /scans{id}
-hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables delete.hurl --test
+
+# run until it finishes or fails
+
+status=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_status.hurl --variables-file hurl_variables |jq  -r ".status")
+while [[ "$status" != "succeeded" && "$status" != "stopped" && "$status" && "failed" ]]; do
+    status=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER  get_status.hurl --variables-file hurl_variables |jq -r ".status")
+done
+
 #GET /scans/{id}/results
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file config.env --variables-file hurl_variables --variable currentDate="$(date '+%a %b %d')" get_results.hurl --test
 #GET /scans/{id}/results/{rid}
@@ -29,6 +41,8 @@ hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file config.env --variables-file hurl_variables get_status_assert.hurl get_status.hurl --test
 #GET /vts
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_vts.hurl --test
+#DELETE /scans{id}
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables delete.hurl --test
 
 #GET /health/alive
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_health_alive.hurl --test
@@ -39,12 +53,16 @@ hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER
 
 #GET /notus
 hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER get_notus.hurl --test
-#POST /notus/{os}
-hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=https://integration.openvas-detect.greenbone.io:443 --variables-file config.env post_notus_os.hurl --test
+#POST /notus/debian_10
 
 
-#Start and Stop a scan
-hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables start_scan.hurl stop_scan.hurl --test
+#Post, Start and Stop and delete scan
+scan_id=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER post_scan.hurl)
+echo "scan_id=$scan_id" > hurl_variables
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables start_scan.hurl --test
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables stop_scan.hurl --test
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER --variables-file hurl_variables delete.hurl --test
+
 #Delete a running scan
 scan_id=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER post_scan.hurl)
 echo "scan_id=$scan_id" > hurl_variables
