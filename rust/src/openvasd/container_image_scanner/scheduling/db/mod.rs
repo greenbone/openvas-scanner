@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::models::{self};
@@ -123,6 +123,7 @@ async fn start_scan(pool: &Pool<Sqlite>, id: &str) -> Result<(), sqlx::error::Er
         .bind(status)
         .bind(id)
     }
+
     with_scan_status(pool, id, |status| {
         let mut queries = Vec::new();
 
@@ -175,7 +176,7 @@ pub async fn on_message(pool: &Pool<Sqlite>, msg: &super::Message) -> Result<(),
 }
 
 pub async fn store_results(
-    pool: sqlx::Pool<Sqlite>,
+    pool: &sqlx::Pool<Sqlite>,
     id: &str,
     results: Vec<models::Result>,
 ) -> Result<(), sqlx::Error> {
@@ -283,6 +284,31 @@ pub async fn set_scan_to_failed(pool: &Pool<Sqlite>, id: &str) -> Result<(), sql
     .map(|_| ())
 }
 
+pub async fn internal_result<T>(
+    pool: &Pool<Sqlite>,
+    scan_id: &str,
+    kind: models::ResultType,
+    image: Option<T>,
+    msg: String,
+) where
+    T: Display,
+{
+    let result = models::Result {
+        id: 0,
+        r_type: kind,
+        ip_address: None,
+        hostname: image.map(|x| x.to_string()),
+        oid: Some("openvasd/container-image-scanner".to_owned()),
+        port: None,
+        protocol: None,
+        message: Some(msg),
+        detail: None,
+    };
+    if let Err(e) = store_results(pool, scan_id, vec![result]).await {
+        tracing::warn!(error=%e, "Cannot store log message.")
+    }
+}
+
 pub async fn set_scan_images(
     pool: &Pool<Sqlite>,
     id: &str,
@@ -291,6 +317,8 @@ pub async fn set_scan_images(
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
     let success_count = images.iter().filter(|x| x.is_ok()).count();
+    let dead_count = images.iter().filter(|x| x.is_err()).count();
+    let count = images.len();
     query(
         r#"
             UPDATE scans
@@ -300,20 +328,23 @@ pub async fn set_scan_images(
             WHERE id = ?
             "#,
     )
-    .bind(images.len() as i64)
-    .bind(images.iter().filter(|x| x.is_err()).count() as i64)
+    .bind(count as i64)
+    .bind(dead_count as i64)
     .bind(id)
     .execute(&mut *tx)
     .await?;
     if success_count > 0 {
         let mut builder = QueryBuilder::new("INSERT OR IGNORE INTO images (id, image)");
         builder.push_values(images.into_iter().filter_map(|x| x.ok()), |mut b, image| {
-            b.push_bind(id).push_bind(image.to_string());
+            let oci = image.to_string();
+            tracing::debug!(oci, "Resolved");
+            b.push_bind(id).push_bind(oci);
         });
         let query = builder.build();
         query.execute(&mut *tx).await?;
     }
     tx.commit().await?;
+
     Ok(())
 }
 

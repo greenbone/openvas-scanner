@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Greenbone AG
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # HINT: this is a central workflow over many components and teams.
 #  on failure, ask devops.
 name: Trigger package build on release
@@ -16,12 +19,30 @@ jobs:
     name: Call Packaging workflow
     runs-on: "ubuntu-latest"
     steps:
+      - name: DEBUG - shot release data
+        run: |
+          echo "release name: ${{ github.event.release.name }}"
+          echo "release body: ${{ github.event.release.body }}"
+          echo "release id: ${{ github.event.release.id }}"
+          echo "release tag_name: ${{ github.event.release.tag_name }}"
+          echo "release target_commitish: ${{ github.event.release.target_commitish }}"
+
       - name: Trigger development-packaging workflow
-        uses: greenbone/actions/trigger-workflow@487dab5354ace3dd575c8cf100a3e522c1dd3a79
+        uses: greenbone/actions/trigger-workflow@v3
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           repository: "greenbone/gea-pipeline"
           ref: "main"
           workflow: development-packaging.yml
-          inputs: '{"release-info": "${{ github.event.release.name }}", "component-repo-name-to-package": "${{ github.repository }}"}'
+          inputs: '{"release-name": "${{ github.event.release.name }}", "component-repo-name-to-package": "${{ github.repository }}", "release-tag": "${{ github.event.release.tag_name }}"}'
           wait-for-completion-timeout: 10000
+
+  notify:
+    needs:
+      - call_packaging_workflow
+    if: ${{ !cancelled() }}
+    uses: greenbone/workflows/.github/workflows/notify-mattermost-generic.yml@main
+    with:
+      status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
+      channel: gea-pipeline-notifications
+    secrets: inherit

@@ -32,7 +32,7 @@ use std::{path::PathBuf, process};
 use syntax::SyntaxArgs;
 use tracing::Level;
 
-use clap::{Parser, Subcommand, arg};
+use clap::{Parser, Subcommand};
 
 #[derive(Debug, Clone)]
 enum Db {

@@ -48,10 +48,10 @@ tags:
   - name: feed
     description: Feed related
 paths:
-  /:
+  /health:
     head:
       description: "Get the response header. It contains the API version, feed version and available authentication methods."
-      operationId: "get_info"
+      operationId: "head_health"
       tags:
         - "general"
       responses:
@@ -69,8 +69,7 @@ paths:
               description: "Supported authentication methods"
               schema:
                 type: "string"
-          description: "Header"
-
+          description: "Authenticated and authorized"
   /health/alive:
     get:
       description: "Get application's health information"
@@ -103,6 +102,27 @@ paths:
           description: "Ok"
 
   /notus:
+    head:
+      description: "Get the response header. It contains the API version, feed version and available authentication methods."
+      operationId: "head_notus"
+      tags:
+        - "general"
+      responses:
+        "200":
+          headers:
+            api-version:
+              description: "Comma separated list of available API versions"
+              schema:
+                type: "string"
+            feed-version:
+              description: "The version of the VT feed"
+              schema:
+                type: "string"
+            authentication:
+              description: "Supported authentication methods"
+              schema:
+                type: "string"
+          description: "Authenticated and authorized"
     get:
       description: "Get Notus supported OS products"
       operationId: "get_notus"
@@ -411,6 +431,27 @@ paths:
           description: "Scan not found"
 
   /vts:
+    head:
+      description: "Get the response header. It contains the API version, feed version and available authentication methods."
+      operationId: "head_vts"
+      tags:
+        - "general"
+      responses:
+        "200":
+          headers:
+            api-version:
+              description: "Comma separated list of available API versions"
+              schema:
+                type: "string"
+            feed-version:
+              description: "The version of the VT feed"
+              schema:
+                type: "string"
+            authentication:
+              description: "Supported authentication methods"
+              schema:
+                type: "string"
+          description: "Authenticated and authorized"
     get:
       description: "Get a Identifier list of all VTs that are available to the scanner."
       operationId: "get_vts"

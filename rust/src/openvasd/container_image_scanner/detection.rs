@@ -6,10 +6,7 @@ use tokio::{
     io::{AsyncBufRead, AsyncBufReadExt, BufReader},
 };
 
-use crate::container_image_scanner::{
-    ExternalError,
-    image::extractor::{Locator, LocatorError},
-};
+use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
 
 #[derive(Debug)]
 pub struct OperatingSystem {
@@ -22,23 +19,36 @@ impl Display for OperatingSystem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "name: '{}', version_id: '{}'",
-            self.name, self.version_id
+            "name: '{}', version: '{}', version_id: '{}'",
+            self.name, self.version, self.version_id
         )
     }
 }
 
 #[derive(Error, Debug)]
-enum OperatingSystemDetectionError {
+pub enum OperatingSystemDetectionError {
     #[error("Failed to read the operating system file")]
     ReadError(#[from] std::io::Error),
     #[error("Unknown operating system")]
     Unknown,
+    #[error("No OS definition found.")]
+    NotFound,
+}
+
+impl From<LocatorError> for OperatingSystemDetectionError {
+    fn from(value: LocatorError) -> Self {
+        match value {
+            LocatorError::ReadError(x) => OperatingSystemDetectionError::ReadError(x),
+            LocatorError::NotFound(_) => OperatingSystemDetectionError::NotFound,
+        }
+    }
 }
 
 pub const OS_FILES: &[&str] = &["etc/os-release", "usr/lib/os-release"];
 
-pub async fn operating_system<T>(locator: &T) -> Result<OperatingSystem, ExternalError>
+pub async fn operating_system<T>(
+    locator: &T,
+) -> Result<OperatingSystem, OperatingSystemDetectionError>
 where
     T: Locator,
 {
@@ -52,7 +62,7 @@ where
         let os = osd.detect_operating_system().await?;
         return Ok(os);
     }
-    Err(LocatorError::NotFound("No operating system definition".to_owned()).into())
+    Err(OperatingSystemDetectionError::NotFound)
 }
 
 struct OperatingSystemDetector<T> {

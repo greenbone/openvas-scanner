@@ -205,8 +205,8 @@ impl Default for Image {
     fn default() -> Self {
         Self {
             extract_to: Default::default(),
-            max_scanning: 1,
-            batch_size: 1,
+            max_scanning: 23, // 23 scans
+            batch_size: 5,    // 5 concurrent images
         }
     }
 }

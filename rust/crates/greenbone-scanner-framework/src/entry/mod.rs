@@ -142,7 +142,9 @@ macro_rules! create_single_handler {
 
 fn segments_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) -> bool {
     let offset = if !prefix.is_empty() {
-        if handler_parts.len() != request_parts.len() - 1 || prefix != request_parts[0] {
+        if handler_parts.len() as i32 != request_parts.len() as i32 - 1
+            || prefix != request_parts[0]
+        {
             return false;
         }
         1
@@ -197,6 +199,7 @@ impl RequestHandlers {
                 // handles double slashes e.g. /scans/ or /scans//id////results
                 .filter(|x| !x.is_empty())
                 .collect::<Vec<_>>();
+
             for rh in callbacks {
                 if segments_match(rh.prefix(), rh.path_segments(), &segments) {
                     let needs_authentication = rh.needs_authentication();
@@ -208,9 +211,15 @@ impl RequestHandlers {
                             rh.prefix(),
                             rh.path_segments().join("/")
                         );
-                        if req.method() == Method::HEAD {
+
+                        if (req.method() == Method::HEAD
+                            && rh.path_segments()[0] == "scans"
+                            && is_authenticated)
+                            || (req.method() == Method::HEAD && rh.path_segments()[0] != "scans")
+                        {
                             return BodyKind::no_content(StatusCode::OK);
-                        }
+                        };
+
                         if req.method() == rh.http_method() {
                             let uri = req.uri().clone();
                             let body = req.into_body();
@@ -626,15 +635,11 @@ mod tests {
             create_single_handler!(Authenticated {}, NotAuthenticated {}),
             Some(ClientHash::default()),
         );
-        for (method, url) in [
-            (Method::HEAD, "/test/authn/not"),
-            (Method::POST, "/test/authn"),
-        ] {
-            let req = test_utilities::empty_request(method, url);
-            let resp = entry_point.call(req).await.unwrap();
-            assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-        }
+        let req = test_utilities::empty_request(Method::POST, "/test/authn");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
+
     #[tokio::test]
     async fn missing_client_id_on_mtls() {
         let entry_point = test_utilities::entry_point(
@@ -721,5 +726,24 @@ mod tests {
         let resp = entry_point.call(req).await.unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn prefixed_no_path() {
+        let entry_point = test_utilities::entry_point(
+            Authentication::ApiKey(vec!["test".to_owned()]),
+            create_single_handler!(PrefixedAuth {}),
+            Some(Default::default()),
+        );
+
+        let req = Request::builder()
+            .uri("/achso")
+            .header("x-api-key", "test")
+            .method(Method::HEAD)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 }

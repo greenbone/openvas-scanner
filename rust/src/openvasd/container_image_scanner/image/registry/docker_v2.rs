@@ -96,6 +96,7 @@ impl Registry {
         registry: &str,
         repository: &str,
     ) -> Vec<Result<Image, ExternalError>> {
+        tracing::debug!(registry, repository, "resolve_or_search_repository");
         let client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
@@ -139,11 +140,15 @@ impl Registry {
         let repos: Vec<Result<Image, ExternalError>> = client
             .get_tags(repository, None)
             .map(|x| match x {
-                Ok(x) => Ok(Image {
-                    registry: registry.to_owned(),
-                    image: Some(repository.to_owned()),
-                    tag: Some(x),
-                }),
+                Ok(x) => {
+                    let image = Image {
+                        registry: registry.to_owned(),
+                        image: Some(repository.to_owned()),
+                        tag: Some(x),
+                    };
+                    tracing::debug!(%image, "resolved image.");
+                    Ok(image)
+                }
                 Err(x) => {
                     tracing::warn!(error=%x, "unable to resolve_repository");
                     Err(x.into())
@@ -160,6 +165,7 @@ impl Registry {
         registry: &str,
         filter: Option<Filter>,
     ) -> Vec<Result<Image, ExternalError>> {
+        tracing::debug!(registry, ?filter, "resolve_catalog");
         let client = match self.catalog_client(registry).await {
             Ok(x) => x,
             Err(e) => {
@@ -176,7 +182,7 @@ impl Registry {
             })
             .collect()
             .await;
-        tracing::trace!(repos = repos.len(), "Repositories");
+        tracing::debug!(registry, repos = repos.len(), "Found repositories");
 
         let mut results: Vec<Result<Image, ExternalError>> = Vec::with_capacity(repos.len());
         for r in repos {
@@ -192,7 +198,7 @@ impl Registry {
                 }
             }
         }
-        tracing::trace!(results = results.len(), "Results");
+        tracing::debug!(results = results.len(), "Found results.");
 
         results
     }
@@ -207,7 +213,7 @@ impl Registry {
         ),
         ExternalError,
     > {
-        let repository = match &image.image {
+        let repository = match image.image() {
             None => {
                 return Err(
                     io::Error::new(io::ErrorKind::NotFound, "missing repository/image.").into(),
@@ -215,7 +221,7 @@ impl Registry {
             }
             Some(x) => x,
         };
-        let tag = match &image.tag {
+        let tag = match image.tag() {
             None => {
                 return Err(io::Error::new(io::ErrorKind::NotFound, "missing image tag.").into());
             }
@@ -224,6 +230,7 @@ impl Registry {
 
         let registry = &image.registry;
         let client = self.pull_client(registry, repository).await?;
+
         let manifest = client.get_manifest(repository, tag).await?;
         let architectures = manifest.architectures()?;
         tracing::debug!(?architectures, ?image, "Supported architectures");
@@ -329,7 +336,7 @@ impl super::Registry for Registry {
                         architecture,
                         client.get_blob(
                             image
-                                .image
+                                .image()
                                 .as_ref()
                                 .expect("already verified in fetch_digest_layer"),
                             digest,

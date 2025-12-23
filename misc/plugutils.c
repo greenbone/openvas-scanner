@@ -664,6 +664,7 @@ static int
 is_utf8_encoded (const char *filename)
 {
   magic_t magic_cookie = magic_open (MAGIC_MIME_ENCODING);
+  int ret = 0;
   if (!magic_cookie)
     {
       g_warning ("%s: It is not possible initialize magic db", __func__);
@@ -673,20 +674,24 @@ is_utf8_encoded (const char *filename)
     {
       g_warning ("%s: It was not possible to load the default magic db",
                  __func__);
-      return -1;
+      ret = -1;
+      goto magic_ret;
     }
   const char *file_encoding = magic_file (magic_cookie, filename);
   if (!file_encoding)
     {
       g_warning ("%s: It was not possible to identify the file encoding for %s",
                  __func__, filename);
-      return -1;
+      ret = -1;
+      goto magic_ret;
     }
 
   if (g_strstr_len (file_encoding, strlen (file_encoding), "utf-8"))
-    return 1;
+    ret = 1;
 
-  return 0;
+ magic_ret:
+  magic_close (magic_cookie);
+  return ret;
 }
 
 /**

@@ -102,7 +102,6 @@ macro_rules! interpreter_test_err {
 }
 
 mod operator {
-    use crate::interpreter_test_ok;
     use crate::nasl::test_prelude::*;
 
     interpreter_test_ok!(numeric_plus, "1 + 2;", 3);

@@ -26,20 +26,11 @@ START_SCANS := $(basename $(notdir $(JSON_FILES)))
 
 CIS_ADDRESS := http://localhost:3000/container-image-scanner/
 
-.PHONY: stop-notus start-notus rm-notus stop-local-registry start-local-registry rm-local-registry \
+.PHONY: stop-local-registry start-local-registry rm-local-registry \
         $(CREATE_TARGETS) $(START_TARGETS) $(STOP_TARGETS) $(RM_TARGETS) $(RESULTS_TARGETS) $(STATUS_TARGETS) \
         start stop rm
 
 
-
-stop-notus:
-	@cd ${BASE_PATH}/notus/; make stop
-
-start-notus:
-	@cd ${BASE_PATH}/notus/; make start
-
-rm-notus:
-	@cd ${BASE_PATH}/notus/; make rm
 
 stop-local-registry:
 	@cd ${BASE_PATH}/local-registry/; make stop
@@ -104,8 +95,8 @@ rm-container-image-scanner: stop-container-image-scanner
 	@rm -f example.db-wal
 
 
-stop: stop-notus stop-local-registry stop-container-image-scanner
+stop: stop-local-registry stop-container-image-scanner
 
-start: start-notus start-local-registry start-container-image-scanner
+start: start-local-registry start-container-image-scanner
 
-rm: rm-notus rm-local-registry rm-container-image-scanner
+rm: rm-local-registry rm-container-image-scanner

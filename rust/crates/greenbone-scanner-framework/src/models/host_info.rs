@@ -21,6 +21,7 @@ pub struct HostInfo {
     pub scanning: Option<HashMap<String, i32>>,
     // Hosts that are currently being scanned. The second entry is the number of
     // remaining VTs for this host.
+    #[serde(skip_serializing)]
     pub remaining_vts_per_host: HashMap<String, usize>,
 }
 
