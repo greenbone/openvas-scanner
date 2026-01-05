@@ -10,7 +10,8 @@ use crate::{CliError, CliErrorKind};
 
 use scannerlib::feed;
 use scannerlib::nasl::WithErrorInfo;
-use scannerlib::nasl::syntax::{FSPluginLoader, LoadError};
+use scannerlib::nasl::syntax::LoadError;
+use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::storage::Dispatcher;
@@ -40,7 +41,7 @@ pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), Cl
 where
     S: NotusStorage,
 {
-    let loader = FSPluginLoader::new(path);
+    let loader = Loader::from_feed_path(path);
     let advisories_files = match HashsumAdvisoryLoader::new(loader.clone()) {
         Ok(loader) => loader,
         Err(_) => {

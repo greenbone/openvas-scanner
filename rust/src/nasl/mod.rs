@@ -25,7 +25,6 @@ pub mod prelude {
     pub use super::code::Code;
     pub use super::interpreter::NaslValue;
     pub use super::interpreter::Register;
-    pub use super::syntax::FSPluginLoader;
     pub use super::syntax::Loader;
     pub use super::utils::ArgumentError;
     pub use super::utils::FnError;
@@ -48,8 +47,6 @@ pub mod prelude {
 pub use prelude::*;
 
 pub use builtin::nasl_std_functions;
-
-pub use syntax::NoOpLoader;
 
 #[cfg(test)]
 mod test_prelude {

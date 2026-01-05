@@ -39,35 +39,31 @@ use async_trait::async_trait;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 
-use crate::nasl::syntax::{FSPluginLoader, Loader};
+use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
 use crate::storage::Remover;
 use crate::storage::ScanID;
-use crate::storage::inmemory::InMemoryStorage;
 use greenbone_scanner_framework::models;
 use running_scan::{RunningScan, RunningScanHandle};
-
-pub type DefaultScannerStack = (Arc<InMemoryStorage>, FSPluginLoader);
 
 /// Allows starting, stopping and managing the results of new scans.
 pub struct OpenvasdScanner<S: ScannerStack> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
     storage: Arc<S::Storage>,
-    loader: Arc<S::Loader>,
+    loader: Arc<Loader>,
     function_executor: Arc<Executor>,
 }
 
-impl<St, L> OpenvasdScanner<(St, L)>
+impl<St> OpenvasdScanner<St>
 where
     St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-    L: Loader + 'static,
 {
     // TODO: Actually use this or rewrite it.
     #[allow(unused)]
-    fn new(storage: St, loader: L, executor: Executor) -> Self {
+    fn new(storage: St, loader: Loader, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),

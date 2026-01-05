@@ -4,28 +4,12 @@
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, string::String};
+    use std::collections::HashMap;
 
+    use crate::nasl::syntax::Loader;
     use crate::nasl::test_utils::TestBuilder;
-    use crate::nasl::{Loader, syntax::LoadError};
 
     use crate::nasl::prelude::*;
-
-    struct FakeInclude {
-        plugins: HashMap<String, String>,
-    }
-
-    impl Loader for FakeInclude {
-        fn load(&self, key: &str) -> Result<String, LoadError> {
-            self.plugins
-                .get(key)
-                .cloned()
-                .ok_or_else(|| LoadError::NotFound(String::default()))
-        }
-        fn root_path(&self) -> Result<String, LoadError> {
-            Ok(String::default())
-        }
-    }
 
     #[test]
     fn function_variable() {
@@ -37,8 +21,7 @@ mod tests {
         }
         "#
         .to_string();
-        let plugins = HashMap::from([("example.inc".to_string(), example)]);
-        let loader = FakeInclude { plugins };
+        let loader = Loader::test().with_file("example.inc", example).build();
         let code = r#"
         include("example.inc");
         a;
