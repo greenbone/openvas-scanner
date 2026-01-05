@@ -4,16 +4,14 @@
 
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::scan_ctx::Target;
+use crate::nasl::utils::scan_ctx::{ContextStorage, Target};
 use futures::{Stream, stream};
 use greenbone_scanner_framework::models::HostInfo;
 
-use crate::scanner::ScannerStack;
-use crate::scheduling::{ConcurrentVT, VTError};
+use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
 
 use super::Scan;
 use super::error::{ExecuteError, ScriptResult};
-use super::scanner_stack::Schedule;
 use super::vt_runner::VTRunner;
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -41,26 +39,29 @@ fn all_positions(hosts: Vec<Target>, vts: Vec<ConcurrentVT>) -> impl Iterator<It
 /// This does not provide any control over the scan but merely executes the
 /// necessary instructions. In order to have control over the scan (such as
 /// starting and stopping it), use `RunningScan` instead.
-pub struct ScanRunner<'a, S: ScannerStack> {
+pub struct ScanRunner<'a, S> {
     scan: &'a Scan,
-    storage: &'a S::Storage,
+    storage: &'a S,
     loader: &'a Loader,
     executor: &'a Executor,
     concurrent_vts: Vec<ConcurrentVT>,
 }
 
-impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
+impl<'a, S> ScanRunner<'a, S>
+where
+    S: ContextStorage,
+{
     pub fn new<Sched>(
-        storage: &'a Stack::Storage,
+        storage: &'a S,
         loader: &'a Loader,
         executor: &'a Executor,
         schedule: Sched,
         scan: &'a Scan,
     ) -> Result<Self, VTError>
     where
-        Sched: Schedule + 'a,
+        Sched: Iterator<Item = ConcurrentVTResult> + 'a,
     {
-        let concurrent_vts = schedule.cache()?;
+        let concurrent_vts = schedule.collect::<Result<Vec<_>, _>>()?;
         Ok(Self {
             scan,
             storage,
@@ -103,7 +104,7 @@ impl<'a, Stack: ScannerStack> ScanRunner<'a, Stack> {
         stream::unfold(data, move |mut data| async move {
             match data.next() {
                 Some((stage, vt, param, host, ports, scan_id)) => {
-                    let result = VTRunner::<Stack>::run(
+                    let result = VTRunner::<S>::run(
                         self.storage,
                         self.loader,
                         self.executor,

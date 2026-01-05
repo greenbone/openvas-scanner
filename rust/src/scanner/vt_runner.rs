@@ -10,7 +10,6 @@ use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
 use crate::nasl::utils::scan_ctx::{ContextStorage, Ports, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
-use crate::storage::Retriever;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
 use futures::StreamExt;
@@ -21,15 +20,12 @@ use tracing::{error_span, trace, warn};
 use crate::nasl::prelude::*;
 
 use super::ExecuteError;
+use super::error::{ScriptResult, ScriptResultKind};
 use super::preferences::preference::ScanPrefs;
-use super::{
-    ScannerStack,
-    error::{ScriptResult, ScriptResultKind},
-};
 
 /// Runs a single VT to completion on a single host.
-pub struct VTRunner<'a, S: ScannerStack> {
-    storage: &'a S::Storage,
+pub struct VTRunner<'a, S> {
+    storage: &'a S,
     loader: &'a Loader,
     executor: &'a Executor,
 
@@ -43,13 +39,13 @@ pub struct VTRunner<'a, S: ScannerStack> {
     alive_test_methods: &'a Vec<AliveTestMethods>,
 }
 
-impl<'a, Stack: ScannerStack> VTRunner<'a, Stack>
+impl<'a, S> VTRunner<'a, S>
 where
-    Stack::Storage: ContextStorage,
+    S: ContextStorage,
 {
     #[allow(clippy::too_many_arguments)]
     pub async fn run(
-        storage: &'a Stack::Storage,
+        storage: &'a S,
         loader: &'a Loader,
         executor: &'a Executor,
         target: &'a Target,
