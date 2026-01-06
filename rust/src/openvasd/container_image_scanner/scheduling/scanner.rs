@@ -15,13 +15,16 @@ use crate::container_image_scanner::{
     },
     notus,
 };
-use scannerlib::notus::{HashsumProductLoader, Notus};
+use scannerlib::{
+    models::ResultType,
+    notus::{HashsumProductLoader, Notus},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScannerArchImageError {
     #[error("Unable to detect operating-system: {0}")]
     NoOS(#[from] ExternalError),
-    #[error("Unable to fetch vulnerabilities: {0}")]
+    #[error("Unable check vulnerabilities: {0}")]
     Notus(#[from] notus::Error),
     #[error("A DB error occurred: {0}")]
     StoreResults(#[from] sqlx::Error),
@@ -43,6 +46,8 @@ pub enum ScannerError {
 }
 
 async fn scan_arch_image<L, T>(
+    pool: &sqlx::Pool<Sqlite>,
+    id: &str,
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     locator: &L,
     image: String,
@@ -51,8 +56,35 @@ where
     L: Locator + Send + Sync,
     T: ToNotus,
 {
-    let os = detection::operating_system(locator).await?;
+    use detection::OperatingSystemDetectionError as OSDE;
+    let os = match detection::operating_system(locator).await {
+        Ok(x) => x,
+        Err(OSDE::NotFound | OSDE::Unknown) => {
+            db::internal_result(
+                pool,
+                id,
+                ResultType::Log,
+                Some(image),
+                "No operating system information found.".to_string(),
+            )
+            .await;
+            return Ok(vec![]);
+        }
+        Err(e) => return Err(ScannerArchImageError::NoOS(e.into())),
+    };
     let packages = T::packages(locator).await;
+    db::internal_result(
+        pool,
+        id,
+        ResultType::Log,
+        Some(&image),
+        format!(
+            "architecture({}), os({os}), packages({})",
+            locator.architecture(),
+            packages.len()
+        ),
+    )
+    .await;
 
     if packages.is_empty() {
         // This can also happen if a container image does not have a package DB anymore (e.g. the
@@ -65,7 +97,6 @@ where
         notus::vulnerabilities(products, locator.architecture(), image, &os, packages).await?;
     Ok(results)
 }
-
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
     pool: sqlx::Pool<Sqlite>,
@@ -79,7 +110,7 @@ where
 {
     let image: Image = registry.id.image().parse()?;
     let mut extractor = E::initialize(config.clone(), registry.id.clone()).await?;
-    let mut layers = registry.registry.pull_image(image);
+    let mut layers = registry.registry.pull_image(image.clone());
     let mut warnings = Vec::new();
     let mut add_warning = |prefix: &dyn Display, error: &dyn Display| {
         warnings.push(format!(
@@ -92,6 +123,8 @@ where
         match packet {
             Ok(layer) => {
                 let lindex = layer.index;
+
+                tracing::trace!(%image, lindex, "extracting");
                 match extractor.push(layer).await {
                     Ok(()) => {}
                     Err(x) => {
@@ -106,15 +139,29 @@ where
     }
     let locator_per_arch = extractor.extract().await;
     for locator in locator_per_arch.iter() {
-        if let Err(e) =
-            scan_arch_image::<_, T>(products.clone(), locator, registry.id.image.to_owned())
-                .and_then(|results| {
-                    db::store_results(pool.clone(), registry.id.id(), results)
-                        .map_err(ScannerArchImageError::from)
-                })
-                .await
+        if let Err(e) = scan_arch_image::<_, T>(
+            &pool,
+            registry.id.id(),
+            products.clone(),
+            locator,
+            registry.id.image.to_owned(),
+        )
+        .and_then(|results| {
+            db::store_results(&pool, registry.id.id(), results).map_err(ScannerArchImageError::from)
+        })
+        .await
         {
-            add_warning(&format!("Locator({})", locator.architecture()), &e);
+            db::internal_result(
+                &pool,
+                registry.id.id(),
+                ResultType::Error,
+                Some(registry.id.image()),
+                format!("{e}"),
+            )
+            .await;
+            if !matches!(e, ScannerArchImageError::Notus(_)) {
+                add_warning(&format!("Locator({})", locator.architecture()), &e);
+            }
         };
     }
     if warnings.is_empty() {

@@ -49,7 +49,7 @@ where
 
     fn load_new_product(&self, os: &str) -> Result<(Product, FeedStamp), Error> {
         tracing::debug!(
-            root=?self.loader.get_root_dir(),
+            root=?self.loader.root_path(),
             "Loading notus product",
         );
         let (product, stamp) = self.loader.load_product(os)?;
@@ -79,8 +79,10 @@ where
 
     fn compare<P: Package>(packages: &Vec<P>, vts: &VulnerabilityTests<P>) -> NotusResults {
         let mut results: NotusResults = HashMap::new();
+        tracing::trace!(vts_keys = ?vts.keys().collect::<Vec<_>>(), packages=?packages.iter().map(|x|x.get_name()).collect::<Vec<_>>());
         for package in packages {
-            match vts.get(&package.get_name()) {
+            let pname = package.get_name();
+            match vts.get(&pname) {
                 Some(vts) => {
                     for vt in vts {
                         if vt.is_vulnerable(package) {
@@ -113,6 +115,11 @@ where
         vts: &VulnerabilityTests<P>,
     ) -> Result<NotusResults, Error> {
         let packages = Self::parse(packages)?;
+        tracing::debug!(
+            packages = packages.len(),
+            vts = vts.len(),
+            "vulnerability loaded."
+        );
         Ok(Self::compare(&packages, vts))
     }
 
@@ -161,6 +168,7 @@ where
                 &self.loaded_products[&os.to_string()].0
             }
         };
+        tracing::debug!(os, packages = packages.len(), "products known.");
 
         // Parse and compare package list depending on package type of loaded product
         let results = match product {

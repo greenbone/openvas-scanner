@@ -9,15 +9,13 @@ use pnet::packet::ipv4::{Ipv4Packet, MutableIpv4Packet, checksum};
 use pnet::packet::ipv6::{Ipv6Packet, MutableIpv6Packet};
 use pnet::packet::{Packet, tcp::MutableTcpPacket};
 
-use super::AliveTestError;
-use super::common::{
-    DEFAULT_TTL, FIX_IPV6_HEADER_LENGTH, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4,
-    IPPROTO_IPV6,
+use super::RawIpError;
+use super::raw_ip_utils::{
+    ChecksumCalculator, DEFAULT_TTL, FIX_IPV6_HEADER_LENGTH, HEADER_LENGTH, IP_LENGTH,
+    IP_PPRTO_VERSION_IPV4, IPPROTO_IPV6, get_source_ipv4, get_source_ipv6,
 };
+
 use crate::nasl::builtin::misc::random_impl;
-use crate::nasl::raw_ip_utils::raw_ip_utils::{
-    ChecksumCalculator, get_source_ipv4, get_source_ipv6,
-};
 
 pub const FILTER_PORT: u16 = 9910;
 const TCP_LENGTH: usize = 20;
@@ -40,7 +38,7 @@ fn tcp_ping(dport: u16, tcp_flag: u8) -> Vec<u8> {
 fn forge_ipv4_packet_for_tcp(
     tcp_buf: &mut [u8],
     dst: Ipv4Addr,
-) -> Result<Ipv4Packet<'static>, AliveTestError> {
+) -> Result<Ipv4Packet<'static>, RawIpError> {
     // We do now the same as above for the IPv4 packet, appending the icmp packet as payload
     let mut ip_buf = vec![0; IP_LENGTH + TCP_LENGTH];
 
@@ -51,9 +49,7 @@ fn forge_ipv4_packet_for_tcp(
     pkt.set_header_length(HEADER_LENGTH);
     pkt.set_next_level_protocol(IpNextHeaderProtocols::Tcp);
     pkt.set_ttl(0x40);
-    pkt.set_source(
-        get_source_ipv4(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?,
-    );
+    pkt.set_source(get_source_ipv4(dst).map_err(|_| RawIpError::InvalidIpAddress)?);
     pkt.set_destination(dst);
     pkt.set_fragment_offset(0);
     pkt.set_identification(random_impl().unwrap() as u16);
@@ -74,15 +70,16 @@ pub fn forge_tcp_ping_ipv4(
     dst: Ipv4Addr,
     dport: &u16,
     tcp_flag: u8,
-) -> Result<Ipv4Packet<'static>, AliveTestError> {
+) -> Result<Ipv4Packet<'static>, RawIpError> {
     let mut tcp_buf = tcp_ping(*dport, tcp_flag);
+    dbg!(&tcp_buf);
     forge_ipv4_packet_for_tcp(&mut tcp_buf, dst)
 }
 
 fn forge_ipv6_packet_for_tcp(
     tcp_buf: &mut [u8],
     dst: Ipv6Addr,
-) -> Result<Ipv6Packet<'static>, AliveTestError> {
+) -> Result<Ipv6Packet<'static>, RawIpError> {
     let tcp_buf_len = tcp_buf.len();
     // We do now the same as above for the IPv4 packet, appending the icmp packet as payload
     let mut ip_buf = vec![0; FIX_IPV6_HEADER_LENGTH + tcp_buf_len];
@@ -91,9 +88,7 @@ fn forge_ipv6_packet_for_tcp(
 
     pkt.set_next_header(IpNextHeaderProtocols::Tcp);
     pkt.set_hop_limit(DEFAULT_TTL);
-    pkt.set_source(
-        get_source_ipv6(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?,
-    );
+    pkt.set_source(get_source_ipv6(dst).map_err(|_| RawIpError::InvalidIpAddress)?);
     pkt.set_destination(dst);
     pkt.set_version(IPPROTO_IPV6);
 
@@ -111,7 +106,7 @@ pub fn forge_tcp_ping_ipv6(
     dst: Ipv6Addr,
     dport: &u16,
     tcp_flag: u8,
-) -> Result<Ipv6Packet<'static>, AliveTestError> {
+) -> Result<Ipv6Packet<'static>, RawIpError> {
     let mut tcp_buf = tcp_ping(*dport, tcp_flag);
     forge_ipv6_packet_for_tcp(&mut tcp_buf, dst)
 }

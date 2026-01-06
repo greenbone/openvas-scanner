@@ -7,7 +7,7 @@ use std::{
 
 use greenbone_scanner_framework::{GetVTsError, StreamResult};
 use scannerlib::PinBoxFut;
-use scannerlib::nasl::FSPluginLoader;
+use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
@@ -39,7 +39,7 @@ fn sumfile_hash<S>(path: S) -> Result<String, scannerlib::feed::VerifyError>
 where
     S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
 {
-    let loader = scannerlib::nasl::FSPluginLoader::new(path);
+    let loader = Loader::from_feed_path(path);
     let verifier = scannerlib::feed::HashSumNameLoader::sha256(&loader)?;
     verifier.sumfile_hash()
 }
@@ -173,7 +173,11 @@ where
     Ok(())
 }
 
-async fn synchronize_feed<T>(ps: &T, feed_hash: FeedHash) -> Result<(), WorkerError>
+async fn synchronize_feed<T>(
+    ps: &T,
+    feed_hash: FeedHash,
+    signature_check: bool,
+) -> Result<(), WorkerError>
 where
     T: PluginStorer + Send + Sync + 'static,
 {
@@ -181,7 +185,7 @@ where
         FeedType::Products => tracing::debug!(?feed_hash.typus, "Not supported, ignoring."),
         FeedType::Advisories => {
             ps.store_hash(&feed_hash).await?;
-            synchronize_advisories(ps, feed_hash.path, feed_hash.hash).await?
+            synchronize_advisories(ps, feed_hash.path, feed_hash.hash, signature_check).await?
         }
         FeedType::NASL => {
             ps.store_hash(&feed_hash).await?;
@@ -195,6 +199,7 @@ async fn synchronize_advisories<T>(
     ps: &T,
     path: PathBuf,
     new_hash: String,
+    signature_check: bool,
 ) -> Result<(), WorkerError>
 where
     T: PluginStorer + Send + Sync + 'static,
@@ -206,7 +211,7 @@ where
     };
 
     synchronize_json::<_, VulnerabilityData, _>(ps, &hash, move |sender| {
-        let loader = FSPluginLoader::new(&path);
+        let loader = Loader::from_feed_path(&path);
         let advisories_files =
             HashsumAdvisoryLoader::new(loader.clone()).map_err(error_vts_error)?;
         for filename in advisories_files
@@ -215,7 +220,7 @@ where
             .iter()
         {
             let advisories = advisories_files
-                .load_advisory(filename)
+                .load_advisory(filename, signature_check)
                 .map_err(error_vts_error)?;
             for adv in advisories.advisories {
                 let data = VulnerabilityData {

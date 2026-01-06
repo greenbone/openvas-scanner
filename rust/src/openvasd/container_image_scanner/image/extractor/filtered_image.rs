@@ -3,9 +3,11 @@ use std::{
     sync::Arc,
 };
 
+use bzip2::read::BzDecoder;
 use docker_registry::render;
-use libflate::gzip;
+use flate2::read::{GzDecoder, ZlibDecoder};
 use tokio::fs::File;
+use zstd::stream::read::Decoder as ZstdDecoder;
 
 use super::{ExtractorError, LocatorError};
 use crate::container_image_scanner::{
@@ -189,8 +191,61 @@ fn unpack_layer(
     if !target_dir.is_absolute() || !target_dir.exists() || !target_dir.is_dir() {
         return Err(ExtractorError::WrongTargetDir(target_dir.to_path_buf()));
     }
-    let gz_dec = gzip::Decoder::new(layer)?;
-    let mut archive = tar::Archive::new(gz_dec);
+    tracing::trace!(layer_size = layer.len(), "layer_size");
+    let dec = create_decoder(layer)?;
+
+    match unpack(target_dir, &predicate, dec) {
+        Ok(x) => Ok(x),
+        Err(error) => {
+            tracing::debug!(%error, "We try one more time with cursor as the first file name may start with a magic header");
+            unpack(target_dir, predicate, std::io::Cursor::new(layer)).map_err(|_| error)
+        }
+    }
+}
+
+fn create_decoder<'a>(bytes: &'a [u8]) -> Result<Box<dyn std::io::Read + 'a>, ExtractorError> {
+    // https://en.wikipedia.org/wiki/List_of_file_signatures
+    const GZIP_ID: [u8; 2] = [0x1f, 0x8b];
+    const ZLIB_NO_ID: [u8; 2] = [0x78, 0x01];
+    const ZLIB_FAST_ID: [u8; 2] = [0x78, 0x5e];
+    const ZLIB_DEFAULT_ID: [u8; 2] = [0x78, 0x9c];
+    const ZLIB_BEST_ID: [u8; 2] = [0x78, 0xDA]; // ignoring preset
+    const BZIP2_ID: [u8; 3] = [0x42, 0x5a, 0x68];
+    // https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
+    const ZSTD_ID: [u8; 4] = [0x28, 0xb5, 0x2f, 0xfd];
+
+    Ok(if bytes[0..2] == GZIP_ID {
+        tracing::debug!("GZIP");
+        Box::new(GzDecoder::new(bytes))
+    } else if bytes[0..2] == ZLIB_NO_ID
+        || bytes[0..2] == ZLIB_FAST_ID
+        || bytes[0..2] == ZLIB_DEFAULT_ID
+        || bytes[0..2] == ZLIB_BEST_ID
+    {
+        tracing::debug!("ZLIB");
+        Box::new(ZlibDecoder::new(bytes))
+    } else if bytes[0..3] == BZIP2_ID {
+        tracing::debug!("BZIP2");
+        Box::new(BzDecoder::new(bytes))
+    } else if bytes[0..4] == ZSTD_ID {
+        tracing::debug!("ZSTD");
+        let dec = ZstdDecoder::new(bytes)?;
+        Box::new(dec)
+    } else {
+        tracing::debug!("Missing header information.");
+        Box::new(std::io::Cursor::new(bytes))
+    })
+}
+
+fn unpack<R>(
+    target_dir: &Path,
+    predicate: impl Fn(&Path) -> bool,
+    dec: R,
+) -> Result<(), ExtractorError>
+where
+    R: std::io::Read,
+{
+    let mut archive = tar::Archive::new(dec);
     archive.set_preserve_permissions(true);
     archive.set_unpack_xattrs(true);
     for entry in archive.entries()? {

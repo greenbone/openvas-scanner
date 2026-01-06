@@ -20,7 +20,6 @@ pub mod preferences;
 mod running_scan;
 mod scan;
 mod scan_runner;
-mod scanner_stack;
 mod vt_runner;
 
 #[cfg(test)]
@@ -33,41 +32,37 @@ pub use scanner::*;
 pub use error::ExecuteError;
 pub use scan::Scan;
 pub use scan_runner::ScanRunner;
-use scanner_stack::ScannerStack;
 
 use async_trait::async_trait;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 
-use crate::nasl::syntax::{FSPluginLoader, Loader};
+use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::scheduling::SchedulerStorage;
 use crate::scheduling::WaveExecutionPlan;
 use crate::storage::Remover;
 use crate::storage::ScanID;
-use crate::storage::inmemory::InMemoryStorage;
 use greenbone_scanner_framework::models;
 use running_scan::{RunningScan, RunningScanHandle};
 
-pub type DefaultScannerStack = (Arc<InMemoryStorage>, FSPluginLoader);
-
 /// Allows starting, stopping and managing the results of new scans.
-pub struct OpenvasdScanner<S: ScannerStack> {
+pub struct OpenvasdScanner<S> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
-    storage: Arc<S::Storage>,
-    loader: Arc<S::Loader>,
+    storage: Arc<S>,
+    loader: Arc<Loader>,
     function_executor: Arc<Executor>,
 }
 
-impl<St, L> OpenvasdScanner<(St, L)>
+impl<S> OpenvasdScanner<S>
 where
-    St: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-    L: Loader + 'static,
+    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
 {
-    // TODO: Actually use this or rewrite it.
-    #[allow(unused)]
-    fn new(storage: St, loader: L, executor: Executor) -> Self {
+    // TODO: Actually use this in normal execution, so we can remove
+    // the cfg directive here.
+    #[cfg(test)]
+    fn new(storage: S, loader: Loader, executor: Executor) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),
@@ -75,9 +70,7 @@ where
             function_executor: Arc::new(executor),
         }
     }
-}
 
-impl<S: ScannerStack + 'static> OpenvasdScanner<S> {
     async fn start_scan_internal(&self, scan: Scan) -> Result<(), Error> {
         let storage = self.storage.clone();
         let loader = self.loader.clone();
@@ -91,7 +84,10 @@ impl<S: ScannerStack + 'static> OpenvasdScanner<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack + 'static> ScanStarter for OpenvasdScanner<S> {
+impl<S> ScanStarter for OpenvasdScanner<S>
+where
+    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
+{
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
         self.start_scan_internal(Scan::from_resolvable_hosts(scan))
             .await
@@ -99,7 +95,10 @@ impl<S: ScannerStack + 'static> ScanStarter for OpenvasdScanner<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanStopper for OpenvasdScanner<S> {
+impl<S> ScanStopper for OpenvasdScanner<S>
+where
+    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
+{
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -117,7 +116,10 @@ impl<S: ScannerStack> ScanStopper for OpenvasdScanner<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanDeleter for OpenvasdScanner<S> {
+impl<S> ScanDeleter for OpenvasdScanner<S>
+where
+    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
+{
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -132,7 +134,10 @@ impl<S: ScannerStack> ScanDeleter for OpenvasdScanner<S> {
 }
 
 #[async_trait]
-impl<S: ScannerStack> ScanResultFetcher for OpenvasdScanner<S> {
+impl<S> ScanResultFetcher for OpenvasdScanner<S>
+where
+    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
+{
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,

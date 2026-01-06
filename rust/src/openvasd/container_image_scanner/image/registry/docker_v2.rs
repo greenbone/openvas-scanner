@@ -34,6 +34,20 @@ pub struct Registry {
     accept_invalid_certs: bool,
 }
 
+#[derive(Debug)]
+enum Filter {
+    StartsWith(String),
+}
+
+impl Filter {
+    pub fn matches(&self, other: &str) -> bool {
+        tracing::debug!(?self, other, "Matches");
+        match self {
+            Filter::StartsWith(value) => other.starts_with(value),
+        }
+    }
+}
+
 impl Registry {
     async fn authenticated_client(
         &self,
@@ -77,16 +91,19 @@ impl Registry {
         Ok(client)
     }
 
-    async fn resolve_repository(
+    async fn resolve_or_search_repository(
         &self,
         registry: &str,
         repository: &str,
     ) -> Vec<Result<Image, ExternalError>> {
+        tracing::debug!(registry, repository, "resolve_or_search_repository");
         let client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
-                tracing::warn!(error=%e, "unable to pull");
-                return vec![Err(e)];
+                tracing::info!(registry, repository, error=%e, "Trying to find owner through catalog and filtering.");
+                return self
+                    .resolve_catalog(registry, Some(Filter::StartsWith(repository.to_owned())))
+                    .await;
             }
         };
         let repos: Vec<Result<Image, ExternalError>> = client
@@ -108,7 +125,47 @@ impl Registry {
         repos
     }
 
-    async fn resolve_catalog(&self, registry: &str) -> Vec<Result<Image, ExternalError>> {
+    async fn resolve_repository(
+        &self,
+        registry: &str,
+        repository: &str,
+    ) -> Vec<Result<Image, ExternalError>> {
+        let client = match self.pull_client(registry, repository).await {
+            Ok(x) => x,
+            Err(e) => {
+                tracing::warn!(registry, repository, error=%e, "Unable to resolve repository");
+                return vec![Err(e)];
+            }
+        };
+        let repos: Vec<Result<Image, ExternalError>> = client
+            .get_tags(repository, None)
+            .map(|x| match x {
+                Ok(x) => {
+                    let image = Image {
+                        registry: registry.to_owned(),
+                        image: Some(repository.to_owned()),
+                        tag: Some(x),
+                    };
+                    tracing::debug!(%image, "resolved image.");
+                    Ok(image)
+                }
+                Err(x) => {
+                    tracing::warn!(error=%x, "unable to resolve_repository");
+                    Err(x.into())
+                }
+            })
+            .collect()
+            .await;
+
+        repos
+    }
+
+    async fn resolve_catalog(
+        &self,
+        registry: &str,
+        filter: Option<Filter>,
+    ) -> Vec<Result<Image, ExternalError>> {
+        tracing::debug!(registry, ?filter, "resolve_catalog");
         let client = match self.catalog_client(registry).await {
             Ok(x) => x,
             Err(e) => {
@@ -125,19 +182,23 @@ impl Registry {
             })
             .collect()
             .await;
-        tracing::trace!(repos = repos.len(), "Repositories");
+        tracing::debug!(registry, repos = repos.len(), "Found repositories");
 
         let mut results: Vec<Result<Image, ExternalError>> = Vec::with_capacity(repos.len());
         for r in repos {
             match r {
-                Ok(x) => results.extend(self.resolve_repository(registry, &x).await),
+                Ok(x) => {
+                    if filter.as_ref().map(|y| y.matches(&x)).unwrap_or(true) {
+                        results.extend(self.resolve_repository(registry, &x).await)
+                    }
+                }
                 Err(e) => {
                     tracing::warn!(error=%e, "unable to get_catalog");
                     results.push(Err(e))
                 }
             }
         }
-        tracing::trace!(results = results.len(), "Results");
+        tracing::debug!(results = results.len(), "Found results.");
 
         results
     }
@@ -152,7 +213,7 @@ impl Registry {
         ),
         ExternalError,
     > {
-        let repository = match &image.image {
+        let repository = match image.image() {
             None => {
                 return Err(
                     io::Error::new(io::ErrorKind::NotFound, "missing repository/image.").into(),
@@ -160,7 +221,7 @@ impl Registry {
             }
             Some(x) => x,
         };
-        let tag = match &image.tag {
+        let tag = match image.tag() {
             None => {
                 return Err(io::Error::new(io::ErrorKind::NotFound, "missing image tag.").into());
             }
@@ -169,6 +230,7 @@ impl Registry {
 
         let registry = &image.registry;
         let client = self.pull_client(registry, repository).await?;
+
         let manifest = client.get_manifest(repository, tag).await?;
         let architectures = manifest.architectures()?;
         tracing::debug!(?architectures, ?image, "Supported architectures");
@@ -219,12 +281,12 @@ impl super::Registry for Registry {
                     registry,
                     image: None,
                     tag: _,
-                } => self.resolve_catalog(&registry).await,
+                } => self.resolve_catalog(&registry, None).await,
                 Image {
                     registry,
                     image: Some(image),
                     tag: None,
-                } => self.resolve_repository(&registry, &image).await,
+                } => self.resolve_or_search_repository(&registry, &image).await,
                 image => vec![Ok(image)],
             }
         })
@@ -274,7 +336,7 @@ impl super::Registry for Registry {
                         architecture,
                         client.get_blob(
                             image
-                                .image
+                                .image()
                                 .as_ref()
                                 .expect("already verified in fetch_digest_layer"),
                             digest,
@@ -606,7 +668,7 @@ mod tests {
         let aha = super::Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
             .expect("Registry cannot fail to initialize");
         let image = Image {
-            registry: addr,
+            registry: addr.clone(),
             image: None,
             tag: None,
         };
@@ -623,15 +685,6 @@ mod tests {
             image: Some("nichtsfrei/victim".to_owned()),
             tag: "latest".to_owned().into(),
         };
-
-        // use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-        // let filter = tracing_subscriber::filter::Targets::new()
-        //     .with_default(tracing::Level::TRACE)
-        //     .with_target("hyper_util", tracing::Level::INFO);
-        // tracing_subscriber::registry()
-        //     .with(tracing_subscriber::fmt::layer())
-        //     .with(filter)
-        //     .init();
 
         let server = RegistryMock::serve_images(vec![image.clone()]).await;
 

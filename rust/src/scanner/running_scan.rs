@@ -10,26 +10,27 @@ use std::{
     time::SystemTime,
 };
 
-use crate::nasl::utils::Executor;
+use crate::nasl::utils::scan_ctx::ContextStorage;
+use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
 use crate::{
     scanner::scan_runner::ScanRunner,
-    scheduling::{ExecutionPlan, ExecutionPlaner, VTError},
+    scheduling::{ExecutionPlan, ExecutionPlaner, SchedulerStorage, VTError},
 };
 use futures::StreamExt;
 use greenbone_scanner_framework::models::{HostInfo, Phase, Status};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
-use super::{ScannerStack, scan::Scan};
+use super::scan::Scan;
 
 /// Takes care of running a single scan to completion.
 /// Also provides methods for stopping the scan and
 /// reading its status.
-pub struct RunningScan<S: ScannerStack> {
+pub struct RunningScan<S> {
     scan: Scan,
-    storage: Arc<S::Storage>,
-    loader: Arc<S::Loader>,
+    storage: Arc<S>,
+    loader: Arc<Loader>,
     function_executor: Arc<Executor>,
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<Status>>,
@@ -45,16 +46,16 @@ pub(super) fn current_time_in_seconds(name: &'static str) -> u64 {
     }
 }
 
-impl<S: ScannerStack> RunningScan<S> {
+impl<S> RunningScan<S>
+where
+    S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
+{
     pub fn start<Sch: ExecutionPlan + 'static>(
         scan: Scan,
-        storage: Arc<S::Storage>,
-        loader: Arc<S::Loader>,
+        storage: Arc<S>,
+        loader: Arc<Loader>,
         function_executor: Arc<Executor>,
-    ) -> RunningScanHandle
-    where
-        S: 'static,
-    {
+    ) -> RunningScanHandle {
         let keep_running: Arc<AtomicBool> = Arc::new(true.into());
         let status = Arc::new(RwLock::new(Status {
             ..Default::default()
@@ -106,7 +107,7 @@ impl<S: ScannerStack> RunningScan<S> {
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
             &*self.storage,
-            &*self.loader,
+            &self.loader,
             &self.function_executor,
             schedule,
             &self.scan,

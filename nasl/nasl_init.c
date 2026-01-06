@@ -81,6 +81,7 @@ static init_func libfuncs[] = {
   {"vendor_version", nasl_vendor_version},
   {"update_table_driven_lsc_data", nasl_update_table_driven_lsc_data},
   {"notus", nasl_notus},
+  {"notus_type", nasl_notus_type},
   {"notus_error", nasl_notus_error},
   {"get_preference", nasl_get_preference},
   {"safe_checks", safe_checks},

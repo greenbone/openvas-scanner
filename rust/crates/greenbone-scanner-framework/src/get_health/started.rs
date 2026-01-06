@@ -19,7 +19,7 @@ pub enum Started {
 impl From<Started> for StatusCode {
     fn from(val: Started) -> Self {
         match val {
-            Started::Started => StatusCode::NO_CONTENT,
+            Started::Started => StatusCode::OK,
             Started::NotStarted => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
@@ -132,7 +132,7 @@ mod tests {
             .body(Empty::<Bytes>::new())
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     #[tokio::test]

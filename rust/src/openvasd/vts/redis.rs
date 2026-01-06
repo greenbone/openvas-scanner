@@ -355,7 +355,8 @@ impl orchestrator::Worker for FeedSynchronizer {
             path,
             typus: kind,
         };
-        Box::pin(async move { super::synchronize_feed(&ps, feed_hash).await })
+        let verify = self.signature_check;
+        Box::pin(async move { super::synchronize_feed(&ps, feed_hash, verify).await })
     }
 
     fn signature_check(&self) -> bool {

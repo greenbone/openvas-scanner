@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::time::SystemTime;
+use std::{path::Path, time::SystemTime};
 
 // Maybe move products to notus so they are the same as advisories
 use greenbone_scanner_framework::models::Product;
@@ -35,7 +35,7 @@ pub trait ProductLoader {
     /// Verify the signature of the Hashsum file
     fn verify_signature(&self) -> Result<(), VerifyError>;
     /// Get the root directory of the notus products
-    fn get_root_dir(&self) -> Result<String, Error>;
+    fn root_path(&self) -> &Path;
 }
 
 /// Trait for an AdvisoryLoader
@@ -44,9 +44,9 @@ pub trait AdvisoryLoader {
     /// used for `load_product`.
     fn get_advisories(&self) -> Result<Vec<String>, Error>;
     /// Load advisories files present in the path.
-    fn load_advisory(&self, os: &str) -> Result<ProductsAdvisories, Error>;
+    fn load_advisory(&self, os: &str, signature_check: bool) -> Result<ProductsAdvisories, Error>;
     /// Verify the signature of the Hashsum file
     fn verify_signature(&self) -> Result<(), VerifyError>;
     /// Get the root directory of the notus products
-    fn get_root_dir(&self) -> Result<String, Error>;
+    fn root_path(&self) -> &Path;
 }

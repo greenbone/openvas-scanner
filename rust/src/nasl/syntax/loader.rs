@@ -5,8 +5,9 @@
 //! This crate is used to load NASL code based on a name.
 
 use std::{
+    collections::HashMap,
     fs::{self, File},
-    io,
+    io::{self, BufRead},
     path::{Path, PathBuf},
 };
 
@@ -29,98 +30,6 @@ pub enum LoadError {
     Dirty(String),
 }
 
-impl LoadError {
-    pub fn filename(&self) -> &str {
-        match self {
-            LoadError::Retry(x) => x,
-            LoadError::NotFound(x) => x,
-            LoadError::PermissionDenied(x) => x,
-            LoadError::Dirty(x) => x,
-        }
-    }
-}
-
-/// Loads the content of the path to String
-///
-/// First it tries to read utf-8 if that fails then it tries again by calling load_non_utf8_path.
-fn load_from_path<P>(path: &P) -> Result<String, LoadError>
-where
-    P: AsRef<Path> + ?Sized,
-{
-    match fs::read_to_string(path) {
-        Ok(x) => Ok(x),
-        Err(_) => load_non_utf8_path(path),
-    }
-}
-
-/// Loads the content of the path to String by parsing each byte to a character.
-///
-/// Unfortunately the feed is not completely written in utf8 enforcing us to parse the content
-/// bytewise.
-pub fn load_non_utf8_path<P>(path: &P) -> Result<String, LoadError>
-where
-    P: AsRef<Path> + ?Sized,
-{
-    let result = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect());
-    match result {
-        Ok(result) => Ok(result),
-        Err(err) => Err((path.as_ref().to_str().unwrap_or_default(), err).into()),
-    }
-}
-
-/// Loader is used to load NASL scripts based on relative paths (e.g. "http_func.inc" )
-pub trait Loader: Sync + Send {
-    /// Resolves the given key to nasl code
-    fn load(&self, key: &str) -> Result<String, LoadError>;
-    /// Return the root plugins folder
-    fn root_path(&self) -> Result<String, LoadError>;
-}
-
-/// Returns given key as BufReader
-pub trait AsBufReader<P> {
-    /// Returns given key as BufReader
-    fn as_bufreader(&self, key: &str) -> Result<io::BufReader<P>, LoadError>;
-}
-
-#[derive(Default)]
-/// NoOpLoader is a loader for test purposes.
-pub struct NoOpLoader {}
-
-/// Is a no operation loader for test purposes.
-impl Loader for NoOpLoader {
-    fn load(&self, _: &str) -> Result<String, LoadError> {
-        Ok(String::default())
-    }
-    fn root_path(&self) -> Result<String, LoadError> {
-        Ok(String::default())
-    }
-}
-
-impl Default for Box<dyn Loader> {
-    fn default() -> Self {
-        Box::<NoOpLoader>::default()
-    }
-}
-
-/// Is a plugin loader based on a root dir.
-///
-/// When load is called with e.g. plugin_feed_info.inc than the FSPluginLoader
-/// expands `plugin_feed_info.inc` with the given root path.
-///
-/// So when the root path is `/var/lib/openvas/plugins` than it will be extended to
-/// `/var/lib/openvas/plugins/plugin_feed_info.inc`.
-#[derive(Debug, Clone)]
-pub struct FSPluginLoader {
-    root: PathBuf,
-}
-
-impl From<(&Path, std::io::Error)> for LoadError {
-    fn from(value: (&Path, std::io::Error)) -> Self {
-        let (pstr, value) = value;
-        (pstr.to_str().unwrap_or_default(), value).into()
-    }
-}
-
 impl From<(&str, std::io::Error)> for LoadError {
     fn from(value: (&str, std::io::Error)) -> Self {
         let (pstr, value) = value;
@@ -134,31 +43,127 @@ impl From<(&str, std::io::Error)> for LoadError {
     }
 }
 
-impl FSPluginLoader {
-    /// Creates a new file system plugin loader based on the given root path
-    pub fn new<P>(root: P) -> Self
-    where
-        P: AsRef<Path>,
-    {
+impl LoadError {
+    pub fn filename(&self) -> &str {
+        match self {
+            LoadError::Retry(x) => x,
+            LoadError::NotFound(x) => x,
+            LoadError::PermissionDenied(x) => x,
+            LoadError::Dirty(x) => x,
+        }
+    }
+}
+
+/// Reads the content of the file at `Path` to a String.
+///
+/// First attempts to read the file to UTF8 and then falls
+/// back to non-UTF8 if that did not succeed.
+fn read_utf8_or_non_utf8_path<P>(path: &P) -> Result<String, LoadError>
+where
+    P: AsRef<Path> + ?Sized,
+{
+    match fs::read_to_string(path) {
+        Ok(x) => Ok(x),
+        Err(_) => read_non_utf8_path(path),
+    }
+}
+
+/// Loads the content of the path to String by parsing each byte to a character.
+///
+/// This is done since the feed is not completely written in UTF8, forcing us to parse
+/// the content of some files bytewise.
+pub fn read_non_utf8_path<P>(path: &P) -> Result<String, LoadError>
+where
+    P: AsRef<Path> + ?Sized,
+{
+    let result = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect());
+    match result {
+        Ok(result) => Ok(result),
+        Err(err) => Err((path.as_ref().to_str().unwrap_or_default(), err).into()),
+    }
+}
+
+/// This trait exists as an abstraction to support loading NASL files
+/// from files (during normal operation) and from hardcoded strings
+/// (in some tests).
+trait NaslLoader: Sync + Send + NaslLoaderClone {
+    /// Resolves the given filename to NASL code
+    fn load(&self, filename: &str) -> Result<String, LoadError>;
+
+    /// Return the root plugins folder
+    fn root_path(&self) -> &Path;
+
+    fn as_bufreader(&self, filename: &str) -> Result<Box<dyn BufRead>, LoadError>;
+}
+
+#[derive(Clone)]
+pub struct Loader {
+    loader: Box<dyn NaslLoader>,
+}
+
+impl Loader {
+    /// Create a new loader that loads files from the file system
+    /// relative to the given feed path.
+    pub fn from_feed_path(path: impl AsRef<Path>) -> Self {
         Self {
-            root: root.as_ref().to_owned(),
+            loader: Box::new({
+                FileSystemLoader {
+                    root: path.as_ref().to_owned(),
+                }
+            }),
         }
+    }
+
+    /// Create an empty loader that returns a `LoadError::NotFound`
+    /// for any given filename.
+    pub fn test_empty() -> Self {
+        Self::test().build()
+    }
+
+    /// Create a test loader. Test files can be added with the
+    /// `.with_file` method and the result turned into a `Loader`
+    /// with `.build()`.
+    ///
+    /// Example:
+    ///
+    /// ```
+    /// # use scannerlib::nasl::Loader;
+    /// Loader::test()
+    ///     .with_file("foo.nasl", "display('hello world')".into())
+    ///     .build();
+    /// ```
+    pub fn test() -> TestLoader {
+        TestLoader {
+            files: HashMap::new(),
+        }
+    }
+
+    pub fn load(&self, filename: &str) -> Result<String, LoadError> {
+        self.loader.load(filename)
+    }
+
+    pub fn root_path(&self) -> &Path {
+        self.loader.root_path()
+    }
+
+    pub(crate) fn as_bufreader(&self, filename: &str) -> Result<Box<dyn BufRead>, LoadError> {
+        self.loader.as_bufreader(filename)
     }
 }
 
-impl AsBufReader<File> for FSPluginLoader {
-    fn as_bufreader(&self, key: &str) -> Result<io::BufReader<File>, LoadError> {
-        let path = self.root.join(key);
-        match File::open(path).map_err(|e| LoadError::from((key, e))) {
-            Ok(file) => Ok(io::BufReader::new(file)),
-            Err(e) => Err(e),
-        }
-    }
+/// Loads files from the file system using paths relative to a root
+/// directory.
+///
+/// This loader tries to load files in UTF8 first and then falls back
+/// to non-UTF8 mode on failure.
+#[derive(Debug, Clone)]
+struct FileSystemLoader {
+    root: PathBuf,
 }
 
-impl Loader for FSPluginLoader {
-    fn load(&self, key: &str) -> Result<String, LoadError> {
-        let path = self.root.join(key);
+impl NaslLoader for FileSystemLoader {
+    fn load(&self, filename: &str) -> Result<String, LoadError> {
+        let path = self.root.join(filename);
         if !path.is_file() {
             return Err(LoadError::NotFound(format!(
                 "{} does not exist or is not accessible.",
@@ -166,24 +171,82 @@ impl Loader for FSPluginLoader {
             )));
         }
         // unfortunately nasl is still in iso-8859-1
-        load_from_path(path.as_path())
+        read_utf8_or_non_utf8_path(path.as_path())
     }
+
     /// Return the root path of the plugins directory
-    fn root_path(&self) -> Result<String, LoadError> {
-        let path = self.root.to_str().unwrap_or_default().to_string();
-        Ok(path)
+    fn root_path(&self) -> &Path {
+        &self.root
+    }
+
+    fn as_bufreader(&self, filename: &str) -> Result<Box<dyn BufRead>, LoadError> {
+        let path = self.root.join(filename);
+        match File::open(path).map_err(|e| LoadError::from((filename, e))) {
+            Ok(file) => Ok(Box::new(io::BufReader::new(file))),
+            Err(e) => Err(e),
+        }
     }
 }
 
-impl<S> Loader for S
-where
-    S: Fn(&str) -> String + Sync + Send,
-{
-    fn load(&self, key: &str) -> Result<String, LoadError> {
-        Ok((self)(key))
+#[derive(Clone)]
+pub struct TestLoader {
+    files: HashMap<String, String>,
+}
+
+impl NaslLoader for TestLoader {
+    fn load(&self, filename: &str) -> Result<String, LoadError> {
+        Ok(self
+            .files
+            .get(filename)
+            .ok_or_else(|| LoadError::NotFound(filename.into()))?
+            .clone())
     }
 
-    fn root_path(&self) -> Result<String, LoadError> {
-        Ok(String::default())
+    fn root_path(&self) -> &Path {
+        todo!()
+    }
+
+    fn as_bufreader(&self, _: &str) -> Result<Box<dyn BufRead>, LoadError> {
+        todo!()
+    }
+}
+
+impl TestLoader {
+    pub fn build(self) -> Loader {
+        Loader {
+            loader: Box::new(self),
+        }
+    }
+
+    pub fn insert(&mut self, format: String, script: String) {
+        self.files.insert(format, script);
+    }
+
+    pub fn with_file(mut self, file_name: &str, contents: String) -> Self {
+        self.files.insert(file_name.into(), contents);
+        self
+    }
+}
+
+/// This trait exists only to make `Box<dyn Loader>` a cloneable object
+/// and can be ignored otherwise.
+/// This trick is necessary to circumvent `dyn` objects not being
+/// able to implement `Clone` directly, since it is not a dyn-compatible trait.
+trait NaslLoaderClone {
+    fn clone_box(&self) -> Box<dyn NaslLoader>;
+}
+
+impl<T> NaslLoaderClone for T
+where
+    T: NaslLoader + Clone + 'static,
+{
+    fn clone_box(&self) -> Box<dyn NaslLoader> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn NaslLoader> {
+    fn clone(&self) -> Box<dyn NaslLoader> {
+        (*self).clone_box()
     }
 }

@@ -6,6 +6,7 @@ use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::interpreter::Register;
 use crate::nasl::nasl_std_functions;
 use crate::nasl::prelude::NaslValue;
+use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::Target;
 use crate::scanner::OpenvasdScanner;
@@ -34,10 +35,10 @@ use std::time::Duration;
 use tokio::time::Instant;
 use tracing_test::traced_test;
 
-type TestStack = (Arc<InMemoryStorage>, fn(&str) -> String);
+type TestStack = Arc<InMemoryStorage>;
 use greenbone_scanner_framework::models::VTData;
 
-fn setup(scripts: &[(String, VTData)]) -> (TestStack, Executor, Scan) {
+fn setup(scripts: &[(String, VTData)]) -> (TestStack, Loader, Executor, Scan) {
     let storage = InMemoryStorage::new();
     scripts.iter().map(|(_, v)| v).for_each(|n| {
         storage
@@ -60,17 +61,26 @@ fn setup(scripts: &[(String, VTData)]) -> (TestStack, Executor, Scan) {
         alive_test_ports: Vec::new(),
     };
     let executor = nasl_std_functions();
-    ((Arc::new(storage), loader), executor, scan)
+    (Arc::new(storage), loader(), executor, scan)
 }
 
 fn make_scanner_and_scan_success() -> (OpenvasdScanner<TestStack>, Scan) {
-    let ((storage, loader), executor, scan) = setup(&only_success());
+    let (storage, loader, executor, scan) = setup(&only_success());
     (OpenvasdScanner::new(storage, loader, executor), scan)
 }
 
 fn make_scanner_and_scan(scripts: &[(String, VTData)]) -> (OpenvasdScanner<TestStack>, Scan) {
-    let ((storage, loader), executor, scan) = setup(scripts);
+    let (storage, loader, executor, scan) = setup(scripts);
     (OpenvasdScanner::new(storage, loader, executor), scan)
+}
+
+fn loader() -> Loader {
+    let only_success = only_success();
+    Loader::test()
+        .with_file("0.nasl", only_success[0].0.clone())
+        .with_file("1.nasl", only_success[1].0.clone())
+        .with_file("2.nasl", only_success[2].0.clone())
+        .build()
 }
 
 fn only_success() -> [(String, VTData); 3] {
@@ -79,12 +89,6 @@ fn only_success() -> [(String, VTData); 3] {
         GenerateScript::with_dependencies("1", &["0.nasl"]).generate(),
         GenerateScript::with_dependencies("2", &["1.nasl"]).generate(),
     ]
-}
-
-fn loader(s: &str) -> String {
-    let only_success = only_success();
-    let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
-    only_success[stou(s)].0.clone()
 }
 
 #[derive(Debug, Default)]
@@ -222,7 +226,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
     let target = Target::localhost();
     let ports = Default::default();
     let executor = nasl_std_functions();
-    let loader = |_: &str| code.to_string();
+    let loader = Loader::test_empty();
     let scan_id = ScanID(filename.to_string());
     let scan_preferences = ScanPrefs::new();
     let alive_test_methods = Vec::default();
@@ -268,9 +272,12 @@ async fn run(
     scripts: Vec<(String, VTData)>,
     storage: Arc<InMemoryStorage>,
 ) -> Result<Vec<Result<ScriptResult, ExecuteError>>, ExecuteError> {
-    let stou = |s: &str| s.split('.').next().unwrap().parse::<usize>().unwrap();
     let loader_scripts = scripts.clone();
-    let loader = move |s: &str| loader_scripts[stou(s)].0.clone();
+    let mut loader = Loader::test();
+    for (i, script) in loader_scripts.iter().enumerate() {
+        loader = loader.with_file(&format!("{i}.nasl"), script.0.clone());
+    }
+    let loader = loader.build();
     let scan = Scan {
         scan_id: "sid".to_string(),
         targets: vec![Target::do_not_resolve_hostname("test.host")],
@@ -290,7 +297,7 @@ async fn run(
     let executor = nasl_std_functions();
 
     let schedule = storage.execution_plan::<WaveExecutionPlan>(&scan.vts)?;
-    let interpreter: ScanRunner<(_, _)> =
+    let interpreter: ScanRunner<Arc<InMemoryStorage>> =
         ScanRunner::new(&storage, &loader, &executor, schedule, &scan)?;
     let results = interpreter.stream().collect::<Vec<_>>().await;
     Ok(results)

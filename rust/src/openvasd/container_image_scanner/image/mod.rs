@@ -16,6 +16,23 @@ pub struct Image {
     tag: Option<String>,
 }
 
+impl Image {
+    pub fn image(&self) -> Option<&str> {
+        self.image.as_ref().map(|x| x as &str)
+    }
+
+    fn is_sha256(&self) -> bool {
+        self.tag
+            .as_ref()
+            .map(|x| x.starts_with("sha256:"))
+            .unwrap_or_default()
+    }
+
+    pub fn tag(&self) -> Option<&str> {
+        self.tag.as_ref().map(|x| x as &str)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum ImageParseError {
     #[error("Empty input")]
@@ -30,22 +47,6 @@ pub struct PackedLayer {
     pub index: usize,
     pub arch: String,
 }
-
-// #[derive(Debug, Clone)]
-// pub struct ID {
-//     pub scan_id: String,
-//     pub client_id: String,
-// }
-//
-// impl ID {
-//     pub fn scan_id(&self) -> &str {
-//         &self.scan_id
-//     }
-//
-//     pub fn client_id(&self) -> &str {
-//         &self.client_id
-//     }
-// }
 
 #[derive(Debug, Clone)]
 pub struct ImageID {
@@ -80,7 +81,13 @@ impl Display for Image {
                 registry,
                 image: Some(image),
                 tag: Some(tag),
-            } => write!(f, "oci://{registry}/{image}:{tag}"),
+            } => {
+                if self.is_sha256() {
+                    write!(f, "oci://{registry}/{}@{}", image, tag)
+                } else {
+                    write!(f, "oci://{registry}/{image}:{tag}")
+                }
+            }
         }
     }
 }
@@ -107,7 +114,16 @@ impl FromStr for Image {
 
         let full_image = image_parts.join("/");
         let (image, tag) = match full_image.rsplit_once(':') {
-            Some((img, t)) => (img.to_string(), Some(t.to_string())),
+            Some((img, t)) => {
+                if img.ends_with("@sha256") {
+                    (
+                        img.strip_suffix("@sha256").unwrap_or_default().to_string(),
+                        Some(format!("sha256:{t}")),
+                    )
+                } else {
+                    (img.to_string(), Some(t.to_string()))
+                }
+            }
             None => (full_image, None),
         };
         result.image = Some(image);
@@ -133,6 +149,25 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn parse_shasum() {
+        let user_input = "narf.io/myuser/myimage@sha256:abc1234def56789";
+        let parsed = user_input.parse();
+        assert_eq!(
+            parsed,
+            Ok(Image {
+                registry: "narf.io".to_owned(),
+                image: Some("myuser/myimage".to_owned()),
+                tag: Some("sha256:abc1234def56789".to_owned())
+            })
+        );
+        assert_eq!(
+            parsed.unwrap().to_string(),
+            "oci://narf.io/myuser/myimage@sha256:abc1234def56789"
+        )
+    }
+
     #[test]
     fn parse_tag_with_port() {
         let user_input = "oci://myregistry:6969/myimage:mytag";
