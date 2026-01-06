@@ -5,20 +5,19 @@ use greenbone_scanner_framework::models;
 use sqlx::Sqlite;
 use tokio::sync::RwLock;
 
-use super::db;
 use crate::container_image_scanner::{
-    Config, ExternalError, detection,
+    Config, ExternalError,
+    benchy::{self, BenchType, Benched, Measured},
+    detection::{self, OperatingSystem},
     image::{
         Image, ImageParseError, Registry,
         extractor::{self, Extractor, Locator},
         packages::ToNotus,
     },
+    messages::{self, CustomerMessage},
     notus,
 };
-use scannerlib::{
-    models::ResultType,
-    notus::{HashsumProductLoader, Notus},
-};
+use scannerlib::notus::{HashsumProductLoader, Notus};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScannerArchImageError {
@@ -45,58 +44,129 @@ pub enum ScannerError {
     NonInterrupting(Vec<String>),
 }
 
+#[derive(Debug, Default)]
+struct ImageResults {
+    os: Option<OperatingSystem>,
+    packages: Vec<String>,
+    results: Vec<models::Result>,
+}
+
+impl ImageResults {
+    fn no_packages(os: OperatingSystem) -> Self {
+        let os = Some(os);
+        Self {
+            os,
+            ..Default::default()
+        }
+    }
+
+    fn no_os() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
+
+    fn results(os: OperatingSystem, packages: Vec<String>, results: Vec<models::Result>) -> Self {
+        let os = Some(os);
+        Self {
+            os,
+            packages,
+            results,
+        }
+    }
+}
+
+impl Measured<ImageResults> {
+    async fn store_log_messages(
+        self,
+        pool: &sqlx::Pool<Sqlite>,
+        id: &str,
+        image: &str,
+        architecture: &str,
+    ) -> Result<(), ScannerArchImageError> {
+        let (scan_duration, result) = self.unpack();
+        let mut messages = result.results;
+        let message = |msg| CustomerMessage::log(Some(image), msg, None).into();
+
+        let layer_timings = Benched::retrieve(pool, id, image).await;
+        let (image_extraction, image_download) =
+            layer_timings
+                .iter()
+                .fold((0, 0), |(ie, id), x| match x.kind() {
+                    BenchType::Download => (ie, id + x.micro_seconds()),
+                    BenchType::Extraction => (ie + x.micro_seconds(), id),
+                    // usually not stored in the DB and if so ignored
+                    BenchType::Scan | BenchType::All => (ie, id),
+                });
+        let scan_timings = [
+            Benched::scan(&scan_duration),
+            Benched::new(None, BenchType::Extraction, image_extraction),
+            Benched::new(None, BenchType::Download, image_download),
+            Benched::new(
+                None,
+                BenchType::All,
+                image_download + image_extraction + scan_duration.as_micros(),
+            ),
+        ];
+        scan_timings.iter().for_each(|x| {
+            messages.push(message(x.msg()));
+        });
+
+        let msg = if result.os.is_none() {
+            "No operating system information found.".to_string()
+        } else {
+            format!(
+                "architecture({}), os({}), packages({})",
+                architecture,
+                result.os.unwrap(),
+                result.packages.len(),
+            )
+        };
+        messages.push(message(msg));
+
+        messages::try_store(pool, id, &messages).await?;
+
+        Ok(())
+    }
+}
+
 async fn scan_arch_image<L, T>(
-    pool: &sqlx::Pool<Sqlite>,
-    id: &str,
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     locator: &L,
     image: String,
-) -> Result<Vec<models::Result>, ScannerArchImageError>
+) -> Result<ImageResults, ScannerArchImageError>
 where
     L: Locator + Send + Sync,
     T: ToNotus,
 {
     use detection::OperatingSystemDetectionError as OSDE;
-    let os = match detection::operating_system(locator).await {
-        Ok(x) => x,
-        Err(OSDE::NotFound | OSDE::Unknown) => {
-            db::internal_result(
-                pool,
-                id,
-                ResultType::Log,
-                Some(image),
-                "No operating system information found.".to_string(),
-            )
-            .await;
-            return Ok(vec![]);
+    match detection::operating_system(locator).await {
+        Ok(os) => {
+            let packages = T::packages(locator).await;
+
+            let results = if packages.is_empty() {
+                // This can also happen if a container image does not have a package DB anymore (e.g. the
+                // rpm db did get deleted on purpose) hence we treat it as an INFO not as an error.
+                ImageResults::no_packages(os)
+            } else {
+                let results = notus::vulnerabilities(
+                    products,
+                    locator.architecture(),
+                    image.clone(),
+                    &os,
+                    packages.clone(),
+                )
+                .await?;
+                ImageResults::results(os, packages, results)
+            };
+
+            Ok(results)
         }
-        Err(e) => return Err(ScannerArchImageError::NoOS(e.into())),
-    };
-    let packages = T::packages(locator).await;
-    db::internal_result(
-        pool,
-        id,
-        ResultType::Log,
-        Some(&image),
-        format!(
-            "architecture({}), os({os}), packages({})",
-            locator.architecture(),
-            packages.len()
-        ),
-    )
-    .await;
-
-    if packages.is_empty() {
-        // This can also happen if a container image does not have a package DB anymore (e.g. the
-        // rpm db did get deleted on purpose) hence we treat it as an INFO not as an error.
-        tracing::info!(operating_system=?os, image, "No packages found.");
-        return Ok(vec![]);
+        Err(OSDE::NotFound | OSDE::Unknown) => Ok(ImageResults::no_os()),
+        Err(e) => Err(ScannerArchImageError::NoOS(e.into())),
     }
-
-    let results =
-        notus::vulnerabilities(products, locator.architecture(), image, &os, packages).await?;
-    Ok(results)
 }
+
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
     pool: sqlx::Pool<Sqlite>,
@@ -108,8 +178,8 @@ where
     R: Registry + Send + Sync,
     T: ToNotus,
 {
-    let image: Image = registry.id.image().parse()?;
     let mut extractor = E::initialize(config.clone(), registry.id.clone()).await?;
+    let image: Image = registry.id.image().parse()?;
     let mut layers = registry.registry.pull_image(image.clone());
     let mut warnings = Vec::new();
     let mut add_warning = |prefix: &dyn Display, error: &dyn Display| {
@@ -124,9 +194,29 @@ where
             Ok(layer) => {
                 let lindex = layer.index;
 
-                tracing::trace!(%image, lindex, "extracting");
-                match extractor.push(layer).await {
-                    Ok(()) => {}
+                Benched::download(lindex, &layer.download_time)
+                    .store(&pool, registry.id.id(), registry.id.image())
+                    .await;
+
+                tracing::debug!(
+                    image = registry.id.image(),
+                    download_time_ms = layer.download_time.as_millis(),
+                    layer = lindex,
+                    "downloaded"
+                );
+                match extractor.extract(layer).await {
+                    Ok(duration) => {
+                        Benched::extraction(lindex, &duration)
+                            .store(&pool, registry.id.id(), registry.id.image())
+                            .await;
+
+                        tracing::debug!(
+                            image = registry.id.image(),
+                            extraction_ms = duration.as_millis(),
+                            layer = lindex,
+                            "extracted"
+                        );
+                    }
                     Err(x) => {
                         add_warning(&format!("Layer({lindex})"), &x);
                     }
@@ -137,28 +227,30 @@ where
             }
         }
     }
-    let locator_per_arch = extractor.extract().await;
+    let locator_per_arch = extractor.locator().await;
     for locator in locator_per_arch.iter() {
-        if let Err(e) = scan_arch_image::<_, T>(
-            &pool,
-            registry.id.id(),
+        let measured = benchy::measure_result(scan_arch_image::<_, T>(
             products.clone(),
             locator,
             registry.id.image.to_owned(),
-        )
-        .and_then(|results| {
-            db::store_results(&pool, registry.id.id(), results).map_err(ScannerArchImageError::from)
-        })
-        .await
+        ));
+
+        if let Err(e) = measured
+            .and_then(|results| {
+                results.store_log_messages(
+                    &pool,
+                    registry.id.id(),
+                    registry.id.image(),
+                    locator.architecture(),
+                )
+            })
+            .await
         {
-            db::internal_result(
-                &pool,
-                registry.id.id(),
-                ResultType::Error,
-                Some(registry.id.image()),
-                format!("{e}"),
-            )
-            .await;
+            let msg = format!("Unable to scan ({e})");
+            CustomerMessage::error(Some(registry.id.image()), msg, None)
+                .store(&pool, registry.id.id())
+                .await;
+
             if !matches!(e, ScannerArchImageError::Notus(_)) {
                 add_warning(&format!("Locator({})", locator.architecture()), &e);
             }

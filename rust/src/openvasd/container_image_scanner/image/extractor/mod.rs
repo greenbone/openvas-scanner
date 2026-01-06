@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use thiserror::Error;
 use tokio::{fs::File, io::BufReader};
@@ -47,10 +47,11 @@ where
     where
         Self: Sized + Send + Sync;
 
-    fn push(&mut self, layer: PackedLayer) -> PinBoxFut<Result<(), ExtractorError>>;
+    /// Extracts the given Layer and returns the duration needed to extract
+    fn extract(&mut self, layer: PackedLayer) -> PinBoxFut<Result<Duration, ExtractorError>>;
 
     /// Returns an Locator per architecture
-    fn extract(self) -> PinBoxFut<Vec<Self::Item>>;
+    fn locator(self) -> PinBoxFut<Vec<Self::Item>>;
 }
 
 pub trait Locator {

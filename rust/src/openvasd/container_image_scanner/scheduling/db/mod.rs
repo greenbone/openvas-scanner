@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::models::{self};
@@ -11,7 +11,6 @@ use crate::container_image_scanner::{
     ExternalError,
     image::{Credential, Image, ImageID, ImageParseError},
 };
-use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 
 impl From<SqliteRow> for ImageID {
     fn from(row: SqliteRow) -> Self {
@@ -175,84 +174,6 @@ pub async fn on_message(pool: &Pool<Sqlite>, msg: &super::Message) -> Result<(),
     }
 }
 
-pub async fn store_results(
-    pool: &sqlx::Pool<Sqlite>,
-    id: &str,
-    results: Vec<models::Result>,
-) -> Result<(), sqlx::Error> {
-    if results.is_empty() {
-        return Ok(());
-    }
-    let mut conn = pool.acquire().await?;
-    let mut tx = conn.begin().await?;
-    // x.map(|x| x.get::<String, _>("scan_id"))
-    let base_id = match query(
-        r#"
-                SELECT COUNT(*) AS result_count
-                FROM results
-                WHERE scan_id = ? "#,
-    )
-    .bind(id)
-    .fetch_one(&mut *tx)
-    .await
-    {
-        Ok(x) => x.get::<i64, _>("result_count"),
-        Err(sqlx::Error::RowNotFound) => 0,
-        Err(e) => {
-            return Err(e);
-        }
-    };
-    tracing::trace!(id, base_id, "Results.");
-    let mut builder = QueryBuilder::new(
-        r#"
-            INSERT INTO results (
-                scan_id,
-                id,
-                type,
-                ip_address,
-                hostname,
-                oid,
-                port,
-                protocol,
-                message,
-                detail_name,
-                detail_value,
-                source_type,
-                source_name,
-                source_description
-            ) 
-            "#,
-    );
-
-    for results in results.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 14) {
-        builder.push_values(results.iter().enumerate(), |mut b, (idx, result)| {
-            let result = result.to_owned();
-            let detail = result.detail.unwrap_or_default();
-            b.push_bind(id)
-                .push_bind(idx as i64 + base_id)
-                .push_bind(result.r_type.to_string())
-                .push_bind(result.ip_address.unwrap_or_default())
-                .push_bind(result.hostname.unwrap_or_default())
-                .push_bind(result.oid.unwrap_or_default())
-                .push_bind(result.port.unwrap_or_default())
-                .push_bind(result.protocol.map(|x| x.to_string()).unwrap_or_default())
-                .push_bind(result.message.unwrap_or_default())
-                .push_bind(detail.name)
-                .push_bind(detail.value)
-                .push_bind(detail.source.s_type)
-                .push_bind(detail.source.name)
-                .push_bind(detail.source.description);
-        });
-
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
-    }
-
-    tx.commit().await?;
-
-    Ok(())
-}
-
 pub async fn set_scan_to_running(pool: &Pool<Sqlite>, id: &str) -> Result<(), sqlx::Error> {
     // setting host_queued to 1 to not trigger success, it will be overridden on set_scan_images
     // later.
@@ -282,31 +203,6 @@ pub async fn set_scan_to_failed(pool: &Pool<Sqlite>, id: &str) -> Result<(), sql
     .execute(pool)
     .await
     .map(|_| ())
-}
-
-pub async fn internal_result<T>(
-    pool: &Pool<Sqlite>,
-    scan_id: &str,
-    kind: models::ResultType,
-    image: Option<T>,
-    msg: String,
-) where
-    T: Display,
-{
-    let result = models::Result {
-        id: 0,
-        r_type: kind,
-        ip_address: None,
-        hostname: image.map(|x| x.to_string()),
-        oid: Some("openvasd/container-image-scanner".to_owned()),
-        port: None,
-        protocol: None,
-        message: Some(msg),
-        detail: None,
-    };
-    if let Err(e) = store_results(pool, scan_id, vec![result]).await {
-        tracing::warn!(error=%e, "Cannot store log message.")
-    }
 }
 
 pub async fn set_scan_images(

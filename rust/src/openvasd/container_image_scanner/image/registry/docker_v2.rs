@@ -9,7 +9,11 @@ use futures::{Stream, StreamExt};
 use tokio::sync::mpsc::Receiver;
 
 use super::{PackedLayer, Setting};
-use crate::container_image_scanner::{ExternalError, Streamer, image::Image};
+use crate::container_image_scanner::{
+    ExternalError, Streamer,
+    benchy::{self, Measured},
+    image::Image,
+};
 
 struct BlobStream {
     receiver: Receiver<Result<PackedLayer, Box<dyn Error + Send + Sync>>>,
@@ -233,7 +237,7 @@ impl Registry {
 
         let manifest = client.get_manifest(repository, tag).await?;
         let architectures = manifest.architectures()?;
-        tracing::debug!(?architectures, ?image, "Supported architectures");
+        tracing::trace!(?architectures, ?image, "Supported architectures");
         Ok((
             client,
             architectures
@@ -306,7 +310,7 @@ impl super::Registry for Registry {
                     tracing::debug!(error=%e, "Receiver closed.")
                 }
             };
-            tracing::debug!(image = %image, "Downloading digest");
+            tracing::trace!(image = %image, "Downloading digest");
 
             let (client, og) = match that.fetch_digest_layer(&image).await {
                 Ok((client, layer)) => (client, layer),
@@ -331,31 +335,23 @@ impl super::Registry for Registry {
                 .iter()
                 .enumerate()
                 .map(|(i, (architecture, digest))| {
-                    (
-                        i,
-                        architecture,
-                        client.get_blob(
-                            image
-                                .image()
-                                .as_ref()
-                                .expect("already verified in fetch_digest_layer"),
-                            digest,
-                        ),
-                    )
+                    let blob = client.get_blob(
+                        image
+                            .image()
+                            .as_ref()
+                            .expect("already verified in fetch_digest_layer"),
+                        digest,
+                    );
+
+                    let mblob = benchy::measure(blob);
+                    (i, architecture, mblob)
                 });
-            tracing::debug!(image = %image, layer_amount = futures.len(), "Downloading layers");
+            tracing::trace!(image = %image, layer_amount = futures.len(), "Downloading layers");
             for f in futures {
                 let (index, arch, fdata) = f;
-                let result = fdata
-                    .await
-                    .map(|data| PackedLayer {
-                        data,
-                        arch: arch.to_owned(),
-                        index,
-                    })
-                    .map_err(|x| x.into());
+                let result = fdata.await.into_packed_layer(arch.to_owned(), index);
 
-                tracing::debug!(image = %image, layer= index, "Downloaded layer");
+                tracing::trace!(image = %image, layer= index, "Downloaded layer");
                 if let Err(e) = sender.send(result).await {
                     tracing::debug!(error=%e, "receiver dropped");
                     break;
@@ -365,6 +361,27 @@ impl super::Registry for Registry {
         });
 
         Box::pin(result)
+    }
+}
+
+impl<E> Measured<Result<Vec<u8>, E>>
+where
+    E: Into<super::ExternalError>,
+{
+    fn into_packed_layer(
+        self,
+        arch: String,
+        index: usize,
+    ) -> Result<PackedLayer, super::ExternalError> {
+        let (download_time, result) = self.unpack();
+        result
+            .map(|data| PackedLayer {
+                data,
+                arch: arch.to_owned(),
+                index,
+                download_time,
+            })
+            .map_err(|x| x.into())
     }
 }
 
