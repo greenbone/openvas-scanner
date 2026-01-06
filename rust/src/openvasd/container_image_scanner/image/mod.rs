@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, str::FromStr, time::Duration};
 
 mod registry;
 pub use registry::{
@@ -46,6 +46,7 @@ pub struct PackedLayer {
     pub data: Vec<u8>,
     pub index: usize,
     pub arch: String,
+    pub download_time: Duration,
 }
 
 #[derive(Debug, Clone)]

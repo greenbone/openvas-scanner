@@ -1,3 +1,4 @@
+mod benchy;
 pub mod config;
 use std::{
     sync::{Arc, RwLock},
@@ -13,6 +14,7 @@ use sqlx::migrate::Migrator;
 mod detection;
 pub mod endpoints;
 mod image;
+mod messages;
 mod notus;
 mod scheduling;
 pub(crate) use scannerlib::{ExternalError, PinBoxFut, PinBoxFutRef, Streamer};

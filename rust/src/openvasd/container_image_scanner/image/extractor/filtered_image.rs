@@ -1,6 +1,7 @@
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
 use bzip2::read::BzDecoder;
@@ -11,7 +12,7 @@ use zstd::stream::read::Decoder as ZstdDecoder;
 
 use super::{ExtractorError, LocatorError};
 use crate::container_image_scanner::{
-    self, detection,
+    self, benchy, detection,
     image::{Image, ImageID, PackedLayer, packages},
 };
 
@@ -79,7 +80,7 @@ impl super::Extractor for Extractor {
         })
     }
 
-    fn extract(self) -> super::PinBoxFut<Vec<Self::Item>> {
+    fn locator(self) -> super::PinBoxFut<Vec<Self::Item>> {
         Box::pin(async move {
             self.architecture
                 .clone()
@@ -92,7 +93,10 @@ impl super::Extractor for Extractor {
         })
     }
 
-    fn push(&mut self, layer: PackedLayer) -> super::PinBoxFut<Result<(), ExtractorError>> {
+    fn extract(
+        &mut self,
+        layer: PackedLayer,
+    ) -> super::PinBoxFut<Result<Duration, ExtractorError>> {
         if !(layer.index == 0 && self.last_index == 0)
             && layer.index != self.last_index + 1 + self.offset
         {
@@ -114,7 +118,7 @@ impl super::Extractor for Extractor {
                 tokio::fs::create_dir_all(&base).await?;
             }
 
-            tokio::task::spawn_blocking(move || {
+            let (duration, result) = benchy::measure(tokio::task::spawn_blocking(move || {
                 unpack_layer(&layer.data, &base, |p| {
                     let result = detection::OS_FILES
                         .iter()
@@ -131,9 +135,11 @@ impl super::Extractor for Extractor {
 
                     result
                 })
-            })
-            .await??;
-            Ok(())
+            }))
+            .await
+            .unpack();
+            result??;
+            Ok(duration)
         })
     }
 }

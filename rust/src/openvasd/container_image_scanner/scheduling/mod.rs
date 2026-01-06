@@ -20,13 +20,14 @@ use tokio::{
 };
 use tracing::{debug, warn};
 
-use crate::container_image_scanner;
-use scannerlib::{
-    models::ResultType,
-    notus::{HashsumProductLoader, Notus},
+use crate::container_image_scanner::{
+    self,
+    messages::{self, CustomerMessage},
 };
+use scannerlib::notus::{HashsumProductLoader, Notus};
 
-mod db;
+// TODO: refactor, this got a bit too messy
+pub mod db;
 mod scanner;
 
 #[derive(Debug)]
@@ -136,11 +137,6 @@ where
             match image {
                 Err(e) => result.push(Err(e)),
                 Ok(x) => {
-                    //let span = tracing::span!(tracing::Level::TRACE, "resolve_all_images", %x,);
-                    //let _enter = span.enter();
-                    //
-                    // FIXME: verify the result for errors and set the image to failed there is an
-                    // error otherwise it will try to resolve_all_images endlessly for that scan.
                     let extended_images = registry.resolve_image(x).await;
                     result.extend(extended_images)
                 }
@@ -300,38 +296,33 @@ where
                             }
                         }
                         Err(err) => {
+                            tracing::warn!(error=%err);
                             if let Err(e) = db::image_failed(&pool, &id).await {
                                 warn!(error = %e, ?id, "Unable to update scan hosts information.");
                             }
-                            match &err {
+                            let msgs = match &err {
                                 ScanImageError::ScannerError(
                                     //TODO: The name and design is misleading.
                                     scanner::ScannerError::NonInterrupting(items),
-                                ) => {
-                                    for e in items {
-                                        warn!(error = %e, "Image failed.");
-                                        db::internal_result(
-                                            &pool,
-                                            &id.id,
-                                            ResultType::Error,
+                                ) => items
+                                    .iter()
+                                    .map(|msg| {
+                                        CustomerMessage::error(
                                             Some(id.image.clone()),
-                                            e.clone(),
+                                            msg.to_owned(),
+                                            None,
                                         )
-                                        .await;
-                                    }
-                                }
+                                    })
+                                    .collect(),
                                 e => {
-                                    db::internal_result(
-                                        &pool,
-                                        &id.id,
-                                        ResultType::Error,
+                                    vec![CustomerMessage::error(
                                         Some(id.image.clone()),
-                                        e.to_string(),
-                                    )
-                                    .await;
-                                    warn!(error = %e, "Image failed");
+                                        format!("Unable to scan image: {e}."),
+                                        None,
+                                    )]
                                 }
-                            }
+                            };
+                            messages::store(&pool, id.id(), &msgs).await
                         }
                     }
                 })
