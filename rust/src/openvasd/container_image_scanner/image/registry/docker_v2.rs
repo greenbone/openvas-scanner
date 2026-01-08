@@ -1,12 +1,17 @@
 use std::{
     error::Error,
+    fmt::Display,
     io,
     pin::Pin,
+    sync::{Arc, RwLock},
     task::{Context, Poll},
 };
 
-use futures::{Stream, StreamExt};
+use docker_registry::v2::manifest::Manifest;
+use futures::{Stream, StreamExt, TryFutureExt, TryStreamExt};
+use sysinfo::CpuRefreshKind;
 use tokio::sync::mpsc::Receiver;
+use tracing_subscriber::registry;
 
 use super::{PackedLayer, Setting};
 use crate::container_image_scanner::{
@@ -52,6 +57,197 @@ impl Filter {
     }
 }
 
+struct ClientBuilder {
+    username: Option<String>,
+    password: Option<String>,
+    insecure: bool,
+    accept_invalid_certs: bool,
+    scope: String,
+    registry: String,
+}
+
+impl ClientBuilder {
+    fn error_kind(&self, kind: ClientErrorKind) -> ClientError {
+        ClientError {
+            registry: self.registry.to_owned(),
+            kind,
+        }
+    }
+    fn catalog_error(&self, source: docker_registry::errors::Error) -> ClientError {
+        Self::error_kind(
+            &self,
+            ClientErrorKind::Catalog {
+                status_code: if let docker_registry::errors::Error::UnexpectedHttpStatus(sc) =
+                    source
+                {
+                    Some(sc.as_u16())
+                } else {
+                    None
+                },
+            },
+        )
+    }
+
+    fn authenticatation_error(&self) -> ClientError {
+        Self::error_kind(
+            &self,
+            ClientErrorKind::Authentication {
+                scope: self.scope.to_owned(),
+            },
+        )
+    }
+
+    fn tag_error(&self, source: docker_registry::errors::Error) -> ClientError {
+        todo!()
+    }
+
+    fn manifest_error(&self, error: docker_registry::errors::Error) -> ClientError {
+        todo!()
+    }
+
+    fn blob_error(&self, error: docker_registry::errors::Error) -> ClientError {
+        todo!()
+    }
+}
+
+impl ClientBuilder {
+    pub async fn authenticated(&self) -> Result<docker_registry::v2::Client, ClientError> {
+        let scope = &self.scope;
+        let registry = &self.registry;
+        tracing::trace!(scope, registry, "trying to login");
+        let as_ce = |error| {
+            tracing::debug!(%error, scope, registry);
+            self.authenticatation_error()
+        };
+        docker_registry::v2::Client::configure()
+            .insecure_registry(self.insecure)
+            .accept_invalid_certs(self.accept_invalid_certs)
+            .username(self.username.clone())
+            .password(self.password.clone())
+            .registry(registry)
+            .build()
+            .map_err(as_ce)?
+            // TODO: change library to automatically use the scope given by the server header
+            // information:
+            // `www-authenticate: Bearer realm="https://localhost:5001/auth",service="localhost:5000",scope="registry:catalog:*"`
+            .authenticate(&[scope])
+            .await
+            .map_err(as_ce)
+    }
+}
+
+struct Client {
+    builder: ClientBuilder,
+    client: docker_registry::v2::Client,
+    max_retries: usize,
+}
+
+#[derive(Debug)]
+pub enum ClientErrorKind {
+    Authentication { scope: String },
+    Catalog { status_code: Option<u16> },
+}
+
+impl Display for ClientErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClientErrorKind::Authentication { scope } => write!(f, "authentication ({scope})"),
+            ClientErrorKind::Catalog { status_code } => {
+                if let Some(sc) = status_code {
+                    write!(f, "catalog (unexpected statuscode {sc})")
+                } else {
+                    write!(f, "catalog url")
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Client error on {registry}: {kind}")]
+pub struct ClientError {
+    registry: String,
+    kind: ClientErrorKind,
+}
+
+impl Client {
+    pub async fn authenticated(
+        username: Option<String>,
+        password: Option<String>,
+        insecure: bool,
+        accept_invalid_certs: bool,
+        scope: String,
+        registry: String,
+    ) -> Result<Client, ClientError> {
+        let builder = ClientBuilder {
+            username,
+            password,
+            insecure,
+            accept_invalid_certs,
+            scope,
+            registry,
+        };
+        let client = builder.authenticated().await?;
+        Ok(Self {
+            builder,
+            client,
+            max_retries: 2,
+        })
+    }
+
+    pub fn get_catalog<'a, 'b: 'a>(
+        &'b mut self,
+        paginate: Option<u32>,
+    ) -> impl Stream<Item = Result<String, ClientError>> + 'a {
+        self.client
+            .get_catalog(paginate)
+            .map_err(|x| self.builder.catalog_error(x))
+    }
+
+    pub fn get_tags<'a, 'b: 'a, 'c: 'a>(
+        &'b mut self,
+        name: &'c str,
+        paginate: Option<u32>,
+    ) -> impl Stream<Item = Result<String, ClientError>> + 'a {
+        self.client
+            .get_tags(name, paginate)
+            .map_err(|x| self.builder.tag_error(x))
+    }
+
+    pub async fn get_manifest(
+        &mut self,
+        name: &str,
+        reference: &str,
+    ) -> Result<(Manifest, Option<String>), ClientError> {
+        loop {
+            match self.client.get_manifest_and_ref(name, reference).await {
+                Err(error) if self.max_retries > 1 => {
+                    self.max_retries -= 1;
+                    tracing::warn!(%error, retries=self.max_retries, "Unable to get manifest. Retrying.");
+                    self.client = self.builder.authenticated().await?;
+                }
+                Ok(x) => return Ok(x),
+                Err(error) => return Err(self.builder.manifest_error(error)),
+            }
+        }
+    }
+
+    //TODO: get rid of mut
+    pub async fn get_blob(&mut self, name: &str, digest: &str) -> Result<Vec<u8>, ClientError> {
+        loop {
+            match self.client.get_blob(name, digest).await {
+                Err(error) if self.max_retries > 1 => {
+                    self.max_retries -= 1;
+                    tracing::warn!(%error, retries=self.max_retries, "Unable to get manifest. Retrying.");
+                    self.client = self.builder.authenticated().await?;
+                }
+                Ok(x) => return Ok(x),
+                Err(error) => return Err(self.builder.blob_error(error)),
+            }
+        }
+    }
+}
+
 impl Registry {
     async fn authenticated_client(
         &self,
@@ -74,34 +270,39 @@ impl Registry {
             .map_err(|x| x.into())
     }
 
-    async fn catalog_client(
-        &self,
-        registry: &str,
-    ) -> Result<docker_registry::v2::Client, ExternalError> {
+    async fn catalog_client(&self, registry: &str) -> Result<Client, ClientError> {
         let scope = "registry:catalog:*";
-        let client = self.authenticated_client(scope, registry).await?;
-        tracing::trace!("authenticated");
-        Ok(client)
+        Client::authenticated(
+            self.username.clone(),
+            self.password.clone(),
+            self.insecure,
+            self.accept_invalid_certs,
+            scope.to_owned(),
+            registry.to_owned(),
+        )
+        .await
     }
 
-    async fn pull_client(
-        &self,
-        registry: &str,
-        repository: &str,
-    ) -> Result<docker_registry::v2::Client, ExternalError> {
+    async fn pull_client(&self, registry: &str, repository: &str) -> Result<Client, ClientError> {
         let scope = format!("repository:{repository}:pull",);
-        let client = self.authenticated_client(&scope, registry).await?;
-        tracing::trace!("authenticated");
-        Ok(client)
+        Client::authenticated(
+            self.username.clone(),
+            self.password.clone(),
+            self.insecure,
+            self.accept_invalid_certs,
+            scope.to_owned(),
+            registry.to_owned(),
+        )
+        .await
     }
 
     async fn resolve_or_search_repository(
         &self,
         registry: &str,
         repository: &str,
-    ) -> Vec<Result<Image, ExternalError>> {
+    ) -> Vec<Result<Image, ClientError>> {
         tracing::debug!(registry, repository, "resolve_or_search_repository");
-        let client = match self.pull_client(registry, repository).await {
+        let mut client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
                 tracing::info!(registry, repository, error=%e, "Trying to find owner through catalog and filtering.");
@@ -110,7 +311,7 @@ impl Registry {
                     .await;
             }
         };
-        let repos: Vec<Result<Image, ExternalError>> = client
+        let repos: Vec<Result<Image, ClientError>> = client
             .get_tags(repository, None)
             .map(|x| match x {
                 Ok(x) => Ok(Image {
@@ -133,15 +334,15 @@ impl Registry {
         &self,
         registry: &str,
         repository: &str,
-    ) -> Vec<Result<Image, ExternalError>> {
-        let client = match self.pull_client(registry, repository).await {
+    ) -> Vec<Result<Image, ClientError>> {
+        let mut client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
                 tracing::warn!(registry, repository, error=%e, "Unable to resolve repository");
                 return vec![Err(e)];
             }
         };
-        let repos: Vec<Result<Image, ExternalError>> = client
+        let repos: Vec<Result<Image, ClientError>> = client
             .get_tags(repository, None)
             .map(|x| match x {
                 Ok(x) => {
@@ -168,9 +369,9 @@ impl Registry {
         &self,
         registry: &str,
         filter: Option<Filter>,
-    ) -> Vec<Result<Image, ExternalError>> {
+    ) -> Vec<Result<Image, ClientError>> {
         tracing::debug!(registry, ?filter, "resolve_catalog");
-        let client = match self.catalog_client(registry).await {
+        let mut client = match self.catalog_client(registry).await {
             Ok(x) => x,
             Err(e) => {
                 tracing::warn!(error=%e, "unable to resolve catalog");
@@ -178,17 +379,10 @@ impl Registry {
             }
         };
         //FIXME: would be better if we don't need to collect here
-        let repos: Vec<Result<String, ExternalError>> = client
-            .get_catalog(None)
-            .map(|x| match x {
-                Ok(x) => Ok(x),
-                Err(x) => Err(x.into()),
-            })
-            .collect()
-            .await;
+        let repos: Vec<Result<String, ClientError>> = client.get_catalog(None).collect().await;
         tracing::debug!(registry, repos = repos.len(), "Found repositories");
 
-        let mut results: Vec<Result<Image, ExternalError>> = Vec::with_capacity(repos.len());
+        let mut results: Vec<Result<Image, ClientError>> = Vec::with_capacity(repos.len());
         for r in repos {
             match r {
                 Ok(x) => {
@@ -210,13 +404,7 @@ impl Registry {
     async fn fetch_digest_layer(
         &self,
         image: &Image,
-    ) -> Result<
-        (
-            docker_registry::v2::Client,
-            Vec<Result<ArchitectureLayer, ExternalError>>,
-        ),
-        ExternalError,
-    > {
+    ) -> Result<(Client, Vec<Result<ArchitectureLayer, ExternalError>>), ExternalError> {
         let repository = match image.image() {
             None => {
                 return Err(
@@ -233,9 +421,9 @@ impl Registry {
         };
 
         let registry = &image.registry;
-        let client = self.pull_client(registry, repository).await?;
+        let mut client = self.pull_client(registry, repository).await?;
 
-        let manifest = client.get_manifest(repository, tag).await?;
+        let (manifest, digest) = client.get_manifest(repository, tag).await?;
         let architectures = manifest.architectures()?;
         tracing::trace!(?architectures, ?image, "Supported architectures");
         Ok((
@@ -312,7 +500,7 @@ impl super::Registry for Registry {
             };
             tracing::trace!(image = %image, "Downloading digest");
 
-            let (client, og) = match that.fetch_digest_layer(&image).await {
+            let (mut client, og) = match that.fetch_digest_layer(&image).await {
                 Ok((client, layer)) => (client, layer),
                 Err(e) => {
                     send_log(e).await;
@@ -331,26 +519,18 @@ impl super::Registry for Registry {
                 }
             }
 
-            let futures = digest
-                .iter()
-                .enumerate()
-                .map(|(i, (architecture, digest))| {
-                    // TODO: abstract client have the chance for relogin
-                    let blob = client.get_blob(
-                        image
-                            .image()
-                            .as_ref()
-                            .expect("already verified in fetch_digest_layer"),
-                        digest,
-                    );
+            for (index, (arch, digest)) in digest.iter().enumerate() {
+                let blob = client.get_blob(
+                    image
+                        .image()
+                        .as_ref()
+                        .expect("already verified in fetch_digest_layer"),
+                    digest,
+                );
 
-                    let mblob = benchy::measure(blob);
-                    (i, architecture, mblob)
-                });
-            tracing::trace!(image = %image, layer_amount = futures.len(), "Downloading layers");
-            for f in futures {
-                let (index, arch, fdata) = f;
-                let result = fdata.await.into_packed_layer(arch.to_owned(), index);
+                let result = benchy::measure(blob)
+                    .await
+                    .into_packed_layer(arch.to_owned(), index);
 
                 tracing::trace!(image = %image, layer= index, "Downloaded layer");
                 if let Err(e) = sender.send(result).await {
