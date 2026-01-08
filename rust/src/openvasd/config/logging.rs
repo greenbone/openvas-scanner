@@ -69,7 +69,7 @@ impl Logging {
             filter = filter.with_target(name, Level::from(*level));
         }
         let layer = tracing_subscriber::fmt::layer()
-            .with_span_events(tracing_subscriber::fmt::format::FmtSpan::FULL);
+            .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NONE);
         tracing_subscriber::registry()
             .with(layer)
             .with(filter)

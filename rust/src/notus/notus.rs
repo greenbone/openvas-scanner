@@ -115,7 +115,7 @@ where
         vts: &VulnerabilityTests<P>,
     ) -> Result<NotusResults, Error> {
         let packages = Self::parse(packages)?;
-        tracing::debug!(
+        tracing::trace!(
             packages = packages.len(),
             vts = vts.len(),
             "vulnerability loaded."
@@ -168,7 +168,7 @@ where
                 &self.loaded_products[&os.to_string()].0
             }
         };
-        tracing::debug!(os, packages = packages.len(), "products known.");
+        tracing::trace!(os, packages = packages.len(), "products known.");
 
         // Parse and compare package list depending on package type of loaded product
         let results = match product {

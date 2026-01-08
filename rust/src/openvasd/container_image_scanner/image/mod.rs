@@ -1,8 +1,9 @@
 use std::{fmt::Display, str::FromStr, time::Duration};
 
 mod registry;
+
 pub use registry::{
-    Credential, DockerV2 as DockerRegistryV2, Registry, Setting as RegistrySetting,
+    Credential, DockerV2 as DockerRegistryV2, Registry, RegistryError, Setting as RegistrySetting,
 };
 pub mod extractor;
 #[cfg(test)]

@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::container_image_scanner::{
     ExternalError,
-    image::{Credential, Image, ImageID, ImageParseError},
+    image::{Credential, Image, ImageID, ImageParseError, RegistryError},
 };
 
 impl From<SqliteRow> for ImageID {
@@ -208,7 +208,7 @@ pub async fn set_scan_to_failed(pool: &Pool<Sqlite>, id: &str) -> Result<(), sql
 pub async fn set_scan_images(
     pool: &Pool<Sqlite>,
     id: &str,
-    images: Vec<Result<Image, Box<dyn std::error::Error + Send + Sync>>>,
+    images: Vec<Result<Image, RegistryError>>,
 ) -> Result<(), sqlx::Error> {
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
@@ -294,6 +294,7 @@ impl Iterator for RequestedScans {
 
 impl RequestedScans {
     pub async fn fetch(pool: &Pool<Sqlite>, limit: usize) -> RequestedScans {
+        let limit = if limit == 0 { -1 } else { limit as i64 };
         let mut stream = sqlx::query(
             r#"
         WITH running_count AS (
@@ -323,7 +324,7 @@ impl RequestedScans {
           ON r.id = c.id
         "#,
         )
-        .bind(limit as i64)
+        .bind(limit)
         .fetch(pool);
         type ImageResult = Result<Image, ImageParseError>;
 
