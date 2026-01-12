@@ -15,7 +15,7 @@ use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
 use crate::{
     scanner::scan_runner::ScanRunner,
-    scheduling::{ExecutionPlaner, SchedulerStorage, VTError},
+    scheduling::{Scheduler, SchedulerStorage, VTError},
 };
 use futures::StreamExt;
 use greenbone_scanner_framework::models::{HostInfo, Phase, Status};
@@ -95,15 +95,17 @@ where
             id: self.scan.scan_id.to_string(),
             reason: e.to_string(),
         };
-        let schedule = self
-            .storage
+        let scheduler = Scheduler::new(self.storage.clone());
+        let schedule: Vec<_> = scheduler
             .execution_plan(&self.scan.vts)
+            .map_err(make_scheduling_error)?
+            .collect::<Result<_, _>>()
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
             &*self.storage,
             &self.loader,
             &self.function_executor,
-            schedule,
+            schedule.into_iter().map(Ok),
             &self.scan,
         )
         .map_err(make_scheduling_error)
