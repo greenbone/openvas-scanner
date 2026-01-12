@@ -6,19 +6,13 @@ use std::collections::{HashMap, VecDeque};
 
 use greenbone_scanner_framework::models::VTData;
 
-use super::{ExecutionPlan, RuntimeVT, VTError};
+use super::{RuntimeVT, VTError};
 
-/// Is a execution plan that only depends on script_dependencies.
-///
-/// It is based on the idea that each script that does not have any dependency will be executed
-/// at index 0.
-///
-/// When a script only has dependencies that have no dependencies themselves it will be
-/// executed at index 1.
-///
-/// When a script has dependencies that have dependencies themselves it will be executed at index 2
-/// and so on.
-///
+/// This schedule is based on the idea that each script that does not have any dependency will be
+/// executed at index 0.
+/// Scripts which depends only on scripts with index 0 are executed at index 1.
+/// Scripts which depends only on scripts with index 1 are executed at index 2.
+/// etc.
 #[derive(Default, Clone)]
 pub struct WaveExecutionPlan {
     // filename is the key to identify quickly if a dependency is within a known index
@@ -66,10 +60,8 @@ impl WaveExecutionPlan {
             result
         }
     }
-}
 
-impl ExecutionPlan for WaveExecutionPlan {
-    fn append_vt(
+    pub(super) fn append_vt(
         &mut self,
         vt: RuntimeVT,
         dependencies: &HashMap<String, VTData>,
@@ -152,7 +144,6 @@ mod tests {
     use crate::storage::items::nvt::{ACT, FileName};
     use greenbone_scanner_framework::models::VTData;
 
-    use super::WaveExecutionPlan;
     use crate::storage::Dispatcher;
 
     struct OidGenerator {
@@ -319,8 +310,7 @@ mod tests {
             vts: scan_vts,
             ..Default::default()
         };
-        let results =
-            (&storage as &dyn SchedulerStorage).execution_plan::<WaveExecutionPlan>(&scan.vts);
+        let results = (&storage as &dyn SchedulerStorage).execution_plan(&scan.vts);
 
         results.map(|x| x.collect())
     }
