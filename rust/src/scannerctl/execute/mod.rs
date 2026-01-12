@@ -15,7 +15,7 @@ use scannerlib::nasl::nasl_std_functions;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::scanner::{Scan, ScanRunner};
-use scannerlib::scheduling::ExecutionPlaner;
+use scannerlib::scheduling::Scheduler;
 use scannerlib::storage::inmemory::InMemoryStorage;
 use tracing::{info, warn, warn_span};
 
@@ -96,7 +96,8 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
     updater.perform_update().await?;
 
     let vts_cloned = scan.vts.clone();
-    let schedule = storage
+    let scheduler = Scheduler::new(storage.as_ref());
+    let schedule = scheduler
         .execution_plan(&vts_cloned)
         .expect("expected to be schedulable");
     info!("creating scheduling plan");
