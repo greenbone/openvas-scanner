@@ -20,7 +20,7 @@ use greenbone_scanner_framework::models::VTData;
 use greenbone_scanner_framework::models::{Parameter, VT};
 use thiserror::Error;
 
-pub use wave::WaveExecutionPlan;
+use wave::WaveExecutionPlan;
 
 /// Error cases for VTFetcher
 #[derive(Error, Debug, Clone)]
@@ -104,22 +104,10 @@ impl<T> SchedulerStorage for RedisStorage<T> where
 {
 }
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> {}
+impl<T: SchedulerStorage + ?Sized> SchedulerStorage for &T {}
 
-/// Enhances the Retriever trait with execution_plan possibility.
-pub trait ExecutionPlaner {
-    /// Creates an execution plan based on the given scan.
-    ///
-    /// To make it as inconvenient as possible for the caller to accidentally execute scripts that should
-    /// not run concurrently in a concurrent fashion we return an iterator containing the stage as well
-    /// as scripts that can be run concurrently instead of returning the struct that contains the stage
-    /// data directly.
-    ///
-    /// If the second value (parameter) is None it indicates that this script in indirectly loaded
-    /// and was not explicitly mentioned in the Scan.
-    fn execution_plan(
-        &self,
-        ids: &[VT],
-    ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>;
+pub struct Scheduler<S> {
+    storage: S,
 }
 
 /// Contains the VTData and maybe parameter required to be executed
@@ -175,14 +163,18 @@ impl Iterator for ExecutionPlanData {
     }
 }
 
-impl<T> ExecutionPlaner for T
+impl<S> Scheduler<S>
 where
-    T: SchedulerStorage + ?Sized,
+    S: SchedulerStorage,
 {
-    fn execution_plan(
+    pub fn new(storage: S) -> Self {
+        Self { storage }
+    }
+
+    pub fn execution_plan(
         &self,
         scan_vts: &[VT],
-    ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError> {
+    ) -> Result<impl Iterator<Item = ConcurrentVTResult> + '_, VTError> {
         let mut results = core::array::from_fn(|_| WaveExecutionPlan::default());
         let mut unknown_dependencies = Vec::new();
         let mut known_dependencies = HashMap::new();
@@ -190,7 +182,7 @@ where
 
         // Collect all VT information
         for vt in scan_vts {
-            if let Some(nvt) = self.retrieve(&Oid(vt.oid.clone()))? {
+            if let Some(nvt) = self.storage.retrieve(&Oid(vt.oid.clone()))? {
                 unknown_dependencies.extend(nvt.dependencies.clone());
                 vts.push((nvt, Some(vt.parameters.clone())));
             } else {
@@ -202,7 +194,7 @@ where
             if known_dependencies.contains_key(&vt_name) {
                 continue;
             }
-            if let Some(nvt) = self.retrieve(&FileName(vt_name))? {
+            if let Some(nvt) = self.storage.retrieve(&FileName(vt_name))? {
                 unknown_dependencies.extend(nvt.dependencies.clone());
                 known_dependencies.insert(nvt.filename.clone(), nvt);
             }
@@ -223,7 +215,7 @@ mod tests {
     use greenbone_scanner_framework::models::VT;
 
     use crate::scanner::Scan;
-    use crate::scheduling::ExecutionPlaner;
+    use crate::scheduling::Scheduler;
     use crate::scheduling::Stage;
     use crate::storage::Dispatcher;
     use crate::storage::inmemory::InMemoryStorage;
@@ -266,16 +258,19 @@ mod tests {
             }],
             ..Default::default()
         };
-        let results = storage
+        let scheduler = Scheduler::new(&storage);
+        let results: Vec<_> = scheduler
             .execution_plan(&scan.vts)
-            .expect("no error expected");
+            .expect("no error expected")
+            .filter_map(|x| x.ok())
+            .collect();
         assert_eq!(
             vec![
                 (Stage::End, vec![(feed[0].clone(), None)]),
                 (Stage::End, vec![(feed[1].clone(), None)]),
                 (Stage::End, vec![(feed[2].clone(), Some(vec![]))]),
             ],
-            results.filter_map(|x| x.ok()).collect::<Vec<_>>()
+            results
         )
     }
 }

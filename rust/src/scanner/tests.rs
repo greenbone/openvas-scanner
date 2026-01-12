@@ -15,7 +15,7 @@ use crate::scanner::{
     error::{ExecuteError, ScriptResult},
     scan_runner::ScanRunner,
 };
-use crate::scheduling::ExecutionPlaner;
+use crate::scheduling::Scheduler;
 use crate::storage::Dispatcher;
 use crate::storage::Retriever;
 use crate::storage::ScanID;
@@ -296,7 +296,8 @@ async fn run(
 
     let executor = nasl_std_functions();
 
-    let schedule = storage.execution_plan(&scan.vts)?;
+    let scheduler = Scheduler::new(&*storage);
+    let schedule = scheduler.execution_plan(&scan.vts)?;
     let interpreter: ScanRunner<Arc<InMemoryStorage>> =
         ScanRunner::new(&storage, &loader, &executor, schedule, &scan)?;
     let results = interpreter.stream().collect::<Vec<_>>().await;
