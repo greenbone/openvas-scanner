@@ -14,7 +14,7 @@ use super::{RuntimeVT, VTError};
 /// Scripts which depends only on scripts with index 1 are executed at index 2.
 /// etc.
 #[derive(Default, Clone)]
-pub struct WaveExecutionPlan {
+pub(super) struct WaveExecutionPlan {
     // filename is the key to identify quickly if a dependency is within a known index
     data: VecDeque<HashMap<String, RuntimeVT>>,
     dependencies_added: bool,
@@ -140,7 +140,7 @@ mod tests {
     use crate::scanner::Scan;
     use crate::storage::inmemory::InMemoryStorage;
 
-    use crate::scheduling::{ConcurrentVTResult, ExecutionPlaner, SchedulerStorage, Stage};
+    use crate::scheduling::{ConcurrentVTResult, Scheduler, Stage};
     use crate::storage::items::nvt::{ACT, FileName};
     use greenbone_scanner_framework::models::VTData;
 
@@ -310,9 +310,12 @@ mod tests {
             vts: scan_vts,
             ..Default::default()
         };
-        let results = (&storage as &dyn SchedulerStorage).execution_plan(&scan.vts);
+        let scheduler = Scheduler::new(&storage);
+        let results: Result<Vec<_>, _> = scheduler
+            .execution_plan(&scan.vts)
+            .map(|iter| iter.collect());
 
-        results.map(|x| x.collect())
+        results
     }
 
     fn create_results<F, F2>(vt_gen: F, pick: F2) -> Vec<ConcurrentVTResult>
