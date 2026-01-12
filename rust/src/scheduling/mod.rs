@@ -32,9 +32,6 @@ pub enum VTError {
     /// Will be returned when Scheduler tries to schedule a VT with missing dependencies
     MissingDependencies(VTData, Vec<String>),
     #[error("invalid index ({0}) for Stage")]
-    /// The index to create the stage is out of bounds
-    InvalidStageIndex(usize),
-    #[error("not found: {0}")]
     /// Not found
     NotFound(#[from] crate::nasl::syntax::LoadError),
 }
@@ -65,8 +62,8 @@ impl Display for Stage {
     }
 }
 
-impl From<&VTData> for Stage {
-    fn from(value: &VTData) -> Self {
+impl Stage {
+    fn from_vt(value: &VTData) -> Self {
         match value.category {
             ACT::Init | ACT::Scanner | ACT::Settings | ACT::GatherInfo => Self::Discovery,
             ACT::Attack | ACT::MixedAttack => Self::NonEvasive,
@@ -74,29 +71,23 @@ impl From<&VTData> for Stage {
             ACT::End => Self::End,
         }
     }
-}
 
-impl From<Stage> for usize {
-    fn from(value: Stage) -> Self {
-        match value {
+    fn from_stage_index(index: usize) -> Option<Self> {
+        match index {
+            0 => Some(Stage::Discovery),
+            1 => Some(Stage::NonEvasive),
+            2 => Some(Stage::Exhausting),
+            3 => Some(Stage::End),
+            _ => None,
+        }
+    }
+
+    fn stage_index(&self) -> usize {
+        match self {
             Stage::Discovery => 0,
             Stage::NonEvasive => 1,
             Stage::Exhausting => 2,
             Stage::End => 3,
-        }
-    }
-}
-
-impl TryFrom<usize> for Stage {
-    type Error = VTError;
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Stage::Discovery),
-            1 => Ok(Stage::NonEvasive),
-            2 => Ok(Stage::Exhausting),
-            3 => Ok(Stage::End),
-            a => Err(VTError::InvalidStageIndex(a)),
         }
     }
 }
@@ -196,7 +187,7 @@ where
     type Item = ConcurrentVTResult;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let stage = Stage::try_from(self.idx).ok()?;
+        let stage = Stage::from_stage_index(self.idx)?;
         match self.data[self.idx].next() {
             None => {
                 self.idx += 1;
@@ -250,9 +241,9 @@ where
         }
 
         for (nvt, param) in vts.into_iter() {
-            let stage = Stage::from(&nvt);
+            let stage = Stage::from_vt(&nvt);
             tracing::trace!(?stage, oid = nvt.oid, "adding");
-            results[usize::from(stage)].append_vt((nvt, param), &known_dependencies)?;
+            results[stage.stage_index()].append_vt((nvt, param), &known_dependencies)?;
         }
 
         Ok(ExecutionPlanData::new(results))
