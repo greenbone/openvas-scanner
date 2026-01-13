@@ -259,14 +259,16 @@ fn set_image_status<'a>(
     .bind(ids.image())
 }
 
-pub async fn image_failed(pool: &sqlx::Pool<Sqlite>, id: &ImageID) -> Result<(), ExternalError> {
-    set_image_status(id, "failed").execute(pool).await?;
-    Ok(())
+pub async fn image_failed(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
+    if let Err(error) = set_image_status(id, "failed").execute(pool).await {
+        tracing::warn!(%error, "Unable to set status to failed.")
+    }
 }
 
-pub async fn image_success(pool: &sqlx::Pool<Sqlite>, id: &ImageID) -> Result<(), ExternalError> {
-    set_image_status(id, "succeeded").execute(pool).await?;
-    Ok(())
+pub async fn image_success(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
+    if let Err(error) = set_image_status(id, "succeeded").execute(pool).await {
+        tracing::warn!(%error, "Unable to set status to succeeded.")
+    }
 }
 
 #[derive(Debug, Clone)]

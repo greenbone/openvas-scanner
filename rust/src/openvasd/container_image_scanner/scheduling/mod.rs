@@ -8,7 +8,6 @@ use container_image_scanner::{
 };
 use db::{ProcessingImage, RequestedScans};
 use greenbone_scanner_framework::models;
-use scanner::ScannerError;
 use sqlx::{Sqlite, SqlitePool};
 use tokio::{
     sync::{
@@ -18,7 +17,7 @@ use tokio::{
     task::JoinSet,
     time,
 };
-use tracing::{Level, debug, instrument, warn};
+use tracing::{debug, instrument, warn};
 
 use crate::container_image_scanner::{self, messages::CustomerMessage};
 use scannerlib::notus::{HashsumProductLoader, Notus};
@@ -84,13 +83,6 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
 struct InitializedRegistry<'a, Registry> {
     id: &'a ImageID,
     registry: Registry,
-}
-
-#[derive(thiserror::Error, Debug)]
-#[error(transparent)]
-enum ScanImageError {
-    ScannerError(#[from] ScannerError),
-    RegistryError(#[from] RegistryError),
 }
 
 use crate::container_image_scanner::image::RegistryError;
@@ -267,19 +259,40 @@ where
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
         id: &ImageID,
         credentials: Option<Credential>,
-    ) -> Result<(), ScanImageError>
-    where
+    ) where
         T: ToNotus,
     {
-        let registry = Self::registry(&pool, id.id(), credentials)
-            .await
-            .map_err(ScanImageError::RegistryError)?;
+        match Self::registry(&pool, id.id(), credentials).await {
+            Ok(registry) => {
+                let registry = InitializedRegistry { id, registry };
 
-        let registry = InitializedRegistry { id, registry };
+                match scanner::scan_image::<E, R, T>(
+                    config.clone(),
+                    pool.clone(),
+                    products,
+                    &registry,
+                )
+                .await
+                {
+                    Ok(_) => {
+                        db::image_success(&pool, id).await;
+                    }
+                    Err(err) => {
+                        tracing::warn!(image=id.image(), id=id.id(), error=%err);
+                        db::image_failed(&pool, id).await;
+                        CustomerMessage::error(
+                            Some(id.image.clone()),
+                            format!("An error occured while scanning image: {err}"),
+                            None,
+                        )
+                        .store(&pool, id.id())
+                        .await;
+                    }
+                }
+            }
 
-        scanner::scan_image::<E, R, T>(config.clone(), pool.clone(), products, &registry)
-            .await
-            .map_err(ScanImageError::ScannerError)
+            Err(error) => tracing::warn!(%error, "Unable to initiate registry"),
+        }
     }
 
     async fn scan_images<T>(
@@ -299,28 +312,7 @@ where
             let config = config.clone();
             let products = products.clone();
             js.spawn(async move {
-                let result =
-                    Self::scan_image::<T>(config, pool.clone(), products, &id, credentials).await;
-                match result {
-                    Ok(_) => {
-                        if let Err(e) = db::image_success(&pool, &id).await {
-                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
-                        }
-                    }
-                    Err(err) => {
-                        tracing::warn!(image=id.image(), scan_id=id.id(), error=%err);
-                        if let Err(e) = db::image_failed(&pool, &id).await {
-                            warn!(error = %e, ?id, "Unable to update scan hosts information.");
-                        }
-                        CustomerMessage::error(
-                            Some(id.image.clone()),
-                            format!("An error occured while scanning image: {err}"),
-                            None,
-                        )
-                        .store(&pool, id.id())
-                        .await;
-                    }
-                }
+                Self::scan_image::<T>(config, pool.clone(), products, &id, credentials).await;
             });
         }
         js.join_all().await;
