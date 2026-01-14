@@ -229,7 +229,8 @@ where
     E: Extractor + Send + Sync,
     R: Registry + Send + Sync,
 {
-    let mut retries = 3;
+    // alternatively set back to pending and store retry amount alongside the image
+    let mut retries = config.image.scanning_retries;
     loop {
         match download_and_extract_image(config.clone(), registry, image.clone()).await {
             Ok((ex, benched)) => {
@@ -240,7 +241,8 @@ where
             }
             Err(error) if error.can_retry() && retries > 0 => {
                 retries -= 1;
-                tracing::warn!(%error, retries, "While pulling images. Retrying.");
+                tracing::info!(%error, retries, "Retrying.");
+                tokio::time::sleep(config.image.retry_timeout).await;
             }
             Err(error) => return Err(error),
         }

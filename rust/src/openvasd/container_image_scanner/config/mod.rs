@@ -197,25 +197,54 @@ pub struct Image {
         serialize_with = "ImageExtractionLocation::config_serialize"
     )]
     pub extract_to: ImageExtractionLocation,
-    max_scanning: usize, // if 0 unlimited
-    batch_size: usize,   // if 0 unlimited
+    /// Controls how many images can be scanned concurrently.
+    pub max_scanning: usize, // if 0 unlimited
+    /// How many times an image scan should be retried on a failure that is retryable
+    pub scanning_retries: usize,
+    /// Controls the batch of picked up images that are scanned synchronously.
+    pub batch_size: usize, // if 0 unlimited
+    //
+    #[serde(
+        deserialize_with = "scannerlib::utils::duration::deserialize",
+        serialize_with = "scannerlib::utils::duration::serialize"
+    )]
+    /// How long should it wait before retrying again
+    pub retry_timeout: Duration,
 }
 
 impl Default for Image {
     fn default() -> Self {
         Self {
             extract_to: Default::default(),
-            max_scanning: 23, // 23 scans
-            batch_size: 5,    // 5 concurrent images
+            max_scanning: 10,
+            batch_size: 3,
+            scanning_retries: 3,
+            retry_timeout: Duration::from_secs(1),
         }
     }
 }
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(default)]
 pub struct Config {
+    /// Defines how many scans can be resolved to images although another scan is running.
+    ///
+    /// This will effectively resolve whole catalogs or repositories in parallel, however it does
+    /// not mean that they will be actually scanned yet as those images are then picked up and
+    /// the concurrency of those are controlled by images.max_scanning.
+    pub max_scans: usize,
     pub database: SqliteConfiguration,
     pub image: Image,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            database: Default::default(),
+            image: Default::default(),
+            max_scans: 1,
+        }
+    }
 }
 
 impl Config {

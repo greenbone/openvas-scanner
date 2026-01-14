@@ -1,7 +1,6 @@
 use std::{
     pin::Pin,
     task::{Context, Poll},
-    time::Duration,
 };
 
 use docker_registry::v2::manifest::Manifest;
@@ -48,7 +47,7 @@ enum Filter {
 
 impl Filter {
     pub fn matches(&self, other: &str) -> bool {
-        tracing::debug!(?self, other, "Matches");
+        tracing::trace!(?self, other, "Matches");
         match self {
             Filter::StartsWith(value) => other.starts_with(value),
         }
@@ -75,6 +74,9 @@ impl ClientBuilder {
             registry: Some(self.registry.to_owned()),
             kind,
             status_code: match source {
+                // This can happen on wrong body response, which could be sign of limited
+                // availability. That's why we treat it as a 503.
+                docker_registry::errors::Error::Reqwest(_) => Some(503),
                 docker_registry::errors::Error::UnexpectedHttpStatus(status)
                 | docker_registry::errors::Error::Server { status } => Some(status.as_u16()),
                 _ => None,
@@ -133,7 +135,6 @@ impl ClientBuilder {
 struct Client {
     builder: ClientBuilder,
     client: docker_registry::v2::Client,
-    max_retries: usize,
 }
 
 impl Client {
@@ -154,15 +155,11 @@ impl Client {
             registry,
         };
         let client = builder.authenticated().await?;
-        Ok(Self {
-            builder,
-            client,
-            max_retries: 3,
-        })
+        Ok(Self { builder, client })
     }
 
     pub fn get_catalog<'a>(
-        &'a mut self,
+        &'a self,
         paginate: Option<u32>,
     ) -> impl Stream<Item = Result<String, RegistryError>> + 'a {
         self.client
@@ -171,7 +168,7 @@ impl Client {
     }
 
     pub fn get_tags<'a>(
-        &'a mut self,
+        &'a self,
         name: &'a str,
         paginate: Option<u32>,
     ) -> impl Stream<Item = Result<String, RegistryError>> + 'a {
@@ -181,53 +178,21 @@ impl Client {
     }
 
     pub async fn get_manifest(
-        &mut self,
+        &self,
         name: &str,
         reference: &str,
     ) -> Result<(Manifest, Option<String>), RegistryError> {
-        loop {
-            match self
-                .client
-                .get_manifest_and_ref(name, reference)
-                .await
-                .map_err(|source| self.builder.manifest_error(source))
-            {
-                Err(error) if self.max_retries > 0 && error.can_retry() => {
-                    self.max_retries -= 1;
-                    tracing::warn!(%error, retries=self.max_retries, "Unable to get manifest. Retrying.");
-                    if error.needs_reauthentication() {
-                        self.client = self.builder.authenticated().await?;
-                    }
-                    tokio::time::sleep(Duration::from_secs(1)).await;
-                }
-                Ok(x) => return Ok(x),
-                Err(error) => return Err(error),
-            }
-        }
+        self.client
+            .get_manifest_and_ref(name, reference)
+            .await
+            .map_err(|source| self.builder.manifest_error(source))
     }
 
-    pub async fn get_blob(&mut self, name: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
-        // Remove retry and just pull the image again from scratch on error
-        loop {
-            match self
-                .client
-                .get_blob(name, digest)
-                .await
-                .map_err(|source| self.builder.blob_error(source))
-            {
-                Err(error) if self.max_retries > 0 && error.can_retry() => {
-                    self.max_retries -= 1;
-                    tracing::warn!(name, digest, %error, retries=self.max_retries, "Unable to get blob. Retrying.");
-
-                    if error.needs_reauthentication() {
-                        self.client = self.builder.authenticated().await?;
-                    }
-                    tokio::time::sleep(Duration::from_secs(1)).await;
-                }
-                Ok(x) => return Ok(x),
-                Err(error) => return Err(error),
-            }
-        }
+    pub async fn get_blob(&self, name: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
+        self.client
+            .get_blob(name, digest)
+            .await
+            .map_err(|source| self.builder.blob_error(source))
     }
 }
 
@@ -264,7 +229,7 @@ impl Registry {
         repository: &str,
     ) -> Vec<Result<Image, RegistryError>> {
         tracing::debug!(registry, repository, "resolve_or_search_repository");
-        let mut client = match self.pull_client(registry, repository).await {
+        let client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
                 tracing::info!(registry, repository, error=%e, "Trying to find owner through catalog and filtering.");
@@ -281,10 +246,7 @@ impl Registry {
                     image: Some(repository.to_owned()),
                     tag: Some(x),
                 }),
-                Err(x) => {
-                    tracing::warn!(error=%x, "unable to resolve_repository");
-                    Err(x)
-                }
+                Err(x) => Err(x),
             })
             .collect()
             .await;
@@ -297,7 +259,7 @@ impl Registry {
         registry: &str,
         repository: &str,
     ) -> Vec<Result<Image, RegistryError>> {
-        let mut client = match self.pull_client(registry, repository).await {
+        let client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
                 tracing::warn!(registry, repository, error=%e, "Unable to resolve repository");
@@ -335,7 +297,7 @@ impl Registry {
         filter: Option<Filter>,
     ) -> Vec<Result<Image, RegistryError>> {
         tracing::debug!(registry, ?filter, "resolve_catalog");
-        let mut client = match self.catalog_client(registry).await {
+        let client = match self.catalog_client(registry).await {
             Ok(x) => x,
             Err(e) => {
                 tracing::warn!(error=%e, "unable to resolve catalog");
@@ -391,7 +353,7 @@ impl Registry {
         };
 
         let registry = &image.registry;
-        let mut client = self.pull_client(registry, repository).await?;
+        let client = self.pull_client(registry, repository).await?;
 
         // _digest will be needed for start_host message
         let (manifest, _digest) = client.get_manifest(repository, tag).await?;
@@ -461,7 +423,7 @@ impl super::Registry for Registry {
     }
 
     fn pull_image(&self, image: super::Image) -> Streamer<Result<PackedLayer, RegistryError>> {
-        let (sender, receiver) = tokio::sync::mpsc::channel(5);
+        let (sender, receiver) = tokio::sync::mpsc::channel(3);
         let result = BlobStream { receiver };
         let that = self.clone();
         tokio::spawn(async move {
@@ -473,8 +435,7 @@ impl super::Registry for Registry {
             };
             tracing::trace!(image = %image, "Downloading digest");
 
-            // TODO: refavtor
-            let (mut client, og) = match that.fetch_digest_layer(&image).await {
+            let (client, og) = match that.fetch_digest_layer(&image).await {
                 Ok((client, layer)) => (client, layer),
                 Err(e) => {
                     send_log(e).await;
@@ -506,14 +467,13 @@ impl super::Registry for Registry {
                     digest,
                 );
 
-                // TODO: I don't think we should continue on error
                 let result = benchy::measure(blob)
                     .await
                     .into_packed_layer(arch.to_owned(), index);
 
                 tracing::trace!(image = %image, layer= index, "Downloaded layer");
                 if let Err(e) = sender.send(result).await {
-                    tracing::debug!(error=%e, "receiver dropped");
+                    tracing::trace!(error=%e, "receiver dropped");
                     break;
                 }
             }

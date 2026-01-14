@@ -144,9 +144,10 @@ where
         Ok(result)
     }
 
+    #[instrument(skip_all, fields(id=image.id))]
     pub(crate) async fn resolve_and_store_images(
-        image: ProcessingImage,
         pool: sqlx::Pool<Sqlite>,
+        image: ProcessingImage,
     ) -> Result<(), sqlx::Error> {
         db::set_scan_to_running(&pool, &image.id).await?;
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
@@ -167,12 +168,12 @@ where
     ) where
         T: ToNotus,
     {
-        let requested = RequestedScans::fetch(&pool, config.image_max_scanning()).await;
+        let requested = RequestedScans::fetch(&pool, config.max_scans).await;
         let mut js = JoinSet::new();
         for r in requested {
             let pool = pool.clone();
             js.spawn(async move {
-                if let Err(error) = Self::resolve_and_store_images(r, pool).await {
+                if let Err(error) = Self::resolve_and_store_images(pool, r).await {
                     tracing::warn!(%error, "Unable to set image status after fetching the images");
                 }
             });
@@ -278,11 +279,11 @@ where
                         db::image_success(&pool, id).await;
                     }
                     Err(err) => {
-                        tracing::warn!(image=id.image(), id=id.id(), error=%err);
+                        tracing::warn!(error=%err, "Unable to scan image");
                         db::image_failed(&pool, id).await;
                         CustomerMessage::error(
                             Some(id.image.clone()),
-                            format!("An error occured while scanning image: {err}"),
+                            format!("An error occurred while scanning image: {err}"),
                             None,
                         )
                         .store(&pool, id.id())
@@ -298,7 +299,6 @@ where
     async fn scan_images<T>(
         config: Arc<Config>,
         pool: sqlx::Pool<Sqlite>,
-
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,

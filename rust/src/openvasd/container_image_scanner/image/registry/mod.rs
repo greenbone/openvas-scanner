@@ -131,7 +131,7 @@ impl Display for RegistryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let kind = &self.kind;
         if let Some(registry) = self.registry.as_ref() {
-            let registry_msg = format!("Error occured on {registry} while operating on {kind}");
+            let registry_msg = format!("Error occurred on {registry} while operating on {kind}");
             if let Some(sc) = self.status_code {
                 write!(f, "{registry_msg}: unexpected status code ({sc})")
             } else {

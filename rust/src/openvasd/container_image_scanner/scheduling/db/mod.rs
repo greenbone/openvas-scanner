@@ -233,7 +233,6 @@ pub async fn set_scan_images(
         let mut builder = QueryBuilder::new("INSERT OR IGNORE INTO images (id, image)");
         builder.push_values(images.into_iter().filter_map(|x| x.ok()), |mut b, image| {
             let oci = image.to_string();
-            tracing::debug!(oci, "Resolved");
             b.push_bind(id).push_bind(oci);
         });
         let query = builder.build();
