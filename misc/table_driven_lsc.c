@@ -1052,6 +1052,13 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
     return -1;
 
   advisories = lsc_process_response (body, strlen (body));
+  g_free (body);
+
+  if (!advisories)
+    {
+      g_message ("%s: Unable to process response", __func__);
+      return -1;
+    }
 
   // Process the advisories, generate results and store them in the kb
   for (size_t i = 0; i < advisories->count; i++)
