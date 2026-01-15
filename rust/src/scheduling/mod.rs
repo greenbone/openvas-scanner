@@ -20,7 +20,7 @@ use greenbone_scanner_framework::models::VTData;
 use greenbone_scanner_framework::models::{Parameter, VT};
 use thiserror::Error;
 
-pub use wave::WaveExecutionPlan;
+use wave::WaveExecutionPlan;
 
 /// Error cases for VTFetcher
 #[derive(Error, Debug, Clone)]
@@ -32,9 +32,6 @@ pub enum VTError {
     /// Will be returned when Scheduler tries to schedule a VT with missing dependencies
     MissingDependencies(VTData, Vec<String>),
     #[error("invalid index ({0}) for Stage")]
-    /// The index to create the stage is out of bounds
-    InvalidStageIndex(usize),
-    #[error("not found: {0}")]
     /// Not found
     NotFound(#[from] crate::nasl::syntax::LoadError),
 }
@@ -65,8 +62,8 @@ impl Display for Stage {
     }
 }
 
-impl From<&VTData> for Stage {
-    fn from(value: &VTData) -> Self {
+impl Stage {
+    fn from_vt(value: &VTData) -> Self {
         match value.category {
             ACT::Init | ACT::Scanner | ACT::Settings | ACT::GatherInfo => Self::Discovery,
             ACT::Attack | ACT::MixedAttack => Self::NonEvasive,
@@ -74,29 +71,23 @@ impl From<&VTData> for Stage {
             ACT::End => Self::End,
         }
     }
-}
 
-impl From<Stage> for usize {
-    fn from(value: Stage) -> Self {
-        match value {
+    fn from_stage_index(index: usize) -> Option<Self> {
+        match index {
+            0 => Some(Stage::Discovery),
+            1 => Some(Stage::NonEvasive),
+            2 => Some(Stage::Exhausting),
+            3 => Some(Stage::End),
+            _ => None,
+        }
+    }
+
+    fn stage_index(&self) -> usize {
+        match self {
             Stage::Discovery => 0,
             Stage::NonEvasive => 1,
             Stage::Exhausting => 2,
             Stage::End => 3,
-        }
-    }
-}
-
-impl TryFrom<usize> for Stage {
-    type Error = VTError;
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Stage::Discovery),
-            1 => Ok(Stage::NonEvasive),
-            2 => Ok(Stage::Exhausting),
-            3 => Ok(Stage::End),
-            a => Err(VTError::InvalidStageIndex(a)),
         }
     }
 }
@@ -113,24 +104,10 @@ impl<T> SchedulerStorage for RedisStorage<T> where
 {
 }
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> {}
+impl<T: SchedulerStorage + ?Sized> SchedulerStorage for &T {}
 
-/// Enhances the Retriever trait with execution_plan possibility.
-pub trait ExecutionPlaner {
-    /// Creates an execution plan based on the given scan using ExecutionPlan.
-    ///
-    /// To make it as inconvenient as possible for the caller to accidentally execute scripts that should
-    /// not run concurrently in a concurrent fashion we return an iterator containing the stage as well
-    /// as scripts that can be run concurrently instead of returning the struct that contains the stage
-    /// data directly.
-    ///
-    /// If the second value (parameter) is None it indicates that this script in indirectly loaded
-    /// and was not explicitly mentioned in the Scan.
-    fn execution_plan<E>(
-        &self,
-        ids: &[VT],
-    ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
-    where
-        E: ExecutionPlan;
+pub struct Scheduler<S> {
+    storage: S,
 }
 
 /// Contains the VTData and maybe parameter required to be executed
@@ -142,9 +119,9 @@ type RuntimeVT = (VTData, Option<Vec<Parameter>>);
 /// (Stage, Vec<RuntimeVT>)
 /// is to make it as inconvenient as possible to accidentally run scripts that
 /// should not be run concurrently. Every item of the Vec of RuntimeVT can be run
-/// concurrently. Each stage can, dependent on the ExecutionPlan, returned multiple
-/// times with a list of scripts of to be run. To allow tracing when a stage changed
-/// the stage information is given as well.
+/// concurrently. Each stage can be returned multiple times with a list of scripts
+/// to be run. To allow tracing when a stage changed the stage information is given
+/// as well.
 pub type ConcurrentVT = (Stage, Vec<RuntimeVT>);
 
 /// The categorization or ordering of VT may error
@@ -154,49 +131,22 @@ pub type ConcurrentVTResult = Result<ConcurrentVT, VTError>;
 /// not run concurrently in a concurrent fashion we return an iterator containing the stage as well
 /// as scripts that can be run concurrently instead of returning the struct that contains the stage
 /// data.
-/// See: issues/63063 impl Trait in type aliases is unstable
-/// type ExecutionPlanerResult = Result<impl Iterator<Item = ConcurrentVTResult>, VTError>;
-///
-/// Is used by a ExecutionPlaner to order VTs in a specific manner and be returned.
-///
-/// It is meant to be used as an Iterator by the caller of ExecutionPlaner while the
-/// ExecutionPlaner appends_vts.
-pub trait ExecutionPlan: Iterator<Item = Result<Vec<RuntimeVT>, VTError>> + Default {
-    /// Appends the given VT to an execution plan
-    ///
-    ///
-    fn append_vt(
-        &mut self,
-        vts: RuntimeVT,
-        dependency_lookup: &HashMap<String, VTData>,
-    ) -> Result<(), VTError>;
-}
-
-struct ExecutionPlanData<E>
-where
-    E: ExecutionPlan,
-{
-    data: [E; 4],
+struct ExecutionPlanData {
+    data: [WaveExecutionPlan; 4],
     idx: usize,
 }
 
-impl<E> ExecutionPlanData<E>
-where
-    E: ExecutionPlan,
-{
-    fn new(data: [E; 4]) -> Self {
+impl ExecutionPlanData {
+    fn new(data: [WaveExecutionPlan; 4]) -> Self {
         Self { data, idx: 0 }
     }
 }
 
-impl<E> Iterator for ExecutionPlanData<E>
-where
-    E: ExecutionPlan,
-{
+impl Iterator for ExecutionPlanData {
     type Item = ConcurrentVTResult;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let stage = Stage::try_from(self.idx).ok()?;
+        let stage = Stage::from_stage_index(self.idx)?;
         match self.data[self.idx].next() {
             None => {
                 self.idx += 1;
@@ -213,25 +163,26 @@ where
     }
 }
 
-impl<T> ExecutionPlaner for T
+impl<S> Scheduler<S>
 where
-    T: SchedulerStorage + ?Sized,
+    S: SchedulerStorage,
 {
-    fn execution_plan<E>(
+    pub fn new(storage: S) -> Self {
+        Self { storage }
+    }
+
+    pub fn execution_plan(
         &self,
         scan_vts: &[VT],
-    ) -> Result<impl Iterator<Item = ConcurrentVTResult>, VTError>
-    where
-        E: ExecutionPlan,
-    {
-        let mut results = core::array::from_fn(|_| E::default());
+    ) -> Result<impl Iterator<Item = ConcurrentVTResult> + '_, VTError> {
+        let mut results = core::array::from_fn(|_| WaveExecutionPlan::default());
         let mut unknown_dependencies = Vec::new();
         let mut known_dependencies = HashMap::new();
         let mut vts = vec![];
 
         // Collect all VT information
         for vt in scan_vts {
-            if let Some(nvt) = self.retrieve(&Oid(vt.oid.clone()))? {
+            if let Some(nvt) = self.storage.retrieve(&Oid(vt.oid.clone()))? {
                 unknown_dependencies.extend(nvt.dependencies.clone());
                 vts.push((nvt, Some(vt.parameters.clone())));
             } else {
@@ -243,16 +194,16 @@ where
             if known_dependencies.contains_key(&vt_name) {
                 continue;
             }
-            if let Some(nvt) = self.retrieve(&FileName(vt_name))? {
+            if let Some(nvt) = self.storage.retrieve(&FileName(vt_name))? {
                 unknown_dependencies.extend(nvt.dependencies.clone());
                 known_dependencies.insert(nvt.filename.clone(), nvt);
             }
         }
 
         for (nvt, param) in vts.into_iter() {
-            let stage = Stage::from(&nvt);
+            let stage = Stage::from_vt(&nvt);
             tracing::trace!(?stage, oid = nvt.oid, "adding");
-            results[usize::from(stage)].append_vt((nvt, param), &known_dependencies)?;
+            results[stage.stage_index()].append_vt((nvt, param), &known_dependencies)?;
         }
 
         Ok(ExecutionPlanData::new(results))
@@ -264,9 +215,8 @@ mod tests {
     use greenbone_scanner_framework::models::VT;
 
     use crate::scanner::Scan;
-    use crate::scheduling::ExecutionPlaner;
+    use crate::scheduling::Scheduler;
     use crate::scheduling::Stage;
-    use crate::scheduling::WaveExecutionPlan;
     use crate::storage::Dispatcher;
     use crate::storage::inmemory::InMemoryStorage;
     use crate::storage::items::nvt::FileName;
@@ -308,16 +258,19 @@ mod tests {
             }],
             ..Default::default()
         };
-        let results = storage
-            .execution_plan::<WaveExecutionPlan>(&scan.vts)
-            .expect("no error expected");
+        let scheduler = Scheduler::new(&storage);
+        let results: Vec<_> = scheduler
+            .execution_plan(&scan.vts)
+            .expect("no error expected")
+            .filter_map(|x| x.ok())
+            .collect();
         assert_eq!(
             vec![
                 (Stage::End, vec![(feed[0].clone(), None)]),
                 (Stage::End, vec![(feed[1].clone(), None)]),
                 (Stage::End, vec![(feed[2].clone(), Some(vec![]))]),
             ],
-            results.filter_map(|x| x.ok()).collect::<Vec<_>>()
+            results
         )
     }
 }

@@ -107,6 +107,16 @@ where
     }
 }
 
+impl<KEY, ITEM, T> Retriever<KEY> for &T
+where
+    T: Retriever<KEY, Item = ITEM> + ?Sized,
+{
+    type Item = ITEM;
+    fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
+        (*self).retrieve(key)
+    }
+}
+
 /// This trait defines methods to delete knowledge base items and results.
 ///
 /// Kb (KnowledgeBase) are information that are shared between individual script (VT) runs and are

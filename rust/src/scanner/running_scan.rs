@@ -15,7 +15,7 @@ use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
 use crate::{
     scanner::scan_runner::ScanRunner,
-    scheduling::{ExecutionPlan, ExecutionPlaner, SchedulerStorage, VTError},
+    scheduling::{Scheduler, SchedulerStorage, VTError},
 };
 use futures::StreamExt;
 use greenbone_scanner_framework::models::{HostInfo, Phase, Status};
@@ -50,7 +50,7 @@ impl<S> RunningScan<S>
 where
     S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
 {
-    pub fn start<Sch: ExecutionPlan + 'static>(
+    pub fn start(
         scan: Scan,
         storage: Arc<S>,
         loader: Arc<Loader>,
@@ -71,18 +71,15 @@ where
                     status: status.clone(),
                 }
                 // TODO run per target
-                .run::<Sch>(),
+                .run(),
             ),
             keep_running,
             status,
         }
     }
 
-    async fn run<T>(self) -> Result<(), Error>
-    where
-        T: ExecutionPlan,
-    {
-        let runner = self.make_runner::<T>()?;
+    async fn run(self) -> Result<(), Error> {
+        let runner = self.make_runner()?;
         self.update_status_at_beginning_of_run(runner.host_info())
             .await;
         let end_phase = self.run_to_completion(runner).await;
@@ -91,25 +88,24 @@ where
         Ok(())
     }
 
-    fn make_runner<'a, T>(&'a self) -> Result<ScanRunner<'a, S>, Error>
-    where
-        T: ExecutionPlan + 'a,
-    {
+    fn make_runner(&self) -> Result<ScanRunner<'_, S>, Error> {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
         let make_scheduling_error = |e: VTError| Error::SchedulingError {
             id: self.scan.scan_id.to_string(),
             reason: e.to_string(),
         };
-        let schedule = self
-            .storage
-            .execution_plan::<T>(&self.scan.vts)
+        let scheduler = Scheduler::new(self.storage.clone());
+        let schedule: Vec<_> = scheduler
+            .execution_plan(&self.scan.vts)
+            .map_err(make_scheduling_error)?
+            .collect::<Result<_, _>>()
             .map_err(make_scheduling_error)?;
         ScanRunner::new(
             &*self.storage,
             &self.loader,
             &self.function_executor,
-            schedule,
+            schedule.into_iter().map(Ok),
             &self.scan,
         )
         .map_err(make_scheduling_error)

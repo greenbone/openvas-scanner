@@ -41,7 +41,6 @@ use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::scheduling::SchedulerStorage;
-use crate::scheduling::WaveExecutionPlan;
 use crate::storage::Remover;
 use crate::storage::ScanID;
 use greenbone_scanner_framework::models;
@@ -76,8 +75,7 @@ where
         let loader = self.loader.clone();
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
-        let handle =
-            RunningScan::<S>::start::<WaveExecutionPlan>(scan, storage, loader, function_executor);
+        let handle = RunningScan::<S>::start(scan, storage, loader, function_executor);
         self.running.write().await.insert(id, handle);
         Ok(())
     }
