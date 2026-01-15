@@ -1,0 +1,12 @@
+name: Detect hidden unicode
+
+on:
+  pull_request:
+
+jobs:
+  detect-hidden-unicode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: greenbone/actions/detect-hidden-unicode@v3
+        with:
+          github-token: ${{ secrets.GREENBONE_BOT_TOKEN }}
