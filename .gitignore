@@ -9,6 +9,7 @@ testsuiterun.nasl
 .venv/
 *.bak
 assets/
+target/
 *.rsa
 *.pem
 *.snap.new

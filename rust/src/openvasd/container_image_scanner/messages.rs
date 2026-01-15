@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, time::Duration};
 
 use scannerlib::{SQLITE_LIMIT_VARIABLE_NUMBER, models};
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query};
@@ -67,16 +67,68 @@ pub async fn store<'a, T>(pool: &SqlitePool, id: &str, results: &'a [T])
 where
     T: 'a + Into<models::Result> + Clone,
 {
-    if let Err(error) = try_store(pool, id, results).await {
+    if let Err(error) = retry_store(pool, id, results).await {
         tracing::warn!(%error, id, amount_of_results=results.len(), "Scan results lost.");
     }
 }
 
-pub async fn try_store<'a, T>(
+async fn retry_store<'a, T>(
     pool: &SqlitePool,
     id: &str,
     results: &'a [T],
 ) -> Result<(), sqlx::Error>
+where
+    T: 'a + Into<models::Result> + Clone,
+{
+    // Not configurable at purpose. This is a internal sqlite DB measurement and should not be up
+    // to a customer to change.
+    const MAX_RETRIES: u8 = 5;
+    let mut retries = MAX_RETRIES;
+    loop {
+        match try_store(pool, id, results).await {
+            Ok(_) => return Ok(()),
+            Err(error) => {
+                match &error {
+                    // waiting for if let guards to get rid of unwrap ...
+                    sqlx::Error::Database(database_error)
+                        if database_error.code().is_some() && retries > 0 =>
+                    {
+                        let code: i64 = database_error
+                            .code()
+                            .map(|x| x.parse())
+                            .filter(|x| x.is_ok())
+                            .map(|x| x.unwrap())
+                            .unwrap_or_default();
+                        let known_codes = [
+                            5,   // https://sqlite.org/rescode.html#busy
+                            6,   // https://sqlite.org/rescode.html#locked
+                            513, // https://sqlite.org/rescode.html#error_retry
+                            517, // https://sqlite.org/rescode.html#busy_snapshot
+                            773, // https://sqlite.org/rescode.html#busy_timeout
+                        ];
+                        if !known_codes.iter().any(|x| x == &code) {
+                            return Err(error);
+                        }
+
+                        retries -= 1;
+                        let seconds = (MAX_RETRIES - retries) as u64;
+                        tracing::debug!(
+                            id, 
+                            MAX_RETRIES, 
+                            sleep_seconds=seconds, 
+                            %error, 
+                            results=results.len(), 
+                            "Retrying to store results.");
+                        // also not configurable for the same reasons as max_tries;
+                        tokio::time::sleep(Duration::from_secs(seconds)).await;
+                    }
+                    _ => return Err(error),
+                }
+            }
+        }
+    }
+}
+async fn try_store<'a, T>(pool: &SqlitePool, id: &str, results: &'a [T]) -> Result<(), sqlx::Error>
 where
     T: 'a + Into<models::Result> + Clone,
 {

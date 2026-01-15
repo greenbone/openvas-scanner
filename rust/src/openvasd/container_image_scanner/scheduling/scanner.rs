@@ -1,8 +1,8 @@
-use std::{fmt::Display, sync::Arc};
+use std::sync::Arc;
 
 use futures::{StreamExt, TryFutureExt};
 use greenbone_scanner_framework::models;
-use sqlx::Sqlite;
+use sqlx::{Sqlite, SqlitePool};
 use tokio::sync::RwLock;
 
 use crate::container_image_scanner::{
@@ -10,7 +10,7 @@ use crate::container_image_scanner::{
     benchy::{self, BenchType, Benched, Measured},
     detection::{self, OperatingSystem},
     image::{
-        Image, ImageParseError, Registry,
+        Image, ImageParseError, Registry, RegistryError,
         extractor::{self, Extractor, Locator},
         packages::ToNotus,
     },
@@ -40,8 +40,17 @@ pub enum ScannerError {
     #[error("Unable to parse: `{0}`. Scan failed because of incorrect user input.")]
     ImageParseError(#[from] ImageParseError),
 
-    #[error("Issues occurred, that may lead to inaccurate results.")]
-    NonInterrupting(Vec<String>),
+    #[error("Unable to scan: {0}")]
+    RegistryError(#[from] RegistryError),
+}
+
+impl ScannerError {
+    pub fn can_retry(&self) -> bool {
+        match self {
+            Self::RegistryError(r) => r.can_retry(),
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -85,6 +94,12 @@ impl Measured<ImageResults> {
         architecture: &str,
     ) -> Result<(), ScannerArchImageError> {
         let (scan_duration, result) = self.unpack();
+        tracing::debug!(
+            architecture,
+            results = result.results.len(),
+            packages = result.packages.len(),
+            "Finished"
+        );
         let mut messages = result.results;
         let message = |msg| CustomerMessage::log(Some(image), msg, None).into();
 
@@ -124,7 +139,7 @@ impl Measured<ImageResults> {
         };
         messages.push(message(msg));
 
-        messages::try_store(pool, id, &messages).await?;
+        messages::store(pool, id, &messages).await;
 
         Ok(())
     }
@@ -167,67 +182,96 @@ where
     }
 }
 
+async fn download_and_extract_image<'a, E, R>(
+    config: Arc<Config>,
+    registry: &'a super::InitializedRegistry<'a, R>,
+    image: Image,
+) -> Result<(E, Vec<Benched>), ScannerError>
+where
+    E: Extractor + Send + Sync,
+    R: Registry + Send + Sync,
+{
+    let mut extractor = E::initialize(config.clone(), registry.id.clone()).await?;
+    let mut layers = registry.registry.pull_image(image.clone());
+    let mut results = Vec::new();
+
+    tracing::debug!("downloading");
+    while let Some(packet) = layers.next().await {
+        let layer = packet?;
+        let lindex = layer.index;
+        results.push(Benched::download(lindex, &layer.download_time));
+
+        tracing::debug!(
+            download_time_ms = layer.download_time.as_millis(),
+            layer = lindex,
+            "downloaded"
+        );
+        let duration = extractor.extract(layer).await?;
+        results.push(Benched::extraction(lindex, &duration));
+
+        tracing::debug!(
+            extraction_ms = duration.as_millis(),
+            layer = lindex,
+            "extracted"
+        );
+    }
+    tracing::debug!("downloaded");
+    Ok((extractor, results))
+}
+
+async fn retry_download_and_extract_image<'a, E, R>(
+    config: Arc<Config>,
+    pool: &SqlitePool,
+    registry: &'a super::InitializedRegistry<'a, R>,
+    image: Image,
+) -> Result<E, ScannerError>
+where
+    E: Extractor + Send + Sync,
+    R: Registry + Send + Sync,
+{
+    // alternatively set back to pending and store retry amount alongside the image
+    let mut retries = config.image.scanning_retries;
+    loop {
+        match download_and_extract_image(config.clone(), registry, image.clone()).await {
+            Ok((ex, benched)) => {
+                for b in benched {
+                    b.store(pool, registry.id.id(), registry.id.image()).await;
+                }
+                return Ok(ex);
+            }
+            Err(error) if error.can_retry() && retries > 0 => {
+                retries -= 1;
+                tracing::info!(%error, retries, "Retrying.");
+                tokio::time::sleep(config.image.retry_timeout).await;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
     pool: sqlx::Pool<Sqlite>,
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     registry: &'a super::InitializedRegistry<'a, R>,
-) -> Result<(), ScannerError>
+) -> Result<(), Vec<ScannerError>>
 where
     E: Extractor + Send + Sync,
     R: Registry + Send + Sync,
     T: ToNotus,
 {
-    let mut extractor = E::initialize(config.clone(), registry.id.clone()).await?;
-    let image: Image = registry.id.image().parse()?;
-    let mut layers = registry.registry.pull_image(image.clone());
-    let mut warnings = Vec::new();
-    let mut add_warning = |prefix: &dyn Display, error: &dyn Display| {
-        warnings.push(format!(
-            "{}:{}({prefix}): {error}",
-            registry.id.id(),
-            registry.id.image()
-        ));
-    };
-    while let Some(packet) = layers.next().await {
-        match packet {
-            Ok(layer) => {
-                let lindex = layer.index;
+    let image: Image = registry
+        .id
+        .image()
+        .parse()
+        .map_err(|e| vec![ScannerError::from(e)])?;
 
-                Benched::download(lindex, &layer.download_time)
-                    .store(&pool, registry.id.id(), registry.id.image())
-                    .await;
-
-                tracing::debug!(
-                    image = registry.id.image(),
-                    download_time_ms = layer.download_time.as_millis(),
-                    layer = lindex,
-                    "downloaded"
-                );
-                match extractor.extract(layer).await {
-                    Ok(duration) => {
-                        Benched::extraction(lindex, &duration)
-                            .store(&pool, registry.id.id(), registry.id.image())
-                            .await;
-
-                        tracing::debug!(
-                            image = registry.id.image(),
-                            extraction_ms = duration.as_millis(),
-                            layer = lindex,
-                            "extracted"
-                        );
-                    }
-                    Err(x) => {
-                        add_warning(&format!("Layer({lindex})"), &x);
-                    }
-                }
-            }
-            Err(e) => {
-                add_warning(&"Packet", &e);
-            }
-        }
-    }
-    let locator_per_arch = extractor.locator().await;
+    let locator_per_arch = retry_download_and_extract_image::<E, _>(config, &pool, registry, image)
+        .await
+        .map_err(|e| vec![e])?
+        .locator()
+        .await;
+    let mut errors = Vec::with_capacity(locator_per_arch.len());
     for locator in locator_per_arch.iter() {
         let measured = benchy::measure_result(scan_arch_image::<_, T>(
             products.clone(),
@@ -246,19 +290,12 @@ where
             })
             .await
         {
-            let msg = format!("Unable to scan ({e})");
-            CustomerMessage::error(Some(registry.id.image()), msg, None)
-                .store(&pool, registry.id.id())
-                .await;
-
-            if !matches!(e, ScannerArchImageError::Notus(_)) {
-                add_warning(&format!("Locator({})", locator.architecture()), &e);
-            }
+            errors.push(e.into());
         };
     }
-    if warnings.is_empty() {
+    if errors.is_empty() {
         Ok(())
     } else {
-        Err(ScannerError::NonInterrupting(warnings))
+        Err(errors)
     }
 }

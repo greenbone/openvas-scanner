@@ -26,7 +26,7 @@ level = 'INFO'
 
 [storage]
 location = 'in-memory'
-busy_timeout = '2s'
+busy_timeout = '10s'
 max_connections = 1
 
 [scheduler]
@@ -40,12 +40,18 @@ socket = '/var/run/ospd/ospd-openvas.sock'
 
 [scanner.preferences]
 aaa = false
+
+[container_image_scanner]
+max_scans = 1
+
 [container_image_scanner.database]
 location = 'in-memory'
-busy_timeout = '2s'
+busy_timeout = '10s'
 max_connections = 1
 
 [container_image_scanner.image]
 extract_to = '/tmp/openvasd/cis'
-max_scanning = 23
-batch_size = 5
+max_scanning = 10
+scanning_retries = 3
+batch_size = 3
+retry_timeout = '1s'

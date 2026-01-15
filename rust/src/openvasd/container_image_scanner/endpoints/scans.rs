@@ -541,8 +541,8 @@ mod scans_utils {
 
     impl Fakes {
         pub async fn init() -> Self {
-            let registry =
-                DockerRegistryV2Mock::serve_images(DockerRegistryV2Mock::supported_images()).await;
+            let registry = DockerRegistryV2Mock::serve_default().await;
+
             let config = Config::default();
             let (scheduler, entry) = in_memory_scheduler_and_scan(config).await;
 
@@ -898,7 +898,6 @@ mod test {
                     x.oid.as_ref().map_or("", |x| x as &str) == "openvasd/container-image-scanner"
                 })
                 .collect();
-            dbg!(&internal);
             // internal log messages per found host
             assert_eq!(
                 internal.len(),
