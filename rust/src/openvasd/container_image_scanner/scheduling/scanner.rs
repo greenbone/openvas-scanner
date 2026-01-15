@@ -139,7 +139,7 @@ impl Measured<ImageResults> {
         };
         messages.push(message(msg));
 
-        messages::try_store(pool, id, &messages).await?;
+        messages::store(pool, id, &messages).await;
 
         Ok(())
     }
@@ -254,18 +254,24 @@ pub async fn scan_image<'a, E, R, T>(
     pool: sqlx::Pool<Sqlite>,
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     registry: &'a super::InitializedRegistry<'a, R>,
-) -> Result<(), ScannerError>
+) -> Result<(), Vec<ScannerError>>
 where
     E: Extractor + Send + Sync,
     R: Registry + Send + Sync,
     T: ToNotus,
 {
-    let image: Image = registry.id.image().parse()?;
+    let image: Image = registry
+        .id
+        .image()
+        .parse()
+        .map_err(|e| vec![ScannerError::from(e)])?;
 
     let locator_per_arch = retry_download_and_extract_image::<E, _>(config, &pool, registry, image)
-        .await?
+        .await
+        .map_err(|e| vec![e])?
         .locator()
         .await;
+    let mut errors = Vec::with_capacity(locator_per_arch.len());
     for locator in locator_per_arch.iter() {
         let measured = benchy::measure_result(scan_arch_image::<_, T>(
             products.clone(),
@@ -284,15 +290,12 @@ where
             })
             .await
         {
-            let msg = format!("Unable to scan ({e})");
-            CustomerMessage::error(Some(registry.id.image()), msg, None)
-                .store(&pool, registry.id.id())
-                .await;
-
-            if !matches!(e, ScannerArchImageError::Notus(_)) {
-                return Err(e.into());
-            }
+            errors.push(e.into());
         };
     }
-    Ok(())
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }

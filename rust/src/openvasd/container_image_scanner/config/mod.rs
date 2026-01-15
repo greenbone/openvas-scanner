@@ -139,7 +139,7 @@ impl Default for SqliteConfiguration {
     fn default() -> Self {
         Self {
             location: Default::default(),
-            busy_timeout: Duration::from_secs(2),
+            busy_timeout: Duration::from_secs(10),
             max_connections: 1,
             credential_key: None,
         }

@@ -279,15 +279,17 @@ where
                         db::image_success(&pool, id).await;
                     }
                     Err(err) => {
-                        tracing::warn!(error=%err, "Unable to scan image");
                         db::image_failed(&pool, id).await;
-                        CustomerMessage::error(
-                            Some(id.image.clone()),
-                            format!("An error occurred while scanning image: {err}"),
-                            None,
-                        )
-                        .store(&pool, id.id())
-                        .await;
+                        for e in err {
+                            tracing::warn!(error=%e, "Unable to scan image");
+                            CustomerMessage::error(
+                                Some(id.image.clone()),
+                                format!("An error occurred while scanning image: {e}"),
+                                None,
+                            )
+                            .store(&pool, id.id())
+                            .await;
+                        }
                     }
                 }
             }

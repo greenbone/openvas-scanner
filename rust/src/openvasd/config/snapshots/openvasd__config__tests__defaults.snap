@@ -26,7 +26,7 @@ level = 'INFO'
 
 [storage]
 location = 'in-memory'
-busy_timeout = '2s'
+busy_timeout = '10s'
 max_connections = 1
 
 [scheduler]
@@ -46,7 +46,7 @@ max_scans = 1
 
 [container_image_scanner.database]
 location = 'in-memory'
-busy_timeout = '2s'
+busy_timeout = '10s'
 max_connections = 1
 
 [container_image_scanner.image]
