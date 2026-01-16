@@ -901,8 +901,9 @@ mod test {
             // internal log messages per found host
             assert_eq!(
                 internal.len(),
-                // one os and architecture, download, extract, scan, combined timings per image
-                fakes.success_scan().target.hosts.len() * 5,
+                // one os, architecture, packages, download, extract, scan, combined timings, host
+                // start, host end per image
+                fakes.success_scan().target.hosts.len() * 9,
                 "Expected internal log messages"
             );
             assert_eq!(

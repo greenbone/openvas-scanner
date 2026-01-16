@@ -340,7 +340,14 @@ impl Registry {
     async fn fetch_digest_layer(
         &self,
         image: &Image,
-    ) -> Result<(Client, Vec<Result<ArchitectureLayer, RegistryError>>), RegistryError> {
+    ) -> Result<
+        (
+            Option<String>,
+            Client,
+            Vec<Result<ArchitectureLayer, RegistryError>>,
+        ),
+        RegistryError,
+    > {
         let repository = match image.image() {
             None => {
                 return Err(RegistryError::no_repository());
@@ -355,11 +362,11 @@ impl Registry {
         let registry = &image.registry;
         let client = self.pull_client(registry, repository).await?;
 
-        // _digest will be needed for start_host message
-        let (manifest, _digest) = client.get_manifest(repository, tag).await?;
+        let (manifest, digest) = client.get_manifest(repository, tag).await?;
         let architectures = manifest.architectures().unwrap_or_default();
         tracing::trace!(?architectures, ?image, "Supported architectures");
         Ok((
+            digest,
             client,
             architectures
                 .iter()
@@ -435,8 +442,8 @@ impl super::Registry for Registry {
             };
             tracing::trace!(image = %image, "Downloading digest");
 
-            let (client, og) = match that.fetch_digest_layer(&image).await {
-                Ok((client, layer)) => (client, layer),
+            let (idigest, client, og) = match that.fetch_digest_layer(&image).await {
+                Ok(x) => x,
                 Err(e) => {
                     send_log(e).await;
                     return;
@@ -467,9 +474,11 @@ impl super::Registry for Registry {
                     digest,
                 );
 
-                let result = benchy::measure(blob)
-                    .await
-                    .into_packed_layer(arch.to_owned(), index);
+                let result = benchy::measure(blob).await.into_packed_layer(
+                    idigest.clone(),
+                    arch.to_owned(),
+                    index,
+                );
 
                 tracing::trace!(image = %image, layer= index, "Downloaded layer");
                 if let Err(e) = sender.send(result).await {
@@ -485,10 +494,16 @@ impl super::Registry for Registry {
 }
 
 impl Measured<Result<Vec<u8>, RegistryError>> {
-    fn into_packed_layer(self, arch: String, index: usize) -> Result<PackedLayer, RegistryError> {
+    fn into_packed_layer(
+        self,
+        digest: Option<String>,
+        arch: String,
+        index: usize,
+    ) -> Result<PackedLayer, RegistryError> {
         let (download_time, result) = self.unpack();
 
         result.map(|data| PackedLayer {
+            digest,
             data,
             arch: arch.to_owned(),
             index,

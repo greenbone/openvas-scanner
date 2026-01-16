@@ -32,6 +32,11 @@ impl Image {
     pub fn tag(&self) -> Option<&str> {
         self.tag.as_ref().map(|x| x as &str)
     }
+
+    pub fn replace_tag(mut self, new_tag: String) -> Self {
+        self.tag = Some(new_tag);
+        self
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -46,6 +51,7 @@ pub enum ImageParseError {
 pub struct PackedLayer {
     pub data: Vec<u8>,
     pub index: usize,
+    pub digest: Option<String>,
     pub arch: String,
     pub download_time: Duration,
 }
@@ -53,6 +59,7 @@ pub struct PackedLayer {
 #[derive(Debug, Clone)]
 pub struct ImageID {
     pub id: String,
+    // TODO: store Image instead of String
     pub image: String,
 }
 
@@ -61,6 +68,7 @@ impl ImageID {
         &self.id
     }
 
+    // TODO: return Image instead of &str
     pub fn image(&self) -> &str {
         &self.image
     }
