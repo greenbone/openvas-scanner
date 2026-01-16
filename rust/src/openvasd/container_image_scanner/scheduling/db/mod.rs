@@ -212,9 +212,10 @@ pub async fn set_scan_images(
 ) -> Result<(), sqlx::Error> {
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
-    let success_count = images.iter().filter(|x| x.is_ok()).count();
-    let dead_count = images.iter().filter(|x| x.is_err()).count();
     let count = images.len();
+    let dead_count = images.iter().filter(|x| x.is_err()).count();
+    // TODO: remove all that are within excluded_hosts
+    let success_count = images.iter().filter(|x| x.is_ok()).count();
     query(
         r#"
             UPDATE scans
@@ -243,6 +244,7 @@ pub async fn set_scan_images(
     Ok(())
 }
 
+// TODO: move to Images::change_status
 fn set_image_status<'a>(
     ids: &'a ImageID,
     status: &'a str,

@@ -87,12 +87,6 @@ fn to_result(image: String, digest: Option<String>, results: NotusResults) -> Ve
         .collect()
 }
 
-// #[derive(Debug, thiserror::Error)]
-// pub enum Error {
-//     #[error("Notus Error: {0}")]
-//     FormatError(#[from] scannerlib::notus::NotusError),
-// }
-
 type Oz = Notus<HashsumProductLoader>;
 
 pub async fn vulnerabilities(

@@ -192,6 +192,7 @@ where
 
 async fn download_and_extract_image<'a, E, R>(
     config: Arc<Config>,
+    pool: &SqlitePool,
     registry: &'a super::InitializedRegistry<'a, R>,
     image: Image,
 ) -> Result<(String, E, Vec<Benched>), ScannerError>
@@ -208,6 +209,14 @@ where
     while let Some(packet) = layers.next().await {
         let layer = packet?;
         let lindex = layer.index;
+
+        if digest.is_none() {
+            digest = layer.digest.clone();
+            if Image::is_digest_excluded(pool, registry.id.id(), &image, digest.as_ref()).await {
+                tracing::debug!(?digest, "Aborting download. Because the digest is excluded");
+                return Ok((digest.unwrap_or_default(), extractor, results));
+            }
+        }
         results.push(Benched::download(lindex, &layer.download_time));
 
         tracing::debug!(
@@ -217,9 +226,6 @@ where
             "downloaded"
         );
 
-        if digest.is_none() {
-            digest = layer.digest.clone();
-        }
         let duration = extractor.extract(layer).await?;
         results.push(Benched::extraction(lindex, &duration));
 
@@ -247,7 +253,7 @@ where
     // alternatively set back to pending and store retry amount alongside the image
     let mut retries = config.image.scanning_retries;
     loop {
-        match download_and_extract_image(config.clone(), registry, image.clone()).await {
+        match download_and_extract_image(config.clone(), pool, registry, image.clone()).await {
             Ok((digest, ex, benched)) => {
                 for b in benched {
                     b.store(pool, registry.id.id(), registry.id.image()).await;

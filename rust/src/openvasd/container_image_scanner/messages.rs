@@ -168,6 +168,54 @@ where
     }
 }
 
+pub struct SqliteRetry {
+    retries: u8,
+}
+
+impl Default for SqliteRetry {
+    fn default() -> Self {
+        Self {
+            retries: Self::MAX_RETRIES,
+        }
+    }
+}
+
+impl SqliteRetry {
+    // Not configurable at purpose. This is a internal sqlite DB measurement and should not be up
+    // to a customer to change.
+    pub const MAX_RETRIES: u8 = 5;
+    pub fn is_retryable(&mut self, error: &sqlx::Error) -> bool {
+        self.retries -= 1;
+        match &error {
+            // waiting for if let guards to get rid of unwrap ...
+            sqlx::Error::Database(database_error)
+                if database_error.code().is_some() && self.retries > 0 =>
+            {
+                let code: i64 = database_error
+                    .code()
+                    .map(|x| x.parse())
+                    .filter(|x| x.is_ok())
+                    .map(|x| x.unwrap())
+                    .unwrap_or_default();
+                let known_codes = [
+                    5,   // https://sqlite.org/rescode.html#busy
+                    6,   // https://sqlite.org/rescode.html#locked
+                    513, // https://sqlite.org/rescode.html#error_retry
+                    517, // https://sqlite.org/rescode.html#busy_snapshot
+                    773, // https://sqlite.org/rescode.html#busy_timeout
+                ];
+                known_codes.iter().any(|x| x == &code)
+            }
+            _ => false,
+        }
+    }
+
+    pub fn calculate_sleep(&self) -> Duration {
+        let seconds = (Self::MAX_RETRIES - self.retries) as u64;
+        Duration::from_secs(seconds)
+    }
+}
+
 async fn retry_store<'a, T>(
     pool: &SqlitePool,
     id: &str,
@@ -176,51 +224,21 @@ async fn retry_store<'a, T>(
 where
     T: 'a + Into<models::Result> + Clone,
 {
-    // Not configurable at purpose. This is a internal sqlite DB measurement and should not be up
-    // to a customer to change.
-    const MAX_RETRIES: u8 = 5;
-    let mut retries = MAX_RETRIES;
+    let mut retry = SqliteRetry::default();
     loop {
         match try_store(pool, id, results).await {
             Ok(_) => return Ok(()),
-            Err(error) => {
-                match &error {
-                    // waiting for if let guards to get rid of unwrap ...
-                    sqlx::Error::Database(database_error)
-                        if database_error.code().is_some() && retries > 0 =>
-                    {
-                        let code: i64 = database_error
-                            .code()
-                            .map(|x| x.parse())
-                            .filter(|x| x.is_ok())
-                            .map(|x| x.unwrap())
-                            .unwrap_or_default();
-                        let known_codes = [
-                            5,   // https://sqlite.org/rescode.html#busy
-                            6,   // https://sqlite.org/rescode.html#locked
-                            513, // https://sqlite.org/rescode.html#error_retry
-                            517, // https://sqlite.org/rescode.html#busy_snapshot
-                            773, // https://sqlite.org/rescode.html#busy_timeout
-                        ];
-                        if !known_codes.iter().any(|x| x == &code) {
-                            return Err(error);
-                        }
-
-                        retries -= 1;
-                        let seconds = (MAX_RETRIES - retries) as u64;
-                        tracing::debug!(
+            Err(error) if retry.is_retryable(&error) => {
+                tracing::debug!(
                             id,
-                            MAX_RETRIES,
-                            sleep_seconds=seconds,
                             %error,
                             results=results.len(),
                             "Retrying to store results.");
-                        // also not configurable for the same reasons as max_tries;
-                        tokio::time::sleep(Duration::from_secs(seconds)).await;
-                    }
-                    _ => return Err(error),
-                }
+                // also not configurable for the same reasons as max_tries;
+
+                tokio::time::sleep(retry.calculate_sleep()).await;
             }
+            Err(error) => return Err(error),
         }
     }
 }

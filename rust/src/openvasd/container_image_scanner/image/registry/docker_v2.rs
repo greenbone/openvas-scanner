@@ -442,7 +442,7 @@ impl super::Registry for Registry {
             };
             tracing::trace!(image = %image, "Downloading digest");
 
-            let (idigest, client, og) = match that.fetch_digest_layer(&image).await {
+            let (image_digest, client, og) = match that.fetch_digest_layer(&image).await {
                 Ok(x) => x,
                 Err(e) => {
                     send_log(e).await;
@@ -475,7 +475,7 @@ impl super::Registry for Registry {
                 );
 
                 let result = benchy::measure(blob).await.into_packed_layer(
-                    idigest.clone(),
+                    image_digest.clone(),
                     arch.to_owned(),
                     index,
                 );
