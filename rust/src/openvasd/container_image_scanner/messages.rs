@@ -1,5 +1,6 @@
 use std::{fmt::Display, time::Duration};
 
+use chrono::TimeDelta;
 use scannerlib::{SQLITE_LIMIT_VARIABLE_NUMBER, models};
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query};
 
@@ -7,6 +8,7 @@ use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query};
 pub struct CustomerMessage<T> {
     kind: models::ResultType,
     image: Option<T>,
+    digest: Option<T>,
     msg: String,
     detail: Option<models::Detail>,
 }
@@ -15,23 +17,81 @@ impl<T> CustomerMessage<T> {
     fn new(
         kind: models::ResultType,
         image: Option<T>,
+        digest: Option<T>,
         msg: String,
         detail: Option<models::Detail>,
     ) -> Self {
         Self {
             kind,
             image,
+            digest,
             msg,
             detail,
         }
     }
 
-    pub fn log(image: Option<T>, msg: String, detail: Option<models::Detail>) -> Self {
-        Self::new(models::ResultType::Log, image, msg, detail)
+    pub fn log(
+        image: Option<T>,
+        digest: Option<T>,
+        msg: String,
+        detail: Option<models::Detail>,
+    ) -> Self {
+        Self::new(models::ResultType::Log, image, digest, msg, detail)
     }
 
     pub fn error(image: Option<T>, msg: String, detail: Option<models::Detail>) -> Self {
-        Self::new(models::ResultType::Error, image, msg, detail)
+        Self::new(models::ResultType::Error, image, None, msg, detail)
+    }
+}
+
+pub enum DetailPair {
+    OS(String),
+    Architecture(String),
+    Packages(Vec<String>),
+}
+
+impl DetailPair {
+    pub fn name(&self) -> String {
+        match self {
+            DetailPair::OS(_) => "OS",
+            DetailPair::Architecture(_) => "ARCHITECTURE",
+            DetailPair::Packages(_) => "PACKAGES",
+        }
+        .into()
+    }
+
+    pub fn value(&self) -> String {
+        match self {
+            DetailPair::OS(os) => os.clone(),
+            DetailPair::Architecture(arch) => arch.clone(),
+            DetailPair::Packages(items) => items.join(","),
+        }
+    }
+
+    pub fn source_name(&self) -> String {
+        "image_digest".into()
+    }
+
+    pub fn source_description(&self) -> String {
+        concat!(
+            "The information is originating from the image (found in the ip-address field)",
+            "If you decide to pull that image manually be aware that you have to remove `oci://`.",
+            "For an example: `podman pull localhost/my_repo/my_image@sha256:cf8a7abda98821fd2d132c88c27328c3ee2cbbcd5d5ce6522c435aa1b6844859`"
+        ).into()
+    }
+}
+
+impl From<DetailPair> for models::Detail {
+    fn from(value: DetailPair) -> Self {
+        Self {
+            name: value.name(),
+            value: value.value(),
+            source: models::Source {
+                s_type: "openvasd/container-image-scanner".to_string(),
+                name: value.source_name(),
+                description: value.source_description(),
+            },
+        }
     }
 }
 
@@ -39,6 +99,42 @@ impl<T> CustomerMessage<T>
 where
     T: Display + Clone,
 {
+    pub fn host_start_end(image: T, digest: T, scan_duration: Duration) -> [Self; 2] {
+        let end = chrono::Utc::now();
+        let start = TimeDelta::from_std(scan_duration)
+            .into_iter()
+            .filter_map(|x| end.checked_sub_signed(x))
+            .next()
+            .unwrap_or(end);
+
+        [
+            Self::new(
+                models::ResultType::HostStart,
+                Some(image.clone()),
+                Some(digest.clone()),
+                start.to_rfc3339(),
+                None,
+            ),
+            Self::new(
+                models::ResultType::HostEnd,
+                Some(image),
+                Some(digest),
+                end.to_rfc3339(),
+                None,
+            ),
+        ]
+    }
+
+    pub fn host_detail(image: T, digest: T, detail: DetailPair) -> Self {
+        Self::new(
+            models::ResultType::HostDetail,
+            Some(image),
+            Some(digest),
+            "Host Detail".into(),
+            Some(detail.into()),
+        )
+    }
+
     pub async fn store(self, pool: &SqlitePool, scan_id: &str) {
         store(pool, scan_id, &[self]).await
     }
@@ -52,7 +148,7 @@ where
         models::Result {
             id: 0, // id is set on storage
             r_type: val.kind,
-            ip_address: None,
+            ip_address: val.digest.map(|x| x.to_string()),
             hostname: val.image.map(|x| x.to_string()),
             oid: Some("openvasd/container-image-scanner".to_owned()),
             port: None,
@@ -72,6 +168,54 @@ where
     }
 }
 
+pub struct SqliteRetry {
+    retries: u8,
+}
+
+impl Default for SqliteRetry {
+    fn default() -> Self {
+        Self {
+            retries: Self::MAX_RETRIES,
+        }
+    }
+}
+
+impl SqliteRetry {
+    // Not configurable at purpose. This is a internal sqlite DB measurement and should not be up
+    // to a customer to change.
+    pub const MAX_RETRIES: u8 = 5;
+    pub fn is_retryable(&mut self, error: &sqlx::Error) -> bool {
+        self.retries -= 1;
+        match &error {
+            // waiting for if let guards to get rid of unwrap ...
+            sqlx::Error::Database(database_error)
+                if database_error.code().is_some() && self.retries > 0 =>
+            {
+                let code: i64 = database_error
+                    .code()
+                    .map(|x| x.parse())
+                    .filter(|x| x.is_ok())
+                    .map(|x| x.unwrap())
+                    .unwrap_or_default();
+                let known_codes = [
+                    5,   // https://sqlite.org/rescode.html#busy
+                    6,   // https://sqlite.org/rescode.html#locked
+                    513, // https://sqlite.org/rescode.html#error_retry
+                    517, // https://sqlite.org/rescode.html#busy_snapshot
+                    773, // https://sqlite.org/rescode.html#busy_timeout
+                ];
+                known_codes.iter().any(|x| x == &code)
+            }
+            _ => false,
+        }
+    }
+
+    pub fn calculate_sleep(&self) -> Duration {
+        let seconds = (Self::MAX_RETRIES - self.retries) as u64;
+        Duration::from_secs(seconds)
+    }
+}
+
 async fn retry_store<'a, T>(
     pool: &SqlitePool,
     id: &str,
@@ -80,51 +224,21 @@ async fn retry_store<'a, T>(
 where
     T: 'a + Into<models::Result> + Clone,
 {
-    // Not configurable at purpose. This is a internal sqlite DB measurement and should not be up
-    // to a customer to change.
-    const MAX_RETRIES: u8 = 5;
-    let mut retries = MAX_RETRIES;
+    let mut retry = SqliteRetry::default();
     loop {
         match try_store(pool, id, results).await {
             Ok(_) => return Ok(()),
-            Err(error) => {
-                match &error {
-                    // waiting for if let guards to get rid of unwrap ...
-                    sqlx::Error::Database(database_error)
-                        if database_error.code().is_some() && retries > 0 =>
-                    {
-                        let code: i64 = database_error
-                            .code()
-                            .map(|x| x.parse())
-                            .filter(|x| x.is_ok())
-                            .map(|x| x.unwrap())
-                            .unwrap_or_default();
-                        let known_codes = [
-                            5,   // https://sqlite.org/rescode.html#busy
-                            6,   // https://sqlite.org/rescode.html#locked
-                            513, // https://sqlite.org/rescode.html#error_retry
-                            517, // https://sqlite.org/rescode.html#busy_snapshot
-                            773, // https://sqlite.org/rescode.html#busy_timeout
-                        ];
-                        if !known_codes.iter().any(|x| x == &code) {
-                            return Err(error);
-                        }
-
-                        retries -= 1;
-                        let seconds = (MAX_RETRIES - retries) as u64;
-                        tracing::debug!(
-                            id, 
-                            MAX_RETRIES, 
-                            sleep_seconds=seconds, 
-                            %error, 
-                            results=results.len(), 
+            Err(error) if retry.is_retryable(&error) => {
+                tracing::debug!(
+                            id,
+                            %error,
+                            results=results.len(),
                             "Retrying to store results.");
-                        // also not configurable for the same reasons as max_tries;
-                        tokio::time::sleep(Duration::from_secs(seconds)).await;
-                    }
-                    _ => return Err(error),
-                }
+                // also not configurable for the same reasons as max_tries;
+
+                tokio::time::sleep(retry.calculate_sleep()).await;
             }
+            Err(error) => return Err(error),
         }
     }
 }
@@ -171,7 +285,7 @@ where
                 source_type,
                 source_name,
                 source_description
-            ) 
+            )
             "#,
     );
 

@@ -19,8 +19,12 @@ use tokio::{
 };
 use tracing::{debug, instrument, warn};
 
-use crate::container_image_scanner::{self, messages::CustomerMessage};
-use scannerlib::notus::{HashsumProductLoader, Notus};
+use crate::container_image_scanner::{
+    self,
+    messages::CustomerMessage,
+    scheduling::scanner::{ScannerArchImageError, ScannerError},
+};
+use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
 // TODO: refactor, this got a bit too messy
 pub mod db;
@@ -279,16 +283,39 @@ where
                         db::image_success(&pool, id).await;
                     }
                     Err(err) => {
-                        db::image_failed(&pool, id).await;
+                        // Notus error should not set a scan to failed
+                        if err
+                            .iter()
+                            .filter_map(|x| match x {
+                                ScannerError::Image(ScannerArchImageError::Notus(
+                                    NotusError::UnknownProduct(_),
+                                )) => None,
+                                ScannerError::Image(_)
+                                | ScannerError::Extractor(_)
+                                | ScannerError::ImageParseError(_)
+                                | ScannerError::RegistryError(_) => Some(true),
+                            })
+                            .any(|x| x)
+                        {
+                            db::image_failed(&pool, id).await;
+                        } else {
+                            db::image_success(&pool, id).await;
+                        }
                         for e in err {
-                            tracing::warn!(error=%e, "Unable to scan image");
-                            CustomerMessage::error(
-                                Some(id.image.clone()),
-                                format!("An error occurred while scanning image: {e}"),
-                                None,
-                            )
-                            .store(&pool, id.id())
-                            .await;
+                            if let ScannerError::Image(ScannerArchImageError::Notus(
+                                NotusError::UnknownProduct(product),
+                            )) = &e
+                            {
+                                tracing::info!(
+                                    product,
+                                    "Not found in notus products. This is not considered a scan failure reason."
+                                );
+                            } else {
+                                tracing::warn!(error=%e, "This is considered a scan failure reason.");
+                            }
+                            CustomerMessage::error(Some(id.image.clone()), format!("{e}"), None)
+                                .store(&pool, id.id())
+                                .await;
                         }
                     }
                 }

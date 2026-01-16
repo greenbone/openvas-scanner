@@ -203,7 +203,7 @@ fn unpack_layer(
     match unpack(target_dir, &predicate, dec) {
         Ok(x) => Ok(x),
         Err(error) => {
-            tracing::debug!(%error, "We try one more time with cursor as the first file name may start with a magic header");
+            tracing::trace!(%error, "We try one more time with cursor as the first file name may start with a magic header");
             unpack(target_dir, predicate, std::io::Cursor::new(layer)).map_err(|_| error)
         }
     }
@@ -221,24 +221,24 @@ fn create_decoder<'a>(bytes: &'a [u8]) -> Result<Box<dyn std::io::Read + 'a>, Ex
     const ZSTD_ID: [u8; 4] = [0x28, 0xb5, 0x2f, 0xfd];
 
     Ok(if bytes[0..2] == GZIP_ID {
-        tracing::debug!("GZIP");
+        tracing::trace!("GZIP");
         Box::new(GzDecoder::new(bytes))
     } else if bytes[0..2] == ZLIB_NO_ID
         || bytes[0..2] == ZLIB_FAST_ID
         || bytes[0..2] == ZLIB_DEFAULT_ID
         || bytes[0..2] == ZLIB_BEST_ID
     {
-        tracing::debug!("ZLIB");
+        tracing::trace!("ZLIB");
         Box::new(ZlibDecoder::new(bytes))
     } else if bytes[0..3] == BZIP2_ID {
-        tracing::debug!("BZIP2");
+        tracing::trace!("BZIP2");
         Box::new(BzDecoder::new(bytes))
     } else if bytes[0..4] == ZSTD_ID {
-        tracing::debug!("ZSTD");
+        tracing::trace!("ZSTD");
         let dec = ZstdDecoder::new(bytes)?;
         Box::new(dec)
     } else {
-        tracing::debug!("Missing header information.");
+        tracing::trace!("Missing header information.");
         Box::new(std::io::Cursor::new(bytes))
     })
 }

@@ -10,7 +10,10 @@ use greenbone_scanner_framework::{
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
 
-use crate::container_image_scanner::scheduling;
+use crate::container_image_scanner::{
+    image::{Image, ImageState},
+    scheduling,
+};
 
 pub struct Scans {
     pub pool: SqlitePool,
@@ -88,6 +91,14 @@ impl Scans {
             let query = builder.build();
             query.execute(&mut *tx).await?;
         }
+
+        Image::insert(
+            &mut tx,
+            id,
+            ImageState::Excluded,
+            scan.target.excluded_hosts,
+        )
+        .await?;
 
         tx.commit().await?;
         Ok(scan_id)
@@ -396,7 +407,9 @@ fn row_to_status(row: SqliteRow) -> models::Status {
         dead: row.get("host_dead"),
         queued: row.get("host_queued"),
         finished: row.get("host_finished"),
-        ..Default::default()
+        excluded: row.get("host_excluded"),
+        scanning: None,
+        remaining_vts_per_host: Default::default(),
     };
 
     models::Status {
@@ -413,7 +426,7 @@ impl GetScansIdStatus for Scans {
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>
     {
-        const SQL: &str = r#"SELECT start_time, end_time, status, host_all, host_alive, host_dead, host_queued, host_finished 
+        const SQL: &str = r#"SELECT start_time, end_time, status, host_all, host_alive, host_dead, host_queued, host_finished, host_excluded
                 FROM scans 
                 WHERE id = ? "#;
         Box::pin(async move {
@@ -901,8 +914,9 @@ mod test {
             // internal log messages per found host
             assert_eq!(
                 internal.len(),
-                // one os and architecture, download, extract, scan, combined timings per image
-                fakes.success_scan().target.hosts.len() * 5,
+                // one os, architecture, packages, download, extract, scan, combined timings, host
+                // start, host end per image
+                fakes.success_scan().target.hosts.len() * 9,
                 "Expected internal log messages"
             );
             assert_eq!(
