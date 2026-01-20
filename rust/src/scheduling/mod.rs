@@ -103,8 +103,8 @@ impl<T> SchedulerStorage for RedisStorage<T> where
     T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
 {
 }
-impl<T: SchedulerStorage> SchedulerStorage for Arc<T> {}
-impl<T: SchedulerStorage + ?Sized> SchedulerStorage for &T {}
+impl<T: SchedulerStorage + Send + Sync> SchedulerStorage for Arc<T> {}
+impl<T: SchedulerStorage + ?Sized + Sync> SchedulerStorage for &T {}
 
 pub struct Scheduler<S> {
     storage: S,

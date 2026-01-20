@@ -12,6 +12,7 @@ pub mod redis;
 
 use std::{fmt::Display, sync::Arc};
 
+use async_trait::async_trait;
 use error::StorageError;
 
 // TODO: why?
@@ -41,22 +42,23 @@ impl Display for Target {
 }
 
 /// Defines the Dispatcher interface to distribute fields
+#[async_trait]
 pub trait Dispatcher<KEY: Clone> {
     type Item: Clone;
     /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError>;
+    async fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError>;
 
     /// Retries a dispatch for the amount of retries when a retrievable error occurs.
-    fn retry_dispatch(
+    async fn retry_dispatch(
         &self,
         key: KEY,
         item: Self::Item,
         max_tries: usize,
     ) -> Result<(), StorageError> {
         for _ in 0..max_tries {
-            match self.dispatch(key.clone(), item.clone()) {
+            match self.dispatch(key.clone(), item.clone()).await {
                 Err(StorageError::Retry(_)) => continue,
                 x => return x,
             }
@@ -65,30 +67,32 @@ pub trait Dispatcher<KEY: Clone> {
     }
 }
 
-impl<KEY: Clone, ITEM: Clone, T> Dispatcher<KEY> for Arc<T>
+#[async_trait]
+impl<KEY: Clone + Send + Sync, ITEM: Clone + Send + Sync, T> Dispatcher<KEY> for Arc<T>
 where
-    T: Dispatcher<KEY, Item = ITEM>,
+    T: Dispatcher<KEY, Item = ITEM> + Send + Sync,
 {
     type Item = ITEM;
-    fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError> {
-        self.as_ref().dispatch(key, item)
+    async fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError> {
+        self.as_ref().dispatch(key, item).await
     }
 }
 
 /// Retrieves fields based on a key and scope.
+#[async_trait]
 pub trait Retriever<KEY> {
     type Item;
     /// Gets Fields find by key and scope. This is to get all instances.
-    fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
+    async fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
 
     /// Calls retrieve and retries for max_tries time on StorageError::Retry
-    fn retry_retrieve(
+    async fn retry_retrieve(
         &self,
         key: &KEY,
         max_tries: u64,
     ) -> Result<Option<Self::Item>, StorageError> {
         for _ in 0..max_tries {
-            match self.retrieve(key) {
+            match self.retrieve(key).await {
                 Err(StorageError::Retry(_)) => continue,
                 x => return x,
             }
@@ -97,23 +101,25 @@ pub trait Retriever<KEY> {
     }
 }
 
-impl<KEY, ITEM, T> Retriever<KEY> for Arc<T>
+#[async_trait]
+impl<KEY: Send + Sync, ITEM: Send + Sync, T> Retriever<KEY> for Arc<T>
 where
-    T: Retriever<KEY, Item = ITEM>,
+    T: Retriever<KEY, Item = ITEM> + Send + Sync,
 {
     type Item = ITEM;
-    fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
-        self.as_ref().retrieve(key)
+    async fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
+        self.as_ref().retrieve(key).await
     }
 }
 
-impl<KEY, ITEM, T> Retriever<KEY> for &T
+#[async_trait]
+impl<KEY: Send + Sync, ITEM: Send + Sync, T> Retriever<KEY> for &T
 where
-    T: Retriever<KEY, Item = ITEM> + ?Sized,
+    T: Retriever<KEY, Item = ITEM> + ?Sized + Sync,
 {
     type Item = ITEM;
-    fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
-        (*self).retrieve(key)
+    async fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
+        (*self).retrieve(key).await
     }
 }
 
@@ -125,18 +131,20 @@ where
 /// Results are log_-, security- or error_messages send from a VT to inform our customer about
 /// found information, vulnerabilities or unexpected errors. A customer can request to delete those
 /// messages.
+#[async_trait]
 pub trait Remover<KEY> {
     type Item;
     /// Removes an Item from the storage.
-    fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
+    async fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
 }
 
-impl<KEY, ITEM, T> Remover<KEY> for Arc<T>
+#[async_trait]
+impl<KEY: Send + Sync, ITEM: Send + Sync, T> Remover<KEY> for Arc<T>
 where
-    T: Remover<KEY, Item = ITEM>,
+    T: Remover<KEY, Item = ITEM> + Send + Sync,
 {
     type Item = ITEM;
-    fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
-        self.as_ref().remove(key)
+    async fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
+        self.as_ref().remove(key).await
     }
 }
