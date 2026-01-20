@@ -4,7 +4,7 @@ use greenbone_scanner_framework::models::{self, FixedVersion, VulnerablePackage}
 use tokio::sync::RwLock;
 
 use crate::container_image_scanner::detection::OperatingSystem;
-use scannerlib::notus::{HashsumProductLoader, Notus};
+use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
 /// Some products have unique requirements that we have to generate somehow.
 ///
@@ -45,7 +45,7 @@ fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
 
 type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
 
-fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
+fn to_result(image: String, digest: Option<String>, results: NotusResults) -> Vec<models::Result> {
     let hostname = Some(image);
     results
         .iter()
@@ -75,7 +75,7 @@ fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
             models::Result {
                 id,
                 r_type: models::ResultType::Alarm,
-                ip_address: None,
+                ip_address: digest.clone(),
                 hostname: hostname.clone(),
                 oid: Some(oid.clone()),
                 port: None,
@@ -87,21 +87,16 @@ fn to_result(image: String, results: NotusResults) -> Vec<models::Result> {
         .collect()
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Notus Error: {0}")]
-    FormatError(#[from] scannerlib::notus::NotusError),
-}
-
 type Oz = Notus<HashsumProductLoader>;
 
 pub async fn vulnerabilities(
     products: Arc<RwLock<Oz>>,
     architecture: &str,
     image: String,
+    digest: Option<String>,
     os: &OperatingSystem,
     packages: Vec<String>,
-) -> Result<Vec<models::Result>, Error> {
+) -> Result<Vec<models::Result>, NotusError> {
     let mut p = products.write_owned().await;
     let os = generate_key(architecture, os);
 
@@ -109,12 +104,8 @@ pub async fn vulnerabilities(
         .await
         .unwrap();
     match result {
-        Ok(x) => Ok(to_result(image, x)),
-        Err(error) => {
-            tracing::warn!(%error, "Unable to get results from Notus.");
-
-            Err(error.into())
-        }
+        Ok(x) => Ok(to_result(image, digest, x)),
+        Err(error) => Err(error),
     }
 }
 
@@ -198,7 +189,7 @@ mod notus_result_parsing_tests {
         "#;
         let results: super::NotusResults = serde_json::from_str(json).unwrap();
         assert_eq!(results.len(), 1);
-        let result = super::to_result("oci://holla/die:waldfee".to_owned(), results);
+        let result = super::to_result("oci://holla/die:waldfee".to_owned(), None, results);
         insta::assert_ron_snapshot!(result);
     }
 }
