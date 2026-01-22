@@ -18,6 +18,7 @@ use crate::storage::{
         result::{ResultContextKeySingle, ResultItem},
     },
 };
+use async_trait::async_trait;
 
 use greenbone_scanner_framework::models::VTData;
 
@@ -99,104 +100,121 @@ where
     }
 }
 
-impl<S: Write> Dispatcher<KbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<KbContextKey> for JsonStorage<S> {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
+    async fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item).await
     }
 }
 
-impl<S: Write> Retriever<KbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<KbContextKey> for JsonStorage<S> {
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
-impl<S: Write> Retriever<GetKbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<GetKbContextKey> for JsonStorage<S> {
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
-impl<S: Write> Remover<KbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Remover<KbContextKey> for JsonStorage<S> {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.remove(key)
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.remove(key).await
     }
 }
 
-impl<S: Write> Dispatcher<FileName> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<FileName> for JsonStorage<S> {
     type Item = VTData;
-    fn dispatch(&self, _: FileName, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FileName, item: Self::Item) -> Result<(), StorageError> {
         self.as_json(item)
     }
 }
 
-impl<S: Write> Dispatcher<FeedVersion> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<FeedVersion> for JsonStorage<S> {
     type Item = String;
-    fn dispatch(&self, _: FeedVersion, _: Self::Item) -> Result<(), StorageError> {
-        // TODO: Feed information is currently not written to the output json
+    async fn dispatch(&self, _: FeedVersion, _: Self::Item) -> Result<(), StorageError> {
         Ok(())
     }
 }
 
-impl<S: Write> Retriever<FeedVersion> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<FeedVersion> for JsonStorage<S> {
     type Item = String;
-    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
-impl<S: Write> Retriever<Feed> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<Feed> for JsonStorage<S> {
     type Item = Vec<VTData>;
-    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
-impl<S: Write> Retriever<Oid> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<Oid> for JsonStorage<S> {
     type Item = VTData;
-    fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
-impl<S: Write> Retriever<FileName> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<FileName> for JsonStorage<S> {
     type Item = VTData;
-    fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
-impl<S: Write> Dispatcher<ScanID> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<ScanID> for JsonStorage<S> {
     type Item = ResultItem;
-    fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
         unimplemented!()
     }
 }
-impl<S: Write> Retriever<ResultContextKeySingle> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<ResultContextKeySingle> for JsonStorage<S> {
     type Item = ResultItem;
-    fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(
+        &self,
+        _: &ResultContextKeySingle,
+    ) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
-impl<S: Write> Retriever<ScanID> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Retriever<ScanID> for JsonStorage<S> {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
-impl<S: Write> Remover<ResultContextKeySingle> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Remover<ResultContextKeySingle> for JsonStorage<S> {
     type Item = ResultItem;
-    fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
-impl<S: Write> Remover<ScanID> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Remover<ScanID> for JsonStorage<S> {
     type Item = Vec<ResultItem>;
-    fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }

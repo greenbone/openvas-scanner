@@ -10,6 +10,7 @@ mod dberror;
 
 use std::sync::Mutex;
 
+use async_trait::async_trait;
 pub use connector::CACHE_KEY;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
@@ -75,52 +76,57 @@ impl RedisStorage<RedisCtx> {
     }
 }
 
+#[async_trait]
 impl<S> Dispatcher<KbContextKey> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
+    async fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item).await
     }
 }
 
+#[async_trait]
 impl<S> Retriever<KbContextKey> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
+#[async_trait]
 impl<S> Retriever<GetKbContextKey> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
+#[async_trait]
 impl<S> Remover<KbContextKey> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Vec<KbItem>>, StorageError> {
-        self.kbs.remove(key)
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Vec<KbItem>>, StorageError> {
+        self.kbs.remove(key).await
     }
 }
 
+#[async_trait]
 impl<S: RedisAddNvt> Dispatcher<FileName> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = VTData;
-    fn dispatch(
+    async fn dispatch(
         &self,
         _: FileName,
         item: Self::Item,
@@ -131,12 +137,13 @@ where
     }
 }
 
+#[async_trait]
 impl<S: RedisWrapper> Dispatcher<FeedVersion> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = String;
-    fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
         let mut vts = self.cache.lock()?;
         vts.del(CACHE_KEY)?;
         vts.rpush(CACHE_KEY, &[&item])?;
@@ -144,109 +151,123 @@ where
     }
 }
 
+#[async_trait]
 impl<S: RedisWrapper> Retriever<FeedVersion> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = String;
-    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
+#[async_trait]
 impl<S: RedisWrapper> Retriever<Feed> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = Vec<VTData>;
-    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
+#[async_trait]
 impl<S: RedisWrapper> Retriever<Oid> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = VTData;
-    fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
+#[async_trait]
 impl<S: RedisWrapper> Retriever<FileName> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = VTData;
-    fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
+#[async_trait]
 impl<S> Dispatcher<ScanID> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = ResultItem;
-    fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
         unimplemented!()
     }
 }
 
+#[async_trait]
 impl<S> Retriever<ResultContextKeySingle> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = ResultItem;
-    fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(
+        &self,
+        _: &ResultContextKeySingle,
+    ) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
+#[async_trait]
 impl<S> Retriever<ScanID> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
+#[async_trait]
 impl<S> Remover<ResultContextKeySingle> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = ResultItem;
-    fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
+#[async_trait]
 impl<S> Remover<ScanID> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = Vec<ResultItem>;
-    fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
+#[async_trait]
 impl<S: RedisAddAdvisory> Dispatcher<()> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = NotusAdvisory;
-    fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
         let mut cache = self.cache.lock()?;
         cache.redis_add_advisory(Some(item))?;
         Ok(())
     }
 }
 
+#[async_trait]
 impl<S: RedisAddAdvisory> Dispatcher<NotusCache> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = ();
-    fn dispatch(&self, _: NotusCache, _: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: NotusCache, _: Self::Item) -> Result<(), StorageError> {
         let mut cache = self.cache.lock()?;
         cache.redis_add_advisory(None)?;
         Ok(())

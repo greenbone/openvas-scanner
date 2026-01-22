@@ -4,6 +4,7 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use async_trait::async_trait;
 use greenbone_scanner_framework::models::{
     AliveTestMethods, Port, PortRange, Protocol, ScanPreference,
 };
@@ -229,6 +230,7 @@ impl CtxTarget {
     }
 }
 
+#[async_trait]
 pub trait ContextStorage:
     Sync
     + Send
@@ -252,9 +254,9 @@ pub trait ContextStorage:
     /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
     /// KbKey, the value is appended to the existing list. This function is used to replace the
     /// existing entry with the new one.
-    fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
-        self.remove(&key)?;
-        self.dispatch(key, item)
+    async fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
+        self.remove(&key).await?;
+        self.dispatch(key, item).await
     }
 
 }

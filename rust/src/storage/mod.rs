@@ -68,7 +68,8 @@ pub trait Dispatcher<KEY: Clone> {
 }
 
 #[async_trait]
-impl<KEY: Clone + Send + Sync, ITEM: Clone + Send + Sync, T> Dispatcher<KEY> for Arc<T>
+impl<KEY: Clone + Send + Sync + 'static, ITEM: Clone + Send + Sync + 'static, T> Dispatcher<KEY>
+    for Arc<T>
 where
     T: Dispatcher<KEY, Item = ITEM> + Send + Sync,
 {

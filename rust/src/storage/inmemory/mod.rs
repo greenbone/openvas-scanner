@@ -4,6 +4,7 @@
 
 use std::{collections::HashMap, sync::RwLock};
 
+use async_trait::async_trait;
 use itertools::Itertools;
 use kb::InMemoryKbStorage;
 
@@ -121,45 +122,50 @@ impl InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<KbContextKey> for InMemoryStorage {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
+    async fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item).await
     }
 }
 
+#[async_trait]
 impl Retriever<KbContextKey> for InMemoryStorage {
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
+#[async_trait]
 impl Retriever<GetKbContextKey> for InMemoryStorage {
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
+#[async_trait]
 impl Remover<KbContextKey> for InMemoryStorage {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.remove(key)
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.remove(key).await
     }
 }
 
+#[async_trait]
 impl Dispatcher<()> for InMemoryStorage {
     type Item = NotusAdvisory;
-    fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
         self.cache_notus_advisory(item)
     }
 }
 
+#[async_trait]
 impl Dispatcher<FileName> for InMemoryStorage {
     type Item = VTData;
-    /// Dispatch a single NVT into the storage with a given Key
-    fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
         let mut vts = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
         oid_lookup.insert(Self::to_nasl_key(&item.oid), key.0.clone());
@@ -168,37 +174,37 @@ impl Dispatcher<FileName> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<FeedVersion> for InMemoryStorage {
     type Item = String;
-    /// Dispatch the feed version into the storage
-    fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
         let mut feed_version = self.feed_version.write()?;
         *feed_version = item;
         Ok(())
     }
 }
 
+#[async_trait]
 impl Retriever<FeedVersion> for InMemoryStorage {
     type Item = String;
-    /// Retrieve the feed version from the storage
-    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
         Ok(Some(self.feed_version.read()?.clone()))
     }
 }
 
+#[async_trait]
 impl Retriever<Feed> for InMemoryStorage {
     type Item = Vec<VTData>;
-    /// Retrieve all NVTs from the storage
-    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
         self.all_vts().map(Some)
     }
 }
 
+#[async_trait]
 impl Retriever<FileName> for InMemoryStorage {
     type Item = VTData;
-    fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
         let vts = self.vts.read()?;
-        // Notus is favored when available. This is done to prevent duplicate definitions.
         Ok(
             if let Some(notus_result) = vts.get(&Self::to_notus_advisory_key(&key.0)) {
                 Some(notus_result.clone())
@@ -209,9 +215,10 @@ impl Retriever<FileName> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<Oid> for InMemoryStorage {
     type Item = VTData;
-    fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
         let oid_lookup = self.oid_lookup.read()?;
         let lookup = |key| match oid_lookup.get(key) {
             None => Ok(None),
@@ -229,10 +236,10 @@ impl Retriever<Oid> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<OIDs> for InMemoryStorage {
     type Item = Vec<String>;
-    /// Retrieve all OIDs from the storage
-    fn retrieve(&self, _: &OIDs) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &OIDs) -> Result<Option<Self::Item>, StorageError> {
         let vts = self.oid_lookup.read()?;
 
         let vts = vts.keys().map(|(_, oid)| oid.to_string()).collect_vec();
@@ -240,17 +247,19 @@ impl Retriever<OIDs> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Remover<Feed> for InMemoryStorage {
     type Item = ();
-    fn remove(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
         self.clean_vts()?;
         Ok(Some(()))
     }
 }
 
+#[async_trait]
 impl Dispatcher<ScanID> for InMemoryStorage {
     type Item = ResultItem;
-    fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
         let mut results = self.results.write()?;
         match results.get_mut(&key) {
             Some(scan_results) => {
@@ -264,9 +273,13 @@ impl Dispatcher<ScanID> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<ResultContextKeySingle> for InMemoryStorage {
     type Item = ResultItem;
-    fn retrieve(&self, key: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(
+        &self,
+        key: &ResultContextKeySingle,
+    ) -> Result<Option<Self::Item>, StorageError> {
         let results = self.results.read()?;
         if let Some(scan_results) = results.get(&key.0) {
             return Ok(scan_results.get(key.1).cloned());
@@ -275,26 +288,32 @@ impl Retriever<ResultContextKeySingle> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<ScanID> for InMemoryStorage {
     type Item = Vec<ResultItem>;
-    fn retrieve(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         let results = self.results.read()?;
 
         Ok(results.get(key).cloned())
     }
 }
 
+#[async_trait]
 impl Remover<ScanID> for InMemoryStorage {
     type Item = Vec<ResultItem>;
-    fn remove(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         let mut results = self.results.write()?;
         Ok(results.remove(key))
     }
 }
 
+#[async_trait]
 impl Remover<ResultContextKeySingle> for InMemoryStorage {
     type Item = ResultItem;
-    fn remove(&self, key: &ResultContextKeySingle) -> Result<Option<ResultItem>, StorageError> {
+    async fn remove(
+        &self,
+        key: &ResultContextKeySingle,
+    ) -> Result<Option<ResultItem>, StorageError> {
         let mut results = self.results.write()?;
         if let Some(results) = results.get_mut(&key.0) {
             return Ok(Some(results.remove(key.1)));
