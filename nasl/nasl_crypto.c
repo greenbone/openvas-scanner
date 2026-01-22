@@ -245,9 +245,9 @@ nasl_get_sign (lex_ctxt *lexic)
 {
   char *mac_key = (char *) get_str_var_by_name (lexic, "key");
   uint8_t *buf = (uint8_t *) get_str_var_by_name (lexic, "buf");
-  int buflen = get_int_var_by_name (lexic, "buflen", -1);
+  long int buflen = get_int_var_by_name (lexic, "buflen", -1);
   int seq_num = get_int_var_by_name (lexic, "seq_number", -1);
-  if (mac_key == NULL || buf == NULL || buflen == -1 || seq_num <= -1)
+  if (mac_key == NULL || buf == NULL || buf[0] == '\0' || buflen == -1 || seq_num <= -1)
     {
       nasl_perror (lexic, "Syntax : get_signature(key:<k>, buf:<b>, "
                           "buflen:<bl>, seq_number:<s>)\n");
