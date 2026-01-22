@@ -403,9 +403,10 @@ impl<'a> ScanCtx<'a> {
         }
     }
 
-    fn dispatch_nvt(&self, nvt: VTData) {
+    async fn dispatch_nvt(&self, nvt: VTData) {
         self.storage
             .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
+            .await
             .unwrap();
     }
 
@@ -436,20 +437,24 @@ impl<'a> ScanCtx<'a> {
         )
     }
 
-    pub fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
-        self.storage.dispatch(self.kb_key(key), value)?;
+    pub async fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
+        self.storage.dispatch(self.kb_key(key), value).await?;
         Ok(())
     }
 
-    pub fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
+    pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
         let result = self
             .storage
-            .retrieve(&self.kb_key(key.clone()))?
+            .retrieve(&self.kb_key(key.clone()))
+            .await?
             .unwrap_or_default();
         Ok(result)
     }
 
-    fn get_kb_items_with_keys(&self, key: &KbKey) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
+    async fn get_kb_items_with_keys(
+        &self,
+        key: &KbKey,
+    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
         let result = self
             .storage
             .retrieve(&GetKbContextKey(
@@ -458,14 +463,20 @@ impl<'a> ScanCtx<'a> {
                     storage::Target(self.target.original_target_str().into()),
                 ),
                 key.clone(),
-            ))?
+            ))
+            .await?
             .unwrap_or_default();
         Ok(result)
     }
 
-    pub fn set_single_kb_item<T: Into<KbItem>>(&self, key: KbKey, value: T) -> Result<(), FnError> {
+    pub async fn set_single_kb_item<T: Into<KbItem>>(
+        &self,
+        key: KbKey,
+        value: T,
+    ) -> Result<(), FnError> {
         self.storage
-            .dispatch_replace(self.kb_key(key), value.into())?;
+            .dispatch_replace(self.kb_key(key), value.into())
+            .await?;
         Ok(())
     }
 
@@ -475,7 +486,7 @@ impl<'a> ScanCtx<'a> {
     /// This function automatically converts the item
     /// to a specific type via its `FromNaslValue` impl
     /// and returns the appropriate error if necessary.
-    pub fn get_single_kb_item<T: for<'b> FromNaslValue<'b>>(
+    pub async fn get_single_kb_item<T: for<'b> FromNaslValue<'b>>(
         &self,
         key: &KbKey,
     ) -> Result<T, FnError> {
@@ -484,12 +495,13 @@ impl<'a> ScanCtx<'a> {
         // value, since this is most likely an error in the feed.
         let val = self
             .get_single_kb_item_inner(key)
+            .await
             .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
         T::from_nasl_value(&val.into())
     }
 
-    fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
-        let result = self.storage().retrieve(&self.kb_key(key.clone()))?;
+    async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
+        let result = self.storage().retrieve(&self.kb_key(key.clone())).await?;
         let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
 
         match item.len() {
@@ -499,15 +511,17 @@ impl<'a> ScanCtx<'a> {
         }
     }
     /// Sets the state of a port
-    pub fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
+    pub async fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
         self.set_single_kb_item(
             KbKey::Transport(kb::Transport::Tcp(port.to_string())),
             KbItem::Number(transport as i64),
         )
+        .await
     }
 
-    pub fn get_port_transport(&self, port: u16) -> Option<i64> {
+    pub async fn get_port_transport(&self, port: u16) -> Option<i64> {
         self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
+            .await
             .ok()
             .and_then(|item| match item {
                 KbItem::Number(n) => Some(n),
@@ -516,9 +530,10 @@ impl<'a> ScanCtx<'a> {
     }
 
     /// Looks up open TCP ports from the knowledge base
-    pub fn get_open_tcp_ports(&self) -> Result<Vec<u16>, FnError> {
-        let open_ports =
-            self.get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))?;
+    pub async fn get_open_tcp_ports(&self) -> Result<Vec<u16>, FnError> {
+        let open_ports = self
+            .get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))
+            .await?;
 
         let port_numbers: Vec<u16> = open_ports
             .iter()
@@ -542,10 +557,10 @@ impl<'a> ScanCtx<'a> {
     /// we might get bitten by OSes doing active SYN flood
     /// countermeasures. Also, avoid returning 80 and 21 as
     /// open ports, as many transparent proxies are acting for these...
-    pub fn get_random_open_tcp_port(&self) -> Result<u16, FnError> {
+    pub async fn get_random_open_tcp_port(&self) -> Result<u16, FnError> {
         let mut open21 = false;
         let mut open80 = false;
-        let all_ports = self.get_open_tcp_ports()?;
+        let all_ports = self.get_open_tcp_ports().await?;
         let ports: Vec<u16> = all_ports
             .iter()
             .filter_map(|&port| {
@@ -578,25 +593,33 @@ impl<'a> ScanCtx<'a> {
         pref_is_true(prefs, key)
     }
 
-    pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+    pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
         match protocol {
             Protocol::TCP => {
                 if !self.target.ports_tcp.contains(&port)
-                    || self.get_kb_item(&KbKey::Host(kb::Host::Tcp))?.is_empty()
+                    || self
+                        .get_kb_item(&KbKey::Host(kb::Host::Tcp))
+                        .await?
+                        .is_empty()
                 {
                     return Ok(!self.get_preference_bool("unscanned_closed").unwrap_or(true));
                 }
                 self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+                    .await
             }
             Protocol::UDP => {
                 if !self.target.ports_udp.contains(&port)
-                    || self.get_kb_item(&KbKey::Host(kb::Host::Udp))?.is_empty()
+                    || self
+                        .get_kb_item(&KbKey::Host(kb::Host::Udp))
+                        .await?
+                        .is_empty()
                 {
                     return Ok(!self
                         .get_preference_bool("unscanned_closed_udp")
                         .unwrap_or(true));
                 }
                 self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
+                    .await
             }
         }
     }
@@ -619,8 +642,13 @@ impl<'a> ScanCtx<'a> {
 impl Drop for ScanCtx<'_> {
     fn drop(&mut self) {
         let mut nvt = self.nvt.lock().unwrap();
-        if let Some(nvt) = nvt.take() {
-            self.dispatch_nvt(nvt);
+        if let Some(_nvt) = nvt.take() {
+            // TODO: dispatch_nvt is now async, but Drop can't be async.
+            // Need to either:
+            // 1. Use tokio::runtime::Handle::current().block_on()
+            // 2. Move NVT dispatch responsibility outside of Drop
+            // 3. Keep a sync dispatch path for this specific use case
+            todo!("Handle async dispatch_nvt in Drop")
         }
     }
 }

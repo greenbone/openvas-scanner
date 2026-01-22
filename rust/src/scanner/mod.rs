@@ -126,6 +126,7 @@ where
         self.stop_scan(id).await?;
         self.storage
             .remove(&scan_id)
+            .await
             .map_err(|_| Error::ScanNotFound(scan_id.0))?;
         Ok(())
     }

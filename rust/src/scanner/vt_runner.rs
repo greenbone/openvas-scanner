@@ -85,7 +85,7 @@ where
         Ok(())
     }
 
-    fn check_key<A, B, C>(
+    async fn check_key<A, B, C>(
         &self,
         key: &KbContextKey,
         result_none: A,
@@ -98,7 +98,7 @@ where
         C: Fn(StorageError) -> Option<ScriptResultKind>,
     {
         let _span = error_span!("kb_item", %key).entered();
-        let result = match self.storage.retrieve(key) {
+        let result = match self.storage.retrieve(key).await {
             Ok(x) => {
                 if let Some(x) = x {
                     result_some(x)
@@ -118,67 +118,71 @@ where
         }
     }
 
-    fn check_keys(&self, vt: &VTData) -> Result<(), ScriptResultKind> {
+    async fn check_keys(&self, vt: &VTData) -> Result<(), ScriptResultKind> {
         let key = self.generate_key();
-        let check_required_key = |k: &str| {
-            self.check_key(
-                &KbContextKey(key.clone(), k.into()),
-                || Some(ScriptResultKind::MissingRequiredKey(k.into())),
-                |_| None,
-                |_| Some(ScriptResultKind::MissingRequiredKey(k.into())),
-            )
-        };
+
         for k in &vt.required_keys {
-            check_required_key(k)?
+            self.check_key(
+                &KbContextKey(key.clone(), k.as_str().into()),
+                || Some(ScriptResultKind::MissingRequiredKey(k.clone())),
+                |_| None,
+                |_| Some(ScriptResultKind::MissingRequiredKey(k.clone())),
+            )
+            .await?
         }
 
-        let check_mandatory_key = |k: &str| {
-            self.check_key(
-                &KbContextKey(key.clone(), k.into()),
-                || Some(ScriptResultKind::MissingMandatoryKey(k.into())),
-                |_| None,
-                |_| Some(ScriptResultKind::MissingMandatoryKey(k.into())),
-            )
-        };
         for k in &vt.mandatory_keys {
-            check_mandatory_key(k)?
+            self.check_key(
+                &KbContextKey(key.clone(), k.as_str().into()),
+                || Some(ScriptResultKind::MissingMandatoryKey(k.clone())),
+                |_| None,
+                |_| Some(ScriptResultKind::MissingMandatoryKey(k.clone())),
+            )
+            .await?
         }
 
-        let check_exclude_key = |k: &str| {
+        for k in &vt.excluded_keys {
             self.check_key(
-                &KbContextKey(key.clone(), k.into()),
+                &KbContextKey(key.clone(), k.as_str().into()),
                 || None,
-                |_| Some(ScriptResultKind::ContainsExcludedKey(k.into())),
+                |_| Some(ScriptResultKind::ContainsExcludedKey(k.clone())),
                 |_| None,
             )
-        };
-        for k in &vt.excluded_keys {
-            check_exclude_key(k)?
+            .await?
         }
 
-        let check_port = |pt: Protocol, port: &str| {
-            let kbk = match pt {
-                Protocol::UDP => KbKey::Port(kb::Port::Udp(port.to_string())),
-                Protocol::TCP => KbKey::Port(kb::Port::Tcp(port.to_string())),
-            };
+        for k in &vt.required_ports {
+            let kbk = KbKey::Port(kb::Port::Tcp(k.to_string()));
             self.check_key(
                 &KbContextKey(key.clone(), kbk),
-                || Some(ScriptResultKind::MissingPort(pt, port.to_string())),
+                || Some(ScriptResultKind::MissingPort(Protocol::TCP, k.to_string())),
                 |mut v| {
                     if !v.is_empty() && v.pop().unwrap().into() {
                         None
                     } else {
-                        Some(ScriptResultKind::MissingPort(pt, port.to_string()))
+                        Some(ScriptResultKind::MissingPort(Protocol::TCP, k.to_string()))
                     }
                 },
-                |_| Some(ScriptResultKind::MissingPort(pt, port.to_string())),
+                |_| Some(ScriptResultKind::MissingPort(Protocol::TCP, k.to_string())),
             )
-        };
-        for k in &vt.required_ports {
-            check_port(Protocol::TCP, k)?
+            .await?
         }
+
         for k in &vt.required_udp_ports {
-            check_port(Protocol::UDP, k)?
+            let kbk = KbKey::Port(kb::Port::Udp(k.to_string()));
+            self.check_key(
+                &KbContextKey(key.clone(), kbk),
+                || Some(ScriptResultKind::MissingPort(Protocol::UDP, k.to_string())),
+                |mut v| {
+                    if !v.is_empty() && v.pop().unwrap().into() {
+                        None
+                    } else {
+                        Some(ScriptResultKind::MissingPort(Protocol::UDP, k.to_string()))
+                    }
+                },
+                |_| Some(ScriptResultKind::MissingPort(Protocol::UDP, k.to_string())),
+            )
+            .await?
         }
 
         Ok(())
@@ -198,7 +202,7 @@ where
         code: Code,
         register: Register,
     ) -> ScriptResultKind {
-        if let Err(e) = self.check_keys(self.vt) {
+        if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
         let context = ScanCtxBuilder {
