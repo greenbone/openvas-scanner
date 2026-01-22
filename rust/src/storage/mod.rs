@@ -43,8 +43,8 @@ impl Display for Target {
 
 /// Defines the Dispatcher interface to distribute fields
 #[async_trait]
-pub trait Dispatcher<KEY: Clone> {
-    type Item: Clone;
+pub trait Dispatcher<KEY: Clone + Send + 'static> {
+    type Item: Clone + Send + 'static;
     /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
@@ -81,7 +81,7 @@ where
 
 /// Retrieves fields based on a key and scope.
 #[async_trait]
-pub trait Retriever<KEY> {
+pub trait Retriever<KEY: Sync> {
     type Item;
     /// Gets Fields find by key and scope. This is to get all instances.
     async fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;

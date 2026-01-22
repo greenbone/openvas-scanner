@@ -97,7 +97,9 @@ where
         B: Fn(Vec<KbItem>) -> Option<ScriptResultKind>,
         C: Fn(StorageError) -> Option<ScriptResultKind>,
     {
-        let _span = error_span!("kb_item", %key).entered();
+        let span = error_span!("kb_item", %key);
+        let _guard = span.enter();
+        drop(_guard);
         let result = match self.storage.retrieve(key).await {
             Ok(x) => {
                 if let Some(x) = x {

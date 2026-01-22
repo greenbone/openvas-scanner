@@ -133,8 +133,8 @@ fn islocalnet(context: &ScanCtx) -> Result<bool, SocketError> {
 }
 
 /// Declares an open port on the target host
-pub fn scanner_add_port_shared(
-    context: &ScanCtx,
+pub async fn scanner_add_port_shared(
+    context: &ScanCtx<'_>,
     port: Port,
     proto: Option<&str>,
 ) -> Result<(), FnError> {
@@ -143,15 +143,21 @@ pub fn scanner_add_port_shared(
         _ => KbKey::Port(kb::Port::Tcp(port.0.to_string())),
     };
 
-    context.set_single_kb_item(kb_key, KbItem::Number(1))?;
+    context
+        .set_single_kb_item(kb_key, KbItem::Number(1))
+        .await?;
 
     Ok(())
 }
 
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
-fn scanner_add_port(context: &ScanCtx, port: Port, proto: Option<&str>) -> Result<(), FnError> {
-    scanner_add_port_shared(context, port, proto)
+async fn scanner_add_port(
+    context: &ScanCtx<'_>,
+    port: Port,
+    proto: Option<&str>,
+) -> Result<(), FnError> {
+    scanner_add_port_shared(context, port, proto).await
 }
 
 #[nasl_function]
@@ -165,13 +171,17 @@ fn scanner_get_port(context: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
 }
 
 #[nasl_function]
-fn get_host_open_port(context: &ScanCtx) -> i64 {
-    context.get_random_open_tcp_port().unwrap_or_default() as i64
+async fn get_host_open_port(context: &ScanCtx<'_>) -> i64 {
+    context.get_random_open_tcp_port().await.unwrap_or_default() as i64
 }
 
 #[nasl_function(named(asstring))]
-fn get_port_transport(context: &ScanCtx, port: u16, asstring: bool) -> Result<NaslValue, FnError> {
-    let transport = context.get_port_transport(port).unwrap_or(1);
+async fn get_port_transport(
+    context: &ScanCtx<'_>,
+    port: u16,
+    asstring: bool,
+) -> Result<NaslValue, FnError> {
+    let transport = context.get_port_transport(port).await.unwrap_or(1);
     let ret = if asstring {
         let transport_str = match transport {
             0 => "auto".to_string(),
@@ -195,13 +205,13 @@ fn get_port_transport(context: &ScanCtx, port: u16, asstring: bool) -> Result<Na
 }
 
 #[nasl_function]
-fn get_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
-    context.get_port_state(port, Protocol::TCP)
+async fn get_port_state(context: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
+    context.get_port_state(port, Protocol::TCP).await
 }
 
 #[nasl_function]
-fn get_udp_port_state(context: &ScanCtx, port: u16) -> Result<bool, FnError> {
-    context.get_port_state(port, Protocol::UDP)
+async fn get_udp_port_state(context: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
+    context.get_port_state(port, Protocol::UDP).await
 }
 
 pub struct Network;

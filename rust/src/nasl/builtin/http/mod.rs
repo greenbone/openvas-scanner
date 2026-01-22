@@ -34,8 +34,11 @@ use super::{
     },
 };
 
-fn get_user_agent(context: &ScanCtx) -> Result<String, FnError> {
-    match context.get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent)) {
+async fn get_user_agent(context: &ScanCtx<'_>) -> Result<String, FnError> {
+    match context
+        .get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent))
+        .await
+    {
         Ok(ua) => Ok(ua),
         _ => {
             let ua = match context
@@ -54,6 +57,7 @@ fn get_user_agent(context: &ScanCtx) -> Result<String, FnError> {
                     KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
                     ua.clone(),
                 )
+                .await
                 .map_err(|e| StorageError::NotFound(e.to_string()))?;
             Ok(ua)
         }
@@ -199,7 +203,9 @@ impl NaslHttp2 {
         });
 
         let mut h2 = h2.ready().await.map_err(HttpError::from)?;
-        let ua = get_user_agent(ctx).map_err(|e| HttpError::Custom(e.to_string()))?;
+        let ua = get_user_agent(ctx)
+            .await
+            .map_err(|e| HttpError::Custom(e.to_string()))?;
         // Prepare the HTTP request to send to the server.
         let mut request = Request::builder();
 
@@ -494,8 +500,8 @@ async fn open_socket(
 fn build_encode_url(keyword: Method, item: String, httpver: &str) -> String {
     format!("{keyword} {item} {httpver} ")
 }
-fn http_req_shared(
-    context: &ScanCtx,
+async fn http_req_shared(
+    context: &ScanCtx<'_>,
     keyword: Method,
     port: Port,
     item: String,
@@ -503,12 +509,15 @@ fn http_req_shared(
 ) -> Result<NaslValue, FnError> {
     let p: u16 = port.into();
     let tmp_key = format!("http/{p}");
-    let mut request = match context.get_single_kb_item::<i32>(&KbKey::from(tmp_key))? {
+    let mut request = match context
+        .get_single_kb_item::<i32>(&KbKey::from(tmp_key))
+        .await?
+    {
         x if (x == 11 || x <= 0) => {
             //TODO: use plug_get_host_fqdn and do it for all vhosts.
             let hostname = context.target().ip_addr().to_string();
 
-            let user_agent = get_user_agent(context)?;
+            let user_agent = get_user_agent(context).await?;
             let hostreader = match p {
                 80 | 443 => hostname,
                 _ => format!("{hostname}/{p}"),
@@ -531,8 +540,8 @@ fn http_req_shared(
     };
 
     let tmp_key = format!("/tmp/http/auth/{p}");
-    match context.get_kb_item(&KbKey::from(tmp_key))?.first() {
-        Some(KbItem::String(a)) => request.push_str(a),
+    match context.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
+        Some(KbItem::String(a)) => request.push_str(a.as_str()),
         _ => request.push_str("http/auth"),
     };
 
@@ -548,48 +557,48 @@ fn http_req_shared(
 }
 
 #[nasl_function(named(port, item))]
-fn get(context: &ScanCtx, port: Port, item: String) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::GET, port, item, None)
+async fn get(context: &ScanCtx<'_>, port: Port, item: String) -> Result<NaslValue, FnError> {
+    http_req_shared(context, Method::GET, port, item, None).await
 }
 
 #[nasl_function]
-fn head(
-    context: &ScanCtx,
+async fn head(
+    context: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::HEAD, port, item, data)
+    http_req_shared(context, Method::HEAD, port, item, data).await
 }
 
 #[nasl_function]
-fn post(
-    context: &ScanCtx,
+async fn post(
+    context: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::POST, port, item, data)
+    http_req_shared(context, Method::POST, port, item, data).await
 }
 
 #[nasl_function]
-fn delete(
-    context: &ScanCtx,
+async fn delete(
+    context: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::DELETE, port, item, data)
+    http_req_shared(context, Method::DELETE, port, item, data).await
 }
 
 #[nasl_function]
-fn put(
-    context: &ScanCtx,
+async fn put(
+    context: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::PUT, port, item, data)
+    http_req_shared(context, Method::PUT, port, item, data).await
 }
 
 #[nasl_function]
