@@ -220,7 +220,7 @@ static int
 mpi_from_named_parameter (lex_ctxt *lexic, gcry_mpi_t *dest,
                           const char *parameter, const char *function)
 {
-  long size;
+  size_t size;
   char *s;
 
   s = get_str_var_by_name (lexic, parameter);
@@ -358,7 +358,7 @@ nasl_load_privkey_param (lex_ctxt *lexic, const char *priv_name,
                          const char *passphrase_name)
 {
   char *priv = NULL, *passphrase = NULL;
-  long privlen;
+  size_t privlen;
   gnutls_x509_privkey_t privkey = NULL;
   gnutls_datum_t pem;
   int err;
@@ -1095,7 +1095,7 @@ nasl_rsa_sign (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   char *data;
-  int data_size;
+  size_t data_size;
   gcry_sexp_t ssig = NULL, sdata = NULL, skey = NULL;
   gnutls_x509_privkey_t priv_key = NULL;
   gcry_error_t err;
@@ -1359,7 +1359,7 @@ nasl_bf_cbc (lex_ctxt *lexic, int enc)
 {
   tree_cell *retc = NULL;
   char *enckey = NULL, *iv = NULL, *data = NULL, *out = NULL;
-  long enckeylen, ivlen, datalen;
+  size_t enckeylen, ivlen, datalen;
   gcry_cipher_hd_t hd = NULL;
   anon_nasl_var v;
   nasl_array *a;

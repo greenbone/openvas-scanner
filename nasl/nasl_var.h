@@ -24,7 +24,7 @@ enum
 typedef struct st_nasl_string
 {
   unsigned char *s_val;
-  int s_siz;
+  long int s_siz;
 } nasl_string_t;
 
 struct st_a_nasl_var;
