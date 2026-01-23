@@ -25,6 +25,7 @@
 #include <ctype.h>     /* for isprint */
 #include <errno.h>     /* for errno */
 #include <pcap.h>      /* for PCAP_ERRBUF_SIZE */
+#include <stddef.h>
 #include <stdlib.h>    /* for rand */
 #include <string.h>    /* for bcopy */
 #include <sys/time.h>  /* for gettimeofday */
@@ -109,7 +110,7 @@ forge_ip_packet (lex_ctxt *lexic)
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst_addr;
   char *data;
-  int data_len;
+  size_t data_len;
 
   dst_addr = plug_get_host_ip (script_infos);
 
@@ -302,7 +303,7 @@ tree_cell *
 set_ip_elements (lex_ctxt *lexic)
 {
   struct ip *o_pkt = (struct ip *) get_str_var_by_name (lexic, "ip");
-  int size = get_var_size_by_name (lexic, "ip");
+  size_t size = get_var_size_by_name (lexic, "ip");
   tree_cell *retc;
   struct ip *pkt;
   char *s;
@@ -360,11 +361,11 @@ insert_ip_options (lex_ctxt *lexic)
   int code = get_int_var_by_name (lexic, "code", 0);
   int len = get_int_var_by_name (lexic, "length", 0);
   char *value = get_str_var_by_name (lexic, "value");
-  int value_size = get_var_size_by_name (lexic, "value");
+  size_t value_size = get_var_size_by_name (lexic, "value");
   tree_cell *retc;
   struct ip *new_packet;
   char *p;
-  int size = get_var_size_by_name (lexic, "ip");
+  size_t size = get_var_size_by_name (lexic, "ip");
   u_char uc_code, uc_len;
   int pad_len;
   char zero = '0';
@@ -556,10 +557,10 @@ forge_tcp_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *data;
-  int len;
+  size_t len;
   struct ip *ip, *tcp_packet;
   struct tcphdr *tcp;
-  int ipsz;
+  size_t ipsz;
 
   ip = (struct ip *) get_str_var_by_name (lexic, "ip");
   if (ip == NULL)
@@ -653,7 +654,7 @@ get_tcp_element (lex_ctxt *lexic)
 {
   u_char *packet = (u_char *) get_str_var_by_name (lexic, "tcp");
   struct ip *ip;
-  int ipsz;
+  size_t ipsz;
   struct tcphdr *tcp;
   char *element;
   int ret;
@@ -930,11 +931,11 @@ set_tcp_elements (lex_ctxt *lexic)
 {
   char *pkt = get_str_var_by_name (lexic, "tcp");
   struct ip *ip = (struct ip *) pkt;
-  int pktsz = get_var_size_by_name (lexic, "tcp");
+  size_t pktsz = get_var_size_by_name (lexic, "tcp");
   struct tcphdr *tcp;
   tree_cell *retc;
   char *data = get_str_var_by_name (lexic, "data");
-  int data_len = get_var_size_by_name (lexic, "data");
+  size_t data_len = get_var_size_by_name (lexic, "data");
   char *npkt;
 
   if (!ip)
@@ -1043,11 +1044,11 @@ insert_tcp_options (lex_ctxt *lexic)
 {
   char *pkt = get_str_var_by_name (lexic, "tcp");
   struct ip *ip = (struct ip *) pkt;
-  int pktsz = get_var_size_by_name (lexic, "tcp");
+  size_t pktsz = get_var_size_by_name (lexic, "tcp");
   struct tcphdr *tcp;
   tree_cell *retc;
   char *data = get_str_var_by_name (lexic, "data");
-  int data_len = get_var_size_by_name (lexic, "data");
+  size_t data_len = get_var_size_by_name (lexic, "data");
   char *npkt;
   int tcp_opt, tcp_opt_val, tcp_opt_val2;
   int current_opt_len, total_opt_len, opt_size_allocated;
@@ -1456,7 +1457,7 @@ forge_udp_packet (lex_ctxt *lexic)
   if (ip != NULL)
     {
       char *data = get_str_var_by_name (lexic, "data");
-      int data_len = get_var_size_by_name (lexic, "data");
+      size_t data_len = get_var_size_by_name (lexic, "data");
       u_char *pkt;
       struct ip *udp_packet;
       struct udphdr *udp;
@@ -1622,7 +1623,7 @@ set_udp_elements (lex_ctxt *lexic)
   struct ip *ip = (struct ip *) get_str_var_by_name (lexic, "udp");
   unsigned int sz = get_var_size_by_name (lexic, "udp");
   char *data = get_str_var_by_name (lexic, "data");
-  int data_len = get_var_size_by_name (lexic, "data");
+  size_t data_len = get_var_size_by_name (lexic, "data");
 
   if (ip != NULL)
     {
@@ -1780,10 +1781,10 @@ forge_icmp_packet (lex_ctxt *lexic)
   tree_cell *retc = NULL;
   struct ip *ip;
   struct ip *ip_icmp;
-  int ip_sz;
+  size_t ip_sz;
   struct icmp *icmp;
   char *data, *p;
-  int len;
+  size_t len;
   u_char *pkt;
   int t;
 
@@ -1978,14 +1979,14 @@ forge_igmp_packet (lex_ctxt *lexic)
   if (ip != NULL)
     {
       char *data = get_str_var_by_name (lexic, "data");
-      int len = data ? get_var_size_by_name (lexic, "data") : 0;
+      size_t len = data ? get_var_size_by_name (lexic, "data") : 0;
       u_char *pkt = g_malloc0 (sizeof (struct igmp) + ip->ip_hl * 4 + len);
       struct ip *ip_igmp = (struct ip *) pkt;
       struct igmp *igmp;
       char *p;
       char *grp;
       tree_cell *retc;
-      int ipsz = get_var_size_by_name (lexic, "ip");
+      size_t ipsz = get_var_size_by_name (lexic, "ip");
 
       bcopy (ip, ip_igmp, ipsz);
 
@@ -2208,12 +2209,13 @@ nasl_send_packet (lex_ctxt *lexic)
   struct sockaddr_in sockaddr;
   char *ip = NULL;
   struct ip *sip = NULL;
-  int vi = 0, b, len = 0;
+  int vi = 0, b;
+  long int len = 0;
   int soc;
   int use_pcap = get_int_var_by_name (lexic, "pcap_active", 1);
   int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
   char *filter = get_str_var_by_name (lexic, "pcap_filter");
-  int dfl_len = get_int_var_by_name (lexic, "length", -1);
+  long int dfl_len = get_int_var_by_name (lexic, "length", -1);
   int opt_on = 1;
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
@@ -2234,7 +2236,7 @@ nasl_send_packet (lex_ctxt *lexic)
   while ((ip = get_str_var_by_num (lexic, vi)) != NULL)
     {
       allow_broadcast = get_int_var_by_name (lexic, "allow_broadcast", 0);
-      int sz = get_var_size_by_num (lexic, vi);
+      long int sz = get_var_size_by_num (lexic, vi);
       vi++;
 
       if ((unsigned int) sz < sizeof (struct ip))

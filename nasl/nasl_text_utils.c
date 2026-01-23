@@ -9,6 +9,7 @@
  * @brief Functions related to text-related utilities in the NASL functions.
  */
 
+#include <stddef.h>
 #define _GNU_SOURCE
 
 #include "nasl_text_utils.h"
@@ -40,7 +41,8 @@ nasl_string (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int vi, vn, newlen;
-  int sz, typ;
+  int typ;
+  long int sz;
   const char *s, *p1;
   char *p2;
 
@@ -136,8 +138,8 @@ tree_cell *
 nasl_rawstring (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  int vi, vn, i, j, x;
-  int sz, typ;
+  long int vi, vn, i, j, x;
+  long int sz, typ;
   const char *s;
   int total_len = 0;
 
@@ -251,7 +253,7 @@ nasl_rawstring (lex_ctxt *lexic)
 tree_cell *
 nasl_strlen (lex_ctxt *lexic)
 {
-  int len = get_var_size_by_num (lexic, 0);
+  long int len = get_var_size_by_num (lexic, 0);
   tree_cell *retc;
 
   retc = alloc_typed_cell (CONST_INT);
@@ -264,8 +266,8 @@ nasl_strcat (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *s;
-  int vi, vn, newlen;
-  int sz;
+  int vi, vn;
+  long int sz, newlen;
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = 0;
@@ -281,7 +283,13 @@ nasl_strcat (lex_ctxt *lexic)
       if (sz <= 0)
         sz = strlen (s);
 
-      newlen = retc->size + sz;
+      if (__builtin_saddl_overflow (retc->size, sz, &newlen))
+        {
+          nasl_perror (lexic, "Error. Buffer overflow\n");
+          deref_cell(retc);
+          return NULL;
+        }
+
       retc->x.str_val = g_realloc (retc->x.str_val, newlen + 1);
       memcpy (retc->x.str_val + retc->size, s, sz);
       retc->size = newlen;
@@ -453,7 +461,7 @@ nasl_ereg (lex_ctxt *lexic)
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int multiline = get_int_var_by_name (lexic, "multiline", 0);
   int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
-  int max_size = get_var_size_by_name (lexic, "string");
+  long int max_size = get_var_size_by_name (lexic, "string");
   char *s;
   int copt = 0;
   tree_cell *retc;
@@ -674,7 +682,7 @@ nasl_ereg_replace (lex_ctxt *lexic)
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
-  int max_size = get_var_size_by_name (lexic, "string");
+  long int max_size = get_var_size_by_name (lexic, "string");
 
   char *r;
   tree_cell *retc;
@@ -734,7 +742,7 @@ nasl_egrep (lex_ctxt *lexic)
   char *s, *t;
   int copt;
   char *rets;
-  int max_size = get_var_size_by_name (lexic, "string");
+  long int max_size = get_var_size_by_name (lexic, "string");
 
   if (pattern == NULL || string == NULL)
     return NULL;
@@ -950,7 +958,7 @@ tree_cell *
 nasl_substr (lex_ctxt *lexic)
 {
   char *s1;
-  int sz1, sz2, i1, i2, typ;
+  long int sz1, sz2, i1, i2, typ;
   tree_cell *retc;
 
   s1 = get_str_var_by_num (lexic, 0);
@@ -1006,7 +1014,7 @@ tree_cell *
 nasl_insstr (lex_ctxt *lexic)
 {
   char *s1, *s2, *s3;
-  int sz1, sz2, sz3, i1, i2;
+  long int sz1, sz2, sz3, i1, i2;
   tree_cell *retc;
 
   s1 = get_str_var_by_num (lexic, 0);
@@ -1220,8 +1228,8 @@ nasl_crap (lex_ctxt *lexic)
   tree_cell *retc;
   char *data = get_str_var_by_name (lexic, "data");
   int data_len = -1;
-  int len = get_int_var_by_name (lexic, "length", -1);
-  int len2 = get_int_var_by_num (lexic, 0, -1);
+  long int len = get_int_var_by_name (lexic, "length", -1);
+  long int len2 = get_int_var_by_num (lexic, 0, -1);
 
   if (len < 0 && len2 < 0)
     {
@@ -1321,11 +1329,11 @@ tree_cell *
 nasl_stridx (lex_ctxt *lexic)
 {
   char *a = get_str_var_by_num (lexic, 0);
-  int sz_a = get_var_size_by_num (lexic, 0);
+  long int sz_a = get_var_size_by_num (lexic, 0);
   char *b = get_str_var_by_num (lexic, 1);
-  int sz_b = get_var_size_by_num (lexic, 1);
+  long int sz_b = get_var_size_by_num (lexic, 1);
   char *c;
-  int start = get_int_var_by_num (lexic, 2, 0);
+  long int start = get_int_var_by_num (lexic, 2, 0);
   tree_cell *retc = alloc_typed_cell (CONST_INT);
 
   retc->x.i_val = -1;
@@ -1357,8 +1365,8 @@ tree_cell *
 nasl_str_replace (lex_ctxt *lexic)
 {
   char *a, *b, *r, *s, *c;
-  int sz_a, sz_b, sz_r, count;
-  int i1, i2, sz2, n, l;
+  long int sz_a, sz_b, sz_r, count;
+  long int i1, i2, sz2, n, l;
   tree_cell *retc = NULL;
 
   a = get_str_var_by_name (lexic, "string");

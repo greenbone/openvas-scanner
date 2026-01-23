@@ -1120,7 +1120,7 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    named_nasl_var *v = get_var_ref_by_name (lexic, name, 0);
    return (char *) var2str (&v->u);
  }
- static int
+ static long int
  get_var_size (const anon_nasl_var *v)
  {
    if (v == NULL)
@@ -1134,14 +1134,14 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    return 0;
  }
 
- int
+ long int
  get_var_size_by_name (lex_ctxt *lexic, const char *name)
  {
    named_nasl_var *v = get_var_ref_by_name (lexic, name, 0);
    return get_var_size (&v->u);
  }
 
- int
+ long int
  get_var_size_by_num (lex_ctxt *lexic, int num)
  {
    anon_nasl_var *v = get_var_ref_by_num (lexic, num);

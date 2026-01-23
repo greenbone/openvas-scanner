@@ -817,7 +817,7 @@ nasl_gunzip (lex_ctxt *lexic)
 {
   tree_cell *retc;
   void *data, *uncompressed;
-  unsigned long datalen, uncomplen;
+  size_t datalen, uncomplen;
 
   data = get_str_var_by_name (lexic, "data");
   if (data == NULL)
@@ -842,7 +842,7 @@ nasl_gzip (lex_ctxt *lexic)
 {
   tree_cell *retc;
   void *data, *compressed, *headerformat;
-  unsigned long datalen, complen;
+  size_t datalen, complen;
 
   data = get_str_var_by_name (lexic, "data");
   if (data == NULL)

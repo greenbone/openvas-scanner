@@ -104,7 +104,7 @@ static tree_cell *
 nasl_hash (lex_ctxt *lexic, int algorithm)
 {
   char *data = get_str_var_by_num (lexic, 0);
-  int len = get_var_size_by_num (lexic, 0);
+  size_t len = get_var_size_by_num (lexic, 0);
 
   return nasl_gcrypt_hash (lexic, algorithm, data, len, NULL, 0);
 }
@@ -203,8 +203,8 @@ nasl_hmac (lex_ctxt *lexic, int algorithm)
 {
   char *data = get_str_var_by_name (lexic, "data");
   char *key = get_str_var_by_name (lexic, "key");
-  int data_len = get_var_size_by_name (lexic, "data");
-  int key_len = get_var_size_by_name (lexic, "key");
+  size_t data_len = get_var_size_by_name (lexic, "data");
+  size_t key_len = get_var_size_by_name (lexic, "key");
 
   return nasl_gcrypt_hash (lexic, algorithm, data, data_len, key, key_len);
 }
@@ -270,7 +270,7 @@ tree_cell *
 nasl_hmac_sha256 (lex_ctxt *lexic)
 {
   void *key, *data, *signature;
-  int keylen, datalen;
+  size_t keylen, datalen;
   tree_cell *retc;
 
   key = get_str_var_by_name (lexic, "key");
@@ -437,7 +437,7 @@ static tree_cell *
 nasl_prf (lex_ctxt *lexic, int hmac)
 {
   void *secret, *seed, *label, *result;
-  int secret_len, seed_len, label_len, outlen;
+  size_t secret_len, seed_len, label_len, outlen;
   tree_cell *retc;
 
   secret = get_str_var_by_name (lexic, "secret");
@@ -560,7 +560,7 @@ nasl_ntlm2_response (lex_ctxt *lexic)
   char *password = get_str_var_by_name (lexic, "password");
   uint8_t pass_len = get_var_size_by_name (lexic, "password");
   void *nt_hash = get_str_var_by_name (lexic, "nt_hash");
-  int hash_len = get_var_size_by_name (lexic, "nt_hash");
+  size_t hash_len = get_var_size_by_name (lexic, "nt_hash");
 
   if (!cryptkey || !password || !nt_hash || hash_len < 16)
     {
@@ -595,7 +595,7 @@ nasl_ntlm_response (lex_ctxt *lexic)
   char *password = get_str_var_by_name (lexic, "password");
   uint8_t pass_len = (uint8_t) get_var_size_by_name (lexic, "password");
   void *nt_hash = get_str_var_by_name (lexic, "nt_hash");
-  int hash_len = get_var_size_by_name (lexic, "nt_hash");
+  size_t hash_len = get_var_size_by_name (lexic, "nt_hash");
   int neg_flags = get_int_var_by_name (lexic, "neg_flags", -1);
 
   if (!cryptkey || !password || !nt_hash || hash_len < 16 || neg_flags < 0)
@@ -661,7 +661,7 @@ nasl_ntlmv1_hash (lex_ctxt *lexic)
 {
   const uchar *cryptkey = (uchar *) get_str_var_by_name (lexic, "cryptkey");
   char *password = get_str_var_by_name (lexic, "passhash");
-  int pass_len = get_var_size_by_name (lexic, "passhash");
+  size_t pass_len = get_var_size_by_name (lexic, "passhash");
   unsigned char p21[21];
   tree_cell *retc;
   uchar *ret;
@@ -711,13 +711,12 @@ tree_cell *
 nasl_lm_owf_gen (lex_ctxt *lexic)
 {
   char *pass = get_str_var_by_num (lexic, 0);
-  int pass_len = get_var_size_by_num (lexic, 0);
   tree_cell *retc;
   uchar pwd[15];
   uchar p16[16];
   unsigned int i;
 
-  if (pass_len < 0 || pass == NULL)
+  if (pass == NULL)
     {
       nasl_perror (lexic, "Syntax : nt_lm_gen(password:<p>)\n");
       return NULL;
@@ -781,23 +780,22 @@ tree_cell *
 nasl_ntv2_owf_gen (lex_ctxt *lexic)
 {
   const uchar *owf_in = (uchar *) get_str_var_by_name (lexic, "owf");
-  int owf_in_len = get_var_size_by_name (lexic, "owf");
+  size_t owf_in_len = get_var_size_by_name (lexic, "owf");
   char *user_in = get_str_var_by_name (lexic, "login");
-  int user_in_len = get_var_size_by_name (lexic, "login");
+  size_t user_in_len = get_var_size_by_name (lexic, "login");
   char *domain_in = get_str_var_by_name (lexic, "domain");
-  int domain_len = get_var_size_by_name (lexic, "domain");
+  size_t domain_len = get_var_size_by_name (lexic, "domain");
   char *src_user, *src_domain;
   smb_ucs2_t *user, *dst_user, val_user;
   smb_ucs2_t *domain, *dst_domain, val_domain;
-  int i;
+  unsigned int i;
   size_t user_byte_len;
   size_t domain_byte_len;
   tree_cell *retc;
   uchar *kr_buf;
   HMACMD5Context ctx;
 
-  if (owf_in_len < 0 || owf_in == NULL || user_in_len < 0 || user_in == NULL
-      || domain_len < 0 || domain_in == NULL)
+  if (owf_in == NULL || user_in == NULL || domain_in == NULL)
     {
       nasl_perror (lexic,
                    "Syntax : ntv2_owf_gen(owf:<o>, login:<l>, domain:<d>)\n");
@@ -805,7 +803,6 @@ nasl_ntv2_owf_gen (lex_ctxt *lexic)
     }
 
   assert (owf_in_len == 16);
-
   user_byte_len = sizeof (smb_ucs2_t) * (strlen (user_in) + 1);
   user = g_malloc0 (user_byte_len);
   dst_user = user;
@@ -868,18 +865,16 @@ tree_cell *
 nasl_ntlmv2_hash (lex_ctxt *lexic)
 {
   const uchar *server_chal = (uchar *) get_str_var_by_name (lexic, "cryptkey");
-  int sc_len = get_var_size_by_name (lexic, "cryptkey");
   const uchar *ntlm_v2_hash = (uchar *) get_str_var_by_name (lexic, "passhash");
-  int hash_len = get_var_size_by_name (lexic, "passhash");
-  int client_chal_length = get_int_var_by_name (lexic, "length", -1);
+  size_t hash_len = get_var_size_by_name (lexic, "passhash");
+  long int client_chal_length = get_int_var_by_name (lexic, "length", -1);
   tree_cell *retc;
   unsigned char ntlmv2_response[16];
   unsigned char *ntlmv2_client_data = NULL;
   unsigned char *final_response;
   int i;
 
-  if (sc_len < 0 || server_chal == NULL || hash_len < 0 || ntlm_v2_hash == NULL
-      || client_chal_length < 0)
+  if (server_chal == NULL || ntlm_v2_hash == NULL || client_chal_length < 0)
     {
       nasl_perror (
         lexic,

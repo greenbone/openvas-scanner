@@ -179,7 +179,7 @@ tree_cell *
 nasl_smb_sign (const int algo, lex_ctxt *lexic)
 {
   char *key, *buf, *iv, *res;
-  int keylen, buflen, ivlen;
+  size_t keylen, buflen, ivlen;
   gcry_error_t error;
   tree_cell *retc = NULL;
 
