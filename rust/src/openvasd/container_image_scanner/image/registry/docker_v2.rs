@@ -553,6 +553,7 @@ impl Measured<Result<Vec<u8>, RegistryError>> {
 pub mod fake {
     use std::collections::{HashMap, HashSet};
 
+    use docker_registry::mediatypes::MediaTypes;
     use itertools::Itertools;
     use mockito::Matcher;
     use sha2::{Digest, Sha256};
@@ -705,28 +706,72 @@ pub mod fake {
             )
         }
 
-        fn mock(&self, server: &mut mockito::ServerGuard, status_code: usize) -> mockito::Mock {
-            let path = format!(
+        pub fn list_json(&self) -> String {
+            let manifests = format!(
+                r#"
+            [
+            {{
+                "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                "digest": "{}",
+                "size": {},
+                "platform": {{
+                  "architecture": "ppc64le",
+                  "os": "linux"
+                }}
+            }}
+            ]
+            "#,
+                self.blobconfig.digest,
+                self.blobconfig.size()
+            );
+
+            format!(
+                r#"
+
+{{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+  "manifests": {manifests}
+}}
+                "#
+            )
+        }
+
+        fn mock(
+            &self,
+            server: &mut mockito::ServerGuard,
+            status_code: usize,
+        ) -> Vec<mockito::Mock> {
+            let ml_path = format!(
                 "/v2/{}/manifests/{}",
                 self.blobconfig.image.image().unwrap(),
                 self.blobconfig.image.tag().unwrap()
             );
-            // TODO: add multiple BlobConfigs
-            // when multiple then return on tag multi manifest, while on digest return the
-            // manifest.v2+json
-            server
-                .mock("GET", &path as &str)
-                .with_status(status_code)
-                .with_header(
-                    "Content-Type",
-                    "application/vnd.docker.distribution.manifest.v2+json",
-                )
-                .with_header(
-                    "docker-content-digest",
-                    "application/vnd.docker.distribution.manifest.v2+json",
-                )
-                .with_body(self.json())
-                .create()
+            let image_path = format!(
+                "/v2/{}/manifests/{}",
+                self.blobconfig.image.image().unwrap(),
+                self.blobconfig.digest
+            );
+            let mut mock_it = |media_type, path: &str, json| {
+                server
+                    .mock("GET", path)
+                    .with_status(status_code)
+                    .with_header("Content-Type", media_type)
+                    .with_body(json)
+                    .create()
+            };
+            vec![
+                mock_it(
+                    MediaTypes::ManifestList.to_mime().as_ref(),
+                    &ml_path,
+                    self.list_json(),
+                ),
+                mock_it(
+                    MediaTypes::ManifestV2S2.to_mime().as_ref(),
+                    &image_path,
+                    self.json(),
+                ),
+            ]
         }
     }
 
@@ -841,7 +886,7 @@ pub mod fake {
             match self {
                 FakeResponses::Manifest(manifest) => {
                     let mut results = Vec::with_capacity(self.mock_count());
-                    results.push(manifest.mock(server, next_sc()));
+                    results.extend(manifest.mock(server, next_sc()));
                     results.push(manifest.blobconfig.mock(server, next_sc()));
                     for l in manifest.blobconfig.layer.iter() {
                         results.push(l.mock(server, manifest.blobconfig.image, next_sc()));

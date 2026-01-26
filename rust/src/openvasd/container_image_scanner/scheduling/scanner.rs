@@ -143,7 +143,7 @@ impl Measured<ImageResults> {
             messages.push(message(
                 "No operating system information found.".to_string(),
             ));
-        };
+        }
 
         messages::store(pool, id, &messages).await;
 
