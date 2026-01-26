@@ -973,7 +973,13 @@ components:
           type: "integer"
           format: "int32"
         scanning:
-          description: "The IP Addresses of the currently scanned hosts."
+          deprecated: true
+          description: |
+            The current implementation is not implemented in accordance with the
+            API spec as it does not return a list of hosts (strings) but a list of host (string) : progress (int32) pairs.
+
+            Although still available, we highly recommend not using it for progress information/calculation.
+            A more suitable API definition and implementation will be done in the next major API version. We apologize for the inconvenience.
           type: "array"
           items:
             type: "string"
@@ -1311,7 +1317,11 @@ components:
               "alive": 6,
               "queued": 1,
               "finished": 1,
-              "scanning": ["127.0.0.1", "10.0.5.1", "10.0.5.2", "10.0.5.3"],
+              "scanning": [
+                "127.0.0.1": 80,
+                "10.0.5.1": 55,
+                "10.0.5.3": 40
+              ]
             },
         }
 
