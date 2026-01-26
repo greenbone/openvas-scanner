@@ -740,6 +740,7 @@ lsc_process_response_notus (JsonReader *reader)
               g_free (installed_version);
               g_free (item1);
               g_free (item2);
+              advisory_free(notus_advisory);
               advisories_free (advisories);
               return NULL;
             }
@@ -1066,6 +1067,15 @@ call_rs_notus (const char *ip_str, const char *hostname, const char *pkg_list,
       advisory_t *notus_advisory = advisories->advisories[i];
       gchar *buffer;
       GString *result = g_string_new (NULL);
+
+      if (!notus_advisory)
+        {
+          g_message ("%s: Unable to process response. No notus advisories",
+                     __func__);
+          g_string_free (result, TRUE);
+          advisories_free (advisories);
+          return -1;
+        }
       for (size_t j = 0; j < notus_advisory->count; j++)
         {
           vuln_pkg_t *pkg = notus_advisory->pkgs[j];

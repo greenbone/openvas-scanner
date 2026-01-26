@@ -419,7 +419,7 @@ read_ipc (struct attack_start_args *args, struct ipc_context *ctx)
 
   while ((results = ipc_retrieve (ctx, IPC_MAIN)) != NULL)
     {
-      int len = 0;
+      int len;
       int pos = 0;
       for (int j = 0; results[j] != '\0'; j++)
         if (results[j] == '}')
@@ -429,7 +429,6 @@ read_ipc (struct attack_start_args *args, struct ipc_context *ctx)
             message = g_malloc0 (sizeof (gchar) * (len + 1));
             memcpy (message, &results[pos], len);
             pos = j + 1;
-            len = 0;
             ipc_msg_flag |= process_ipc_data (args, message);
             g_free (message);
           }
