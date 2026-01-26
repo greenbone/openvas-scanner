@@ -10,7 +10,7 @@ use crate::container_image_scanner::{
     benchy::{self, BenchType, Benched, Measured},
     detection::{self, OperatingSystem},
     image::{
-        Image, ImageParseError, Registry, RegistryError,
+        Digest, Image, ImageParseError, Registry, RegistryError,
         extractor::{self, Extractor, Locator},
         packages::ToNotus,
     },
@@ -195,7 +195,7 @@ async fn download_and_extract_image<'a, E, R>(
     pool: &SqlitePool,
     registry: &'a super::InitializedRegistry<'a, R>,
     image: Image,
-) -> Result<(String, E, Vec<Benched>), ScannerError>
+) -> Result<(Digest, E, Vec<Benched>), ScannerError>
 where
     E: Extractor + Send + Sync,
     R: Registry + Send + Sync,
@@ -258,7 +258,7 @@ where
                 for b in benched {
                     b.store(pool, registry.id.id(), registry.id.image()).await;
                 }
-                return Ok((image.clone().replace_tag(digest), ex));
+                return Ok((image.clone().replace_tag(digest.into()), ex));
             }
             Err(error) if error.can_retry() && retries > 0 => {
                 retries -= 1;

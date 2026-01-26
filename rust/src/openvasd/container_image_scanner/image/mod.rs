@@ -102,10 +102,13 @@ impl Image {
         pool: &sqlx::Pool<sqlx::Sqlite>,
         id: &str,
         image: &Image,
-        digest: Option<&String>,
+        digest: Option<&Digest>,
     ) -> bool {
         if let Some(digest) = digest {
-            let digest = image.clone().replace_tag(digest.clone()).to_string();
+            let digest = image
+                .clone()
+                .replace_tag(digest.as_ref().to_owned())
+                .to_string();
             match query("SELECT id FROM images WHERE id = ? AND image = ?")
                 .bind(id)
                 .bind(&digest)
@@ -132,11 +135,38 @@ pub enum ImageParseError {
     NoRegistry,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct Digest(String);
+
+impl AsRef<str> for Digest {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for Digest {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Digest> for String {
+    fn from(value: Digest) -> Self {
+        value.0
+    }
+}
+
+impl From<&str> for Digest {
+    fn from(value: &str) -> Self {
+        Self::from(value.to_owned())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PackedLayer {
     pub data: Vec<u8>,
     pub index: usize,
-    pub digest: Option<String>,
+    pub digest: Option<Digest>,
     pub arch: String,
     pub download_time: Duration,
 }

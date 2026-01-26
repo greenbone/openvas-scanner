@@ -86,6 +86,7 @@ use sqlx::SqlitePool;
 use scannerlib::notus::{HashsumProductLoader, Notus};
 
 use crate::vts::sql::SqlPluginStorage;
+
 pub async fn init(
     vt_pool: SqlitePool,
     feed_state: Arc<RwLock<FeedState>>,

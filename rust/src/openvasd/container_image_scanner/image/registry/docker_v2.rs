@@ -12,7 +12,7 @@ use crate::container_image_scanner::{
     Streamer,
     benchy::{self, Measured},
     image::{
-        Image,
+        Digest, Image,
         registry::{RegistryError, RegistryErrorKind},
     },
 };
@@ -30,7 +30,7 @@ impl Stream for BlobStream {
     }
 }
 
-type ArchitectureLayer = (String, Vec<String>);
+type ArchitectureLayer = (Option<Digest>, String, Digest);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Registry {
@@ -81,6 +81,18 @@ impl ClientBuilder {
                 | docker_registry::errors::Error::Server { status } => Some(status.as_u16()),
                 _ => None,
             },
+        }
+    }
+
+    fn functional_error<T>(&self, kind: RegistryErrorKind, reason: T) -> RegistryError
+    where
+        T: std::fmt::Debug,
+    {
+        tracing::warn!(?reason, %kind, self.registry, self.scope);
+        RegistryError {
+            registry: Some(self.registry.to_owned()),
+            kind,
+            status_code: None,
         }
     }
     fn catalog_error(&self, source: docker_registry::errors::Error) -> RegistryError {
@@ -186,6 +198,55 @@ impl Client {
             .get_manifest_and_ref(name, reference)
             .await
             .map_err(|source| self.builder.manifest_error(source))
+    }
+
+    fn manifest_to_architecture(
+        &self,
+        digest: Option<String>,
+        manifest: Manifest,
+    ) -> Result<(Manifest, String, Option<Digest>), RegistryError> {
+        let digest = digest.map(Digest::from);
+        match manifest {
+            Manifest::S2(m) => {
+                let arch = m.architecture();
+                Ok((Manifest::S2(m), arch, digest))
+            }
+            Manifest::S1Signed(m) => {
+                let arch = m.architecture.clone();
+                Ok((Manifest::S1Signed(m), arch, digest))
+            }
+
+            Manifest::ML(_) => Err(self.builder.functional_error(
+                RegistryErrorKind::Manifest,
+                "Embedded manifests lists are currently not supported.",
+            )),
+        }
+    }
+
+    pub async fn resolve_manifests(
+        &self,
+        name: &str,
+        reference: &str,
+    ) -> Vec<Result<(Manifest, String, Option<Digest>), RegistryError>> {
+        let og = self.get_manifest(name, reference).await;
+        match og {
+            Ok((Manifest::ML(ml), _)) => {
+                let mut results = Vec::with_capacity(ml.manifests.len());
+                for m in ml.manifests.into_iter() {
+                    match self.get_manifest(name, &m.digest).await {
+                        Ok((m, digest)) => {
+                            results.push(self.manifest_to_architecture(digest, m));
+                        }
+                        Err(error) => results.push(Err(error)),
+                    }
+                }
+                results
+            }
+            Ok((m, digest)) => {
+                vec![self.manifest_to_architecture(digest, m)]
+            }
+            Err(err) => vec![Err(err)],
+        }
     }
 
     pub async fn get_blob(&self, name: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
@@ -340,14 +401,7 @@ impl Registry {
     async fn fetch_digest_layer(
         &self,
         image: &Image,
-    ) -> Result<
-        (
-            Option<String>,
-            Client,
-            Vec<Result<ArchitectureLayer, RegistryError>>,
-        ),
-        RegistryError,
-    > {
+    ) -> Result<(Client, Vec<Result<ArchitectureLayer, RegistryError>>), RegistryError> {
         let repository = match image.image() {
             None => {
                 return Err(RegistryError::no_repository());
@@ -362,30 +416,19 @@ impl Registry {
         let registry = &image.registry;
         let client = self.pull_client(registry, repository).await?;
 
-        let (manifest, digest) = client.get_manifest(repository, tag).await?;
-        let architectures = manifest.architectures().unwrap_or_default();
-        tracing::trace!(?architectures, ?image, "Supported architectures");
-        Ok((
-            digest,
-            client,
-            architectures
-                .iter()
-                .map(|x| {
-                    manifest
-                        .layers_digests(Some(x))
-                        .map(|l| (x.to_owned(), l))
-                        .map_err(|x| {
-                            let kind = RegistryErrorKind::Manifest;
-                            tracing::warn!(%kind, registry, source=%x);
-                            RegistryError {
-                                registry: Some(registry.to_owned()),
-                                kind,
-                                status_code: None,
-                            }
-                        })
-                })
+        let manifests = client.resolve_manifests(repository, tag).await;
+        let result = manifests.into_iter().flat_map(|r| match r {
+            Ok((m, arch, image_digest)) => m
+                .layers_digests(Some(&arch))
+                .unwrap_or_default()
+                .into_iter()
+                .map(|l| Ok((image_digest.clone(), arch.clone(), l.into())))
                 .collect(),
-        ))
+            Err(error) => vec![Err(error)],
+        });
+
+        tracing::trace!(?result, ?image, "found layer");
+        Ok((client, result.collect()))
     }
 }
 
@@ -442,7 +485,7 @@ impl super::Registry for Registry {
             };
             tracing::trace!(image = %image, "Downloading digest");
 
-            let (image_digest, client, og) = match that.fetch_digest_layer(&image).await {
+            let (client, og) = match that.fetch_digest_layer(&image).await {
                 Ok(x) => x,
                 Err(e) => {
                     send_log(e).await;
@@ -450,12 +493,27 @@ impl super::Registry for Registry {
                 }
             };
 
-            let mut digest = Vec::with_capacity(og.len() * 2);
-            for r in og {
+            for (i, r) in og.into_iter().enumerate() {
                 match r {
-                    Ok((arch, digests)) => {
-                        for d in digests {
-                            digest.push((arch.to_owned(), d));
+                    Ok((image_digest, arch, d)) => {
+                        let blob = client.get_blob(
+                            image
+                                .image()
+                                .as_ref()
+                                .expect("already verified in fetch_digest_layer"),
+                            d.as_ref(),
+                        );
+
+                        let result = benchy::measure(blob).await.into_packed_layer(
+                            image_digest.clone(),
+                            arch.to_owned(),
+                            i,
+                        );
+
+                        tracing::trace!(image = %image, layer= i, "Downloaded layer");
+                        if let Err(e) = sender.send(result).await {
+                            tracing::trace!(error=%e, "receiver dropped");
+                            break;
                         }
                     }
                     Err(e) => {
@@ -465,27 +523,6 @@ impl super::Registry for Registry {
                 }
             }
 
-            for (index, (arch, digest)) in digest.iter().enumerate() {
-                let blob = client.get_blob(
-                    image
-                        .image()
-                        .as_ref()
-                        .expect("already verified in fetch_digest_layer"),
-                    digest,
-                );
-
-                let result = benchy::measure(blob).await.into_packed_layer(
-                    image_digest.clone(),
-                    arch.to_owned(),
-                    index,
-                );
-
-                tracing::trace!(image = %image, layer= index, "Downloaded layer");
-                if let Err(e) = sender.send(result).await {
-                    tracing::trace!(error=%e, "receiver dropped");
-                    break;
-                }
-            }
             drop(sender);
         });
 
@@ -496,7 +533,7 @@ impl super::Registry for Registry {
 impl Measured<Result<Vec<u8>, RegistryError>> {
     fn into_packed_layer(
         self,
-        digest: Option<String>,
+        digest: Option<Digest>,
         arch: String,
         index: usize,
     ) -> Result<PackedLayer, RegistryError> {
@@ -585,7 +622,7 @@ pub mod fake {
 
     impl<'a> BlobConfig<'a> {
         pub fn new(image: &'a Image, architecture: String, layer: Vec<Layer<'a>>) -> Self {
-            let digest = digest(image.to_string().as_bytes());
+            let digest = digest(format!("{image}{architecture}").as_bytes());
             Self {
                 image,
                 digest,
@@ -674,6 +711,9 @@ pub mod fake {
                 self.blobconfig.image.image().unwrap(),
                 self.blobconfig.image.tag().unwrap()
             );
+            // TODO: add multiple BlobConfigs
+            // when multiple then return on tag multi manifest, while on digest return the
+            // manifest.v2+json
             server
                 .mock("GET", &path as &str)
                 .with_status(status_code)
