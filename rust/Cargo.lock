@@ -4147,6 +4147,7 @@ dependencies = [
  "mtu",
  "nasl-c-lib",
  "nasl-function-proc-macro",
+ "nix",
  "nt-time",
  "num-bigint",
  "once_cell",

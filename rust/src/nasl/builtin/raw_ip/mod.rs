@@ -8,10 +8,12 @@ pub mod packet_forgery;
 pub mod raw_ip_utils;
 mod synscan;
 pub mod tcp_ping;
+pub mod tcp_scan;
 use std::io;
 
 use crate::nasl::{
     FnError, NaslValue,
+    builtin::raw_ip::tcp_scan::TcpScan,
     utils::{DefineGlobalVars, IntoFunctionSet, StoredFunctionSet},
 };
 use denial::Denial;
@@ -104,6 +106,7 @@ impl IntoFunctionSet for RawIp {
         set.add_set(FrameForgery);
         set.add_set(Denial);
         set.add_set(SynScan);
+        set.add_set(TcpScan);
         set
     }
 }
