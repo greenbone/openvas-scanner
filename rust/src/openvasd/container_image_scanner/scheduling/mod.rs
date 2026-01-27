@@ -143,6 +143,7 @@ where
                 }
             }
         }
+        drop(registry);
 
         tracing::debug!(id = pimage.id, images = result.len(), "Found");
         Ok(result)
@@ -319,6 +320,9 @@ where
                         }
                     }
                 }
+                // Contains http client with inner buffers so we don't want to it to potentially
+                // linger around
+                drop(registry);
             }
 
             Err(error) => tracing::warn!(%error, "Unable to initiate registry"),
