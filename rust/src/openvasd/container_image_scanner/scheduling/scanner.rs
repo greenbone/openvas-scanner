@@ -201,10 +201,10 @@ where
     R: Registry + Send + Sync,
 {
     let mut extractor = E::initialize(config.clone(), registry.id.clone()).await?;
-    let mut layers = registry.registry.pull_image(image.clone());
     let mut results = Vec::new();
     let mut digest = None;
 
+    let mut layers = registry.registry.pull_image(image.clone());
     tracing::debug!("downloading");
     while let Some(packet) = layers.next().await {
         let layer = packet?;
@@ -236,6 +236,9 @@ where
             "extracted"
         );
     }
+    // This could potentially hold the last layer indefinitively due to the runtime behaviour of
+    // future polling. That's why we drop manually.
+    drop(layers);
     tracing::debug!("downloaded");
     Ok((digest.unwrap_or_default(), extractor, results))
 }
@@ -317,6 +320,8 @@ where
             errors.push(e.into());
         };
     }
+    // drop manually because of polling behaviour
+    drop(locator_per_arch);
     if errors.is_empty() {
         Ok(())
     } else {
