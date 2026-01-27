@@ -958,7 +958,8 @@ tree_cell *
 nasl_substr (lex_ctxt *lexic)
 {
   char *s1;
-  long int sz1, sz2, i1, i2, typ;
+  long int sz1, sz2, i1, i2;
+  int typ;
   tree_cell *retc;
 
   s1 = get_str_var_by_num (lexic, 0);

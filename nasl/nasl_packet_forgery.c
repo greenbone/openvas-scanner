@@ -2209,7 +2209,8 @@ nasl_send_packet (lex_ctxt *lexic)
   struct sockaddr_in sockaddr;
   char *ip = NULL;
   struct ip *sip = NULL;
-  int vi = 0, b;
+  int vi = 0;
+  ssize_t b;
   long int len = 0;
   int soc;
   int use_pcap = get_int_var_by_name (lexic, "pcap_active", 1);
