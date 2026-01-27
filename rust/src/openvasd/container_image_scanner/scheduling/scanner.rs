@@ -132,17 +132,17 @@ impl Measured<ImageResults> {
         scan_timings.iter().for_each(|x| {
             messages.push(message(x.msg()));
         });
-        if result.os.is_none() {
-            messages.push(message(
-                "No operating system information found.".to_string(),
-            ));
-        } else {
+        if let Some(os) = &result.os {
             let host_detail = |dp| CustomerMessage::host_detail(image, digest, dp).into();
             messages.extend_from_slice(&[
-                host_detail(DetailPair::OS(result.os.unwrap().to_string())),
+                host_detail(DetailPair::OS(os.to_string())),
                 host_detail(DetailPair::Architecture(architecture.into())),
                 host_detail(DetailPair::Packages(result.packages)),
             ]);
+        } else {
+            messages.push(message(
+                "No operating system information found.".to_string(),
+            ));
         };
 
         messages::store(pool, id, &messages).await;
