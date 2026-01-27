@@ -2330,7 +2330,8 @@ nasl_send_v6packet (lex_ctxt *lexic)
   struct sockaddr_in6 sockaddr;
   char *ip = NULL;
   struct ip6_hdr *sip = NULL;
-  int vi = 0, b = 0;
+  int vi = 0;
+  ssize_t b = 0;
   size_t len = 0;
   int soc;
   int use_pcap = get_int_var_by_name (lexic, "pcap_active", 1);

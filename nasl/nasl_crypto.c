@@ -788,7 +788,7 @@ nasl_ntv2_owf_gen (lex_ctxt *lexic)
   char *src_user, *src_domain;
   smb_ucs2_t *user, *dst_user, val_user;
   smb_ucs2_t *domain, *dst_domain, val_domain;
-  unsigned int i;
+  size_t i;
   size_t user_byte_len;
   size_t domain_byte_len;
   tree_cell *retc;
@@ -802,8 +802,9 @@ nasl_ntv2_owf_gen (lex_ctxt *lexic)
       return NULL;
     }
 
-  (void) owf_in_len;
-  assert (owf_in_len == 16);
+  if(owf_in_len != 16)
+    nasl_perror (lexic, "owf_in must have a length of 16\n");
+  
   user_byte_len = sizeof (smb_ucs2_t) * (strlen (user_in) + 1);
   user = g_malloc0 (user_byte_len);
   dst_user = user;
@@ -890,8 +891,9 @@ nasl_ntlmv2_hash (lex_ctxt *lexic)
   for (i = 0; i < client_chal_length; i++)
     ntlmv2_client_data[i] = rand () % 256;
 
-  (void) hash_len;
-  assert (hash_len == 16);
+  if(hash_len != 16)
+    nasl_perror (lexic, "owf_in must have a length of 16\n");
+    
   /* Given that data, and the challenge from the server, generate a response */
   SMBOWFencrypt_ntv2_ntlmssp (ntlm_v2_hash, server_chal, 8, ntlmv2_client_data,
                               client_chal_length, ntlmv2_response);

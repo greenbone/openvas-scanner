@@ -294,7 +294,7 @@ get_port_state (lex_ctxt *lexic)
   int open;
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
-  int port;
+  long int port;
 
   port = get_int_var_by_num (lexic, 0, -1);
 
@@ -313,7 +313,7 @@ get_udp_port_state (lex_ctxt *lexic)
   int open;
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
-  int port;
+  long int port;
 
   port = get_int_var_by_num (lexic, 0, -1);
   if (port < 0 || port > USHRT_MAX)
@@ -457,7 +457,7 @@ get_port_transport (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
-  int port = get_int_var_by_num (lexic, 0, -1);
+  long int port = get_int_var_by_num (lexic, 0, -1);
 
   if (port >= 0 && port <= USHRT_MAX)
     {
