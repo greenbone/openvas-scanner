@@ -6,7 +6,7 @@ use core::fmt;
 use std::{
     fmt::{Display, Formatter},
     fs,
-    io::{self, BufReader},
+    io::{self, BufRead, BufReader},
     sync::Arc,
 };
 
@@ -16,6 +16,7 @@ use rustls::{
     pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
     version::{TLS12, TLS13},
 };
+use rustls_pki_types::pem::PemObject;
 
 use crate::nasl::builtin::http::NoVerifier;
 
@@ -53,13 +54,12 @@ fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, TLSError> 
     let keyfile = fs::File::open(filename)?;
     let mut reader = BufReader::new(keyfile);
 
+
     loop {
-        match rustls_pemfile::read_one(&mut reader)? {
-            Some(rustls_pemfile::Item::Pkcs1Key(key)) => return Ok(key.into()),
-            Some(rustls_pemfile::Item::Pkcs8Key(key)) => return Ok(key.into()),
-            Some(rustls_pemfile::Item::Sec1Key(key)) => return Ok(key.into()),
-            None => break,
-            _ => {}
+        match rustls::pki_types::PrivateKeyDer::pem_slice_iter(reader.fill_buf()?).next() {
+            Some(Ok(key)) => return Ok(key),
+            Some(Err(_)) => {},
+            None => break
         }
     }
 
@@ -91,7 +91,7 @@ pub fn prepare_tls_client(
         let ca_file = fs::File::open(cafile_path)?;
         let mut reader = BufReader::new(ca_file);
         root_store.add_parsable_certificates(
-            rustls_pemfile::certs(&mut reader).map(|result| result.unwrap()),
+            rustls::pki_types::pem::ReadIter::new(&mut reader).map(|res| res.unwrap()),
         );
 
         ClientConfig::builder().with_root_certificates(root_store)
@@ -100,7 +100,7 @@ pub fn prepare_tls_client(
     let config = if !cert_path.is_empty() && !key_path.is_empty() {
         let cert_file = fs::File::open(cert_path)?;
         let mut reader = BufReader::new(cert_file);
-        let cert = rustls_pemfile::certs(&mut reader)
+        let cert = rustls::pki_types::pem::ReadIter::new(&mut reader)
             .map(|result| result.unwrap())
             .collect();
 

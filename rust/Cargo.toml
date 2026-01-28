@@ -16,7 +16,6 @@ hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0", features = ["tokio"] }
 insta = { version = "1.41.1", features = ["ron", "toml"] }
 rustls = "0.23.31"
-rustls-pemfile = "2.2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.96"
 sha2 = "0.10.9"
@@ -103,7 +102,6 @@ clap = { workspace = true }
 futures = { workspace = true }
 hyper = { workspace = true }
 rustls = { workspace = true }
-rustls-pemfile = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
@@ -127,6 +125,7 @@ libflate = "2"
 infer = "0.19.0"
 bzip2 = "0"
 zstd = "0"
+rustls-pki-types = { version = "1.14.0", features = ["std"] }
 
 [workspace]
 members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
