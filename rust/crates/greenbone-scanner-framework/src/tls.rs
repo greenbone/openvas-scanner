@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
-    fs, io,
+    fs,
+    io::{self, BufRead},
     path::{Path, PathBuf},
     sync::{Arc, RwLock},
 };
@@ -14,7 +15,6 @@ use rustls::{
     pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
     server::{WebPkiClientVerifier, danger::ClientCertVerifier},
 };
-use rustls_pemfile::{Item, read_one};
 
 use crate::entry::ClientIdentifier;
 
@@ -210,19 +210,12 @@ where
     let mut reader = io::BufReader::new(keyfile);
 
     loop {
-        match read_one(&mut reader)? {
+        match rustls::pki_types::PrivateKeyDer::pem_slice_iter(reader.fill_buf()?).next() {
+            Some(Ok(key)) => return Ok(key),
+            Some(Err(_)) => {}
             None => break,
-            Some(Item::Pkcs1Key(key)) => {
-                return Ok(PrivateKeyDer::from(key));
-            }
-            Some(Item::Pkcs8Key(key)) => {
-                return Ok(PrivateKeyDer::from(key));
-            }
-            Some(Item::Sec1Key(key)) => {
-                return Ok(PrivateKeyDer::from(key));
-            }
-            _ => {}
         }
     }
+
     Err(error(format!("No key found {filename:?}")))
 }
