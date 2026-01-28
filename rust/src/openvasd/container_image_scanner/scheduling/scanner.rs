@@ -236,7 +236,7 @@ where
             "extracted"
         );
     }
-    // This could potentially hold the last layer indefinitively due to the runtime behaviour of
+    // This could potentially hold the last layer indefinitely due to the runtime behaviour of
     // future polling. That's why we drop manually.
     drop(layers);
     tracing::debug!("downloaded");
