@@ -7,7 +7,7 @@
 ## Do not forget to set target, username and password in config/simple_scan_ssh_only.json
 
 #run single tests.
-hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER ready.hurl vts.hurl --test
+hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER ready.hurl get_vts.hurl --test
 
 # post a scan and get the scan_id. Store it for later use.
 scan_id=$(hurl -k --cert $CLIENT_CERT --key $CLIENT_KEY --variable server=$OPENVASD_SERVER post_scan.hurl)
