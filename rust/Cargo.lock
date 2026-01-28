@@ -4245,7 +4245,7 @@ dependencies = [
  "russh",
  "rustls 0.23.36",
  "rustls-native-certs",
- "rustls-pemfile 2.2.0",
+ "rustls-pki-types",
  "search_path",
  "sequoia-ipc",
  "sequoia-openpgp",
