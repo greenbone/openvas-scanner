@@ -289,7 +289,7 @@ dump_tree (const tree_cell *c, int n, int idx)
   if (c->size > 0)
     {
       /*prefix(n, idx); */
-      printf ("\tSize=%d (0x%x)", c->size, c->size);
+      printf ("\tSize=%ld (0x%lx)", c->size, c->size);
     }
   putchar ('\n');
 

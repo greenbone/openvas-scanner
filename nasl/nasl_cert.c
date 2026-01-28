@@ -161,7 +161,7 @@ nasl_cert_open (lex_ctxt *lexic)
   gpg_error_t err;
   tree_cell *retc;
   const char *data;
-  int datalen;
+  size_t datalen;
   ksba_reader_t reader;
   ksba_cert_t cert;
   object_desc_t obj;
