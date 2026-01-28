@@ -109,7 +109,7 @@ impl Image {
                 .clone()
                 .replace_tag(digest.as_ref().to_owned())
                 .to_string();
-            match query("SELECT id FROM images WHERE id = ? AND image = ?")
+            match query("SELECT id FROM images WHERE id = ? AND image = ? AND status = 'excluded'")
                 .bind(id)
                 .bind(&digest)
                 .fetch_optional(pool)
