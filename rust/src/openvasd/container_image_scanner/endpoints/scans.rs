@@ -497,18 +497,24 @@ impl DeleteScansId for Scans {
 #[cfg(test)]
 mod scans_utils {
 
+    use std::sync::Arc;
+
     use greenbone_scanner_framework::prelude::*;
     use sqlx::SqlitePool;
+    use tokio::sync::Mutex;
 
     use super::Scans;
-    use crate::container_image_scanner::{
-        Config, MIGRATOR,
-        config::DBLocation,
-        image::{
-            DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
-            packages::AllTypes,
+    use crate::{
+        container_image_scanner::{
+            Config, MIGRATOR,
+            config::DBLocation,
+            image::{
+                DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
+                packages::AllTypes,
+            },
+            scheduling::Scheduler,
         },
-        scheduling::Scheduler,
+        database::sqlite::SqliteConnectionContainer,
     };
     use scannerlib::notus::path_to_products;
 
@@ -600,10 +606,14 @@ mod scans_utils {
         {
             let scans = scan.target.hosts.len();
             let scan_id = self.create_start_scan(&client_id, scan).await;
+            let pool = self.scheduler.pool();
+            let conn = Arc::new(Mutex::new(
+                SqliteConnectionContainer::init(pool).await.unwrap(),
+            ));
             for _ in 0..scans {
                 Scheduler::<DockerRegistryV2, filtered_image::Extractor>::start_scans::<AllTypes>(
                     self.scheduler.config(),
-                    self.scheduler.pool(),
+                    conn.clone(),
                     self.scheduler.products(),
                 )
                 .await;
