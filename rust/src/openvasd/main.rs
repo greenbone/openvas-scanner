@@ -9,6 +9,7 @@
 mod config;
 mod container_image_scanner;
 mod crypt;
+mod database;
 mod json_stream;
 mod notus;
 mod scans;

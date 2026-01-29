@@ -7,9 +7,12 @@ use sqlx::{
 };
 use tracing::debug;
 
-use crate::container_image_scanner::{
-    ExternalError,
-    image::{Credential, Image, ImageID, ImageParseError, RegistryError},
+use crate::{
+    container_image_scanner::{
+        ExternalError,
+        image::{Credential, Image, ImageID, ImageParseError, RegistryError},
+    },
+    database::sqlite::SqliteConnectionContainer,
 };
 
 impl From<SqliteRow> for ImageID {
@@ -337,6 +340,7 @@ impl RequestedScans {
             let row = match row_result {
                 Ok(x) => x,
                 Err(e) => {
+                    // TODO: Notify for exit here. Also refactor.
                     unreachable!(
                         "Unreachable: SQL query failed despite static structure. Error: {}",
                         e
@@ -367,12 +371,12 @@ impl RequestedScans {
     }
 }
 
-pub async fn set_scans_to_finished(pool: &Pool<Sqlite>) -> Result<(), ExternalError> {
-    let mut conn = pool.acquire().await?;
-    let mut tx = conn.begin().await?;
-
-    let row = sqlx::query(
-        r#"
+pub async fn set_scans_to_finished(
+    pool: &mut SqliteConnectionContainer,
+) -> Result<(), ExternalError> {
+    let q = || {
+        sqlx::query(
+            r#"
             UPDATE scans
             SET end_time = strftime('%s', 'now'),
                 status = CASE
@@ -388,14 +392,14 @@ pub async fn set_scans_to_finished(pool: &Pool<Sqlite>) -> Result<(), ExternalEr
                   AND status = 'pending'
               );
             "#,
-    )
-    .execute(&mut *tx)
-    .await?;
+        )
+    };
+
+    let row = pool.execute(q).await?;
     if row.rows_affected() > 0 {
         tracing::debug!(amount = row.rows_affected(), "finished scans");
     }
 
-    tx.commit().await?;
     Ok(())
 }
 
@@ -422,7 +426,10 @@ pub(crate) fn preferences<'a>(
 mod tests {
     use sqlx::{SqlitePool, query, query_scalar};
 
-    use crate::container_image_scanner::{MIGRATOR, config::DBLocation};
+    use crate::{
+        container_image_scanner::{MIGRATOR, config::DBLocation},
+        database::sqlite::SqliteConnectionContainer,
+    };
 
     #[tokio::test]
     async fn status_failed() {
@@ -451,7 +458,9 @@ mod tests {
             .await
             .unwrap();
 
-        super::set_scans_to_finished(&pool).await.unwrap();
+        let mut conn = SqliteConnectionContainer::init(pool.clone()).await.unwrap();
+
+        super::set_scans_to_finished(&mut conn).await.unwrap();
 
         let status: String = query_scalar("SELECT status FROM scans WHERE id = ?")
             .bind(id)
