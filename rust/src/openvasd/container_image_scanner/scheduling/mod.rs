@@ -11,7 +11,7 @@ use greenbone_scanner_framework::models;
 use sqlx::{Sqlite, SqlitePool};
 use tokio::{
     sync::{
-        RwLock,
+        Mutex, RwLock,
         mpsc::{Receiver, Sender},
     },
     task::JoinSet,
@@ -19,10 +19,13 @@ use tokio::{
 };
 use tracing::{debug, instrument, warn};
 
-use crate::container_image_scanner::{
-    self,
-    messages::CustomerMessage,
-    scheduling::scanner::{ScannerArchImageError, ScannerError},
+use crate::{
+    container_image_scanner::{
+        self,
+        messages::CustomerMessage,
+        scheduling::scanner::{ScannerArchImageError, ScannerError},
+    },
+    database::sqlite::SqliteConnectionContainer,
 };
 use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
@@ -168,11 +171,13 @@ where
 
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
-        pool: sqlx::Pool<Sqlite>,
+        conn: Arc<Mutex<SqliteConnectionContainer>>,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,
     {
+        let mut conn = conn.lock().await;
+        let pool = conn.pool();
         let requested = RequestedScans::fetch(&pool, config.max_scans).await;
         let mut js = JoinSet::new();
         for r in requested {
@@ -188,7 +193,7 @@ where
             Self::scan_images::<T>(config, tsp, products).await;
         });
         js.join_all().await;
-        if let Err(error) = db::set_scans_to_finished(&pool).await {
+        if let Err(error) = db::set_scans_to_finished(&mut conn).await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
     }
@@ -365,16 +370,25 @@ where
     {
         let mut interval = time::interval(check_interval);
         let config = self.config.clone();
+
         let pool = self.pool.clone();
+        let conn = match SqliteConnectionContainer::init(pool).await {
+            Ok(x) => x,
+            Err(error) => {
+                tracing::error!(%error, "Unable to create connection container. Container-image-scanner disabled.");
+                return;
+            }
+        };
+        let conn = Arc::new(Mutex::new(conn));
         loop {
             tokio::select! {
                 Some(()) = self.check_for_message() => {
 
                 let products = self.products.clone();
                 let config = config.clone();
-                let pool = pool.clone();
+                let conn = conn.clone();
                 tokio::spawn(async move {
-                    Self::start_scans::<T>(config, pool, products).await
+                    Self::start_scans::<T>(config, conn, products).await
                 });
 
                 }
@@ -383,9 +397,9 @@ where
 
                 let products = self.products.clone();
                 let config = config.clone();
-                let pool = pool.clone();
+                let conn = conn.clone();
                 tokio::spawn(async move {
-                    Self::start_scans::<T>(config, pool, products).await
+                    Self::start_scans::<T>(config, conn, products).await
 
                 });
 
