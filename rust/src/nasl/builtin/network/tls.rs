@@ -54,12 +54,11 @@ fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, TLSError> 
     let keyfile = fs::File::open(filename)?;
     let mut reader = BufReader::new(keyfile);
 
-
     loop {
         match rustls::pki_types::PrivateKeyDer::pem_slice_iter(reader.fill_buf()?).next() {
             Some(Ok(key)) => return Ok(key),
-            Some(Err(_)) => {},
-            None => break
+            Some(Err(_)) => {}
+            None => break,
         }
     }
 
