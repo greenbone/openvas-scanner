@@ -454,7 +454,7 @@ advisories_new_skiron ()
 {
   advisories_t *advisories_list = g_malloc0 (sizeof (advisories_t));
   advisories_list->max_size = 100;
-  advisories_list->skiron_advisory =
+  advisories_list->skiron_advisories =
     g_malloc0_n (advisories_list->max_size, sizeof (skiron_advisory_t));
   advisories_list->type = SKIRON;
 
@@ -569,6 +569,17 @@ advisory_free (advisory_t *notus_advisory)
   notus_advisory = NULL;
 }
 
+static void
+skiron_advisory_free (skiron_advisory_t *skiron_advisory)
+{
+  if (skiron_advisory == NULL)
+    return;
+
+  g_free (skiron_advisory->oid);
+  g_free (skiron_advisory->message);
+  skiron_advisory = NULL;
+}
+
 /** @brief Free()'s an advisories
  *
  *  @param notus_advisory The advisories holder to be free()'ed.
@@ -579,9 +590,13 @@ advisories_free (advisories_t *advisories)
 {
   if (advisories == NULL)
     return;
-
   for (size_t i = 0; i < advisories->count; i++)
-    advisory_free (advisories->advisories[i]);
+    {
+      if (advisories->type == NOTUS)
+        advisory_free (advisories->advisories[i]);
+      else
+        skiron_advisory_free (advisories->skiron_advisories[i]);
+    }
   advisories = NULL;
 }
 

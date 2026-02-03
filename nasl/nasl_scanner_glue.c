@@ -1141,12 +1141,17 @@ security_notus (lex_ctxt *lexic)
   // type|||IP|||HOSTNAME|||package|||OID|||the result message|||URI
   kb_result = g_strdup_printf ("%s|||%s|||%s|||%s|||%s|||%s|||%s", "ALARM",
                                ip_str, " ", "package", oid, result_string, "");
-  g_free (result_string);
+
+  // Only free result_string for notus type, as skiron uses a reference to a
+  // nasl var
+  if (notus_type == NOTUS)
+    g_free (result_string);
+
   kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results",
                                        kb_result);
   g_free (kb_result);
 
-  return NULL;
+  return FAKE_CELL;
 }
 
 /**
@@ -1387,7 +1392,7 @@ parse_skiron (advisories_t *adv)
 
   for (size_t i = 0; i < adv->count; i++)
     {
-      skiron_advisory_t *advisory = adv->skiron_advisory[i];
+      skiron_advisory_t *advisory = adv->skiron_advisories[i];
       anon_nasl_var msg, oid;
 
       memset (&element, 0, sizeof (element));
@@ -1407,8 +1412,8 @@ parse_skiron (advisories_t *adv)
       add_var_to_array (&element.v.v_arr, "message", &msg);
       add_var_to_list (retc->x.ref_val, i, &element);
     }
-
   advisories_free (adv);
+
   return retc;
 }
 
