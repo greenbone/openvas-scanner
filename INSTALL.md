@@ -36,6 +36,7 @@ Prerequisites for building documentation:
 
 Prerequisites for building tests:
 * Cgreen (optional, for building tests)
+* libasan (optional, for building tests)
 
 Recommended to have WMI support:
 * openvas-smb >= 1.0.1
