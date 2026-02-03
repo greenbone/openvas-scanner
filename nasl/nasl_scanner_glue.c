@@ -37,6 +37,7 @@
 #include <gvm/base/networking.h> /* for addr6_to_str */
 #include <gvm/base/prefs.h>      /* for prefs_get */
 #include <gvm/util/kb.h>         /* for KB_TYPE_INT */
+#include <stddef.h>
 #include <stdlib.h>              /* for atoi */
 #include <string.h>              /* for strcmp */
 #include <sys/stat.h>            /* for stat */
@@ -807,7 +808,7 @@ replace_kb_item (lex_ctxt *lexic)
   else
     {
       char *value = get_str_var_by_name (lexic, "value");
-      int len = get_var_size_by_name (lexic, "value");
+      size_t len = get_var_size_by_name (lexic, "value");
 
       if (value == NULL)
         {
@@ -862,7 +863,7 @@ set_kb_item_volatile (lex_ctxt *lexic)
   else
     {
       char *value = get_str_var_by_name (lexic, "value");
-      int len = get_var_size_by_name (lexic, "value");
+      size_t len = get_var_size_by_name (lexic, "value");
       if (value == NULL || expire == -1)
         {
           nasl_perror (lexic,
@@ -921,7 +922,7 @@ set_kb_item (lex_ctxt *lexic)
   else
     {
       char *value = get_str_var_by_name (lexic, "value");
-      int len = get_var_size_by_name (lexic, "value");
+      size_t len = get_var_size_by_name (lexic, "value");
       if (value == NULL)
         {
           nasl_perror (
@@ -969,8 +970,8 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
 
   if (data != NULL)
     {
-      int len = get_var_size_by_name (lexic, "data");
-      int i;
+      size_t len = get_var_size_by_name (lexic, "data");
+      size_t i;
 
       dup = g_malloc0 ((len + 1) * sizeof (char *));
       memcpy (dup, data, len + 1);

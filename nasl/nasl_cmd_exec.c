@@ -503,8 +503,8 @@ nasl_file_read (lex_ctxt *lexic)
   tree_cell *retc;
   char *buf;
   int fd;
-  int flength;
-  int n;
+  long int flength;
+  long int n;
 
   fd = get_int_var_by_name (lexic, "fp", -1);
   if (fd < 0)
@@ -519,7 +519,7 @@ nasl_file_read (lex_ctxt *lexic)
 
   for (n = 0; n < flength;)
     {
-      int e;
+      long int e;
       errno = 0;
       e = read (fd, buf + n, flength - n);
       if (e < 0 && errno == EINTR)
@@ -544,9 +544,9 @@ nasl_file_write (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *content;
-  int len;
+  long int len;
   int fd;
-  int n;
+  long int n;
 
   content = get_str_var_by_name (lexic, "data");
   fd = get_int_var_by_name (lexic, "fp", -1);
@@ -587,7 +587,7 @@ nasl_file_seek (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int fd;
-  int foffset;
+  long int foffset;
 
   foffset = get_int_var_by_name (lexic, "offset", 0);
   fd = get_int_var_by_name (lexic, "fp", -1);

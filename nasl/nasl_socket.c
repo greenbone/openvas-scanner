@@ -755,13 +755,13 @@ nasl_recv (lex_ctxt *lexic)
 {
   char *data, *resend_data;
   int rd_len;
-  int len = get_int_var_by_name (lexic, "length", -1);
-  int min_len = get_int_var_by_name (lexic, "min", -1);
+  long int len = get_int_var_by_name (lexic, "length", -1);
+  long int min_len = get_int_var_by_name (lexic, "min", -1);
   int soc = get_int_var_by_name (lexic, "socket", 0);
   int to = get_int_var_by_name (lexic, "timeout", lexic->recv_timeout);
   fd_set rd;
   struct timeval tv;
-  int new_len = 0;
+  long int new_len = 0;
   int type = -1;
   unsigned int opt_len = sizeof (type);
   int e;
@@ -846,12 +846,12 @@ nasl_recv (lex_ctxt *lexic)
 tree_cell *
 nasl_recv_line (lex_ctxt *lexic)
 {
-  int len = get_int_var_by_name (lexic, "length", -1);
+  long int len = get_int_var_by_name (lexic, "length", -1);
   int soc = get_int_var_by_name (lexic, "socket", 0);
   int timeout = get_int_var_by_name (lexic, "timeout", -1);
   char *data;
-  int new_len = 0;
-  int n = 0;
+  long int new_len = 0;
+  long int n = 0;
   tree_cell *retc;
   time_t t1 = 0;
 
@@ -962,8 +962,8 @@ nasl_send (lex_ctxt *lexic)
   int soc = get_int_var_by_name (lexic, "socket", 0);
   char *data = get_str_var_by_name (lexic, "data");
   int option = get_int_var_by_name (lexic, "option", 0);
-  int length = get_int_var_by_name (lexic, "length", 0);
-  int data_length = get_var_size_by_name (lexic, "data");
+  long int length = get_int_var_by_name (lexic, "length", 0);
+  long data_length = get_var_size_by_name (lexic, "data");
   int n;
   int mtu = -1;
   tree_cell *retc;

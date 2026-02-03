@@ -1111,79 +1111,82 @@ routethrough (struct in_addr *dest, struct in_addr *source)
           /* Now that we've got the interfaces, we g0 after the r0ut3Z */
           if (fgets (buf, sizeof (buf), routez)
               == NULL) /* Kill the first line */
-            g_message ("Could not read from /proc/net/route");
-          while (fgets (buf, sizeof (buf), routez))
+            g_message ("%s: Could not read from /proc/net/route", __func__);
+          else
             {
-              p = strtok (buf, " \t\n");
-              if (!p)
+              while (fgets (buf, sizeof (buf), routez) != NULL)
                 {
-                  g_message ("Could not find interface in"
-                             " /proc/net/route line");
-                  continue;
-                }
-              strncpy (iface, p, sizeof (iface) - 1);
-              iface[MAX_IFACE_NAME_LEN - 1] = '\0';
-              if ((p = strchr (iface, ':')))
-                {
-                  *p = '\0'; /* To support IP aliasing */
-                }
-              p = strtok (NULL, " \t\n");
-              endptr = NULL;
-              myroutes[numroutes].dest = strtoul (p, &endptr, 16);
-              if (!endptr || *endptr)
-                {
-                  g_message (
-                    "Failed to determine Destination from /proc/net/route");
-                  continue;
-                }
-              for (i = 0; i < 5; i++)
-                {
-                  p = strtok (NULL, " \t\n");
+                  p = strtok (buf, " \t\n");
                   if (!p)
-                    break;
-                }
-              if (!p)
-                {
-                  g_message ("Failed to find field %d in"
-                             " /proc/net/route",
-                             i + 2);
-                  continue;
-                }
-              endptr = NULL;
-              myroutes[numroutes].metric = strtol (p, &endptr, 10);
-              if (!endptr || *endptr)
-                {
-                  g_message ("Failed to determine metric from /proc/net/route");
-                  continue;
-                }
-              p = strtok (NULL, " \t\n");
-              endptr = NULL;
-              myroutes[numroutes].mask = strtoul (p, &endptr, 16);
-              if (!endptr || *endptr)
-                {
-                  g_message ("Failed to determine mask"
-                             " from /proc/net/route");
-                  continue;
-                }
+                    {
+                      g_message ("Could not find interface in"
+                                 " /proc/net/route line");
+                      continue;
+                    }
+                  strncpy (iface, p, sizeof (iface) - 1);
+                  iface[MAX_IFACE_NAME_LEN - 1] = '\0';
+                  if ((p = strchr (iface, ':')))
+                    {
+                      *p = '\0'; /* To support IP aliasing */
+                    }
+                  p = strtok (NULL, " \t\n");
+                  endptr = NULL;
+                  myroutes[numroutes].dest = strtoul (p, &endptr, 16);
+                  if (!endptr || *endptr)
+                    {
+                      g_message (
+                                 "Failed to determine Destination from /proc/net/route");
+                      continue;
+                    }
+                  for (i = 0; i < 5; i++)
+                    {
+                      p = strtok (NULL, " \t\n");
+                      if (!p)
+                        break;
+                    }
+                  if (!p)
+                    {
+                      g_message ("Failed to find field %d in"
+                                 " /proc/net/route",
+                                 i + 2);
+                      continue;
+                    }
+                  endptr = NULL;
+                  myroutes[numroutes].metric = strtol (p, &endptr, 10);
+                  if (!endptr || *endptr)
+                    {
+                      g_message ("Failed to determine metric from /proc/net/route");
+                      continue;
+                    }
+                  p = strtok (NULL, " \t\n");
+                  endptr = NULL;
+                  myroutes[numroutes].mask = strtoul (p, &endptr, 16);
+                  if (!endptr || *endptr)
+                    {
+                      g_message ("Failed to determine mask"
+                                 " from /proc/net/route");
+                      continue;
+                    }
 
-              g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX",
-                       numroutes, iface, myroutes[numroutes].dest,
-                       myroutes[numroutes].mask);
-              for (i = 0; i < numinterfaces; i++)
-                if (!strcmp (iface, mydevs[i].name))
-                  {
-                    myroutes[numroutes].dev = &mydevs[i];
-                    break;
-                  }
-              if (i == numinterfaces)
-                g_message (
-                  "Failed to find interface %s mentioned in /proc/net/route",
-                  iface);
-              numroutes++;
-              if (numroutes >= MAXROUTES)
-                {
-                  g_message ("You seem to have WAY to many routes!");
-                  break;
+                  g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX",
+                           numroutes, iface, myroutes[numroutes].dest,
+                           myroutes[numroutes].mask);
+                  for (i = 0; i < numinterfaces; i++)
+                    if (!strcmp (iface, mydevs[i].name))
+                      {
+                        myroutes[numroutes].dev = &mydevs[i];
+                        break;
+                      }
+                  if (i == numinterfaces)
+                    g_message (
+                               "Failed to find interface %s mentioned in /proc/net/route",
+                               iface);
+                  numroutes++;
+                  if (numroutes >= MAXROUTES)
+                    {
+                      g_message ("You seem to have WAY to many routes!");
+                      break;
+                    }
                 }
             }
           fclose (routez);
