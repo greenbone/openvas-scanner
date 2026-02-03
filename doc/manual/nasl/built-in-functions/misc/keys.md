@@ -13,6 +13,11 @@
 ## DESCRIPTION
 
 Keys returns an array with the keys of a dict.
+Memory for each key-value tuple is reserved separately and allocated memory do
+not necessarily return contiguous memory addresses because of how dynamic
+memory allocation works in C and how the operating system manages memory.
+Therefore, key-value tuples do not necessarily keep the order in which
+they were stored.
 
 ## Returns
 

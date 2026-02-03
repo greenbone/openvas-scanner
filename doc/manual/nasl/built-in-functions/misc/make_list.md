@@ -16,6 +16,10 @@ Takes any number of unnamed arguments and returns an array made from them.
 
 It can also be used to flatten arrays.
 
+Internally, make list `realloc()`ates memory, which guarantees that
+the returned memory block is contiguous. Therefore, elements keep the
+order in which they were stored.
+
 ## RETURN VALUE
 
 Returns an indexed array made out of the arguments. The index starts at 0.

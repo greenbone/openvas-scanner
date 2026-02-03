@@ -15,6 +15,12 @@
 Takes any even number of unnamed arguments and returns an dictionary made from them.
 Each uneven argument will be the key while each even argument is the value.
 
+Memory for each key-value tuple is reserved separately and allocated memory do not
+necessarily return contiguous memory addresses because of how dynamic memory allocation
+works in C and how the operating system manages memory. Therefore, key-value tuples
+do not necessarily keep the order in which they were stored.
+
+
 ## RETURN VALUE
 
 Returns a dictionary made out of the arguments.
