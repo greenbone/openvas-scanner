@@ -91,7 +91,7 @@ struct advisories
   union
   {
     advisory_t **advisories;
-    skiron_advisory_t **skiron_advisory;
+    skiron_advisory_t **skiron_advisories;
   };
   advisory_type_t type;
   size_t count;
