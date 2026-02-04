@@ -19,10 +19,9 @@ jobs:
     name: Call Packaging workflow
     runs-on: "ubuntu-latest"
     steps:
-      - name: DEBUG - shot release data
+      - name: DEBUG - show release data
         run: |
           echo "release name: ${{ github.event.release.name }}"
-          echo "release body: ${{ github.event.release.body }}"
           echo "release id: ${{ github.event.release.id }}"
           echo "release tag_name: ${{ github.event.release.tag_name }}"
           echo "release target_commitish: ${{ github.event.release.target_commitish }}"
