@@ -6,7 +6,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11.20", features = ["rustls-tls", "blocking", "json"], default-features=false }
+reqwest = { version = "0.13.0", features = ["rustls", "blocking", "json"], default-features=false }
 tokio = { workspace = true }
 tracing = { workspace = true }
 serde_json = { workspace = true }
