@@ -10,9 +10,8 @@
 // https://github.com/rust-lang/rust/issues/124735
 // so we have to allow it library wide.
 // See src/nasl/builtin/raw_ip/packet_forgery.rs
-#![cfg_attr(feature = "nasl-builtin-raw-ip", allow(unexpected_cfgs))]
+#![allow(unexpected_cfgs)]
 
-#[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod alive_test;
 pub mod feed;
 pub mod nasl;

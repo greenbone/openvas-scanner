@@ -14,7 +14,6 @@ use super::find_service::FindServiceError;
 use super::host::HostError;
 use super::http::HttpError;
 use super::isotime::IsotimeError;
-#[cfg(feature = "nasl-builtin-raw-ip")]
 use super::raw_ip::RawIpError;
 use super::regex::RegexError;
 use super::snmp::SnmpError;
@@ -51,7 +50,6 @@ pub enum BuiltinError {
     FindService(FindServiceError),
     #[error("{0}")]
     Snmp(SnmpError),
-    #[cfg(feature = "nasl-builtin-raw-ip")]
     #[error("{0}")]
     RawIp(RawIpError),
     #[error("{0}")]
@@ -101,6 +99,4 @@ builtin_error_variant!(CertError, Cert);
 builtin_error_variant!(SysError, Sys);
 builtin_error_variant!(FindServiceError, FindService);
 builtin_error_variant!(SnmpError, Snmp);
-
-#[cfg(feature = "nasl-builtin-raw-ip")]
 builtin_error_variant!(RawIpError, RawIp);
