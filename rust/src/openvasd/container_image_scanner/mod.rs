@@ -99,13 +99,21 @@ pub async fn init(
         .await?;
     MIGRATOR.run(&pool).await?;
 
+    let batch_size = config.image_batch_size();
+    let sch_interval_check = if batch_size > 0 {
+        Duration::from_secs(batch_size as u64)
+    } else {
+        Duration::from_secs(1)
+    };
+
     let (sender, scheduler) = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
         config.into(),
         pool.clone(),
         products,
     );
+
     tokio::spawn(async move {
-        scheduler.run::<AllTypes>(Duration::from_secs(10)).await;
+        scheduler.run::<AllTypes>(sch_interval_check).await;
     });
 
     let scan = Scans {
