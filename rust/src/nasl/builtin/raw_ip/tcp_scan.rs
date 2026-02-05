@@ -38,7 +38,7 @@ pub enum PortState {
 }
 
 /// RTT (Round Trip Time) statistics
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct RttStats {
     pub count: usize,
     pub sum: Duration,
@@ -48,16 +48,6 @@ pub struct RttStats {
 }
 
 impl RttStats {
-    fn new() -> Self {
-        Self {
-            count: 0,
-            sum: Duration::ZERO,
-            sum_squared: 0.0,
-            min: Duration::from_secs(u64::MAX),
-            max: Duration::ZERO,
-        }
-    }
-
     fn add(&mut self, rtt: Duration) {
         self.count += 1;
         self.sum += rtt;
@@ -90,6 +80,18 @@ impl RttStats {
         let mean = self.mean()?.as_secs_f64();
         let sd = self.std_dev()?;
         Some(Duration::from_secs_f64(mean + 3.0 * sd))
+    }
+}
+
+impl Default for RttStats {
+    fn default() -> Self {
+        Self {
+            count: 0,
+            sum: Duration::ZERO,
+            sum_squared: 0.0,
+            min: Duration::from_secs(u64::MAX),
+            max: Duration::ZERO,
+        }
     }
 }
 
@@ -186,10 +188,10 @@ impl TcpScanner {
         {
             use std::fs;
             // Try fs.file-max
-            if let Ok(content) = fs::read_to_string("/proc/sys/fs/file-max") {
-                if let Ok(limit) = content.trim().parse::<usize>() {
-                    return Some(limit);
-                }
+            if let Ok(content) = fs::read_to_string("/proc/sys/fs/file-max")
+                && let Ok(limit) = content.trim().parse::<usize>()
+            {
+                return Some(limit);
             }
         }
 
@@ -208,7 +210,6 @@ impl TcpScanner {
     /// Execute the port scan
     pub async fn scan(&self) -> Result<ScanResults> {
         let mut results = ScanResults::default();
-        results.rtt_stats = [RttStats::new(), RttStats::new(), RttStats::new()];
 
         let mut port_states: HashMap<u16, PortState> = self
             .config
@@ -266,7 +267,7 @@ impl TcpScanner {
 
             // Adjust connection limits for next pass
             if results.filtered_ports.len() > 10 || pass_results.rst_rate_limited {
-                min_connections = min_connections / (pass + 1).max(1);
+                min_connections /= (pass + 1).max(1);
                 min_connections = min_connections.max(1);
 
                 if pass_results.rst_rate_limited {
@@ -295,7 +296,6 @@ impl TcpScanner {
         max_connections: usize,
     ) -> Result<ScanResults> {
         let mut results = ScanResults::default();
-        results.rtt_stats = [RttStats::new(), RttStats::new(), RttStats::new()];
 
         // Create semaphore to limit concurrent connections
         let semaphore = Arc::new(Semaphore::new(max_connections));
@@ -342,11 +342,11 @@ impl TcpScanner {
                         results.closed_ports.push(port);
                         port_states.insert(port, PortState::Closed);
 
-                        if let Some(conn_time) = port_result.connection_time {
-                            if conn_time < MAX_SANE_RTT {
-                                results.rtt_stats[0].add(conn_time);
-                                results.rtt_stats[2].add(conn_time);
-                            }
+                        if let Some(conn_time) = port_result.connection_time
+                            && conn_time < MAX_SANE_RTT
+                        {
+                            results.rtt_stats[0].add(conn_time);
+                            results.rtt_stats[2].add(conn_time);
                         }
                     }
                     PortState::Silent => {
