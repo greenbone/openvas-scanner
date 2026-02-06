@@ -9,9 +9,14 @@ struct EnsureCrlf<W: Write>(W);
 
 impl<W: Write> Write for EnsureCrlf<W> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let s = String::from_utf8_lossy(buf);
-        let fixed = s.replace("\n", "\r\n").replace("\r\r\n", "\r\n");
-        self.0.write_all(fixed.as_bytes())?;
+        let mut end = buf.len();
+        while end > 0 && (buf[end - 1] == b'\n' || buf[end - 1] == b'\r') {
+            end -= 1;
+        }
+        if end > 0 {
+            self.0.write_all(&buf[..end])?;
+            self.0.write_all(b"\r\n")?;
+        }
         Ok(buf.len())
     }
 
