@@ -653,8 +653,7 @@ lsc_process_response_notus (JsonReader *reader)
 
   if (!members || !members[0])
     {
-      g_debug ("No members found");
-      return NULL;
+      return advisories;
     }
 
   for (int i = 0; members[i]; i++)
@@ -755,7 +754,7 @@ lsc_process_response_notus (JsonReader *reader)
               g_free (installed_version);
               g_free (item1);
               g_free (item2);
-              advisory_free(notus_advisory);
+              advisory_free (notus_advisory);
               advisories_free (advisories);
               return NULL;
             }
