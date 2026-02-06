@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 use greenbone_scanner_framework::models::{NotusResults, VulnerablePackage};
+use tracing::debug;
 
 use crate::feed::VerifyError;
 
@@ -50,6 +51,7 @@ where
     fn load_new_product(&self, os: &str) -> Result<(Product, FeedStamp), Error> {
         tracing::debug!(
             root=?self.loader.root_path(),
+            os =?os,
             "Loading notus product",
         );
         let (product, stamp) = self.loader.load_product(os)?;
@@ -179,6 +181,8 @@ where
             Product::Windows(adv) => Self::parse_and_compare(packages, adv)?,
             Product::Alpm(adv) => Self::parse_and_compare(packages, adv)?,
         };
+
+        debug!(os, vulns = results.len(), "Scan completed.");
 
         Ok(results)
     }
