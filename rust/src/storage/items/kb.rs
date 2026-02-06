@@ -35,6 +35,15 @@ pub enum KbKey {
     /// Contains FindService related Kb keys
     FindService(FindService),
 
+    /// Contains TCP Scanner related Kb keys
+    TcpScanner(TcpScanner),
+
+    BannerHex(u16),
+
+    Banner(u16),
+
+    TmpNoBanner(u16),
+
     /// Known TCP ports
     KnownTcp(u16),
 
@@ -97,6 +106,9 @@ pub enum GlobalSettings {
 pub enum Host {
     Tcp,
     Udp,
+    TcpScanned,
+    FullScan,
+    NumPortsScanned,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -117,6 +129,28 @@ pub enum FindService {
     RwTime(String),
     TcpGetHttp(String),
     TcpSpontaneous(String),
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TcpScanner {
+    NbPasses,
+    OpenPortsNb,
+    ClosedPortsNb,
+    FilteredPortsNb,
+    RSTRateLimit,
+    MeanRTT(String),
+    MeanRTT1000(String),
+    MaxRTT(String),
+    MaxRTT1000(String),
+    SDRTT(String),
+    SDRTT1000(String),
+    EstimatedMaxRTT(String),
+    EstimatedMaxRTT1000(String),
+    RwTime(u16),
+    RwTime1000(u16),
+    CnxTime(u16),
+    CnxTime1000(u16),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -153,6 +187,9 @@ impl Display for KbKey {
 
             KbKey::Host(Host::Tcp) => write!(f, "Host/scanned"),
             KbKey::Host(Host::Udp) => write!(f, "Host/udp_scanned"),
+            KbKey::Host(Host::TcpScanned) => write!(f, "Host/scanners/openvas_tcp_scanner"),
+            KbKey::Host(Host::FullScan) => write!(f, "Host/full_scan"),
+            KbKey::Host(Host::NumPortsScanned) => write!(f, "Host/num_ports_scanned"),
 
             KbKey::Service(Service::Wrapped) => write!(f, "Service/wrapped"),
             KbKey::Service(Service::Unknown) => write!(f, "Service/unknown"),
@@ -177,6 +214,61 @@ impl Display for KbKey {
             KbKey::FindService(FindService::TcpSpontaneous(port)) => {
                 write!(f, "FindService/tcp/{port}/spontaneous")
             }
+
+            KbKey::TcpScanner(TcpScanner::NbPasses) => write!(f, "TCPScanner/NbPasses"),
+            KbKey::TcpScanner(TcpScanner::OpenPortsNb) => {
+                write!(f, "TCPScanner/OpenPortsNb")
+            }
+            KbKey::TcpScanner(TcpScanner::ClosedPortsNb) => {
+                write!(f, "TCPScanner/ClosedPortsNb")
+            }
+            KbKey::TcpScanner(TcpScanner::FilteredPortsNb) => {
+                write!(f, "TCPScanner/FilteredPortsNb")
+            }
+            KbKey::TcpScanner(TcpScanner::RSTRateLimit) => {
+                write!(f, "TCPScanner/RSTRateLimit")
+            }
+            KbKey::TcpScanner(TcpScanner::MeanRTT(s)) => {
+                write!(f, "TCPScanner/{s}/MeanRTT")
+            }
+            KbKey::TcpScanner(TcpScanner::MeanRTT1000(s)) => {
+                write!(f, "TCPScanner/{s}/MeanRTT1000")
+            }
+            KbKey::TcpScanner(TcpScanner::MaxRTT(s)) => {
+                write!(f, "TCPScanner/{s}/MaxRTT")
+            }
+            KbKey::TcpScanner(TcpScanner::MaxRTT1000(s)) => {
+                write!(f, "TCPScanner/{s}/MaxRTT1000")
+            }
+            KbKey::TcpScanner(TcpScanner::SDRTT(s)) => {
+                write!(f, "TCPScanner/{s}/SDRTT")
+            }
+            KbKey::TcpScanner(TcpScanner::SDRTT1000(s)) => {
+                write!(f, "TCPScanner/{s}/SDRTT1000")
+            }
+            KbKey::TcpScanner(TcpScanner::EstimatedMaxRTT(s)) => {
+                write!(f, "TCPScanner/{s}/EstimatedMaxRTT")
+            }
+            KbKey::TcpScanner(TcpScanner::EstimatedMaxRTT1000(s)) => {
+                write!(f, "TCPScanner/{s}/EstimatedMaxRTT1000")
+            }
+            KbKey::TcpScanner(TcpScanner::RwTime(port)) => {
+                write!(f, "TCPScanner/RwTime/{port}")
+            }
+            KbKey::TcpScanner(TcpScanner::RwTime1000(port)) => {
+                write!(f, "TCPScanner/RwTime1000/{port}")
+            }
+            KbKey::TcpScanner(TcpScanner::CnxTime(port)) => {
+                write!(f, "TCPScanner/CnxTime/{port}")
+            }
+            KbKey::TcpScanner(TcpScanner::CnxTime1000(port)) => {
+                write!(f, "TCPScanner/CnxTime1000/{port}")
+            }
+
+            KbKey::BannerHex(port) => write!(f, "BannerHex/{port}"),
+            KbKey::Banner(port) => write!(f, "Banner/{port}"),
+            KbKey::TmpNoBanner(port) => write!(f, "/tmp/NoBanner/{port}"),
+
             KbKey::KnownTcp(port) => write!(f, "Known/tcp/{port}"),
 
             KbKey::ConnectTimeout(ip, port) => write!(f, "ConnectTimeout/{ip}/{port}"),

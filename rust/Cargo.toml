@@ -62,6 +62,7 @@ md-5 = "0.10.5"
 md2 = "0.10.2"
 md4 = "0.10.2"
 mtu = { version = "0.2.9", optional = true }
+nix = { version = "0.29", features = ["resource"] }
 nt-time = "0.12.1"
 num-bigint = "0.4.6"
 pathdiff = "0.2.3"
