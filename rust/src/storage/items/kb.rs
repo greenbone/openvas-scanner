@@ -17,6 +17,8 @@ pub enum KbKey {
     /// Contains SSL/TLS Kb keys
     Ssl(Ssl),
 
+    Ssh(Ssh),
+
     /// Contains Port related Kb keys
     Port(Port),
 
@@ -71,6 +73,19 @@ pub enum Ssl {
     Key,
     Password,
     Ca,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Ssh {
+    Login(Login),
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Login {
+    PackageListNotus,
+    ReleaseNotus,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -174,6 +189,13 @@ impl Display for KbKey {
             KbKey::Ssl(Ssl::Key) => write!(f, "SSL/key"),
             KbKey::Ssl(Ssl::Password) => write!(f, "SSL/password"),
             KbKey::Ssl(Ssl::Ca) => write!(f, "SSL/ca"),
+
+            KbKey::Ssh(Ssh::Login(Login::PackageListNotus)) => {
+                write!(f, "ssh/login/package_list_notus")
+            }
+            KbKey::Ssh(Ssh::Login(Login::ReleaseNotus)) => {
+                write!(f, "ssh/login/release_notus")
+            }
 
             KbKey::Port(Port::Tcp(port)) => write!(f, "Ports/tcp/{port}"),
             KbKey::Port(Port::Udp(port)) => write!(f, "Ports/udp/{port}"),
