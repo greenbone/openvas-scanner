@@ -13,6 +13,7 @@ use scannerlib::nasl::{
     NaslValue, WithErrorInfo,
     interpreter::InterpreterErrorKind,
     syntax::{LoadError, Loader, read_non_utf8_path},
+    utils::scan_ctx::NotusCtx,
 };
 use scannerlib::{
     feed,
@@ -131,6 +132,7 @@ async fn run_on_storage<S: ContextStorage>(
     ports: Ports,
     script: &Path,
     scan_preferences: ScanPrefs,
+    notus: Option<NotusCtx>,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
     let filename = script;
@@ -160,6 +162,7 @@ async fn run_on_storage<S: ContextStorage>(
         filename,
         scan_preferences,
         alive_test_methods: Vec::new(),
+        notus,
     };
     run_with_context(cb.build(), script).await
 }
@@ -174,6 +177,7 @@ pub async fn run(
     tcp_ports: Vec<u16>,
     udp_ports: Vec<u16>,
     scan_preferences: ScanPrefs,
+    notus: Option<NotusCtx>,
 ) -> Result<(), CliError> {
     let target = target
         .map(|target| {
@@ -196,6 +200,7 @@ pub async fn run(
                 ports,
                 script,
                 scan_preferences,
+                notus,
             )
             .await
         }
@@ -208,7 +213,17 @@ pub async fn run(
             } else {
                 load_feed_by_exec(&storage, &loader).await?
             }
-            run_on_storage(storage, loader, target, kb, ports, script, scan_preferences).await
+            run_on_storage(
+                storage,
+                loader,
+                target,
+                kb,
+                ports,
+                script,
+                scan_preferences,
+                notus,
+            )
+            .await
         }
     };
 

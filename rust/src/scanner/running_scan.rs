@@ -10,7 +10,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::nasl::utils::scan_ctx::ContextStorage;
+use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx};
 use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
 use crate::{
@@ -34,6 +34,7 @@ pub struct RunningScan<S> {
     function_executor: Arc<Executor>,
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<Status>>,
+    notus: Option<NotusCtx>,
 }
 
 pub(super) fn current_time_in_seconds(name: &'static str) -> u64 {
@@ -55,6 +56,7 @@ where
         storage: Arc<S>,
         loader: Arc<Loader>,
         function_executor: Arc<Executor>,
+        notus: Option<NotusCtx>,
     ) -> RunningScanHandle {
         let keep_running: Arc<AtomicBool> = Arc::new(true.into());
         let status = Arc::new(RwLock::new(Status {
@@ -69,6 +71,7 @@ where
                     function_executor,
                     keep_running: keep_running.clone(),
                     status: status.clone(),
+                    notus,
                 }
                 // TODO run per target
                 .run(),
@@ -107,6 +110,7 @@ where
             &self.function_executor,
             schedule.into_iter().map(Ok),
             &self.scan,
+            &self.notus,
         )
         .map_err(make_scheduling_error)
     }

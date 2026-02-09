@@ -13,6 +13,7 @@ use tokio::sync::RwLock;
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
 use crate::nasl::{FromNaslValue, WithErrorInfo};
+use crate::notus::{HashsumProductLoader, Notus};
 use crate::scanner::preferences::preference::{ScanPrefs, pref_is_true};
 use crate::storage::error::StorageError;
 use crate::storage::infisto::json::JsonStorage;
@@ -37,7 +38,7 @@ use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{FnError, Register};
 use std::io::Write;
-use std::net::IpAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -266,6 +267,13 @@ impl<T> ContextStorage for RedisStorage<T> where
 }
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
+#[derive(Clone)]
+pub enum NotusCtx {
+    Direct(Arc<Mutex<Notus<HashsumProductLoader>>>),
+    Address(SocketAddr),
+    // We might want to add more contexts here in the future, e.g. for other plugins.
+}
+
 /// NASL execution context.
 pub struct ScanCtx<'a> {
     /// The key for this context.
@@ -287,6 +295,8 @@ pub struct ScanCtx<'a> {
     pub scan_preferences: ScanPrefs,
     /// Alive test methods
     alive_test_methods: Vec<AliveTestMethods>,
+    /// Notus
+    pub notus: Option<NotusCtx>,
 }
 
 impl<'a> ScanCtx<'a> {
@@ -300,6 +310,7 @@ impl<'a> ScanCtx<'a> {
         executor: &'a Executor,
         scan_preferences: ScanPrefs,
         alive_test_methods: Vec<AliveTestMethods>,
+        notus: Option<NotusCtx>,
     ) -> Self {
         let mut sockets = NaslSockets::default();
         sockets.with_recv_timeout(scan_preferences.get_preference_int("checks_read_timeout"));
@@ -315,6 +326,7 @@ impl<'a> ScanCtx<'a> {
             sockets: RwLock::new(sockets),
             scan_preferences,
             alive_test_methods,
+            notus,
         }
     }
 
@@ -649,6 +661,7 @@ pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
     pub filename: P,
     pub scan_preferences: ScanPrefs,
     pub alive_test_methods: Vec<AliveTestMethods>,
+    pub notus: Option<NotusCtx>,
 }
 
 impl<'a, P: AsRef<Path>> ScanCtxBuilder<'a, P> {
@@ -663,6 +676,7 @@ impl<'a, P: AsRef<Path>> ScanCtxBuilder<'a, P> {
             self.executor,
             self.scan_preferences,
             self.alive_test_methods,
+            self.notus,
         )
     }
 }

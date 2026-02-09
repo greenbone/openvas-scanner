@@ -27,6 +27,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     loader: &Loader::test_empty(),
                     scan_preferences: ScanPrefs::new(),
                     alive_test_methods: Vec::new(),
+                    notus: None,
                 };
                 let context = cb.build();
                 let code = Code::from_string(code)

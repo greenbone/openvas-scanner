@@ -8,10 +8,14 @@ use std::{
     fmt::{self, Display, Formatter},
     panic::Location,
     path::PathBuf,
+    sync::Mutex,
 };
 
-use crate::storage::{ScanID, inmemory::InMemoryStorage};
 use crate::{nasl::prelude::*, scanner::preferences::preference::ScanPrefs};
+use crate::{
+    notus::{HashsumProductLoader, Notus},
+    storage::{ScanID, inmemory::InMemoryStorage},
+};
 use futures::{Stream, StreamExt};
 
 use super::{
@@ -355,6 +359,7 @@ where
             filename: self.filename.clone(),
             scan_preferences: ScanPrefs::new(),
             alive_test_methods: Vec::default(),
+            notus: None,
         }
         .build()
     }
