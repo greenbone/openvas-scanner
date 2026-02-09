@@ -111,6 +111,7 @@ services:
       XDG_CACHE_HOME: /var/cache/
       STORAGE_TYPE: ${OPENVAS_SCANNER_STORAGE_TYPE:-fs}
       LISTENING: 0.0.0.0:3000
+      OPENVASD_LOG: DEBUG
     volumes:
       - openvas_data_vol:/etc/openvas
       - openvas_log_data_vol:/var/log/openvas

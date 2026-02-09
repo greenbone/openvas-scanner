@@ -364,10 +364,21 @@ where
         Some(())
     }
 
-    pub async fn run<T>(mut self, check_interval: Duration)
+    pub async fn run<T>(mut self)
     where
         T: ToNotus,
     {
+        // we use the batch_size as the check_interval this allows customers to express:
+        // 10:2 for a 1000mb/s
+        // 25:2 for a 2500mb/s
+        // 50:2 for a 5000mb/s
+        // 100:2 for a 10000mb/s
+        // and so on.
+        let check_interval = Duration::from_secs(if self.config.image.batch_size == 0 {
+            1
+        } else {
+            self.config.image.batch_size as u64
+        });
         let mut interval = time::interval(check_interval);
         let config = self.config.clone();
 

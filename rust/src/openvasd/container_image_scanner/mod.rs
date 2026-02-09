@@ -1,9 +1,6 @@
 mod benchy;
 pub mod config;
-use std::{
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use std::sync::{Arc, RwLock};
 
 pub use config::Config;
 use futures::{Stream, StreamExt};
@@ -105,7 +102,7 @@ pub async fn init(
         products,
     );
     tokio::spawn(async move {
-        scheduler.run::<AllTypes>(Duration::from_secs(10)).await;
+        scheduler.run::<AllTypes>().await;
     });
 
     let scan = Scans {
