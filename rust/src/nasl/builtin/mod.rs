@@ -16,13 +16,13 @@ mod isotime;
 mod knowledge_base;
 pub mod misc;
 pub mod network;
-mod snmp;
-
+mod notus;
 mod preferences;
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod raw_ip;
 mod regex;
 mod report_functions;
+mod snmp;
 mod ssh;
 mod string;
 mod sys;
@@ -64,7 +64,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(find_service::FindService)
         .add_set(wmi::Wmi)
         .add_set(snmp::Snmp)
-        .add_set(cert::NaslCerts::default());
+        .add_set(cert::NaslCerts::default())
+        .add_set(notus::NaslNotus::default());
 
     #[cfg(feature = "nasl-builtin-raw-ip")]
     executor.add_set(raw_ip::RawIp);
