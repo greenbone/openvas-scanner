@@ -66,12 +66,12 @@ fn setup(scripts: &[(String, VTData)]) -> (TestStack, Loader, Executor, Scan) {
 
 fn make_scanner_and_scan_success() -> (OpenvasdScanner<TestStack>, Scan) {
     let (storage, loader, executor, scan) = setup(&only_success());
-    (OpenvasdScanner::new(storage, loader, executor), scan)
+    (OpenvasdScanner::new(storage, loader, executor, None), scan)
 }
 
 fn make_scanner_and_scan(scripts: &[(String, VTData)]) -> (OpenvasdScanner<TestStack>, Scan) {
     let (storage, loader, executor, scan) = setup(scripts);
-    (OpenvasdScanner::new(storage, loader, executor), scan)
+    (OpenvasdScanner::new(storage, loader, executor, None), scan)
 }
 
 fn loader() -> Loader {
@@ -240,6 +240,7 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
         filename,
         scan_preferences,
         alive_test_methods,
+        notus: None,
     };
     let context = cb.build();
     let ast = Code::from_string(code)
@@ -299,7 +300,7 @@ async fn run(
     let scheduler = Scheduler::new(&*storage);
     let schedule = scheduler.execution_plan(&scan.vts)?;
     let interpreter: ScanRunner<Arc<InMemoryStorage>> =
-        ScanRunner::new(&storage, &loader, &executor, schedule, &scan)?;
+        ScanRunner::new(&storage, &loader, &executor, schedule, &scan, &None)?;
     let results = interpreter.stream().collect::<Vec<_>>().await;
     Ok(results)
 }
