@@ -111,6 +111,48 @@ impl Reporting {
     fn error_message(&self, register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Error, register, context)
     }
+
+    #[nasl_function(named(result))]
+    fn security_notus(&self, context: &ScanCtx, result: NaslValue) -> Result<(), FnError> {
+        match result {
+            NaslValue::Dict(dict) => {
+                if let (Some(NaslValue::String(oid)), Some(NaslValue::String(message))) =
+                    (dict.get("oid"), dict.get("message"))
+                {
+                    let result = models::Result {
+                        id: self.id(),
+                        r_type: ResultType::Alarm,
+                        ip_address: Some(context.target().ip_addr().to_string()),
+                        hostname: None,
+                        oid: Some(oid.to_owned()),
+                        port: None,
+                        protocol: None, // TODO: This field is set to "package" in the c scanner result
+                        message: Some(message.to_owned()),
+                        detail: None,
+                    };
+                    context
+                        .storage()
+                        .retry_dispatch(context.scan().clone(), result, 5)?;
+                } else {
+                    return Err(ArgumentError::wrong_argument(
+                        "result",
+                        "Dict with 'oid' and 'message' as String values",
+                        &format!("{:?}", dict),
+                    )
+                    .into());
+                }
+                Ok(())
+            }
+            x => {
+                return Err(ArgumentError::wrong_argument(
+                    "result",
+                    "Dict with 'oid' and 'message' as String values",
+                    &format!("{:?}", x),
+                )
+                .into());
+            }
+        }
+    }
 }
 
 function_set! {
@@ -119,5 +161,6 @@ function_set! {
         (Reporting::log_message, "log_message"),
         (Reporting::security_message, "security_message"),
         (Reporting::error_message, "error_message"),
+        (Reporting::security_notus, "security_notus"),
     )
 }
