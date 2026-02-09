@@ -40,6 +40,7 @@ use tokio::sync::RwLock;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
+use crate::nasl::utils::scan_ctx::NotusCtx;
 use crate::scheduling::SchedulerStorage;
 use crate::storage::Remover;
 use crate::storage::ScanID;
@@ -52,6 +53,7 @@ pub struct OpenvasdScanner<S> {
     storage: Arc<S>,
     loader: Arc<Loader>,
     function_executor: Arc<Executor>,
+    notus: Option<NotusCtx>,
 }
 
 impl<S> OpenvasdScanner<S>
@@ -61,12 +63,13 @@ where
     // TODO: Actually use this in normal execution, so we can remove
     // the cfg directive here.
     #[cfg(test)]
-    fn new(storage: S, loader: Loader, executor: Executor) -> Self {
+    fn new(storage: S, loader: Loader, executor: Executor, notus: Option<NotusCtx>) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),
             loader: Arc::new(loader),
             function_executor: Arc::new(executor),
+            notus,
         }
     }
 
@@ -75,7 +78,8 @@ where
         let loader = self.loader.clone();
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
-        let handle = RunningScan::<S>::start(scan, storage, loader, function_executor);
+        let handle =
+            RunningScan::<S>::start(scan, storage, loader, function_executor, self.notus.clone());
         self.running.write().await.insert(id, handle);
         Ok(())
     }

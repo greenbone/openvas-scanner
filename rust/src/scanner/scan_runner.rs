@@ -4,7 +4,7 @@
 
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::scan_ctx::{ContextStorage, Target};
+use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Target};
 use futures::{Stream, stream};
 use greenbone_scanner_framework::models::HostInfo;
 
@@ -45,6 +45,7 @@ pub struct ScanRunner<'a, S> {
     loader: &'a Loader,
     executor: &'a Executor,
     concurrent_vts: Vec<ConcurrentVT>,
+    notus: &'a Option<NotusCtx>,
 }
 
 impl<'a, S> ScanRunner<'a, S>
@@ -57,6 +58,7 @@ where
         executor: &'a Executor,
         schedule: Sched,
         scan: &'a Scan,
+        notus: &'a Option<NotusCtx>,
     ) -> Result<Self, VTError>
     where
         Sched: Iterator<Item = ConcurrentVTResult> + 'a,
@@ -68,6 +70,7 @@ where
             loader,
             executor,
             concurrent_vts,
+            notus,
         })
     }
 
@@ -95,6 +98,7 @@ where
                     host.clone(),
                     ports.clone(),
                     self.scan.scan_id.clone(),
+                    self.notus.clone(),
                 )
             });
         // The usage of unfold here will prevent any real asynchronous running of VTs
@@ -103,7 +107,7 @@ where
         // new implementation.
         stream::unfold(data, move |mut data| async move {
             match data.next() {
-                Some((stage, vt, param, host, ports, scan_id)) => {
+                Some((stage, vt, param, host, ports, scan_id, notus)) => {
                     let result = VTRunner::<S>::run(
                         self.storage,
                         self.loader,
@@ -116,6 +120,7 @@ where
                         scan_id,
                         &self.scan.scan_preferences,
                         &self.scan.alive_test_methods,
+                        &notus,
                     )
                     .await;
                     Some((result, data))
