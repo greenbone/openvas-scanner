@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+#[cfg(test)]
+mod tests;
+
 use std::{
     collections::HashMap,
     io::{Read, Write},
@@ -42,16 +45,18 @@ impl NaslNotus {
     ) -> Result<NaslValue, FnError> {
         let res = notus.scan(product, pkg_list)?;
 
-        let mut ret = HashMap::new();
+        let mut ret = vec![];
         for (oid, vuls) in res {
+            let mut dict = HashMap::new();
             let message = vuls.into_iter().map(|vul| match vul.fixed_version {
-                FixedVersion::Single { version, specifier } => format!("Vulnerable package:   {}\nInstalled version:    {}\nFixed version:       {:2}{}", vul.name, vul.installed_version, specifier.to_string(), version),
-                FixedVersion::Range { start, end } => format!("Vulnerable package:   {}\nInstalled version:    {}\nFixed version:       < {}\nFixed version:       >={}", vul.name, vul.installed_version, start, end),
+                FixedVersion::Single { version, specifier } => format!("Vulnerable package:   {}\nInstalled version:    {}-{}\nFixed version:      {:2}{}-{}", vul.name, vul.name, vul.installed_version, specifier.to_string(), vul.name, version),
+                FixedVersion::Range { start, end } => format!("Vulnerable package:   {}\nInstalled version:    {}-{}\nFixed version:      < {}-{}\nFixed version:      >={}-{}", vul.name, vul.name, vul.installed_version, vul.name, start, vul.name, end),
             }).collect::<Vec<String>>().join("\n\n");
-            ret.insert(oid, NaslValue::String(message));
+            dict.insert("oid".to_string(), NaslValue::String(oid));
+            dict.insert("message".to_string(), NaslValue::String(message));
+            ret.push(NaslValue::Dict(dict))
         }
-
-        Ok(NaslValue::Dict(ret))
+        Ok(NaslValue::Array(ret))
     }
 
     fn notus_extern(
@@ -88,12 +93,15 @@ impl NaslNotus {
         let results: Vec<NotusResult> = serde_json::from_str(body).unwrap();
 
         // Convert to NaslValue (Dict mapping oid -> message)
-        let mut ret = HashMap::new();
+        let mut ret = vec![];
         for result in results {
-            ret.insert(result.oid, NaslValue::String(result.message));
+            let mut dict = HashMap::new();
+            dict.insert("oid".to_string(), NaslValue::String(result.oid));
+            dict.insert("message".to_string(), NaslValue::String(result.message));
+            ret.push(NaslValue::Dict(dict));
         }
 
-        Ok(NaslValue::Dict(ret))
+        Ok(NaslValue::Array(ret))
     }
 
     #[nasl_function]
@@ -153,7 +161,7 @@ pub struct NaslNotus {
 function_set! {
     NaslNotus,
     (
-        NaslNotus::notus_error,
-        NaslNotus::notus,
+        (NaslNotus::notus_error, "notus_error"),
+        (NaslNotus::notus, "notus"),
     )
 }
