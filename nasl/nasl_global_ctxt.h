@@ -30,7 +30,7 @@ typedef struct
 } naslctxt;
 
 int
-init_nasl_ctx (naslctxt *, const char *);
+init_nasl_ctx (naslctxt *, const char *, const char *);
 
 void
 nasl_clean_ctx (naslctxt *);

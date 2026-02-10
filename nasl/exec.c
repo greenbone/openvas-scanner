@@ -1654,7 +1654,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   else
     ctx.kb = plug_get_kb (script_infos);
 
-  if (init_nasl_ctx (&ctx, name) == 0)
+  if (init_nasl_ctx (&ctx, NULL, name) == 0)
     {
       err = naslparse (&ctx, &error_counter);
       if (err != 0 || error_counter > 0)

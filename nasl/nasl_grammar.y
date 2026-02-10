@@ -351,7 +351,7 @@ inc: INCLUDE '(' string ')'
               ref_cell ($$);
               g_free ($3);
             }
-          else if (init_nasl_ctx (&subctx, $3) >= 0)
+          else if (init_nasl_ctx (&subctx, (const  char *)tmp, $3) >= 0)
             {
               if (!naslparse (&subctx, err_c))
                 {
@@ -674,12 +674,8 @@ load_checksums (kb_t kb)
           break;
         }
       splits[1][strlen (splits[1]) - 1] = '\0';
-      if (strstr (splits[1], ".inc"))
-        g_snprintf (buffer, sizeof (buffer), "%s:%s", prefix,
-                    basename (splits[1]));
-      else
-        g_snprintf (buffer, sizeof (buffer), "%s:%s/%s", prefix, base,
-                    splits[1]);
+
+      g_snprintf (buffer, sizeof (buffer), "%s:%s", prefix, splits[1]);
       kb_item_set_str (kb, buffer, splits[0], 0);
       g_strfreev (splits);
     }
@@ -714,6 +710,52 @@ file_checksum (const char *filename, int algorithm)
   return result;
 }
 
+static const char *remove_base (const char *path) {
+    const char *base = prefs_get ("plugins_folder");
+    const char *result = path;
+    size_t len = strlen (base);
+
+    if (strncmp(path, base, len) == 0) {
+        result = path + len;
+	while (*result == '/') {
+            result++;
+        }
+    }
+    return result;
+}
+
+static char *fullname_based_on_parent(const char *path, const char *filename)
+{
+    const char *slash = strrchr(path, '/');
+    size_t dir_len, total_len;
+    size_t file_len = strlen(filename);
+    char *result;
+
+    if (slash) {
+        dir_len = (slash - path) + 1;
+    } else {
+      return NULL;
+    }
+
+    if (file_len > 0 && filename[0] == '/') {
+        filename++;
+        file_len--;
+    }
+
+    total_len = dir_len + file_len;
+
+    result = malloc(total_len + 1);
+    if (!result) {
+        return NULL;
+    }
+
+    memcpy(result, path, dir_len);
+    memcpy(result + dir_len, filename, file_len);
+    result[total_len] = '\0';
+
+    return result;
+}
+
 
 /**
  * @brief Initialize a NASL context for a NASL file.
@@ -730,9 +772,10 @@ file_checksum (const char *filename, int algorithm)
  *            (initialized);
  */
 int
-init_nasl_ctx(naslctxt* pc, const char* name)
+init_nasl_ctx(naslctxt* pc, const char *parent, const char* name)
 {
-  char *full_name = NULL, key_path[2048], *checksum, *filename;
+  char *full_name = NULL, key_path[2048], *checksum;
+  const char *filename;
   GSList * inc_dir = inc_dirs; // iterator for include directories
   size_t flen = 0;
   time_t timestamp;
@@ -765,6 +808,8 @@ init_nasl_ctx(naslctxt* pc, const char* name)
     inc_dir = g_slist_next(inc_dir);
   }
 
+
+verify:
   if (!full_name || !pc->buffer) {
     g_message ("%s: Not able to open nor to locate it in include paths",
                name);
@@ -779,10 +824,10 @@ init_nasl_ctx(naslctxt* pc, const char* name)
     }
   /* Cache the checksum of signature verified files, so that commonly included
    * files are not verified multiple times per scan. */
-  if (strstr (full_name, ".inc"))
-    filename = basename (full_name);
-  else
-    filename = full_name;
+  // filename should be always without base as we store everything as defined in sha256sums
+  filename = remove_base(full_name);
+
+
   snprintf (key_path, sizeof (key_path), "signaturecheck:%s", filename);
   timestamp = kb_item_get_int (pc->kb, key_path);
 
@@ -812,9 +857,19 @@ init_nasl_ctx(naslctxt* pc, const char* name)
   checksum = kb_item_get_str (pc->kb, key_path);
   if (!checksum)
     {
-      g_warning ("No checksum for %s", full_name);
-      g_free (full_name);
-      return -1;
+      // try one more time, but set the parent dir as a base
+      // this can happen when shorthand includes are used for an example:
+      // in a nasl file of a/test.nasl -> include("test.inc")
+      // to include a/test.inc instead of writing include("a/test.inc");
+      if (parent == NULL) {
+          g_warning ("No checksum for %s (%s)", full_name, filename);
+          g_free(full_name);
+          return -1;
+      } 
+      g_free(full_name);
+      full_name = fullname_based_on_parent(parent, name);
+      parent = NULL;
+      goto verify;
     }
   else
     {
@@ -826,7 +881,7 @@ init_nasl_ctx(naslctxt* pc, const char* name)
       if (ret)
         {
           kb_del_items (pc->kb, key_path);
-          g_warning ("checksum for %s not matching", full_name);
+          g_warning ("checksum for %s not matching (%s)", full_name, key_path);
         }
       else
         {
