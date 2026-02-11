@@ -4,6 +4,8 @@ use chrono::TimeDelta;
 use scannerlib::{SQLITE_LIMIT_VARIABLE_NUMBER, models};
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query};
 
+use crate::container_image_scanner::{detection::OperatingSystem, image::Image};
+
 #[derive(Debug, Clone)]
 pub struct CustomerMessage<T> {
     kind: models::ResultType,
@@ -44,27 +46,36 @@ impl<T> CustomerMessage<T> {
     }
 }
 
-pub enum DetailPair {
-    OS(String),
-    Architecture(String),
+pub enum DetailPair<'a> {
+    OS(&'a OperatingSystem),
+    OSCpe(&'a OperatingSystem),
+    HostName(&'a Image),
+    Architecture(&'a str),
     Packages(Vec<String>),
 }
 
-impl DetailPair {
+impl<'a> DetailPair<'a> {
     pub fn name(&self) -> String {
         match self {
-            DetailPair::OS(_) => "OS",
+            DetailPair::OS(_) => "best_os_txt",
+            DetailPair::OSCpe(_) => "best_os_cpe",
             DetailPair::Architecture(_) => "ARCHITECTURE",
             DetailPair::Packages(_) => "PACKAGES",
+            DetailPair::HostName(_) => "hostname",
         }
         .into()
     }
 
     pub fn value(&self) -> String {
         match self {
-            DetailPair::OS(os) => os.clone(),
-            DetailPair::Architecture(arch) => arch.clone(),
+            DetailPair::OS(os) => format!("{} {}", os.name, os.version),
+            DetailPair::Architecture(arch) => arch.to_string(),
             DetailPair::Packages(items) => items.join(","),
+            DetailPair::OSCpe(os) => {
+                // as requested by customer.
+                format!("cpe:/o:{}:{}:{}", os.name, os.name, os.version_id)
+            }
+            DetailPair::HostName(image) => image.to_string(),
         }
     }
 
@@ -81,7 +92,7 @@ impl DetailPair {
     }
 }
 
-impl From<DetailPair> for models::Detail {
+impl<'a> From<DetailPair<'a>> for models::Detail {
     fn from(value: DetailPair) -> Self {
         Self {
             name: value.name(),
