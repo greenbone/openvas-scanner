@@ -5,11 +5,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::{
-    collections::HashMap,
-    io::{Read, Write},
-    net::{SocketAddr, TcpStream},
-};
+use std::{collections::HashMap, net::SocketAddr};
 
 use greenbone_scanner_framework::models::FixedVersion;
 use nasl_function_proc_macro::nasl_function;
@@ -59,38 +55,32 @@ impl NaslNotus {
         Ok(NaslValue::Array(ret))
     }
 
-    fn notus_extern(
+    async fn notus_extern(
         &self,
         addr: &SocketAddr,
         pkg_list: &[String],
         product: &str,
     ) -> Result<NaslValue, FnError> {
-        let mut sock = TcpStream::connect(addr).map_err(|e| HttpError::IO(e.kind()))?;
-        let pkg_json = serde_json::to_string(pkg_list).unwrap();
+        let pkg_json = serde_json::to_string(pkg_list)
+            .map_err(|e| FnError::wrong_unnamed_argument("pkg_list", &e.to_string()))?;
 
-        let request = format!(
-            "POST /notus/{} HTTP/1.1\r\nContent-Length: {}\r\n\r\n{}",
-            product,
-            pkg_json.len(),
-            pkg_json
-        );
-        sock.write_all(request.as_bytes())
-            .map_err(|e| HttpError::IO(e.kind()))?;
-        let mut response = Vec::new();
-        sock.read_to_end(&mut response)
-            .map_err(|e| HttpError::IO(e.kind()))?;
-        let response_str = String::from_utf8(response).unwrap();
+        // TODO: Currently we only support http
+        let url = format!("http://{}/notus/{}", addr, product);
 
-        // Split headers and body
-        let parts: Vec<&str> = response_str.split("\r\n\r\n").collect();
-        let body = if parts.len() > 1 {
-            parts[1]
-        } else {
-            &response_str
-        };
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .body(pkg_json)
+            .send()
+            .await
+            .map_err(|e| HttpError::Custom(e.to_string()))?;
 
         // Parse JSON array of results
-        let results: Vec<NotusResult> = serde_json::from_str(body).unwrap();
+        let results: Vec<NotusResult> = response
+            .json()
+            .await
+            .map_err(|e| HttpError::Custom(e.to_string()))?;
 
         // Convert to NaslValue (Dict mapping oid -> message)
         let mut ret = vec![];
@@ -104,15 +94,45 @@ impl NaslNotus {
         Ok(NaslValue::Array(ret))
     }
 
+    /// Returns the last error message from the Notus function.
     #[nasl_function]
     fn notus_error(&self) -> Option<String> {
         self.last_error.clone()
     }
 
+    /// This function takes the given information and starts a notus scan. Its arguments are:
+    /// pkg_list: comma separated list or array of installed packages of the target system
+    /// product: identifier for the notus scanner to get list of vulnerable packages
+    ///
+    /// This function returns a json like structure,
+    /// so information can be adjusted and must be published using
+    /// security_notus. The json like format depends
+    /// one the scanner that is used.
+    /// The format of the result has the following structure:
+    /// ```json
+    /// [
+    ///   {
+    ///     "oid": "[oid1]",
+    ///     "message": "[message1]"
+    ///   },
+    ///   {
+    ///     "oid": "[oid2]",
+    ///     "message": "[message2]"
+    ///   }
+    /// ]
+    /// ```
+    /// It is a list of dictionaries. Each dictionary has the key `oid` and `message`.
+    ///
+    /// In case of an Error a NULL value is returned and an Error is set. The error can be gathered using the
+    /// notus_error function, which yields the last occurred error.
+    ///
+    /// Internally this functions supports two modes, which is selected by the configuration of the notus context.
+    /// First is the direct mode, which uses the internal notus implementation directly, the second is the external
+    /// mode, which sends a request to an external notus service.
     #[nasl_function(named(pkg_list, product))]
-    fn notus(
+    async fn notus(
         &mut self,
-        context: &ScanCtx,
+        context: &ScanCtx<'_>,
         pkg_list: NaslValue,
         product: &str,
     ) -> Result<NaslValue, FnError> {
@@ -138,7 +158,7 @@ impl NaslNotus {
             NotusCtx::Direct(notus) => {
                 self.notus_self(&mut notus.lock().unwrap(), &pkg_list, product)
             }
-            NotusCtx::Address(addr) => self.notus_extern(addr, &pkg_list, product),
+            NotusCtx::Address(addr) => self.notus_extern(addr, &pkg_list, product).await,
         };
         match ret {
             Err(e) => {
@@ -163,5 +183,6 @@ function_set! {
     (
         (NaslNotus::notus_error, "notus_error"),
         (NaslNotus::notus, "notus"),
+        notus_type
     )
 }
