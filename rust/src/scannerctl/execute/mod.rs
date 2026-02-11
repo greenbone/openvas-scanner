@@ -59,8 +59,8 @@ struct ScriptArgs {
     #[clap(long = "vendor")]
     vendor_version: Option<String>,
     /// Notus configuration. Use "<IP:PORT>" to connect to a running Notus
-    /// instance or "<PATH>" to use the internal implementation. If not
-    /// given Notus will be disabled.
+    /// instance or "<PATH>" to product files to use the internal
+    /// implementation. If not given Notus will be disabled.
     #[clap(short, long = "notus")]
     notus: Option<NotusArgs>,
 }
@@ -77,6 +77,11 @@ struct ScanArgs {
     /// Target to scan.
     #[clap(short, long)]
     target: Option<String>,
+    /// Notus configuration. Use "<IP:PORT>" to connect to a running Notus
+    /// instance or "<PATH>" to product files to use the internal
+    /// implementation. If not given Notus will be disabled.
+    #[clap(short, long = "notus")]
+    notus: Option<NotusArgs>,
 }
 
 pub async fn run(args: ExecuteArgs) -> Result<(), CliError> {
@@ -123,8 +128,15 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
     } else {
         let executor = nasl_std_functions();
         let scan = Scan::default_to_localhost(scan);
+        let notus = args.notus.map(|x| match x {
+            NotusArgs::Address(addr) => NotusCtx::Address(addr),
+            NotusArgs::Internal(path) => NotusCtx::Direct(Arc::new(Mutex::new(Notus::new(
+                HashsumProductLoader::new(Loader::from_feed_path(path)),
+                false,
+            )))),
+        });
         let runner: ScanRunner<Arc<InMemoryStorage>> =
-            ScanRunner::new(&storage, &loader, &executor, schedule, &scan, &None).unwrap();
+            ScanRunner::new(&storage, &loader, &executor, schedule, &scan, &notus).unwrap();
         let mut results = Box::pin(runner.stream());
         while let Some(x) = results.next().await {
             match x {

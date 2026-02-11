@@ -271,7 +271,6 @@ impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 pub enum NotusCtx {
     Direct(Arc<Mutex<Notus<HashsumProductLoader>>>),
     Address(SocketAddr),
-    // We might want to add more contexts here in the future, e.g. for other plugins.
 }
 
 /// NASL execution context.
