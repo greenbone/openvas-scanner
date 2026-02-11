@@ -124,6 +124,7 @@ fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliE
     Ok(())
 }
 
+// TODO: Redesign
 #[allow(clippy::too_many_arguments)]
 async fn run_on_storage<S: ContextStorage>(
     storage: S,
