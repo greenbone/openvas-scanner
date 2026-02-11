@@ -135,8 +135,10 @@ impl Measured<ImageResults> {
         if let Some(os) = &result.os {
             let host_detail = |dp| CustomerMessage::host_detail(image, digest, dp).into();
             messages.extend_from_slice(&[
-                host_detail(DetailPair::OS(os.to_string())),
-                host_detail(DetailPair::Architecture(architecture.into())),
+                host_detail(DetailPair::OS(os)),
+                host_detail(DetailPair::OSCpe(os)),
+                host_detail(DetailPair::HostName(image)),
+                host_detail(DetailPair::Architecture(architecture)),
                 host_detail(DetailPair::Packages(result.packages)),
             ]);
         } else {

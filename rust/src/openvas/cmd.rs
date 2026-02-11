@@ -12,7 +12,9 @@ use std::{
 /// environments it is necessary to start openvas as sudo, as it is not possible
 /// to use all functionalities.
 pub fn check_sudo() -> bool {
-    Command::new("sudo").args(["-n", "openvas"]).spawn().is_ok()
+    let result = Command::new("sudo").args(["-n", "openvas"]).spawn().is_ok();
+    tracing::trace!(sudo = result, "using sudo");
+    result
 }
 
 /// Read the openvas configuration.
