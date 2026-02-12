@@ -7,6 +7,8 @@ license = "GPL-2.0-or-later"
 [workspace.dependencies]
 anyhow = "1.0.75"
 cc = "1.0"
+bindgen = "0.72"
+autotools = "0.2"
 clap = { version = "4.5.27", features = ["derive", "env"] }
 futures = "0.3.30"
 futures-util = "0.3.28"

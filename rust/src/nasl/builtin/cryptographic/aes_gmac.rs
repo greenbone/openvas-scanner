@@ -8,13 +8,13 @@ use crate::nasl::{prelude::*, utils::function::StringOrData};
 
 #[cfg(feature = "nasl-c-lib")]
 pub fn aes_gmac(data: &[u8], key: &[u8], iv: &[u8]) -> Result<NaslValue, FnError> {
-    use nasl_c_lib::cryptographic::mac::aes_gmac;
+    use nasl_c_lib::crypt::mac::aes_gmac;
 
     use crate::nasl::builtin::cryptographic::CryptographicError;
 
     match aes_gmac(data, key, iv) {
         Ok(val) => Ok(val.into()),
-        Err(msg) => Err(CryptographicError::AesGmacError(msg.into()).into()),
+        Err(msg) => Err(CryptographicError::AesGmacError(msg.to_string()).into()),
     }
 }
 

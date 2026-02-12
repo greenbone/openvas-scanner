@@ -1,0 +1,10 @@
+[package]
+name = "libcrypt-sys"
+version = "0.1.0"
+edition = "2024"
+links = "crypt"
+
+[build-dependencies]
+autotools = { workspace = true }
+cc = { workspace = true }
+bindgen = { workspace = true }

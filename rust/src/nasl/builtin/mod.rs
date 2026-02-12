@@ -16,13 +16,12 @@ mod isotime;
 mod knowledge_base;
 pub mod misc;
 pub mod network;
-mod snmp;
-
 mod preferences;
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod raw_ip;
 mod regex;
 mod report_functions;
+mod snmp;
 mod ssh;
 mod string;
 mod sys;
