@@ -14,7 +14,7 @@ pub fn aes_gmac(data: &[u8], key: &[u8], iv: &[u8]) -> Result<NaslValue, FnError
 
     match aes_gmac(data, key, iv) {
         Ok(val) => Ok(val.into()),
-        Err(msg) => Err(CryptographicError::AesGmacError(msg.into()).into()),
+        Err(msg) => Err(CryptographicError::AesGmacError(msg.to_string()).into()),
     }
 }
 
