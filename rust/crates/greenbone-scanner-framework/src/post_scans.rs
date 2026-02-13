@@ -88,6 +88,8 @@ where
 pub enum PostScansError {
     #[error("ID ({0}) is already in use.")]
     DuplicateId(String),
+    #[error("Duplicate credential service: {0}")]
+    DuplicateCredentialService(String),
     #[error("Unexpected error occurred: {0}.")]
     External(Box<dyn ExternalError>),
 }
@@ -113,6 +115,12 @@ impl From<PostScansError> for BodyKind {
             PostScansError::DuplicateId(id) => {
                 let br = format!("ID ({id}) is already in use.");
                 BodyKind::json_content(StatusCode::NOT_ACCEPTABLE, &br)
+            }
+            PostScansError::DuplicateCredentialService(service) => {
+                let br = format!(
+                    "Credential service '{service}' defined multiple times. Only one credential per service type is supported."
+                );
+                BodyKind::json_content(StatusCode::BAD_REQUEST, &br)
             }
             PostScansError::External(e) => internal_server_error!(e),
         }
