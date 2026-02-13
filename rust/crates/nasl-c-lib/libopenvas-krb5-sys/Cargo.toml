@@ -1,0 +1,10 @@
+[package]
+name = "libopenvas-krb5-sys"
+version = "0.1.0"
+edition = "2024"
+links = "openvas-krb5"
+
+[build-dependencies]
+cc = { workspace = true }
+autotools = { workspace = true }
+bindgen = { workspace = true }
