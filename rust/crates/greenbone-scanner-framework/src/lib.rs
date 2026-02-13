@@ -51,6 +51,10 @@ mod post_scans_id;
 mod tls;
 use post_scans::PostScansHandler;
 use post_scans_id::{PostScansId, PostScansIdHandler};
+
+use futures::stream::StreamExt;
+use signal_hook::{consts::signal::*, low_level::exit};
+use signal_hook_tokio::Signals;
 use tokio::net::TcpListener;
 
 pub trait ExternalError: core::error::Error + Send + Sync + 'static {}
@@ -374,8 +378,32 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     }
 }
 
+async fn handle_signals(mut signals: Signals) {
+    while let Some(signal) = signals.next().await {
+        match signal {
+            SIGHUP => {
+                tracing::info!("Ignoring SIGHUP signal.");
+            }
+            SIGTERM | SIGINT | SIGQUIT => {
+                // I thought about handling it gracefully however as the request is handled in a
+                // background task within the main loop it would just artificially complicate it
+                // without any kind of benefit.
+                //
+                // The risk of corruption is relatively low, hence just exit.
+                tracing::info!(signal, "Exit based on signal.");
+                exit(128 + signal);
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl RuntimeBuilder<runtime_builder_states::End> {
     pub async fn run_blocking(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
+        let _handle_guard = signals.handle();
+        tokio::task::spawn(handle_signals(signals));
+
         let scanner = Arc::new(self.build_scanner());
         let tls_config = match &self.tls {
             Some(x) => Some(tls::tls_config(x)?),
