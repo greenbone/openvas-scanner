@@ -5,7 +5,7 @@ use std::{
     pin::Pin,
     sync::{
         Arc, RwLock,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicI32, AtomicUsize, Ordering},
     },
 };
 
@@ -51,6 +51,10 @@ mod post_scans_id;
 mod tls;
 use post_scans::PostScansHandler;
 use post_scans_id::{PostScansId, PostScansIdHandler};
+
+use futures::stream::StreamExt;
+use signal_hook::consts::signal::*;
+use signal_hook_tokio::Signals;
 use tokio::net::TcpListener;
 
 pub trait ExternalError: core::error::Error + Send + Sync + 'static {}
@@ -375,8 +379,29 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     }
 }
 
+static RUN: AtomicI32 = AtomicI32::new(0);
+
+async fn handle_signals(mut signals: Signals) {
+    while let Some(signal) = signals.next().await {
+        match signal {
+            SIGHUP => {
+                tracing::info!("Ignoring SIGHUP signal.");
+            }
+            SIGTERM | SIGINT | SIGQUIT => {
+                tracing::info!(signal, "Exit based on signal.");
+                RUN.store(128 + signal, Ordering::Relaxed);
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl RuntimeBuilder<runtime_builder_states::End> {
-    pub async fn run_blocking(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn run_blocking(self) -> Result<i32, Box<dyn std::error::Error + Send + Sync>> {
+        let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
+        let _handle_guard = signals.handle();
+        tokio::task::spawn(handle_signals(signals));
+
         let scanner = Arc::new(self.build_scanner());
         let tls_config = match &self.tls {
             Some(x) => Some(tls::tls_config(x)?),
@@ -395,7 +420,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
             let config = Arc::new(tls_config.config);
             let tls_acceptor = tokio_rustls::TlsAcceptor::from(config);
 
-            loop {
+            while RUN.load(Ordering::Relaxed) == 0 {
                 let (tcp_stream, _remote_addr) = incoming.accept().await?;
                 let tls_acceptor = tls_acceptor.clone();
                 let identifier = tls_config.client_identifier.clone();
@@ -433,7 +458,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
         } else {
             use hyper::server::conn::http1::Builder;
             tracing::info!("listening on http://{}", self.listener_address);
-            loop {
+            while RUN.load(Ordering::Relaxed) == 0 {
                 let (tcp_stream, _remote_addr) = incoming.accept().await?;
                 let ctx = scanner.clone();
                 let handlers = handlers.clone();
@@ -459,6 +484,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                 });
             }
         }
+        Ok(RUN.load(Ordering::Relaxed))
     }
 }
 
