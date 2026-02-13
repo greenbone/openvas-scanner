@@ -18,6 +18,7 @@ mod vts;
 use sqlx::migrate::Migrator;
 use std::{
     marker::{Send, Sync},
+    process::ExitCode,
     sync::Arc,
 };
 
@@ -59,8 +60,7 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     Ok(result)
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+async fn _main() -> Result<i32> {
     let config = Config::load();
     let _guard = config.logging.init();
 
@@ -110,4 +110,15 @@ async fn main() -> Result<()> {
         .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts))
         .run_blocking()
         .await
+}
+
+#[tokio::main]
+async fn main() -> ExitCode {
+    match _main().await {
+        Ok(x) => ExitCode::from(x as u8),
+        Err(error) => {
+            tracing::error!(%error, "Unexpected error result");
+            ExitCode::from(1)
+        }
+    }
 }

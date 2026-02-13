@@ -20,6 +20,8 @@ tokio-rustls = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 futures = { workspace = true }
+signal-hook-tokio = { version = "0.4.0", features = ["futures-v0_3"] }
+signal-hook = "0.4.3"
 
 [dev-dependencies]
 insta = { workspace = true }
