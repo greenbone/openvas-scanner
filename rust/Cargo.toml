@@ -25,6 +25,7 @@ tokio = { version = "1.39.3", features = ["full"] }
 tokio-rustls = "0.26.0"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-appender = "0.2.4"
 uuid = { version = "1", features = ["v4", "fast-rng", "serde"] }
 
 [dependencies]
@@ -73,7 +74,11 @@ pnet = { version = "0.35.0", optional = true }
 pnet_base = { version = "0.35.0", optional = true }
 pnet_macros = { version = "0.35.0", optional = true }
 pnet_macros_support = { version = "0.35.0", optional = true }
-quick-xml = { version = "0.38.1", features = ["serde", "serde-types", "serialize",] }
+quick-xml = { version = "0.38.1", features = [
+    "serde",
+    "serde-types",
+    "serialize",
+] }
 rand = "0.9.2"
 rand_core = "0.6.4"
 rc4 = "0.1.0"
@@ -85,7 +90,9 @@ russh = "0.54.2"
 rustls-native-certs = "0.8.1"
 search_path = "0.1.4"
 sequoia-ipc = "0.36.0"
-sequoia-openpgp = { version = "2.0.0", default-features = false, features = ["crypto-openssl",] }
+sequoia-openpgp = { version = "2.0.0", default-features = false, features = [
+    "crypto-openssl",
+] }
 sha1 = "0.10.5"
 snmp2 = { version = "0.4.8", features = ["full"] }
 socket2 = { version = "0.6.0", features = ["all"] }
@@ -107,10 +114,11 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
-tokio = {workspace = true }
+tokio = { workspace = true }
 tokio-rustls = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
 uuid = { workspace = true }
 libssh-rs = { version = "0.3.5", features = [
     "vendored-openssl",

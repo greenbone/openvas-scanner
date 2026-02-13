@@ -197,7 +197,7 @@ where
             }
             all_hosts.insert(current_host.to_string(), host_progress);
 
-            tracing::debug!("Host {} has progress: {}", current_host, host_progress);
+            tracing::debug!(host = current_host, progress = host_progress);
         }
         Ok(Results {
             host_status: all_hosts,

@@ -62,7 +62,7 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load();
-    config.logging.init();
+    let _guard = config.logging.init();
 
     //TODO: AsRef impl for Config
     let products = config_to_products(&config);
