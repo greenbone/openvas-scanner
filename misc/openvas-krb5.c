@@ -413,7 +413,8 @@ okrb5_gss_free_context (struct OKrb5GSSContext *context)
         }
       if (context->gss_ctx != GSS_C_NO_CONTEXT)
         {
-          gss_delete_sec_context (&min_stat, &context->gss_ctx, GSS_C_NO_BUFFER);
+          gss_delete_sec_context (&min_stat, &context->gss_ctx,
+                                  GSS_C_NO_BUFFER);
         }
       if (context->gss_target != GSS_C_NO_NAME)
         {
@@ -468,9 +469,14 @@ o_krb5_gss_prepare_context (const OKrb5Credential *creds,
                           target->host_name.len + target->domain.len
                             + target->service.len + creds->realm.len + 4,
                           result);
-      sprintf (target_principal_str, "%s/%s/%s@%s",
-               (char *) target->service.data, (char *) target->host_name.data,
-               (char *) target->domain.data, (char *) creds->realm.data);
+      snprintf (target_principal_str,
+                target->host_name.len + target->domain.len + target->service.len
+                  + creds->realm.len + 4,
+                "%.*s/%.*s/%.*s@%.*s", (int) target->service.len,
+                (char *) target->service.data, (int) target->host_name.len,
+                (char *) target->host_name.data, (int) target->domain.len,
+                (char *) target->domain.data, (int) creds->realm.len,
+                (char *) creds->realm.data);
     }
   else
     {
@@ -478,11 +484,16 @@ o_krb5_gss_prepare_context (const OKrb5Credential *creds,
                           target->host_name.len + target->service.len
                             + creds->realm.len + 3,
                           result);
-      sprintf (target_principal_str, "%s/%s@%s", (char *) target->service.data,
-               (char *) target->host_name.data, (char *) creds->realm.data);
+      snprintf (target_principal_str,
+                target->host_name.len + target->service.len + creds->realm.len
+                  + 3,
+                "%.*s/%.*s@%.*s", (int) target->service.len,
+                (char *) target->service.data, (int) target->host_name.len,
+                (char *) target->host_name.data, (int) creds->realm.len,
+                (char *) creds->realm.data);
     }
 
-  targetbuf = (gss_buffer_desc){
+  targetbuf = (gss_buffer_desc) {
     .value = target_principal_str,
     .length = strlen (target_principal_str),
   };
@@ -498,9 +509,6 @@ o_krb5_gss_prepare_context (const OKrb5Credential *creds,
     }
 
   gss_context->gss_target = gss_target;
-  // gss_set_neg_mechs() already specified that we want gss_mech_krb5
-  // and/or gss_mech_iakerb
-  // so we use spnego to do the negotiation
   gss_context->gss_mech = gss_mech_spnego;
   gss_context->gss_want_flags = GSS_C_MUTUAL_FLAG | GSS_C_DELEG_POLICY_FLAG
                                 | GSS_C_REPLAY_FLAG | GSS_C_SEQUENCE_FLAG
