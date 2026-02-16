@@ -4,6 +4,8 @@
 
 use thiserror::Error;
 
+#[cfg(feature = "nasl-c-lib")]
+use crate::nasl::builtin::krb5::Krb5Error;
 use crate::nasl::prelude::*;
 use crate::nasl::utils::error::FnErrorKind;
 
@@ -54,6 +56,9 @@ pub enum BuiltinError {
     RawIp(RawIpError),
     #[error("{0}")]
     Preference(String),
+    #[cfg(feature = "nasl-c-lib")]
+    #[error("{0}")]
+    Krb5(Krb5Error),
 }
 
 macro_rules! builtin_error_variant (
@@ -100,3 +105,6 @@ builtin_error_variant!(SysError, Sys);
 builtin_error_variant!(FindServiceError, FindService);
 builtin_error_variant!(SnmpError, Snmp);
 builtin_error_variant!(RawIpError, RawIp);
+
+#[cfg(feature = "nasl-c-lib")]
+builtin_error_variant!(Krb5Error, Krb5);
