@@ -14,6 +14,8 @@ mod host;
 mod http;
 mod isotime;
 mod knowledge_base;
+#[cfg(feature = "nasl-c-lib")]
+mod krb5;
 pub mod misc;
 pub mod network;
 mod notus;
@@ -66,6 +68,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(cert::NaslCerts::default())
         .add_set(notus::NaslNotus::default());
 
+    executor.add_set(krb5::Krb5::default());
     executor.add_set(raw_ip::RawIp);
     executor.add_global_vars(raw_ip::RawIp);
     executor.add_global_vars(network::socket::SocketFns);
