@@ -147,8 +147,7 @@ where
             }
         }
         drop(registry);
-
-        tracing::debug!(id = pimage.id, images = result.len(), "Found");
+        tracing::debug!(id = pimage.id, images = result.len(), "Resolved");
         Ok(result)
     }
 
@@ -158,6 +157,7 @@ where
         image: ProcessingImage,
     ) -> Result<(), sqlx::Error> {
         db::set_scan_to_running(&pool, &image.id).await?;
+        tracing::debug!("Set to running.");
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
@@ -179,20 +179,15 @@ where
         let mut conn = conn.lock().await;
         let pool = conn.pool();
         let requested = RequestedScans::fetch(&pool, config.max_scans).await;
-        let mut js = JoinSet::new();
+        let catalog_pool = pool.clone();
         for r in requested {
-            let pool = pool.clone();
-            js.spawn(async move {
-                if let Err(error) = Self::resolve_and_store_images(pool, r).await {
-                    tracing::warn!(%error, "Unable to set image status after fetching the images");
-                }
-            });
+            if let Err(error) = Self::resolve_and_store_images(catalog_pool.clone(), r).await {
+                tracing::warn!(%error, "Unable to set image status after fetching the images");
+            }
         }
-        let tsp = pool.clone();
-        js.spawn(async move {
-            Self::scan_images::<T>(config, tsp, products).await;
-        });
-        js.join_all().await;
+
+        let scan_pool = pool.clone();
+        Self::scan_images::<T>(config, scan_pool, products).await;
         if let Err(error) = db::set_scans_to_finished(&mut conn).await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
@@ -401,7 +396,6 @@ where
                 tokio::spawn(async move {
                     Self::start_scans::<T>(config, conn, products).await
                 });
-
                 }
 
                 _ = interval.tick() => {
@@ -411,8 +405,8 @@ where
                 let conn = conn.clone();
                 tokio::spawn(async move {
                     Self::start_scans::<T>(config, conn, products).await
-
                 });
+
 
                 }
 
