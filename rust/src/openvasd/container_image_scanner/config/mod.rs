@@ -242,7 +242,7 @@ impl Default for Config {
         Self {
             database: Default::default(),
             image: Default::default(),
-            max_scans: 1,
+            max_scans: 5,
         }
     }
 }
