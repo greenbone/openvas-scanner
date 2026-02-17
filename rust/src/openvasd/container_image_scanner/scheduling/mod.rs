@@ -105,6 +105,11 @@ where
     }
 
     #[cfg(test)]
+    pub fn receiver(&mut self) -> &mut Receiver<Message> {
+        &mut self.receiver
+    }
+
+    #[cfg(test)]
     pub fn config(&self) -> Arc<Config> {
         self.config.clone()
     }
@@ -176,6 +181,7 @@ where
     ) where
         T: ToNotus,
     {
+        tracing::debug!("checking for requested and scanning");
         let mut conn = conn.lock().await;
         let pool = conn.pool();
         let requested = RequestedScans::fetch(&pool, config.max_scans).await;
@@ -351,14 +357,6 @@ where
         js.join_all().await;
     }
 
-    pub(crate) async fn check_for_message(&mut self) -> Option<()> {
-        let msg = self.receiver.recv().await?;
-        if let Err(e) = db::on_message(&self.pool, &msg).await {
-            warn!(error=%e, id=msg.id, "Unable to handle message");
-        }
-        Some(())
-    }
-
     pub async fn run<T>(mut self)
     where
         T: ToNotus,
@@ -388,28 +386,25 @@ where
         let conn = Arc::new(Mutex::new(conn));
         loop {
             tokio::select! {
-                Some(()) = self.check_for_message() => {
+                Some(msg) = self.receiver.recv() => {
+                let pool = self.pool.clone();
 
-                let products = self.products.clone();
-                let config = config.clone();
-                let conn = conn.clone();
                 tokio::spawn(async move {
-                    Self::start_scans::<T>(config, conn, products).await
+                    if let Err(e) = db::on_message(&pool, &msg).await {
+                        warn!(error=%e, id=msg.id, "Unable to handle message");
+                    }
                 });
                 }
 
                 _ = interval.tick() => {
-
                 let products = self.products.clone();
                 let config = config.clone();
                 let conn = conn.clone();
+
                 tokio::spawn(async move {
                     Self::start_scans::<T>(config, conn, products).await
                 });
-
-
                 }
-
 
                 else => {
                     debug!("Channel closed, good bye");
