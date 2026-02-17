@@ -49,5 +49,5 @@ max_connections = 1
 extract_to = '/tmp/openvasd/cis'
 max_scanning = 10
 scanning_retries = 3
-batch_size = 3
+batch_size = 2
 retry_timeout = '1s'

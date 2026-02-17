@@ -512,7 +512,7 @@ mod scans_utils {
                 DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
                 packages::AllTypes,
             },
-            scheduling::Scheduler,
+            scheduling::{Scheduler, db},
         },
         database::sqlite::SqliteConnectionContainer,
     };
@@ -559,6 +559,60 @@ mod scans_utils {
     }
 
     impl Fakes {
+        async fn recv(&mut self) {
+            let msg = self.scheduler.receiver().recv().await;
+            if let Some(msg) = msg {
+                db::on_message(&self.scheduler.pool(), &msg).await.unwrap();
+            }
+        }
+
+        pub async fn internal_id(&self, client_id: &str, scan_id: &str) -> String {
+            self.entry
+                .contains_scan_id(client_id, scan_id)
+                .await
+                .unwrap()
+        }
+
+        pub async fn simulate_stop_scan(
+            &mut self,
+            client_id: &str,
+            scan_id: &str,
+        ) -> models::Status {
+            let id = self.internal_id(client_id, scan_id).await;
+
+            self.entry
+                .post_scans_id(id.clone(), models::Action::Stop)
+                .await
+                .unwrap();
+
+            self.recv().await;
+
+            self.entry.get_scans_id_status(id).await.unwrap()
+        }
+
+        pub async fn simulate_start_scan(
+            &mut self,
+            client_id: &str,
+            scan: models::Scan,
+        ) -> (String, models::Status) {
+            let scan_id = self
+                .entry
+                .post_scans(client_id.to_owned(), scan)
+                .await
+                .unwrap();
+
+            let id = self.internal_id(client_id, &scan_id).await;
+
+            self.entry
+                .post_scans_id(id.clone(), models::Action::Start)
+                .await
+                .unwrap();
+
+            self.recv().await;
+
+            (scan_id, self.entry.get_scans_id_status(id).await.unwrap())
+        }
+
         pub async fn init() -> Self {
             let registry = DockerRegistryV2Mock::serve_default().await;
 
@@ -580,19 +634,7 @@ mod scans_utils {
         where
             ClientID: Fn() -> String,
         {
-            let scan_id = self.entry.post_scans(client_id(), scan).await.unwrap();
-            let id = self
-                .entry
-                .contains_scan_id(&client_id(), &scan_id)
-                .await
-                .unwrap();
-
-            self.entry
-                .post_scans_id(id, models::Action::Start)
-                .await
-                .unwrap();
-            self.scheduler.check_for_message().await;
-
+            let (scan_id, _) = self.simulate_start_scan(&client_id(), scan).await;
             scan_id
         }
 
@@ -752,19 +794,8 @@ mod test {
     async fn start_scan() -> Result<(), Box<dyn std::error::Error>> {
         let mut fakes = Fakes::init().await;
         let scan = fakes.success_scan();
-        let scan_id = fakes.entry.post_scans(client_id(), scan).await?;
-        let id = fakes
-            .entry
-            .contains_scan_id(&client_id(), &scan_id)
-            .await
-            .unwrap();
 
-        fakes
-            .entry
-            .post_scans_id(id.clone(), models::Action::Start)
-            .await?;
-        fakes.scheduler.check_for_message().await;
-        let status = fakes.entry.get_scans_id_status(id).await?;
+        let (_, status) = fakes.simulate_start_scan(&client_id(), scan).await;
         assert_eq!(status.status, Phase::Requested);
         Ok(())
     }
@@ -773,31 +804,14 @@ mod test {
     async fn stop_scan() -> Result<(), Box<dyn std::error::Error>> {
         let mut fakes = Fakes::init().await;
         let scan = fakes.success_scan();
-        let scan_id = fakes.entry.post_scans(client_id(), scan).await?;
-        let id = fakes
-            .entry
-            .contains_scan_id(&client_id(), &scan_id)
-            .await
-            .unwrap();
-        fakes
-            .entry
-            .post_scans_id(id.clone(), models::Action::Start)
-            .await?;
-        fakes.scheduler.check_for_message().await;
-        let status = fakes.entry.get_scans_id_status(id.clone()).await?;
+        let client_id = client_id();
+
+        let (id, status) = fakes.simulate_start_scan(&client_id, scan).await;
 
         assert_eq!(status.status, Phase::Requested);
-        fakes
-            .entry
-            .post_scans_id(id.clone(), models::Action::Stop)
-            .await
-            .expect("post_scans_id must function");
-        fakes.scheduler.check_for_message().await;
-        let status = fakes
-            .entry
-            .get_scans_id_status(id.clone())
-            .await
-            .expect("get_scans_id_status must function");
+
+        let status = fakes.simulate_stop_scan(&client_id, &id).await;
+
         assert_eq!(status.status, Phase::Stopped);
         Ok(())
     }
@@ -806,19 +820,14 @@ mod test {
     async fn delete_scan_running() -> Result<(), Box<dyn std::error::Error>> {
         let mut fakes = Fakes::init().await;
         let scan = fakes.success_scan();
-        let scan_id = fakes.entry.post_scans(client_id(), scan).await?;
-        let id = fakes
-            .entry
-            .contains_scan_id(&client_id(), &scan_id)
-            .await
-            .unwrap();
-        fakes
-            .entry
-            .post_scans_id(id.clone(), models::Action::Start)
-            .await?;
-        fakes.scheduler.check_for_message().await;
+        let client_id = client_id();
 
-        let result = fakes.entry.delete_scans_id(id.clone()).await;
+        let (scan_id, _) = fakes.simulate_start_scan(&client_id, scan).await;
+
+        let result = fakes
+            .entry
+            .delete_scans_id(fakes.internal_id(&client_id, &scan_id).await)
+            .await;
         assert!(matches!(result, Err(DeleteScansIDError::Running)));
         Ok(())
     }
