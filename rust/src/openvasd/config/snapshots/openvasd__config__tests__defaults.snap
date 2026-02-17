@@ -40,7 +40,7 @@ socket = '/var/run/ospd/ospd-openvas.sock'
 aaa = false
 
 [container_image_scanner]
-max_scans = 1
+max_scans = 5
 [container_image_scanner.database]
 location = 'in-memory'
 busy_timeout = '10s'
