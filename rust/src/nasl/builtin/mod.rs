@@ -14,15 +14,16 @@ mod host;
 mod http;
 mod isotime;
 mod knowledge_base;
+#[cfg(feature = "nasl-c-lib")]
+mod krb5;
 pub mod misc;
 pub mod network;
-mod snmp;
-
 mod preferences;
 #[cfg(feature = "nasl-builtin-raw-ip")]
 pub mod raw_ip;
 mod regex;
 mod report_functions;
+mod snmp;
 mod ssh;
 mod string;
 mod sys;
@@ -66,6 +67,8 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(snmp::Snmp)
         .add_set(cert::NaslCerts::default());
 
+    #[cfg(feature = "nasl-c-lib")]
+    executor.add_set(krb5::Krb5::default());
     #[cfg(feature = "nasl-builtin-raw-ip")]
     executor.add_set(raw_ip::RawIp);
     #[cfg(feature = "nasl-builtin-raw-ip")]

@@ -5,7 +5,7 @@
 mod helper;
 #[cfg(test)]
 mod tests {
-    use nasl_c_lib::cryptographic::mac::aes_gmac;
+    use libcrypt_sys::mac::aes_gmac;
 
     use crate::helper::decode_hex;
 
