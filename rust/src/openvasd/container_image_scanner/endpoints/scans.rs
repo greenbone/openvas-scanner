@@ -12,11 +12,8 @@ use tokio::sync::mpsc::Sender;
 use tracing::instrument;
 
 use crate::{
-    container_image_scanner::{
-        image::{Image, ImageState},
-        scheduling::{self, db::scan::SqliteScan},
-    },
-    database::dao::{DAOError, Insert},
+    container_image_scanner::scheduling::{self, db::scan::SqliteScan},
+    database::dao::{DAOError, Fetch, Insert},
 };
 
 pub struct Scans {
@@ -31,7 +28,7 @@ impl Prefixed for Scans {
 }
 
 impl PostScans for Scans {
-    #[instrument(skip_all, fields(client_id, scan_id=scan.scan_id))]
+    #[instrument(skip_all, fields(client_id=client_id, scan_id=scan.scan_id))]
     fn post_scans(
         &self,
         client_id: String,
@@ -40,7 +37,7 @@ impl PostScans for Scans {
         Box::pin(async move {
             // maybe get rid of clone
             let scan_id = scan.scan_id.clone();
-            match SqliteScan::new(client_id, scan, self.pool.clone())
+            match SqliteScan::new(&client_id, &scan, &self.pool)
                 .insert()
                 .await
             {
@@ -67,13 +64,11 @@ impl MapScanID for Scans {
         >,
     > {
         Box::pin(async move {
-            match query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
-                .bind(client_id)
-                .bind(scan_id)
-                .fetch_optional(&self.pool)
+            match SqliteScan::new(client_id, scan_id, &self.pool)
+                .fetch()
                 .await
             {
-                Ok(x) => x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()),
+                Ok(x) => x,
                 Err(error) => {
                     tracing::warn!(%error, "Unable to fetch id from client_scan_map. Returning no id found.");
                     None
@@ -84,6 +79,7 @@ impl MapScanID for Scans {
 }
 
 impl GetScans for Scans {
+    // TODO: find a way to get rid of 'static?
     fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
         let result = query(
             r#"
