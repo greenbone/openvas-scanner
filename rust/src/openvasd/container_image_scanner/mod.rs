@@ -14,7 +14,7 @@ mod image;
 mod messages;
 mod notus;
 mod scheduling;
-pub(crate) use scannerlib::{ExternalError, PinBoxFut, PinBoxFutRef, Streamer};
+pub(crate) use scannerlib::{ExternalError, Promise, PromiseRef, Streamer};
 
 /// combines slices on compile time
 #[macro_export]

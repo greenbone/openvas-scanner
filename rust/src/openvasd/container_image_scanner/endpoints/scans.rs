@@ -7,12 +7,16 @@ use greenbone_scanner_framework::{
     models::{HostInfo, PreferenceValue, ScanPreferenceInformation},
     prelude::*,
 };
-use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
+use sqlx::{Row, SqlitePool, query, sqlite::SqliteRow};
 use tokio::sync::mpsc::Sender;
+use tracing::instrument;
 
-use crate::container_image_scanner::{
-    image::{Image, ImageState},
-    scheduling,
+use crate::{
+    container_image_scanner::{
+        image::{Image, ImageState},
+        scheduling::{self, db::scan::SqliteScan},
+    },
+    database::dao::{DAOError, Insert},
 };
 
 pub struct Scans {
@@ -26,86 +30,8 @@ impl Prefixed for Scans {
     }
 }
 
-impl Scans {
-    async fn insert_scan(
-        &self,
-        client_id: String,
-        scan: models::Scan,
-    ) -> Result<String, sqlx::error::Error> {
-        let scan_id = scan.scan_id;
-        tracing::debug!(client_id, scan_id, "creating scan");
-        let mut conn = self.pool.acquire().await?;
-        let mut tx = conn.begin().await?;
-        let row = query(
-            r#"
-            INSERT INTO client_scan_map(scan_id, client_id) VALUES (?, ?)
-            "#,
-        )
-        .bind(&scan_id)
-        .bind(&client_id)
-        .execute(&mut *tx)
-        .await?;
-        let id = row.last_insert_rowid();
-        let _ = query("INSERT INTO scans(id) VALUES (?)")
-            .bind(id)
-            .execute(&mut *tx)
-            .await?;
-
-        tracing::trace!(id, "inserted scan");
-
-        if !scan.target.hosts.is_empty() {
-            let mut builder = QueryBuilder::new("INSERT INTO registry (id, host) ");
-            builder.push_values(scan.target.hosts, |mut b, registry| {
-                b.push_bind(id).push_bind(registry);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-        if !scan.target.credentials.is_empty() {
-            let mut builder =
-                QueryBuilder::new("INSERT INTO credentials (id, username, password) ");
-            builder.push_values(
-                scan.target
-                    .credentials
-                    .iter()
-                    .filter_map(|c| match &c.credential_type {
-                        models::CredentialType::UP {
-                            username,
-                            password,
-                            privilege: _,
-                        } => Some((username, password)),
-                        _ => None,
-                    }),
-                |mut b, (username, password)| {
-                    b.push_bind(id).push_bind(username).push_bind(password);
-                },
-            );
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-        if !scan.scan_preferences.is_empty() {
-            let mut builder = QueryBuilder::new("INSERT INTO preferences (id, key, value) ");
-            builder.push_values(scan.scan_preferences, |mut b, pref| {
-                b.push_bind(id).push_bind(pref.id).push_bind(pref.value);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-
-        Image::insert(
-            &mut tx,
-            id,
-            ImageState::Excluded,
-            scan.target.excluded_hosts,
-        )
-        .await?;
-
-        tx.commit().await?;
-        Ok(scan_id)
-    }
-}
-
 impl PostScans for Scans {
+    #[instrument(skip_all, fields(client_id, scan_id=scan.scan_id))]
     fn post_scans(
         &self,
         client_id: String,
@@ -114,16 +40,16 @@ impl PostScans for Scans {
         Box::pin(async move {
             // maybe get rid of clone
             let scan_id = scan.scan_id.clone();
-            self.insert_scan(client_id, scan)
+            match SqliteScan::new(client_id, scan, self.pool.clone())
+                .insert()
                 .await
-                .map_err(|x| match x {
-                    sqlx::Error::Database(be)
-                        if be.kind() == sqlx::error::ErrorKind::UniqueViolation =>
-                    {
-                        PostScansError::DuplicateId(scan_id)
-                    }
-                    err => PostScansError::from_external(err),
-                })
+            {
+                Ok(_) => Ok(scan_id),
+                Err(DAOError::UniqueConstraintViolation) => {
+                    Err(PostScansError::DuplicateId(scan_id))
+                }
+                Err(error) => Err(PostScansError::External(Box::new(error))),
+            }
         })
     }
 }

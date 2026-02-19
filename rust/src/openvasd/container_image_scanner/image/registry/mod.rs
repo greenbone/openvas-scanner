@@ -5,7 +5,7 @@ pub use docker_v2::Registry as DockerV2;
 
 use super::Image;
 pub(crate) use super::PackedLayer;
-use crate::container_image_scanner::{ParsePreferences, PinBoxFutRef, Streamer};
+use crate::container_image_scanner::{ParsePreferences, PromiseRef, Streamer};
 
 #[derive(Clone, Debug)]
 pub struct Credential {
@@ -156,7 +156,7 @@ pub trait Registry {
     /// This means that if only the registry is set then it tries to get all images of that
     /// registry. If the tag is missing it tries to get all tag variations. If everything is set it
     /// will just return the given image.
-    fn resolve_image(&self, image: Image) -> PinBoxFutRef<'_, Vec<Result<Image, RegistryError>>>;
+    fn resolve_image(&self, image: Image) -> PromiseRef<'_, Vec<Result<Image, RegistryError>>>;
 
     fn pull_image(&self, image: Image) -> Streamer<Result<PackedLayer, RegistryError>>;
 }
