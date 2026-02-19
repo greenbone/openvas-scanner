@@ -71,3 +71,35 @@ fn security_message() {
 fn error_message() {
     verify("error_message", ResultType::Error)
 }
+
+#[test]
+fn security_notus() {
+    let mut t = TestBuilder::default();
+    t.run_all(
+        r###"
+        result["oid"] = "1.2.3.4.5";
+        result["message"] = "test message";
+        security_notus(result: result);
+        "###,
+    );
+    t.check_no_errors();
+    let (results, context) = t.results_and_context();
+    assert_eq!(results.len(), 3);
+    let result = context
+        .storage()
+        .retrieve(&(context.scan().clone(), 0))
+        .unwrap()
+        .unwrap();
+    assert_eq!(result.id, 0);
+    assert_eq!(result.r_type, ResultType::Alarm);
+    assert_eq!(
+        result.ip_address,
+        Some(context.target().ip_addr().to_string())
+    );
+    assert_eq!(result.hostname, None);
+    assert_eq!(result.oid, Some("1.2.3.4.5".to_string()));
+    assert_eq!(result.port, None);
+    assert_eq!(result.protocol, None);
+    assert_eq!(result.message, Some("test message".into()));
+    assert_eq!(result.detail, None);
+}
