@@ -1,3 +1,5 @@
+use std::pin::Pin;
+
 use scannerlib::{Promise, PromiseRef};
 
 #[derive(Debug, Clone, thiserror::Error)]
@@ -19,10 +21,18 @@ impl DAOError {
     }
 }
 
-pub type DAOPromiseRef<'a, T> = PromiseRef<'a, Result<T, DAOError>>;
+pub type DAOPromiseRef<'a, T> = Pin<Box<dyn Future<Output = Result<T, DAOError>> + Send + 'a>>;
 pub type DAOPromise<T> = Promise<Result<T, DAOError>>;
 pub type DAOResult<T> = Result<T, DAOError>;
 
 pub trait Insert {
-    fn insert(self) -> DAOPromise<()>;
+    fn insert<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
+    where
+        'a: 'b;
+}
+
+pub trait Fetch<T> {
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, T>
+    where
+        'a: 'b;
 }

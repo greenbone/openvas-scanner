@@ -1,21 +1,22 @@
+use greenbone_scanner_framework::InternalIdentifier;
 use scannerlib::models::{self, Scan};
 
 use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::image::{Image, ImageState},
-    database::dao::{DAOPromise, DAOPromiseRef, DAOResult, Insert},
+    database::dao::{DAOPromise, DAOPromiseRef, DAOResult, Fetch, Insert},
 };
 
 #[derive(Debug, Clone)]
-pub struct SqliteScan {
-    client_id: String,
-    scan: Scan,
-    pool: SqlitePool,
+pub struct SqliteScan<'o, T> {
+    client_id: &'o str,
+    scan: T,
+    pool: &'o SqlitePool,
 }
 
-impl SqliteScan {
-    pub fn new(client_id: String, scan: Scan, pool: SqlitePool) -> SqliteScan {
+impl<'o, T> SqliteScan<'o, T> {
+    pub fn new(client_id: &'o str, scan: T, pool: &'o SqlitePool) -> SqliteScan<'o, T> {
         SqliteScan {
             client_id,
             scan,
@@ -24,8 +25,11 @@ impl SqliteScan {
     }
 }
 
-impl Insert for SqliteScan {
-    fn insert(self) -> DAOPromise<()> {
+impl<'o> Insert for SqliteScan<'o, &Scan> {
+    fn insert<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
+    where
+        'a: 'b,
+    {
         Box::pin(async move {
             let scan = &self.scan;
             let mut conn = self.pool.acquire().await?;
@@ -36,7 +40,7 @@ impl Insert for SqliteScan {
             "#,
             )
             .bind(&scan.scan_id)
-            .bind(&self.client_id)
+            .bind(self.client_id)
             .execute(&mut *tx)
             .await?;
             let id = row.last_insert_rowid();
@@ -92,6 +96,22 @@ impl Insert for SqliteScan {
             .await?;
             tx.commit().await?;
             Ok(())
+        })
+    }
+}
+
+impl<'o> Fetch<Option<InternalIdentifier>> for SqliteScan<'o, &str> {
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<InternalIdentifier>>
+    where
+        'a: 'b,
+    {
+        Box::pin(async move {
+            let x = query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
+                .bind(self.client_id)
+                .bind(self.scan)
+                .fetch_optional(self.pool)
+                .await?;
+            Ok(x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()))
         })
     }
 }
