@@ -6,6 +6,8 @@ use sqlx::{
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
+use crate::database::dao::DAOError;
+
 /// Contains a single connection to be used and allows replacing that connection on certain errors.
 ///
 ///
@@ -125,5 +127,16 @@ impl SqliteConnectionContainer {
         A: 'a + IntoArguments<'a, Sqlite>,
     {
         retry_sql_connection_call!(self, |c| q().execute(c))
+    }
+}
+
+impl From<sqlx::Error> for DAOError {
+    fn from(value: sqlx::Error) -> Self {
+        match value {
+            sqlx::Error::Database(be) if be.kind() == sqlx::error::ErrorKind::UniqueViolation => {
+                Self::UniqueConstraintViolation
+            }
+            err => todo!(),
+        }
     }
 }

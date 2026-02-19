@@ -4,7 +4,7 @@ use super::FeedHashes;
 use super::Plugin;
 use super::error_vts_error;
 use futures::StreamExt;
-use scannerlib::PinBoxFut;
+use scannerlib::Promise;
 use scannerlib::models::FeedType;
 use scannerlib::notus::advisories::VulnerabilityData;
 use sqlx::Row;
@@ -75,7 +75,7 @@ impl PluginFetcher for SqlPluginStorage {
 }
 
 impl PluginStorer for SqlPluginStorage {
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> PinBoxFut<Result<(), WorkerError>>
+    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
     where
         T: Plugin + Send + Sync + 'static,
     {
@@ -95,7 +95,7 @@ impl PluginStorer for SqlPluginStorage {
         })
     }
 
-    fn store_hash(&self, hash: &FeedHash) -> PinBoxFut<Result<(), WorkerError>> {
+    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
         let pool = self.pool.clone();
         let path = hash.path.to_str().unwrap_or_default().to_string();
         let ht = hash.typus;
@@ -114,7 +114,7 @@ impl PluginStorer for SqlPluginStorage {
 }
 
 impl orchestrator::Worker for FeedSynchronizer {
-    fn cached_hashes(&self) -> PinBoxFut<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
+    fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
         let mut fetched =
             query("SELECT hash FROM feed WHERE type = 'nasl' OR type = 'advisories' ORDER BY type")
                 .fetch(&self.pool);
@@ -144,7 +144,7 @@ impl orchestrator::Worker for FeedSynchronizer {
         &self,
         kind: FeedType,
         new_hash: String,
-    ) -> PinBoxFut<Result<(), orchestrator::WorkerError>> {
+    ) -> Promise<Result<(), orchestrator::WorkerError>> {
         let ps = self.plugin_storer.clone();
         let path = match kind {
             FeedType::Products | FeedType::Advisories => self.advisory_feed(),

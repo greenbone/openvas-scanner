@@ -51,7 +51,7 @@ impl super::Extractor for Extractor {
     fn initialize(
         config: Arc<container_image_scanner::config::Config>,
         image: ImageID,
-    ) -> super::PinBoxFut<Result<Self, ExtractorError>>
+    ) -> super::Promise<Result<Self, ExtractorError>>
     where
         Self: Sized + Send + Sync,
     {
@@ -80,7 +80,7 @@ impl super::Extractor for Extractor {
         })
     }
 
-    fn locator(self) -> super::PinBoxFut<Vec<Self::Item>> {
+    fn locator(self) -> super::Promise<Vec<Self::Item>> {
         Box::pin(async move {
             self.architecture
                 .clone()
@@ -93,10 +93,7 @@ impl super::Extractor for Extractor {
         })
     }
 
-    fn extract(
-        &mut self,
-        layer: PackedLayer,
-    ) -> super::PinBoxFut<Result<Duration, ExtractorError>> {
+    fn extract(&mut self, layer: PackedLayer) -> super::Promise<Result<Duration, ExtractorError>> {
         if !(layer.index == 0 && self.last_index == 0)
             && layer.index != self.last_index + 1 + self.offset
         {
@@ -166,7 +163,7 @@ impl Drop for FileSystemLocator {
 }
 
 impl super::Locator for FileSystemLocator {
-    fn locate(&self, name: &str) -> super::PinBoxFutRef<'_, Result<super::Location, LocatorError>> {
+    fn locate(&self, name: &str) -> super::PromiseRef<'_, Result<super::Location, LocatorError>> {
         let base = self.base.clone();
         let name = name.to_owned();
 

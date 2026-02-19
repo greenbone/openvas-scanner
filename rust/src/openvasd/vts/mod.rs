@@ -6,7 +6,7 @@ use std::{
 };
 
 use greenbone_scanner_framework::{GetVTsError, StreamResult};
-use scannerlib::PinBoxFut;
+use scannerlib::Promise;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::{
@@ -130,8 +130,8 @@ pub async fn init(
 }
 
 trait PluginStorer {
-    fn store_hash(&self, hash: &FeedHash) -> PinBoxFut<Result<(), WorkerError>>;
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> PinBoxFut<Result<(), WorkerError>>
+    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
+    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
     where
         T: Plugin + Send + Sync + 'static;
 }

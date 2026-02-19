@@ -1,0 +1,97 @@
+use scannerlib::models::{self, Scan};
+
+use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
+
+use crate::{
+    container_image_scanner::image::{Image, ImageState},
+    database::dao::{DAOPromise, DAOPromiseRef, DAOResult, Insert},
+};
+
+#[derive(Debug, Clone)]
+pub struct SqliteScan {
+    client_id: String,
+    scan: Scan,
+    pool: SqlitePool,
+}
+
+impl SqliteScan {
+    pub fn new(client_id: String, scan: Scan, pool: SqlitePool) -> SqliteScan {
+        SqliteScan {
+            client_id,
+            scan,
+            pool,
+        }
+    }
+}
+
+impl Insert for SqliteScan {
+    fn insert(self) -> DAOPromise<()> {
+        Box::pin(async move {
+            let scan = &self.scan;
+            let mut conn = self.pool.acquire().await?;
+            let mut tx = conn.begin().await?;
+            let row = query(
+                r#"
+            INSERT INTO client_scan_map(scan_id, client_id) VALUES (?, ?)
+            "#,
+            )
+            .bind(&scan.scan_id)
+            .bind(&self.client_id)
+            .execute(&mut *tx)
+            .await?;
+            let id = row.last_insert_rowid();
+            let _ = query("INSERT INTO scans(id) VALUES (?)")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            tracing::debug!(internal_id = id, "creating scan");
+            if !scan.target.hosts.is_empty() {
+                let mut builder = QueryBuilder::new("INSERT INTO registry (id, host) ");
+                builder.push_values(&scan.target.hosts, |mut b, registry| {
+                    b.push_bind(id).push_bind(registry);
+                });
+                let query = builder.build();
+                query.execute(&mut *tx).await?;
+            }
+            if !scan.target.credentials.is_empty() {
+                let mut builder =
+                    QueryBuilder::new("INSERT INTO credentials (id, username, password) ");
+                builder.push_values(
+                    scan.target
+                        .credentials
+                        .iter()
+                        .filter_map(|c| match &c.credential_type {
+                            models::CredentialType::UP {
+                                username,
+                                password,
+                                privilege: _,
+                            } => Some((username, password)),
+                            _ => None,
+                        }),
+                    |mut b, (username, password)| {
+                        b.push_bind(id).push_bind(username).push_bind(password);
+                    },
+                );
+                let query = builder.build();
+                query.execute(&mut *tx).await?;
+            }
+            if !scan.scan_preferences.is_empty() {
+                let mut builder = QueryBuilder::new("INSERT INTO preferences (id, key, value) ");
+                builder.push_values(&scan.scan_preferences, |mut b, pref| {
+                    b.push_bind(id).push_bind(&pref.id).push_bind(&pref.value);
+                });
+                let query = builder.build();
+                query.execute(&mut *tx).await?;
+            }
+            Image::insert(
+                &mut tx,
+                id,
+                ImageState::Excluded,
+                scan.target.excluded_hosts.clone(),
+            )
+            .await?;
+            tx.commit().await?;
+            Ok(())
+        })
+    }
+}
