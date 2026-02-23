@@ -1,19 +1,19 @@
-use std::{pin::Pin, str::FromStr};
+use std::pin::Pin;
 
-use futures::{StreamExt, TryStreamExt};
+use futures::TryStreamExt;
 use greenbone_scanner_framework::{
     MapScanID, StreamResult,
     entry::Prefixed,
-    models::{HostInfo, PreferenceValue, ScanPreferenceInformation},
+    models::{PreferenceValue, ScanPreferenceInformation},
     prelude::*,
 };
-use sqlx::{Row, SqlitePool, query, sqlite::SqliteRow};
+use sqlx::SqlitePool;
 use tokio::sync::mpsc::Sender;
 use tracing::instrument;
 
 use crate::{
     container_image_scanner::scheduling::{self, db::scan::SqliteScan},
-    database::dao::{DAOError, Fetch, Insert, StreamFetch},
+    database::dao::{DAOError, Delete, Fetch, Insert, StreamFetch},
 };
 
 pub struct Scans {
@@ -191,40 +191,21 @@ impl PostScansId for Scans {
     }
 }
 
-impl Scans {
-    async fn get_phase(&self, id: &str) -> Result<models::Phase, sqlx::Error> {
-        const STATUS_SQL: &str = "SELECT status FROM scans WHERE id = ?";
-        query(STATUS_SQL)
-            .bind(id)
-            .fetch_one(&self.pool)
-            .await
-            .map(|row| {
-                models::Phase::from_str(&row.get::<String, _>("status"))
-                    .expect("expact status to be a valid phase")
-            })
-    }
-}
-
 impl DeleteScansId for Scans {
     fn delete_scans_id(
         &self,
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
-        const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
         Box::pin(async move {
-            let phase = self
-                .get_phase(&id)
+            let db = SqliteScan::new((), id, &self.pool);
+            let phase: models::Phase = db
+                .fetch()
                 .await
                 .map_err(DeleteScansIDError::from_external)?;
             if phase.is_running() {
                 return Err(DeleteScansIDError::Running);
             }
-            query(DELETE_SQL)
-                .bind(&id)
-                .execute(&self.pool)
-                .await
-                .map(|_| ())
-                .map_err(DeleteScansIDError::from_external)
+            db.delete().await.map_err(DeleteScansIDError::from_external)
         })
     }
 }
