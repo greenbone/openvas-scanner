@@ -160,43 +160,16 @@ impl GetScansIdResultsId for Scans {
     }
 }
 
-fn row_to_status(row: SqliteRow) -> models::Status {
-    let status = models::Phase::from_str(&row.get::<String, _>("status"))
-        .expect("expact status to be a valid phase");
-    let host_info = HostInfo {
-        all: row.get("host_all"),
-        alive: row.get("host_alive"),
-        dead: row.get("host_dead"),
-        queued: row.get("host_queued"),
-        finished: row.get("host_finished"),
-        excluded: row.get("host_excluded"),
-        scanning: None,
-        remaining_vts_per_host: Default::default(),
-    };
-
-    models::Status {
-        start_time: row.get::<Option<u64>, _>("start_time"),
-        end_time: row.get::<Option<u64>, _>("end_time"),
-        status,
-        host_info: Some(host_info),
-    }
-}
-
 impl GetScansIdStatus for Scans {
     fn get_scans_id_status(
         &self,
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>
     {
-        const SQL: &str = r#"SELECT start_time, end_time, status, host_all, host_alive, host_dead, host_queued, host_finished, host_excluded
-                FROM scans 
-                WHERE id = ? "#;
         Box::pin(async move {
-            query(SQL)
-                .bind(&id)
-                .fetch_one(&self.pool)
+            SqliteScan::new((), id, &self.pool)
+                .fetch()
                 .await
-                .map(row_to_status)
                 .map_err(GetScansIDStatusError::from_external)
         })
     }
