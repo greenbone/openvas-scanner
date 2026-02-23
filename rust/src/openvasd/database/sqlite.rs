@@ -6,7 +6,7 @@ use sqlx::{
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
-use crate::database::dao::DAOError;
+use crate::database::dao::{DAOError, DBViolation};
 
 /// Contains a single connection to be used and allows replacing that connection on certain errors.
 ///
@@ -130,11 +130,28 @@ impl SqliteConnectionContainer {
     }
 }
 
+impl From<sqlx::error::ErrorKind> for DBViolation {
+    fn from(value: sqlx::error::ErrorKind) -> Self {
+        match value {
+            sqlx::error::ErrorKind::UniqueViolation => Self::UniqueViolation,
+            sqlx::error::ErrorKind::ForeignKeyViolation => Self::ForeignKeyViolation,
+            sqlx::error::ErrorKind::NotNullViolation => Self::NotNullViolation,
+            sqlx::error::ErrorKind::CheckViolation => Self::CheckViolation,
+            _ => Self::Unknown,
+        }
+    }
+}
 impl From<sqlx::Error> for DAOError {
     fn from(value: sqlx::Error) -> Self {
+        use sqlx::error::ErrorKind::*;
         match value {
-            sqlx::Error::Database(be) if be.kind() == sqlx::error::ErrorKind::UniqueViolation => {
-                Self::UniqueConstraintViolation
+            sqlx::Error::Database(be)
+                if matches!(
+                    be.kind(),
+                    UniqueViolation | ForeignKeyViolation | NotNullViolation | CheckViolation
+                ) =>
+            {
+                Self::DBViolation(be.kind().into())
             }
             sqlx::Error::RowNotFound => DAOError::NotFound,
             error => {

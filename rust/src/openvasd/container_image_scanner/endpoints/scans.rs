@@ -13,7 +13,7 @@ use tracing::instrument;
 
 use crate::{
     container_image_scanner::scheduling::{self, db::scan::SqliteScan},
-    database::dao::{DAOError, Delete, Fetch, Insert, StreamFetch},
+    database::dao::{DAOError, DBViolation, Delete, Fetch, Insert, StreamFetch},
 };
 
 pub struct Scans {
@@ -42,7 +42,7 @@ impl PostScans for Scans {
                 .await
             {
                 Ok(_) => Ok(scan_id),
-                Err(DAOError::UniqueConstraintViolation) => {
+                Err(DAOError::DBViolation(DBViolation::UniqueViolation)) => {
                     Err(PostScansError::DuplicateId(scan_id))
                 }
                 Err(error) => Err(PostScansError::External(Box::new(error))),
