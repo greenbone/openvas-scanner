@@ -40,5 +40,4 @@ pub trait Fetch<T> {
 
 pub trait StreamFetch<T> {
     fn stream_fetch(self) -> DAOStreamer<T>;
-    //fn stream_fetch(self: Pin<&Self>) -> DAOStreamer<T>;
 }
