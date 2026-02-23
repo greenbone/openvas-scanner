@@ -136,7 +136,11 @@ impl From<sqlx::Error> for DAOError {
             sqlx::Error::Database(be) if be.kind() == sqlx::error::ErrorKind::UniqueViolation => {
                 Self::UniqueConstraintViolation
             }
-            err => todo!(),
+            sqlx::Error::RowNotFound => DAOError::NotFound,
+            error => {
+                tracing::warn!(%error, "Unexpected sqlx::Error.");
+                Self::Infrastructure
+            }
         }
     }
 }

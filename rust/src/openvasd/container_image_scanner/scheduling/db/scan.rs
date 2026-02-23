@@ -132,8 +132,111 @@ impl<'o> StreamFetch<String> for SqliteScan<'o, String, ()> {
         .fetch(self.pool)
         .map(|x| {
             x.map(|x| x.get::<String, _>("scan_id"))
-                .map_err(|_| DAOError::Infrastructure)
+                .map_err(DAOError::from)
         });
+        Box::pin(result)
+    }
+}
+fn row_to_result(row: SqliteRow) -> models::Result {
+    let detail = match (
+        row.try_get::<Option<String>, _>("detail_name")
+            .unwrap_or(None),
+        row.try_get::<Option<String>, _>("detail_value")
+            .unwrap_or(None),
+        row.try_get::<Option<String>, _>("source_type")
+            .unwrap_or(None),
+        row.try_get::<Option<String>, _>("source_name")
+            .unwrap_or(None),
+        row.try_get::<Option<String>, _>("source_description")
+            .unwrap_or(None),
+    ) {
+        (Some(name), Some(value), Some(s_type), Some(name_src), Some(description)) => {
+            Some(models::Detail {
+                name,
+                value,
+                source: models::Source {
+                    s_type,
+                    name: name_src,
+                    description,
+                },
+            })
+        }
+        _ => None,
+    };
+    let r_type = row
+        .get::<String, _>("type")
+        .parse::<models::ResultType>()
+        .unwrap_or_default();
+
+    models::Result {
+        id: row.get::<i64, _>("id") as usize,
+        r_type,
+        ip_address: row
+            .try_get::<Option<String>, _>("ip_address")
+            .unwrap_or(None),
+        hostname: row.try_get::<Option<String>, _>("hostname").unwrap_or(None),
+        oid: row.try_get::<Option<String>, _>("oid").unwrap_or(None),
+        port: row.try_get::<Option<i16>, _>("port").unwrap_or(None),
+        protocol: row
+            .try_get::<Option<String>, _>("protocol")
+            .unwrap_or(None)
+            .and_then(|s| s.parse::<models::Protocol>().ok()),
+        message: row.try_get::<Option<String>, _>("message").unwrap_or(None),
+        detail,
+    }
+}
+
+impl<'o> StreamFetch<models::Result>
+    for SqliteScan<'o, (), (String, Option<usize>, Option<usize>)>
+{
+    fn stream_fetch(self) -> DAOStreamer<models::Result> {
+        let (id, from, to) = self.scan;
+        const SQL_BASE: &str = r#"
+    SELECT id, type, ip_address, hostname, oid, port, protocol, message,
+        detail_name, detail_value, source_type, source_name, source_description
+    FROM results
+    WHERE scan_id = ?
+"#;
+
+        const SQL_BASE_AND_GTE: &str = r#"
+    SELECT id, type, ip_address, hostname, oid, port, protocol, message,
+        detail_name, detail_value, source_type, source_name, source_description
+    FROM results
+    WHERE scan_id = ? AND id >= ?
+"#;
+
+        const SQL_BASE_AND_LTE: &str = r#"
+    SELECT id, type, ip_address, hostname, oid, port, protocol, message,
+        detail_name, detail_value, source_type, source_name, source_description
+    FROM results
+    WHERE scan_id = ? AND id <= ?
+"#;
+
+        const SQL_BASE_AND_GTE_LTE: &str = r#"
+    SELECT id, type, ip_address, hostname, oid, port, protocol, message,
+        detail_name, detail_value, source_type, source_name, source_description
+    FROM results
+    WHERE scan_id = ? AND id >= ? AND id <= ?
+"#;
+
+        let sql: &'static str = match (from, to) {
+            (None, None) => SQL_BASE,
+            (Some(_), None) => SQL_BASE_AND_GTE,
+            (None, Some(_)) => SQL_BASE_AND_LTE,
+            (Some(_), Some(_)) => SQL_BASE_AND_GTE_LTE,
+        };
+        let mut query = sqlx::query(sql).bind(id);
+
+        if let Some(from_id) = from {
+            query = query.bind(from_id as i64);
+        }
+        if let Some(to_id) = to {
+            query = query.bind(to_id as i64);
+        }
+
+        let result = query
+            .fetch(self.pool)
+            .map(|x| x.map(row_to_result).map_err(DAOError::from));
         Box::pin(result)
     }
 }
@@ -191,5 +294,32 @@ impl<'o> Fetch<models::Scan> for SqliteScan<'o, (), String> {
                 ..Default::default()
             })
         })
+    }
+}
+
+impl<'o> Fetch<models::Result> for SqliteScan<'o, (), (String, usize)> {
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Result>
+    where
+        'a: 'b,
+    {
+        {
+            const SQL: &str = r#"
+    SELECT id, type, ip_address, hostname, oid, port, protocol, message,
+        detail_name, detail_value, source_type, source_name, source_description
+    FROM results
+    WHERE scan_id = ? AND id = ?
+"#;
+
+            Box::pin(async move {
+                let (id, result_id) = &self.scan;
+                query(SQL)
+                    .bind(id)
+                    .bind(*result_id as i64)
+                    .fetch_one(self.pool)
+                    .await
+                    .map(row_to_result)
+                    .map_err(DAOError::from)
+            })
+        }
     }
 }
