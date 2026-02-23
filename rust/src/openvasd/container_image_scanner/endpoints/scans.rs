@@ -112,66 +112,16 @@ impl GetScansPreferences for Scans {
     }
 }
 
-impl Scans {
-    async fn get_scan(pool: SqlitePool, id: String) -> Result<models::Scan, sqlx::error::Error> {
-        let mut conn = pool.acquire().await?;
-        let hosts: Vec<(String,)> = sqlx::query_as("SELECT host FROM registry WHERE id = ?")
-            .bind(&id)
-            .fetch_all(&mut *conn)
-            .await?;
-        let creds: Vec<(String, String)> =
-            sqlx::query_as("SELECT username, password FROM credentials WHERE id = ?")
-                .bind(&id)
-                .fetch_all(&mut *conn)
-                .await?;
-
-        let preferences: Vec<(String, String)> =
-            sqlx::query_as("SELECT key, value FROM preferences WHERE id = ?")
-                .bind(&id)
-                .fetch_all(&mut *conn)
-                .await?;
-        let scan_id = sqlx::query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
-            .bind(&id)
-            .fetch_one(&mut *conn)
-            .await?;
-
-        Ok(models::Scan {
-            scan_id,
-            target: models::Target {
-                hosts: hosts.into_iter().map(|(h,)| h).collect(),
-                credentials: creds
-                    .into_iter()
-                    .map(|(u, p)| models::Credential {
-                        credential_type: models::CredentialType::UP {
-                            username: u,
-                            password: p,
-                            privilege: None,
-                        },
-                        service: models::Service::Generic,
-                        port: None,
-                    })
-                    .collect(),
-                ..Default::default()
-            },
-            scan_preferences: preferences
-                .into_iter()
-                .map(|(id, value)| models::ScanPreference { id, value })
-                .collect(),
-            ..Default::default()
-        })
-    }
-}
-
 impl GetScansId for Scans {
-    fn get_scans_id(
-        &self,
+    fn get_scans_id<'a>(
+        &'a self,
         id: String,
-    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send>> {
-        let pool = self.pool.clone();
+    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + 'a>> {
         Box::pin(async move {
-            Scans::get_scan(pool, id)
+            SqliteScan::new((), id, &self.pool)
+                .fetch()
                 .await
-                .map_err(GetScansIDError::from_external)
+                .map_err(GetScansError::from_external)
         })
     }
 }
