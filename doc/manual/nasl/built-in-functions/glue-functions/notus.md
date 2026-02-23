@@ -19,7 +19,7 @@ product: identifier for the notus scanner to get list of vulnerable packages
 In contrast to **[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**
 this function does not publish results by itself, but returns a json like structure,
 so information can be adjusted and must be published using
-**[security_lsc(3)](../report-functions/security_lsc.md)**. The json like format depends
+**[security_notus(3)](../report-functions/security_notus.md)**. The json like format depends
 one the scanner that is used. There are currently 2 scanner types available: Notus and
 Skiron. Their response have different formats and also will be parsed differently. The
 format for Notus has the following structure:
@@ -54,11 +54,18 @@ The elements can be accessed by using the normal NASL array handling. For more i
 
 The format for Skiron has the following structure:
 ```json
-{
-  "[oid1]": "some message",
-  "[oid2]": "some message"
-}
-It is just a dictionary with the OID of the result as key and the result message as value.
+[
+  {
+    "oid": "[oid1]",
+    "message": "[message1]"
+  },
+  {
+    "oid": "[oid2]",
+    "message": "[message2]"
+  }
+]
+```
+It is a list of dictionaries. Each dictionary has the key `oid` and `message`.
 
 To determine which format is used, the builtin function **[notus_type(3)](notus_type.md)** can be used.
 
