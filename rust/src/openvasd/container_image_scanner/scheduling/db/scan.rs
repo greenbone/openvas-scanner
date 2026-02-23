@@ -1,3 +1,6 @@
+use std::pin::Pin;
+
+use futures::StreamExt;
 use greenbone_scanner_framework::InternalIdentifier;
 use scannerlib::models::{self, Scan};
 
@@ -5,18 +8,20 @@ use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::image::{Image, ImageState},
-    database::dao::{DAOPromise, DAOPromiseRef, DAOResult, Fetch, Insert},
+    database::dao::{
+        DAOError, DAOPromise, DAOPromiseRef, DAOResult, DAOStreamer, Fetch, Insert, StreamFetch,
+    },
 };
 
 #[derive(Debug, Clone)]
-pub struct SqliteScan<'o, T> {
-    client_id: &'o str,
+pub struct SqliteScan<'o, C, T> {
+    client_id: C,
     scan: T,
     pool: &'o SqlitePool,
 }
 
-impl<'o, T> SqliteScan<'o, T> {
-    pub fn new(client_id: &'o str, scan: T, pool: &'o SqlitePool) -> SqliteScan<'o, T> {
+impl<'o, C, T> SqliteScan<'o, C, T> {
+    pub fn new(client_id: C, scan: T, pool: &'o SqlitePool) -> SqliteScan<'o, C, T> {
         SqliteScan {
             client_id,
             scan,
@@ -25,7 +30,7 @@ impl<'o, T> SqliteScan<'o, T> {
     }
 }
 
-impl<'o> Insert for SqliteScan<'o, &Scan> {
+impl<'o> Insert for SqliteScan<'o, &str, &Scan> {
     fn insert<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
@@ -100,7 +105,7 @@ impl<'o> Insert for SqliteScan<'o, &Scan> {
     }
 }
 
-impl<'o> Fetch<Option<InternalIdentifier>> for SqliteScan<'o, &str> {
+impl<'o> Fetch<Option<InternalIdentifier>> for SqliteScan<'o, &str, &str> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<InternalIdentifier>>
     where
         'a: 'b,
@@ -113,5 +118,22 @@ impl<'o> Fetch<Option<InternalIdentifier>> for SqliteScan<'o, &str> {
                 .await?;
             Ok(x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()))
         })
+    }
+}
+
+impl<'o> StreamFetch<String> for SqliteScan<'o, String, ()> {
+    fn stream_fetch(self) -> DAOStreamer<String> {
+        let result = query(
+            r#"
+                SELECT scan_id FROM client_scan_map WHERE client_id = ?
+            "#,
+        )
+        .bind(self.client_id)
+        .fetch(self.pool)
+        .map(|x| {
+            x.map(|x| x.get::<String, _>("scan_id"))
+                .map_err(|_| DAOError::Infrastructure)
+        });
+        Box::pin(result)
     }
 }

@@ -256,15 +256,14 @@ impl Stream for RedisVTDataStream {
 }
 
 impl PluginFetcher for RedisPluginHandler {
-    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<'static, String, WorkerError> {
-        Box::new(RedisOidStream::from(self.address.clone()))
+    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<String, WorkerError> {
+        Box::pin(RedisOidStream::from(self.address.clone()))
     }
 
     fn get_vts(
         &self,
-    ) -> greenbone_scanner_framework::StreamResult<'static, scannerlib::models::VTData, WorkerError>
-    {
-        Box::new(RedisVTDataStream::from(self.address.clone()))
+    ) -> greenbone_scanner_framework::StreamResult<scannerlib::models::VTData, WorkerError> {
+        Box::pin(RedisVTDataStream::from(self.address.clone()))
     }
 }
 

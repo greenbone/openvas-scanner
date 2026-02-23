@@ -39,17 +39,16 @@ impl From<SqlitePool> for SqlPluginStorage {
 }
 
 impl PluginFetcher for SqlPluginStorage {
-    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<'static, String, WorkerError> {
+    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<String, WorkerError> {
         let result = query("SELECT oid FROM plugins ORDER BY oid")
             .fetch(&self.pool)
             .map(|row| row.map(|e| e.get("oid")).map_err(WorkerError::Cache));
-        Box::new(result)
+        Box::pin(result)
     }
 
     fn get_vts(
         &self,
-    ) -> greenbone_scanner_framework::StreamResult<'static, scannerlib::models::VTData, WorkerError>
-    {
+    ) -> greenbone_scanner_framework::StreamResult<scannerlib::models::VTData, WorkerError> {
         let result = query("SELECT feed_type, json_blob FROM plugins")
             .fetch(&self.pool)
             .map(|row| {
@@ -70,7 +69,7 @@ impl PluginFetcher for SqlPluginStorage {
                     Err(e) => Err(e),
                 }
             });
-        Box::new(result)
+        Box::pin(result)
     }
 }
 
