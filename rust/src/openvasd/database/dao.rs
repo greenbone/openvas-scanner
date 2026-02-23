@@ -6,7 +6,8 @@ use scannerlib::{Promise, PromiseRef, Streamer};
 pub enum DAOError {
     #[error("Unique constraint violation")]
     UniqueConstraintViolation,
-
+    #[error("Not found")]
+    NotFound,
     #[error("Infrastructure")]
     Infrastructure,
 }
