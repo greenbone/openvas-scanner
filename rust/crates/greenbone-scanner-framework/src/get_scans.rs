@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub trait GetScans: Send + Sync {
-    fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError>;
+    fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError>;
 }
 
 pub struct GetScansHandler<T> {
@@ -110,6 +110,7 @@ impl From<GetScansError> for BodyKind {
 
 #[cfg(test)]
 mod tests {
+
     use entry::test_utilities;
     use futures::stream;
     use http_body_util::{BodyExt, Empty};
@@ -127,15 +128,15 @@ mod tests {
     }
 
     impl GetScans for Test {
-        fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
+        fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
             let ise = ClientHash::from("internal_server_error").to_string();
             if ise == client_id {
-                return Box::new(stream::iter(vec![Err(GetScansError::External(Box::new(
+                return Box::pin(stream::iter(vec![Err(GetScansError::External(Box::new(
                     io::Error::other("oh no"),
                 )))]));
             }
 
-            Box::new(stream::iter(vec![Ok(String::default())]))
+            Box::pin(stream::iter(vec![Ok(String::default())]))
         }
     }
 

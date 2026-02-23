@@ -10,9 +10,9 @@ use crate::{
 };
 
 pub trait GetVts: Send + Sync {
-    fn get_oids(&self, client_id: String) -> StreamResult<'static, String, GetVTsError>;
+    fn get_oids(&self, client_id: String) -> StreamResult<String, GetVTsError>;
 
-    fn get_vts(&self, client_id: String) -> StreamResult<'static, VTData, GetVTsError>;
+    fn get_vts(&self, client_id: String) -> StreamResult<VTData, GetVTsError>;
 }
 
 pub struct GetVTsHandler<T> {
@@ -127,7 +127,7 @@ mod tests {
     }
 
     impl GetVts for Test {
-        fn get_oids(&self, client_id: String) -> StreamResult<'static, String, GetVTsError> {
+        fn get_oids(&self, client_id: String) -> StreamResult<String, GetVTsError> {
             let ok = ClientHash::from("ok").to_string();
             let not_found = ClientHash::from("not_found").to_string();
             let unknown = "unknown".to_string();
@@ -141,11 +141,11 @@ mod tests {
                 ))))]
             };
             //stream::iter(result)
-            Box::new(stream::iter(result))
+            Box::pin(stream::iter(result))
         }
 
-        fn get_vts(&self, _: String) -> StreamResult<'static, VTData, GetVTsError> {
-            Box::new(stream::iter(vec![Ok(VTData::default())]))
+        fn get_vts(&self, _: String) -> StreamResult<VTData, GetVTsError> {
+            Box::pin(stream::iter(vec![Ok(VTData::default())]))
         }
     }
 
