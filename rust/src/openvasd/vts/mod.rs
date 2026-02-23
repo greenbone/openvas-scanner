@@ -86,9 +86,9 @@ where
 }
 
 pub trait PluginFetcher {
-    fn get_oids(&self) -> StreamResult<'static, String, WorkerError>;
+    fn get_oids(&self) -> StreamResult<String, WorkerError>;
 
-    fn get_vts(&self) -> StreamResult<'static, VTData, WorkerError>;
+    fn get_vts(&self) -> StreamResult<VTData, WorkerError>;
 }
 
 pub async fn _init<F, W>(

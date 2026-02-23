@@ -266,8 +266,8 @@ impl<E> GetScans for Endpoints<E>
 where
     E: Send + Sync,
 {
-    fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
-        Box::new(
+    fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
+        Box::pin(
             query("SELECT scan_id FROM client_scan_map WHERE client_id = ?")
                 .bind(client_id)
                 .fetch(&self.pool)
@@ -517,7 +517,7 @@ where
         id: String,
         from: Option<usize>,
         to: Option<usize>,
-    ) -> StreamResult<'static, models::Result, GetScansIDResultsError> {
+    ) -> StreamResult<models::Result, GetScansIDResultsError> {
         const SQL_BASE: &str = r#"
     SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
             detail_name, detail_value, 
@@ -573,7 +573,7 @@ where
             x.map(row_to_result)
                 .map_err(GetScansIDResultsError::from_external)
         });
-        Box::new(result)
+        Box::pin(result)
     }
 }
 

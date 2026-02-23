@@ -1,6 +1,6 @@
 use std::{pin::Pin, str::FromStr};
 
-use futures::StreamExt;
+use futures::{StreamExt, TryStreamExt};
 use greenbone_scanner_framework::{
     MapScanID, StreamResult,
     entry::Prefixed,
@@ -13,7 +13,7 @@ use tracing::instrument;
 
 use crate::{
     container_image_scanner::scheduling::{self, db::scan::SqliteScan},
-    database::dao::{DAOError, Fetch, Insert},
+    database::dao::{DAOError, Fetch, Insert, StreamFetch},
 };
 
 pub struct Scans {
@@ -37,7 +37,7 @@ impl PostScans for Scans {
         Box::pin(async move {
             // maybe get rid of clone
             let scan_id = scan.scan_id.clone();
-            match SqliteScan::new(&client_id, &scan, &self.pool)
+            match SqliteScan::new(client_id.as_str(), &scan, &self.pool)
                 .insert()
                 .await
             {
@@ -79,20 +79,12 @@ impl MapScanID for Scans {
 }
 
 impl GetScans for Scans {
-    // TODO: find a way to get rid of 'static?
-    fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
-        let result = query(
-            r#"
-                SELECT scan_id FROM client_scan_map WHERE client_id = ?
-            "#,
-        )
-        .bind(client_id)
-        .fetch(&self.pool)
-        .map(|x| {
-            x.map(|x| x.get::<String, _>("scan_id"))
-                .map_err(GetScansError::from_external)
-        });
-        Box::new(result)
+    fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
+        let result = SqliteScan::new(client_id, (), &self.pool)
+            .stream_fetch()
+            .map_err(GetScansError::from_external);
+
+        Box::pin(result)
     }
 }
 
@@ -239,7 +231,7 @@ impl GetScansIdResults for Scans {
         id: String,
         from: Option<usize>,
         to: Option<usize>,
-    ) -> StreamResult<'static, models::Result, GetScansIDResultsError> {
+    ) -> StreamResult<models::Result, GetScansIDResultsError> {
         const SQL_BASE: &str = r#"
     SELECT id, type, ip_address, hostname, oid, port, protocol, message,
         detail_name, detail_value, source_type, source_name, source_description
@@ -287,7 +279,7 @@ impl GetScansIdResults for Scans {
             x.map(row_to_result)
                 .map_err(GetScansIDResultsError::from_external)
         });
-        Box::new(result)
+        Box::pin(result)
     }
 }
 
