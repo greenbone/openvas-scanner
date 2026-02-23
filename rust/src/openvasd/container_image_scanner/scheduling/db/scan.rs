@@ -1,4 +1,4 @@
-use std::{pin::Pin, str::FromStr};
+use std::str::FromStr;
 
 use futures::StreamExt;
 use greenbone_scanner_framework::InternalIdentifier;
@@ -8,9 +8,7 @@ use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::image::{Image, ImageState},
-    database::dao::{
-        DAOError, DAOPromise, DAOPromiseRef, DAOResult, DAOStreamer, Fetch, Insert, StreamFetch,
-    },
+    database::dao::{DAOError, DAOPromiseRef, DAOStreamer, Delete, Fetch, Insert, StreamFetch},
 };
 
 #[derive(Debug, Clone)]
@@ -360,6 +358,46 @@ impl<'o> Fetch<models::Status> for SqliteScan<'o, (), String> {
                 .fetch_one(self.pool)
                 .await
                 .map(row_to_status)
+                .map_err(DAOError::from)
+        })
+    }
+}
+
+impl<'o> Fetch<models::Phase> for SqliteScan<'o, (), String> {
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Phase>
+    where
+        'a: 'b,
+    {
+        Box::pin(async move {
+            const STATUS_SQL: &str = "SELECT status FROM scans WHERE id = ?";
+            match query(STATUS_SQL)
+                .bind(&self.scan)
+                .fetch_one(self.pool)
+                .await
+            {
+                Ok(row) => match models::Phase::from_str(&row.get::<String, _>("status")) {
+                    Ok(x) => Ok(x),
+                    // should not happen unless data is corrupt
+                    Err(_) => Err(DAOError::Corrupt),
+                },
+                Err(e) => Err(e.into()),
+            }
+        })
+    }
+}
+
+impl<'o> Delete for SqliteScan<'o, (), String> {
+    fn delete<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
+    where
+        'a: 'b,
+    {
+        const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
+        Box::pin(async move {
+            query(DELETE_SQL)
+                .bind(&self.scan)
+                .execute(self.pool)
+                .await
+                .map(|_| ())
                 .map_err(DAOError::from)
         })
     }

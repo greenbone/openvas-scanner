@@ -1,6 +1,4 @@
-use std::pin::Pin;
-
-use scannerlib::{Promise, PromiseRef, Streamer};
+use scannerlib::{PromiseRef, Streamer};
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DAOError {
@@ -8,6 +6,8 @@ pub enum DAOError {
     UniqueConstraintViolation,
     #[error("Not found")]
     NotFound,
+    #[error("Corrupt data")]
+    Corrupt,
     #[error("Infrastructure")]
     Infrastructure,
 }
@@ -24,11 +24,17 @@ impl DAOError {
 
 pub type DAOPromiseRef<'a, T> = PromiseRef<'a, Result<T, DAOError>>;
 pub type DAOStreamer<T> = Streamer<Result<T, DAOError>>;
-pub type DAOPromise<T> = Promise<Result<T, DAOError>>;
-pub type DAOResult<T> = Result<T, DAOError>;
+// pub type DAOPromise<T> = Promise<Result<T, DAOError>>;
+// pub type DAOResult<T> = Result<T, DAOError>;
 
 pub trait Insert {
     fn insert<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
+    where
+        'a: 'b;
+}
+
+pub trait Delete {
+    fn delete<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b;
 }
