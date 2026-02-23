@@ -8,7 +8,9 @@ use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::image::{Image, ImageState},
-    database::dao::{DAOError, DAOPromiseRef, DAOStreamer, Delete, Fetch, Insert, StreamFetch},
+    database::dao::{
+        DAOError, DAOPromiseRef, DAOStreamer, DBViolation, Delete, Fetch, Insert, StreamFetch,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -377,8 +379,7 @@ impl<'o> Fetch<models::Phase> for SqliteScan<'o, (), String> {
             {
                 Ok(row) => match models::Phase::from_str(&row.get::<String, _>("status")) {
                     Ok(x) => Ok(x),
-                    // should not happen unless data is corrupt
-                    Err(_) => Err(DAOError::Corrupt),
+                    Err(_) => Err(DAOError::DBViolation(DBViolation::CheckViolation)),
                 },
                 Err(e) => Err(e.into()),
             }

@@ -1,9 +1,38 @@
+use std::fmt::Display;
+
 use scannerlib::{PromiseRef, Streamer};
+
+#[derive(Debug, Clone, Copy)]
+pub enum DBViolation {
+    UniqueViolation,
+    ForeignKeyViolation,
+    NotNullViolation,
+    CheckViolation,
+    Unknown,
+}
+
+impl AsRef<str> for DBViolation {
+    fn as_ref(&self) -> &str {
+        match self {
+            DBViolation::UniqueViolation => "UniqueViolation",
+            DBViolation::ForeignKeyViolation => "ForeignKeyViolation",
+            DBViolation::NotNullViolation => "NotNullViolation",
+            DBViolation::CheckViolation => "CheckViolation",
+            DBViolation::Unknown => "Unknown",
+        }
+    }
+}
+
+impl Display for DBViolation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
+}
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DAOError {
-    #[error("Unique constraint violation")]
-    UniqueConstraintViolation,
+    #[error("DB violation: {0}")]
+    DBViolation(DBViolation),
     #[error("Not found")]
     NotFound,
     #[error("Corrupt data")]
