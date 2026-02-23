@@ -404,7 +404,7 @@ mark_mysql (struct script_infos *desc, int port)
 {
   register_service (desc, port, "mysql");
   /* if (port != 3306) */
-  post_log (oid, desc, port, "A MySQL server is running on this port");
+  post_log (oid, desc, port, "A MySQL/MariaDB server is running on this port");
 }
 
 static void
@@ -1201,11 +1201,11 @@ port_to_name (int port)
     case 3128:
       return "Squid";
     case 3306:
-      return "MySQL";
+      return "MySQL/MariaDB";
     case 5000:
       return "VTUN";
     case 5432:
-      return "Postgres";
+      return "PostgreSQL";
     case 8080:
       return "HTTP-Alt";
     }

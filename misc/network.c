@@ -1778,7 +1778,7 @@ get_encaps_through (openvas_encaps_t code)
     case OPENVAS_ENCAPS_TLSv12:
     case OPENVAS_ENCAPS_TLSv13:
     case OPENVAS_ENCAPS_TLScustom:
-      return " through SSL";
+      return " through SSL/TLS";
     default:
       snprintf (str, sizeof (str),
                 " through unknown transport layer - code %d (0x%x)", code,
