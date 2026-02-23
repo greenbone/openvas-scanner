@@ -11,6 +11,7 @@ use crate::{
     container_image_scanner::{
         ExternalError,
         image::{Credential, Image, ImageID, ImageParseError, RegistryError},
+        messages::SqliteRetry,
     },
     database::sqlite::SqliteConnectionContainer,
 };
@@ -171,6 +172,23 @@ async fn start_scan(pool: &Pool<Sqlite>, id: &str) -> Result<(), sqlx::error::Er
 }
 
 pub async fn on_message(pool: &Pool<Sqlite>, msg: &super::Message) -> Result<(), sqlx::Error> {
+    let mut last_resort = try_on_message(pool, msg).await;
+    for i in 1..SqliteRetry::MAX_RETRIES {
+        match &last_resort {
+            Ok(()) => break,
+            Err(x) if SqliteRetry::error_is_retryable(x) => {
+                tracing::debug!(error=?x, "Retrying");
+                tokio::time::sleep(SqliteRetry::calculate_sleep_based_on(i)).await;
+            }
+            Err(_) => break,
+        };
+        last_resort = try_on_message(pool, msg).await;
+    }
+    // Cut my life into pieces, this is my
+    last_resort
+}
+
+pub async fn try_on_message(pool: &Pool<Sqlite>, msg: &super::Message) -> Result<(), sqlx::Error> {
     match msg.action {
         models::Action::Start => start_scan(pool, &msg.id).await,
         models::Action::Stop => stop_scan(pool, &msg.id).await,

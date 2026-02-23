@@ -195,13 +195,10 @@ impl SqliteRetry {
     // Not configurable at purpose. This is a internal sqlite DB measurement and should not be up
     // to a customer to change.
     pub const MAX_RETRIES: u8 = 5;
-    pub fn is_retryable(&mut self, error: &sqlx::Error) -> bool {
-        self.retries -= 1;
+    pub fn error_is_retryable(error: &sqlx::Error) -> bool {
         match &error {
             // waiting for if let guards to get rid of unwrap ...
-            sqlx::Error::Database(database_error)
-                if database_error.code().is_some() && self.retries > 0 =>
-            {
+            sqlx::Error::Database(database_error) if database_error.code().is_some() => {
                 let code: i64 = database_error
                     .code()
                     .map(|x| x.parse())
@@ -220,9 +217,17 @@ impl SqliteRetry {
             _ => false,
         }
     }
+    pub fn is_retryable(&mut self, error: &sqlx::Error) -> bool {
+        self.retries -= 1;
+        self.retries > 0 && Self::error_is_retryable(error)
+    }
 
     pub fn calculate_sleep(&self) -> Duration {
-        let seconds = (Self::MAX_RETRIES - self.retries) as u64;
+        Self::calculate_sleep_based_on(self.retries)
+    }
+
+    pub fn calculate_sleep_based_on(retries: u8) -> Duration {
+        let seconds = (Self::MAX_RETRIES - retries) as u64;
         Duration::from_secs(seconds)
     }
 }

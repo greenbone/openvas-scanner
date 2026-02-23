@@ -105,6 +105,11 @@ where
     }
 
     #[cfg(test)]
+    pub fn receiver(&mut self) -> &mut Receiver<Message> {
+        &mut self.receiver
+    }
+
+    #[cfg(test)]
     pub fn config(&self) -> Arc<Config> {
         self.config.clone()
     }
@@ -147,8 +152,7 @@ where
             }
         }
         drop(registry);
-
-        tracing::debug!(id = pimage.id, images = result.len(), "Found");
+        tracing::debug!(id = pimage.id, images = result.len(), "Resolved");
         Ok(result)
     }
 
@@ -158,6 +162,7 @@ where
         image: ProcessingImage,
     ) -> Result<(), sqlx::Error> {
         db::set_scan_to_running(&pool, &image.id).await?;
+        tracing::debug!("Set to running.");
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
@@ -176,23 +181,19 @@ where
     ) where
         T: ToNotus,
     {
+        tracing::debug!("checking for requested and scanning");
         let mut conn = conn.lock().await;
         let pool = conn.pool();
         let requested = RequestedScans::fetch(&pool, config.max_scans).await;
-        let mut js = JoinSet::new();
+        let catalog_pool = pool.clone();
         for r in requested {
-            let pool = pool.clone();
-            js.spawn(async move {
-                if let Err(error) = Self::resolve_and_store_images(pool, r).await {
-                    tracing::warn!(%error, "Unable to set image status after fetching the images");
-                }
-            });
+            if let Err(error) = Self::resolve_and_store_images(catalog_pool.clone(), r).await {
+                tracing::warn!(%error, "Unable to set image status after fetching the images");
+            }
         }
-        let tsp = pool.clone();
-        js.spawn(async move {
-            Self::scan_images::<T>(config, tsp, products).await;
-        });
-        js.join_all().await;
+
+        let scan_pool = pool.clone();
+        Self::scan_images::<T>(config, scan_pool, products).await;
         if let Err(error) = db::set_scans_to_finished(&mut conn).await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
@@ -356,14 +357,6 @@ where
         js.join_all().await;
     }
 
-    pub(crate) async fn check_for_message(&mut self) -> Option<()> {
-        let msg = self.receiver.recv().await?;
-        if let Err(e) = db::on_message(&self.pool, &msg).await {
-            warn!(error=%e, id=msg.id, "Unable to handle message");
-        }
-        Some(())
-    }
-
     pub async fn run<T>(mut self)
     where
         T: ToNotus,
@@ -393,29 +386,25 @@ where
         let conn = Arc::new(Mutex::new(conn));
         loop {
             tokio::select! {
-                Some(()) = self.check_for_message() => {
+                Some(msg) = self.receiver.recv() => {
+                let pool = self.pool.clone();
 
-                let products = self.products.clone();
-                let config = config.clone();
-                let conn = conn.clone();
                 tokio::spawn(async move {
-                    Self::start_scans::<T>(config, conn, products).await
+                    if let Err(e) = db::on_message(&pool, &msg).await {
+                        warn!(error=%e, id=msg.id, "Unable to handle message");
+                    }
                 });
-
                 }
 
                 _ = interval.tick() => {
-
                 let products = self.products.clone();
                 let config = config.clone();
                 let conn = conn.clone();
+
                 tokio::spawn(async move {
                     Self::start_scans::<T>(config, conn, products).await
-
                 });
-
                 }
-
 
                 else => {
                     debug!("Channel closed, good bye");
