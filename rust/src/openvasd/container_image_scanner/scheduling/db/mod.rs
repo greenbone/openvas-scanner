@@ -6,6 +6,7 @@ use sqlx::{
     Acquire, Database, Pool, QueryBuilder, Row, Sqlite, query, query::Query, sqlite::SqliteRow,
 };
 use tracing::debug;
+pub mod images;
 pub mod scan;
 
 use crate::{
