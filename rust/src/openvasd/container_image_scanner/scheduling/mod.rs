@@ -23,9 +23,12 @@ use crate::{
     container_image_scanner::{
         self,
         messages::CustomerMessage,
-        scheduling::scanner::{ScannerArchImageError, ScannerError},
+        scheduling::{
+            db::images::SqliteImages,
+            scanner::{ScannerArchImageError, ScannerError},
+        },
     },
-    database::sqlite::SqliteConnectionContainer,
+    database::{dao::Execute, sqlite::SqliteConnectionContainer},
 };
 use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
@@ -199,71 +202,6 @@ where
         }
     }
 
-    async fn set_images_to_scanning(
-        config: Arc<Config>,
-        pool: &sqlx::Pool<Sqlite>,
-    ) -> Result<Vec<(ImageID, Option<Credential>)>, sqlx::error::Error> {
-        let mut tx = pool.begin().await?;
-
-        let scan_limit = match config.image_max_scanning() {
-            0 => -1,
-            max => {
-                let max = max as i64;
-                let current_scanning: (i64,) =
-                    sqlx::query_as("SELECT COUNT(*) FROM images WHERE status = 'scanning'")
-                        .fetch_one(&mut *tx)
-                        .await?;
-                if current_scanning.0 >= max {
-                    0
-                } else {
-                    max - current_scanning.0
-                }
-            }
-        };
-        if scan_limit == 0 {
-            return Ok(vec![]);
-        }
-        let limit = match config.image_batch_size() {
-            0 => scan_limit,
-            max if max > scan_limit as usize => scan_limit, // -1 will be usize::MAX
-            max => max as i64,
-        };
-
-        let rows = sqlx::query(
-            r#"
-    SELECT i.id, i.image, c.username, c.password
-    FROM images i
-    LEFT JOIN credentials c ON i.id = c.id
-    WHERE i.status = 'pending'
-    LIMIT ?
-    "#,
-        )
-        .bind(limit)
-        .fetch_all(&mut *tx)
-        .await?;
-        let mut result = Vec::with_capacity(rows.len());
-        for row in rows {
-            let credentials = db::row_to_credential(&row);
-            let id: ImageID = row.into();
-
-            sqlx::query(
-                r#"
-        UPDATE images
-        SET status = 'scanning'
-        WHERE id = ? AND image = ?
-        "#,
-            )
-            .bind(id.id())
-            .bind(id.image())
-            .execute(&mut *tx)
-            .await?;
-            result.push((id, credentials));
-        }
-        tx.commit().await?;
-
-        Ok(result)
-    }
-
     #[instrument(skip_all, fields(id=id.id(), image=id.image()))]
     async fn scan_image<T>(
         config: Arc<Config>,
@@ -342,9 +280,20 @@ where
     ) where
         T: ToNotus,
     {
-        let scans = Self::set_images_to_scanning(config.clone(), &pool)
-            .await
-            .unwrap();
+        let scans = match SqliteImages::new(
+            &pool,
+            (config.image_max_scanning(), config.image_batch_size()),
+        )
+        .exec()
+        .await
+        {
+            Ok(x) => x,
+            Err(error) => {
+                tracing::warn!(%error, "Unable to set images to running.");
+                return;
+            }
+        };
+
         let mut js = JoinSet::new();
         for (id, credentials) in scans {
             let pool = pool.clone();

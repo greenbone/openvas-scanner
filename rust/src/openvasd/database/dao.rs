@@ -74,6 +74,12 @@ pub trait Fetch<T> {
         'a: 'b;
 }
 
+pub trait Execute<T> {
+    fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, T>
+    where
+        'a: 'b;
+}
+
 pub trait StreamFetch<T> {
     fn stream_fetch(self) -> DAOStreamer<T>;
 }
