@@ -6,6 +6,7 @@ use thiserror::Error;
 
 use crate::nasl::prelude::*;
 use crate::nasl::utils::error::FnErrorKind;
+use crate::notus::NotusError;
 
 use super::KBError;
 use super::cert::CertError;
@@ -27,6 +28,8 @@ pub enum BuiltinError {
     Ssh(SshError),
     #[error("{0}")]
     Http(HttpError),
+    #[error("{0}")]
+    Notus(NotusError),
     #[error("{0}")]
     String(StringError),
     #[error("{0}")]
@@ -101,6 +104,6 @@ builtin_error_variant!(CertError, Cert);
 builtin_error_variant!(SysError, Sys);
 builtin_error_variant!(FindServiceError, FindService);
 builtin_error_variant!(SnmpError, Snmp);
-
+builtin_error_variant!(NotusError, Notus);
 #[cfg(feature = "nasl-builtin-raw-ip")]
 builtin_error_variant!(RawIpError, RawIp);

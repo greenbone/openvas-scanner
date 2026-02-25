@@ -18,6 +18,8 @@ check_interval = "3600s"
 products_path = "/var/lib/notus/products/"
 # path to the notus advisories feed. This is required for the /vts endpoint
 advisories_path = "/var/lib/notus/advisories/"
+# Address to reach notus on. If not set, internal notus implementation is used.
+# address = "127.0.0.1:3001"
 
 [endpoints]
 # Enables GET /scans endpoint
@@ -102,4 +104,3 @@ max_scanning = 10
 batch_size = 2
 # How long openvasd should pause before retrying
 retry_timeout = "1s"
-

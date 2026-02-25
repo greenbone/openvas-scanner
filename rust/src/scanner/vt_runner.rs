@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
-use crate::nasl::utils::scan_ctx::{ContextStorage, Ports, Target};
+use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Ports, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
@@ -37,6 +37,7 @@ pub struct VTRunner<'a, S> {
     scan_id: String,
     scan_preferences: &'a ScanPrefs,
     alive_test_methods: &'a Vec<AliveTestMethods>,
+    notus: &'a Option<NotusCtx>,
 }
 
 impl<'a, S> VTRunner<'a, S>
@@ -56,6 +57,7 @@ where
         scan_id: String,
         scan_preferences: &'a ScanPrefs,
         alive_test_methods: &'a Vec<AliveTestMethods>,
+        notus: &'a Option<NotusCtx>,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
             storage,
@@ -69,6 +71,7 @@ where
             scan_id,
             scan_preferences,
             alive_test_methods,
+            notus,
         };
         s.execute().await
     }
@@ -211,6 +214,7 @@ where
             executor: self.executor,
             scan_preferences: self.scan_preferences.clone(),
             alive_test_methods: self.alive_test_methods.to_vec(),
+            notus: self.notus.clone(),
         }
         .build();
         context.set_nvt(self.vt.clone());
