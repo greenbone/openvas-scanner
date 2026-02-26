@@ -6,14 +6,14 @@ mod error;
 mod sessions;
 mod utils;
 
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 mod libssh;
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 use libssh::{AuthMethods, SessionId, Socket, SshSession};
 
-#[cfg(not(feature = "nasl-builtin-libssh"))]
+#[cfg(feature = "native-rust-ssh")]
 mod russh;
-#[cfg(not(feature = "nasl-builtin-libssh"))]
+#[cfg(feature = "native-rust-ssh")]
 use russh::{AuthMethods, SessionId, Socket, SshSession};
 
 #[cfg(test)]
@@ -31,7 +31,7 @@ use crate::nasl::prelude::*;
 use error::SshErrorKind;
 use utils::CommaSeparated;
 
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 mod libssh_uses {
     pub use crate::nasl::utils::function::{Maybe, StringOrData};
     pub use libssh_rs::{AuthStatus, PublicKeyHashType};
@@ -39,7 +39,7 @@ mod libssh_uses {
     pub use tracing::debug;
 }
 
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 use libssh_uses::*;
 
 type Result<T> = std::result::Result<T, FnError>;
@@ -67,7 +67,7 @@ impl Output {
     }
 }
 
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 function_set! {
     Ssh,
     (
@@ -93,7 +93,7 @@ function_set! {
     )
 }
 
-#[cfg(not(feature = "nasl-builtin-libssh"))]
+#[cfg(feature = "native-rust-ssh")]
 function_set! {
     Ssh,
     (
@@ -325,7 +325,7 @@ impl Ssh {
     }
 }
 
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 impl Ssh {
     /// Given a socket, return the corresponding session id if available.
     #[nasl_function]
