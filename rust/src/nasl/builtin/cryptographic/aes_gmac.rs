@@ -3,10 +3,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::function_set;
-#[cfg(feature = "nasl-c-lib")]
 use crate::nasl::{prelude::*, utils::function::StringOrData};
 
-#[cfg(feature = "nasl-c-lib")]
 pub fn aes_gmac(data: &[u8], key: &[u8], iv: &[u8]) -> Result<NaslValue, FnError> {
     use nasl_c_lib::cryptographic::mac::aes_gmac;
 
@@ -21,7 +19,6 @@ pub fn aes_gmac(data: &[u8], key: &[u8], iv: &[u8]) -> Result<NaslValue, FnError
 /// NASL function to calculate GMAC with AES128.
 ///
 /// This function expects 3 named arguments key, data and iv either in a string or data type.
-#[cfg(feature = "nasl-c-lib")]
 #[nasl_function(named(key, iv, data))]
 fn nasl_aes_gmac(
     key: StringOrData,
@@ -33,17 +30,9 @@ fn nasl_aes_gmac(
 
 pub struct AesGmac;
 
-#[cfg(feature = "nasl-c-lib")]
 function_set! {
     AesGmac,
     (
         (nasl_aes_gmac, "aes_mac_gcm"),
-    )
-}
-
-#[cfg(not(feature = "nasl-c-lib"))]
-function_set! {
-    AesGmac,
-    (
     )
 }

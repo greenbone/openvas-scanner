@@ -16,7 +16,6 @@ fn smb_cmac_aes_signature(key: StringOrData, buf: StringOrData) -> Result<NaslVa
     aes_cmac(key.data(), buf.data())
 }
 
-#[cfg(feature = "nasl-c-lib")]
 #[nasl_function(named(key, buf, iv))]
 fn smb_gmac_aes_signature(
     key: StringOrData,
@@ -83,21 +82,10 @@ fn smb3kdf(
 }
 
 pub struct Smb;
-#[cfg(feature = "nasl-c-lib")]
 function_set! {
     Smb,
     (
         smb_gmac_aes_signature,
-        smb_cmac_aes_signature,
-        smb3kdf,
-        get_smb2_signature,
-    )
-}
-
-#[cfg(not(feature = "nasl-c-lib"))]
-function_set! {
-    Smb,
-    (
         smb_cmac_aes_signature,
         smb3kdf,
         get_smb2_signature,

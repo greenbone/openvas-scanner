@@ -90,7 +90,7 @@ async fn ssh_connect() {
                 ArgumentError::WrongArgument(_)
             );
             // Without a matching key algorithm, we should not be able to connect
-            #[cfg(not(feature = "nasl-builtin-libssh"))]
+            #[cfg(feature = "native-rust-ssh")]
             check_err_matches!(
                 t,
                 format!(r#"id = ssh_connect(port:{PORT}, keytype: "ssh-rsa");"#),
@@ -143,7 +143,7 @@ async fn ssh_userauth() {
 // the bug does not appear when connected to an openssh
 // server. To fix this, I'd need to understand the
 // russh server code in more detail.
-#[cfg_attr(feature = "nasl-builtin-libssh", ignore)]
+#[cfg_attr(not(feature = "native-rust-ssh"), ignore)]
 async fn ssh_request_exec() {
     run_test(
         |t| {

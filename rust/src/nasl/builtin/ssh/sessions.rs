@@ -57,7 +57,7 @@ impl SshSessions {
         Ok(())
     }
 
-    #[cfg(feature = "nasl-builtin-libssh")]
+    #[cfg(not(feature = "native-rust-ssh"))]
     pub fn ids(&self) -> impl Iterator<Item = &SessionId> {
         self.sessions.keys()
     }
