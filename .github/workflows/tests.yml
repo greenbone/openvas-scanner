@@ -27,4 +27,4 @@ jobs:
       - name: unit-tests
         run: cargo test --lib --tests --workspace
       - name: experimental unit-tests
-        run: cargo test --lib --tests --workspace --features experimental
+        run: cargo test --lib --tests --workspace --features native-rust-ssh

@@ -24,8 +24,6 @@ pub type NaslResult = Result<NaslValue, FnError>;
 
 /// Allows the definition of global variables
 /// belonging to certain builtin functions.
-// This is currently only used with `experimental` feature,
-// so we mark it as public in order to save many feature gates.
 pub trait DefineGlobalVars {
     fn get_global_vars() -> Vec<(&'static str, NaslValue)>;
 }

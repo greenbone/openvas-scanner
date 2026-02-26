@@ -123,11 +123,11 @@ uuid = { workspace = true }
 libssh-rs = { version = "0.3.5", features = [
     "vendored-openssl",
     "vendored",
-], optional = true }
+] }
 
 nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
 greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
-nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
+nasl-c-lib = { path = "crates/nasl-c-lib" }
 rpmdb = { path = "crates/rpmdb-rs" }
 tar = "0"
 libflate = "2"
@@ -152,8 +152,7 @@ tar = "0"
 
 [features]
 default = ["enforce-no-trailing-arguments"]
-nasl-builtin-libssh = ["libssh-rs"]
-experimental = ["nasl-builtin-libssh", "nasl-c-lib"]
+native-rust-ssh = []
 enforce-no-trailing-arguments = []
 
 [workspace.package]

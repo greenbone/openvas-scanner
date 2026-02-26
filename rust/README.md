@@ -22,10 +22,6 @@ The implementation is split into multiple parts that are reflected in the direct
 - openssl
 - libnetsnmp
 - libpcap
-
-Additionally for the features defined as experimental you need:
-
-- libpcap
 - openssl
 - pkg-config
 - zlib
@@ -40,12 +36,6 @@ To build and create the executables
 You have to execute
 ```
 cargo build --release
-```
-
-To enable the experimental features:
-
-```
-cargo build -F experimental --release
 ```
 
 # Contribution

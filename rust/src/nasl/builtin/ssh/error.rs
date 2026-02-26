@@ -15,14 +15,14 @@ use super::SessionId;
 #[error("{0}")]
 struct LibError(String);
 
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 impl From<libssh_rs::Error> for LibError {
     fn from(e: libssh_rs::Error) -> Self {
         Self(format!("{e}"))
     }
 }
 
-#[cfg(not(feature = "nasl-builtin-libssh"))]
+#[cfg(feature = "native-rust-ssh")]
 impl From<russh::Error> for LibError {
     fn from(e: russh::Error) -> Self {
         Self(format!("{e}"))
@@ -129,7 +129,7 @@ impl WithErrorInfo<SessionId> for SshError {
     }
 }
 
-#[cfg(feature = "nasl-builtin-libssh")]
+#[cfg(not(feature = "native-rust-ssh"))]
 impl WithErrorInfo<libssh_rs::Error> for SshError {
     type Error = SshError;
 
@@ -139,7 +139,7 @@ impl WithErrorInfo<libssh_rs::Error> for SshError {
     }
 }
 
-#[cfg(not(feature = "nasl-builtin-libssh"))]
+#[cfg(feature = "native-rust-ssh")]
 impl WithErrorInfo<russh::Error> for SshError {
     type Error = SshError;
 

@@ -4,7 +4,6 @@
 
 use std::{fmt::Display, net::IpAddr};
 
-
 use crate::nasl::raw_ip_utils::raw_ip_utils;
 use crate::{
     nasl::{prelude::*, utils::DefineGlobalVars},
