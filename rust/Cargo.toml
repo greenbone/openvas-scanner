@@ -130,8 +130,6 @@ greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
 nasl-c-lib = { path = "crates/nasl-c-lib", optional = true }
 rpmdb = { path = "crates/rpmdb-rs" }
 tar = "0"
-libflate = "2"
-infer = "0.19.0"
 bzip2 = "0"
 zstd = "0"
 rustls-pki-types = { version = "1.14.0", features = ["std"] }
