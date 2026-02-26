@@ -452,7 +452,7 @@ where
         self
     }
 
-    #[cfg(all(test, feature = "experimental"))]
+    #[cfg(test)]
     /// Return a new `TestBuilder` with the given `target`.
     pub fn with_target(mut self, target: String) -> Self {
         self.target = target;
