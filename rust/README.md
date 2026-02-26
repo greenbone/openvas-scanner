@@ -21,10 +21,12 @@ The implementation is split into multiple parts that are reflected in the direct
 - rust toolchain
 - openssl
 - libnetsnmp
+- libpcap
 
 Additionally for the features defined as experimental you need:
 
 - libpcap
+- openssl
 - pkg-config
 - zlib
 
