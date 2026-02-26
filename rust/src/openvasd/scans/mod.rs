@@ -1,4 +1,4 @@
-use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
+use std::{collections::HashSet, num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
@@ -55,6 +55,24 @@ impl From<crypt::ParseError> for Error {
     fn from(value: crypt::ParseError) -> Self {
         Error::Crypt(value)
     }
+}
+
+/// Validates that credentials do not contain duplicate service types.
+///
+/// Returns an error with the duplicate service name if duplicates are found.
+///
+/// This is required because the openvas implementation only supports one credential
+/// per service type, as credentials are exposed via NASL scripts as kb items with fixed indices.
+fn validate_no_duplicate_credential_services(
+    credentials: &[models::Credential],
+) -> Result<(), String> {
+    let mut seen_services = HashSet::new();
+    for cred in credentials {
+        if !seen_services.insert(&cred.service) {
+            return Err(cred.service.as_ref().to_string());
+        }
+    }
+    Ok(())
 }
 
 async fn scan_insert<C>(
@@ -209,6 +227,11 @@ where
         let annoying = scan.scan_id.clone();
         Box::pin(async move {
             tracing::debug!(client_id, ?scan);
+            if let Err(service) =
+                validate_no_duplicate_credential_services(&scan.target.credentials)
+            {
+                return Err(PostScansError::DuplicateCredentialService(service));
+            }
             scan_insert(&self.pool, self.crypter.as_ref(), &client_id, scan)
                 .await
                 .map_err(|x| match x {
@@ -734,6 +757,33 @@ mod tests {
         crypt::ChaCha20Crypt,
         scans::{config_to_crypt, scheduling},
     };
+
+    #[test]
+    fn test_validate_no_duplicate_credential_services() {
+        let cred_ssh = models::Credential {
+            service: models::Service::SSH,
+            ..Default::default()
+        };
+        let cred_smb = models::Credential {
+            service: models::Service::SMB,
+            ..Default::default()
+        };
+
+        // Case 1: Empty list
+        assert!(validate_no_duplicate_credential_services(&[]).is_ok());
+
+        // Case 2: Unique services
+        assert!(
+            validate_no_duplicate_credential_services(&[cred_ssh.clone(), cred_smb.clone()])
+                .is_ok()
+        );
+
+        // Case 3: Duplicate services
+        let result =
+            validate_no_duplicate_credential_services(&[cred_ssh.clone(), cred_ssh.clone()]);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "ssh");
+    }
 
     async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {
         let ignored = Default::default();
