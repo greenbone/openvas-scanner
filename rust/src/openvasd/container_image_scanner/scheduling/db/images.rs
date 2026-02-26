@@ -1,8 +1,15 @@
+use std::collections::HashMap;
+
+use futures::StreamExt;
+use scannerlib::models;
 use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
 
 use crate::{
-    container_image_scanner::image::{Credential, ImageID},
-    database::dao::{DAOError, DAOPromiseRef, Execute},
+    container_image_scanner::{
+        image::{Credential, Image, ImageID, ImageParseError},
+        scheduling::ProcessingImage,
+    },
+    database::dao::{DAOError, DAOPromiseRef, Execute, Fetch},
 };
 
 impl TryFrom<&SqliteRow> for Credential {
@@ -30,6 +37,40 @@ pub struct SqliteImages<'o, T> {
 impl<'o, T> SqliteImages<'o, T> {
     pub fn new(pool: &'o SqlitePool, input: T) -> SqliteImages<'o, T> {
         SqliteImages { input, pool }
+    }
+}
+
+impl From<SqliteRow> for ImageID {
+    fn from(row: SqliteRow) -> Self {
+        let id: i64 = row.get("id");
+        Self {
+            id: id.to_string(),
+            image: row.get("image"),
+        }
+    }
+}
+
+impl<'o> Execute<()> for SqliteImages<'o, (&'o ImageID, models::Phase)> {
+    fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
+    where
+        'a: 'b,
+    {
+        Box::pin(async move {
+            let (ids, status) = &self.input;
+            sqlx::query(
+                r#"
+            UPDATE images
+            SET status = ?
+            WHERE id = ? AND image = ?"#,
+            )
+            .bind(status.as_ref())
+            .bind(ids.id())
+            .bind(ids.image())
+            .execute(self.pool)
+            .await
+            .map_err(DAOError::from)
+            .map(|_| ())
+        })
     }
 }
 
@@ -99,6 +140,89 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for SqliteImages<'o, (usize
             tx.commit().await?;
 
             Ok(result)
+        })
+    }
+}
+impl<'o> Fetch<Vec<ProcessingImage>> for SqliteImages<'o, usize> {
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<ProcessingImage>>
+    where
+        'a: 'b,
+    {
+        Box::pin(async move {
+            let limit = if self.input == 0 {
+                254
+            } else {
+                self.input as i64
+            };
+            let mut stream = sqlx::query(
+                r#"
+        WITH running_count AS (
+            SELECT COUNT(*) AS running_total
+            FROM scans
+            WHERE status = 'running'
+        ),
+        selected_scans AS (
+            SELECT id
+            FROM scans
+            WHERE status = 'requested'
+            ORDER BY created_at ASC
+            LIMIT (
+                SELECT CASE
+                    WHEN running_total < ? THEN 1
+                    ELSE 0
+                END
+                FROM running_count
+            )
+        )
+        SELECT 
+            r.id,
+            r.host AS registry,
+            c.username,
+            c.password
+        FROM registry r
+        JOIN selected_scans s
+          ON r.id = s.id
+        LEFT JOIN credentials c
+          ON r.id = c.id
+        "#,
+            )
+            .bind(limit)
+            .fetch(self.pool);
+            type ImageResult = Result<Image, ImageParseError>;
+
+            let mut map: HashMap<i64, (Vec<ImageResult>, Option<Credential>)> = HashMap::new();
+
+            while let Some(row_result) = stream.next().await {
+                let row = match row_result {
+                    Ok(x) => x,
+                    Err(e) => {
+                        unreachable!(
+                            "Unreachable: SQL query failed despite static structure. Error: {}",
+                            e
+                        )
+                    }
+                };
+
+                let registry: String = row.get("registry");
+                let image = registry.parse();
+
+                let id: i64 = row.get("id");
+                let credential = Credential::try_from(&row).ok();
+
+                let entry = map.entry(id).or_insert_with(|| (Vec::new(), credential));
+
+                entry.0.push(image);
+            }
+
+            map.into_iter()
+                .map(|(id, (image, credentials))| {
+                    Ok(ProcessingImage {
+                        id: id.to_string(),
+                        image,
+                        credentials,
+                    })
+                })
+                .collect()
         })
     }
 }

@@ -228,9 +228,9 @@ mod scans_utils {
                 DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
                 packages::AllTypes,
             },
-            scheduling::{Scheduler, db},
+            scheduling::{Scheduler, db::scan::SqliteScan},
         },
-        database::sqlite::SqliteConnectionContainer,
+        database::dao::Execute,
     };
     use scannerlib::notus::path_to_products;
 
@@ -278,7 +278,10 @@ mod scans_utils {
         async fn recv(&mut self) {
             let msg = self.scheduler.receiver().recv().await;
             if let Some(msg) = msg {
-                db::on_message(&self.scheduler.pool(), &msg).await.unwrap();
+                SqliteScan::new((), (msg.id, msg.action), &self.scheduler.pool())
+                    .exec()
+                    .await
+                    .unwrap();
             }
         }
 
@@ -365,9 +368,7 @@ mod scans_utils {
             let scans = scan.target.hosts.len();
             let scan_id = self.create_start_scan(&client_id, scan).await;
             let pool = self.scheduler.pool();
-            let conn = Arc::new(Mutex::new(
-                SqliteConnectionContainer::init(pool).await.unwrap(),
-            ));
+            let conn = Arc::new(Mutex::new(pool));
             for _ in 0..scans {
                 Scheduler::<DockerRegistryV2, filtered_image::Extractor>::start_scans::<AllTypes>(
                     self.scheduler.config(),

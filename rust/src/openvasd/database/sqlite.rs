@@ -6,7 +6,7 @@ use sqlx::{
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
-use crate::database::dao::{DAOError, DBViolation};
+use crate::database::dao::{DAOError, DBViolation, InfrastructureReason};
 
 /// Contains a single connection to be used and allows replacing that connection on certain errors.
 ///
@@ -20,6 +20,9 @@ use crate::database::dao::{DAOError, DBViolation};
 ///
 /// That's why we need to enforce for critical operations to happen on the same connection and
 /// handled mutually exclusive usually enforced by a mutex.
+///
+///
+// TODO: delete
 #[derive(Debug)]
 pub struct SqliteConnectionContainer {
     pool: SqlitePool,
@@ -58,10 +61,6 @@ impl SqliteConnectionContainer {
             current_connection,
             max_retries: 3,
         })
-    }
-
-    pub fn pool(&self) -> SqlitePool {
-        self.pool.clone()
     }
 
     pub fn connection(&mut self) -> &mut SqliteConnection {
@@ -141,10 +140,11 @@ impl From<sqlx::error::ErrorKind> for DBViolation {
         }
     }
 }
+
 impl From<sqlx::Error> for DAOError {
     fn from(value: sqlx::Error) -> Self {
         use sqlx::error::ErrorKind::*;
-        match value {
+        match &value {
             sqlx::Error::Database(be)
                 if matches!(
                     be.kind(),
@@ -153,10 +153,30 @@ impl From<sqlx::Error> for DAOError {
             {
                 Self::DBViolation(be.kind().into())
             }
+            sqlx::Error::Database(be) if be.code().is_some() => {
+                let code: i64 = be
+                    .code()
+                    .map(|x| x.parse())
+                    .filter(|x| x.is_ok())
+                    .map(|x| x.unwrap())
+                    .unwrap_or_default();
+                // 5,   https://sqlite.org/rescode.html#busy
+                // 6,   https://sqlite.org/rescode.html#locked
+                // 513, https://sqlite.org/rescode.html#error_retry
+                // 517, https://sqlite.org/rescode.html#busy_snapshot
+                // 773, https://sqlite.org/rescode.html#busy_timeout
+
+                Self::Infrastructure(match code {
+                    5 | 517 | 773 => InfrastructureReason::Busy,
+                    6 => InfrastructureReason::Locked,
+                    513 => InfrastructureReason::RetryError(value.to_string()),
+                    _ => InfrastructureReason::Error(value.to_string()),
+                })
+            }
             sqlx::Error::RowNotFound => DAOError::NotFound,
             error => {
                 tracing::warn!(%error, "Unexpected sqlx::Error.");
-                Self::Infrastructure
+                DAOError::Infrastructure(InfrastructureReason::Error(value.to_string()))
             }
         }
     }

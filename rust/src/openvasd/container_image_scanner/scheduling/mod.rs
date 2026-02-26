@@ -6,7 +6,7 @@ use container_image_scanner::{
     image,
     image::{Credential, Image, ImageID, packages::ToNotus},
 };
-use db::{ProcessingImage, RequestedScans};
+use futures::StreamExt;
 use greenbone_scanner_framework::models;
 use sqlx::{Sqlite, SqlitePool};
 use tokio::{
@@ -22,13 +22,14 @@ use tracing::{debug, instrument, warn};
 use crate::{
     container_image_scanner::{
         self,
+        image::ImageParseError,
         messages::CustomerMessage,
         scheduling::{
-            db::images::SqliteImages,
+            db::{images::SqliteImages, preferences::SqlitePreferences, scan::SqliteScan},
             scanner::{ScannerArchImageError, ScannerError},
         },
     },
-    database::{dao::Execute, sqlite::SqliteConnectionContainer},
+    database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
 };
 use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
@@ -36,10 +37,34 @@ use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 pub mod db;
 mod scanner;
 
+pub async fn image_failed(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
+    if let Err(error) = SqliteImages::new(pool, (id, models::Phase::Failed))
+        .retry_exec()
+        .await
+    {
+        tracing::warn!(%error, "Unable to set status to failed.")
+    }
+}
+
+pub async fn image_success(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
+    if let Err(error) = SqliteImages::new(pool, (id, models::Phase::Succeeded))
+        .retry_exec()
+        .await
+    {
+        tracing::warn!(%error, "Unable to set status to succeeded.")
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ProcessingImage {
+    pub id: String,
+    pub image: Vec<Result<Image, ImageParseError>>,
+    pub credentials: Option<Credential>,
+}
 #[derive(Debug)]
 pub struct Message {
-    id: String,
-    action: models::Action,
+    pub id: String,
+    pub action: models::Action,
 }
 
 impl Message {
@@ -127,7 +152,9 @@ where
         id: &str,
         credentials: Option<Credential>,
     ) -> Result<R, RegistryError> {
-        let result = db::preferences(pool, id);
+        let result = SqlitePreferences::new(pool, id.to_owned())
+            .stream_fetch()
+            .filter_map(|x| async move { x.ok() });
         let prefs = image::RegistrySetting::parse_preferences(result).await;
         R::initialize(credentials, prefs)
     }
@@ -163,31 +190,43 @@ where
     pub(crate) async fn resolve_and_store_images(
         pool: sqlx::Pool<Sqlite>,
         image: ProcessingImage,
-    ) -> Result<(), sqlx::Error> {
-        db::set_scan_to_running(&pool, &image.id).await?;
+    ) -> Result<(), DAOError> {
+        let id = &image.id as &str;
+        SqliteScan::new((), (id, models::Phase::Running), &pool)
+            .retry_exec()
+            .await?;
         tracing::debug!("Set to running.");
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
-                return db::set_scan_to_failed(&pool, &image.id).await;
+                return SqliteScan::new((), (id, models::Phase::Failed), &pool)
+                    .retry_exec()
+                    .await;
             }
             Ok(x) => x,
         };
-
-        db::set_scan_images(&pool, &image.id, images).await
+        SqliteScan::new((), (id, &images as &[_]), &pool)
+            .retry_exec()
+            .await
     }
 
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
-        conn: Arc<Mutex<SqliteConnectionContainer>>,
+        // TODO: is that really necessary?
+        conn: Arc<Mutex<SqlitePool>>,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,
     {
         tracing::debug!("checking for requested and scanning");
-        let mut conn = conn.lock().await;
-        let pool = conn.pool();
-        let requested = RequestedScans::fetch(&pool, config.max_scans).await;
+        let pool = conn.lock().await;
+        let requested = match SqliteImages::new(&pool, config.max_scans).fetch().await {
+            Ok(r) => r,
+            Err(error) => {
+                tracing::warn!(%error, "Unable to fetch images from the DB");
+                return;
+            }
+        };
         let catalog_pool = pool.clone();
         for r in requested {
             if let Err(error) = Self::resolve_and_store_images(catalog_pool.clone(), r).await {
@@ -197,7 +236,11 @@ where
 
         let scan_pool = pool.clone();
         Self::scan_images::<T>(config, scan_pool, products).await;
-        if let Err(error) = db::set_scans_to_finished(&mut conn).await {
+
+        if let Err(error) = SqliteScan::new((), models::Phase::Succeeded, &pool)
+            .exec()
+            .await
+        {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
     }
@@ -225,7 +268,7 @@ where
                 .await
                 {
                     Ok(_) => {
-                        db::image_success(&pool, id).await;
+                        image_success(&pool, id).await;
                     }
                     Err(err) => {
                         // Notus error should not set a scan to failed
@@ -242,9 +285,9 @@ where
                             })
                             .any(|x| x)
                         {
-                            db::image_failed(&pool, id).await;
+                            image_failed(&pool, id).await;
                         } else {
-                            db::image_success(&pool, id).await;
+                            image_success(&pool, id).await;
                         }
                         for e in err {
                             if let ScannerError::Image(ScannerArchImageError::Notus(
@@ -325,13 +368,8 @@ where
         let config = self.config.clone();
 
         let pool = self.pool.clone();
-        let conn = match SqliteConnectionContainer::init(pool).await {
-            Ok(x) => x,
-            Err(error) => {
-                tracing::error!(%error, "Unable to create connection container. Container-image-scanner disabled.");
-                return;
-            }
-        };
+        // ehww....
+        let conn = pool.clone();
         let conn = Arc::new(Mutex::new(conn));
         loop {
             tokio::select! {
@@ -339,8 +377,12 @@ where
                 let pool = self.pool.clone();
 
                 tokio::spawn(async move {
-                    if let Err(e) = db::on_message(&pool, &msg).await {
-                        warn!(error=%e, id=msg.id, "Unable to handle message");
+                    let id = msg.id.clone();
+
+                    if let Err(e) = SqliteScan::new((), (msg.id, msg.action),&pool)
+                        .retry_exec()
+                        .await {
+                        warn!(error=%e, id, "Unable to handle message");
                     }
                 });
                 }
