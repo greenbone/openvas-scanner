@@ -11,8 +11,7 @@ use nasl_c_lib::krb5::{
     OKrb5ErrorCode_O_KRB5_EXPECTED_NOT_NULL, OKrb5ErrorCode_O_KRB5_REALM_NOT_FOUND,
     OKrb5ErrorCode_O_KRB5_SUCCESS, OKrb5GSSContext, OKrb5Slice, OKrb5Target, OKrb5User,
     o_krb5_add_realm, o_krb5_find_kdc, o_krb5_gss_prepare_context, o_krb5_gss_session_key_context,
-    o_krb5_gss_update_context, okrb5_error_code_to_string, okrb5_gss_free_context,
-    okrb5_gss_init_context,
+    o_krb5_gss_update_context, okrb5_error_code_to_string, okrb5_gss_init_context,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::os;
