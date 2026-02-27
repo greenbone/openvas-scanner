@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use futures::StreamExt;
 use scannerlib::models;
@@ -6,7 +6,7 @@ use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::{
-        image::{Credential, Image, ImageID, ImageParseError},
+        image::{Credential, Image, ImageID, ImageParseError, ImageState},
         scheduling::ProcessingImage,
     },
     database::dao::{DAOError, DAOPromiseRef, Execute, Fetch},
@@ -30,8 +30,8 @@ impl TryFrom<&SqliteRow> for Credential {
 }
 #[derive(Debug, Clone)]
 pub struct SqliteImages<'o, T> {
-    input: T,
-    pool: &'o SqlitePool,
+    pub input: T,
+    pub pool: &'o SqlitePool,
 }
 
 impl<'o, T> SqliteImages<'o, T> {
@@ -50,7 +50,28 @@ impl From<SqliteRow> for ImageID {
     }
 }
 
-impl<'o> Execute<()> for SqliteImages<'o, (&'o ImageID, models::Phase)> {
+impl<'o> Fetch<Option<ImageState>> for SqliteImages<'o, (&'o str, &'o Image)> {
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<ImageState>>
+    where
+        'a: 'b,
+    {
+        Box::pin(async move {
+            let (id, image) = &self.input;
+            let hdf = sqlx::query_scalar::<_, String>(
+                "SELECT status FROM images WHERE id = ? AND image = ?",
+            )
+            .bind(id)
+            .bind(image.to_string())
+            .fetch_optional(self.pool)
+            .await;
+            match hdf {
+                Ok(x) => Ok(x.map(|x| ImageState::from_str(&x).unwrap())),
+                Err(err) => Err(DAOError::from(err)),
+            }
+        })
+    }
+}
+impl<'o> Execute<()> for SqliteImages<'o, (&'o ImageID, ImageState)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,

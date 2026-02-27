@@ -3,6 +3,11 @@ use std::time::Duration;
 use sqlx::{SqlitePool, query};
 use tokio::time::Instant;
 
+use crate::{
+    container_image_scanner::scheduling::db::timed_layer::SqliteTimedLayer,
+    database::dao::{Execute, Fetch, RetryExec},
+};
+
 #[derive(Default, Debug, Copy, Clone)]
 pub enum BenchType {
     #[default]
@@ -36,9 +41,9 @@ impl AsRef<str> for BenchType {
 
 #[derive(Debug, Default)]
 pub struct Benched {
-    kind: BenchType,
-    micro_seconds: u128,
-    layer_index: Option<usize>,
+    pub kind: BenchType,
+    pub micro_seconds: u128,
+    pub layer_index: Option<usize>,
 }
 
 impl Benched {
@@ -92,46 +97,20 @@ impl Benched {
     }
 
     pub async fn store(&self, pool: &SqlitePool, scan_id: &str, image: &str) {
-        if let Err(error) = query(
-            r#"INSERT INTO timed_layer (scan_id, image, layer_index, kind, micro_seconds)
-            VALUES(?, ?, ?, ?, ?)"#,
-        )
-        .bind(scan_id)
-        .bind(image)
-        .bind(self.layer_index.map(|x| x as i64).unwrap_or_default())
-        .bind(self.kind.as_ref())
-        .bind(self.micro_seconds as i64)
-        .execute(pool)
-        .await
+        if let Err(error) = SqliteTimedLayer::new(pool, (scan_id, image, self))
+            .retry_exec()
+            .await
         {
             tracing::warn!(?self, %error, "Unable to store. Layer duration lost.")
         }
     }
     pub async fn retrieve(pool: &SqlitePool, scan_id: &str, image: &str) -> Vec<Benched> {
-        use sqlx::Row;
-        let result = query(
-            r#"SELECT layer_index, kind, micro_seconds
-               FROM timed_layer
-               WHERE scan_id = ? AND image = ? "#,
-        )
-        .bind(scan_id)
-        .bind(image)
-        .fetch_all(pool)
-        .await;
+        let result = SqliteTimedLayer::new(pool, (scan_id, image)).fetch().await;
 
         if let Err(error) = &result {
             tracing::warn!(scan_id, image, %error, "Unable to retrieve. Layer duration lost.")
         }
-        result
-            .unwrap_or_default()
-            .iter()
-            .map(|row| Benched {
-                kind: BenchType::from(row.get::<&str, _>("kind")),
-                // it's very unlikely that we ever reach the duration limit of i64
-                micro_seconds: row.get::<i64, _>("micro_seconds") as u128,
-                layer_index: Some(row.get::<i64, _>("layer_index") as usize),
-            })
-            .collect()
+        result.unwrap_or_default()
     }
 }
 

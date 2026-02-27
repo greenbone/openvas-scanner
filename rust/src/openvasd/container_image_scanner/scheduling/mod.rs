@@ -22,7 +22,7 @@ use tracing::{debug, instrument, warn};
 use crate::{
     container_image_scanner::{
         self,
-        image::ImageParseError,
+        image::{ImageParseError, ImageState},
         messages::CustomerMessage,
         scheduling::{
             db::{images::SqliteImages, preferences::SqlitePreferences, scan::SqliteScan},
@@ -38,7 +38,7 @@ pub mod db;
 mod scanner;
 
 pub async fn image_failed(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
-    if let Err(error) = SqliteImages::new(pool, (id, models::Phase::Failed))
+    if let Err(error) = SqliteImages::new(pool, (id, ImageState::Failed))
         .retry_exec()
         .await
     {
@@ -47,7 +47,7 @@ pub async fn image_failed(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
 }
 
 pub async fn image_success(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
-    if let Err(error) = SqliteImages::new(pool, (id, models::Phase::Succeeded))
+    if let Err(error) = SqliteImages::new(pool, (id, ImageState::Succeeded))
         .retry_exec()
         .await
     {

@@ -1,10 +1,15 @@
 use std::{fmt::Display, time::Duration};
 
 use chrono::TimeDelta;
-use scannerlib::{SQLITE_LIMIT_VARIABLE_NUMBER, models};
-use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, query};
+use scannerlib::models;
+use sqlx::SqlitePool;
 
-use crate::container_image_scanner::{detection::OperatingSystem, image::Image};
+use crate::{
+    container_image_scanner::{
+        detection::OperatingSystem, image::Image, scheduling::db::results::SqliteResults,
+    },
+    database::dao::Execute,
+};
 
 #[derive(Debug, Clone)]
 pub struct CustomerMessage<T> {
@@ -108,7 +113,7 @@ impl<'a> From<DetailPair<'a>> for models::Detail {
 
 impl<T> CustomerMessage<T>
 where
-    T: Display + Clone,
+    T: Display + Clone + Sync,
 {
     pub fn host_start_end(image: T, digest: T, scan_duration: Duration) -> [Self; 2] {
         let end = chrono::Utc::now();
@@ -172,164 +177,9 @@ where
 
 pub async fn store<'a, T>(pool: &SqlitePool, id: &str, results: &'a [T])
 where
-    T: 'a + Into<models::Result> + Clone,
+    T: 'a + Into<models::Result> + Clone + Sync,
 {
-    if let Err(error) = retry_store(pool, id, results).await {
+    if let Err(error) = SqliteResults::new(pool, (id, results)).exec().await {
         tracing::warn!(%error, id, amount_of_results=results.len(), "Scan results lost.");
     }
-}
-
-pub struct SqliteRetry {
-    retries: u8,
-}
-
-impl Default for SqliteRetry {
-    fn default() -> Self {
-        Self {
-            retries: Self::MAX_RETRIES,
-        }
-    }
-}
-
-impl SqliteRetry {
-    // Not configurable at purpose. This is a internal sqlite DB measurement and should not be up
-    // to a customer to change.
-    pub const MAX_RETRIES: u8 = 5;
-    pub fn error_is_retryable(error: &sqlx::Error) -> bool {
-        match &error {
-            // waiting for if let guards to get rid of unwrap ...
-            sqlx::Error::Database(database_error) if database_error.code().is_some() => {
-                let code: i64 = database_error
-                    .code()
-                    .map(|x| x.parse())
-                    .filter(|x| x.is_ok())
-                    .map(|x| x.unwrap())
-                    .unwrap_or_default();
-                let known_codes = [
-                    5,   // https://sqlite.org/rescode.html#busy
-                    6,   // https://sqlite.org/rescode.html#locked
-                    513, // https://sqlite.org/rescode.html#error_retry
-                    517, // https://sqlite.org/rescode.html#busy_snapshot
-                    773, // https://sqlite.org/rescode.html#busy_timeout
-                ];
-                known_codes.iter().any(|x| x == &code)
-            }
-            _ => false,
-        }
-    }
-    pub fn is_retryable(&mut self, error: &sqlx::Error) -> bool {
-        self.retries -= 1;
-        self.retries > 0 && Self::error_is_retryable(error)
-    }
-
-    pub fn calculate_sleep(&self) -> Duration {
-        Self::calculate_sleep_based_on(self.retries)
-    }
-
-    pub fn calculate_sleep_based_on(retries: u8) -> Duration {
-        let seconds = (Self::MAX_RETRIES - retries) as u64;
-        Duration::from_secs(seconds)
-    }
-}
-
-async fn retry_store<'a, T>(
-    pool: &SqlitePool,
-    id: &str,
-    results: &'a [T],
-) -> Result<(), sqlx::Error>
-where
-    T: 'a + Into<models::Result> + Clone,
-{
-    let mut retry = SqliteRetry::default();
-    loop {
-        match try_store(pool, id, results).await {
-            Ok(_) => return Ok(()),
-            Err(error) if retry.is_retryable(&error) => {
-                tracing::debug!(
-                            id,
-                            %error,
-                            results=results.len(),
-                            "Retrying to store results.");
-                // also not configurable for the same reasons as max_tries;
-
-                tokio::time::sleep(retry.calculate_sleep()).await;
-            }
-            Err(error) => return Err(error),
-        }
-    }
-}
-async fn try_store<'a, T>(pool: &SqlitePool, id: &str, results: &'a [T]) -> Result<(), sqlx::Error>
-where
-    T: 'a + Into<models::Result> + Clone,
-{
-    if results.is_empty() {
-        return Ok(());
-    }
-    let mut conn = pool.acquire().await?;
-    let mut tx = conn.begin().await?;
-    let base_id = match query(
-        r#"
-                SELECT COUNT(*) AS result_count
-                FROM results
-                WHERE scan_id = ? "#,
-    )
-    .bind(id)
-    .fetch_one(&mut *tx)
-    .await
-    {
-        Ok(x) => x.get::<i64, _>("result_count"),
-        Err(sqlx::Error::RowNotFound) => 0,
-        Err(e) => {
-            return Err(e);
-        }
-    };
-    tracing::trace!(id, base_id, "Results.");
-    let mut builder = QueryBuilder::new(
-        r#"
-            INSERT INTO results (
-                scan_id,
-                id,
-                type,
-                ip_address,
-                hostname,
-                oid,
-                port,
-                protocol,
-                message,
-                detail_name,
-                detail_value,
-                source_type,
-                source_name,
-                source_description
-            )
-            "#,
-    );
-
-    for results in results.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 14) {
-        builder.push_values(results.iter().enumerate(), |mut b, (idx, result)| {
-            let result: models::Result = result.to_owned().into();
-            let detail = result.detail.unwrap_or_default();
-            b.push_bind(id)
-                .push_bind(idx as i64 + base_id)
-                .push_bind(result.r_type.to_string())
-                .push_bind(result.ip_address.unwrap_or_default())
-                .push_bind(result.hostname.unwrap_or_default())
-                .push_bind(result.oid.unwrap_or_default())
-                .push_bind(result.port.unwrap_or_default())
-                .push_bind(result.protocol.map(|x| x.to_string()).unwrap_or_default())
-                .push_bind(result.message.unwrap_or_default())
-                .push_bind(detail.name)
-                .push_bind(detail.value)
-                .push_bind(detail.source.s_type)
-                .push_bind(detail.source.name)
-                .push_bind(detail.source.description);
-        });
-
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
-    }
-
-    tx.commit().await?;
-
-    Ok(())
 }

@@ -8,8 +8,6 @@ pub use registry::{
 pub mod extractor;
 #[cfg(test)]
 pub use registry::docker_v2::fake::RegistryMock as DockerRegistryV2Mock;
-use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
-use sqlx::{QueryBuilder, query};
 
 pub mod packages;
 
@@ -77,53 +75,6 @@ impl Image {
     pub fn replace_tag(mut self, new_tag: String) -> Self {
         self.tag = Some(new_tag);
         self
-    }
-
-    pub async fn insert(
-        tx: &mut sqlx::SqliteConnection,
-        scan_id: i64,
-        state: ImageState,
-        images: Vec<String>,
-    ) -> Result<(), sqlx::Error> {
-        for image in images.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 2) {
-            let mut builder = QueryBuilder::new("INSERT OR IGNORE INTO images (id, image, status)");
-            builder.push_values(image, |mut b, img| {
-                b.push_bind(scan_id)
-                    .push_bind(img)
-                    .push_bind(state.as_ref());
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-        Ok(())
-    }
-
-    pub(crate) async fn is_digest_excluded(
-        pool: &sqlx::Pool<sqlx::Sqlite>,
-        id: &str,
-        image: &Image,
-        digest: Option<&Digest>,
-    ) -> bool {
-        if let Some(digest) = digest {
-            let digest = image
-                .clone()
-                .replace_tag(digest.as_ref().to_owned())
-                .to_string();
-            match query("SELECT id FROM images WHERE id = ? AND image = ? AND status = 'excluded'")
-                .bind(id)
-                .bind(&digest)
-                .fetch_optional(pool)
-                .await
-            {
-                Err(error) => {
-                    tracing::warn!(image=%digest, %error, "Unable to verify for excluded host.");
-                    false
-                }
-                Ok(x) => x.is_some(),
-            }
-        } else {
-            false
-        }
     }
 }
 

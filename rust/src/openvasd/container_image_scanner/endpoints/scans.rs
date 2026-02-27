@@ -12,7 +12,10 @@ use tokio::sync::mpsc::Sender;
 use tracing::instrument;
 
 use crate::{
-    container_image_scanner::scheduling::{self, db::scan::SqliteScan},
+    container_image_scanner::scheduling::{
+        self,
+        db::{results::SqliteResults, scan::SqliteScan},
+    },
     database::dao::{DAOError, DBViolation, Delete, Fetch, Insert, StreamFetch},
 };
 
@@ -133,7 +136,7 @@ impl GetScansIdResults for Scans {
         from: Option<usize>,
         to: Option<usize>,
     ) -> StreamResult<models::Result, GetScansIDResultsError> {
-        let result = SqliteScan::new((), (id, from, to), &self.pool)
+        let result = SqliteResults::new(&self.pool, (id, from, to))
             .stream_fetch()
             .map_err(GetScansError::from_external);
 
@@ -149,7 +152,7 @@ impl GetScansIdResultsId for Scans {
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
         Box::pin(async move {
-            SqliteScan::new((), (id, result_id), &self.pool)
+            SqliteResults::new(&self.pool, (id, result_id))
                 .fetch()
                 .await
                 .map_err(|e| match e {

@@ -5,17 +5,21 @@ use greenbone_scanner_framework::models;
 use sqlx::{Sqlite, SqlitePool};
 use tokio::sync::RwLock;
 
-use crate::container_image_scanner::{
-    Config, ExternalError,
-    benchy::{self, BenchType, Benched, Measured},
-    detection::{self, OperatingSystem},
-    image::{
-        Digest, Image, ImageParseError, Registry, RegistryError,
-        extractor::{self, Extractor, Locator},
-        packages::ToNotus,
+use crate::{
+    container_image_scanner::{
+        Config, ExternalError,
+        benchy::{self, BenchType, Benched, Measured},
+        detection::{self, OperatingSystem},
+        image::{
+            Digest, Image, ImageParseError, ImageState, Registry, RegistryError,
+            extractor::{self, Extractor, Locator},
+            packages::ToNotus,
+        },
+        messages::{self, CustomerMessage, DetailPair},
+        notus,
+        scheduling::db::images::SqliteImages,
     },
-    messages::{self, CustomerMessage, DetailPair},
-    notus,
+    database::dao::Fetch,
 };
 use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
@@ -192,6 +196,21 @@ where
     }
 }
 
+async fn is_digest_excluded(
+    pool: &sqlx::Pool<sqlx::Sqlite>,
+    id: &str,
+    image: &Image,
+    digest: Option<&Digest>,
+) -> bool {
+    if let Some(digest) = digest {
+        let digest = image.clone().replace_tag(digest.as_ref().to_owned());
+        let image_state = SqliteImages::new(pool, (id, &digest)).fetch().await;
+        tracing::debug!(?image_state, %image, %digest, id);
+        matches!(image_state, Ok(Some(ImageState::Excluded)))
+    } else {
+        false
+    }
+}
 async fn download_and_extract_image<'a, E, R>(
     config: Arc<Config>,
     pool: &SqlitePool,
@@ -214,7 +233,7 @@ where
 
         if digest.is_none() {
             digest = layer.digest.clone();
-            if Image::is_digest_excluded(pool, registry.id.id(), &image, digest.as_ref()).await {
+            if is_digest_excluded(pool, registry.id.id(), &image, digest.as_ref()).await {
                 tracing::debug!(?digest, "Aborting download. Because the digest is excluded");
                 return Ok((digest.unwrap_or_default(), extractor, results));
             }

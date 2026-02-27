@@ -1,6 +1,8 @@
 pub mod images;
 pub mod preferences;
+pub mod results;
 pub mod scan;
+pub mod timed_layer;
 
 #[cfg(test)]
 mod tests {
