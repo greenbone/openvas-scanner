@@ -4,6 +4,7 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use async_trait::async_trait;
 use greenbone_scanner_framework::models::{
     AliveTestMethods, Port, PortRange, Protocol, ScanPreference,
 };
@@ -224,6 +225,7 @@ impl CtxTarget {
     }
 }
 
+#[async_trait]
 pub trait ContextStorage:
     Sync
     + Send
@@ -244,7 +246,7 @@ pub trait ContextStorage:
     /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
     /// KbKey, the value is appended to the existing list. This function is used to replace the
     /// existing entry with the new one.
-    fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
+    async fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
         self.remove(&key)?;
         self.dispatch(key, item)
     }
@@ -476,9 +478,14 @@ impl<'a> ScanCtx<'a> {
         Ok(result)
     }
 
-    pub fn set_single_kb_item<T: Into<KbItem>>(&self, key: KbKey, value: T) -> Result<(), FnError> {
+    pub async fn set_single_kb_item<T: Into<KbItem>>(
+        &self,
+        key: KbKey,
+        value: T,
+    ) -> Result<(), FnError> {
         self.storage
-            .dispatch_replace(self.kb_key(key), value.into())?;
+            .dispatch_replace(self.kb_key(key), value.into())
+            .await?;
         Ok(())
     }
 
@@ -511,12 +518,14 @@ impl<'a> ScanCtx<'a> {
             _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
         }
     }
+
     /// Sets the state of a port
-    pub fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
+    pub async fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
         self.set_single_kb_item(
             KbKey::Transport(kb::Transport::Tcp(port.to_string())),
             KbItem::Number(transport as i64),
         )
+        .await
     }
 
     pub fn get_port_transport(&self, port: u16) -> Option<i64> {
