@@ -15,16 +15,11 @@ use crate::nasl::syntax::Loader;
 use crate::nasl::{FromNaslValue, WithErrorInfo};
 use crate::scanner::preferences::preference::{ScanPrefs, pref_is_true};
 use crate::storage::error::StorageError;
-use crate::storage::infisto::json::JsonStorage;
-use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
 use crate::storage::items::nvt::{FeedVersion, FileName};
 use crate::storage::items::nvt::{NvtField, Oid};
 use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
-use crate::storage::redis::{
-    RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper,
-};
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
 //TODO: rename
@@ -36,10 +31,9 @@ use super::error::ReturnBehavior;
 use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{FnError, Register};
-use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct VHost {
@@ -256,16 +250,25 @@ pub trait ContextStorage:
 
 }
 
-impl ContextStorage for InMemoryStorage {}
-
-impl<T: Write + Send> ContextStorage for JsonStorage<T> {}
-
-impl<T> ContextStorage for RedisStorage<T> where
-    T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
+impl<T> ContextStorage for T where
+    T: Sync
+        + Send
+        // kb
+        + Dispatcher<KbContextKey, Item = KbItem>
+        + Retriever<KbContextKey, Item = Vec<KbItem>>
+        + Retriever<GetKbContextKey, Item = Vec<(String, Vec<KbItem>)>>
+        + Remover<KbContextKey, Item = Vec<KbItem>>
+        // results
+        + Dispatcher<ScanID, Item = ResultItem>
+        + Retriever<ResultContextKeySingle, Item = ResultItem>
+        + Remover<ScanID, Item = Vec<ResultItem>>
+        // nvt
+        + Dispatcher<FileName, Item = VTData>
+        + Dispatcher<FeedVersion, Item = String>
+        + Retriever<Oid, Item = VTData>
+        + Retriever<FileName, Item = VTData>
 {
 }
-
-impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
 /// NASL execution context.
 pub struct ScanCtx<'a> {
