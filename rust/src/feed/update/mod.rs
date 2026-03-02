@@ -142,7 +142,8 @@ where
     async fn dispatch_feed_info(&self) -> Result<String, ErrorKind> {
         let feed_version = self.feed_version().await?;
         self.storage
-            .retry_dispatch(FeedVersion, feed_version, self.max_retry)?;
+            .retry_dispatch(FeedVersion, feed_version, self.max_retry)
+            .await?;
 
         let feed_info_key = "plugin_feed_info.inc";
         Ok(feed_info_key.into())

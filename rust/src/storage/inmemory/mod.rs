@@ -4,6 +4,7 @@
 
 use std::{collections::HashMap, sync::RwLock};
 
+use async_trait::async_trait;
 use kb::InMemoryKbStorage;
 
 use greenbone_scanner_framework::models::FeedType;
@@ -90,10 +91,11 @@ impl InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<KbContextKey> for InMemoryStorage {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
+    async fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item).await
     }
 }
 
@@ -118,10 +120,11 @@ impl Remover<KbContextKey> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<FileName> for InMemoryStorage {
     type Item = VTData;
     /// Dispatch a single NVT into the storage with a given Key
-    fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
         let mut vts = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
         oid_lookup.insert(Self::to_nasl_key(&item.oid), key.0.clone());
@@ -130,10 +133,11 @@ impl Dispatcher<FileName> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<FeedVersion> for InMemoryStorage {
     type Item = String;
     /// Dispatch the feed version into the storage
-    fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
         let mut feed_version = self.feed_version.write()?;
         *feed_version = item;
         Ok(())
@@ -183,9 +187,10 @@ impl Retriever<Oid> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<ScanID> for InMemoryStorage {
     type Item = ResultItem;
-    fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
         let mut results = self.results.write()?;
         match results.get_mut(&key) {
             Some(scan_results) => {
