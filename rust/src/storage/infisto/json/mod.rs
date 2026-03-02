@@ -14,7 +14,7 @@ use crate::storage::{
     inmemory::kb::InMemoryKbStorage,
     items::{
         kb::{GetKbContextKey, KbContextKey, KbItem},
-        nvt::{Feed, FeedVersion, FileName, Oid},
+        nvt::{FeedVersion, FileName, Oid},
         result::{ResultContextKeySingle, ResultItem},
     },
 };
@@ -142,20 +142,6 @@ impl<S: Write> Dispatcher<FeedVersion> for JsonStorage<S> {
     }
 }
 
-impl<S: Write> Retriever<FeedVersion> for JsonStorage<S> {
-    type Item = String;
-    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
-
-impl<S: Write> Retriever<Feed> for JsonStorage<S> {
-    type Item = Vec<VTData>;
-    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
-
 impl<S: Write> Retriever<Oid> for JsonStorage<S> {
     type Item = VTData;
     fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
@@ -179,12 +165,6 @@ impl<S: Write> Dispatcher<ScanID> for JsonStorage<S> {
 impl<S: Write> Retriever<ResultContextKeySingle> for JsonStorage<S> {
     type Item = ResultItem;
     fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
-impl<S: Write> Retriever<ScanID> for JsonStorage<S> {
-    type Item = Vec<ResultItem>;
-    fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
