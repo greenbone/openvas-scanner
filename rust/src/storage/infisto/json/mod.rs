@@ -19,6 +19,7 @@ use crate::storage::{
     },
 };
 
+use async_trait::async_trait;
 use greenbone_scanner_framework::models::VTData;
 
 /// Wraps write calls of json elements to be as list.
@@ -99,10 +100,11 @@ where
     }
 }
 
-impl<S: Write> Dispatcher<KbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<KbContextKey> for JsonStorage<S> {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
+    async fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item).await
     }
 }
 
@@ -127,16 +129,18 @@ impl<S: Write> Remover<KbContextKey> for JsonStorage<S> {
     }
 }
 
-impl<S: Write> Dispatcher<FileName> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<FileName> for JsonStorage<S> {
     type Item = VTData;
-    fn dispatch(&self, _: FileName, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FileName, item: Self::Item) -> Result<(), StorageError> {
         self.as_json(item)
     }
 }
 
-impl<S: Write> Dispatcher<FeedVersion> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<FeedVersion> for JsonStorage<S> {
     type Item = String;
-    fn dispatch(&self, _: FeedVersion, _: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FeedVersion, _: Self::Item) -> Result<(), StorageError> {
         // TODO: Feed information is currently not written to the output json
         Ok(())
     }
@@ -156,9 +160,10 @@ impl<S: Write> Retriever<FileName> for JsonStorage<S> {
     }
 }
 
-impl<S: Write> Dispatcher<ScanID> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send> Dispatcher<ScanID> for JsonStorage<S> {
     type Item = ResultItem;
-    fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
         unimplemented!()
     }
 }

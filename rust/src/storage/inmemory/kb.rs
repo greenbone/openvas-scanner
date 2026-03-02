@@ -4,6 +4,8 @@
 
 use std::{collections::HashMap, sync::RwLock};
 
+use async_trait::async_trait;
+
 use crate::storage::{
     Dispatcher, Remover, Retriever,
     error::StorageError,
@@ -21,9 +23,10 @@ type Kbs = HashMap<KbContext, Kb>;
 #[derive(Debug, Default)]
 pub struct InMemoryKbStorage(RwLock<Kbs>);
 
+#[async_trait]
 impl Dispatcher<KbContextKey> for InMemoryKbStorage {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
         let mut kbs = self.0.write()?;
         match kbs.get_mut(&key.0) {
             Some(kb) => {
