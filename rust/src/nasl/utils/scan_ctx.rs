@@ -20,7 +20,7 @@ use crate::storage::infisto::json::JsonStorage;
 use crate::storage::inmemory::InMemoryStorage;
 use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
-use crate::storage::items::nvt::{Feed, FeedVersion, FileName};
+use crate::storage::items::nvt::{FeedVersion, FileName};
 use crate::storage::items::nvt::{NvtField, Oid};
 use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::redis::{
@@ -241,13 +241,10 @@ pub trait ContextStorage:
     // results
     + Dispatcher<ScanID, Item = ResultItem>
     + Retriever<ResultContextKeySingle, Item = ResultItem>
-    + Retriever<ScanID, Item = Vec<ResultItem>>
     + Remover<ScanID, Item = Vec<ResultItem>>
     // nvt
     + Dispatcher<FileName, Item = VTData>
     + Dispatcher<FeedVersion, Item = String>
-    + Retriever<FeedVersion, Item = String>
-    + Retriever<Feed, Item = Vec<VTData>>
     + Retriever<Oid, Item = VTData> + Retriever<FileName, Item = VTData>
 {
     /// By default the KbKey can hold multiple values. When dispatch is used on an already existing
@@ -259,12 +256,16 @@ pub trait ContextStorage:
     }
 
 }
+
 impl ContextStorage for InMemoryStorage {}
+
 impl<T: Write + Send> ContextStorage for JsonStorage<T> {}
+
 impl<T> ContextStorage for RedisStorage<T> where
     T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
 {
 }
+
 impl<T> ContextStorage for Arc<T> where T: ContextStorage {}
 
 #[derive(Clone)]

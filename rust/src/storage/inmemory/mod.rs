@@ -178,14 +178,6 @@ impl Dispatcher<FeedVersion> for InMemoryStorage {
     }
 }
 
-impl Retriever<FeedVersion> for InMemoryStorage {
-    type Item = String;
-    /// Retrieve the feed version from the storage
-    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
-        Ok(Some(self.feed_version.read()?.clone()))
-    }
-}
-
 impl Retriever<Feed> for InMemoryStorage {
     type Item = Vec<VTData>;
     /// Retrieve all NVTs from the storage
@@ -272,15 +264,6 @@ impl Retriever<ResultContextKeySingle> for InMemoryStorage {
             return Ok(scan_results.get(key.1).cloned());
         }
         Ok(None)
-    }
-}
-
-impl Retriever<ScanID> for InMemoryStorage {
-    type Item = Vec<ResultItem>;
-    fn retrieve(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
-        let results = self.results.read()?;
-
-        Ok(results.get(key).cloned())
     }
 }
 
