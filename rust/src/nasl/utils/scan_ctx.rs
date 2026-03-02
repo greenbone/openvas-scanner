@@ -447,7 +447,7 @@ impl<'a> ScanCtx<'a> {
     }
 
     pub fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
-        let result = self
+        let result: Vec<KbItem> = self
             .storage
             .retrieve(&self.kb_key(key.clone()))?
             .unwrap_or_default();
@@ -590,7 +590,7 @@ impl<'a> ScanCtx<'a> {
         pref_is_true(prefs, key)
     }
 
-    pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+    pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
         match protocol {
             Protocol::TCP => {
                 if !self.target.ports_tcp.contains(&port)
