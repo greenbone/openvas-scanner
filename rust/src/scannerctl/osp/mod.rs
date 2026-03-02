@@ -194,19 +194,20 @@ mod tests {
     "#;
         let reader = BufReader::new(Cursor::new(input));
         let d = InMemoryStorage::new();
-        let dispatch = |k: &str, f: &str| {
+        async fn dispatch(d: &InMemoryStorage, k: &str, f: &str) {
             let key = FileName(format!("{k}.nasl"));
             let nvt = VTData {
                 oid: k.into(),
                 family: f.into(),
                 ..Default::default()
             };
-            d.dispatch(key, nvt).unwrap();
-        };
-        dispatch("0", "A");
-        dispatch("1", "A");
-        dispatch("2", "A");
-        dispatch("3", "A");
+            d.dispatch(key, nvt).await.unwrap();
+        }
+
+        dispatch(&d, "0", "A").await;
+        dispatch(&d, "1", "A").await;
+        dispatch(&d, "2", "A").await;
+        dispatch(&d, "3", "A").await;
 
         let output = may_transform_start_scan(false, Some(d), reader)
             .await

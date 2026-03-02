@@ -107,7 +107,7 @@ async fn update_notus(
         }
     };
     let redis_storage = make_redis_storage(redis, NOTUSUPDATE_SELECTOR)?;
-    notus_update::update::run(redis_storage, path, signature_check)
+    notus_update::update::run(redis_storage, path, signature_check).await
 }
 
 fn get_vts_path_from_openvas_config() -> PathBuf {

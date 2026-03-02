@@ -12,6 +12,7 @@ pub mod redis;
 
 use std::{fmt::Display, sync::Arc};
 
+use async_trait::async_trait;
 use error::StorageError;
 
 // TODO: why?
@@ -41,22 +42,23 @@ impl Display for Target {
 }
 
 /// Defines the Dispatcher interface to distribute fields
-pub trait Dispatcher<KEY: Clone> {
-    type Item: Clone;
+#[async_trait]
+pub trait Dispatcher<KEY: Clone + Send + 'static> {
+    type Item: Clone + Send + Sync;
     /// Distributes given field under a key
     ///
     /// A key is usually a OID that was given when starting a script but in description run it is the filename.
-    fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError>;
+    async fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError>;
 
     /// Retries a dispatch for the amount of retries when a retrievable error occurs.
-    fn retry_dispatch(
+    async fn retry_dispatch(
         &self,
         key: KEY,
         item: Self::Item,
         max_tries: usize,
     ) -> Result<(), StorageError> {
         for _ in 0..max_tries {
-            match self.dispatch(key.clone(), item.clone()) {
+            match self.dispatch(key.clone(), item.clone()).await {
                 Err(StorageError::Retry(_)) => continue,
                 x => return x,
             }
@@ -65,13 +67,16 @@ pub trait Dispatcher<KEY: Clone> {
     }
 }
 
-impl<KEY: Clone, ITEM: Clone, T> Dispatcher<KEY> for Arc<T>
+#[async_trait]
+impl<KEY: Clone + Send + 'static, ITEM: Clone + Send + Sync, T> Dispatcher<KEY> for Arc<T>
 where
-    T: Dispatcher<KEY, Item = ITEM>,
+    Arc<T>: Send,
+    T: Dispatcher<KEY, Item = ITEM> + Send + Sync,
+    ITEM: 'static,
 {
     type Item = ITEM;
-    fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError> {
-        self.as_ref().dispatch(key, item)
+    async fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError> {
+        self.as_ref().dispatch(key, item).await
     }
 }
 

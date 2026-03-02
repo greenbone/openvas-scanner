@@ -248,7 +248,7 @@ pub trait ContextStorage:
     /// existing entry with the new one.
     async fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
         self.remove(&key)?;
-        self.dispatch(key, item)
+        self.dispatch(key, item).await
     }
 
 }
@@ -418,9 +418,10 @@ impl<'a> ScanCtx<'a> {
         }
     }
 
-    fn dispatch_nvt(&self, nvt: VTData) {
+    async fn dispatch_nvt(&self, nvt: VTData) {
         self.storage
             .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
+            .await
             .unwrap();
     }
 
@@ -451,13 +452,13 @@ impl<'a> ScanCtx<'a> {
         )
     }
 
-    pub fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
-        self.storage.dispatch(self.kb_key(key), value)?;
+    pub async fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
+        self.storage.dispatch(self.kb_key(key), value).await?;
         Ok(())
     }
 
     pub fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
-        let result = self
+        let result: Vec<KbItem> = self
             .storage
             .retrieve(&self.kb_key(key.clone()))?
             .unwrap_or_default();
@@ -600,7 +601,7 @@ impl<'a> ScanCtx<'a> {
         pref_is_true(prefs, key)
     }
 
-    pub fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+    pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
         match protocol {
             Protocol::TCP => {
                 if !self.target.ports_tcp.contains(&port)
@@ -642,7 +643,11 @@ impl Drop for ScanCtx<'_> {
     fn drop(&mut self) {
         let mut nvt = self.nvt.lock().unwrap();
         if let Some(nvt) = nvt.take() {
-            self.dispatch_nvt(nvt);
+            // TODO: This might very well not work.
+            // Do we really need this Drop impl anyways?
+            futures::executor::block_on(async {
+                self.dispatch_nvt(nvt).await;
+            });
         }
     }
 }

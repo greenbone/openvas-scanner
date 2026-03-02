@@ -10,6 +10,7 @@ mod dberror;
 
 use std::sync::Mutex;
 
+use async_trait::async_trait;
 pub use connector::CACHE_KEY;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
@@ -74,13 +75,14 @@ impl RedisStorage<RedisCtx> {
     }
 }
 
-impl<S> Dispatcher<KbContextKey> for RedisStorage<S>
+#[async_trait]
+impl<S: Send> Dispatcher<KbContextKey> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
+    async fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item).await
     }
 }
 
@@ -114,12 +116,13 @@ where
     }
 }
 
-impl<S: RedisAddNvt> Dispatcher<FileName> for RedisStorage<S>
+#[async_trait]
+impl<S: RedisAddNvt + Send> Dispatcher<FileName> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
     type Item = VTData;
-    fn dispatch(
+    async fn dispatch(
         &self,
         _: FileName,
         item: Self::Item,
@@ -130,12 +133,13 @@ where
     }
 }
 
-impl<S: RedisWrapper> Dispatcher<FeedVersion> for RedisStorage<S>
+#[async_trait]
+impl<S: RedisWrapper + Send> Dispatcher<FeedVersion> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
     type Item = String;
-    fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
         let mut vts = self.cache.lock()?;
         vts.del(CACHE_KEY)?;
         vts.rpush(CACHE_KEY, &[&item])?;
@@ -163,12 +167,13 @@ where
     }
 }
 
+#[async_trait]
 impl<S> Dispatcher<ScanID> for RedisStorage<S>
 where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send,
 {
     type Item = ResultItem;
-    fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: ScanID, _: Self::Item) -> Result<(), StorageError> {
         unimplemented!()
     }
 }
@@ -193,24 +198,26 @@ where
     }
 }
 
-impl<S: RedisAddAdvisory> Dispatcher<()> for RedisStorage<S>
+#[async_trait]
+impl<S: RedisAddAdvisory + Send> Dispatcher<()> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
     type Item = NotusAdvisory;
-    fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: (), item: Self::Item) -> Result<(), StorageError> {
         let mut cache = self.cache.lock()?;
         cache.redis_add_advisory(Some(item))?;
         Ok(())
     }
 }
 
-impl<S: RedisAddAdvisory> Dispatcher<NotusCache> for RedisStorage<S>
+#[async_trait]
+impl<S: RedisAddAdvisory + Send> Dispatcher<NotusCache> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
 {
     type Item = ();
-    fn dispatch(&self, _: NotusCache, _: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: NotusCache, _: Self::Item) -> Result<(), StorageError> {
         let mut cache = self.cache.lock()?;
         cache.redis_add_advisory(None)?;
         Ok(())
@@ -276,8 +283,8 @@ mod tests {
     impl RedisAddAdvisory for FakeRedis {}
     impl RedisGetNvt for FakeRedis {}
 
-    #[test]
-    fn transform_nvt() {
+    #[tokio::test]
+    async fn transform_nvt() {
         let version = "202212101125".to_owned();
         let filename = "test.nasl".to_owned();
         let mut tag = BTreeMap::new();
@@ -321,8 +328,8 @@ mod tests {
         let kbs = InMemoryKbStorage::default();
         let key = FileName(filename);
         let storage = RedisStorage { cache, kbs };
-        storage.dispatch(FeedVersion, version).unwrap();
-        storage.dispatch(key, nvt).unwrap();
+        storage.dispatch(FeedVersion, version).await.unwrap();
+        storage.dispatch(key, nvt).await.unwrap();
         let mut results = 0;
         loop {
             match rx.try_recv() {

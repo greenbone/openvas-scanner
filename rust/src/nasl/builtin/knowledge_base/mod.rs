@@ -23,19 +23,20 @@ pub enum KBError {
 /// NASL function to set a value under name in a knowledge base
 /// Only pushes unique values for the given name.
 #[nasl_function(named(name, value, expires))]
-fn set_kb_item(
-    c: &ScanCtx,
+async fn set_kb_item(
+    c: &ScanCtx<'_>,
     name: NaslValue,
     value: NaslValue,
     expires: Option<u64>,
 ) -> Result<(), FnError> {
     let _ = expires;
     c.set_kb_item(KbKey::Custom(name.to_string()), value.as_kb())
+        .await
 }
 
 /// NASL function to get a knowledge base
 #[nasl_function]
-fn get_kb_item(c: &ScanCtx, key: &str) -> Result<NaslValue, FnError> {
+fn get_kb_item(c: &ScanCtx<'_>, key: &str) -> Result<NaslValue, FnError> {
     let kbs = c.get_kb_item(&KbKey::Custom(key.to_string()))?;
     let ret = Fork::new(kbs.into_iter().map(NaslValue::from));
     Ok(ret.into())
@@ -43,13 +44,18 @@ fn get_kb_item(c: &ScanCtx, key: &str) -> Result<NaslValue, FnError> {
 
 /// NASL function to replace a kb list
 #[nasl_function(named(name, value))]
-fn replace_kb_item(c: &ScanCtx, name: NaslValue, value: NaslValue) -> Result<(), FnError> {
+async fn replace_kb_item(
+    c: &ScanCtx<'_>,
+    name: NaslValue,
+    value: NaslValue,
+) -> Result<(), FnError> {
     c.set_single_kb_item(KbKey::Custom(name.to_string()), value.as_kb())
+        .await
 }
 
 /// NASL function to retrieve an item in a KB.
 #[nasl_function]
-fn get_kb_list(c: &ScanCtx, key: &str) -> Result<NaslValue, FnError> {
+fn get_kb_list(c: &ScanCtx<'_>, key: &str) -> Result<NaslValue, FnError> {
     let kbs = c.get_kb_item(&KbKey::Custom(key.to_string()))?;
     let ret = NaslValue::Array(kbs.into_iter().map(NaslValue::from).collect());
 

@@ -148,6 +148,7 @@ async fn run_on_storage<S: ContextStorage>(
                 let storage_ctx = KbContextKey(kbctx.clone(), k.into());
                 let _ = storage
                     .dispatch(storage_ctx, v.into())
+                    .await
                     .map_err(CliErrorKind::StorageError);
             }
             None => return Err(CliErrorKind::InvalidCmdOpt(s.to_string())),

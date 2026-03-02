@@ -221,9 +221,9 @@ mod tests {
     use crate::storage::items::nvt::FileName;
     use greenbone_scanner_framework::models::VTData;
 
-    #[test]
+    #[tokio::test]
     #[tracing_test::traced_test]
-    fn load_dependencies() {
+    async fn load_dependencies() {
         let feed = vec![
             VTData {
                 oid: "0".to_string(),
@@ -244,11 +244,12 @@ mod tests {
             },
         ];
         let storage = InMemoryStorage::new();
-        feed.clone().into_iter().for_each(|nvt| {
+        for nvt in feed.clone().into_iter() {
             storage
                 .dispatch(FileName(nvt.filename.clone()), nvt)
+                .await
                 .expect("should store");
-        });
+        }
 
         let scan = Scan {
             vts: vec![VT {

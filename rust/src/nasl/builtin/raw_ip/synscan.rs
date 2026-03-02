@@ -212,7 +212,7 @@ async fn plugin_run_synscan(context: &ScanCtx<'_>) -> Result<(), FnError> {
 
     while let Some(open_port) = rx_msg.recv().await {
         if ports.contains(&open_port) && !open_ports.contains(&open_port) {
-            scanner_add_port_shared(context, Port::from(open_port), Some("tcp"))?;
+            scanner_add_port_shared(context, Port::from(open_port), Some("tcp")).await?;
             open_ports.insert(open_port);
             reset_connection(target_ip, &open_port).await?;
             tracing::debug!("{} is open", open_port);

@@ -4,6 +4,7 @@
 
 use std::{collections::HashMap, sync::RwLock};
 
+use async_trait::async_trait;
 use kb::InMemoryKbStorage;
 
 use greenbone_scanner_framework::models::FeedType;
@@ -90,10 +91,11 @@ impl InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<KbContextKey> for InMemoryStorage {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
-        self.kbs.dispatch(key, item)
+    async fn dispatch(&self, key: KbContextKey, item: Self::Item) -> Result<(), StorageError> {
+        self.kbs.dispatch(key, item).await
     }
 }
 
@@ -118,10 +120,11 @@ impl Remover<KbContextKey> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<FileName> for InMemoryStorage {
     type Item = VTData;
     /// Dispatch a single NVT into the storage with a given Key
-    fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
         let mut vts = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
         oid_lookup.insert(Self::to_nasl_key(&item.oid), key.0.clone());
@@ -130,10 +133,11 @@ impl Dispatcher<FileName> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<FeedVersion> for InMemoryStorage {
     type Item = String;
     /// Dispatch the feed version into the storage
-    fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, _: FeedVersion, item: Self::Item) -> Result<(), StorageError> {
         let mut feed_version = self.feed_version.write()?;
         *feed_version = item;
         Ok(())
@@ -183,9 +187,10 @@ impl Retriever<Oid> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Dispatcher<ScanID> for InMemoryStorage {
     type Item = ResultItem;
-    fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: ScanID, item: Self::Item) -> Result<(), StorageError> {
         let mut results = self.results.write()?;
         match results.get_mut(&key) {
             Some(scan_results) => {
@@ -231,43 +236,43 @@ mod tests {
     };
     use greenbone_scanner_framework::models::VTData;
 
-    #[test]
-    fn nvt() -> Result<(), StorageError> {
+    #[tokio::test]
+    async fn nvt() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
         let nvt = VTData {
             oid: "moep".to_string(),
             ..VTData::default()
         };
-        storage.dispatch(key.clone(), nvt.clone())?;
+        storage.dispatch(key.clone(), nvt.clone()).await?;
         let ret = storage.retrieve(&key).unwrap().unwrap();
         assert_eq!(nvt, ret);
         Ok(())
     }
 
-    #[test]
-    fn nvt_oid() -> Result<(), StorageError> {
+    #[tokio::test]
+    async fn nvt_oid() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
         let nvt = VTData {
             oid: "moep".to_string(),
             ..VTData::default()
         };
-        storage.dispatch(key.clone(), nvt.clone())?;
+        storage.dispatch(key.clone(), nvt.clone()).await?;
         let key = Oid(nvt.oid.clone());
         let ret = storage.retrieve(&key).unwrap().unwrap();
         assert_eq!(nvt, ret);
         Ok(())
     }
 
-    #[test]
-    fn kb() {
+    #[tokio::test]
+    async fn kb() {
         let storage = InMemoryStorage::default();
         let key = KbContextKey::default();
         let value1 = KbItem::String("1".to_string());
         let value2 = KbItem::String("2".to_string());
-        storage.dispatch(key.clone(), value1.clone()).unwrap();
-        storage.dispatch(key.clone(), value2.clone()).unwrap();
+        storage.dispatch(key.clone(), value1.clone()).await.unwrap();
+        storage.dispatch(key.clone(), value2.clone()).await.unwrap();
         let ret = storage.retrieve(&key).unwrap().unwrap();
         assert_eq!(ret, vec![value1, value2]);
     }
