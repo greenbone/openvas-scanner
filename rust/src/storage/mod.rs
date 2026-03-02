@@ -72,7 +72,7 @@ impl<KEY: Clone + Send + 'static, ITEM: Clone + Send + Sync, T> Dispatcher<KEY> 
 where
     Arc<T>: Send,
     T: Dispatcher<KEY, Item = ITEM> + Send + Sync,
-    ITEM: 'static
+    ITEM: 'static,
 {
     type Item = ITEM;
     async fn dispatch(&self, key: KEY, item: Self::Item) -> Result<(), StorageError> {
