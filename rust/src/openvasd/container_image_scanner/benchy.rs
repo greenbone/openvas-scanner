@@ -1,10 +1,9 @@
 use std::time::Duration;
 
-use sqlx::SqlitePool;
 use tokio::time::Instant;
 
 use crate::{
-    container_image_scanner::scheduling::db::timed_layer::SqliteTimedLayer,
+    container_image_scanner::scheduling::db::{DataBase, timed_layer::DBTimedLayer},
     database::dao::{Fetch, RetryExec},
 };
 
@@ -96,16 +95,16 @@ impl Benched {
         }
     }
 
-    pub async fn store(&self, pool: &SqlitePool, scan_id: &str, image: &str) {
-        if let Err(error) = SqliteTimedLayer::new(pool, (scan_id, image, self))
+    pub async fn store(&self, pool: &DataBase, scan_id: &str, image: &str) {
+        if let Err(error) = DBTimedLayer::new(pool, (scan_id, image, self))
             .retry_exec()
             .await
         {
             tracing::warn!(?self, %error, "Unable to store. Layer duration lost.")
         }
     }
-    pub async fn retrieve(pool: &SqlitePool, scan_id: &str, image: &str) -> Vec<Benched> {
-        let result = SqliteTimedLayer::new(pool, (scan_id, image)).fetch().await;
+    pub async fn retrieve(pool: &DataBase, scan_id: &str, image: &str) -> Vec<Benched> {
+        let result = DBTimedLayer::new(pool, (scan_id, image)).fetch().await;
 
         if let Err(error) = &result {
             tracing::warn!(scan_id, image, %error, "Unable to retrieve. Layer duration lost.")

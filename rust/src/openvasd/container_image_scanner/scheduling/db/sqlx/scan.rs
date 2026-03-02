@@ -19,30 +19,15 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone)]
-pub struct SqliteScan<'o, C, T> {
-    client_id: C,
-    scan: T,
-    pool: &'o SqlitePool,
-}
+pub type DBScan<'o, T> = super::DB<'o, T>;
 
-impl<'o, C, T> SqliteScan<'o, C, T> {
-    pub fn new(client_id: C, scan: T, pool: &'o SqlitePool) -> SqliteScan<'o, C, T> {
-        SqliteScan {
-            client_id,
-            scan,
-            pool,
-        }
-    }
-}
-
-impl<'o> Execute<()> for SqliteScan<'o, (), (&'o str, models::Phase)> {
+impl<'o> Execute<()> for DBScan<'o, (&'o str, models::Phase)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let (id, phase) = &self.scan;
+            let (id, phase) = &self.input;
             match phase {
                 models::Phase::Running => set_scan_to_running(self.pool, id).await,
                 models::Phase::Failed => set_scan_to_failed(self.pool, id).await,
@@ -57,13 +42,13 @@ impl<'o> Execute<()> for SqliteScan<'o, (), (&'o str, models::Phase)> {
     }
 }
 
-impl<'o> Execute<()> for SqliteScan<'o, (), (&'o str, &'o [Result<Image, RegistryError>])> {
+impl<'o> Execute<()> for DBScan<'o, (&'o str, &'o [Result<Image, RegistryError>])> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            set_scan_images(self.pool, self.scan.0, self.scan.1)
+            set_scan_images(self.pool, self.input.0, self.input.1)
                 .await
                 .map_err(DAOError::from)
         })
@@ -111,7 +96,7 @@ async fn set_scan_images(
     Ok(())
 }
 
-impl<'o> Execute<()> for SqliteScan<'o, (), models::Phase> {
+impl<'o> Execute<()> for DBScan<'o, models::Phase> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
@@ -184,13 +169,13 @@ async fn set_scan_to_failed(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Err
     .map(|_| ())
 }
 
-impl<'o> Execute<()> for SqliteScan<'o, &str, &Scan> {
+impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let scan = &self.scan;
+            let (client_id, scan) = &self.input;
             let mut conn = self.pool.acquire().await?;
             let mut tx = conn.begin().await?;
             let row = query(
@@ -199,7 +184,7 @@ impl<'o> Execute<()> for SqliteScan<'o, &str, &Scan> {
             "#,
             )
             .bind(&scan.scan_id)
-            .bind(self.client_id)
+            .bind(client_id)
             .execute(&mut *tx)
             .await?;
             let id = row.last_insert_rowid();
@@ -268,15 +253,16 @@ impl<'o> Execute<()> for SqliteScan<'o, &str, &Scan> {
     }
 }
 
-impl<'o> Fetch<Option<InternalIdentifier>> for SqliteScan<'o, &str, &str> {
+impl<'o> Fetch<Option<InternalIdentifier>> for DBScan<'o, (&str, &str)> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<InternalIdentifier>>
     where
         'a: 'b,
     {
         Box::pin(async move {
+            let (client_id, scan) = &self.input;
             let x = query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
-                .bind(self.client_id)
-                .bind(self.scan)
+                .bind(client_id)
+                .bind(scan)
                 .fetch_optional(self.pool)
                 .await?;
             Ok(x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()))
@@ -284,14 +270,15 @@ impl<'o> Fetch<Option<InternalIdentifier>> for SqliteScan<'o, &str, &str> {
     }
 }
 
-impl<'o> StreamFetch<String> for SqliteScan<'o, String, ()> {
+impl<'o> StreamFetch<String> for DBScan<'o, String> {
     fn stream_fetch(self) -> DAOStreamer<String> {
+        let client_id = self.input;
         let result = query(
             r#"
                 SELECT scan_id FROM client_scan_map WHERE client_id = ?
             "#,
         )
-        .bind(self.client_id)
+        .bind(client_id)
         .fetch(self.pool)
         .map(|x| {
             x.map(|x| x.get::<String, _>("scan_id"))
@@ -301,14 +288,14 @@ impl<'o> StreamFetch<String> for SqliteScan<'o, String, ()> {
     }
 }
 
-impl<'o> Fetch<models::Scan> for SqliteScan<'o, (), String> {
+impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Scan>
     where
         'a: 'b,
     {
         Box::pin(async move {
             let mut conn = self.pool.acquire().await?;
-            let id = &self.scan;
+            let id = &self.input;
             let hosts: Vec<(String,)> = sqlx::query_as("SELECT host FROM registry WHERE id = ?")
                 .bind(id)
                 .fetch_all(&mut *conn)
@@ -379,7 +366,7 @@ fn row_to_status(row: SqliteRow) -> models::Status {
     }
 }
 
-impl<'o> Fetch<models::Status> for SqliteScan<'o, (), String> {
+impl<'o> Fetch<models::Status> for DBScan<'o, String> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Status>
     where
         'a: 'b,
@@ -389,7 +376,7 @@ impl<'o> Fetch<models::Status> for SqliteScan<'o, (), String> {
                 WHERE id = ? "#;
         Box::pin(async move {
             query(SQL)
-                .bind(&self.scan)
+                .bind(&self.input)
                 .fetch_one(self.pool)
                 .await
                 .map(row_to_status)
@@ -398,7 +385,7 @@ impl<'o> Fetch<models::Status> for SqliteScan<'o, (), String> {
     }
 }
 
-impl<'o> Fetch<models::Phase> for SqliteScan<'o, (), String> {
+impl<'o> Fetch<models::Phase> for DBScan<'o, String> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Phase>
     where
         'a: 'b,
@@ -406,7 +393,7 @@ impl<'o> Fetch<models::Phase> for SqliteScan<'o, (), String> {
         Box::pin(async move {
             const STATUS_SQL: &str = "SELECT status FROM scans WHERE id = ?";
             match query(STATUS_SQL)
-                .bind(&self.scan)
+                .bind(&self.input)
                 .fetch_one(self.pool)
                 .await
             {
@@ -420,7 +407,7 @@ impl<'o> Fetch<models::Phase> for SqliteScan<'o, (), String> {
     }
 }
 
-impl<'o> Execute<()> for SqliteScan<'o, (), String> {
+impl<'o> Execute<()> for DBScan<'o, String> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
@@ -428,7 +415,7 @@ impl<'o> Execute<()> for SqliteScan<'o, (), String> {
         const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
         Box::pin(async move {
             query(DELETE_SQL)
-                .bind(&self.scan)
+                .bind(&self.input)
                 .execute(self.pool)
                 .await
                 .map(|_| ())
@@ -437,13 +424,13 @@ impl<'o> Execute<()> for SqliteScan<'o, (), String> {
     }
 }
 
-impl<'o> Execute<()> for SqliteScan<'o, (), (String, models::Action)> {
+impl<'o> Execute<()> for DBScan<'o, (String, models::Action)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let (id, action) = &self.scan;
+            let (id, action) = &self.input;
             match action {
                 Action::Start => start_scan(self.pool, id).await,
                 Action::Stop => stop_scan(self.pool, id).await,

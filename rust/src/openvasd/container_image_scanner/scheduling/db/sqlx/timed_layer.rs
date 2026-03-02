@@ -1,14 +1,11 @@
 use crate::{
-    container_image_scanner::{
-        benchy::{BenchType, Benched},
-        scheduling::db::images::SqliteImages,
-    },
+    container_image_scanner::benchy::{BenchType, Benched},
     database::dao::{DAOError, Execute, Fetch},
 };
 
-pub type SqliteTimedLayer<'o, T> = SqliteImages<'o, T>;
+pub type DBTimedLayer<'o, T> = super::DB<'o, T>;
 
-impl<'o> Execute<()> for SqliteTimedLayer<'o, (&'o str, &'o str, &'o Benched)> {
+impl<'o> Execute<()> for DBTimedLayer<'o, (&'o str, &'o str, &'o Benched)> {
     fn exec<'a, 'b>(&'a self) -> crate::database::dao::DAOPromiseRef<'b, ()>
     where
         'a: 'b,
@@ -32,7 +29,7 @@ impl<'o> Execute<()> for SqliteTimedLayer<'o, (&'o str, &'o str, &'o Benched)> {
     }
 }
 
-impl<'o> Fetch<Vec<Benched>> for SqliteTimedLayer<'o, (&'o str, &'o str)> {
+impl<'o> Fetch<Vec<Benched>> for DBTimedLayer<'o, (&'o str, &'o str)> {
     fn fetch<'a, 'b>(&'a self) -> crate::database::dao::DAOPromiseRef<'b, Vec<Benched>>
     where
         'a: 'b,

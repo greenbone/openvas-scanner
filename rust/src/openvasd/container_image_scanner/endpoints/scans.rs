@@ -7,20 +7,19 @@ use greenbone_scanner_framework::{
     models::{PreferenceValue, ScanPreferenceInformation},
     prelude::*,
 };
-use sqlx::SqlitePool;
 use tokio::sync::mpsc::Sender;
 use tracing::instrument;
 
 use crate::{
     container_image_scanner::scheduling::{
         self,
-        db::{results::SqliteResults, scan::SqliteScan},
+        db::{DataBase, results::DBResults, scan::DBScan},
     },
     database::dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
 };
 
 pub struct Scans {
-    pub pool: SqlitePool,
+    pub pool: DataBase,
     pub scheduling: Sender<scheduling::Message>,
 }
 
@@ -40,7 +39,7 @@ impl PostScans for Scans {
         Box::pin(async move {
             // maybe get rid of clone
             let scan_id = scan.scan_id.clone();
-            match SqliteScan::new(client_id.as_str(), &scan, &self.pool)
+            match DBScan::new(&self.pool, (client_id.as_str(), &scan))
                 .exec()
                 .await
             {
@@ -67,10 +66,7 @@ impl MapScanID for Scans {
         >,
     > {
         Box::pin(async move {
-            match SqliteScan::new(client_id, scan_id, &self.pool)
-                .fetch()
-                .await
-            {
+            match DBScan::new(&self.pool, (client_id, scan_id)).fetch().await {
                 Ok(x) => x,
                 Err(error) => {
                     tracing::warn!(%error, "Unable to fetch id from client_scan_map. Returning no id found.");
@@ -83,7 +79,7 @@ impl MapScanID for Scans {
 
 impl GetScans for Scans {
     fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
-        let result = SqliteScan::new(client_id, (), &self.pool)
+        let result = DBScan::new(&self.pool, client_id)
             .stream_fetch()
             .map_err(GetScansError::from_external);
 
@@ -121,7 +117,7 @@ impl GetScansId for Scans {
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + 'a>> {
         Box::pin(async move {
-            SqliteScan::new((), id, &self.pool)
+            DBScan::new(&self.pool, id)
                 .fetch()
                 .await
                 .map_err(GetScansError::from_external)
@@ -136,7 +132,7 @@ impl GetScansIdResults for Scans {
         from: Option<usize>,
         to: Option<usize>,
     ) -> StreamResult<models::Result, GetScansIDResultsError> {
-        let result = SqliteResults::new(&self.pool, (id, from, to))
+        let result = DBResults::new(&self.pool, (id, from, to))
             .stream_fetch()
             .map_err(GetScansError::from_external);
 
@@ -152,7 +148,7 @@ impl GetScansIdResultsId for Scans {
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
         Box::pin(async move {
-            SqliteResults::new(&self.pool, (id, result_id))
+            DBResults::new(&self.pool, (id, result_id))
                 .fetch()
                 .await
                 .map_err(|e| match e {
@@ -170,7 +166,7 @@ impl GetScansIdStatus for Scans {
     ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>
     {
         Box::pin(async move {
-            SqliteScan::new((), id, &self.pool)
+            DBScan::new(&self.pool, id)
                 .fetch()
                 .await
                 .map_err(GetScansIDStatusError::from_external)
@@ -200,7 +196,7 @@ impl DeleteScansId for Scans {
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         Box::pin(async move {
-            let db = SqliteScan::new((), id, &self.pool);
+            let db = DBScan::new(&self.pool, id);
             let phase: models::Phase = db
                 .fetch()
                 .await
@@ -219,7 +215,6 @@ mod scans_utils {
     use std::sync::Arc;
 
     use greenbone_scanner_framework::prelude::*;
-    use sqlx::SqlitePool;
     use tokio::sync::Mutex;
 
     use super::Scans;
@@ -231,7 +226,10 @@ mod scans_utils {
                 DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
                 packages::AllTypes,
             },
-            scheduling::{Scheduler, db::scan::SqliteScan},
+            scheduling::{
+                Scheduler,
+                db::{DataBase, scan::DBScan},
+            },
         },
         database::dao::Execute,
     };
@@ -248,7 +246,7 @@ mod scans_utils {
     async fn in_memory_scheduler_and_scan<R, E>(
         config: crate::container_image_scanner::Config,
     ) -> (Scheduler<R, E>, Scans) {
-        let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address("test"))
+        let pool = DataBase::connect(&DBLocation::InMemory.sqlite_address("test"))
             .await
             .expect("inmemory database must be available");
 
@@ -281,7 +279,7 @@ mod scans_utils {
         async fn recv(&mut self) {
             let msg = self.scheduler.receiver().recv().await;
             if let Some(msg) = msg {
-                SqliteScan::new((), (msg.id, msg.action), &self.scheduler.pool())
+                DBScan::new(&self.scheduler.pool(), (msg.id, msg.action))
                     .exec()
                     .await
                     .unwrap();

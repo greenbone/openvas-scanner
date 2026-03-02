@@ -2,13 +2,14 @@ use std::{fmt::Display, time::Duration};
 
 use chrono::TimeDelta;
 use scannerlib::models;
-use sqlx::SqlitePool;
 
 use crate::{
     container_image_scanner::{
-        detection::OperatingSystem, image::Image, scheduling::db::results::SqliteResults,
+        detection::OperatingSystem,
+        image::Image,
+        scheduling::db::{DataBase, results::DBResults},
     },
-    database::dao::Execute,
+    database::dao::RetryExec,
 };
 
 #[derive(Debug, Clone)]
@@ -151,7 +152,7 @@ where
         )
     }
 
-    pub async fn store(self, pool: &SqlitePool, scan_id: &str) {
+    pub async fn store(self, pool: &DataBase, scan_id: &str) {
         store(pool, scan_id, &[self]).await
     }
 }
@@ -175,11 +176,11 @@ where
     }
 }
 
-pub async fn store<'a, T>(pool: &SqlitePool, id: &str, results: &'a [T])
+pub async fn store<'a, T>(pool: &DataBase, id: &str, results: &'a [T])
 where
     T: 'a + Into<models::Result> + Clone + Sync,
 {
-    if let Err(error) = SqliteResults::new(pool, (id, results)).exec().await {
+    if let Err(error) = DBResults::new(pool, (id, results)).retry_exec().await {
         tracing::warn!(%error, id, amount_of_results=results.len(), "Scan results lost.");
     }
 }

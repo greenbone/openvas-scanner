@@ -1,7 +1,6 @@
 use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
 use serde::{Deserialize, Serialize};
-use sqlx::sqlite::SqliteSynchronous;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DBLocation {
@@ -151,7 +150,7 @@ impl SqliteConfiguration {
         use sqlx::{
             Sqlite,
             pool::PoolOptions,
-            sqlite::{SqliteConnectOptions, SqliteJournalMode},
+            sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
         };
         if let DBLocation::File(path) = &self.location
             && !path.exists()

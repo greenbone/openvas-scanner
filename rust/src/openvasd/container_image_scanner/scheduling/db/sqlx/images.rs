@@ -1,7 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
 
 use futures::StreamExt;
-use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
+use sqlx::{Row, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::{
@@ -27,17 +27,8 @@ impl TryFrom<&SqliteRow> for Credential {
         }
     }
 }
-#[derive(Debug, Clone)]
-pub struct SqliteImages<'o, T> {
-    pub input: T,
-    pub pool: &'o SqlitePool,
-}
 
-impl<'o, T> SqliteImages<'o, T> {
-    pub fn new(pool: &'o SqlitePool, input: T) -> SqliteImages<'o, T> {
-        SqliteImages { input, pool }
-    }
-}
+pub type DBImages<'o, T> = super::DB<'o, T>;
 
 impl From<SqliteRow> for ImageID {
     fn from(row: SqliteRow) -> Self {
@@ -49,7 +40,7 @@ impl From<SqliteRow> for ImageID {
     }
 }
 
-impl<'o> Fetch<Option<ImageState>> for SqliteImages<'o, (&'o str, &'o Image)> {
+impl<'o> Fetch<Option<ImageState>> for DBImages<'o, (&'o str, &'o Image)> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<ImageState>>
     where
         'a: 'b,
@@ -70,7 +61,7 @@ impl<'o> Fetch<Option<ImageState>> for SqliteImages<'o, (&'o str, &'o Image)> {
         })
     }
 }
-impl<'o> Execute<()> for SqliteImages<'o, (&'o ImageID, ImageState)> {
+impl<'o> Execute<()> for DBImages<'o, (&'o ImageID, ImageState)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
@@ -94,7 +85,7 @@ impl<'o> Execute<()> for SqliteImages<'o, (&'o ImageID, ImageState)> {
     }
 }
 
-impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for SqliteImages<'o, (usize, usize)> {
+impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, usize)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<(ImageID, Option<Credential>)>>
     where
         'a: 'b,
@@ -163,7 +154,7 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for SqliteImages<'o, (usize
         })
     }
 }
-impl<'o> Fetch<Vec<ProcessingImage>> for SqliteImages<'o, usize> {
+impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<ProcessingImage>>
     where
         'a: 'b,

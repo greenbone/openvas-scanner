@@ -8,7 +8,6 @@ use container_image_scanner::{
 };
 use futures::StreamExt;
 use greenbone_scanner_framework::models;
-use sqlx::{Sqlite, SqlitePool};
 use tokio::{
     sync::{
         Mutex, RwLock,
@@ -25,7 +24,7 @@ use crate::{
         image::{ImageParseError, ImageState},
         messages::CustomerMessage,
         scheduling::{
-            db::{images::SqliteImages, preferences::SqlitePreferences, scan::SqliteScan},
+            db::{DataBase, images::DBImages, preferences::DBPreferences, scan::DBScan},
             scanner::{ScannerArchImageError, ScannerError},
         },
     },
@@ -37,8 +36,8 @@ use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 pub mod db;
 mod scanner;
 
-pub async fn image_failed(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
-    if let Err(error) = SqliteImages::new(pool, (id, ImageState::Failed))
+pub async fn image_failed(pool: &DataBase, id: &ImageID) {
+    if let Err(error) = DBImages::new(pool, (id, ImageState::Failed))
         .retry_exec()
         .await
     {
@@ -46,8 +45,8 @@ pub async fn image_failed(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
     }
 }
 
-pub async fn image_success(pool: &sqlx::Pool<Sqlite>, id: &ImageID) {
-    if let Err(error) = SqliteImages::new(pool, (id, ImageState::Succeeded))
+pub async fn image_success(pool: &DataBase, id: &ImageID) {
+    if let Err(error) = DBImages::new(pool, (id, ImageState::Succeeded))
         .retry_exec()
         .await
     {
@@ -80,7 +79,7 @@ impl Message {
 /// when the scan is finished it also sets the status to either succeed or failed.
 pub struct Scheduler<Registry, Extractor> {
     receiver: Receiver<Message>,
-    pool: SqlitePool,
+    pool: DataBase,
     config: Arc<Config>,
     registry: PhantomData<Registry>,
     extractor: PhantomData<Extractor>,
@@ -91,7 +90,7 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
     fn new(
         config: Arc<Config>,
         receiver: Receiver<Message>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) -> Self {
         Scheduler {
@@ -106,7 +105,7 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
 
     pub fn init(
         config: Arc<Config>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) -> (Sender<Message>, Scheduler<Registry, Extractor>) {
         let (sender, receiver) = tokio::sync::mpsc::channel(10);
@@ -128,7 +127,7 @@ where
     E: container_image_scanner::image::extractor::Extractor + Send + Sync,
 {
     #[cfg(test)]
-    pub fn pool(&self) -> sqlx::Pool<Sqlite> {
+    pub fn pool(&self) -> DataBase {
         self.pool.clone()
     }
 
@@ -148,11 +147,11 @@ where
     }
 
     async fn registry(
-        pool: &sqlx::Pool<Sqlite>,
+        pool: &DataBase,
         id: &str,
         credentials: Option<Credential>,
     ) -> Result<R, RegistryError> {
-        let result = SqlitePreferences::new(pool, id.to_owned())
+        let result = DBPreferences::new(pool, id.to_owned())
             .stream_fetch()
             .filter_map(|x| async move { x.ok() });
         let prefs = image::RegistrySetting::parse_preferences(result).await;
@@ -161,7 +160,7 @@ where
 
     #[instrument(skip_all, fields(id = pimage.id))]
     async fn resolve_all_images(
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         pimage: &ProcessingImage,
     ) -> Result<Vec<Result<Image, RegistryError>>, ExternalError> {
         let registry = Self::registry(&pool, &pimage.id, pimage.credentials.clone()).await?;
@@ -188,39 +187,37 @@ where
 
     #[instrument(skip_all, fields(id=image.id))]
     pub(crate) async fn resolve_and_store_images(
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         image: ProcessingImage,
     ) -> Result<(), DAOError> {
         let id = &image.id as &str;
-        SqliteScan::new((), (id, models::Phase::Running), &pool)
+        DBScan::new(&pool, (id, models::Phase::Running))
             .retry_exec()
             .await?;
         tracing::debug!("Set to running.");
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
-                return SqliteScan::new((), (id, models::Phase::Failed), &pool)
+                return DBScan::new(&pool, (id, models::Phase::Failed))
                     .retry_exec()
                     .await;
             }
             Ok(x) => x,
         };
-        SqliteScan::new((), (id, &images as &[_]), &pool)
-            .retry_exec()
-            .await
+        DBScan::new(&pool, (id, &images as &[_])).retry_exec().await
     }
 
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
         // TODO: is that really necessary?
-        conn: Arc<Mutex<SqlitePool>>,
+        conn: Arc<Mutex<DataBase>>,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,
     {
         tracing::debug!("checking for requested and scanning");
         let pool = conn.lock().await;
-        let requested = match SqliteImages::new(&pool, config.max_scans).fetch().await {
+        let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
             Ok(r) => r,
             Err(error) => {
                 tracing::warn!(%error, "Unable to fetch images from the DB");
@@ -237,10 +234,7 @@ where
         let scan_pool = pool.clone();
         Self::scan_images::<T>(config, scan_pool, products).await;
 
-        if let Err(error) = SqliteScan::new((), models::Phase::Succeeded, &pool)
-            .exec()
-            .await
-        {
+        if let Err(error) = DBScan::new(&pool, models::Phase::Succeeded).exec().await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
     }
@@ -248,7 +242,7 @@ where
     #[instrument(skip_all, fields(id=id.id(), image=id.image()))]
     async fn scan_image<T>(
         config: Arc<Config>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
         id: &ImageID,
         credentials: Option<Credential>,
@@ -318,12 +312,12 @@ where
 
     async fn scan_images<T>(
         config: Arc<Config>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,
     {
-        let scans = match SqliteImages::new(
+        let scans = match DBImages::new(
             &pool,
             (config.image_max_scanning(), config.image_batch_size()),
         )
@@ -379,7 +373,7 @@ where
                 tokio::spawn(async move {
                     let id = msg.id.clone();
 
-                    if let Err(e) = SqliteScan::new((), (msg.id, msg.action),&pool)
+                    if let Err(e) = DBScan::new(&pool, (msg.id, msg.action))
                         .retry_exec()
                         .await {
                         warn!(error=%e, id, "Unable to handle message");

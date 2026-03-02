@@ -53,18 +53,18 @@ fn row_to_result(row: SqliteRow) -> models::Result {
 }
 
 #[derive(Debug, Clone)]
-pub struct SqliteResults<'o, T> {
+pub struct DBResults<'o, T> {
     input: T,
     pool: &'o SqlitePool,
 }
 
-impl<'o, T> SqliteResults<'o, T> {
-    pub fn new(pool: &'o SqlitePool, input: T) -> SqliteResults<'o, T> {
-        SqliteResults { input, pool }
+impl<'o, T> DBResults<'o, T> {
+    pub fn new(pool: &'o SqlitePool, input: T) -> DBResults<'o, T> {
+        DBResults { input, pool }
     }
 }
 
-impl<'o> StreamFetch<models::Result> for SqliteResults<'o, (String, Option<usize>, Option<usize>)> {
+impl<'o> StreamFetch<models::Result> for DBResults<'o, (String, Option<usize>, Option<usize>)> {
     fn stream_fetch(self) -> DAOStreamer<models::Result> {
         let (id, from, to) = self.input;
         const SQL_BASE: &str = r#"
@@ -117,7 +117,7 @@ impl<'o> StreamFetch<models::Result> for SqliteResults<'o, (String, Option<usize
     }
 }
 
-impl<'o> Fetch<models::Result> for SqliteResults<'o, (String, usize)> {
+impl<'o> Fetch<models::Result> for DBResults<'o, (String, usize)> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Result>
     where
         'a: 'b,
@@ -144,7 +144,7 @@ impl<'o> Fetch<models::Result> for SqliteResults<'o, (String, usize)> {
     }
 }
 
-impl<'o, T> Execute<()> for SqliteResults<'o, (&'o str, &'o [T])>
+impl<'o, T> Execute<()> for DBResults<'o, (&'o str, &'o [T])>
 where
     T: 'o + Sync + Into<models::Result> + Clone,
 {

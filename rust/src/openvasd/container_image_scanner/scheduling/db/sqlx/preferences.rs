@@ -1,21 +1,11 @@
 use futures::StreamExt;
-use sqlx::{Row, SqlitePool, query};
+use sqlx::{Row, query};
 
 use crate::database::dao::{DAOError, DAOStreamer, StreamFetch};
 
-#[derive(Debug, Clone)]
-pub struct SqlitePreferences<'o, T> {
-    input: T,
-    pool: &'o SqlitePool,
-}
+pub type DBPreferences<'o, T> = super::DB<'o, T>;
 
-impl<'o, T> SqlitePreferences<'o, T> {
-    pub fn new(pool: &'o SqlitePool, input: T) -> SqlitePreferences<'o, T> {
-        SqlitePreferences { input, pool }
-    }
-}
-
-impl<'o> StreamFetch<(String, String)> for SqlitePreferences<'o, String> {
+impl<'o> StreamFetch<(String, String)> for DBPreferences<'o, String> {
     fn stream_fetch(self) -> DAOStreamer<(String, String)> {
         let result = query(
             r#"SELECT key, value
