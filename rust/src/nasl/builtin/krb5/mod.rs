@@ -225,6 +225,7 @@ impl Krb5 {
         error_code_to_string(self.last_okrb5_result)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_krb5_credential(
         &mut self,
         config_path: Option<&str>,
@@ -438,9 +439,7 @@ impl Krb5 {
             return None;
         }
         let bytes = unsafe { std::slice::from_raw_parts(slice.data as *const u8, slice.len) };
-        let result = Some(String::from_utf8_lossy(bytes).into_owned());
-
-        result
+        Some(String::from_utf8_lossy(bytes).into_owned())
     }
 
     #[nasl_function]
