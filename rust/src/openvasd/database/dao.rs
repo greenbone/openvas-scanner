@@ -100,22 +100,14 @@ pub type DAOStreamer<T> = Streamer<Result<T, DAOError>>;
 // pub type DAOPromise<T> = Promise<Result<T, DAOError>>;
 // pub type DAOResult<T> = Result<T, DAOError>;
 
-pub trait Insert {
-    fn insert<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
-    where
-        'a: 'b;
-}
-
-pub trait Delete {
-    fn delete<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
-    where
-        'a: 'b;
-}
-
 pub trait Fetch<T> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, T>
     where
         'a: 'b;
+}
+
+pub trait StreamFetch<T> {
+    fn stream_fetch(self) -> DAOStreamer<T>;
 }
 
 pub trait Execute<T> {
@@ -125,6 +117,7 @@ pub trait Execute<T> {
 }
 
 const MAX_RETRIES: u8 = 5;
+
 pub fn calculate_sleep_based_on(retries: u8) -> Duration {
     let seconds = (MAX_RETRIES - retries) as u64;
     Duration::from_secs(seconds)
@@ -170,8 +163,4 @@ where
     T: Send,
     O: Sync + Execute<T>,
 {
-}
-
-pub trait StreamFetch<T> {
-    fn stream_fetch(self) -> DAOStreamer<T>;
 }

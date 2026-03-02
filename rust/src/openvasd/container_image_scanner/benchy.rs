@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use sqlx::{SqlitePool, query};
+use sqlx::SqlitePool;
 use tokio::time::Instant;
 
 use crate::{
     container_image_scanner::scheduling::db::timed_layer::SqliteTimedLayer,
-    database::dao::{Execute, Fetch, RetryExec},
+    database::dao::{Fetch, RetryExec},
 };
 
 #[derive(Default, Debug, Copy, Clone)]

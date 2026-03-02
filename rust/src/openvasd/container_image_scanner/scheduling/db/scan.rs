@@ -15,8 +15,7 @@ use sqlx::{
 use crate::{
     container_image_scanner::image::{Image, ImageState, RegistryError},
     database::dao::{
-        DAOError, DAOPromiseRef, DAOStreamer, DBViolation, Delete, Execute, Fetch, Insert,
-        StreamFetch,
+        DAOError, DAOPromiseRef, DAOStreamer, DBViolation, Execute, Fetch, StreamFetch,
     },
 };
 
@@ -185,8 +184,8 @@ async fn set_scan_to_failed(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Err
     .map(|_| ())
 }
 
-impl<'o> Insert for SqliteScan<'o, &str, &Scan> {
-    fn insert<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
+impl<'o> Execute<()> for SqliteScan<'o, &str, &Scan> {
+    fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {
@@ -421,8 +420,8 @@ impl<'o> Fetch<models::Phase> for SqliteScan<'o, (), String> {
     }
 }
 
-impl<'o> Delete for SqliteScan<'o, (), String> {
-    fn delete<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
+impl<'o> Execute<()> for SqliteScan<'o, (), String> {
+    fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {

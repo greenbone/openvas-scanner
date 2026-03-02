@@ -16,7 +16,7 @@ use crate::{
         self,
         db::{results::SqliteResults, scan::SqliteScan},
     },
-    database::dao::{DAOError, DBViolation, Delete, Fetch, Insert, StreamFetch},
+    database::dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
 };
 
 pub struct Scans {
@@ -41,7 +41,7 @@ impl PostScans for Scans {
             // maybe get rid of clone
             let scan_id = scan.scan_id.clone();
             match SqliteScan::new(client_id.as_str(), &scan, &self.pool)
-                .insert()
+                .exec()
                 .await
             {
                 Ok(_) => Ok(scan_id),
@@ -208,7 +208,7 @@ impl DeleteScansId for Scans {
             if phase.is_running() {
                 return Err(DeleteScansIDError::Running);
             }
-            db.delete().await.map_err(DeleteScansIDError::from_external)
+            db.exec().await.map_err(DeleteScansIDError::from_external)
         })
     }
 }

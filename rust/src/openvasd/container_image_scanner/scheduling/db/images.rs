@@ -1,7 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
 use futures::StreamExt;
-use scannerlib::models;
 use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
 
 use crate::{
