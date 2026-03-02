@@ -25,11 +25,11 @@ impl Reporting {
         result
     }
 
-    fn store_result(
+    async fn store_result(
         &self,
         typus: ResultType,
         register: &Register,
-        context: &ScanCtx,
+        context: &ScanCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         let data = register
             .local_nasl_value("data")
@@ -68,7 +68,8 @@ impl Reporting {
         };
         context
             .storage()
-            .retry_dispatch(context.scan().clone(), result, 5)?;
+            .retry_dispatch(context.scan().clone(), result, 5)
+            .await?;
         Ok(NaslValue::Null)
     }
 
@@ -80,8 +81,12 @@ impl Reporting {
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
     #[nasl_function]
-    fn log_message(&self, register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
-        self.store_result(ResultType::Log, register, context)
+    async fn log_message(
+        &self,
+        register: &Register,
+        context: &ScanCtx<'_>,
+    ) -> Result<NaslValue, FnError> {
+        self.store_result(ResultType::Log, register, context).await
     }
 
     /// *void* **security_message**(data: *string*, port:*int* , proto: *string*, uri: *string*);
@@ -92,12 +97,13 @@ impl Reporting {
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
     #[nasl_function]
-    fn security_message(
+    async fn security_message(
         &self,
         register: &Register,
-        context: &ScanCtx,
+        context: &ScanCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Alarm, register, context)
+            .await
     }
 
     /// *void* **error_message**(data: *string*, port:*int* , proto: *string*, uri: *string*);
@@ -108,8 +114,13 @@ impl Reporting {
     /// - proto is the protocol ("tcp" by default; "udp" is the other value).
     /// - uri specifies the location of a found product
     #[nasl_function]
-    fn error_message(&self, register: &Register, context: &ScanCtx) -> Result<NaslValue, FnError> {
+    async fn error_message(
+        &self,
+        register: &Register,
+        context: &ScanCtx<'_>,
+    ) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Error, register, context)
+            .await
     }
 }
 

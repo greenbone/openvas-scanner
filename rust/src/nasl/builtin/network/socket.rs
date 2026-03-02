@@ -577,7 +577,7 @@ fn make_tls_client_connection(
     })
 }
 
-pub fn open_sock_tcp_vhost(
+pub async fn open_sock_tcp_vhost(
     context: &ScanCtx<'_>,
     addr: IpAddr,
     timeout: Duration,
@@ -625,12 +625,12 @@ pub fn open_sock_tcp_vhost(
         .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
         .ok();
     if set_transport {
-        context.set_port_transport(port, transport as usize)?;
+        context.set_port_transport(port, transport as usize).await?;
     }
     Ok(conn)
 }
 
-pub fn open_sock_tcp_shared(
+pub async fn open_sock_tcp_shared(
     context: &ScanCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
@@ -668,10 +668,12 @@ pub fn open_sock_tcp_shared(
         vhosts.push(context.target().ip_addr().to_string());
     };
 
-    let sockets: Vec<Option<NaslSocket>> = vhosts
-        .iter()
-        .map(|vhost| open_sock_tcp_vhost(context, addr, timeout, bufsz, port.0, vhost, transport))
-        .collect::<Result<_, _>>()?;
+    let mut sockets = vec![];
+    for vhost in vhosts.iter() {
+        sockets.push(
+            open_sock_tcp_vhost(context, addr, timeout, bufsz, port.0, vhost, transport).await?,
+        );
+    }
 
     Ok(Fork::new(sockets.into_iter().flatten().map(|socket| {
         let fd = nasl_sockets.add(socket);
@@ -708,7 +710,7 @@ async fn open_sock_tcp(
     // TODO: Extract information from custom priority string
     // priority: Option<&str>,
 ) -> Result<NaslValue, FnError> {
-    open_sock_tcp_shared(context, nasl_sockets, port, timeout, transport, bufsz)
+    open_sock_tcp_shared(context, nasl_sockets, port, timeout, transport, bufsz).await
 }
 
 #[nasl_function(named(socket, transport))]
@@ -745,7 +747,9 @@ async fn socket_negotiate_ssl(
     soc.set_tls(client);
 
     //TODO: transport is set in the kb, but is not specified in the TLS Session
-    context.set_port_transport(soc.get_port(), transport as usize)?;
+    context
+        .set_port_transport(soc.get_port(), transport as usize)
+        .await?;
     Ok(NaslValue::Number(socket as i64))
 }
 
