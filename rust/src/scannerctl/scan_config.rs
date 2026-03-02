@@ -526,8 +526,8 @@ mod tests {
         assert_eq!(result[2].range.len(), 1);
     }
 
-    #[test]
-    fn parse_scanconfig() {
+    #[tokio::test]
+    async fn parse_scanconfig() {
         let sc = r#"
         <config id="8715c877-47a0-438d-98a3-27c7a6ab2196">
   <name>Discovery</name>
@@ -580,9 +580,9 @@ mod tests {
         let result = quick_xml::de::from_str::<ScanConfig>(sc).unwrap();
         assert_eq!(result.nvt_selectors.nvt_selector.len(), 2);
         assert_eq!(result.preferences.preference.len(), 3);
-        let shop: InMemoryStorage = InMemoryStorage::default();
-        let add_product_detection = |oid: &str| {
-            shop.dispatch(
+        let d: InMemoryStorage = InMemoryStorage::default();
+        async fn add_product_detection(d: &InMemoryStorage, oid: &str) {
+            d.dispatch(
                 FileName(oid.to_string()),
                 VTData {
                     oid: oid.to_string(),
@@ -591,18 +591,19 @@ mod tests {
                     ..Default::default()
                 },
             )
+            .await
             .unwrap();
-        };
-        add_product_detection("1");
-        add_product_detection("2");
-        add_product_detection("4");
-        add_product_detection("5");
+        }
+        add_product_detection(&d, "1").await;
+        add_product_detection(&d, "2").await;
+        add_product_detection(&d, "4").await;
+        add_product_detection(&d, "5").await;
         let exists = vec![scannerlib::models::VT {
             oid: "1".to_string(),
             parameters: vec![],
         }];
 
-        let result = super::parse_vts(sc.as_bytes(), &shop, &exists).unwrap();
+        let result = super::parse_vts(sc.as_bytes(), &d, &exists).unwrap();
         assert_eq!(result.vts_list.len(), 4);
     }
 }

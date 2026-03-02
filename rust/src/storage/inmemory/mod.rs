@@ -236,43 +236,43 @@ mod tests {
     };
     use greenbone_scanner_framework::models::VTData;
 
-    #[test]
-    fn nvt() -> Result<(), StorageError> {
+    #[tokio::test]
+    async fn nvt() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
         let nvt = VTData {
             oid: "moep".to_string(),
             ..VTData::default()
         };
-        storage.dispatch(key.clone(), nvt.clone())?;
+        storage.dispatch(key.clone(), nvt.clone()).await?;
         let ret = storage.retrieve(&key).unwrap().unwrap();
         assert_eq!(nvt, ret);
         Ok(())
     }
 
-    #[test]
-    fn nvt_oid() -> Result<(), StorageError> {
+    #[tokio::test]
+    async fn nvt_oid() -> Result<(), StorageError> {
         let storage = InMemoryStorage::default();
         let key = FileName(String::new());
         let nvt = VTData {
             oid: "moep".to_string(),
             ..VTData::default()
         };
-        storage.dispatch(key.clone(), nvt.clone())?;
+        storage.dispatch(key.clone(), nvt.clone()).await?;
         let key = Oid(nvt.oid.clone());
         let ret = storage.retrieve(&key).unwrap().unwrap();
         assert_eq!(nvt, ret);
         Ok(())
     }
 
-    #[test]
-    fn kb() {
+    #[tokio::test]
+    async fn kb() {
         let storage = InMemoryStorage::default();
         let key = KbContextKey::default();
         let value1 = KbItem::String("1".to_string());
         let value2 = KbItem::String("2".to_string());
-        storage.dispatch(key.clone(), value1.clone()).unwrap();
-        storage.dispatch(key.clone(), value2.clone()).unwrap();
+        storage.dispatch(key.clone(), value1.clone()).await.unwrap();
+        storage.dispatch(key.clone(), value2.clone()).await.unwrap();
         let ret = storage.retrieve(&key).unwrap().unwrap();
         assert_eq!(ret, vec![value1, value2]);
     }
