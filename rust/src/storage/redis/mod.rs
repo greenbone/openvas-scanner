@@ -30,7 +30,6 @@ use super::items::kb::KbContextKey;
 use super::items::kb::KbItem;
 use super::items::notus_advisory::NotusAdvisory;
 use super::items::notus_advisory::NotusCache;
-use super::items::nvt::Feed;
 use super::items::nvt::FeedVersion;
 use super::items::nvt::FileName;
 use super::items::nvt::Oid;
@@ -144,25 +143,6 @@ where
     }
 }
 
-impl<S: RedisWrapper> Retriever<FeedVersion> for RedisStorage<S>
-where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-{
-    type Item = String;
-    fn retrieve(&self, _: &FeedVersion) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
-
-impl<S: RedisWrapper> Retriever<Feed> for RedisStorage<S>
-where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-{
-    type Item = Vec<VTData>;
-    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
 impl<S: RedisWrapper> Retriever<Oid> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
@@ -201,15 +181,7 @@ where
         unimplemented!()
     }
 }
-impl<S> Retriever<ScanID> for RedisStorage<S>
-where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-{
-    type Item = Vec<ResultItem>;
-    fn retrieve(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
+
 impl<S> Remover<ResultContextKeySingle> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
