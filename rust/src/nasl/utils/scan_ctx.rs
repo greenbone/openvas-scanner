@@ -407,13 +407,6 @@ impl<'a> ScanCtx<'a> {
         }
     }
 
-    async fn dispatch_nvt(&self, nvt: VTData) {
-        self.storage
-            .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
-            .await
-            .unwrap();
-    }
-
     pub fn set_nvt(&self, vt: VTData) {
         let mut nvt = self.nvt.lock().unwrap();
         *nvt = Some(vt);
@@ -640,19 +633,6 @@ impl<'a> ScanCtx<'a> {
     pub(crate) fn add_fn_global_vars(&self, register: &mut Register) {
         for (name, val) in self.executor.iter_fn_global_vars() {
             register.add_global_var(name, val);
-        }
-    }
-}
-
-impl Drop for ScanCtx<'_> {
-    fn drop(&mut self) {
-        let mut nvt = self.nvt.lock().unwrap();
-        if let Some(nvt) = nvt.take() {
-            // TODO: This might very well not work.
-            // Do we really need this Drop impl anyways?
-            futures::executor::block_on(async {
-                self.dispatch_nvt(nvt).await;
-            });
         }
     }
 }
