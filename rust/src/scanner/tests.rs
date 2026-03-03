@@ -296,7 +296,7 @@ async fn run(
 
     let executor = nasl_std_functions();
 
-    let scheduler = Scheduler::new(&*storage);
+    let scheduler = Scheduler::new(storage.clone());
     let schedule = scheduler.execution_plan(&scan.vts)?;
     let interpreter: ScanRunner<Arc<InMemoryStorage>> =
         ScanRunner::new(&storage, &loader, &executor, schedule, &scan)?;
