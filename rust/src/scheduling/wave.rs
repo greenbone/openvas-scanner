@@ -310,7 +310,7 @@ mod tests {
             vts: scan_vts,
             ..Default::default()
         };
-        let scheduler = Scheduler::new(&storage);
+        let scheduler = Scheduler::new(storage);
         let results: Result<Vec<_>, _> = scheduler
             .execution_plan(&scan.vts)
             .map(|iter| iter.collect());

@@ -104,7 +104,6 @@ impl<T> SchedulerStorage for RedisStorage<T> where
 {
 }
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> {}
-impl<T: SchedulerStorage + ?Sized> SchedulerStorage for &T {}
 
 pub struct Scheduler<S> {
     storage: S,
@@ -258,7 +257,7 @@ mod tests {
             }],
             ..Default::default()
         };
-        let scheduler = Scheduler::new(&storage);
+        let scheduler = Scheduler::new(storage);
         let results: Vec<_> = scheduler
             .execution_plan(&scan.vts)
             .expect("no error expected")
