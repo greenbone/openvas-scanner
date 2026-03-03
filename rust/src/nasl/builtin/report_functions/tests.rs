@@ -18,6 +18,7 @@ async fn verify(function: &str, result_type: ResultType) {
     ));
     t.check_no_errors();
     let (results, context) = t.results_and_context();
+
     let get_result = async |index| {
         context
             .storage()
@@ -56,6 +57,8 @@ async fn verify(function: &str, result_type: ResultType) {
     let default = get_result(3).await;
     let expected = create_expected(3, None, Protocol::TCP);
     assert_eq!(default, expected);
+
+    t.async_verify().await;
 }
 
 #[tokio::test]
