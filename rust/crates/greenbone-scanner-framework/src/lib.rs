@@ -68,6 +68,7 @@ pub mod prelude {
         GetScansIdResultsId, GetScansIdStatus, GetScansPreferences, MapScanID, PostScans,
         PostScansError, StreamResult,
         delete_scans_id::{DeleteScansIDError, DeleteScansId},
+        entry::Prefixed,
         models,
         post_scans_id::{PostScansIDError, PostScansId},
     };

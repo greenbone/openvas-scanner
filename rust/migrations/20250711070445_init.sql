@@ -100,6 +100,7 @@ CREATE TABLE vt_parameters (
     FOREIGN KEY (id, vt) REFERENCES vts(id, vt) ON DELETE CASCADE
 );
 
+
 -- maybe just store the json as a blob as we just get the data for id and result_id but never actually work with the data
 CREATE TABLE results (
     id INTEGER,

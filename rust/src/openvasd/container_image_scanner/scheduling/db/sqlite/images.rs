@@ -114,10 +114,12 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
             }
             let limit = match batch_size {
                 0 => scan_limit,
-                max if max > scan_limit as usize => scan_limit, // -1 will be usize::MAX
+                max if max > scan_limit as usize => scan_limit,
                 max => max as i64,
             };
 
+            // TODO: add ordering here: we should prioritize images that belong to a scan with the
+            // least amount of finished on scan.
             let rows = sqlx::query(
                 r#"
     SELECT i.id, i.image, c.username, c.password

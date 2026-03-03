@@ -48,9 +48,9 @@ impl InfrastructureReason {
         !matches!(self, Self::Error(_))
     }
 
-    pub fn is_reconnect(&self) -> bool {
-        !self.is_retryable()
-    }
+    // pub fn is_reconnect(&self) -> bool {
+    //     !self.is_retryable()
+    // }
 }
 
 impl Display for InfrastructureReason {
@@ -86,19 +86,24 @@ impl DAOError {
         }
     }
 
-    pub fn is_reconnect(&self) -> bool {
-        if let Self::Infrastructure(reason) = self {
-            reason.is_reconnect()
-        } else {
-            false
-        }
-    }
+    // pub fn is_reconnect(&self) -> bool {
+    //     if let Self::Infrastructure(reason) = self {
+    //         reason.is_reconnect()
+    //     } else {
+    //         false
+    //     }
+    // }
 }
 
 pub type DAOPromiseRef<'a, T> = PromiseRef<'a, Result<T, DAOError>>;
 pub type DAOStreamer<T> = Streamer<Result<T, DAOError>>;
-// pub type DAOPromise<T> = Promise<Result<T, DAOError>>;
-// pub type DAOResult<T> = Result<T, DAOError>;
+
+pub trait DAOHandler<DB, T> {
+    fn db(&self) -> DB;
+    fn input(&self) -> &T;
+
+    fn inner(self) -> (DB, T);
+}
 
 pub trait Fetch<T> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, T>

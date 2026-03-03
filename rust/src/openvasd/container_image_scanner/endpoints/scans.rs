@@ -13,7 +13,7 @@ use tracing::instrument;
 use crate::{
     container_image_scanner::scheduling::{
         self,
-        db::{DataBase, results::DBResults, scan::DBScan},
+        db::{DBResults, DataBase, scan::DBScan},
     },
     database::dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
 };

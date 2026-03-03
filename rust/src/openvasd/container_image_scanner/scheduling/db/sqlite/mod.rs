@@ -1,10 +1,12 @@
 use sqlx::SqlitePool;
 
+use crate::database::dao::DAOHandler;
+
 pub mod images;
 pub mod preferences;
-pub mod results;
 pub mod scan;
 pub mod timed_layer;
+pub use crate::database::sqlite::results::DBResults;
 
 pub type DataBase = SqlitePool;
 
@@ -17,6 +19,20 @@ pub struct DB<'o, T> {
 impl<'o, T> DB<'o, T> {
     pub fn new(pool: &'o DataBase, input: T) -> DB<'o, T> {
         DB { input, pool }
+    }
+}
+
+impl<'o, T> DAOHandler<&'o DataBase, T> for DB<'o, T> {
+    fn db(&self) -> &'o DataBase {
+        self.pool
+    }
+
+    fn input(&self) -> &T {
+        &self.input
+    }
+
+    fn inner(self) -> (&'o DataBase, T) {
+        (self.pool, self.input)
     }
 }
 

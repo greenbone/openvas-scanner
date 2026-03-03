@@ -7,7 +7,7 @@ use crate::{
     container_image_scanner::{
         detection::OperatingSystem,
         image::Image,
-        scheduling::db::{DataBase, results::DBResults},
+        scheduling::db::{DBResults, DataBase},
     },
     database::dao::RetryExec,
 };

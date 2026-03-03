@@ -1,7 +1,5 @@
 use std::str::FromStr;
 
-use futures::StreamExt;
-use greenbone_scanner_framework::InternalIdentifier;
 use scannerlib::{
     SQLITE_LIMIT_VARIABLE_NUMBER,
     models::{self, Action, Scan},
@@ -14,9 +12,7 @@ use sqlx::{
 
 use crate::{
     container_image_scanner::image::{Image, ImageState, RegistryError},
-    database::dao::{
-        DAOError, DAOPromiseRef, DAOStreamer, DBViolation, Execute, Fetch, StreamFetch,
-    },
+    database::dao::{DAOError, DAOPromiseRef, DBViolation, Execute, Fetch},
 };
 
 pub type DBScan<'o, T> = super::DB<'o, T>;
@@ -169,6 +165,62 @@ async fn set_scan_to_failed(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Err
     .map(|_| ())
 }
 
+impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Scan>
+    where
+        'a: 'b,
+    {
+        Box::pin(async move {
+            let mut conn = self.pool.acquire().await?;
+            let id = &self.input;
+            let hosts: Vec<(String,)> = sqlx::query_as("SELECT host FROM registry WHERE id = ?")
+                .bind(id)
+                .fetch_all(&mut *conn)
+                .await?;
+            let creds: Vec<(String, String)> =
+                sqlx::query_as("SELECT username, password FROM credentials WHERE id = ?")
+                    .bind(id)
+                    .fetch_all(&mut *conn)
+                    .await?;
+
+            let preferences: Vec<(String, String)> =
+                sqlx::query_as("SELECT key, value FROM preferences WHERE id = ?")
+                    .bind(id)
+                    .fetch_all(&mut *conn)
+                    .await?;
+            let scan_id = sqlx::query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
+                .bind(id)
+                .fetch_one(&mut *conn)
+                .await?;
+
+            Ok(models::Scan {
+                scan_id,
+                target: models::Target {
+                    hosts: hosts.into_iter().map(|(h,)| h).collect(),
+                    credentials: creds
+                        .into_iter()
+                        .map(|(u, p)| models::Credential {
+                            credential_type: models::CredentialType::UP {
+                                username: u,
+                                password: p,
+                                privilege: None,
+                            },
+                            service: models::Service::Generic,
+                            port: None,
+                        })
+                        .collect(),
+                    ..Default::default()
+                },
+                scan_preferences: preferences
+                    .into_iter()
+                    .map(|(id, value)| models::ScanPreference { id, value })
+                    .collect(),
+                ..Default::default()
+            })
+        })
+    }
+}
+
 impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
@@ -253,97 +305,6 @@ impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
     }
 }
 
-impl<'o> Fetch<Option<InternalIdentifier>> for DBScan<'o, (&str, &str)> {
-    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<InternalIdentifier>>
-    where
-        'a: 'b,
-    {
-        Box::pin(async move {
-            let (client_id, scan) = &self.input;
-            let x = query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
-                .bind(client_id)
-                .bind(scan)
-                .fetch_optional(self.pool)
-                .await?;
-            Ok(x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()))
-        })
-    }
-}
-
-impl<'o> StreamFetch<String> for DBScan<'o, String> {
-    fn stream_fetch(self) -> DAOStreamer<String> {
-        let client_id = self.input;
-        let result = query(
-            r#"
-                SELECT scan_id FROM client_scan_map WHERE client_id = ?
-            "#,
-        )
-        .bind(client_id)
-        .fetch(self.pool)
-        .map(|x| {
-            x.map(|x| x.get::<String, _>("scan_id"))
-                .map_err(DAOError::from)
-        });
-        Box::pin(result)
-    }
-}
-
-impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
-    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Scan>
-    where
-        'a: 'b,
-    {
-        Box::pin(async move {
-            let mut conn = self.pool.acquire().await?;
-            let id = &self.input;
-            let hosts: Vec<(String,)> = sqlx::query_as("SELECT host FROM registry WHERE id = ?")
-                .bind(id)
-                .fetch_all(&mut *conn)
-                .await?;
-            let creds: Vec<(String, String)> =
-                sqlx::query_as("SELECT username, password FROM credentials WHERE id = ?")
-                    .bind(id)
-                    .fetch_all(&mut *conn)
-                    .await?;
-
-            let preferences: Vec<(String, String)> =
-                sqlx::query_as("SELECT key, value FROM preferences WHERE id = ?")
-                    .bind(id)
-                    .fetch_all(&mut *conn)
-                    .await?;
-            let scan_id = sqlx::query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
-                .bind(id)
-                .fetch_one(&mut *conn)
-                .await?;
-
-            Ok(models::Scan {
-                scan_id,
-                target: models::Target {
-                    hosts: hosts.into_iter().map(|(h,)| h).collect(),
-                    credentials: creds
-                        .into_iter()
-                        .map(|(u, p)| models::Credential {
-                            credential_type: models::CredentialType::UP {
-                                username: u,
-                                password: p,
-                                privilege: None,
-                            },
-                            service: models::Service::Generic,
-                            port: None,
-                        })
-                        .collect(),
-                    ..Default::default()
-                },
-                scan_preferences: preferences
-                    .into_iter()
-                    .map(|(id, value)| models::ScanPreference { id, value })
-                    .collect(),
-                ..Default::default()
-            })
-        })
-    }
-}
-
 fn row_to_status(row: SqliteRow) -> models::Status {
     let status = models::Phase::from_str(&row.get::<String, _>("status"))
         .expect("expact status to be a valid phase");
@@ -403,23 +364,6 @@ impl<'o> Fetch<models::Phase> for DBScan<'o, String> {
                 },
                 Err(e) => Err(e.into()),
             }
-        })
-    }
-}
-
-impl<'o> Execute<()> for DBScan<'o, String> {
-    fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
-    where
-        'a: 'b,
-    {
-        const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
-        Box::pin(async move {
-            query(DELETE_SQL)
-                .bind(&self.input)
-                .execute(self.pool)
-                .await
-                .map(|_| ())
-                .map_err(DAOError::from)
         })
     }
 }

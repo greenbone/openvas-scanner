@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use super::FeedHashes;
-use super::Plugin;
-use super::error_vts_error;
+use crate::vts::FeedHashes;
+use crate::vts::Plugin;
 use futures::StreamExt;
+use greenbone_scanner_framework::GetVTsError;
 use scannerlib::Promise;
 use scannerlib::models::FeedType;
 use scannerlib::notus::advisories::VulnerabilityData;
@@ -112,6 +112,13 @@ impl PluginStorer for SqlPluginStorage {
     }
 }
 
+fn error_vts_error<T>(error: T) -> GetVTsError
+where
+    T: std::error::Error + Sync + Send + 'static,
+{
+    GetVTsError::External(Box::new(error))
+}
+
 impl orchestrator::Worker for FeedSynchronizer {
     fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
         let mut fetched =
@@ -155,7 +162,7 @@ impl orchestrator::Worker for FeedSynchronizer {
             typus: kind,
         };
         let verify = self.signature_check;
-        Box::pin(async move { super::synchronize_feed(&ps, feed_hash, verify).await })
+        Box::pin(async move { crate::vts::synchronize_feed(&ps, feed_hash, verify).await })
     }
 
     fn signature_check(&self) -> bool {

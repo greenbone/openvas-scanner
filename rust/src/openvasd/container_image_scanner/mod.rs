@@ -81,7 +81,9 @@ use endpoints::vts::VTEndpoints;
 
 use scannerlib::notus::{HashsumProductLoader, Notus};
 
-use crate::{container_image_scanner::scheduling::db::DataBase, vts::sql::SqlPluginStorage};
+use crate::{
+    container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
+};
 
 pub async fn init(
     vt_pool: DataBase,

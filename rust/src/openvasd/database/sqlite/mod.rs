@@ -6,7 +6,40 @@ use sqlx::{
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
-use crate::database::dao::{DAOError, DBViolation, InfrastructureReason};
+use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
+
+pub mod results;
+pub mod scans;
+pub mod state_change;
+pub mod vts;
+
+pub type DataBase = SqlitePool;
+
+#[derive(Debug, Clone)]
+pub struct OpenVASDDB<'o, T> {
+    pub input: T,
+    pub pool: &'o DataBase,
+}
+
+impl<'o, T> OpenVASDDB<'o, T> {
+    pub fn new(pool: &'o DataBase, input: T) -> OpenVASDDB<'o, T> {
+        OpenVASDDB { input, pool }
+    }
+}
+
+impl<'o, T> DAOHandler<&'o DataBase, T> for OpenVASDDB<'o, T> {
+    fn db(&self) -> &'o DataBase {
+        self.pool
+    }
+
+    fn input(&self) -> &T {
+        &self.input
+    }
+
+    fn inner(self) -> (&'o DataBase, T) {
+        (self.pool, self.input)
+    }
+}
 
 /// Contains a single connection to be used and allows replacing that connection on certain errors.
 ///
@@ -22,7 +55,6 @@ use crate::database::dao::{DAOError, DBViolation, InfrastructureReason};
 /// handled mutually exclusive usually enforced by a mutex.
 ///
 ///
-// TODO: delete
 #[derive(Debug)]
 pub struct SqliteConnectionContainer {
     pool: SqlitePool,
