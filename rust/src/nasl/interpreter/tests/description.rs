@@ -46,6 +46,7 @@ if(description)
     t.set_variable("description", NaslValue::Number(1));
     t.run_all(code);
     let results = t.results();
+    t.async_verify().await;
     assert_eq!(
         *results.last().unwrap().as_ref().unwrap(),
         NaslValue::Exit(23)

@@ -127,6 +127,7 @@ impl Dispatcher<FileName> for InMemoryStorage {
     type Item = VTData;
     /// Dispatch a single NVT into the storage with a given Key
     async fn dispatch(&self, key: FileName, item: Self::Item) -> Result<(), StorageError> {
+        dbg!(&key.0);
         let mut vts = self.vts.write()?;
         let mut oid_lookup = self.oid_lookup.write()?;
         oid_lookup.insert(Self::to_nasl_key(&item.oid), key.0.clone());
@@ -159,6 +160,7 @@ impl Retriever<Feed> for InMemoryStorage {
 impl Retriever<FileName> for InMemoryStorage {
     type Item = VTData;
     async fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
+        dbg!(&key.0);
         let vts = self.vts.read()?;
         // Notus is favored when available. This is done to prevent duplicate definitions.
         Ok(
