@@ -171,13 +171,17 @@ fn scanner_get_port(context: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
 }
 
 #[nasl_function]
-fn get_host_open_port(context: &ScanCtx<'_>) -> i64 {
-    context.get_random_open_tcp_port().unwrap_or_default() as i64
+async fn get_host_open_port(context: &ScanCtx<'_>) -> i64 {
+    context.get_random_open_tcp_port().await.unwrap_or_default() as i64
 }
 
 #[nasl_function(named(asstring))]
-fn get_port_transport(context: &ScanCtx, port: u16, asstring: bool) -> Result<NaslValue, FnError> {
-    let transport = context.get_port_transport(port).unwrap_or(1);
+async fn get_port_transport(
+    context: &ScanCtx<'_>,
+    port: u16,
+    asstring: bool,
+) -> Result<NaslValue, FnError> {
+    let transport = context.get_port_transport(port).await.unwrap_or(1);
     let ret = if asstring {
         let transport_str = match transport {
             0 => "auto".to_string(),

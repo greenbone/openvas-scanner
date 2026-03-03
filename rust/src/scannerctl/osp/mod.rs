@@ -36,7 +36,7 @@ async fn may_transform_start_scan<R, S>(
 ) -> Result<String, CliErrorKind>
 where
     R: BufRead,
-    S: Retriever<Feed, Item = Vec<VTData>>,
+    S: Retriever<Feed, Item = Vec<VTData>> + Sync,
 {
     let xml = quick_xml::de::from_reader(reader)?;
     if print_back {
@@ -49,6 +49,7 @@ where
 async fn transform_vts<S>(feed: S, vts: VtSelection) -> Result<Vec<models::VT>, CliErrorKind>
 where
     S: Retriever<Feed, Item = Vec<VTData>>,
+    S: Sync,
 {
     let mut result: Vec<_> = vts
         .vt_single
@@ -79,7 +80,7 @@ where
     for family in gvts {
         // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
         // feed, the result will be an empty vector.
-        let vts = feed.retry_retrieve(&Feed, 5)?.unwrap();
+        let vts = feed.retry_retrieve(&Feed, 5).await?.unwrap();
         let fvts: Vec<VT> = vts
             .into_iter()
             .filter_map(|x| {
@@ -103,6 +104,7 @@ where
 async fn transform_start_scan<S>(feed: S, sc: StartScan) -> Result<String, CliErrorKind>
 where
     S: Retriever<Feed, Item = Vec<VTData>>,
+    S: Sync,
 {
     // currently we ignore the previous order as the scanner will reorder
     // when scheduling internally anyway.

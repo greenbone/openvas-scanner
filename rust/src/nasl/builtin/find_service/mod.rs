@@ -467,7 +467,7 @@ async fn plugin_run_find_service(context: &ScanCtx<'_>, register: &Register) -> 
     }
 
     let detector = ServiceDetector::new()?;
-    let open_ports = context.get_open_tcp_ports()?;
+    let open_ports = context.get_open_tcp_ports().await?;
     for port in open_ports {
         match scan_port(context, &detector, context.target().ip_addr(), port).await {
             Ok(ScanPortResult::Service(service)) => {

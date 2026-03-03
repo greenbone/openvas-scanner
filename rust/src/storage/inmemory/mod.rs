@@ -99,17 +99,19 @@ impl Dispatcher<KbContextKey> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<KbContextKey> for InMemoryStorage {
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
+#[async_trait]
 impl Retriever<GetKbContextKey> for InMemoryStorage {
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
@@ -144,17 +146,19 @@ impl Dispatcher<FeedVersion> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<Feed> for InMemoryStorage {
     type Item = Vec<VTData>;
     /// Retrieve all NVTs from the storage
-    fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Feed) -> Result<Option<Self::Item>, StorageError> {
         self.all_vts().map(Some)
     }
 }
 
+#[async_trait]
 impl Retriever<FileName> for InMemoryStorage {
     type Item = VTData;
-    fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
         let vts = self.vts.read()?;
         // Notus is favored when available. This is done to prevent duplicate definitions.
         Ok(
@@ -167,9 +171,10 @@ impl Retriever<FileName> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<Oid> for InMemoryStorage {
     type Item = VTData;
-    fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
         let oid_lookup = self.oid_lookup.read()?;
         let lookup = |key| match oid_lookup.get(key) {
             None => Ok(None),
@@ -204,9 +209,13 @@ impl Dispatcher<ScanID> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<ResultContextKeySingle> for InMemoryStorage {
     type Item = ResultItem;
-    fn retrieve(&self, key: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(
+        &self,
+        key: &ResultContextKeySingle,
+    ) -> Result<Option<Self::Item>, StorageError> {
         let results = self.results.read()?;
         if let Some(scan_results) = results.get(&key.0) {
             return Ok(scan_results.get(key.1).cloned());
@@ -245,7 +254,7 @@ mod tests {
             ..VTData::default()
         };
         storage.dispatch(key.clone(), nvt.clone()).await?;
-        let ret = storage.retrieve(&key).unwrap().unwrap();
+        let ret = storage.retrieve(&key).await.unwrap().unwrap();
         assert_eq!(nvt, ret);
         Ok(())
     }
@@ -260,7 +269,7 @@ mod tests {
         };
         storage.dispatch(key.clone(), nvt.clone()).await?;
         let key = Oid(nvt.oid.clone());
-        let ret = storage.retrieve(&key).unwrap().unwrap();
+        let ret = storage.retrieve(&key).await.unwrap().unwrap();
         assert_eq!(nvt, ret);
         Ok(())
     }
@@ -273,7 +282,7 @@ mod tests {
         let value2 = KbItem::String("2".to_string());
         storage.dispatch(key.clone(), value1.clone()).await.unwrap();
         storage.dispatch(key.clone(), value2.clone()).await.unwrap();
-        let ret = storage.retrieve(&key).unwrap().unwrap();
+        let ret = storage.retrieve(&key).await.unwrap().unwrap();
         assert_eq!(ret, vec![value1, value2]);
     }
 }

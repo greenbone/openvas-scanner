@@ -80,20 +80,19 @@ where
     }
 }
 
-/// Retrieves fields based on a key and scope.
-pub trait Retriever<KEY> {
+#[async_trait]
+pub trait Retriever<KEY: Sync> {
     type Item;
-    /// Gets Fields find by key and scope. This is to get all instances.
-    fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
+    async fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
 
     /// Calls retrieve and retries for max_tries time on StorageError::Retry
-    fn retry_retrieve(
+    async fn retry_retrieve(
         &self,
         key: &KEY,
         max_tries: u64,
     ) -> Result<Option<Self::Item>, StorageError> {
         for _ in 0..max_tries {
-            match self.retrieve(key) {
+            match self.retrieve(key).await {
                 Err(StorageError::Retry(_)) => continue,
                 x => return x,
             }
@@ -102,13 +101,15 @@ pub trait Retriever<KEY> {
     }
 }
 
-impl<KEY, ITEM, T> Retriever<KEY> for Arc<T>
+#[async_trait]
+impl<KEY: Sync, ITEM, T> Retriever<KEY> for Arc<T>
 where
     T: Retriever<KEY, Item = ITEM>,
+    Arc<T>: Sync,
 {
     type Item = ITEM;
-    fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
-        self.as_ref().retrieve(key)
+    async fn retrieve(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
+        self.as_ref().retrieve(key).await
     }
 }
 

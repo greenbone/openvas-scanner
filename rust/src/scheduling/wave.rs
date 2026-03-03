@@ -314,6 +314,7 @@ mod tests {
         let scheduler = Scheduler::new(storage);
         let results: Result<Vec<_>, _> = scheduler
             .execution_plan(&scan.vts)
+            .await
             .map(|iter| iter.collect());
 
         results

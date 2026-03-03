@@ -328,6 +328,12 @@ impl From<String> for KbKey {
     }
 }
 
+impl From<&String> for KbKey {
+    fn from(value: &String) -> Self {
+        KbKey::Custom(value.to_owned())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Default, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 /// Allowed type definitions

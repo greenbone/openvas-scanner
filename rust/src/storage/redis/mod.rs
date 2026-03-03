@@ -86,23 +86,27 @@ where
     }
 }
 
+#[async_trait]
 impl<S> Retriever<KbContextKey> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    RedisStorage<S>: Sync,
 {
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
+#[async_trait]
 impl<S> Retriever<GetKbContextKey> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    RedisStorage<S>: Sync,
 {
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
@@ -147,22 +151,26 @@ where
     }
 }
 
+#[async_trait]
 impl<S: RedisWrapper> Retriever<Oid> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    RedisStorage<S>: Sync,
 {
     type Item = VTData;
-    fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
+#[async_trait]
 impl<S: RedisWrapper> Retriever<FileName> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    RedisStorage<S>: Sync,
 {
     type Item = VTData;
-    fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
@@ -178,12 +186,17 @@ where
     }
 }
 
+#[async_trait]
 impl<S> Retriever<ResultContextKeySingle> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    RedisStorage<S>: Sync,
 {
     type Item = ResultItem;
-    fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(
+        &self,
+        _: &ResultContextKeySingle,
+    ) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
