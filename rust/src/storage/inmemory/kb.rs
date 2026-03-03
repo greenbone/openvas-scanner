@@ -46,9 +46,10 @@ impl Dispatcher<KbContextKey> for InMemoryKbStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<KbContextKey> for InMemoryKbStorage {
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
         let kbs = self.0.read()?;
         match kbs.get(&key.0) {
             Some(kb) => {
@@ -69,9 +70,10 @@ impl Retriever<KbContextKey> for InMemoryKbStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<GetKbContextKey> for InMemoryKbStorage {
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
         let kbs = self.0.read()?;
         match kbs.get(&key.0) {
             Some(kb) => {

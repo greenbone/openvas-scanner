@@ -79,7 +79,7 @@ where
     }
 
     async fn run(self) -> Result<(), Error> {
-        let runner = self.make_runner()?;
+        let runner = self.make_runner().await?;
         self.update_status_at_beginning_of_run(runner.host_info())
             .await;
         let end_phase = self.run_to_completion(runner).await;
@@ -88,7 +88,7 @@ where
         Ok(())
     }
 
-    fn make_runner(&self) -> Result<ScanRunner<'_, S>, Error> {
+    async fn make_runner(&self) -> Result<ScanRunner<'_, S>, Error> {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
         let make_scheduling_error = |e: VTError| Error::SchedulingError {
@@ -98,6 +98,7 @@ where
         let scheduler = Scheduler::new(self.storage.clone());
         let schedule: Vec<_> = scheduler
             .execution_plan(&self.scan.vts)
+            .await
             .map_err(make_scheduling_error)?
             .collect::<Result<_, _>>()
             .map_err(make_scheduling_error)?;

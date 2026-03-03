@@ -1882,9 +1882,12 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
     })
 }
 
-pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+pub async fn nasl_tcp_ping_shared(
+    configs: &ScanCtx<'_>,
+    port: Option<u16>,
+) -> Result<NaslValue, FnError> {
     if configs.target().ip_addr().is_ipv6() {
-        return nasl_tcp_v6_ping_shared(configs, port);
+        return nasl_tcp_v6_ping_shared(configs, port).await;
     }
 
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
@@ -1915,7 +1918,7 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
     let target_ip = configs.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
-    let port = port.unwrap_or(configs.get_random_open_tcp_port().unwrap_or_default());
+    let port = port.unwrap_or(configs.get_random_open_tcp_port().await.unwrap_or_default());
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -2004,8 +2007,8 @@ pub fn nasl_tcp_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<Nasl
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-fn nasl_tcp_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
-    nasl_tcp_ping_shared(configs, port)
+async fn nasl_tcp_ping(configs: &ScanCtx<'_>, port: Option<u16>) -> Result<NaslValue, FnError> {
+    nasl_tcp_ping_shared(configs, port).await
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
@@ -3083,7 +3086,10 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
     Ok(NaslValue::Null)
 }
 
-fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
+async fn nasl_tcp_v6_ping_shared(
+    configs: &ScanCtx<'_>,
+    port: Option<u16>,
+) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
 
     let sports_ori: Vec<u16> = vec![
@@ -3113,7 +3119,7 @@ fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslV
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
-    let port = port.unwrap_or(configs.get_random_open_tcp_port().unwrap_or_default());
+    let port = port.unwrap_or(configs.get_random_open_tcp_port().await.unwrap_or_default());
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -3195,8 +3201,8 @@ fn nasl_tcp_v6_ping_shared(configs: &ScanCtx, port: Option<u16>) -> Result<NaslV
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-fn nasl_tcp_v6_ping(configs: &ScanCtx, port: Option<u16>) -> Result<NaslValue, FnError> {
-    nasl_tcp_v6_ping_shared(configs, port)
+async fn nasl_tcp_v6_ping(configs: &ScanCtx<'_>, port: Option<u16>) -> Result<NaslValue, FnError> {
+    nasl_tcp_v6_ping_shared(configs, port).await
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
