@@ -35,7 +35,10 @@ use super::{
 };
 
 async fn get_user_agent(context: &ScanCtx<'_>) -> Result<String, FnError> {
-    match context.get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent)) {
+    match context
+        .get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent))
+        .await
+    {
         Ok(ua) => Ok(ua),
         _ => {
             let ua = match context
@@ -508,7 +511,10 @@ async fn http_req_shared(
 ) -> Result<NaslValue, FnError> {
     let p: u16 = port.into();
     let tmp_key = format!("http/{p}");
-    let mut request = match context.get_single_kb_item::<i32>(&KbKey::from(tmp_key))? {
+    let mut request = match context
+        .get_single_kb_item::<i32>(&KbKey::from(tmp_key))
+        .await?
+    {
         x if (x == 11 || x <= 0) => {
             //TODO: use plug_get_host_fqdn and do it for all vhosts.
             let hostname = context.target().ip_addr().to_string();
@@ -536,7 +542,7 @@ async fn http_req_shared(
     };
 
     let tmp_key = format!("/tmp/http/auth/{p}");
-    match context.get_kb_item(&KbKey::from(tmp_key))?.first() {
+    match context.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
         Some(KbItem::String(a)) => request.push_str(a),
         _ => request.push_str("http/auth"),
     };

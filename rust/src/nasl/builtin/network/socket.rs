@@ -533,7 +533,9 @@ async fn open_sock_kdc(
     context: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
 ) -> Result<NaslValue, FnError> {
-    let hostname: String = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))?;
+    let hostname: String = context
+        .get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))
+        .await?;
 
     let ip = lookup_host(&hostname)
         .map_err(|_| SocketError::HostnameLookupFailed(hostname.clone()))?
@@ -542,13 +544,16 @@ async fn open_sock_kdc(
         .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
     let port = context
-        .get_single_kb_item::<Port>(&KbKey::Kdc(kb::Kdc::Port))?
+        .get_single_kb_item::<Port>(&KbKey::Kdc(kb::Kdc::Port))
+        .await?
         .0;
 
-    let use_tcp: bool = context.get_single_kb_item(&KbKey::Kdc(kb::Kdc::Protocol))?;
+    let use_tcp: bool = context
+        .get_single_kb_item(&KbKey::Kdc(kb::Kdc::Protocol))
+        .await?;
 
     let socket = if use_tcp {
-        make_tcp_socket(ip, port, get_retry(context))?
+        make_tcp_socket(ip, port, get_retry(context).await)?
     } else {
         let udp = UdpConnection::new(ip, port)?;
         NaslSocket::Udp(udp)
@@ -559,12 +564,12 @@ async fn open_sock_kdc(
     Ok(NaslValue::Number(ret as i64))
 }
 
-fn make_tls_client_connection(
+async fn make_tls_client_connection(
     context: &ScanCtx<'_>,
     transport: &OpenvasEncaps,
     vhost: &str,
 ) -> Option<ClientConnection> {
-    get_tls_conf(context).ok().and_then(|conf| {
+    get_tls_conf(context).await.ok().and_then(|conf| {
         create_tls_client(
             vhost,
             &conf.cert_path,
@@ -587,7 +592,7 @@ pub async fn open_sock_tcp_vhost(
     transport: i64,
 ) -> Result<Option<NaslSocket>, FnError> {
     let mut transport = if transport.is_negative() {
-        context.get_port_transport(port).unwrap_or(1)
+        context.get_port_transport(port).await.unwrap_or(1)
     } else {
         transport
     };
@@ -597,7 +602,7 @@ pub async fn open_sock_tcp_vhost(
         Some(OpenvasEncaps::Auto) => {
             set_transport = true;
             // Try SSL/TLS first
-            let tls = make_tls_client_connection(context, &OpenvasEncaps::Auto, vhost);
+            let tls = make_tls_client_connection(context, &OpenvasEncaps::Auto, vhost).await;
             if tls.is_some() {
                 transport = OpenvasEncaps::TlsCustom as i64;
             } else {
@@ -615,13 +620,13 @@ pub async fn open_sock_tcp_vhost(
         // TLS/SSL
         Some(tls_version) => match tls_version {
             OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                make_tls_client_connection(context, &tls_version, vhost)
+                make_tls_client_connection(context, &tls_version, vhost).await
             }
             _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport).into()),
         },
     };
 
-    let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context))
+    let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context).await)
         .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
         .ok();
     if set_transport {
@@ -721,7 +726,7 @@ async fn socket_negotiate_ssl(
     transport: Option<i64>,
 ) -> Result<NaslValue, FnError> {
     let transport = transport.unwrap_or(OpenvasEncaps::TlsCustom.into());
-    let client = get_tls_conf(context).and_then(|conf| {
+    let client = get_tls_conf(context).await.and_then(|conf| {
         prepare_tls_client(
             &conf.cert_path,
             &conf.key_path,
@@ -838,18 +843,22 @@ async fn socket_check_ssl_safe_renegotiation(
 
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
-fn get_tls_conf(context: &ScanCtx) -> Result<TlsConfig, FnError> {
+async fn get_tls_conf(context: &ScanCtx<'_>) -> Result<TlsConfig, FnError> {
     let cert_path = context
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))
+        .await
         .unwrap_or_default();
     let key_path = context
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))
+        .await
         .unwrap_or_default();
     let password = context
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))
+        .await
         .unwrap_or_default();
     let cafile_path = context
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))
+        .await
         .unwrap_or_default();
 
     Ok(TlsConfig {

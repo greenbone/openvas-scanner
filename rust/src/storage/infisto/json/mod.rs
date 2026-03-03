@@ -108,17 +108,25 @@ impl<S: Write + Send> Dispatcher<KbContextKey> for JsonStorage<S> {
     }
 }
 
-impl<S: Write> Retriever<KbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write> Retriever<KbContextKey> for JsonStorage<S>
+where
+    JsonStorage<S>: Sync,
+{
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
-impl<S: Write> Retriever<GetKbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write> Retriever<GetKbContextKey> for JsonStorage<S>
+where
+    JsonStorage<S>: Sync,
+{
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.retrieve(key)
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.retrieve(key).await
     }
 }
 
@@ -146,16 +154,24 @@ impl<S: Write + Send> Dispatcher<FeedVersion> for JsonStorage<S> {
     }
 }
 
-impl<S: Write> Retriever<Oid> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write> Retriever<Oid> for JsonStorage<S>
+where
+    JsonStorage<S>: Sync,
+{
     type Item = VTData;
-    fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &Oid) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
 
-impl<S: Write> Retriever<FileName> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write> Retriever<FileName> for JsonStorage<S>
+where
+    JsonStorage<S>: Sync,
+{
     type Item = VTData;
-    fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, _: &FileName) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
@@ -168,9 +184,16 @@ impl<S: Write + Send> Dispatcher<ScanID> for JsonStorage<S> {
     }
 }
 
-impl<S: Write> Retriever<ResultContextKeySingle> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write> Retriever<ResultContextKeySingle> for JsonStorage<S>
+where
+    JsonStorage<S>: Sync,
+{
     type Item = ResultItem;
-    fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(
+        &self,
+        _: &ResultContextKeySingle,
+    ) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }

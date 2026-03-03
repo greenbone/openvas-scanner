@@ -6,7 +6,7 @@ use greenbone_scanner_framework::models::{self, Protocol, ResultType};
 
 use crate::nasl::test_prelude::*;
 
-fn verify(function: &str, result_type: ResultType) {
+async fn verify(function: &str, result_type: ResultType) {
     let mut t = TestBuilder::default();
     t.run_all(format!(
         r###"
@@ -18,10 +18,11 @@ fn verify(function: &str, result_type: ResultType) {
     ));
     t.check_no_errors();
     let (results, context) = t.results_and_context();
-    let get_result = |index| {
+    let get_result = async |index| {
         context
             .storage()
             .retrieve(&(context.scan().clone(), index as usize))
+            .await
             .unwrap()
             .unwrap()
     };
@@ -43,31 +44,31 @@ fn verify(function: &str, result_type: ResultType) {
         detail: None,
     };
 
-    let udp = get_result(0);
+    let udp = get_result(0).await;
     let expected = create_expected(0, Some(12), Protocol::UDP);
     assert_eq!(udp, expected);
-    let tcp = get_result(1);
+    let tcp = get_result(1).await;
     let expected = create_expected(1, Some(12), Protocol::TCP);
     assert_eq!(tcp, expected);
-    let defaults_to_tcp = get_result(2);
+    let defaults_to_tcp = get_result(2).await;
     let expected = create_expected(2, Some(12), Protocol::TCP);
     assert_eq!(defaults_to_tcp, expected);
-    let default = get_result(3);
+    let default = get_result(3).await;
     let expected = create_expected(3, None, Protocol::TCP);
     assert_eq!(default, expected);
 }
 
-#[test]
-fn log_message() {
-    verify("log_message", ResultType::Log)
+#[tokio::test]
+async fn log_message() {
+    verify("log_message", ResultType::Log).await
 }
 
-#[test]
-fn security_message() {
-    verify("security_message", ResultType::Alarm)
+#[tokio::test]
+async fn security_message() {
+    verify("security_message", ResultType::Alarm).await
 }
 
-#[test]
-fn error_message() {
-    verify("error_message", ResultType::Error)
+#[tokio::test]
+async fn error_message() {
+    verify("error_message", ResultType::Error).await
 }
