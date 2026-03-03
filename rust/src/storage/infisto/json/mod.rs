@@ -162,18 +162,14 @@ impl<S: Write> Dispatcher<ScanID> for JsonStorage<S> {
         unimplemented!()
     }
 }
+
 impl<S: Write> Retriever<ResultContextKeySingle> for JsonStorage<S> {
     type Item = ResultItem;
     fn retrieve(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }
-impl<S: Write> Remover<ResultContextKeySingle> for JsonStorage<S> {
-    type Item = ResultItem;
-    fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
+
 impl<S: Write> Remover<ScanID> for JsonStorage<S> {
     type Item = Vec<ResultItem>;
     fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {

@@ -152,6 +152,7 @@ where
         unimplemented!()
     }
 }
+
 impl<S: RedisWrapper> Retriever<FileName> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
@@ -182,15 +183,6 @@ where
     }
 }
 
-impl<S> Remover<ResultContextKeySingle> for RedisStorage<S>
-where
-    S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
-{
-    type Item = ResultItem;
-    fn remove(&self, _: &ResultContextKeySingle) -> Result<Option<Self::Item>, StorageError> {
-        unimplemented!()
-    }
-}
 impl<S> Remover<ScanID> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
