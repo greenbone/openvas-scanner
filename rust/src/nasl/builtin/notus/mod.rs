@@ -8,6 +8,7 @@ mod tests;
 use std::{collections::HashMap, net::SocketAddr};
 
 use greenbone_scanner_framework::models::FixedVersion;
+use http::StatusCode;
 use nasl_function_proc_macro::nasl_function;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -75,6 +76,14 @@ impl NaslNotus {
             .send()
             .await
             .map_err(|e| HttpError::Custom(e.to_string()))?;
+
+        if response.status() != StatusCode::OK {
+            return Err(HttpError::Custom(format!(
+                "Notus service returned status code {}",
+                response.status()
+            ))
+            .into());
+        }
 
         // Parse JSON array of results
         let results: Vec<NotusResult> = response
