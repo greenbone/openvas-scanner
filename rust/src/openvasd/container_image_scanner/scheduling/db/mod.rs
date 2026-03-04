@@ -318,7 +318,7 @@ impl Iterator for RequestedScans {
 
 impl RequestedScans {
     pub async fn fetch(pool: &Pool<Sqlite>, limit: usize) -> RequestedScans {
-        let limit = if limit == 0 { -1 } else { limit as i64 };
+        let limit = if limit == 0 { 254 } else { limit as i64 };
         let mut stream = sqlx::query(
             r#"
         WITH running_count AS (
@@ -332,7 +332,10 @@ impl RequestedScans {
             WHERE status = 'requested'
             ORDER BY created_at ASC
             LIMIT (
-                SELECT MAX(? - running_total, 0)
+                SELECT CASE
+                    WHEN running_total < ? THEN 1
+                    ELSE 0
+                END
                 FROM running_count
             )
         )
