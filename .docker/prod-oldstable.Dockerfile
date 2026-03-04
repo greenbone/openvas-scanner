@@ -12,6 +12,8 @@ WORKDIR /source/rust
 RUN apt update && apt install -y \
     capnproto \
     ca-certificates \
+    libclang-dev \
+    libpcap-dev \
     libsnmp-dev
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
