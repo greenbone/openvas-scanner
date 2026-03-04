@@ -420,7 +420,8 @@ okrb5_gss_free_context (struct OKrb5GSSContext *context)
         {
           gss_release_name (&min_stat, &context->gss_target);
         }
-      if (context->gss_mech != NULL)
+      // This context is set statically and should not be freed
+      if (context->gss_mech != NULL && context->gss_mech != gss_mech_spnego)
         {
           gss_release_oid (&min_stat, &context->gss_mech);
         }
