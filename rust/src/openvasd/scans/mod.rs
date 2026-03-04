@@ -847,10 +847,6 @@ mod tests {
         ]
     }
 
-    fn all_ports() -> Vec<Option<u16>> {
-        vec![None, Some(22)]
-    }
-
     fn sample_privileges() -> Vec<Option<PrivilegeInformation>> {
         vec![
             None,
@@ -916,16 +912,19 @@ mod tests {
     }
 
     fn generate_credentials() -> Vec<Credential> {
-        itertools::iproduct!(all_services().into_iter(), all_ports().into_iter())
-            .flat_map(|(s, p)| {
-                all_credential_types_for_service(&s)
+        // Only one credential per service type, since the validation rejects duplicates.
+        all_services()
+            .into_iter()
+            .map(|s| {
+                let credential_type = all_credential_types_for_service(&s)
                     .into_iter()
-                    .map(move |c| (s.clone(), p, c))
-            })
-            .map(|(service, port, credential_type)| Credential {
-                service,
-                port,
-                credential_type,
+                    .next()
+                    .unwrap();
+                Credential {
+                    service: s,
+                    port: Some(22),
+                    credential_type,
+                }
             })
             .collect()
     }
