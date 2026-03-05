@@ -14,7 +14,6 @@ mod host;
 mod http;
 mod isotime;
 mod knowledge_base;
-#[cfg(feature = "nasl-c-lib")]
 mod krb5;
 pub mod misc;
 pub mod network;
