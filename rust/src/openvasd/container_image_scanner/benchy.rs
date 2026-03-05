@@ -77,18 +77,16 @@ impl Benched {
     pub fn msg(&self) -> String {
         if let Some(layer_index) = self.layer_index {
             format!(
-                "layer({}) {} took {}ms ({}μs)",
+                "layer({}) {} took {}ms",
                 layer_index,
                 self.kind.as_ref(),
                 self.micro_seconds / 1000,
-                self.micro_seconds
             )
         } else {
             format!(
-                "{} took {}ms ({}μs)",
+                "{} took {}ms",
                 self.kind.as_ref(),
                 self.micro_seconds / 1000,
-                self.micro_seconds
             )
         }
     }
