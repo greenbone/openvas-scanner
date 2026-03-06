@@ -11,11 +11,11 @@ use nasl_c_lib::krb5::{
     OKrb5ErrorCode_O_KRB5_EXPECTED_NOT_NULL, OKrb5ErrorCode_O_KRB5_REALM_NOT_FOUND,
     OKrb5ErrorCode_O_KRB5_SUCCESS, OKrb5GSSContext, OKrb5Slice, OKrb5Target, OKrb5User,
     o_krb5_add_realm, o_krb5_find_kdc, o_krb5_gss_prepare_context, o_krb5_gss_session_key_context,
-    o_krb5_gss_update_context, okrb5_error_code_to_string, okrb5_gss_free_context,
-    okrb5_gss_init_context,
+    o_krb5_gss_update_context, okrb5_error_code_to_string, okrb5_gss_init_context,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::os;
+use std::os::raw::c_char;
 use std::sync::Mutex;
 use std::{ffi::CStr, sync::Arc};
 use thiserror::Error;
@@ -191,15 +191,20 @@ impl Drop for Krb5 {
             }
         }
 
-        let cached_gss_context = *self.cached_gss_context.lock().unwrap();
-        if !cached_gss_context.is_null() {
-            unsafe {
-                okrb5_gss_free_context(cached_gss_context);
-            }
-        }
+        // TODO: This block leads to munmap_chunk(): invalid pointer and Aborted (core dumped)
+        // let cached_gss_context = *self.cached_gss_context.lock().unwrap();
+        // if !cached_gss_context.is_null() {
+        //     unsafe {
+        //         okrb5_gss_free_context(cached_gss_context);
+        //     }
+        // }
     }
 }
 
+// SAFETY: Krb5 can be safely sent between threads because:
+// - The raw pointers are stored behind Arc<Mutex<...>> for synchronization
+// - Access to the pointers is guarded by mutex locks
+// - The outer Arc<Mutex<...>> provides the thread-safe coordination
 unsafe impl Send for Krb5 {}
 unsafe impl Sync for Krb5 {}
 
@@ -257,7 +262,7 @@ impl Krb5 {
             service,
         );
 
-        let mut kdc_ptr: *mut i8 = std::ptr::null_mut();
+        let mut kdc_ptr: *mut c_char = std::ptr::null_mut();
         let code = unsafe { o_krb5_find_kdc(credential.okrb5_credential(), &mut kdc_ptr) };
 
         match code {
@@ -283,7 +288,7 @@ impl Krb5 {
                 let code = unsafe {
                     o_krb5_add_realm(
                         credential.okrb5_credential(),
-                        credential.okrb5_credential().kdc.data as *const i8,
+                        credential.okrb5_credential().kdc.data as *const c_char,
                     )
                 };
                 if code != OKrb5ErrorCode_O_KRB5_SUCCESS {
@@ -313,7 +318,7 @@ impl Krb5 {
     ) -> Result<String, FnError> {
         let credential =
             self.build_krb5_credential(config_path, realm, kdc, user, password, host, None)?;
-        let mut kdc_ptr: *mut i8 = std::ptr::null_mut();
+        let mut kdc_ptr: *mut c_char = std::ptr::null_mut();
 
         self.last_okrb5_result =
             unsafe { o_krb5_find_kdc(credential.okrb5_credential(), &mut kdc_ptr) };
