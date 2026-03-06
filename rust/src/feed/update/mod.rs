@@ -70,6 +70,7 @@ pub async fn feed_version(
         scan_id,
         scan_preferences: scan_params,
         alive_test_methods,
+        notus: None,
     };
     let context = cb.build();
     let mut interpreter = ForkingInterpreter::new(
@@ -170,6 +171,7 @@ where
             executor: &self.executor,
             scan_preferences: scan_params,
             alive_test_methods,
+            notus: None,
         };
         let context = context.build();
         let file = code.source_file();
