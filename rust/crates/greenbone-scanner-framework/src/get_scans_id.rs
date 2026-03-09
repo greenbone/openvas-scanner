@@ -12,10 +12,10 @@ use crate::{
 };
 
 pub trait GetScansId: MapScanID {
-    fn get_scans_id(
-        &self,
+    fn get_scans_id<'a>(
+        &'a self,
         id: String,
-    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + 'a>>;
 }
 
 pub struct GetScansIdHandler<T> {

@@ -453,8 +453,7 @@ impl super::Registry for Registry {
     fn resolve_image(
         &self,
         image: super::Image,
-    ) -> Pin<Box<dyn Future<Output = Vec<Result<super::Image, RegistryError>>> + Send + Sync + '_>>
-    {
+    ) -> Pin<Box<dyn Future<Output = Vec<Result<super::Image, RegistryError>>> + Send + '_>> {
         Box::pin(async move {
             match image {
                 Image {

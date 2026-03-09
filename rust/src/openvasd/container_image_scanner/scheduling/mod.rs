@@ -6,9 +6,8 @@ use container_image_scanner::{
     image,
     image::{Credential, Image, ImageID, packages::ToNotus},
 };
-use db::{ProcessingImage, RequestedScans};
+use futures::StreamExt;
 use greenbone_scanner_framework::models;
-use sqlx::{Sqlite, SqlitePool};
 use tokio::{
     sync::{
         Mutex, RwLock,
@@ -22,10 +21,14 @@ use tracing::{debug, instrument, warn};
 use crate::{
     container_image_scanner::{
         self,
+        image::{ImageParseError, ImageState},
         messages::CustomerMessage,
-        scheduling::scanner::{ScannerArchImageError, ScannerError},
+        scheduling::{
+            db::{DataBase, images::DBImages, preferences::DBPreferences, scan::DBScan},
+            scanner::{ScannerArchImageError, ScannerError},
+        },
     },
-    database::sqlite::SqliteConnectionContainer,
+    database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
 };
 use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
@@ -33,10 +36,34 @@ use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 pub mod db;
 mod scanner;
 
+pub async fn image_failed(pool: &DataBase, id: &ImageID) {
+    if let Err(error) = DBImages::new(pool, (id, ImageState::Failed))
+        .retry_exec()
+        .await
+    {
+        tracing::warn!(%error, "Unable to set status to failed.")
+    }
+}
+
+pub async fn image_success(pool: &DataBase, id: &ImageID) {
+    if let Err(error) = DBImages::new(pool, (id, ImageState::Succeeded))
+        .retry_exec()
+        .await
+    {
+        tracing::warn!(%error, "Unable to set status to succeeded.")
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ProcessingImage {
+    pub id: String,
+    pub image: Vec<Result<Image, ImageParseError>>,
+    pub credentials: Option<Credential>,
+}
 #[derive(Debug)]
 pub struct Message {
-    id: String,
-    action: models::Action,
+    pub id: String,
+    pub action: models::Action,
 }
 
 impl Message {
@@ -52,7 +79,7 @@ impl Message {
 /// when the scan is finished it also sets the status to either succeed or failed.
 pub struct Scheduler<Registry, Extractor> {
     receiver: Receiver<Message>,
-    pool: SqlitePool,
+    pool: DataBase,
     config: Arc<Config>,
     registry: PhantomData<Registry>,
     extractor: PhantomData<Extractor>,
@@ -63,7 +90,7 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
     fn new(
         config: Arc<Config>,
         receiver: Receiver<Message>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) -> Self {
         Scheduler {
@@ -78,7 +105,7 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
 
     pub fn init(
         config: Arc<Config>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) -> (Sender<Message>, Scheduler<Registry, Extractor>) {
         let (sender, receiver) = tokio::sync::mpsc::channel(10);
@@ -100,7 +127,7 @@ where
     E: container_image_scanner::image::extractor::Extractor + Send + Sync,
 {
     #[cfg(test)]
-    pub fn pool(&self) -> sqlx::Pool<Sqlite> {
+    pub fn pool(&self) -> DataBase {
         self.pool.clone()
     }
 
@@ -120,18 +147,20 @@ where
     }
 
     async fn registry(
-        pool: &sqlx::Pool<Sqlite>,
+        pool: &DataBase,
         id: &str,
         credentials: Option<Credential>,
     ) -> Result<R, RegistryError> {
-        let result = db::preferences(pool, id);
+        let result = DBPreferences::new(pool, id.to_owned())
+            .stream_fetch()
+            .filter_map(|x| async move { x.ok() });
         let prefs = image::RegistrySetting::parse_preferences(result).await;
         R::initialize(credentials, prefs)
     }
 
     #[instrument(skip_all, fields(id = pimage.id))]
     async fn resolve_all_images(
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         pimage: &ProcessingImage,
     ) -> Result<Vec<Result<Image, RegistryError>>, ExternalError> {
         let registry = Self::registry(&pool, &pimage.id, pimage.credentials.clone()).await?;
@@ -158,33 +187,43 @@ where
 
     #[instrument(skip_all, fields(id=image.id))]
     pub(crate) async fn resolve_and_store_images(
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         image: ProcessingImage,
-    ) -> Result<(), sqlx::Error> {
-        db::set_scan_to_running(&pool, &image.id).await?;
+    ) -> Result<(), DAOError> {
+        let id = &image.id as &str;
+        DBScan::new(&pool, (id, models::Phase::Running))
+            .retry_exec()
+            .await?;
         tracing::debug!("Set to running.");
         let images = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
-                return db::set_scan_to_failed(&pool, &image.id).await;
+                return DBScan::new(&pool, (id, models::Phase::Failed))
+                    .retry_exec()
+                    .await;
             }
             Ok(x) => x,
         };
-
-        db::set_scan_images(&pool, &image.id, images).await
+        DBScan::new(&pool, (id, &images as &[_])).retry_exec().await
     }
 
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
-        conn: Arc<Mutex<SqliteConnectionContainer>>,
+        // TODO: is that really necessary?
+        conn: Arc<Mutex<DataBase>>,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,
     {
         tracing::debug!("checking for requested and scanning");
-        let mut conn = conn.lock().await;
-        let pool = conn.pool();
-        let requested = RequestedScans::fetch(&pool, config.max_scans).await;
+        let pool = conn.lock().await;
+        let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
+            Ok(r) => r,
+            Err(error) => {
+                tracing::warn!(%error, "Unable to fetch images from the DB");
+                return;
+            }
+        };
         let catalog_pool = pool.clone();
         for r in requested {
             if let Err(error) = Self::resolve_and_store_images(catalog_pool.clone(), r).await {
@@ -194,80 +233,16 @@ where
 
         let scan_pool = pool.clone();
         Self::scan_images::<T>(config, scan_pool, products).await;
-        if let Err(error) = db::set_scans_to_finished(&mut conn).await {
+
+        if let Err(error) = DBScan::new(&pool, models::Phase::Succeeded).exec().await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
-    }
-
-    async fn set_images_to_scanning(
-        config: Arc<Config>,
-        pool: &sqlx::Pool<Sqlite>,
-    ) -> Result<Vec<(ImageID, Option<Credential>)>, sqlx::error::Error> {
-        let mut tx = pool.begin().await?;
-
-        let scan_limit = match config.image_max_scanning() {
-            0 => -1,
-            max => {
-                let max = max as i64;
-                let current_scanning: (i64,) =
-                    sqlx::query_as("SELECT COUNT(*) FROM images WHERE status = 'scanning'")
-                        .fetch_one(&mut *tx)
-                        .await?;
-                if current_scanning.0 >= max {
-                    0
-                } else {
-                    max - current_scanning.0
-                }
-            }
-        };
-        if scan_limit == 0 {
-            return Ok(vec![]);
-        }
-        let limit = match config.image_batch_size() {
-            0 => scan_limit,
-            max if max > scan_limit as usize => scan_limit, // -1 will be usize::MAX
-            max => max as i64,
-        };
-
-        let rows = sqlx::query(
-            r#"
-    SELECT i.id, i.image, c.username, c.password
-    FROM images i
-    LEFT JOIN credentials c ON i.id = c.id
-    WHERE i.status = 'pending'
-    LIMIT ?
-    "#,
-        )
-        .bind(limit)
-        .fetch_all(&mut *tx)
-        .await?;
-        let mut result = Vec::with_capacity(rows.len());
-        for row in rows {
-            let credentials = db::row_to_credential(&row);
-            let id: ImageID = row.into();
-
-            sqlx::query(
-                r#"
-        UPDATE images
-        SET status = 'scanning'
-        WHERE id = ? AND image = ?
-        "#,
-            )
-            .bind(id.id())
-            .bind(id.image())
-            .execute(&mut *tx)
-            .await?;
-            result.push((id, credentials));
-        }
-        tx.commit().await?;
-
-        Ok(result)
     }
 
     #[instrument(skip_all, fields(id=id.id(), image=id.image()))]
     async fn scan_image<T>(
         config: Arc<Config>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
         id: &ImageID,
         credentials: Option<Credential>,
@@ -287,7 +262,7 @@ where
                 .await
                 {
                     Ok(_) => {
-                        db::image_success(&pool, id).await;
+                        image_success(&pool, id).await;
                     }
                     Err(err) => {
                         // Notus error should not set a scan to failed
@@ -304,9 +279,9 @@ where
                             })
                             .any(|x| x)
                         {
-                            db::image_failed(&pool, id).await;
+                            image_failed(&pool, id).await;
                         } else {
-                            db::image_success(&pool, id).await;
+                            image_success(&pool, id).await;
                         }
                         for e in err {
                             if let ScannerError::Image(ScannerArchImageError::Notus(
@@ -337,14 +312,25 @@ where
 
     async fn scan_images<T>(
         config: Arc<Config>,
-        pool: sqlx::Pool<Sqlite>,
+        pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,
     {
-        let scans = Self::set_images_to_scanning(config.clone(), &pool)
-            .await
-            .unwrap();
+        let scans = match DBImages::new(
+            &pool,
+            (config.image_max_scanning(), config.image_batch_size()),
+        )
+        .exec()
+        .await
+        {
+            Ok(x) => x,
+            Err(error) => {
+                tracing::warn!(%error, "Unable to set images to running.");
+                return;
+            }
+        };
+
         let mut js = JoinSet::new();
         for (id, credentials) in scans {
             let pool = pool.clone();
@@ -376,13 +362,8 @@ where
         let config = self.config.clone();
 
         let pool = self.pool.clone();
-        let conn = match SqliteConnectionContainer::init(pool).await {
-            Ok(x) => x,
-            Err(error) => {
-                tracing::error!(%error, "Unable to create connection container. Container-image-scanner disabled.");
-                return;
-            }
-        };
+        // ehww....
+        let conn = pool.clone();
         let conn = Arc::new(Mutex::new(conn));
         loop {
             tokio::select! {
@@ -390,8 +371,12 @@ where
                 let pool = self.pool.clone();
 
                 tokio::spawn(async move {
-                    if let Err(e) = db::on_message(&pool, &msg).await {
-                        warn!(error=%e, id=msg.id, "Unable to handle message");
+                    let id = msg.id.clone();
+
+                    if let Err(e) = DBScan::new(&pool, (msg.id, msg.action))
+                        .retry_exec()
+                        .await {
+                        warn!(error=%e, id, "Unable to handle message");
                     }
                 });
                 }

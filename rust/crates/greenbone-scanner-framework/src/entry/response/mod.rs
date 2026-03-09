@@ -42,7 +42,7 @@ macro_rules! internal_server_error {
     }};
 }
 
-pub type StreamResult<'a, T, E> = Box<dyn Stream<Item = Result<T, E>> + Unpin + Send + 'a>;
+pub type StreamResult<T, E> = Pin<Box<dyn Stream<Item = Result<T, E>> + Send>>;
 
 pub trait BodyKindError {
     fn into_body_kind(self) -> BodyKind;
@@ -100,7 +100,7 @@ impl BodyKind {
     /// If it is an empty stgream it will return an BodyKind::Stream with an empty stream
     pub async fn from_result_stream<T, E>(
         status_code: StatusCode,
-        mut input: StreamResult<'static, T, E>,
+        mut input: StreamResult<T, E>,
     ) -> Self
     where
         T: Default + serde::Serialize + Send + 'static,

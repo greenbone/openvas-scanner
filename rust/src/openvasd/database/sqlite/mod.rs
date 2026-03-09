@@ -6,6 +6,41 @@ use sqlx::{
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
+use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
+
+pub mod results;
+pub mod scans;
+pub mod state_change;
+pub mod vts;
+
+pub type DataBase = SqlitePool;
+
+#[derive(Debug, Clone)]
+pub struct OpenVASDDB<'o, T> {
+    pub input: T,
+    pub pool: &'o DataBase,
+}
+
+impl<'o, T> OpenVASDDB<'o, T> {
+    pub fn new(pool: &'o DataBase, input: T) -> OpenVASDDB<'o, T> {
+        OpenVASDDB { input, pool }
+    }
+}
+
+impl<'o, T> DAOHandler<&'o DataBase, T> for OpenVASDDB<'o, T> {
+    fn db(&self) -> &'o DataBase {
+        self.pool
+    }
+
+    fn input(&self) -> &T {
+        &self.input
+    }
+
+    fn inner(self) -> (&'o DataBase, T) {
+        (self.pool, self.input)
+    }
+}
+
 /// Contains a single connection to be used and allows replacing that connection on certain errors.
 ///
 ///
@@ -18,6 +53,8 @@ use sqlx::{
 ///
 /// That's why we need to enforce for critical operations to happen on the same connection and
 /// handled mutually exclusive usually enforced by a mutex.
+///
+///
 #[derive(Debug)]
 pub struct SqliteConnectionContainer {
     pool: SqlitePool,
@@ -56,10 +93,6 @@ impl SqliteConnectionContainer {
             current_connection,
             max_retries: 3,
         })
-    }
-
-    pub fn pool(&self) -> SqlitePool {
-        self.pool.clone()
     }
 
     pub fn connection(&mut self) -> &mut SqliteConnection {
@@ -125,5 +158,58 @@ impl SqliteConnectionContainer {
         A: 'a + IntoArguments<'a, Sqlite>,
     {
         retry_sql_connection_call!(self, |c| q().execute(c))
+    }
+}
+
+impl From<sqlx::error::ErrorKind> for DBViolation {
+    fn from(value: sqlx::error::ErrorKind) -> Self {
+        match value {
+            sqlx::error::ErrorKind::UniqueViolation => Self::UniqueViolation,
+            sqlx::error::ErrorKind::ForeignKeyViolation => Self::ForeignKeyViolation,
+            sqlx::error::ErrorKind::NotNullViolation => Self::NotNullViolation,
+            sqlx::error::ErrorKind::CheckViolation => Self::CheckViolation,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+impl From<sqlx::Error> for DAOError {
+    fn from(value: sqlx::Error) -> Self {
+        use sqlx::error::ErrorKind::*;
+        match &value {
+            sqlx::Error::Database(be)
+                if matches!(
+                    be.kind(),
+                    UniqueViolation | ForeignKeyViolation | NotNullViolation | CheckViolation
+                ) =>
+            {
+                Self::DBViolation(be.kind().into())
+            }
+            sqlx::Error::Database(be) if be.code().is_some() => {
+                let code: i64 = be
+                    .code()
+                    .map(|x| x.parse())
+                    .filter(|x| x.is_ok())
+                    .map(|x| x.unwrap())
+                    .unwrap_or_default();
+                // 5,   https://sqlite.org/rescode.html#busy
+                // 6,   https://sqlite.org/rescode.html#locked
+                // 513, https://sqlite.org/rescode.html#error_retry
+                // 517, https://sqlite.org/rescode.html#busy_snapshot
+                // 773, https://sqlite.org/rescode.html#busy_timeout
+
+                Self::Infrastructure(match code {
+                    5 | 517 | 773 => InfrastructureReason::Busy,
+                    6 => InfrastructureReason::Locked,
+                    513 => InfrastructureReason::RetryError(value.to_string()),
+                    _ => InfrastructureReason::Error(value.to_string()),
+                })
+            }
+            sqlx::Error::RowNotFound => DAOError::NotFound,
+            error => {
+                tracing::warn!(%error, "Unexpected sqlx::Error.");
+                DAOError::Infrastructure(InfrastructureReason::Error(value.to_string()))
+            }
+        }
     }
 }

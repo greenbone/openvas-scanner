@@ -2,20 +2,23 @@ use std::sync::Arc;
 
 use futures::{StreamExt, TryFutureExt};
 use greenbone_scanner_framework::models;
-use sqlx::{Sqlite, SqlitePool};
 use tokio::sync::RwLock;
 
-use crate::container_image_scanner::{
-    Config, ExternalError,
-    benchy::{self, BenchType, Benched, Measured},
-    detection::{self, OperatingSystem},
-    image::{
-        Digest, Image, ImageParseError, Registry, RegistryError,
-        extractor::{self, Extractor, Locator},
-        packages::ToNotus,
+use crate::{
+    container_image_scanner::{
+        Config, ExternalError,
+        benchy::{self, BenchType, Benched, Measured},
+        detection::{self, OperatingSystem},
+        image::{
+            Digest, Image, ImageParseError, ImageState, Registry, RegistryError,
+            extractor::{self, Extractor, Locator},
+            packages::ToNotus,
+        },
+        messages::{self, CustomerMessage, DetailPair},
+        notus,
+        scheduling::db::{DataBase, images::DBImages},
     },
-    messages::{self, CustomerMessage, DetailPair},
-    notus,
+    database::dao::Fetch,
 };
 use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
 
@@ -25,8 +28,6 @@ pub enum ScannerArchImageError {
     NoOS(#[from] ExternalError),
     #[error("Unable check vulnerabilities: {0}")]
     Notus(#[from] NotusError),
-    #[error("A DB error occurred: {0}")]
-    StoreResults(#[from] sqlx::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -88,7 +89,7 @@ impl ImageResults {
 impl Measured<ImageResults> {
     async fn store_log_messages(
         self,
-        pool: &sqlx::Pool<Sqlite>,
+        pool: &DataBase,
         id: &str,
         image: &Image,
         architecture: &str,
@@ -192,9 +193,24 @@ where
     }
 }
 
+async fn is_digest_excluded(
+    pool: &DataBase,
+    id: &str,
+    image: &Image,
+    digest: Option<&Digest>,
+) -> bool {
+    if let Some(digest) = digest {
+        let digest = image.clone().replace_tag(digest.as_ref().to_owned());
+        let image_state = DBImages::new(pool, (id, &digest)).fetch().await;
+        tracing::debug!(?image_state, %image, %digest, id);
+        matches!(image_state, Ok(Some(ImageState::Excluded)))
+    } else {
+        false
+    }
+}
 async fn download_and_extract_image<'a, E, R>(
     config: Arc<Config>,
-    pool: &SqlitePool,
+    pool: &DataBase,
     registry: &'a super::InitializedRegistry<'a, R>,
     image: Image,
 ) -> Result<(Digest, E, Vec<Benched>), ScannerError>
@@ -214,7 +230,7 @@ where
 
         if digest.is_none() {
             digest = layer.digest.clone();
-            if Image::is_digest_excluded(pool, registry.id.id(), &image, digest.as_ref()).await {
+            if is_digest_excluded(pool, registry.id.id(), &image, digest.as_ref()).await {
                 tracing::debug!(?digest, "Aborting download. Because the digest is excluded");
                 return Ok((digest.unwrap_or_default(), extractor, results));
             }
@@ -247,7 +263,7 @@ where
 
 async fn retry_download_and_extract_image<'a, E, R>(
     config: Arc<Config>,
-    pool: &SqlitePool,
+    pool: &DataBase,
     registry: &'a super::InitializedRegistry<'a, R>,
     image: &Image,
 ) -> Result<(Image, E), ScannerError>
@@ -277,7 +293,7 @@ where
 
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
-    pool: sqlx::Pool<Sqlite>,
+    pool: DataBase,
     products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     registry: &'a super::InitializedRegistry<'a, R>,
 ) -> Result<(), Vec<ScannerError>>

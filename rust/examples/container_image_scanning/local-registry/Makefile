@@ -73,7 +73,7 @@ certs/domain.crt:
 auth-server:
 	$(CONTAINER) run -d \
 		--name auth_server \
-		-p 5001:5001 \
+		-p 127.0.0.1:5001:5001 \
 		-v "$(BASE_PATH)/config:/config" \
 		-v "$(BASE_PATH)/auth:/config/auth" \
 		-v "$(BASE_PATH)/certs:/certs" \
@@ -91,7 +91,7 @@ rm-auth-server: stop-auth-server
 docker-registry: 
 	$(CONTAINER) run -d \
 		--name registry \
-		-p 5000:5000 \
+		-p 127.0.0.1:5000:5000 \
 		-v "$(BASE_PATH)/certs:/certs" \
 		-e REGISTRY_AUTH=token \
 		-e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \

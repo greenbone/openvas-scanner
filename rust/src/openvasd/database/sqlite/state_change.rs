@@ -1,4 +1,4 @@
-use crate::database::sqlite::SqliteConnectionContainer;
+use crate::database::{dao::DAOError, sqlite::SqliteConnectionContainer};
 use sqlx::{Row, query::QueryAs};
 use std::{collections::HashMap, sync::Arc};
 
@@ -75,11 +75,7 @@ pub struct ScanStateController {
     connection_container: Arc<Mutex<SqliteConnectionContainer>>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ScanStateChangeError {
-    #[error("DB issue {0}")]
-    DB(#[from] sqlx::Error),
-}
+pub type ScanStateChangeError = DAOError;
 
 impl From<Arc<Mutex<SqliteConnectionContainer>>> for ScanStateController {
     fn from(value: Arc<Mutex<SqliteConnectionContainer>>) -> Self {
@@ -243,10 +239,8 @@ impl ScanStateController {
 
 #[cfg(test)]
 mod tests {
-    use crate::scans::{
-        state_change::ScanStateController,
-        tests::{create_pool, prepare_scans},
-    };
+    use crate::database::sqlite::state_change::ScanStateController;
+    use crate::scans::tests::{create_pool, prepare_scans};
 
     #[tokio::test]
     async fn set_single_state() -> crate::Result<()> {

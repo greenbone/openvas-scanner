@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use greenbone_scanner_framework::GetVTsError;
 use greenbone_scanner_framework::models::FeedType;
 use scannerlib::models::FeedState;
-use scannerlib::{PinBoxFut, feed};
+use scannerlib::{Promise, feed};
 use tokio::sync::mpsc;
 
 use crate::vts::FeedHashes;
@@ -143,13 +143,13 @@ pub enum WorkerError {
 }
 
 pub trait Worker {
-    fn cached_hashes(&self) -> PinBoxFut<Result<Option<FeedHashes>, WorkerError>>;
+    fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, WorkerError>>;
 
     fn signature_check(&self) -> bool;
     fn plugin_feed(&self) -> PathBuf;
     fn advisory_feed(&self) -> PathBuf;
 
-    fn calculated_hashes(&self) -> PinBoxFut<Result<FeedHashes, WorkerError>> {
+    fn calculated_hashes(&self) -> Promise<Result<FeedHashes, WorkerError>> {
         let signature_check = self.signature_check();
         let plugin_feed = self.plugin_feed();
         let advisory_feed = self.advisory_feed();
@@ -159,12 +159,12 @@ pub trait Worker {
             Ok((nasl_hash, advisories_hash))
         })
     }
-    fn update_feed(&self, kind: FeedType, new_hash: String) -> PinBoxFut<Result<(), WorkerError>>;
+    fn update_feed(&self, kind: FeedType, new_hash: String) -> Promise<Result<(), WorkerError>>;
 
     fn calculate_hash(
         signature_check: bool,
         path: PathBuf,
-    ) -> PinBoxFut<Result<String, feed::VerifyError>> {
+    ) -> Promise<Result<String, feed::VerifyError>> {
         Box::pin(async move {
             tokio::task::spawn_blocking(move || {
                 if signature_check {
@@ -366,17 +366,17 @@ pub mod test {
     }
 
     impl Worker for Yesman {
-        fn cached_hashes(&self) -> PinBoxFut<Result<Option<FeedHashes>, WorkerError>> {
+        fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, WorkerError>> {
             let cached = self.cached.clone();
             Box::pin(async move { Ok(cached) })
         }
 
-        fn calculated_hashes(&self) -> PinBoxFut<Result<FeedHashes, WorkerError>> {
+        fn calculated_hashes(&self) -> Promise<Result<FeedHashes, WorkerError>> {
             let calculated = self.calculated.clone();
             Box::pin(async move { Ok(calculated) })
         }
 
-        fn update_feed(&self, _: FeedType, _: String) -> PinBoxFut<Result<(), WorkerError>> {
+        fn update_feed(&self, _: FeedType, _: String) -> Promise<Result<(), WorkerError>> {
             Box::pin(async move { Ok(()) })
         }
 

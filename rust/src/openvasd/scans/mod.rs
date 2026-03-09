@@ -1,22 +1,23 @@
-use std::{num::ParseIntError, pin::Pin, str::FromStr, sync::Arc};
+use std::{pin::Pin, sync::Arc};
 
-use futures::StreamExt;
-use greenbone_scanner_framework::{entry::Prefixed, models::AliveTestMethods, prelude::*};
-use scannerlib::{SQLITE_LIMIT_VARIABLE_NUMBER, models::ResultType, scanner};
-use sqlx::{
-    Acquire, QueryBuilder, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow,
+use crate::database::{
+    dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
+    sqlite::{DataBase, results::DBResults, scans::ScanDB},
 };
+use futures::TryStreamExt;
+use greenbone_scanner_framework::InternalIdentifier;
+use greenbone_scanner_framework::prelude::*;
+use scannerlib::scanner;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     config::Config,
-    crypt::{self, ChaCha20Crypt, Crypt, Encrypted},
+    crypt::{ChaCha20Crypt, Crypt},
     vts::orchestrator,
 };
 mod scheduling;
-mod state_change;
 pub struct Endpoints<E> {
-    pool: SqlitePool,
+    pool: DataBase,
     crypter: Arc<E>,
     scheduling: Sender<scheduling::Message>,
 }
@@ -25,176 +26,6 @@ impl<T> Prefixed for Endpoints<T> {
     fn prefix(&self) -> &'static str {
         ""
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-enum Error {
-    #[error("Unexpected error while serialization")]
-    Serialization(serde_json::Error),
-    #[error("Unexpected error while doing a DB operation")]
-    Sqlx(sqlx::Error),
-    #[error("Unexpected error while encrypting or decrypting")]
-    Crypt(crypt::ParseError),
-    #[error("Incorrect internal ID, expected an numeric value.")]
-    ParseInt(#[from] ParseIntError),
-}
-
-impl From<sqlx::Error> for Error {
-    fn from(value: sqlx::Error) -> Self {
-        Self::Sqlx(value)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
-        Error::Serialization(value)
-    }
-}
-
-impl From<crypt::ParseError> for Error {
-    fn from(value: crypt::ParseError) -> Self {
-        Error::Crypt(value)
-    }
-}
-
-async fn scan_insert<C>(
-    pool: &SqlitePool,
-    crypter: &C,
-    client: &str,
-    scan: models::Scan,
-) -> Result<String, Error>
-where
-    C: Crypt,
-{
-    let mut conn = pool.acquire().await?;
-    let mut tx = conn.begin().await?;
-
-    let row = query("INSERT INTO client_scan_map(client_id, scan_id) VALUES (?, ?)")
-        .bind(client.to_string())
-        .bind(&scan.scan_id)
-        .execute(&mut *tx)
-        .await?;
-
-    let mapped_id = row.last_insert_rowid().to_string();
-    let auth_data = {
-        let bytes = serde_json::to_vec(&scan.target.credentials)?;
-        let bytes = crypter.encrypt(bytes).await;
-        bytes.to_string()
-    };
-    query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
-        .bind(&mapped_id)
-        .bind(auth_data)
-        .execute(&mut *tx)
-        .await?;
-    if !scan.vts.is_empty() {
-        for vts in scan.vts.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 2) {
-            let mut builder = QueryBuilder::new("INSERT OR REPLACE INTO vts (id, vt)");
-            builder.push_values(vts, |mut b, vt| {
-                b.push_bind(&mapped_id).push_bind(&vt.oid);
-            });
-            let query = builder.build();
-            query.execute(&mut *tx).await?;
-        }
-        let vt_params = scan
-            .vts
-            .iter()
-            .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value)))
-            .collect::<Vec<_>>();
-        if !vt_params.is_empty() {
-            for vt_params in vt_params.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 3) {
-                let mut builder =
-                    QueryBuilder::new("INSERT INTO vt_parameters (id, vt, param_id, param_value)");
-
-                builder.push_values(vt_params, |mut b, (oid, param_id, param_value)| {
-                    b.push_bind(&mapped_id)
-                        .push_bind(oid)
-                        .push_bind(*param_id as i64)
-                        .push_bind(param_value);
-                });
-                let query = builder.build();
-                query.execute(&mut *tx).await?;
-            }
-        }
-    }
-
-    if !scan.target.hosts.is_empty() {
-        let mut builder = QueryBuilder::new("INSERT INTO hosts (id, host)");
-        builder.push_values(scan.target.hosts, |mut b, host| {
-            b.push_bind(&mapped_id).push_bind(host);
-        });
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
-    }
-
-    if !scan.target.excluded_hosts.is_empty() {
-        let mut builder = QueryBuilder::new(
-            "INSERT INTO resolved_hosts (id, original_host, resolved_host, kind, scan_status)",
-        );
-        builder.push_values(scan.target.excluded_hosts, |mut b, host| {
-            //TODO: check host if ip v4, v6, dns or oci ... for now it doesn't matter.
-            b.push_bind(&mapped_id)
-                .push_bind(host.clone())
-                .push_bind(host)
-                .push_bind("dns")
-                .push_bind("excluded");
-        });
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
-    }
-
-    if !scan.target.ports.is_empty() {
-        for ports in scan.target.ports.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 4) {
-            let mut builder = QueryBuilder::new("INSERT INTO ports (id, protocol, start, end) ");
-            builder.push_values(
-                ports.iter().flat_map(|port| {
-                    port.range
-                        .clone()
-                        .into_iter()
-                        .map(move |r| (port.protocol, r))
-                }),
-                |mut b, (protocol, range)| {
-                    b.push_bind(&mapped_id)
-                        .push_bind(match protocol {
-                            None => "udp_tcp",
-                            Some(models::Protocol::TCP) => "tcp",
-                            Some(models::Protocol::UDP) => "udp",
-                        })
-                        .push_bind(range.start as i64)
-                        .push_bind(range.end.map(|x| x as i64));
-                },
-            );
-            let query = builder.build();
-
-            query.execute(&mut *tx).await?;
-        }
-    }
-    let mut scan_preferences = scan.scan_preferences;
-    if scan.target.reverse_lookup_unify.unwrap_or_default() {
-        scan_preferences.push(models::ScanPreference {
-            id: "target_reverse_lookup_unify".to_string(),
-            value: "true".to_string(),
-        });
-    }
-    if scan.target.reverse_lookup_only.unwrap_or_default() {
-        scan_preferences.push(models::ScanPreference {
-            id: "target_reverse_lookup_only".to_string(),
-            value: "true".to_string(),
-        });
-    }
-
-    if !scan_preferences.is_empty() {
-        let mut builder = QueryBuilder::new("INSERT INTO preferences (id, key, value)");
-        builder.push_values(scan_preferences, |mut b, pref| {
-            b.push_bind(&mapped_id)
-                .push_bind(pref.id)
-                .push_bind(pref.value);
-        });
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
-    }
-
-    tx.commit().await?;
-    Ok(scan.scan_id)
 }
 
 impl<E> PostScans for Endpoints<E>
@@ -206,25 +37,20 @@ where
         client_id: String,
         scan: models::Scan,
     ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
-        let annoying = scan.scan_id.clone();
         Box::pin(async move {
-            tracing::debug!(client_id, ?scan);
-            scan_insert(&self.pool, self.crypter.as_ref(), &client_id, scan)
-                .await
-                .map_err(|x| match x {
-                    Error::Sqlx(sqlx::Error::Database(db))
-                        if matches!(db.kind(), sqlx::error::ErrorKind::UniqueViolation)
-                            && db.message().ends_with(
-                                "client_scan_map.client_id, client_scan_map.scan_id",
-                            ) =>
-                    {
-                        PostScansError::DuplicateId(annoying)
-                    }
-                    Error::Sqlx(error) => PostScansError::External(Box::new(error)),
-                    Error::Serialization(error) => PostScansError::External(Box::new(error)),
-                    Error::Crypt(error) => PostScansError::External(Box::new(error)),
-                    Error::ParseInt(error) => PostScansError::External(Box::new(error)),
-                })
+            match ScanDB::new(
+                &self.pool,
+                (self.crypter.as_ref(), &client_id as &str, &scan),
+            )
+            .exec()
+            .await
+            {
+                Ok(result) => Ok(result),
+                Err(DAOError::DBViolation(DBViolation::UniqueViolation)) => {
+                    Err(PostScansError::DuplicateId(scan.scan_id))
+                }
+                Err(x) => Err(PostScansError::External(Box::new(x))),
+            }
         })
     }
 }
@@ -237,15 +63,10 @@ where
         &'a self,
         client_id: &'a str,
         scan_id: &'a str,
-    ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>> {
         Box::pin(async move {
-            match query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
-                .bind(client_id)
-                .bind(scan_id)
-                .fetch_optional(&self.pool)
-                .await
-            {
-                Ok(x) => x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()),
+            match ScanDB::new(&self.pool, (client_id, scan_id)).fetch().await {
+                Ok(x) => x,
                 Err(error) => {
                     tracing::warn!(%error, "Unable to fetch id from client_scan_map. Returning no id found.");
                     None
@@ -266,12 +87,11 @@ impl<E> GetScans for Endpoints<E>
 where
     E: Send + Sync,
 {
-    fn get_scans(&self, client_id: String) -> StreamResult<'static, String, GetScansError> {
-        Box::new(
-            query("SELECT scan_id FROM client_scan_map WHERE client_id = ?")
-                .bind(client_id)
-                .fetch(&self.pool)
-                .map(|r| r.map(|r| r.get("scan_id")).map_err(into_external_error)),
+    fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
+        Box::pin(
+            ScanDB::new(&self.pool, client_id)
+                .stream_fetch()
+                .map_err(into_external_error),
         )
     }
 }
@@ -287,179 +107,6 @@ where
     }
 }
 
-async fn get_scan<C>(
-    tx: &mut sqlx::SqliteConnection,
-    crypter: &C,
-    id: i64,
-) -> Result<models::Scan, Error>
-where
-    C: Send + Sync + Crypt,
-{
-    fn rows_to_ports(ports: Vec<SqliteRow>) -> Vec<models::Port> {
-        let mut tcp = Vec::with_capacity(ports.len());
-        let mut udp = Vec::with_capacity(ports.len());
-        let mut tcp_udp = Vec::with_capacity(ports.len());
-        for row in ports {
-            let protocol: String = row.get("protocol");
-            let range = models::PortRange {
-                start: row.get::<i64, _>("start") as usize,
-                end: row.get::<Option<i64>, _>("end").map(|x| x as usize),
-            };
-
-            match &protocol as &str {
-                "udp" => udp.push(range),
-                "tcp" => tcp.push(range),
-                _ => tcp_udp.push(range),
-            }
-        }
-        vec![
-            models::Port {
-                protocol: Some(models::Protocol::TCP),
-                range: tcp,
-            },
-            models::Port {
-                protocol: Some(models::Protocol::UDP),
-                range: udp,
-            },
-            models::Port {
-                protocol: None,
-                range: tcp_udp,
-            },
-        ]
-    }
-    let scan_row = query(
-        r#"
-        SELECT created_at, start_time, end_time, auth_data
-        FROM scans
-        WHERE id = ?
-        "#,
-    )
-    .bind(id)
-    .fetch_one(&mut *tx)
-    .await?;
-    let preferences = query(r#"SELECT key, value FROM preferences WHERE id = ?"#)
-        .bind(id)
-        .fetch_all(&mut *tx)
-        .await?;
-    let preferences: Vec<models::ScanPreference> = preferences
-        .into_iter()
-        .map(|row| models::ScanPreference {
-            id: row.get("key"),
-            value: row.get("value"),
-        })
-        .collect();
-
-    let ports = query("SELECT protocol, start, end FROM ports WHERE id = ? AND alive = 0")
-        .bind(id)
-        .fetch_all(&mut *tx)
-        .await?;
-    let ports = rows_to_ports(ports);
-
-    let alive_test_ports =
-        query("SELECT protocol, start, end FROM ports WHERE id = ? AND alive = 1")
-            .bind(id)
-            .fetch_all(&mut *tx)
-            .await?;
-    let alive_test_ports = rows_to_ports(alive_test_ports);
-
-    let reverse_lookup_unify = preferences
-        .iter()
-        .any(|x| &x.id == "target_reverse_lookup_unify" && x.value.parse().unwrap_or_default());
-    let reverse_lookup_only = preferences
-        .iter()
-        .any(|x| &x.id == "target_reverse_lookup_only" && x.value.parse().unwrap_or_default());
-
-    let hosts: Vec<String> = query_scalar(r#"SELECT host FROM hosts WHERE id = ?"#)
-        .bind(id)
-        .fetch_all(&mut *tx)
-        .await?;
-
-    let oids = query_scalar("SELECT vt FROM vts WHERE id = ?")
-        .bind(id)
-        .fetch_all(&mut *tx)
-        .await?;
-
-    let mut vts = Vec::with_capacity(oids.len());
-    for oid in oids {
-        let parameters =
-            query("SELECT param_id, param_value FROM vt_parameters WHERE id = ? AND vt = ?")
-                .bind(id)
-                .bind(&oid)
-                .fetch_all(&mut *tx)
-                .await?
-                .iter()
-                .map(|row| models::Parameter {
-                    id: row.get("param_id"),
-                    value: row.get("param_value"),
-                })
-                .collect();
-        vts.push(models::VT { oid, parameters });
-    }
-
-    let alive_methods: Vec<String> = query_scalar("SELECT method FROM alive_methods WHERE id = ?")
-        .bind(id)
-        .fetch_all(&mut *tx)
-        .await?;
-
-    let alive_test_methods = alive_methods
-        .iter()
-        .map(|x| AliveTestMethods::from(x as &str))
-        .collect::<Vec<_>>();
-    let scan_id: String = query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    let excluded_hosts = query_scalar("SELECT original_host FROM resolved_hosts WHERE id = ?")
-        .bind(id)
-        .fetch_all(&mut *tx)
-        .await?;
-
-    let auth_data = scan_row.get::<String, _>("auth_data");
-    let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
-    let auth_data = crypter.decrypt(encrypted).await;
-    let credentials = serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?;
-
-    let scan = models::Scan {
-        scan_id,
-        target: models::Target {
-            hosts,
-            ports,
-            excluded_hosts,
-            credentials,
-            alive_test_ports,
-            alive_test_methods,
-            reverse_lookup_unify: if reverse_lookup_unify {
-                Some(true)
-            } else {
-                None
-            },
-            reverse_lookup_only: if reverse_lookup_only {
-                Some(true)
-            } else {
-                None
-            },
-        },
-        scan_preferences: preferences,
-        vts,
-    };
-    Ok(scan)
-}
-
-impl<E> Endpoints<E>
-where
-    E: Send + Sync + Crypt,
-{
-    async fn get_scan(&self, id: String) -> Result<models::Scan, Error> {
-        let mut conn = self.pool.acquire().await?;
-        let mut tx = conn.begin().await?;
-        let id = id.parse()?;
-        let result = get_scan(&mut tx, self.crypter.as_ref(), id).await;
-        tx.commit().await?;
-        result
-    }
-}
-
 impl<E> GetScansId for Endpoints<E>
 where
     E: Send + Sync + Crypt,
@@ -468,46 +115,16 @@ where
         &self,
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>> {
-        Box::pin(async move { self.get_scan(id).await.map_err(into_external_error) })
+        Box::pin(async move {
+            let id = id.parse().map_err(into_external_error)?;
+            ScanDB::new(&self.pool, (self.crypter.as_ref(), id))
+                .fetch()
+                .await
+                .map_err(into_external_error)
+        })
     }
 }
-fn row_to_result(row: SqliteRow) -> models::Result {
-    models::Result {
-        id: row.get::<i64, _>("result_id") as usize,
-        r_type: ResultType::from_str(row.get::<&str, _>("type"))
-            .expect("stored type must be known"),
 
-        ip_address: row.get("ip_address"),
-        hostname: row.get("hostname"),
-        oid: row.get("oid"),
-        port: row.get("port"),
-        protocol: match row.get::<&str, _>("protocol") {
-            "udp" => Some(models::Protocol::UDP),
-            "tcp" => Some(models::Protocol::TCP),
-            _ => None,
-        },
-        message: row.get("message"),
-        detail: row
-            .get::<Option<String>, _>("detail_name")
-            .map(|name| models::Detail {
-                name,
-                value: row
-                    .get::<Option<String>, _>("detail_value")
-                    .unwrap_or_default(),
-                source: models::Source {
-                    s_type: row
-                        .get::<Option<String>, _>("source_type")
-                        .unwrap_or_default(),
-                    name: row
-                        .get::<Option<String>, _>("source_name")
-                        .unwrap_or_default(),
-                    description: row
-                        .get::<Option<String>, _>("source_description")
-                        .unwrap_or_default(),
-                },
-            }),
-    }
-}
 impl<E> GetScansIdResults for Endpoints<E>
 where
     E: Send + Sync,
@@ -517,63 +134,12 @@ where
         id: String,
         from: Option<usize>,
         to: Option<usize>,
-    ) -> StreamResult<'static, models::Result, GetScansIDResultsError> {
-        const SQL_BASE: &str = r#"
-    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-            detail_name, detail_value, 
-            source_type, source_name, source_description
-    FROM results
-    WHERE id =  ?
-"#;
+    ) -> StreamResult<models::Result, GetScansIDResultsError> {
+        let result = DBResults::new(&self.pool, (id, from, to))
+            .stream_fetch()
+            .map_err(GetScansError::from_external);
 
-        const SQL_BASE_AND_GTE: &str = r#"
-    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-            detail_name, detail_value, 
-            source_type, source_name, source_description
-    FROM results
-    WHERE id =  ?
-    AND result_id >= ?
-"#;
-
-        const SQL_BASE_AND_LTE: &str = r#"
-    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-            detail_name, detail_value, 
-            source_type, source_name, source_description
-    FROM results
-    WHERE id =  ?
-    AND result_id <= ?
-"#;
-
-        const SQL_BASE_AND_GTE_LTE: &str = r#"
-    SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-            detail_name, detail_value, 
-            source_type, source_name, source_description
-    FROM results
-    WHERE id =  ?
-    AND result_id >= ?
-    AND result_id <= ?
-"#;
-
-        let sql: &'static str = match (from, to) {
-            (None, None) => SQL_BASE,
-            (Some(_), None) => SQL_BASE_AND_GTE,
-            (None, Some(_)) => SQL_BASE_AND_LTE,
-            (Some(_), Some(_)) => SQL_BASE_AND_GTE_LTE,
-        };
-        let mut query = sqlx::query(sql).bind(id);
-
-        if let Some(from_id) = from {
-            query = query.bind(from_id as i64);
-        }
-        if let Some(to_id) = to {
-            query = query.bind(to_id as i64);
-        }
-
-        let result = query.fetch(&self.pool).map(|x| {
-            x.map(row_to_result)
-                .map_err(GetScansIDResultsError::from_external)
-        });
-        Box::new(result)
+        Box::pin(result)
     }
 }
 
@@ -588,42 +154,15 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
         Box::pin(async move {
-            let maybe_row = sqlx::query(
-                r#"
-SELECT id, result_id, type, ip_address, hostname, oid, port, protocol, message, 
-        detail_name, detail_value, 
-        source_type, source_name, source_description
-FROM results
-WHERE id =  ?
-AND result_id = ?"#,
-            )
-            .bind(id)
-            .bind(result_id as i64)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|x| GetScansIDResultsIDError::External(Box::new(x)))?;
-            match maybe_row {
-                Some(row) => Ok(row_to_result(row)),
-                None => Err(GetScansIDResultsIDError::NotFound),
-            }
+            DBResults::new(&self.pool, (id, result_id))
+                .fetch()
+                .await
+                .map_err(|e| match e {
+                    DAOError::NotFound => GetScansIDResultsIDError::InvalidID,
+                    e => e.into(),
+                })
         })
     }
-}
-
-pub(crate) async fn scan_get_status<'a, E>(
-    pool: E,
-    id: i64,
-) -> Result<models::Status, sqlx::error::Error>
-where
-    E: sqlx::Executor<'a, Database = Sqlite> + Clone,
-{
-    let scan_row = state_change::status_query(id)
-        .fetch_one(pool.clone())
-        .await?;
-    let scan_rows = state_change::host_scanning_query(id)
-        .fetch_all(pool)
-        .await?;
-    Ok(state_change::row_to_models_status(scan_row, scan_rows))
 }
 
 impl<E> GetScansIdStatus for Endpoints<E>
@@ -639,7 +178,8 @@ where
             let id: i64 = id
                 .parse()
                 .map_err(|e| GetScansIDStatusError::External(Box::new(e)))?;
-            scan_get_status(&self.pool, id)
+            ScanDB::new(&self.pool, id)
+                .fetch()
                 .await
                 .map_err(|e| GetScansIDStatusError::External(Box::new(e)))
         })
@@ -675,9 +215,8 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         Box::pin(async move {
             // everything else should have ON DELETE CASCADE
-            query("DELETE FROM client_scan_map WHERE id = ?")
-                .bind(id)
-                .execute(&self.pool)
+            ScanDB::new(&self.pool, id)
+                .exec()
                 .await
                 .map_err(|e| DeleteScansIDError::External(Box::new(e)))
                 .map(|_| ())
@@ -696,7 +235,7 @@ pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
 }
 
 pub async fn init(
-    pool: SqlitePool,
+    pool: DataBase,
     config: &Config,
     feed_status: orchestrator::Communicator,
 ) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
@@ -711,7 +250,7 @@ pub async fn init(
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use std::time::Duration;
 
     use super::*;
@@ -727,7 +266,7 @@ mod tests {
         prelude::PostScansId,
     };
     use scannerlib::{models::Phase, scanner};
-    use sqlx::SqlitePool;
+    use sqlx::{SqlitePool, query_scalar};
 
     use crate::{
         config::Config,
@@ -1000,7 +539,8 @@ mod tests {
         let scans = generate_scan();
         let crypter = config_to_crypt(config);
         for scan in scans {
-            scan_insert(&pool, &crypter, &client_id, scan)
+            ScanDB::new(&pool, (&crypter, &client_id as &str, &scan))
+                .exec()
                 .await
                 .unwrap();
         }
@@ -1180,6 +720,7 @@ mod tests {
                 .get_scans_id_results(id.clone(), None, None)
                 .collect::<Vec<_>>()
                 .await;
+            dbg!(&result);
             assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 2);
             let result = undertest
                 .get_scans_id_results(id.clone(), Some(1), None)

@@ -84,7 +84,7 @@ fn redis_with_hash<T, F>(
     address: String,
     hash: &super::FeedHash,
     f: F,
-) -> scannerlib::PinBoxFut<Result<T, WorkerError>>
+) -> scannerlib::Promise<Result<T, WorkerError>>
 where
     F: Fn(RedisCtx, FeedType, String) -> Result<T, WorkerError> + Send + 'static,
     T: Send + 'static,
@@ -98,7 +98,7 @@ fn redis_with_feed_type<T, F>(
     address: String,
     kind: FeedType,
     f: F,
-) -> scannerlib::PinBoxFut<Result<T, WorkerError>>
+) -> scannerlib::Promise<Result<T, WorkerError>>
 where
     F: Fn(RedisCtx, FeedType) -> Result<T, WorkerError> + Send + 'static,
     T: Send + 'static,
@@ -256,20 +256,19 @@ impl Stream for RedisVTDataStream {
 }
 
 impl PluginFetcher for RedisPluginHandler {
-    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<'static, String, WorkerError> {
-        Box::new(RedisOidStream::from(self.address.clone()))
+    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<String, WorkerError> {
+        Box::pin(RedisOidStream::from(self.address.clone()))
     }
 
     fn get_vts(
         &self,
-    ) -> greenbone_scanner_framework::StreamResult<'static, scannerlib::models::VTData, WorkerError>
-    {
-        Box::new(RedisVTDataStream::from(self.address.clone()))
+    ) -> greenbone_scanner_framework::StreamResult<scannerlib::models::VTData, WorkerError> {
+        Box::pin(RedisVTDataStream::from(self.address.clone()))
     }
 }
 
 impl PluginStorer for RedisPluginHandler {
-    fn store_hash(&self, hash: &super::FeedHash) -> scannerlib::PinBoxFut<Result<(), WorkerError>> {
+    fn store_hash(&self, hash: &super::FeedHash) -> scannerlib::Promise<Result<(), WorkerError>> {
         redis_with_hash(self.address.clone(), hash, |mut rctx, kind, hash| {
             tracing::debug!(?kind, ?hash, "Changing hash");
             if kind == FeedType::NASL {
@@ -287,7 +286,7 @@ impl PluginStorer for RedisPluginHandler {
         &self,
         hash: &super::FeedHash,
         plugin: T,
-    ) -> scannerlib::PinBoxFut<Result<(), WorkerError>>
+    ) -> scannerlib::Promise<Result<(), WorkerError>>
     where
         T: super::Plugin + Send + Sync + 'static,
     {
@@ -312,7 +311,7 @@ impl PluginStorer for RedisPluginHandler {
 impl orchestrator::Worker for FeedSynchronizer {
     fn cached_hashes(
         &self,
-    ) -> scannerlib::PinBoxFut<Result<Option<super::FeedHashes>, orchestrator::WorkerError>> {
+    ) -> scannerlib::Promise<Result<Option<super::FeedHashes>, orchestrator::WorkerError>> {
         let address = self.address.clone();
         let feed_version = |address: &str, ft: FeedType| -> Result<Option<String>, WorkerError> {
             let key = match &ft {
@@ -344,7 +343,7 @@ impl orchestrator::Worker for FeedSynchronizer {
         &self,
         kind: FeedType,
         new_hash: String,
-    ) -> scannerlib::PinBoxFut<Result<(), orchestrator::WorkerError>> {
+    ) -> scannerlib::Promise<Result<(), orchestrator::WorkerError>> {
         let ps = self.plugin_storer.clone();
         let path = match kind {
             FeedType::Products | FeedType::Advisories => self.advisory_feed(),

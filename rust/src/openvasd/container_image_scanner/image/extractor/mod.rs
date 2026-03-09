@@ -4,7 +4,7 @@ use thiserror::Error;
 use tokio::{fs::File, io::BufReader};
 
 use super::{ImageID, PackedLayer};
-use crate::container_image_scanner::{PinBoxFut, PinBoxFutRef, config::Config};
+use crate::container_image_scanner::{Promise, PromiseRef, config::Config};
 
 pub mod filtered_image;
 
@@ -43,15 +43,15 @@ where
     Self::Item: Locator + Send + Sync,
 {
     type Item;
-    fn initialize(config: Arc<Config>, image: ImageID) -> PinBoxFut<Result<Self, ExtractorError>>
+    fn initialize(config: Arc<Config>, image: ImageID) -> Promise<Result<Self, ExtractorError>>
     where
         Self: Sized + Send + Sync;
 
     /// Extracts the given Layer and returns the duration needed to extract
-    fn extract(&mut self, layer: PackedLayer) -> PinBoxFut<Result<Duration, ExtractorError>>;
+    fn extract(&mut self, layer: PackedLayer) -> Promise<Result<Duration, ExtractorError>>;
 
     /// Returns an Locator per architecture
-    fn locator(self) -> PinBoxFut<Vec<Self::Item>>;
+    fn locator(self) -> Promise<Vec<Self::Item>>;
 }
 
 pub trait Locator {
@@ -59,7 +59,7 @@ pub trait Locator {
     /// Locates the given name
     ///
     /// It MUST ensure that the returned Location is available and readable.
-    fn locate(&self, name: &str) -> PinBoxFutRef<'_, Result<Location, LocatorError>>;
+    fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>>;
 }
 
 #[derive(Error, Debug)]

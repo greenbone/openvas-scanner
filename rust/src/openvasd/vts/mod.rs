@@ -6,33 +6,32 @@ use std::{
 };
 
 use greenbone_scanner_framework::{GetVTsError, StreamResult};
-use scannerlib::PinBoxFut;
+use scannerlib::Promise;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
     notus::advisories::VulnerabilityData,
 };
-use sqlx::SqlitePool;
 
 use crate::config::{Config, ScannerType};
 pub mod orchestrator;
 pub mod redis;
-pub mod sql;
 pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
+use crate::database::sqlite::DataBase;
 use crate::json_stream;
 use crate::vts::orchestrator::WorkerError;
-use crate::vts::sql::SqlPluginStorage;
+//use crate::vts::sql::SqlPluginStorage;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the hash values of the sha256sums for specific feeds
-struct FeedHash {
-    hash: String,
-    path: PathBuf,
-    typus: FeedType,
+pub struct FeedHash {
+    pub hash: String,
+    pub path: PathBuf,
+    pub typus: FeedType,
 }
 
-type FeedHashes = (String, String);
+pub type FeedHashes = (String, String);
 
 //TODO: move somewhere reusable if necessary
 fn sumfile_hash<S>(path: S) -> Result<String, scannerlib::feed::VerifyError>
@@ -44,7 +43,7 @@ where
     verifier.sumfile_hash()
 }
 
-trait Plugin: serde::Serialize {
+pub trait Plugin: serde::Serialize {
     fn oid(&self) -> &str;
     fn advisory(&self) -> Option<&VulnerabilityData>;
     fn vulnerability_test(&self) -> Option<&VTData>;
@@ -86,9 +85,9 @@ where
 }
 
 pub trait PluginFetcher {
-    fn get_oids(&self) -> StreamResult<'static, String, WorkerError>;
+    fn get_oids(&self) -> StreamResult<String, WorkerError>;
 
-    fn get_vts(&self) -> StreamResult<'static, VTData, WorkerError>;
+    fn get_vts(&self) -> StreamResult<VTData, WorkerError>;
 }
 
 pub async fn _init<F, W>(
@@ -109,7 +108,7 @@ where
 }
 /// Initializes endpoints, spawns background task for feed verification.
 pub async fn init(
-    pool: SqlitePool,
+    pool: DataBase,
     config: &Config,
     snapshot: Arc<RwLock<FeedState>>,
 ) -> (orchestrator::Communicator, Endpoints) {
@@ -122,16 +121,16 @@ pub async fn init(
         // For OSPD we actually don't need a communicator at all, however as we are facing out OSPD
         // altogether the effort of getting rid of that seems not worth it.
         ScannerType::Openvasd | ScannerType::Ospd => {
-            let fetcher = SqlPluginStorage::from(pool.clone());
-            let worker = sql::FeedSynchronizer::new(pool, config);
+            let fetcher = crate::database::sqlite::vts::SqlPluginStorage::from(pool.clone());
+            let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
             _init(config, fetcher, worker, snapshot).await
         }
     }
 }
 
-trait PluginStorer {
-    fn store_hash(&self, hash: &FeedHash) -> PinBoxFut<Result<(), WorkerError>>;
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> PinBoxFut<Result<(), WorkerError>>
+pub trait PluginStorer {
+    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
+    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
     where
         T: Plugin + Send + Sync + 'static;
 }
@@ -173,7 +172,7 @@ where
     Ok(())
 }
 
-async fn synchronize_feed<T>(
+pub async fn synchronize_feed<T>(
     ps: &T,
     feed_hash: FeedHash,
     signature_check: bool,

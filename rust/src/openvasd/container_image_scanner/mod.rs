@@ -14,7 +14,7 @@ mod image;
 mod messages;
 mod notus;
 mod scheduling;
-pub(crate) use scannerlib::{ExternalError, PinBoxFut, PinBoxFutRef, Streamer};
+pub(crate) use scannerlib::{ExternalError, Promise, PromiseRef, Streamer};
 
 /// combines slices on compile time
 #[macro_export]
@@ -78,14 +78,15 @@ static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scann
 use endpoints::scans::Scans;
 //TODO: move endpoints to openvasd?
 use endpoints::vts::VTEndpoints;
-use sqlx::SqlitePool;
 
 use scannerlib::notus::{HashsumProductLoader, Notus};
 
-use crate::vts::sql::SqlPluginStorage;
+use crate::{
+    container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
+};
 
 pub async fn init(
-    vt_pool: SqlitePool,
+    vt_pool: DataBase,
     feed_state: Arc<RwLock<FeedState>>,
     products: Arc<tokio::sync::RwLock<Notus<HashsumProductLoader>>>,
     config: Config,

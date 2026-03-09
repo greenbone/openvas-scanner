@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use super::FeedHashes;
-use super::Plugin;
-use super::error_vts_error;
+use crate::vts::FeedHashes;
+use crate::vts::Plugin;
 use futures::StreamExt;
-use scannerlib::PinBoxFut;
+use greenbone_scanner_framework::GetVTsError;
+use scannerlib::Promise;
 use scannerlib::models::FeedType;
 use scannerlib::notus::advisories::VulnerabilityData;
 use sqlx::Row;
@@ -39,17 +39,16 @@ impl From<SqlitePool> for SqlPluginStorage {
 }
 
 impl PluginFetcher for SqlPluginStorage {
-    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<'static, String, WorkerError> {
+    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<String, WorkerError> {
         let result = query("SELECT oid FROM plugins ORDER BY oid")
             .fetch(&self.pool)
             .map(|row| row.map(|e| e.get("oid")).map_err(WorkerError::Cache));
-        Box::new(result)
+        Box::pin(result)
     }
 
     fn get_vts(
         &self,
-    ) -> greenbone_scanner_framework::StreamResult<'static, scannerlib::models::VTData, WorkerError>
-    {
+    ) -> greenbone_scanner_framework::StreamResult<scannerlib::models::VTData, WorkerError> {
         let result = query("SELECT feed_type, json_blob FROM plugins")
             .fetch(&self.pool)
             .map(|row| {
@@ -70,12 +69,12 @@ impl PluginFetcher for SqlPluginStorage {
                     Err(e) => Err(e),
                 }
             });
-        Box::new(result)
+        Box::pin(result)
     }
 }
 
 impl PluginStorer for SqlPluginStorage {
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> PinBoxFut<Result<(), WorkerError>>
+    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
     where
         T: Plugin + Send + Sync + 'static,
     {
@@ -95,7 +94,7 @@ impl PluginStorer for SqlPluginStorage {
         })
     }
 
-    fn store_hash(&self, hash: &FeedHash) -> PinBoxFut<Result<(), WorkerError>> {
+    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
         let pool = self.pool.clone();
         let path = hash.path.to_str().unwrap_or_default().to_string();
         let ht = hash.typus;
@@ -113,8 +112,15 @@ impl PluginStorer for SqlPluginStorage {
     }
 }
 
+fn error_vts_error<T>(error: T) -> GetVTsError
+where
+    T: std::error::Error + Sync + Send + 'static,
+{
+    GetVTsError::External(Box::new(error))
+}
+
 impl orchestrator::Worker for FeedSynchronizer {
-    fn cached_hashes(&self) -> PinBoxFut<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
+    fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
         let mut fetched =
             query("SELECT hash FROM feed WHERE type = 'nasl' OR type = 'advisories' ORDER BY type")
                 .fetch(&self.pool);
@@ -144,7 +150,7 @@ impl orchestrator::Worker for FeedSynchronizer {
         &self,
         kind: FeedType,
         new_hash: String,
-    ) -> PinBoxFut<Result<(), orchestrator::WorkerError>> {
+    ) -> Promise<Result<(), orchestrator::WorkerError>> {
         let ps = self.plugin_storer.clone();
         let path = match kind {
             FeedType::Products | FeedType::Advisories => self.advisory_feed(),
@@ -156,7 +162,7 @@ impl orchestrator::Worker for FeedSynchronizer {
             typus: kind,
         };
         let verify = self.signature_check;
-        Box::pin(async move { super::synchronize_feed(&ps, feed_hash, verify).await })
+        Box::pin(async move { crate::vts::synchronize_feed(&ps, feed_hash, verify).await })
     }
 
     fn signature_check(&self) -> bool {
