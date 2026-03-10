@@ -413,7 +413,8 @@ okrb5_gss_free_context (struct OKrb5GSSContext *context)
         }
       if (context->gss_ctx != GSS_C_NO_CONTEXT)
         {
-          gss_delete_sec_context (&min_stat, &context->gss_ctx, GSS_C_NO_BUFFER);
+          gss_delete_sec_context (&min_stat, &context->gss_ctx,
+                                  GSS_C_NO_BUFFER);
         }
       if (context->gss_target != GSS_C_NO_NAME)
         {
@@ -482,7 +483,7 @@ o_krb5_gss_prepare_context (const OKrb5Credential *creds,
                (char *) target->host_name.data, (char *) creds->realm.data);
     }
 
-  targetbuf = (gss_buffer_desc){
+  targetbuf = (gss_buffer_desc) {
     .value = target_principal_str,
     .length = strlen (target_principal_str),
   };
