@@ -14,8 +14,8 @@ pub mod packages;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Image {
     pub registry: String,
-    image: Option<String>,
-    tag: Option<String>,
+    pub image: Option<String>,
+    pub tag: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
