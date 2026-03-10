@@ -206,10 +206,6 @@ impl Drop for Krb5 {
     }
 }
 
-// SAFETY: Krb5 can be safely sent between threads because:
-// - The raw pointers are stored behind Arc<Mutex<...>> for synchronization
-// - Access to the pointers is guarded by mutex locks
-// - The outer Arc<Mutex<...>> provides the thread-safe coordination
 unsafe impl Send for Krb5 {}
 unsafe impl Sync for Krb5 {}
 
