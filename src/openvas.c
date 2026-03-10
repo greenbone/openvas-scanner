@@ -26,7 +26,6 @@
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/scan_id.h"       /* to manage global scan_id */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
-#include "../nasl/nasl_krb5.h"     /* for nasl_okrb5_clean */
 #include "attack.h"                /* for attack_network */
 #include "debug_utils.h"           /* for init_sentry */
 #include "pluginlaunch.h"          /* for init_loading_shm */
@@ -641,7 +640,6 @@ openvas (int argc, char *argv[], char *env[])
 
       gvm_close_sentry ();
       destroy_scan_globals (globals);
-      nasl_okrb5_clean ();
 #ifdef LOG_REFERENCES_AVAILABLE
       free_log_reference ();
 #endif // LOG_REFERENCES_AVAILABLE

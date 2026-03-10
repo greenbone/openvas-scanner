@@ -15,6 +15,7 @@
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
 #include "nasl_init.h"
+#include "nasl_krb5.h" /* for nasl_okrb5_clean */
 #include "nasl_lex_ctxt.h"
 #include "nasl_tree.h"
 #include "nasl_var.h"
@@ -1750,6 +1751,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
     }
   g_free (old_dir);
 
+  nasl_okrb5_clean ();
   nasl_clean_ctx (&ctx);
   free_lex_ctxt (lexic);
   return err;

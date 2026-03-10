@@ -12,7 +12,11 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
+#include <gvm/base/networking.h>
+#include <netinet/in.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #define NASL_PRINT_KRB_ERROR(lexic, credential, result)                   \
   do                                                                      \
@@ -35,18 +39,21 @@ static OKrb5ErrorCode last_okrb5_result;
 // cached_gss_context is used on cases that require an already existing session.
 // NASL does currently not have the concept of a pointer nor struct so we need
 // to store it as a global variable.
-// 
+//
 // We use one context per run, this means that per run (target + oid) there is
 // only on credential allowed making it safe to be cached in that fashion.
 static struct OKrb5GSSContext *cached_gss_context = NULL;
 
-// Is used for `krb5_gss_update_context_out` and is essential a 
-// cache for the data from `krb5_gss_update_context`. 
+// Is used for `krb5_gss_update_context_out` and is essential a
+// cache for the data from `krb5_gss_update_context`.
 static struct OKrb5Slice *to_application = NULL;
 
 // Is used for `krb5_gss_update_context_needs_more` which indicates to the
-// script author that `krb5_gss_update_context` is not satisfied yet. 
+// script author that `krb5_gss_update_context` is not satisfied yet.
 static bool gss_update_context_more = false;
+
+// Stores the path to the generated krb5 config file for cleanup.
+static char *generated_config_path = NULL;
 
 #define SET_SLICE_FROM_LEX_OR_ENV(lexic, slice, name, env_name)            \
   do                                                                       \
@@ -71,7 +78,6 @@ static bool gss_update_context_more = false;
     }                                                                  \
   while (0)
 
-
 static OKrb5Credential
 build_krb5_credential (lex_ctxt *lexic)
 {
@@ -84,8 +90,25 @@ build_krb5_credential (lex_ctxt *lexic)
                              "KRB5_CONFIG");
   if (credential.config_path.len == 0)
     {
-      okrb5_set_slice_from_str (credential.config_path, "/etc/krb5.conf");
+      char *ip_str = addr6_as_str (lexic->script_infos->ip);
+      for (int i = 0; ip_str[i] != '\0'; i++)
+        {
+          if (ip_str[i] == '.' || ip_str[i] == ':')
+            {
+              ip_str[i] = '_';
+            }
+        }
+      char default_config_path[256];
+      snprintf (default_config_path, sizeof (default_config_path),
+                "/tmp/krb5_%s.conf", ip_str);
+      okrb5_set_slice_from_str (credential.config_path, default_config_path);
     }
+
+  // Store path for cleanup
+  if (generated_config_path != NULL)
+    free (generated_config_path);
+  generated_config_path =
+    strndup (credential.config_path.data, credential.config_path.len);
 
   PERROR_SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.realm, "realm",
                                     "KRB5_REALM");
@@ -240,7 +263,6 @@ nasl_okrb5_is_failure (lex_ctxt *lexic)
   return retc;
 }
 
-
 tree_cell *
 nasl_okrb5_gss_init (lex_ctxt *lexic)
 {
@@ -276,7 +298,6 @@ nasl_okrb5_gss_prepare_context (lex_ctxt *lexic)
   last_okrb5_result = result;
   return retc;
 }
-
 
 tree_cell *
 nasl_okrb5_gss_update_context (lex_ctxt *lexic)
@@ -322,6 +343,13 @@ nasl_okrb5_clean (void)
   if (cached_gss_context != NULL)
     {
       okrb5_gss_free_context (cached_gss_context);
+      cached_gss_context = NULL;
+    }
+  if (generated_config_path != NULL)
+    {
+      unlink (generated_config_path);
+      free (generated_config_path);
+      generated_config_path = NULL;
     }
 }
 
