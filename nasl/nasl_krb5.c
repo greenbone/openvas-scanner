@@ -63,6 +63,10 @@ static char *generated_config_path = NULL;
         {                                                                  \
           okrb5_set_slice_from_str (slice, getenv (env_name));             \
         }                                                                  \
+      else                                                                 \
+        {                                                                  \
+          setenv (env_name, get_str_var_by_name (lexic, name), 1);         \
+        }                                                                  \
     }                                                                      \
   while (0)
 
@@ -101,6 +105,7 @@ build_krb5_credential (lex_ctxt *lexic)
       char default_config_path[256];
       snprintf (default_config_path, sizeof (default_config_path),
                 "/tmp/krb5_%s.conf", ip_str);
+      setenv ("KRB5_CONFIG", default_config_path, 1);
       okrb5_set_slice_from_str (credential.config_path, default_config_path);
     }
 
