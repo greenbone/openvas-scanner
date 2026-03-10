@@ -101,7 +101,6 @@ fn build_krb5(src: &Path, install_prefix: &Path, target: &str) {
         panic!("Configure failed");
     }
 
-    // Ignore status, as it make process might fail, but libs will still be built
     Command::new("make")
         .arg("-j")
         .current_dir(src)
