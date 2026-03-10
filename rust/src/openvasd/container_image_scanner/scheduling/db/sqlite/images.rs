@@ -118,14 +118,14 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
                 max => max as i64,
             };
 
-            // TODO: add ordering here: we should prioritize images that belong to a scan with the
-            // least amount of finished on scan.
             let rows = sqlx::query(
                 r#"
     SELECT i.id, i.image, c.username, c.password
     FROM images i
+    JOIN scans s ON s.id = i.id
     LEFT JOIN credentials c ON i.id = c.id
     WHERE i.status = 'pending'
+    ORDER BY s.host_finished ASC, s.id ASC, i.image ASC
     LIMIT ?
     "#,
             )
@@ -237,5 +237,97 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
                 })
                 .collect()
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::{
+        str::FromStr,
+        sync::atomic::{AtomicU64, Ordering},
+    };
+
+    use scannerlib::models;
+
+    use crate::{
+        container_image_scanner::{
+            endpoints::scans::scans_utils::Fakes,
+            image::{Image, ImageState, RegistryError},
+            scheduling::db::{images::DBImages, scan::DBScan},
+        },
+        database::dao::Execute,
+    };
+
+    static IMAGE_COUNTER: AtomicU64 = AtomicU64::new(0);
+    static SCAN_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    fn image_url() -> String {
+        format!(
+            "oci://myregistry/myscan{}:my_tag{}",
+            SCAN_COUNTER.load(Ordering::Relaxed),
+            IMAGE_COUNTER.fetch_add(1, Ordering::Relaxed),
+        )
+    }
+
+    fn generate_scan(image_amount: u64) -> models::Scan {
+        models::Scan {
+            scan_id: SCAN_COUNTER.fetch_add(1, Ordering::Relaxed).to_string(),
+            target: models::Target {
+                hosts: (0..image_amount).map(|_| image_url()).collect(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn select_next_images_based_on_the_scan_with_the_least_amount_of_host_finished() {
+        let mut fakes = Fakes::init().await;
+        let scans = [generate_scan(10), generate_scan(3), generate_scan(5)];
+        let mut ids = Vec::with_capacity(scans.len());
+        let pool = fakes.pool();
+        for s in scans {
+            let images: Vec<Result<Image, RegistryError>> = s
+                .target
+                .hosts
+                .iter()
+                .map(|x| Image::from_str(x as &str).map_err(|_| RegistryError::no_tag()))
+                .collect();
+            let scan_id = fakes.simulate_start_scan("me", s).await.0;
+            let scan_id = fakes.internal_id("me", &scan_id).await;
+            // insert all the images and set the corresponding status values for scan
+            DBScan::new(&pool, (&scan_id as &str, &images as &[_]))
+                .exec()
+                .await
+                .unwrap();
+            ids.push(scan_id);
+        }
+        let validate = async |rounds, ids| {
+            for round in 0..rounds {
+                dbg!(round);
+
+                for id in &ids {
+                    let mut requested = DBImages::new(&pool, (0, 1)).exec().await.unwrap();
+                    assert_eq!(requested.len(), 1);
+                    dbg!(&requested);
+                    let rid = requested.pop().unwrap().0;
+                    assert_eq!(id, &rid.id);
+                    // mark as failed to trigger host_finished trigger
+                    DBImages::new(&pool, (&rid, ImageState::Failed))
+                        .exec()
+                        .await
+                        .unwrap();
+                }
+            }
+        };
+
+        dbg!(&ids);
+        validate(3, ids.clone()).await;
+        ids.remove(1);
+        dbg!(&ids);
+        validate(2, ids.clone()).await;
+        ids.remove(1);
+        dbg!(&ids);
+        validate(5, ids.clone()).await;
     }
 }

@@ -210,7 +210,7 @@ impl DeleteScansId for Scans {
 }
 
 #[cfg(test)]
-mod scans_utils {
+pub mod scans_utils {
 
     use std::sync::Arc;
 
@@ -417,6 +417,9 @@ mod scans_utils {
                 scan_preferences,
                 ..Default::default()
             }
+        }
+        pub fn pool(&self) -> DataBase {
+            self.scheduler.pool()
         }
 
         #[allow(dead_code)]
