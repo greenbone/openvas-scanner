@@ -11,7 +11,8 @@ use nasl_c_lib::krb5::{
     OKrb5ErrorCode_O_KRB5_EXPECTED_NOT_NULL, OKrb5ErrorCode_O_KRB5_REALM_NOT_FOUND,
     OKrb5ErrorCode_O_KRB5_SUCCESS, OKrb5GSSContext, OKrb5Slice, OKrb5Target, OKrb5User,
     o_krb5_add_realm, o_krb5_find_kdc, o_krb5_gss_prepare_context, o_krb5_gss_session_key_context,
-    o_krb5_gss_update_context, okrb5_error_code_to_string, okrb5_gss_init_context,
+    o_krb5_gss_update_context, okrb5_error_code_to_string, okrb5_gss_free_context,
+    okrb5_gss_init_context,
 };
 use nasl_function_proc_macro::nasl_function;
 use std::os;
@@ -20,6 +21,7 @@ use std::sync::Mutex;
 use std::{ffi::CStr, sync::Arc};
 use thiserror::Error;
 
+use crate::nasl::ScanCtx;
 use crate::{
     function_set,
     nasl::{FnError, utils::function::StringOrData},
@@ -176,6 +178,7 @@ pub struct Krb5 {
     cached_gss_context: Arc<Mutex<*mut OKrb5GSSContext>>,
     to_application: Arc<Mutex<*mut OKrb5Slice>>,
     gss_context_needs_more: bool,
+    config_path: Option<String>,
 }
 
 impl Drop for Krb5 {
@@ -191,13 +194,15 @@ impl Drop for Krb5 {
             }
         }
 
-        // TODO: This block leads to munmap_chunk(): invalid pointer and Aborted (core dumped)
-        // let cached_gss_context = *self.cached_gss_context.lock().unwrap();
-        // if !cached_gss_context.is_null() {
-        //     unsafe {
-        //         okrb5_gss_free_context(cached_gss_context);
-        //     }
-        // }
+        let cached_gss_context = *self.cached_gss_context.lock().unwrap();
+        if !cached_gss_context.is_null() {
+            unsafe {
+                okrb5_gss_free_context(cached_gss_context);
+            }
+        }
+        if let Some(config_path) = &self.config_path {
+            let _ = std::fs::remove_file(config_path);
+        }
     }
 }
 
@@ -229,6 +234,7 @@ impl Krb5 {
     #[allow(clippy::too_many_arguments)]
     fn build_krb5_credential(
         &mut self,
+        context: &ScanCtx<'_>,
         config_path: Option<&str>,
         realm: Option<&str>,
         kdc: Option<&str>,
@@ -237,10 +243,21 @@ impl Krb5 {
         host: Option<&str>,
         service: Option<&str>,
     ) -> Result<Krb5Credentials, Krb5Error> {
-        let config_path = config_path
-            .map(|x| x.to_string())
-            .or(std::env::var("KRB5_CONFIG").ok())
-            .unwrap_or("/etc/krb5.conf".to_string());
+        let config_path = if let Some(path) = config_path {
+            unsafe { std::env::set_var("KRB5_CONFIG", path) };
+            path.to_string()
+        } else if let Ok(env_path) = std::env::var("KRB5_CONFIG") {
+            env_path
+        } else {
+            let path = format!(
+                "/tmp/krb5_{}.conf",
+                context.target().ip_addr().to_string().replace(".", "_")
+            );
+            unsafe { std::env::set_var("KRB5_CONFIG", &path) };
+            path
+        };
+
+        self.config_path = Some(config_path.clone());
 
         let realm = get_var_or_env!(realm, "KRB5_REALM")?;
         let kdc = get_var_or_env!(kdc, "KRB5_KDC")?;
@@ -309,6 +326,7 @@ impl Krb5 {
     #[nasl_function(named(config_path, realm, kdc, user, password, host))]
     fn krb5_find_kdc(
         &mut self,
+        context: &ScanCtx<'_>,
         config_path: Option<&str>,
         realm: Option<&str>,
         kdc: Option<&str>,
@@ -316,8 +334,16 @@ impl Krb5 {
         password: Option<&str>,
         host: Option<&str>,
     ) -> Result<String, FnError> {
-        let credential =
-            self.build_krb5_credential(config_path, realm, kdc, user, password, host, None)?;
+        let credential = self.build_krb5_credential(
+            context,
+            config_path,
+            realm,
+            kdc,
+            user,
+            password,
+            host,
+            None,
+        )?;
         let mut kdc_ptr: *mut c_char = std::ptr::null_mut();
 
         self.last_okrb5_result =
@@ -364,6 +390,7 @@ impl Krb5 {
     #[nasl_function(named(config_path, realm, kdc, user, password, host, service))]
     fn krb5_gss_prepare_context(
         &mut self,
+        context: &ScanCtx<'_>,
         config_path: Option<&str>,
         realm: Option<&str>,
         kdc: Option<&str>,
@@ -372,8 +399,16 @@ impl Krb5 {
         host: Option<&str>,
         service: Option<&str>,
     ) -> Result<u32, FnError> {
-        let credential =
-            self.build_krb5_credential(config_path, realm, kdc, user, password, host, service)?;
+        let credential = self.build_krb5_credential(
+            context,
+            config_path,
+            realm,
+            kdc,
+            user,
+            password,
+            host,
+            service,
+        )?;
         let mut cached_gss_context = self.cached_gss_context.lock().unwrap();
         if cached_gss_context.is_null() {
             *cached_gss_context = unsafe { okrb5_gss_init_context() };
