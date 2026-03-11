@@ -140,14 +140,13 @@ where
                     port.range
                         .clone()
                         .into_iter()
-                        .map(move |r| (port.protocol, r))
+                        .map(move |r| (port.protocol.as_ref(), r))
                 }),
                 |mut b, (protocol, range)| {
                     b.push_bind(&mapped_id)
                         .push_bind(match protocol {
                             None => "udp_tcp",
-                            Some(models::Protocol::TCP) => "tcp",
-                            Some(models::Protocol::UDP) => "udp",
+                            Some(x) => x.as_ref(),
                         })
                         .push_bind(range.start as i64)
                         .push_bind(range.end.map(|x| x as i64));
@@ -171,14 +170,13 @@ where
                     port.range
                         .clone()
                         .into_iter()
-                        .map(move |r| (port.protocol, r))
+                        .map(move |r| (port.protocol.as_ref(), r))
                 }),
                 |mut b, (protocol, range)| {
                     b.push_bind(&mapped_id)
                         .push_bind(match protocol {
                             None => "udp_tcp",
-                            Some(models::Protocol::TCP) => "tcp",
-                            Some(models::Protocol::UDP) => "udp",
+                            Some(x) => x.as_ref(),
                         })
                         .push_bind(range.start as i64)
                         .push_bind(range.end.map(|x| x as i64))

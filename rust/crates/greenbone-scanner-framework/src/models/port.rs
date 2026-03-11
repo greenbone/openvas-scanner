@@ -84,6 +84,15 @@ impl Display for Protocol {
     }
 }
 
+impl AsRef<str> for Protocol {
+    fn as_ref(&self) -> &str {
+        match self {
+            Protocol::TCP => "tcp",
+            Protocol::UDP => "udp",
+        }
+    }
+}
+
 pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
     fn add_range_to_list(list: &mut String, start: usize, end: Option<usize>) {
         // Add range
