@@ -194,13 +194,7 @@ where
     if !scan.target.alive_test_methods.is_empty() {
         let mut builder = QueryBuilder::new("INSERT INTO alive_methods (id, method)");
         builder.push_values(&scan.target.alive_test_methods, |mut b, method| {
-            b.push_bind(&mapped_id).push_bind(match method {
-                AliveTestMethods::TcpAck => "tcp_ack",
-                AliveTestMethods::Icmp => "icmp",
-                AliveTestMethods::Arp => "arp",
-                AliveTestMethods::ConsiderAlive => "consider_alive",
-                AliveTestMethods::TcpSyn => "tcp_syn",
-            });
+            b.push_bind(&mapped_id).push_bind(method.as_ref());
         });
         let query = builder.build();
         query.execute(&mut *tx).await?;

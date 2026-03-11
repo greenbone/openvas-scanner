@@ -54,6 +54,18 @@ pub enum AliveTestMethodsError {
     InvalidValue(u8),
 }
 
+impl AsRef<str> for AliveTestMethods {
+    fn as_ref(&self) -> &str {
+        match self {
+            AliveTestMethods::TcpAck => "tcp_ack",
+            AliveTestMethods::Icmp => "icmp",
+            AliveTestMethods::Arp => "arp",
+            AliveTestMethods::ConsiderAlive => "consider_alive",
+            AliveTestMethods::TcpSyn => "tcp_syn",
+        }
+    }
+}
+
 impl TryFrom<u8> for AliveTestMethods {
     type Error = AliveTestMethodsError;
 
