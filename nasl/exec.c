@@ -1707,7 +1707,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
     }
   else if (!(mode & NASL_EXEC_PARSE_ONLY))
     {
-      char *p;
+      char *p, *name_aux;
 
       bzero (&tc, sizeof (tc));
       tc.type = CONST_INT;
@@ -1720,14 +1720,18 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       add_named_var_to_ctxt (lexic, "description", &tc);
 
       tc.type = CONST_DATA;
-      p = strrchr (name, '/');
+      // for preserving the const qualifier during assginment
+      name_aux = g_strdup (name);
+      p = strrchr (name_aux, '/');
       if (p == NULL)
-        p = (char *) name;
+        p = (char *) name_aux;
       else
         p++;
+
       tc.x.str_val = p;
       tc.size = strlen (p);
       add_named_var_to_ctxt (lexic, "SCRIPT_NAME", &tc);
+      g_free (name_aux);
 
       truc = (lex_ctxt *) ctx.tree;
       if ((ret = nasl_exec (lexic, ctx.tree)) == NULL)
@@ -1737,6 +1741,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
       if ((pf = get_func_ref_by_name (lexic, "on_exit")) != NULL)
         nasl_func_call (lexic, pf, NULL);
+
     }
 
   if (g_chdir (old_dir) != 0)
