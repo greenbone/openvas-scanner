@@ -158,6 +158,54 @@ where
             query.execute(&mut *tx).await?;
         }
     }
+    if !scan.target.alive_test_ports.is_empty() {
+        for ports in scan
+            .target
+            .alive_test_ports
+            .chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 4)
+        {
+            let mut builder =
+                QueryBuilder::new("INSERT INTO ports (id, protocol, start, end, alive)");
+            builder.push_values(
+                ports.iter().flat_map(|port| {
+                    port.range
+                        .clone()
+                        .into_iter()
+                        .map(move |r| (port.protocol, r))
+                }),
+                |mut b, (protocol, range)| {
+                    b.push_bind(&mapped_id)
+                        .push_bind(match protocol {
+                            None => "udp_tcp",
+                            Some(models::Protocol::TCP) => "tcp",
+                            Some(models::Protocol::UDP) => "udp",
+                        })
+                        .push_bind(range.start as i64)
+                        .push_bind(range.end.map(|x| x as i64))
+                        .push_bind(true);
+                },
+            );
+            let query = builder.build();
+
+            query.execute(&mut *tx).await?;
+        }
+    }
+
+    if !scan.target.alive_test_methods.is_empty() {
+        let mut builder = QueryBuilder::new("INSERT INTO alive_methods (id, method)");
+        builder.push_values(&scan.target.alive_test_methods, |mut b, method| {
+            b.push_bind(&mapped_id).push_bind(match method {
+                AliveTestMethods::TcpAck => "tcp_ack",
+                AliveTestMethods::Icmp => "icmp",
+                AliveTestMethods::Arp => "arp",
+                AliveTestMethods::ConsiderAlive => "consider_alive",
+                AliveTestMethods::TcpSyn => "tcp_syn",
+            });
+        });
+        let query = builder.build();
+        query.execute(&mut *tx).await?;
+    }
+
     let mut scan_preferences = scan.scan_preferences.clone();
     if scan.target.reverse_lookup_unify.unwrap_or_default() {
         scan_preferences.push(models::ScanPreference {
