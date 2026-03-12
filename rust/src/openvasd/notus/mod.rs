@@ -1,3 +1,7 @@
+// We allow this fow now, since it would require lots of changes
+// but should eventually solve this.
+#![allow(clippy::result_large_err)]
+
 use std::{pin::Pin, sync::Arc};
 
 use greenbone_scanner_framework::{
