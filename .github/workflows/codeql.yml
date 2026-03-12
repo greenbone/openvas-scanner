@@ -17,7 +17,7 @@ jobs:
       contents: read
       security-events: write
     container:
-      image: registry.community.greenbone.net/community/gvm-libs:edge
+      image: ghcr.io/greenbone/gvm-libs:edge
 
     steps:
     - name: Checkout repository
