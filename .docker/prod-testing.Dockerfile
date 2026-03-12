@@ -6,37 +6,11 @@ ARG GVM_LIBS_VERSION=testing-edge
 FROM greenbone/openvas-smb:testing-edge AS openvas-smb
 FROM rust AS rust
 
-FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION} AS build
+FROM ghcr.io/greenbone/gvm-libs:${GVM_LIBS_VERSION} AS build
 COPY . /source
+RUN sh /source/.github/install-openvas-dependencies.sh
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
-    bison \
-    build-essential \
-    clang \
-    clang-format \
-    clang-tools \
-    cmake \
-    curl \
-    git \
-    lcov \
-    libgnutls28-dev \
-    libgpgme-dev \
-    libjson-glib-dev \
-    libksba-dev \
-    libpaho-mqtt-dev \
-    libpcap-dev \
-    libgcrypt-dev \
-    libssh-dev \
-    libbsd-dev \
-    libgnutls30t64 \
-    libgssapi3-heimdal \
-    libkrb5-26-heimdal \
-    libasn1-8-heimdal \
-    libroken19-heimdal \
-    libhdb9-heimdal \
-    libpopt0 \
-    libcurl4 \
-    libcurl4-gnutls-dev \
-    libhiredis-dev \
+    capnproto \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
@@ -49,11 +23,12 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
 RUN apt update && apt install -y ca-certificates
+WORKDIR /source/rust
 RUN cargo build --release
 RUN cp target/release/openvasd /install/usr/local/bin
 RUN cp target/release/scannerctl /install/usr/local/bin
 
-FROM registry.community.greenbone.net/community/gvm-libs:${GVM_LIBS_VERSION}
+FROM ghcr.io/greenbone/gvm-libs:${GVM_LIBS_VERSION}
 RUN apt-get update
 RUN apt-get install --no-install-recommends --no-install-suggests -y \
   bison \

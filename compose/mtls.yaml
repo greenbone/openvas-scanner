@@ -2,7 +2,7 @@ name: openvasd-community-edition-tls
 
 services:
   configure-openvas:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    image: ghcr.io/greenbone/openvas-scanner:stable
     volumes:
       - openvas_data_vol:/mnt
     environment:

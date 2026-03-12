@@ -19,7 +19,7 @@ services:
       - gpg_data_vol:/mnt
 
   redis-server:
-    image: registry.community.greenbone.net/community/redis-server
+    image: ghcr.io/greenbone/redis-server
     deploy:
       resources:
         limits:
@@ -36,7 +36,7 @@ services:
   # and changes log output to /var/log/openvas instead /var/log/gvm
   # to reduce likelyhood of unwanted log interferences
   configure-openvas-log:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    image: ghcr.io/greenbone/openvas-scanner:stable
     volumes:
       - openvas_data_vol:/mnt
       - openvas_log_data_vol:/var/log/openvas
@@ -58,7 +58,7 @@ services:
         chmod 666 /var/log/openvas/openvas.log
 
   configure-openvas:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    image: ghcr.io/greenbone/openvas-scanner:stable
     volumes:
       - openvas_data_vol:/mnt
     environment:
@@ -74,7 +74,7 @@ services:
 
   # shows logs of openvas
   openvas:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    image: ghcr.io/greenbone/openvas-scanner:stable
     restart: on-failure
     volumes:
       - openvas_data_vol:/etc/openvas
@@ -92,7 +92,7 @@ services:
         condition: service_completed_successfully
 
   openvasd:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable
+    image: ghcr.io/greenbone/openvas-scanner:stable
     # we need privileged because of:
     # setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
     privileged: true 

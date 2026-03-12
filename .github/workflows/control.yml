@@ -112,26 +112,6 @@ jobs:
     with:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version }}
-  container-testing:
-    name: container
-    needs: [init, build ]
-    uses: ./.github/workflows/push-container-testing.yml
-    secrets:
-      dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
-      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN}}
-    with:
-      is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
-      is_version_tag: ${{needs.init.outputs.docker_build_is_version}}
-  container-oldstable:
-    name: container
-    needs: [init, build ]
-    uses: ./.github/workflows/push-container-oldstable.yml
-    secrets:
-      dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
-      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN}}
-    with:
-      is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
-      is_version_tag: ${{needs.init.outputs.docker_build_is_version}}
   release:
     permissions:
       contents: write

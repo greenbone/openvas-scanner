@@ -1,6 +1,6 @@
 ARG VERSION=oldstable
 # this allows to override gvm-libs for e.g. smoketests
-ARG GVM_LIBS=registry.community.greenbone.net/community/gvm-libs
+ARG GVM_LIBS=ghcr.io/greenbone/gvm-libs
 
 FROM rust:bookworm AS rust
 COPY . /source

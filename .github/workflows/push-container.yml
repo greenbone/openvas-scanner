@@ -45,111 +45,81 @@ permissions:
   pull-requests: write
 
 jobs:
-
-  debian_stable_arm64:
-    name: ghcr:debian:stable:arm64
-    runs-on: self-hosted-generic-arm64
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - uses: ./.github/actions/copy-docker-binaries
-        with:
-          arch: arm64 
-      - name: Container build and push 3rd gen
-        id: build-and-push
-        uses: greenbone/actions/container-build-push-generic@v3
-        with:
-          image-platforms: linux/arm64
-          build-docker-file: .docker/prod.Dockerfile
-          build-args: |
-            REPOSITORY=${{ github.repository }}
-          cosign-key: ${{ secrets.cosign_key_opensight }}
-          cosign-key-password: ${{ secrets.cosign_password_opensight }}
-          # The tlog function does not currently support an ed25519 key.
-          cosign-tlog-upload: "false"
-          image-labels: |
-            org.opencontainers.image.vendor=Greenbone
-            org.opencontainers.image.base.name=greenbone/gvm-libs
-          image-tags: |
-            # when IS_LATEST_TAG is set create a stable and a latest tag
-            type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
-            type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
-            # if tag version is set than create a version tags
-            type=semver,pattern={{version}},enable=${{ inputs.is_version_tag }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.is_version_tag }}
-            type=semver,pattern={{major}},enable=${{ inputs.is_version_tag }}
-            # if on main or a branch TODO calculate upfront
-            type=raw,value=edge,enable=${{ github.ref_name == 'main' }}
-            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
-            # use pr-$PR_ID for pull requests (will not be uploaded)
-            type=ref,event=pr
-          registry: ${{ vars.IMAGE_REGISTRY }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
-  
-  debian_stable:
-    name: ghcr:debian:stable
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - uses: ./.github/actions/copy-docker-binaries
-        with:
-          arch: amd64 
-      - name: Container build and push 3rd gen
-        id: build-and-push
-        uses: greenbone/actions/container-build-push-generic@v3
-        with:
-          build-docker-file: .docker/prod.Dockerfile
-          build-args: |
-            REPOSITORY=${{ github.repository }}
-          cosign-key: ${{ secrets.cosign_key_opensight }}
-          cosign-key-password: ${{ secrets.cosign_password_opensight }}
-          # The tlog function does not currently support an ed25519 key.
-          cosign-tlog-upload: "false"
-          image-labels: |
-            org.opencontainers.image.vendor=Greenbone
-            org.opencontainers.image.base.name=greenbone/gvm-libs
-          image-tags: |
-            # when IS_LATEST_TAG is set create a stable and a latest tag
-            type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
-            type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
-            # if tag version is set than create a version tags
-            type=semver,pattern={{version}},enable=${{ inputs.is_version_tag }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.is_version_tag }}
-            type=semver,pattern={{major}},enable=${{ inputs.is_version_tag }}
-            # if on main or a branch TODO calculate upfront
-            type=raw,value=edge,enable=${{ github.ref_name == 'main' }}
-            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
-            # use pr-$PR_ID for pull requests (will not be uploaded)
-            type=ref,event=pr
-          registry: ${{ vars.IMAGE_REGISTRY }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
-          scout-user: ${{ secrets.dockerhub_user }}
-          scout-password: ${{ secrets.dockerhub_token }}
-
-  #not able to speed that up via prebuild binaries
-  greenbone_reg_debian_stable:
-    name: greenbone-reg:debian:stable
-    uses: greenbone/workflows/.github/workflows/container-build-push-2nd-gen.yml@main
+  build:
+    if: ${{ github.repository == 'greenbone/openvas-scanner' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build:
+              name: stable
+              dockerfile: .docker/prod.Dockerfile
+              stable-name: stable
+              edge-name: edge
+          - build:
+              name: testing
+              dockerfile: .docker/prod-testing.Dockerfile
+              stable-name: testing
+              edge-name: testing-edge
+          - build:
+              name: oldstable
+              dockerfile: .docker/prod-oldstable.Dockerfile
+              stable-name: oldstable
+              edge-name: oldstable-edge
+    name: Build and Push Container Images (${{ matrix.build.name }})
+    uses: greenbone/workflows/.github/workflows/container-build-push-gea.yml@main
     with:
-      image-url: community/openvas-scanner
-      image-labels: |
+      ref: ${{ inputs.ref-name }}
+      ref-name: ${{ inputs.ref-name }}
+      name: ${{ matrix.build.name }}
+      dockerfile: ${{ matrix.build.dockerfile }}
+      stable-name: ${{ matrix.build.stable-name }}
+      edge-name: ${{ matrix.build.edge-name }}
+      enable-latest: ${{ matrix.build.name == 'stable' }}
+      enable-pr: ${{ matrix.build.name == 'stable' }}
+      enable-version: ${{ matrix.build.name == 'stable' }}
+      labels: |
         org.opencontainers.image.vendor=Greenbone
-        org.opencontainers.image.base.name=greenbone/gvm-libs
-      service: openvas-scanner
-    secrets:
-      COSIGN_KEY_OPENSIGHT: ${{ secrets.cosign_key_opensight }}
-      COSIGN_KEY_PASSWORD_OPENSIGHT: ${{ secrets.cosign_password_opensight }}
-      DOCKERHUB_USERNAME: ${{ secrets.dockerhub_user }}
-      DOCKERHUB_TOKEN: ${{ secrets.dockerhub_token }}
-      GREENBONE_BOT_TOKEN: ${{ secrets.greenbone_bot_token }}
-      GREENBONE_REGISTRY: ${{ secrets.greenbone_registry }}
-      GREENBONE_REGISTRY_USER: ${{ secrets.greenbone_registry_user }}
-      GREENBONE_REGISTRY_TOKEN: ${{ secrets.greenbone_registry_token }}
-      GREENBONE_REGISTRY_READ_USER: ${{ secrets.greenbone_registry_read_user }}
-      GREENBONE_REGISTRY_READ_TOKEN: ${{ secrets.greenbone_registry_read_token }}
-      GREENBONE_REGISTRY_REPLICATION_USER: ${{ secrets.greenbone_registry_replication_user }}
-      GREENBONE_REGISTRY_REPLICATION_TOKEN: ${{ secrets.greenbone_registry_replication_token }}
-      MATTERMOST_WEBHOOK_URL: ${{ secrets.mattermost_webhook_url }}
+        org.opencontainers.image.base.name=debian:stable-slim
+      build-args: ${{ matrix.build.build-args }}
+      prefix: ${{ matrix.build.prefix }}
+      tags: |
+            # when IS_LATEST_TAG is set create a stable and a latest tag
+            type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
+            type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
+            # if tag version is set than create a version tags
+            type=semver,pattern={{version}},enable=${{ inputs.is_version_tag }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.is_version_tag }}
+            type=semver,pattern={{major}},enable=${{ inputs.is_version_tag }}
+            # if on main or a branch TODO calculate upfront
+            type=raw,value=edge,enable=${{ github.ref_name == 'main' }}
+            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
+            # use pr-$PR_ID for pull requests (will not be uploaded)
+            type=ref,event=pr
+
+    secrets: inherit
+
+  notify:
+    needs:
+      - build
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.repository == 'greenbone/openvas-scanner' }}
+    uses: greenbone/workflows/.github/workflows/notify-mattermost-2nd-gen.yml@main
+    with:
+      status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
+    secrets: inherit
+
+  trigger-replication:
+    needs:
+      - build
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.repository == 'greenbone/openvas-scanner' }}
+    runs-on: self-hosted-generic
+    steps:
+      - name: Ensure all tags are replicated on the public registry
+        uses: greenbone/actions/trigger-harbor-replication@v3
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          registry: ${{ vars.GREENBONE_REGISTRY }}
+          token: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_TOKEN }}
+          user: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_USER }}
+
+
