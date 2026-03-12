@@ -4,13 +4,13 @@
 
 # Is currently reqired by openvasd to control openvas
 ospd:
-  repository: registry.community.greenbone.net/community/ospd-openvas
+  repository: ghcr.io/greenbone/ospd-openvas
   pullPolicy: Always
   tag: "edge"
 
 # Contains openvasd
 openvas:
-  repository: registry.community.greenbone.net/community/openvas-scanner
+  repository: ghcr.io/greenbone/openvas-scanner
   pullPolicy: Always
   tag: "edge"
 

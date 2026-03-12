@@ -1,6 +1,6 @@
 # to be built with openvas-scanner top level dir as base
 
-FROM registry.community.greenbone.net/community/gvm-libs:edge
+FROM ghcr.io/greenbone/gvm-libs:edge
 
 # Build from src
 COPY . /opt/openvas-build/
