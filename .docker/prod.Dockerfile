@@ -1,4 +1,4 @@
-ARG VERSION=edge
+ARG VERSION=latest
 # this allows to override gvm-libs for e.g. smoketests
 ARG GVM_LIBS=ghcr.io/greenbone/gvm-libs
 
@@ -78,8 +78,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
   libcurl4-gnutls-dev \
   && rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
-
-
 
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
