@@ -6,7 +6,7 @@ jobs:
   C:
     runs-on: ubuntu-latest
     container:
-      image: registry.community.greenbone.net/community/gvm-libs:stable
+      image: ghcr.io/greenbone/gvm-libs:stable
     steps:
       - uses: actions/checkout@v6
       - name: install dependencies
