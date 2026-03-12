@@ -58,6 +58,7 @@ RUN apt-get install --no-install-recommends --no-install-suggests -y \
   libcurl4 \
   libhiredis1.1.0 \
   libcurl3t64-gnutls \
+  libmagic1t64 \
   zlib1g
 RUN rm -rf /var/lib/apt/lists/*
 COPY .docker/openvas.conf /etc/openvas/
