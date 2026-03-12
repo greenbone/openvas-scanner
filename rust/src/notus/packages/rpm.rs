@@ -65,7 +65,7 @@ static RE_VERSION: Lazy<Regex> = lazy_regex!(
     )?$"
 );
 
-/// Represent a based Redhat package
+/// Represent a based Redhat package based on https://rpm.org/docs/6.0.x/man/rpm-version.7
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rpm {
     name: String,
@@ -85,6 +85,23 @@ fn find_any_exception(name: &str) -> String {
         }
     }
     "".to_string()
+}
+
+fn normalize(version: &str) -> String {
+    let mut result = String::with_capacity(version.len());
+    let mut prev_dot = false;
+    for c in version.chars() {
+        if c == '.' || c == '+' || c == '_' {
+            if !prev_dot {
+                result.push('.');
+            }
+            prev_dot = true;
+        } else {
+            result.push(c);
+            prev_dot = false;
+        }
+    }
+    result
 }
 
 impl PartialOrd for Rpm {
@@ -154,8 +171,8 @@ impl Package for Rpm {
         Some(Rpm {
             name: name.to_string(),
             epoch,
-            version: PackageVersion(version.to_string()),
-            release: PackageVersion(release.to_string()),
+            version: PackageVersion(normalize(version)),
+            release: PackageVersion(normalize(release)),
             arch: arch.to_string(),
             module: (module_name.to_string(), module_stream.to_string()),
         })
@@ -195,8 +212,8 @@ impl Package for Rpm {
         Some(Rpm {
             name: name.to_string(),
             epoch,
-            version: PackageVersion(version.to_string()),
-            release: PackageVersion(release.to_string()),
+            version: PackageVersion(normalize(version)),
+            release: PackageVersion(normalize(release)),
             arch: arch.to_string(),
             module: (module_name.to_string(), module_stream.to_string()),
         })
@@ -346,14 +363,50 @@ mod rpm_tests {
         assert_eq!(package.version, PackageVersion("16.20.2".to_string()));
         assert_eq!(
             package.release,
-            PackageVersion("3.module+el8.8.0+1543+5f4d09d5".to_string())
+            PackageVersion("3.module.el8.8.0.1543.5f4d09d5".to_string())
         );
         assert_eq!(package.module, ("nodejs".to_string(), "16".to_string()));
         assert_eq!(package.arch, "x86_64");
         assert_eq!(
             package.get_version(),
-            "1:16.20.2-3.module+el8.8.0+1543+5f4d09d5.x86_64"
+            "1:16.20.2-3.module.el8.8.0.1543.5f4d09d5.x86_64"
         );
+    }
+
+    #[test]
+    fn test_normalization_from_full_name() {
+        let package1 = Rpm::from_full_name("javapackages-filesystem-5.3.0-2.module+el8+2598+06babf2e.noarch@javapackages-tools:201801").unwrap();
+        let package2 = Rpm::from_full_name("javapackages-filesystem-5.3.0-2.module+el8.10.0+23274+27840b45.noarch@javapackages-tools:201801").unwrap();
+
+        assert_eq!(package1.epoch, 0);
+        assert_eq!(package1.arch, "noarch");
+        assert_eq!(package1.name, "javapackages-filesystem");
+        assert_eq!(package1.version, PackageVersion("5.3.0".to_string()));
+        assert_eq!(
+            package1.release,
+            PackageVersion("2.module.el8.2598.06babf2e".to_string())
+        );
+        assert_eq!(
+            package1.get_version(),
+            "5.3.0-2.module.el8.2598.06babf2e.noarch"
+        );
+
+        assert_eq!(package2.epoch, 0);
+        assert_eq!(package2.arch, "noarch");
+        assert_eq!(package2.name, "javapackages-filesystem");
+        assert_eq!(package2.version, PackageVersion("5.3.0".to_string()));
+        assert_eq!(
+            package2.release,
+            PackageVersion("2.module.el8.10.0.23274.27840b45".to_string())
+        );
+        assert_eq!(
+            package2.get_version(),
+            "5.3.0-2.module.el8.10.0.23274.27840b45.noarch"
+        );
+
+        // Test if ^ is greater than normal separator
+        let package2 = Rpm::from_full_name("javapackages-filesystem-5.3.0-2.module+el8^10.0+23274+27840b45.noarch@javapackages-tools:201801").unwrap();
+        assert!(package1 < package2);
     }
 
     #[test]
