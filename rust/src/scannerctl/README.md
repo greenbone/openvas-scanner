@@ -52,6 +52,18 @@ Run `cargo test` to test and `cargo build --release` to build it.
 
 `cargo install --path .`
 
+It requires the dependencies:
+
+```
+> readelf -d ./scannerctl-x86_64-unknown-linux-gnu  | grep NEEDED
+ 0x0000000000000001 (NEEDED)             Shared library: [libz.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpcap.so.0.8]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+```
+
 ## Commands
 
 ### execute

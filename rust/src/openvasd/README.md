@@ -21,7 +21,14 @@ Currently it is utilizing ospd-openvas.
 
 # Requirements
 
-It requires a running ospd-openvas instance.
+```
+> readelf -d ./openvasd-x86_64-unknown-linux-gnu | grep NEEDED
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+```
+
 
 # Configuration
 
