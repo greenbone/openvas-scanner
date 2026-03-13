@@ -217,6 +217,7 @@ impl Serialize for Target {
                     models::AliveTestMethods::Arp => ("arp", "1"),
                     models::AliveTestMethods::ConsiderAlive => ("consider_alive", "1"),
                     models::AliveTestMethods::TcpSyn => ("tcp_sync", "1"),
+                    models::AliveTestMethods::HostDiscoveryIpv6 => ("host_discovery_ipv6", "1"),
                 })
                 .collect();
             if !fields.is_empty() {
