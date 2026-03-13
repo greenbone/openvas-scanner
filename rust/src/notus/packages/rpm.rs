@@ -76,7 +76,7 @@ pub struct Rpm {
     module: (String, String),
 }
 
-static EXCEPTIONS: [&str; 2] = ["_fips", ".ksplice"];
+static EXCEPTIONS: [&str; 2] = [".fips", ".ksplice"];
 
 fn find_any_exception(name: &str) -> String {
     for exception in EXCEPTIONS.iter() {
