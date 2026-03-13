@@ -11,7 +11,7 @@ pub use registry::docker_v2::fake::RegistryMock as DockerRegistryV2Mock;
 
 pub mod packages;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq)]
 pub struct Image {
     pub registry: String,
     pub image: Option<String>,
