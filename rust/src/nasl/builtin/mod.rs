@@ -14,14 +14,14 @@ mod host;
 mod http;
 mod isotime;
 mod knowledge_base;
+mod krb5;
 pub mod misc;
 pub mod network;
-mod snmp;
-
 mod preferences;
 pub mod raw_ip;
 mod regex;
 mod report_functions;
+mod snmp;
 mod ssh;
 mod string;
 mod sys;
@@ -65,6 +65,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(snmp::Snmp)
         .add_set(cert::NaslCerts::default());
 
+    executor.add_set(krb5::Krb5::default());
     executor.add_set(raw_ip::RawIp);
     executor.add_global_vars(raw_ip::RawIp);
     executor.add_global_vars(network::socket::SocketFns);
