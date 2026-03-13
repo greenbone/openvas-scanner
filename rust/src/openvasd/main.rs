@@ -1,7 +1,9 @@
+// We allow this fow now, since it would require lots of changes
+// but should eventually solve this.
+#![allow(clippy::large_enum_variant)]
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
-
 #![doc = include_str!("README.md")]
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
