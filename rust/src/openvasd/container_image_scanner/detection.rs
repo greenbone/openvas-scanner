@@ -8,7 +8,7 @@ use tokio::{
 
 use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct OperatingSystem {
     pub name: String,
     pub version: String,
@@ -65,7 +65,7 @@ where
     Err(OperatingSystemDetectionError::NotFound)
 }
 
-struct OperatingSystemDetector<T> {
+pub(crate) struct OperatingSystemDetector<T> {
     reader: T,
 }
 
@@ -77,7 +77,7 @@ where
         OperatingSystemDetector { reader }
     }
 
-    async fn detect_operating_system(
+    pub(crate) async fn detect_operating_system(
         self,
     ) -> Result<OperatingSystem, OperatingSystemDetectionError> {
         #[rustfmt::skip]

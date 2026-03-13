@@ -52,6 +52,7 @@ impl<T> CustomerMessage<T> {
     }
 }
 
+#[derive(Debug, PartialEq, PartialOrd)]
 pub enum DetailPair<'a> {
     OS(&'a OperatingSystem),
     OSCpe(&'a OperatingSystem),
@@ -79,7 +80,19 @@ impl<'a> DetailPair<'a> {
             DetailPair::Packages(items) => items.join(","),
             DetailPair::OSCpe(os) => {
                 // as requested by customer.
-                format!("cpe:/o:{}:{}:{}", os.name, os.name, os.version_id)
+                format!(
+                    "cpe:/o:{}:{}:{}::~~~~~{}",
+                    os.name,
+                    os.name,
+                    os.version_id,
+                    os.version
+                        .chars()
+                        .map(|x| match x {
+                            x if x.is_ascii_alphanumeric() => x,
+                            _ => '_',
+                        })
+                        .collect::<String>()
+                )
             }
             DetailPair::HostName(image) => image.to_string(),
         }
@@ -182,5 +195,41 @@ where
 {
     if let Err(error) = DBResults::new(pool, (id, results)).retry_exec().await {
         tracing::warn!(%error, id, amount_of_results=results.len(), "Scan results lost.");
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use crate::container_image_scanner::{
+        detection::OperatingSystemDetector, messages::DetailPair,
+    };
+
+    #[tokio::test]
+    async fn test_different_cpe() {
+        let content = r#"
+        Name="EulerOS"
+        VERSION="2.0 (SP12)"
+        ID="euleros"
+        VERSION_ID="2.0"
+        "#;
+        let os = OperatingSystemDetector::from(content)
+            .detect_operating_system()
+            .await
+            .unwrap();
+        let content = r#"
+        Name="EulerOS"
+        VERSION="2.0 (SP12 x86_64)"
+        ID="euleros"
+        VERSION_ID="2.0"
+        "#;
+        let os_2 = OperatingSystemDetector::from(content)
+            .detect_operating_system()
+            .await
+            .unwrap();
+        assert_ne!(
+            DetailPair::OSCpe(&os).value(),
+            DetailPair::OSCpe(&os_2).value()
+        )
     }
 }
