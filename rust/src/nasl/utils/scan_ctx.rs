@@ -439,7 +439,7 @@ impl<'a> ScanCtx<'a> {
         KbContextKey(
             (
                 self.scan.clone(),
-                storage::Target(self.target.original_target_str().to_string()),
+                storage::Target(self.target.ip_addr().to_string()),
             ),
             key,
         )
@@ -464,7 +464,7 @@ impl<'a> ScanCtx<'a> {
             .retrieve(&GetKbContextKey(
                 (
                     self.scan.clone(),
-                    storage::Target(self.target.original_target_str().into()),
+                    storage::Target(self.target.ip_addr().to_string()),
                 ),
                 key.clone(),
             ))?
