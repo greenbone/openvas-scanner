@@ -56,6 +56,15 @@ jobs:
               dockerfile: .docker/prod.Dockerfile
               stable-name: stable
               edge-name: edge
+              tags: |
+                    type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
+                    type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
+                    type=semver,pattern={{version}},enable=${{ inputs.is_version_tag }}
+                    type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.is_version_tag }}
+                    type=semver,pattern={{major}},enable=${{ inputs.is_version_tag }}
+                    type=raw,value=edge,enable=${{ github.ref_name == 'main' }}
+                    type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
+                    type=ref,event=pr
           - build:
               name: testing
               dockerfile: .docker/prod-testing.Dockerfile
@@ -69,8 +78,6 @@ jobs:
     name: Build and Push Container Images (${{ matrix.build.name }})
     uses: greenbone/workflows/.github/workflows/container-build-push-gea.yml@main
     with:
-      ref: ${{ inputs.ref-name }}
-      ref-name: ${{ inputs.ref-name }}
       name: ${{ matrix.build.name }}
       dockerfile: ${{ matrix.build.dockerfile }}
       stable-name: ${{ matrix.build.stable-name }}
@@ -83,20 +90,7 @@ jobs:
         org.opencontainers.image.base.name=debian:stable-slim
       build-args: ${{ matrix.build.build-args }}
       prefix: ${{ matrix.build.prefix }}
-      tags: |
-            # when IS_LATEST_TAG is set create a stable and a latest tag
-            type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
-            type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
-            # if tag version is set than create a version tags
-            type=semver,pattern={{version}},enable=${{ inputs.is_version_tag }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.is_version_tag }}
-            type=semver,pattern={{major}},enable=${{ inputs.is_version_tag }}
-            # if on main or a branch TODO calculate upfront
-            type=raw,value=edge,enable=${{ github.ref_name == 'main' }}
-            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref_type == 'branch' && github.event_name == 'push' && github.ref_name != 'main' }}
-            # use pr-$PR_ID for pull requests (will not be uploaded)
-            type=ref,event=pr
-
+      tags: ${{ matrix.tags }}
     secrets: inherit
 
   notify:
