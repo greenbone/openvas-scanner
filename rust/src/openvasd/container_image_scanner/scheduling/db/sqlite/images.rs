@@ -303,13 +303,10 @@ mod test {
             ids.push(scan_id);
         }
         let validate = async |rounds, ids| {
-            for round in 0..rounds {
-                dbg!(round);
-
+            for _ in 0..rounds {
                 for id in &ids {
                     let mut requested = DBImages::new(&pool, (0, 1)).exec().await.unwrap();
                     assert_eq!(requested.len(), 1);
-                    dbg!(&requested);
                     let rid = requested.pop().unwrap().0;
                     assert_eq!(id, &rid.id);
                     // mark as failed to trigger host_finished trigger
@@ -321,13 +318,10 @@ mod test {
             }
         };
 
-        dbg!(&ids);
         validate(3, ids.clone()).await;
         ids.remove(1);
-        dbg!(&ids);
         validate(2, ids.clone()).await;
         ids.remove(1);
-        dbg!(&ids);
         validate(5, ids.clone()).await;
     }
 }
