@@ -720,7 +720,6 @@ pub mod tests {
                 .get_scans_id_results(id.clone(), None, None)
                 .collect::<Vec<_>>()
                 .await;
-            dbg!(&result);
             assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 2);
             let result = undertest
                 .get_scans_id_results(id.clone(), Some(1), None)

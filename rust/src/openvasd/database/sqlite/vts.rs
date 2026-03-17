@@ -261,7 +261,6 @@ mod tests {
         // we just verify if we got oids.
         let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
         let oids = oids.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
-        dbg!(&oids);
         assert!(!oids.is_empty());
 
         let vts = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;

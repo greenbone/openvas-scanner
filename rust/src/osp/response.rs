@@ -861,7 +861,6 @@ mod tests {
 </get_scans_response>
             "#;
         let response: Response = from_str(xml).unwrap();
-        dbg!(&response);
         let results: Vec<greenbone_scanner_framework::models::Result> =
             response.try_into().unwrap();
         assert_eq!(results.len(), 1);

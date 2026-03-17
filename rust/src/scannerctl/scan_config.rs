@@ -317,7 +317,6 @@ where
         //consider it a scan preference if there is no associated VT
         if !oid.is_empty() {
             let parameters = preference_lookup.entry(oid).or_default();
-            dbg!(&p.id, &p.value, &p.name);
             parameters.push(Parameter {
                 id: p.id,
                 value: p.value.clone(),
