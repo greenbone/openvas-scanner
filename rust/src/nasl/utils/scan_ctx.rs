@@ -247,7 +247,7 @@ pub trait ContextStorage:
     /// KbKey, the value is appended to the existing list. This function is used to replace the
     /// existing entry with the new one.
     async fn dispatch_replace(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
-        self.remove(&key)?;
+        self.remove(&key).await?;
         self.dispatch(key, item).await
     }
 

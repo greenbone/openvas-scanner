@@ -130,10 +130,11 @@ where
     }
 }
 
-impl<S: Write> Remover<KbContextKey> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send + Sync> Remover<KbContextKey> for JsonStorage<S> {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.remove(key)
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.remove(key).await
     }
 }
 
@@ -198,9 +199,10 @@ where
     }
 }
 
-impl<S: Write> Remover<ScanID> for JsonStorage<S> {
+#[async_trait]
+impl<S: Write + Send + Sync> Remover<ScanID> for JsonStorage<S> {
     type Item = Vec<ResultItem>;
-    fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }

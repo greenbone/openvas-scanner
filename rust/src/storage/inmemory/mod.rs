@@ -115,10 +115,11 @@ impl Retriever<GetKbContextKey> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Remover<KbContextKey> for InMemoryStorage {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
-        self.kbs.remove(key)
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+        self.kbs.remove(key).await
     }
 }
 
@@ -224,9 +225,10 @@ impl Retriever<ResultContextKeySingle> for InMemoryStorage {
     }
 }
 
+#[async_trait]
 impl Remover<ScanID> for InMemoryStorage {
     type Item = Vec<ResultItem>;
-    fn remove(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, key: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         let mut results = self.results.write()?;
         Ok(results.remove(key))
     }

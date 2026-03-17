@@ -96,9 +96,10 @@ impl Retriever<GetKbContextKey> for InMemoryKbStorage {
     }
 }
 
+#[async_trait]
 impl Remover<KbContextKey> for InMemoryKbStorage {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
         let mut kbs = self.0.write().unwrap();
         match kbs.get_mut(&key.0) {
             Some(kb) => Ok(kb.remove(&key.1)),

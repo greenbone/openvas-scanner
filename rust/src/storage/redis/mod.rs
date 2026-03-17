@@ -110,13 +110,15 @@ where
     }
 }
 
+#[async_trait]
 impl<S> Remover<KbContextKey> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    RedisStorage<S>: Sync,
 {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Vec<KbItem>>, StorageError> {
-        self.kbs.remove(key)
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Vec<KbItem>>, StorageError> {
+        self.kbs.remove(key).await
     }
 }
 
@@ -201,12 +203,14 @@ where
     }
 }
 
+#[async_trait]
 impl<S> Remover<ScanID> for RedisStorage<S>
 where
     S: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt,
+    RedisStorage<S>: Sync,
 {
     type Item = Vec<ResultItem>;
-    fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, _: &ScanID) -> Result<Option<Self::Item>, StorageError> {
         unimplemented!()
     }
 }

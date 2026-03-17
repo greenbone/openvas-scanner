@@ -121,18 +121,21 @@ where
 /// Results are log_-, security- or error_messages send from a VT to inform our customer about
 /// found information, vulnerabilities or unexpected errors. A customer can request to delete those
 /// messages.
-pub trait Remover<KEY> {
+#[async_trait]
+pub trait Remover<KEY: Sync> {
     type Item;
     /// Removes an Item from the storage.
-    fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
+    async fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError>;
 }
 
-impl<KEY, ITEM, T> Remover<KEY> for Arc<T>
+#[async_trait]
+impl<KEY: Sync, ITEM, T> Remover<KEY> for Arc<T>
 where
     T: Remover<KEY, Item = ITEM>,
+    Arc<T>: Sync,
 {
     type Item = ITEM;
-    fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
-        self.as_ref().remove(key)
+    async fn remove(&self, key: &KEY) -> Result<Option<Self::Item>, StorageError> {
+        self.as_ref().remove(key).await
     }
 }
