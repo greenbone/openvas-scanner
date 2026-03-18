@@ -6,8 +6,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const KRB5_VERSION: &str = "1.20";
-const KRB5_PATCH: &str = "1";
+const KRB5_VERSION: &str = "1.22.2";
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -51,7 +50,12 @@ fn main() {
 }
 
 fn fetch_krb5(destination: &Path) -> PathBuf {
-    let folder_name = format!("krb5-{}.{}", KRB5_VERSION, KRB5_PATCH);
+    let krb5_version = env::var("KRB5_VERSION").unwrap_or_else(|_| KRB5_VERSION.to_string());
+    let (krb5_version, krb5_patch) = krb5_version.rsplit_once('.').expect(&format!(
+        "Invalid KRB5_VERSION format: expected major.minor.patch, got {}",
+        krb5_version
+    ));
+    let folder_name = format!("krb5-{}.{}", krb5_version, krb5_patch);
     let extract_path = destination.join(&folder_name);
     let tar_path = extract_path.with_added_extension("tar.gz");
 
@@ -59,21 +63,23 @@ fn fetch_krb5(destination: &Path) -> PathBuf {
         if !tar_path.exists() {
             let url = format!(
                 "https://kerberos.org/dist/krb5/{}/{}.tar.gz",
-                KRB5_VERSION, folder_name
+                krb5_version, folder_name
             );
 
-            Command::new("curl")
+            let status = Command::new("curl")
                 .args(["--fail", "-L", "-O", &url])
                 .current_dir(destination)
                 .status()
-                .unwrap();
+                .expect("Failed to run curl");
+            assert!(status.success(), "Failed to download krb5 from {}", url);
         }
 
-        Command::new("tar")
+        let status = Command::new("tar")
             .args(["-xzf", &tar_path.to_string_lossy()])
             .current_dir(destination)
             .status()
-            .unwrap();
+            .expect("Failed to run tar");
+        assert!(status.success(), "Failed to extract {}", tar_path.display());
     }
 
     extract_path
@@ -101,15 +107,17 @@ fn build_krb5(src: &Path, install_prefix: &Path, target: &str) {
         panic!("Configure failed");
     }
 
+    // make may fail on targets we don't need (tests, programs), so we ignore
+    // its exit status and verify the required libraries exist after install.
     Command::new("make")
         .arg("-j")
         .current_dir(src)
         .status()
-        .expect("failed to build krb5");
+        .expect("Failed to run make");
 
     Command::new("make")
         .arg("install")
         .current_dir(src)
         .status()
-        .expect("failed to install krb5");
+        .expect("Failed to run make install");
 }
