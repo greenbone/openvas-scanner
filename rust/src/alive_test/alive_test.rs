@@ -4,7 +4,9 @@
 
 use crate::alive_test::AliveTestError;
 use crate::alive_test::arp::forge_arp_request;
-use crate::alive_test::icmp::{forge_icmp_v4, forge_icmp_v6, forge_neighbor_solicit};
+use crate::alive_test::icmp::{
+    forge_icmp_v4, forge_icmp_v6, forge_icmp_v6_for_host_discovery, forge_neighbor_solicit,
+};
 use crate::nasl::raw_ip_utils::{
     raw_ip_utils::{FIX_IPV6_HEADER_LENGTH, send_v4_packet, send_v6_packet},
     tcp_ping::{FILTER_PORT, forge_tcp_ping_ipv4, forge_tcp_ping_ipv6},
@@ -20,12 +22,14 @@ use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::ipv6::Ipv6Packet;
 use pnet::packet::tcp::TcpPacket;
 use std::collections::HashSet;
+use std::str::FromStr;
 use std::time::Duration;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::time::sleep;
 
 use std::net::IpAddr;
 
+use cidr::Ipv6Cidr;
 use pcap::{Active, Capture, Inactive, PacketCodec, PacketStream};
 use pnet::packet::{
     icmp::{IcmpTypes, *},
@@ -45,7 +49,7 @@ const BITS_PER_BYTE: usize = 8;
 
 struct AliveTestCtlStop;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct AliveHostInfo {
     ip: String,
     detectihttp_method: AliveTestMethods,
@@ -142,13 +146,13 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
             .ok_or_else(|| {
                 AliveTestError::CreateIcmpPacketFromWrongBufferSize(packet[..].len() as i64)
             })?;
-
         let make_alive_host_ctl = |pkt: Ipv6Packet<'_>, method| {
             Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
                 detectihttp_method: method,
             }))
         };
+
         match icmp_pkt.get_icmpv6_type() {
             Icmpv6Types::EchoReply => return make_alive_host_ctl(pkt, AliveTestMethods::Icmp),
             Icmpv6Types::NeighborAdvert => return make_alive_host_ctl(pkt, AliveTestMethods::Arp),
@@ -217,7 +221,7 @@ async fn capture_task(
         tokio::select! {
             packet = stream.next() => { // packet is Option<Result<Box>>
                 if let Some(Ok(data)) = packet && let Ok(Some(alive_host)) = process_packet(&data) {
-                        tx_msg.send(alive_host).await.unwrap()
+                    tx_msg.send(alive_host).await.unwrap()
                 }
             },
             ctl = rx_ctl.recv() => {
@@ -231,6 +235,28 @@ async fn capture_task(
     Ok(())
 }
 
+fn get_host_discovery_ipv6_net(
+    methods: &[AliveTestMethods],
+    target: &HashSet<String>,
+) -> Option<Result<Ipv6Cidr, AliveTestError>> {
+    if methods.contains(&AliveTestMethods::HostDiscoveryIpv6) {
+        if let Some(t) = target.iter().next()
+            && target.len() == 1
+        {
+            return Some(
+                Ipv6Cidr::from_str(t)
+                    .map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string())),
+            );
+        } else {
+            tracing::warn!("Only one IPv6 network address is allowed for host discovery");
+            return Some(Err(AliveTestError::InvalidDestinationAddr(
+                target.iter().next().unwrap().to_string(),
+            )));
+        }
+    }
+    None
+}
+
 async fn send_task(
     methods: Vec<AliveTestMethods>,
     target: HashSet<String>,
@@ -238,6 +264,22 @@ async fn send_task(
     tx_ctl: Sender<AliveTestCtlStop>,
 ) -> Result<(), AliveTestError> {
     let mut count = 0;
+    match get_host_discovery_ipv6_net(&methods, &target) {
+        Some(Ok(dst)) => {
+            let icmp = forge_icmp_v6_for_host_discovery(dst)?;
+            send_v6_packet(icmp)?;
+            tracing::info!("Started host discovery against {}", dst);
+            sleep(Duration::from_millis(timeout)).await;
+            // Send only returns error if the receiver is closed, which only happens when it panics.
+            tx_ctl.send(AliveTestCtlStop).await.unwrap();
+            return Ok(());
+        }
+        Some(Err(e)) => {
+            tx_ctl.send(AliveTestCtlStop).await.unwrap();
+            return Err(e);
+        }
+        None => {}
+    };
 
     let target: HashSet<IpAddr> = target
         .into_iter()
@@ -358,11 +400,16 @@ impl Scanner {
         let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg));
 
         let timeout = self.timeout.unwrap_or((DEFAULT_TIMEOUT * 1000) as u64);
-        let methods = self.methods.clone();
-        let send_handle = tokio::spawn(send_task(methods, trgt, timeout, tx_ctl));
+        let methods_c = self.methods.clone();
+        let send_handle = tokio::spawn(send_task(methods_c, trgt, timeout, tx_ctl));
 
         while let Some(alivehost) = rx_msg.recv().await {
             if self.target.contains(&alivehost.ip) && !alive.contains(&alivehost.ip) {
+                alive.insert(alivehost.ip.clone());
+                println!("{} via {:?}", &alivehost.ip, &alivehost.detectihttp_method);
+            } else if let Some(Ok(dst)) = get_host_discovery_ipv6_net(&self.methods, &self.target)
+                && dst.contains(&alivehost.ip.parse::<std::net::Ipv6Addr>().unwrap())
+            {
                 alive.insert(alivehost.ip.clone());
                 println!("{} via {:?}", &alivehost.ip, &alivehost.detectihttp_method);
             }
