@@ -91,6 +91,10 @@ jobs:
       build-args: ${{ matrix.build.build-args }}
       prefix: ${{ matrix.build.prefix }}
       tags: ${{ matrix.tags }}
+      images: |
+        ghcr.io/${{ github.repository }},enable=true
+        ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
+        ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
     secrets: inherit
 
   notify:
@@ -116,4 +120,14 @@ jobs:
           token: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_TOKEN }}
           user: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_USER }}
 
-
+  automatix:
+    name: Update Automatix
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    needs: build
+    uses: greenbone/workflows/.github/workflows/automatix-service.yml@main
+    with:
+      service: openvas-scanner
+      url: ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }}
+      tag: ${{ github.ref_name }}
+      artifact-pattern: stable
+    secrets: inherit
