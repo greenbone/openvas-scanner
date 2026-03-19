@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
       - run: cargo fmt --check
+      - run: cargo clippy -V
       - run: cargo clippy --all-targets -- -D warnings --no-deps
       - run: cargo clippy --all-targets --features native-rust-ssh -- -D warnings --no-deps
   Rust-Typos:
