@@ -12,6 +12,7 @@ use crate::nasl::raw_ip_utils::raw_ip_utils::{
     DEFAULT_TTL, FIX_IPV6_HEADER_LENGTH, HEADER_LENGTH, IP_LENGTH, IP_PPRTO_VERSION_IPV4,
     IPPROTO_IPV6,
 };
+use cidr::Ipv6Cidr;
 use pnet::packet::icmpv6::Icmpv6Code;
 use pnet::packet::icmpv6::Icmpv6Type;
 use pnet::packet::icmpv6::ndp::MutableNeighborSolicitPacket;
@@ -84,6 +85,7 @@ fn forge_icmp_v6_packet() -> Vec<u8> {
 
 fn forge_ipv6_packet_for_icmp(
     icmp_buf: &mut [u8],
+    src: Ipv6Addr,
     dst: Ipv6Addr,
 ) -> Result<Ipv6Packet<'static>, AliveTestError> {
     let icmp_buf_len = icmp_buf.len();
@@ -94,10 +96,9 @@ fn forge_ipv6_packet_for_icmp(
 
     pkt.set_next_header(IpNextHeaderProtocols::Icmpv6);
     pkt.set_hop_limit(DEFAULT_TTL);
-    pkt.set_source(
-        get_source_ipv6(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?,
-    );
+
     pkt.set_destination(dst);
+    pkt.set_source(src);
     pkt.set_version(IPPROTO_IPV6);
     let icmp_buf_len = icmp_buf.len() as i64;
     let mut icmp_pkt = packet::icmpv6::MutableIcmpv6Packet::new(icmp_buf).ok_or(
@@ -118,6 +119,25 @@ fn forge_ipv6_packet_for_icmp(
     Ok(Ipv6Packet::owned(ip_buf).unwrap())
 }
 
+pub fn forge_icmp_v6_for_host_discovery(
+    dst: Ipv6Cidr,
+) -> Result<Ipv6Packet<'static>, AliveTestError> {
+    let mut icmp_buf = forge_icmp_v6_packet();
+    let dst = dst.first().next().unwrap().address(); // first is the network address. We need the host.
+    let src =
+        get_source_ipv6(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?;
+    let dst = "ff02::1".parse::<Ipv6Addr>().unwrap();
+    forge_ipv6_packet_for_icmp(&mut icmp_buf, src, dst)
+}
+
+pub fn forge_icmp_v6(dst: Ipv6Addr) -> Result<Ipv6Packet<'static>, AliveTestError> {
+    let mut icmp_buf = forge_icmp_v6_packet();
+    let src =
+        get_source_ipv6(dst).map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?;
+
+    forge_ipv6_packet_for_icmp(&mut icmp_buf, src, dst)
+}
+
 pub fn forge_neighbor_solicit(dst_ip: Ipv6Addr) -> Result<Ipv6Packet<'static>, AliveTestError> {
     let mut icmp_buf = vec![0; MutableNeighborSolicitPacket::minimum_packet_size()];
     let mut icmp_pkt = MutableNeighborSolicitPacket::new(&mut icmp_buf).unwrap();
@@ -127,10 +147,7 @@ pub fn forge_neighbor_solicit(dst_ip: Ipv6Addr) -> Result<Ipv6Packet<'static>, A
     icmp_pkt.set_icmpv6_code(Icmpv6Code::new(0u8));
     icmp_pkt.set_target_addr(dst_ip);
 
-    forge_ipv6_packet_for_icmp(&mut icmp_pkt.packet().to_vec(), dst_ip)
-}
-
-pub fn forge_icmp_v6(dst: Ipv6Addr) -> Result<Ipv6Packet<'static>, AliveTestError> {
-    let mut icmp_buf = forge_icmp_v6_packet();
-    forge_ipv6_packet_for_icmp(&mut icmp_buf, dst)
+    let src = get_source_ipv6(dst_ip)
+        .map_err(|e| AliveTestError::InvalidDestinationAddr(e.to_string()))?;
+    forge_ipv6_packet_for_icmp(&mut icmp_pkt.packet().to_vec(), src, dst_ip)
 }

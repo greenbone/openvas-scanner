@@ -38,6 +38,9 @@ pub struct AliveTestArgs {
     /// ARP ping. Supports both IPv4 and IPv6.
     #[clap(long, action=ArgAction::SetTrue)]
     arp: bool,
+    /// Host discovery for large IPv6 network. Only one address network at time is possible and not to be combined with other alive methods.
+    #[clap(long, action=ArgAction::SetTrue)]
+    hostdiscovery: bool,
 }
 
 pub async fn run(args: AliveTestArgs) -> Result<(), CliError> {
@@ -60,6 +63,11 @@ pub async fn run(args: AliveTestArgs) -> Result<(), CliError> {
     }
     if args.arp {
         methods.push(AliveTestMethods::Arp);
+    }
+
+    if args.hostdiscovery {
+        methods.clear();
+        methods.push(AliveTestMethods::HostDiscoveryIpv6);
     }
 
     if args.icmp || methods.is_empty() {

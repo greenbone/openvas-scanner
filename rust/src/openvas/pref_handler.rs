@@ -140,7 +140,6 @@ where
 
     async fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
         let nvts = &self.scan_config.vts;
-
         if nvts.is_empty() {
             return Ok(());
         }
@@ -270,7 +269,7 @@ where
             alive_test |= m as u8;
         }
 
-        if (1..=31).contains(&alive_test) {
+        if (1..=32).contains(&alive_test) {
             self.redis_connector.push_kb_item(
                 format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
                 format!("{BOREAS_ALIVE_TEST}|||{alive_test}"),
