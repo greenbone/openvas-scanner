@@ -1786,6 +1786,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "insta",
+ "once_cell",
  "rustls",
  "serde",
  "serde_json",
