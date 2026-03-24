@@ -9,10 +9,7 @@ use container_image_scanner::{
 use futures::StreamExt;
 use greenbone_scanner_framework::models;
 use tokio::{
-    sync::{
-        Mutex, RwLock,
-        mpsc::{Receiver, Sender},
-    },
+    sync::{Mutex, RwLock},
     task::JoinSet,
     time,
 };
@@ -60,17 +57,6 @@ pub struct ProcessingImage {
     pub image: Vec<Result<Image, ImageParseError>>,
     pub credentials: Option<Credential>,
 }
-#[derive(Debug)]
-pub struct Message {
-    pub id: String,
-    pub action: models::Action,
-}
-
-impl Message {
-    pub fn new(id: String, action: models::Action) -> Self {
-        Self { id, action }
-    }
-}
 
 /// Scheduler is responsible to start, stop and storing results of scans.
 ///
@@ -78,7 +64,6 @@ impl Message {
 /// It then sets the status of that scan to queued and regularly verifies if a scan can be started
 /// when the scan is finished it also sets the status to either succeed or failed.
 pub struct Scheduler<Registry, Extractor> {
-    receiver: Receiver<Message>,
     pool: DataBase,
     config: Arc<Config>,
     registry: PhantomData<Registry>,
@@ -89,12 +74,10 @@ pub struct Scheduler<Registry, Extractor> {
 impl<Registry, Extractor> Scheduler<Registry, Extractor> {
     fn new(
         config: Arc<Config>,
-        receiver: Receiver<Message>,
         pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) -> Self {
         Scheduler {
-            receiver,
             pool,
             config,
             registry: PhantomData,
@@ -107,9 +90,8 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
         config: Arc<Config>,
         pool: DataBase,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
-    ) -> (Sender<Message>, Scheduler<Registry, Extractor>) {
-        let (sender, receiver) = tokio::sync::mpsc::channel(10);
-        (sender, Self::new(config, receiver, pool, products))
+    ) -> Scheduler<Registry, Extractor> {
+        Self::new(config, pool, products)
     }
 }
 
@@ -129,11 +111,6 @@ where
     #[cfg(test)]
     pub fn pool(&self) -> DataBase {
         self.pool.clone()
-    }
-
-    #[cfg(test)]
-    pub fn receiver(&mut self) -> &mut Receiver<Message> {
-        &mut self.receiver
     }
 
     #[cfg(test)]
@@ -215,7 +192,7 @@ where
     ) where
         T: ToNotus,
     {
-        tracing::debug!("checking for requested and scanning");
+        tracing::trace!("checking for requested and scanning");
         let pool = conn.lock().await;
         let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
             Ok(r) => r,
@@ -343,7 +320,7 @@ where
         js.join_all().await;
     }
 
-    pub async fn run<T>(mut self)
+    pub async fn run<T>(self)
     where
         T: ToNotus,
     {
@@ -367,19 +344,7 @@ where
         let conn = Arc::new(Mutex::new(conn));
         loop {
             tokio::select! {
-                Some(msg) = self.receiver.recv() => {
-                let pool = self.pool.clone();
 
-                tokio::spawn(async move {
-                    let id = msg.id.clone();
-
-                    if let Err(e) = DBScan::new(&pool, (msg.id, msg.action))
-                        .retry_exec()
-                        .await {
-                        warn!(error=%e, id, "Unable to handle message");
-                    }
-                });
-                }
 
                 _ = interval.tick() => {
                 let products = self.products.clone();
