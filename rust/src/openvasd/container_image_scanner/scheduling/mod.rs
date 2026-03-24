@@ -186,7 +186,6 @@ where
 
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
-        // TODO: is that really necessary?
         conn: Arc<Mutex<DataBase>>,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
