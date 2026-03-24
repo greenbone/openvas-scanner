@@ -378,6 +378,10 @@ okrb5_gss_authenticate (const OKrb5Credential *creds,
   (void) gss_release_name (&min_stat, &gss_username);
   CHECK_MAJOR_STAT ();
 
+  maj_stat = gss_store_cred (&min_stat, cred, GSS_C_INITIATE, GSS_C_NO_OID, 1,
+                             1, NULL, NULL);
+  CHECK_MAJOR_STAT ();
+
   // let spnego only use the desired mechs
   maj_stat = gss_set_neg_mechs (&min_stat, cred, &spnego_mechs);
   CHECK_MAJOR_STAT ();
