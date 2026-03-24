@@ -253,6 +253,14 @@ impl Krb5 {
             path
         };
 
+        if std::env::var("KRB5CCNAME").is_err() {
+            let ccache_path = format!(
+                "/tmp/krb5cc_{}",
+                context.target().ip_addr().to_string().replace(".", "_")
+            );
+            unsafe { std::env::set_var("KRB5CCNAME", &ccache_path) };
+        }
+
         self.config_path = Some(config_path.clone());
 
         let realm = get_var_or_env!(realm, "KRB5_REALM")?;
