@@ -130,4 +130,12 @@ jobs:
       url: ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }}
       tag: ${{ github.ref_name }}
       artifact-pattern: stable
-    secrets: inherit
+    secrets:
+      COSIGN_KEY_OPENSIGHT: ${{ secrets.cosign_key_opensight }}
+      COSIGN_KEY_PASSWORD_OPENSIGHT: ${{ secrets.cosign_password_opensight }}
+      GREENBONE_BOT_TOKEN: ${{ secrets.greenbone_bot_token }}
+      GREENBONE_REGISTRY: ${{ secrets.greenbone_registry }}
+      GREENBONE_REGISTRY_USER: ${{ secrets.greenbone_registry_user }}
+      GREENBONE_REGISTRY_TOKEN: ${{ secrets.greenbone_registry_token }}
+      GREENBONE_REGISTRY_READ_USER: ${{ secrets.greenbone_registry_read_user }}
+      GREENBONE_REGISTRY_READ_TOKEN: ${{ secrets.greenbone_registry_read_token }}

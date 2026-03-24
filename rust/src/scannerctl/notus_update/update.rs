@@ -37,7 +37,7 @@ pub fn signature_error(e: impl std::fmt::Display) -> CliError {
         .with(Filename(Path::new(feed::Hasher::Sha256.sum_file())))
 }
 
-pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
+pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
     S: NotusStorage,
 {
@@ -77,17 +77,19 @@ where
             .unwrap();
 
         for adv in advisories.advisories {
-            let _ = storage.dispatch(
-                (),
-                VulnerabilityData {
-                    adv,
-                    family: advisories.family.clone(),
-                    filename: filename.to_owned(),
-                },
-            );
+            let _ = storage
+                .dispatch(
+                    (),
+                    VulnerabilityData {
+                        adv,
+                        family: advisories.family.clone(),
+                        filename: filename.to_owned(),
+                    },
+                )
+                .await;
         }
     }
-    let _ = storage.dispatch(NotusCache, ());
+    let _ = storage.dispatch(NotusCache, ()).await;
 
     Ok(())
 }

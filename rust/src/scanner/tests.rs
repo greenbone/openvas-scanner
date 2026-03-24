@@ -38,13 +38,14 @@ use tracing_test::traced_test;
 type TestStack = Arc<InMemoryStorage>;
 use greenbone_scanner_framework::models::VTData;
 
-fn setup(scripts: &[(String, VTData)]) -> (TestStack, Loader, Executor, Scan) {
+async fn setup(scripts: &[(String, VTData)]) -> (TestStack, Loader, Executor, Scan) {
     let storage = InMemoryStorage::new();
-    scripts.iter().map(|(_, v)| v).for_each(|n| {
+    for n in scripts.iter().map(|(_, v)| v) {
         storage
             .dispatch(FileName(n.filename.clone()), n.clone())
+            .await
             .expect("sending")
-    });
+    }
     let scan = Scan {
         scan_id: "sid".to_string(),
         targets: vec![Target::do_not_resolve_hostname("test.host")],
@@ -61,21 +62,21 @@ fn setup(scripts: &[(String, VTData)]) -> (TestStack, Loader, Executor, Scan) {
         alive_test_ports: Vec::new(),
     };
     let executor = nasl_std_functions();
-    (Arc::new(storage), loader(), executor, scan)
+    (Arc::new(storage), loader().await, executor, scan)
 }
 
-fn make_scanner_and_scan_success() -> (OpenvasdScanner<TestStack>, Scan) {
-    let (storage, loader, executor, scan) = setup(&only_success());
+async fn make_scanner_and_scan_success() -> (OpenvasdScanner<TestStack>, Scan) {
+    let (storage, loader, executor, scan) = setup(&only_success().await).await;
     (OpenvasdScanner::new(storage, loader, executor, None), scan)
 }
 
-fn make_scanner_and_scan(scripts: &[(String, VTData)]) -> (OpenvasdScanner<TestStack>, Scan) {
-    let (storage, loader, executor, scan) = setup(scripts);
+async fn make_scanner_and_scan(scripts: &[(String, VTData)]) -> (OpenvasdScanner<TestStack>, Scan) {
+    let (storage, loader, executor, scan) = setup(scripts).await;
     (OpenvasdScanner::new(storage, loader, executor, None), scan)
 }
 
-fn loader() -> Loader {
-    let only_success = only_success();
+async fn loader() -> Loader {
+    let only_success = only_success().await;
     Loader::test()
         .with_file("0.nasl", only_success[0].0.clone())
         .with_file("1.nasl", only_success[1].0.clone())
@@ -83,11 +84,15 @@ fn loader() -> Loader {
         .build()
 }
 
-fn only_success() -> [(String, VTData); 3] {
+async fn only_success() -> [(String, VTData); 3] {
     [
-        GenerateScript::with_dependencies("0", &[]).generate(),
-        GenerateScript::with_dependencies("1", &["0.nasl"]).generate(),
-        GenerateScript::with_dependencies("2", &["1.nasl"]).generate(),
+        GenerateScript::with_dependencies("0", &[]).generate().await,
+        GenerateScript::with_dependencies("1", &["0.nasl"])
+            .generate()
+            .await,
+        GenerateScript::with_dependencies("2", &["1.nasl"])
+            .generate()
+            .await,
     ]
 }
 
@@ -162,7 +167,7 @@ impl GenerateScript {
         }
     }
 
-    fn generate(&self) -> (String, VTData) {
+    async fn generate(&self) -> (String, VTData) {
         let keys = |x: &[String]| -> String {
             x.iter().fold(String::default(), |acc, e| {
                 let acc = if acc.is_empty() {
@@ -210,12 +215,14 @@ exit({rc});
 "#
         );
         let filename = format!("{id}.nasl");
-        let nvt = parse_meta_data(&filename, &code).expect("expected metadata");
+        let nvt = parse_meta_data(&filename, &code)
+            .await
+            .expect("expected metadata");
         (code, nvt)
     }
 }
 
-fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
+async fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
     let initial = vec![
         ("description".to_owned(), true.into()),
         ("OPENVAS_VERSION".to_owned(), "testus".into()),
@@ -256,16 +263,18 @@ fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
     drop(context);
     storage
         .retrieve(&FileName(filename.to_string()))
+        .await
         .expect("nvt for id")
 }
 
-fn prepare_vt_storage(scripts: &[(String, VTData)]) -> InMemoryStorage {
+async fn prepare_vt_storage(scripts: &[(String, VTData)]) -> InMemoryStorage {
     let dispatcher = InMemoryStorage::new();
-    scripts.iter().map(|(_, v)| v).for_each(|n| {
+    for n in scripts.iter().map(|(_, v)| v) {
         dispatcher
             .dispatch(FileName(n.filename.clone()), n.clone())
+            .await
             .expect("sending")
-    });
+    }
     dispatcher
 }
 
@@ -297,8 +306,8 @@ async fn run(
 
     let executor = nasl_std_functions();
 
-    let scheduler = Scheduler::new(&*storage);
-    let schedule = scheduler.execution_plan(&scan.vts)?;
+    let scheduler = Scheduler::new(storage.clone());
+    let schedule = scheduler.execution_plan(&scan.vts).await?;
     let interpreter: ScanRunner<Arc<InMemoryStorage>> =
         ScanRunner::new(&storage, &loader, &executor, schedule, &scan, &None)?;
     let results = interpreter.stream().collect::<Vec<_>>().await;
@@ -326,25 +335,28 @@ async fn get_all_results(
 async fn required_ports() {
     let vts = [
         GenerateScript::with_required_ports("0", &[(Protocol::UDP, "2000"), (Protocol::TCP, "20")])
-            .generate(),
+            .generate()
+            .await,
         GenerateScript::with_required_ports("1", &[(Protocol::UDP, "2000"), (Protocol::TCP, "2")])
-            .generate(),
+            .generate()
+            .await,
         GenerateScript::with_required_ports("2", &[(Protocol::UDP, "200"), (Protocol::TCP, "20")])
-            .generate(),
+            .generate()
+            .await,
         GenerateScript::with_required_ports("3", &[(Protocol::UDP, "2000"), (Protocol::TCP, "22")])
-            .generate(),
+            .generate()
+            .await,
         GenerateScript::with_required_ports("4", &[(Protocol::UDP, "2002"), (Protocol::TCP, "20")])
-            .generate(),
+            .generate()
+            .await,
     ];
-    let storage = Arc::new(prepare_vt_storage(&vts));
-    [
+    let storage = Arc::new(prepare_vt_storage(&vts).await);
+    for (p, port, enabled) in [
         (Protocol::TCP, "20", 1),   // TCP 20 is considered enabled
         (Protocol::TCP, "22", 0),   // TCP 22 is considered disabled
         (Protocol::UDP, "2000", 1), // UDP 2000 is considered enabled
         (Protocol::UDP, "2002", 0), // UDP 2002 is considered disabled
-    ]
-    .into_iter()
-    .for_each(|(p, port, enabled)| {
+    ] {
         storage
             .dispatch(
                 KbContextKey(
@@ -359,15 +371,16 @@ async fn required_ports() {
                 ),
                 KbItem::Number(enabled),
             )
+            .await
             .expect("store kb");
-    });
+    }
     let (success, failure) = get_all_results(&vts, storage).await;
     assert_eq!(success.len(), 1);
     assert_eq!(failure.len(), 4);
 }
 
-fn make_test_storage(vts: &[(String, VTData)]) -> Arc<InMemoryStorage> {
-    let storage = prepare_vt_storage(vts);
+async fn make_test_storage(vts: &[(String, VTData)]) -> Arc<InMemoryStorage> {
+    let storage = prepare_vt_storage(vts).await;
     storage
         .dispatch(
             KbContextKey(
@@ -379,6 +392,7 @@ fn make_test_storage(vts: &[(String, VTData)]) -> Arc<InMemoryStorage> {
             ),
             KbItem::Number(1),
         )
+        .await
         .expect("store kb");
     Arc::new(storage)
 }
@@ -387,11 +401,17 @@ fn make_test_storage(vts: &[(String, VTData)]) -> Arc<InMemoryStorage> {
 #[tracing_test::traced_test]
 async fn exclude_keys() {
     let only_success = [
-        GenerateScript::with_excluded_keys("0", &["key/not"]).generate(),
-        GenerateScript::with_excluded_keys("1", &["key/not"]).generate(),
-        GenerateScript::with_excluded_keys("2", &["key/exists"]).generate(),
+        GenerateScript::with_excluded_keys("0", &["key/not"])
+            .generate()
+            .await,
+        GenerateScript::with_excluded_keys("1", &["key/not"])
+            .generate()
+            .await,
+        GenerateScript::with_excluded_keys("2", &["key/exists"])
+            .generate()
+            .await,
     ];
-    let storage = make_test_storage(&only_success);
+    let storage = make_test_storage(&only_success).await;
     let (success, failure) = get_all_results(&only_success, storage).await;
     assert_eq!(success.len(), 2);
     assert_eq!(failure.len(), 1);
@@ -401,10 +421,14 @@ async fn exclude_keys() {
 #[tracing_test::traced_test]
 async fn required_keys() {
     let only_success = [
-        GenerateScript::with_required_keys("0", &["key/not"]).generate(),
-        GenerateScript::with_required_keys("1", &["key/exists"]).generate(),
+        GenerateScript::with_required_keys("0", &["key/not"])
+            .generate()
+            .await,
+        GenerateScript::with_required_keys("1", &["key/exists"])
+            .generate()
+            .await,
     ];
-    let dispatcher = make_test_storage(&only_success);
+    let dispatcher = make_test_storage(&only_success).await;
     let (success, failure) = get_all_results(&only_success, dispatcher).await;
     assert_eq!(success.len(), 1);
     assert_eq!(failure.len(), 1);
@@ -414,10 +438,14 @@ async fn required_keys() {
 #[tracing_test::traced_test]
 async fn mandatory_keys() {
     let only_success = [
-        GenerateScript::with_mandatory_keys("0", &["key/not"]).generate(),
-        GenerateScript::with_mandatory_keys("1", &["key/exists"]).generate(),
+        GenerateScript::with_mandatory_keys("0", &["key/not"])
+            .generate()
+            .await,
+        GenerateScript::with_mandatory_keys("1", &["key/exists"])
+            .generate()
+            .await,
     ];
-    let dispatcher = make_test_storage(&only_success);
+    let dispatcher = make_test_storage(&only_success).await;
     let (success, failure) = get_all_results(&only_success, dispatcher).await;
     assert_eq!(success.len(), 1);
     assert_eq!(failure.len(), 1);
@@ -457,9 +485,10 @@ async fn start_scan_failure() {
         rc: 1,
         ..Default::default()
     }
-    .generate()];
+    .generate()
+    .await];
 
-    let (scanner, scan) = make_scanner_and_scan(&failures);
+    let (scanner, scan) = make_scanner_and_scan(&failures).await;
 
     let id = scan.scan_id.clone();
     let res = scanner.start_scan_internal(scan).await;
@@ -486,7 +515,7 @@ async fn start_scan_failure() {
 #[tokio::test]
 #[traced_test]
 async fn start_scan_success() {
-    let (scanner, mut scan) = make_scanner_and_scan_success();
+    let (scanner, mut scan) = make_scanner_and_scan_success().await;
     scan.targets
         .push(Target::do_not_resolve_hostname("wald.fee"));
 

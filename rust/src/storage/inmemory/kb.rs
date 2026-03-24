@@ -4,6 +4,8 @@
 
 use std::{collections::HashMap, sync::RwLock};
 
+use async_trait::async_trait;
+
 use crate::storage::{
     Dispatcher, Remover, Retriever,
     error::StorageError,
@@ -21,9 +23,10 @@ type Kbs = HashMap<KbContext, Kb>;
 #[derive(Debug, Default)]
 pub struct InMemoryKbStorage(RwLock<Kbs>);
 
+#[async_trait]
 impl Dispatcher<KbContextKey> for InMemoryKbStorage {
     type Item = KbItem;
-    fn dispatch(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
+    async fn dispatch(&self, key: KbContextKey, item: KbItem) -> Result<(), StorageError> {
         let mut kbs = self.0.write()?;
         match kbs.get_mut(&key.0) {
             Some(kb) => {
@@ -43,9 +46,10 @@ impl Dispatcher<KbContextKey> for InMemoryKbStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<KbContextKey> for InMemoryKbStorage {
     type Item = Vec<KbItem>;
-    fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
         let kbs = self.0.read()?;
         match kbs.get(&key.0) {
             Some(kb) => {
@@ -66,9 +70,10 @@ impl Retriever<KbContextKey> for InMemoryKbStorage {
     }
 }
 
+#[async_trait]
 impl Retriever<GetKbContextKey> for InMemoryKbStorage {
     type Item = Vec<(String, Vec<KbItem>)>;
-    fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
+    async fn retrieve(&self, key: &GetKbContextKey) -> Result<Option<Self::Item>, StorageError> {
         let kbs = self.0.read()?;
         match kbs.get(&key.0) {
             Some(kb) => {
@@ -91,9 +96,10 @@ impl Retriever<GetKbContextKey> for InMemoryKbStorage {
     }
 }
 
+#[async_trait]
 impl Remover<KbContextKey> for InMemoryKbStorage {
     type Item = Vec<KbItem>;
-    fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
+    async fn remove(&self, key: &KbContextKey) -> Result<Option<Self::Item>, StorageError> {
         let mut kbs = self.0.write().unwrap();
         match kbs.get_mut(&key.0) {
             Some(kb) => Ok(kb.remove(&key.1)),

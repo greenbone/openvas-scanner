@@ -14,8 +14,8 @@ use std::sync::Arc;
 
 use crate::nasl::test_prelude::*;
 
-#[test]
-fn description() {
+#[tokio::test]
+async fn description() {
     let code = r#"
 rc = 23;
 if(description)
@@ -46,6 +46,7 @@ if(description)
     t.set_variable("description", NaslValue::Number(1));
     t.run_all(code);
     let results = t.results();
+    t.async_verify().await;
     assert_eq!(
         *results.last().unwrap().as_ref().unwrap(),
         NaslValue::Exit(23)
@@ -53,7 +54,7 @@ if(description)
 
     let mut tag = BTreeMap::new();
     tag.insert(TagKey::CreationDate, 1366091481.into());
-    let nvt = storage.retrieve(&key).unwrap().unwrap();
+    let nvt = storage.retrieve(&key).await.unwrap().unwrap();
     assert_eq!(
         nvt,
         VTData {
