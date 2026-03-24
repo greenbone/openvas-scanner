@@ -106,6 +106,12 @@ build_krb5_credential (lex_ctxt *lexic)
       snprintf (default_config_path, sizeof (default_config_path),
                 "/tmp/krb5_%s.conf", ip_str);
       setenv ("KRB5_CONFIG", default_config_path, 1);
+
+      char default_ccache_path[256];
+      snprintf (default_ccache_path, sizeof (default_ccache_path),
+                "/tmp/krb5cc_%s", ip_str);
+      setenv ("KRB5CCNAME", default_ccache_path, 1);
+
       okrb5_set_slice_from_str (credential.config_path, default_config_path);
     }
 
