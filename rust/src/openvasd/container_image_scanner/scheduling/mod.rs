@@ -209,13 +209,12 @@ where
 
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
-        // TODO: is that really necessary?
         conn: Arc<Mutex<DataBase>>,
         products: Arc<RwLock<Notus<HashsumProductLoader>>>,
     ) where
         T: ToNotus,
     {
-        tracing::debug!("checking for requested and scanning");
+        tracing::trace!("checking for requested and scanning");
         let pool = conn.lock().await;
         let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
             Ok(r) => r,
