@@ -97,7 +97,7 @@ pub async fn init(
         .await?;
     MIGRATOR.run(&pool).await?;
 
-    let (sender, scheduler) = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
+    let scheduler = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
         config.into(),
         pool.clone(),
         products,
@@ -106,10 +106,7 @@ pub async fn init(
         scheduler.run::<AllTypes>().await;
     });
 
-    let scan = Scans {
-        pool,
-        scheduling: sender,
-    };
+    let scan = Scans { pool };
     let vts = VTEndpoints::new(
         SqlPluginStorage::from(vt_pool),
         feed_state,

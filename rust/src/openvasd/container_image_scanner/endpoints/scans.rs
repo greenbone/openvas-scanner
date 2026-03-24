@@ -7,20 +7,15 @@ use greenbone_scanner_framework::{
     models::{PreferenceValue, ScanPreferenceInformation},
     prelude::*,
 };
-use tokio::sync::mpsc::Sender;
 use tracing::instrument;
 
 use crate::{
-    container_image_scanner::scheduling::{
-        self,
-        db::{DBResults, DataBase, scan::DBScan},
-    },
-    database::dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
+    container_image_scanner::scheduling::db::{DBResults, DataBase, scan::DBScan},
+    database::dao::{DAOError, DBViolation, Execute, Fetch, RetryExec, StreamFetch},
 };
 
 pub struct Scans {
     pub pool: DataBase,
-    pub scheduling: Sender<scheduling::Message>,
 }
 
 impl Prefixed for Scans {
@@ -180,10 +175,9 @@ impl PostScansId for Scans {
         id: String,
         action: models::Action,
     ) -> Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
-        let sender = self.scheduling.clone();
         Box::pin(async move {
-            sender
-                .send(scheduling::Message::new(id, action))
+            DBScan::new(&self.pool, (id, action))
+                .retry_exec()
                 .await
                 .map_err(PostScansIDError::from_external)
         })
@@ -204,7 +198,9 @@ impl DeleteScansId for Scans {
             if phase.is_running() {
                 return Err(DeleteScansIDError::Running);
             }
-            db.exec().await.map_err(DeleteScansIDError::from_external)
+            db.retry_exec()
+                .await
+                .map_err(DeleteScansIDError::from_external)
         })
     }
 }
@@ -218,20 +214,14 @@ pub mod scans_utils {
     use tokio::sync::Mutex;
 
     use super::Scans;
-    use crate::{
-        container_image_scanner::{
-            Config, MIGRATOR,
-            config::DBLocation,
-            image::{
-                DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
-                packages::AllTypes,
-            },
-            scheduling::{
-                Scheduler,
-                db::{DataBase, scan::DBScan},
-            },
+    use crate::container_image_scanner::{
+        Config, MIGRATOR,
+        config::DBLocation,
+        image::{
+            DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
+            packages::AllTypes,
         },
-        database::dao::Execute,
+        scheduling::{Scheduler, db::DataBase},
     };
     use scannerlib::notus::path_to_products;
 
@@ -257,15 +247,12 @@ pub mod scans_utils {
         let products_path: &str =
             concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
-        let (sender, scheduler) = Scheduler::<R, E>::init(
+        let scheduler = Scheduler::<R, E>::init(
             config.into(),
             pool.clone(),
             path_to_products(products_path, false),
         );
-        let scans = super::Scans {
-            pool: pool.clone(),
-            scheduling: sender,
-        };
+        let scans = super::Scans { pool: pool.clone() };
         (scheduler, scans)
     }
 
@@ -276,16 +263,6 @@ pub mod scans_utils {
     }
 
     impl Fakes {
-        async fn recv(&mut self) {
-            let msg = self.scheduler.receiver().recv().await;
-            if let Some(msg) = msg {
-                DBScan::new(&self.scheduler.pool(), (msg.id, msg.action))
-                    .exec()
-                    .await
-                    .unwrap();
-            }
-        }
-
         pub async fn internal_id(&self, client_id: &str, scan_id: &str) -> String {
             self.entry
                 .contains_scan_id(client_id, scan_id)
@@ -304,8 +281,6 @@ pub mod scans_utils {
                 .post_scans_id(id.clone(), models::Action::Stop)
                 .await
                 .unwrap();
-
-            self.recv().await;
 
             self.entry.get_scans_id_status(id).await.unwrap()
         }
@@ -327,8 +302,6 @@ pub mod scans_utils {
                 .post_scans_id(id.clone(), models::Action::Start)
                 .await
                 .unwrap();
-
-            self.recv().await;
 
             (scan_id, self.entry.get_scans_id_status(id).await.unwrap())
         }
