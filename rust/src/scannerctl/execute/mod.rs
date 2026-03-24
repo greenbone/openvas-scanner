@@ -108,9 +108,10 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
     updater.perform_update().await?;
 
     let vts_cloned = scan.vts.clone();
-    let scheduler = Scheduler::new(storage.as_ref());
+    let scheduler = Scheduler::new(storage.clone());
     let schedule = scheduler
         .execution_plan(&vts_cloned)
+        .await
         .expect("expected to be schedulable");
     info!("creating scheduling plan");
     if args.schedule_only {

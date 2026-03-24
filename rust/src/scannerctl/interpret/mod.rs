@@ -39,13 +39,14 @@ use greenbone_scanner_framework::models::VTData;
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 
-fn load(ctx: &ScanCtx, script: &Path) -> Result<String, CliErrorKind> {
+async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> {
     match read_non_utf8_path(&script) {
         Ok(x) => Ok(x),
         Err(LoadError::NotFound(_)) => {
             match ctx
                 .storage()
-                .retrieve(&Oid(script.to_string_lossy().to_string()))?
+                .retrieve(&Oid(script.to_string_lossy().to_string()))
+                .await?
             {
                 Some(vt) => Ok(ctx.loader().load(&vt.filename)?),
                 _ => Err(LoadError::NotFound(script.to_string_lossy().to_string()).into()),
@@ -57,7 +58,7 @@ fn load(ctx: &ScanCtx, script: &Path) -> Result<String, CliErrorKind> {
 
 async fn run_with_context(context: ScanCtx<'_>, script: &Path) -> Result<(), CliErrorKind> {
     let register = Register::default();
-    let code = Code::from_string_filename(&load(&context, script)?, script);
+    let code = Code::from_string_filename(&load(&context, script).await?, script);
     let (ast, file) = code
         .parse()
         .emit_errors_get_ast_and_file()
@@ -148,6 +149,7 @@ async fn run_on_storage<S: ContextStorage>(
                 let storage_ctx = KbContextKey(kbctx.clone(), k.into());
                 let _ = storage
                     .dispatch(storage_ctx, v.into())
+                    .await
                     .map_err(CliErrorKind::StorageError);
             }
             None => return Err(CliErrorKind::InvalidCmdOpt(s.to_string())),
