@@ -2,7 +2,7 @@
 
 ## NAME
 
-**get_sock_info** - takes an unnamed integer as socket, unnamed string as keyword and optinal asstring argument
+**get_sock_info** - takes an unnamed integer as socket, unnamed string as keyword and optional asstring argument
 
 ## SYNOPSIS
 
@@ -18,7 +18,7 @@
   -tls-certtype: Return the type of the certificate in use by the session. Example output: ‘X.509‘
   -tls-cipher: Return the cipher algorithm in use by the session; Example output: ‘AES-256-CBC‘.
   -tls-mac: Return the message authentication algorithms used by the session. Example output: ‘SHA1‘.
-  -tls-auth: Return the peer’s authentication type. Example ouput: ‘CERT‘.
+  -tls-auth: Return the peer’s authentication type. Example output: ‘CERT‘.
   -tls-cert: Return the peer’s certificates for an SSL or TLS con nection. This is an array of binary strings or NULL if no certificate is known.
 - asstring optional when encaps return human readable string
 
@@ -34,7 +34,7 @@ Valid selection string arguments are:
 -tls-certtype: Return the type of the certificate in use by the session. Example output: ‘X.509‘
 -tls-cipher: Return the cipher algorithm in use by the session; Example output: ‘AES-256-CBC‘.
 -tls-mac: Return the message authentication algorithms used by the session. Example output: ‘SHA1‘.
--tls-auth: Return the peer’s authentication type. Example ouput: ‘CERT‘.
+-tls-auth: Return the peer’s authentication type. Example output: ‘CERT‘.
 -tls-cert: Return the peer’s certificates for an SSL or TLS con nection. This is an array of binary strings or NULL if no certificate is known.
 
 ## RETURN VALUE

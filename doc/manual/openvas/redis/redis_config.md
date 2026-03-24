@@ -39,7 +39,7 @@ timeout 0
 
 Multiple KBs can be served in parallel, for multiple hosts scanned by one or
 several tasks. This is done using redis databases, which are independent
-namepaces. The DB#0, which is where every new connected client starts, is
+namespaces. The DB#0, which is where every new connected client starts, is
 reserved and used to schedule concurrent accesses to the available namespaces.
 It contains a single variable, called `GVM.__GlobalDBIndex`. This variable
 is a bitmap of the different namespaces. When opening a new DB, the scanner will

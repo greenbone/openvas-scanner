@@ -161,7 +161,7 @@ set_scan_status (char *status)
  * which is vulnerability tested. Launched is the number of plguins(VTs) which
  * got already started. Total is the total number of plugins which will be
  * started for the current host. But here we use the format "current_host/0/-1"
- * for implicit singalling that the host is dead.
+ * for implicit signalling that the host is dead.
  *
  * @param main_kb Kb to use
  * @param ip_str str representation of host ip

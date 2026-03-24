@@ -2,7 +2,7 @@
 
 ## GENERAL
 
-These functions are mainly used for formating HTTP request, and for opening and closing http sockets.
+These functions are mainly used for formatting HTTP request, and for opening and closing http sockets.
 
 ## TABLE OF CONTENT
 

@@ -89,7 +89,7 @@ impl CipherHandlers {
     }
 
     /// Encrypt data with a RC4 cipher.
-    /// If a perviously opened (RC4 handler) exist the hd parameter should be set it will use
+    /// If a previously opened (RC4 handler) exist the hd parameter should be set it will use
     /// the handler for encryption.
     /// If there is no open handler than the key and iv parameter must be set.
     ///  -data: string Data to decrypt

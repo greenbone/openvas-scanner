@@ -3,7 +3,7 @@
 This protocol allows the communication between parent and child process in the openvas-scanner. The information is sent in json format.
 
 ## Data Handling
-The data to be sent/retrive is stored inside a structure whit two fields: `data_type` and an `union` of different data members
+The data to be sent/retrieve is stored inside a structure with two fields: `data_type` and an `union` of different data members
 
 ``` c
 struct ipc_data
@@ -122,7 +122,7 @@ main(int argc, char **argv)
   gchar *hn = "localhost";
   gchar *hns = "TLS certificate";
 
-  // Preapre data to be sent
+  // Prepare data to be sent
   data_s = g_malloc0 (sizeof (ipc_data_t *));
   data_s = ipc_data_type_from_hostname (hns, strlen (hns), hn, strlen(hn));
 
@@ -147,7 +147,7 @@ main(int argc, char **argv)
 Inter-process communication is done using pipes. Therefore, an IPC context is initialized when a new process is created. This opens the pipe and the child inherits the file descriptors, stablishing the communication between parent and child process.
 
 Each process has an IPC context, which is de following data structure. The variable context
-contains the two files decriptors (read/write) created and used for pipe communication.
+contains the two files descriptors (read/write) created and used for pipe communication.
 
 ``` c
 struct ipc_context

@@ -91,7 +91,7 @@ typedef struct _smb_iconv_t
 #define STR_NOALIGN 16
 #define STR_TERMINATE_ASCII 128
 
-/* Sercurity mode bits. */
+/* Security mode bits. */
 #define NEGOTIATE_SECURITY_USER_LEVEL 0x01
 #define NEGOTIATE_SECURITY_CHALLENGE_RESPONSE 0x02
 #define NEGOTIATE_SECURITY_SIGNATURES_ENABLED 0x04

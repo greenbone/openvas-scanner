@@ -83,14 +83,14 @@ files.
 
 #### How does mTLS works?
 
-It is similar to the known TLS, but there are some extra steps. In the following list of steps for stablishing a mTLS connexion, the steps written in bold are the extra steps for mTLS:
+It is similar to the known TLS, but there are some extra steps. In the following list of steps for stablishing a mTLS connection, the steps written in bold are the extra steps for mTLS:
 1. The client connects to the server
 2. The server presents its TLS certificate
 3. The client verifies the server certificate
 4. **The client presents its TLS certificate**
 5. **The server verifies the client certificate**
 6. **The server gives access to the client**
-7. Client and server exchange information through a encrypted TLS connexion.
+7. Client and server exchange information through a encrypted TLS connection.
 
 #### Certificate Authority for pki
 
@@ -100,7 +100,7 @@ Finally, the intermediate CA is used to sign client and server certificates.
 
 In the examples folder for a [PKI Mutual TLS](../examples/tls/pki) you can find three scripts for creation of root and intermediate CA, client and server pairs (keys and certs).
 
-Once you created the all key-certs pairs, you can use them for stablishing a mTLS secure connexion between `openvasd` and the clients.
+Once you created the all key-certs pairs, you can use them for stablishing a mTLS secure connection between `openvasd` and the clients.
 
 In the openvasd.toml configuration file, under the section `[tls]`:
 - set the variable `certs` with the path to the server certificate,
@@ -113,7 +113,7 @@ On the client side, you use the client key, the client cert and the same interme
 
 `curl --insecure --verbose  --cert client.cert --key client.key --cacert CA/ca.cert --request GET https://localhost:3000/scans -H "X-API-KEY: mtls_is_preferred"`
 
-Now, since both server and client are signed by the same CA, certificates can be verified and the encrypted connexion is authenticated.
+Now, since both server and client are signed by the same CA, certificates can be verified and the encrypted connection is authenticated.
 
 #### mTLS with self-signed client certificates.
 
@@ -123,7 +123,7 @@ During authentication, the server checks if the client uses the same certificate
 
 The scripts for generating the self-signed certificate can be found in [self-signed](../examples/tls/self-signed) folder.
 
-Once you created the all key-certs pairs, you can use them for stablishing a mTLS secure connexion between `openvasd` and the clients.
+Once you created the all key-certs pairs, you can use them for stablishing a mTLS secure connection between `openvasd` and the clients.
 
 In the openvasd.toml configuration file, under the section `[tls]`:
 - set the variable `certs` with the path to the server certificate,

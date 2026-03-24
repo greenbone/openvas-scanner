@@ -2,7 +2,7 @@
 
 ## NAME
 
-**egrep** - looks for a patter in a string line by line and concatenates all lines the string was found
+**egrep** - looks for a pattern in a string line by line and concatenates all lines the string was found
 
 ## SYNOPSIS
 
@@ -24,7 +24,7 @@ The optional named argument *rnul* is a *bool* and is used as a flag to enable/d
 
 ## RETURN VALUE
 
-The concatenated lines, in which the patter was found as *string* or *NULL* on error.
+The concatenated lines, in which the pattern was found as *string* or *NULL* on error.
 
 ## ERRORS
 

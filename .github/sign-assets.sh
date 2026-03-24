@@ -2,7 +2,7 @@
 
 set -e
 
-# use own gpg_home to not intefere with other settings
+# use own gpg_home to not interfere with other settings
 tmp=
 trap 'rm -rf "$tmp"' EXIT INT TERM HUP
 tmp=$(mktemp -d)

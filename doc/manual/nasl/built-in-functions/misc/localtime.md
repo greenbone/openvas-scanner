@@ -2,7 +2,7 @@
 
 ## NAME
 
-**localtime** - returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optinal flag if utc or not.
+**localtime** - returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optional flag if utc or not.
 
 ## SYNOPSIS
 
