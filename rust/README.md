@@ -20,6 +20,7 @@ The implementation is split into multiple parts that are reflected in the direct
 
 - rust toolchain
 - openssl
+- libclang
 - libnetsnmp
 - libpcap
 - openssl
