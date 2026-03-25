@@ -34,7 +34,7 @@ services:
 
   # Sets log level of openvas to the set LOG_LEVEL within the env
   # and changes log output to /var/log/openvas instead /var/log/gvm
-  # to reduce likelyhood of unwanted log interferences
+  # to reduce likelihood of unwanted log interferences
   configure-openvas-log:
     image: ghcr.io/greenbone/openvas-scanner:stable
     volumes:

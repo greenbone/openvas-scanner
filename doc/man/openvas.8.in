@@ -217,7 +217,7 @@ Defaults to true.
 
 .IP mqtt_server_uri
 URI to the MQTT server used for internal communication with Notus (table driven LSC).
-This implementation of Notus is in python and it is deprecated, beeing replaced with a Rust implementation of Notus.
+This implementation of Notus is in python and it is deprecated, being replaced with a Rust implementation of Notus.
 
 .IP mqtt_user
 Username for authenticated MQTT communication.

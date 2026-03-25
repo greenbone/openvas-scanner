@@ -568,7 +568,7 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
       src->s6_addr32[2] = sock6.sin6_addr.s6_addr32[2];
       src->s6_addr32[3] = sock6.sin6_addr.s6_addr32[3];
       memcpy (src, &sock6.sin6_addr, sizeof (struct in6_addr));
-      g_debug ("source addrss is %s",
+      g_debug ("source address is %s",
                inet_ntop (AF_INET6, src, name, sizeof (name)));
       close (sd);
     }

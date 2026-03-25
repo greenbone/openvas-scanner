@@ -1234,7 +1234,7 @@ nasl_exec (lex_ctxt *lexic, tree_cell *st)
 
       /*
        * Anything added to a string is converted to a string
-       * Otherwise anything added to an intger is converted into an integer
+       * Otherwise anything added to an integer is converted into an integer
        */
       if (tc1->type == CONST_DATA || tc2->type == CONST_DATA)
         flag = CONST_DATA;
@@ -1720,7 +1720,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       add_named_var_to_ctxt (lexic, "description", &tc);
 
       tc.type = CONST_DATA;
-      // for preserving the const qualifier during assginment
+      // for preserving the const qualifier during assignment
       name_aux = g_strdup (name);
       p = strrchr (name_aux, '/');
       if (p == NULL)

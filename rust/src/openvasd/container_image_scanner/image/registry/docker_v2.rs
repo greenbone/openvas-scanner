@@ -968,7 +968,7 @@ pub mod fake {
 
         /// Creates a registry v2 mock that can be used for testing
         ///
-        /// Creates caralog and image list for each given image, but manifest as well as bloc
+        /// Creates caralog and image list for each given image, but manifest as well as block
         /// download only for nichtsfrei/victim:latest. This is because there is just one binary
         /// layer available at the moment.
         ///

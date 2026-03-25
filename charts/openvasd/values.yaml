@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Is currently reqired by openvasd to control openvas
+# Is currently required by openvasd to control openvas
 ospd:
   repository: ghcr.io/greenbone/ospd-openvas
   pullPolicy: Always
@@ -37,7 +37,7 @@ openvasd:
     # enables the server-/client-certs deployment via secret 
     # server-key
     # client-certs
-    # deplying a client certificate without a server certificate will not have any effect.
+    # deploying a client certificate without a server certificate will not have any effect.
     certificates:
       deploy_server: true
       deploy_client: true

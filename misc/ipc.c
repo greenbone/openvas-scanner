@@ -86,7 +86,7 @@ ipc_destroy (struct ipc_context *context)
  * @param context the ipc_context to be used; must be previously
  * initialized via ipc_init.
  *
- * @param to the recieving direction of the message when it is supported by the
+ * @param to the receiving direction of the message when it is supported by the
  * given ipc_context.
  *
  * @return a heap initialized data or NULL

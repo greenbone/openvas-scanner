@@ -41,7 +41,7 @@ check_host_still_alive (kb_t kb, const char *hostname)
     {
       const gchar *alive_test_str = prefs_get ("ALIVE_TEST");
 
-      /* Don't perform a hearbeat check if the host is always considered
+      /* Don't perform a heartbeat check if the host is always considered
          alive or the alive test is not valid. */
       if (!(alive_test_str
             && atoi (alive_test_str) >= ALIVE_TEST_TCP_ACK_SERVICE

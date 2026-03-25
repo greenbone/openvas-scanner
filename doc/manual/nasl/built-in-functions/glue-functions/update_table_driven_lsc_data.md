@@ -14,7 +14,7 @@ DEPRECATED
 
 ## DESCRIPTION
 
-This function sets internal KB items *ssh/login/package_list_notus* and *ssh/login/release_notus* withe the given arguments:
+This function sets internal KB items *ssh/login/package_list_notus* and *ssh/login/release_notus* with the given arguments:
 pkg_list: comma separated list of installed packages of the target system
 os_release: identifier for the operating system of the target system
 

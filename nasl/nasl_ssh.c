@@ -1653,7 +1653,7 @@ request_ssh_shell_alarm (int signal)
  * @brief Open a shell on an ssh channel.
  *
  * @param[in]   channel     SSH Channel.
- * @param[in]   pty         1 interactive shell, 0 non-intercative shell
+ * @param[in]   pty         1 interactive shell, 0 non-interactive shell
  *
  * @return 0 if success, -1 if error.
  */
@@ -2046,7 +2046,7 @@ write_ret:
  * NASL NETCONF
  */
 /**
- * @brief Excecute the NETCONF subsystem on the the ssh channel
+ * @brief Execute the NETCONF subsystem on the the ssh channel
  *
  * @naslfn{ssh_execute_netconf_subsystem}
  * @nasluparam

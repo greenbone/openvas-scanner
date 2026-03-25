@@ -22,7 +22,7 @@ Ensure (ipc_openvas, ipc_data_from_json_ua_ok)
   ipc_data_t *data_r = NULL;
   gchar *ua = "localhost";
 
-  // Preapre data to be sent
+  // Prepare data to be sent
   data_s = g_malloc0 (sizeof (ipc_data_t));
   data_s = ipc_data_type_from_user_agent (ua, strlen (ua));
 
@@ -47,7 +47,7 @@ Ensure (ipc_openvas, ipc_data_from_json_hostname_ok)
   gchar *hn = "localhost";
   gchar *hns = "TLS certificate";
 
-  // Preapre data to be sent
+  // Prepare data to be sent
   data_s = g_malloc0 (sizeof (ipc_data_t));
   data_s = ipc_data_type_from_hostname (hns, strlen (hns), hn, strlen (hn));
 

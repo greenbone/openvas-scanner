@@ -6,8 +6,7 @@ openvas - The Scanner of the Greenbone Vulnerability Management
 
 ## SYNOPSIS
 
-**openvas \[ -V \] \[ -h \] \[ -c ***config-file ***\] \[ \--scan-start
-***scan-uuid ***\"\]** ** \[ -u \] \[ -s \] \[ -y \]**
+**openvas** \[ -V \] \[ -h \] \[ -c *config-file* \] \[\--scan-start *scan-uuid* \] \[-u\] \[-s\] \[-y\]
 
 ## DESCRIPTION
 
@@ -363,7 +362,7 @@ mqtt_server_uri
 
 :   URI to the MQTT server used for internal communication with Notus
     (table driven LSC). This implementation of Notus is in python and
-    it is deprecated, beeing replaced with a Rust implementation of
+    it is deprecated, being replaced with a Rust implementation of
     Notus.
 
 mqtt_user

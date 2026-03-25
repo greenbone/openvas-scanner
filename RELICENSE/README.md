@@ -1,6 +1,6 @@
 # openvas-scanner contribution agreement
 
-We want to relicense our code to `GPL-3.0-or-later` or `AGPL-3.0-or-later` in the future. Although most of the new code is licensed under `GPL-2.0-or-later` we want to make sure that no problems accure when relicensing. Your contributions are licensed under `MIT-0` and instantly relicensed to our currently used license. This means either `GPL-2.0-or-later` or `GPL-2.0`. Rust code is currently licensed with `GPL-2.0-or-later` per default. C code depends on the location and changes.
+We want to relicense our code to `GPL-3.0-or-later` or `AGPL-3.0-or-later` in the future. Although most of the new code is licensed under `GPL-2.0-or-later` we want to make sure that no problems occur when relicensing. Your contributions are licensed under `MIT-0` and instantly relicensed to our currently used license. This means either `GPL-2.0-or-later` or `GPL-2.0`. Rust code is currently licensed with `GPL-2.0-or-later` per default. C code depends on the location and changes.
 
 Please read and commit the /template/template.txt as [Name].md in this folder with your first PR. Having a valid `git.user.name` and `git.user.email` is sufficient.
 
