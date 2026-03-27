@@ -64,6 +64,11 @@ async fn _main() -> Result<i32> {
     let config = Config::load();
     let _guard = config.logging.init();
 
+    tracing::info!(
+        "Running openvasd version {}",
+        option_env!("VERGEN_GIT_DESCRIBE").unwrap_or("unknown")
+    );
+
     //TODO: AsRef impl for Config
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;

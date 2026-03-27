@@ -71,6 +71,31 @@ jobs:
     uses: ./.github/workflows/init.yaml
     with:
       release: ${{ needs.adapt_release.outputs.kind }}
+  bin_version:
+    needs: init
+    runs-on: ubuntu-latest
+    outputs:
+      bin_version: ${{ steps.bin_version.outputs.bin_version}}
+    env:
+      LATEST: ${{ needs.init.outputs.release_latest_version }}
+      NEW: ${{ needs.init.outputs.release_latest_version }}
+    steps:
+      - name: "Debug"
+        run: |
+          echo "${LATEST}"
+          echo "${NEW}"
+      - name: find_version
+        run: |
+          if [ -n "${NEW}" ]; then
+            echo "BIN_VERSION=${{ env.NEW }}">> "$GITHUB_ENV"
+          elif [ -n "${{ env.LATEST }}" ]; then
+            echo "BIN_VERSION=${{ env.LATEST }}">> "$GITHUB_ENV"
+          else
+            echo "BIN_VERSION=">> "$GITHUB_ENV"
+          fi
+      - id: bin_version
+        run: |
+          echo "bin_version=${{ env.BIN_VERSION}}" >> "$GITHUB_OUTPUT"
   unittests:
     name: unit-tests
     uses: ./.github/workflows/tests.yml
@@ -79,15 +104,19 @@ jobs:
   linting:
     uses: ./.github/workflows/linting.yml
   build-rs-amd64:
+    needs: bin_version
     uses: ./.github/workflows/build-rs.yaml
     with:
       arch: amd64
       runner: ubuntu-latest
+      binary_version:  ${{ needs.bin_version.outputs.bin_version }}
   build-rs-arm64:
+    needs: bin_version
     uses: ./.github/workflows/build-rs.yaml
     with:
       arch: arm64
       runner: self-hosted-generic-arm64
+      binary_version:  ${{ needs.bin_version.outputs.bin_version }}
   # maybe create functional tests for arm64 as well?
   functional:
     needs: [build-rs-amd64]
