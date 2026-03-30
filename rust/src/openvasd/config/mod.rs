@@ -29,6 +29,9 @@ pub struct Feed {
         serialize_with = "scannerlib::utils::duration::serialize"
     )]
     pub check_interval: Duration,
+
+    // TODO: rename to feed_integrity_check and tell serde to accept:
+    // signature_check as weel as feed_integrity_check.
     pub signature_check: bool,
 }
 
