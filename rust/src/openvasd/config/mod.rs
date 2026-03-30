@@ -329,6 +329,8 @@ pub struct Config {
     pub scanner: Scanner,
     #[serde(alias = "container-image-scanner")]
     pub container_image_scanner: crate::container_image_scanner::Config,
+    #[serde(skip)]
+    pub version: bool,
 }
 
 impl Display for Config {
@@ -604,6 +606,12 @@ impl Config {
                     .help("Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR"),
             )
             .arg(
+                clap::Arg::new("version")
+                    .short('V')
+                    .action(ArgAction::SetTrue)
+                    .help("Show openvasd version and exit."),
+            )
+            .arg(
                 clap::Arg::new("mode")
                     .env("OPENVASD_MODE")
                     .long("mode")
@@ -685,6 +693,12 @@ impl Config {
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-scans") {
             config.endpoints.enable_get_scans = *enable;
+        }
+        if let Some(version) = cmds.get_one::<bool>("version") {
+            config.version = *version;
+        }
+        if let Some(version) = cmds.get_one::<bool>("version") {
+            config.version = *version;
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-performance") {
             config.endpoints.enable_get_performance = Some(*enable);
