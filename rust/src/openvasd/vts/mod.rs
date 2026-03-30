@@ -218,6 +218,7 @@ where
             .map_err(error_vts_error)?
             .iter()
         {
+            // TODO: move signature_check to HashsumAdvisoryLoader and out of the interface
             let advisories = advisories_files
                 .load_advisory(filename, signature_check)
                 .map_err(error_vts_error)?;
@@ -238,6 +239,7 @@ where
     .await
 }
 
+// TODO: add signature_check
 async fn synchronize_plugins<T>(
     ps: &T,
     mut path: PathBuf,

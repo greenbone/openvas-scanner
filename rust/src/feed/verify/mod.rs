@@ -62,13 +62,13 @@ pub enum Error {
 }
 
 struct VHelper {
-    keyring: String,
+    keyring: PathBuf,
     not_before: Option<std::time::SystemTime>,
     not_after: std::time::SystemTime,
 }
 
 impl VHelper {
-    fn new(keyring: String) -> Self {
+    fn new(keyring: PathBuf) -> Self {
         Self {
             keyring,
             not_before: None,
@@ -79,7 +79,7 @@ impl VHelper {
 
 impl VerificationHelper for VHelper {
     fn get_certs(&mut self, _ids: &[KeyHandle]) -> openpgp::Result<Vec<Cert>> {
-        let file = File::open(self.keyring.as_str())?;
+        let file = File::open(&self.keyring)?;
         let kbx = Keybox::from_reader(file)?;
 
         let certs = kbx
@@ -147,26 +147,45 @@ impl VerificationHelper for VHelper {
     }
 }
 
-/// For signature check the GNUPGHOME environment variable
-/// must be set with the path to the keyring.
-/// If this is satisfied, the signature check is performed
+fn pubring() -> Result<PathBuf, Error> {
+    let gnupghome = if let Ok(val) = std::env::var("GNUPGHOME") {
+        PathBuf::from(val).join("gnupg")
+    } else if let Ok(home) = std::env::var("HOME") {
+        PathBuf::from(home).join(".gnupg")
+    } else {
+        return Err(Error::MissingKeyring);
+    };
+
+    if !gnupghome.is_dir() {
+        return Err(Error::MissingKeyring);
+    }
+    let result = if gnupghome.join("pubring.kbx").is_file() {
+        gnupghome.join("pubring.kbx")
+    } else if gnupghome.join("public-keys.d").join("pubring.db").is_file() {
+        gnupghome.join("public-keys.d").join("pubring.db")
+    } else {
+        return Err(Error::MissingKeyring);
+    };
+
+    Ok(result)
+}
+
 pub fn check_signature<P>(path: &P) -> Result<(), Error>
 where
     P: AsRef<Path> + ?Sized,
 {
-    let mut gnupghome = match std::env::var("GNUPGHOME") {
-        Ok(v) => v,
-        Err(_) => {
-            return Err(Error::MissingKeyring);
-        }
-    };
-    gnupghome.push_str("/pubring.kbx");
+    let pubring = pubring()?;
+    tracing::debug!(?pubring);
 
-    let helper = VHelper::new(gnupghome);
+    let helper = VHelper::new(pubring);
 
     let sign_path = path.as_ref().to_path_buf().join("sha256sums.asc");
-    let mut sig_file = File::open(&sign_path)
-        .unwrap_or_else(|e| panic!("Could not find signature at {sign_path:?}. {e}"));
+    let mut sig_file = File::open(&sign_path).map_err(|x| {
+        Error::BadSignature(format!(
+            "Unable to check signature {}: {x}.",
+            sign_path.to_str().unwrap_or_default()
+        ))
+    })?;
     let mut signature = Vec::new();
     let _ = sig_file.read_to_end(&mut signature);
 
