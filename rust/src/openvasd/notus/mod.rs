@@ -157,6 +157,7 @@ mod tests {
 
         let feed = crate::config::Feed {
             path: nasl,
+            signature_check: false,
             ..Default::default()
         };
         let notus = crate::config::Notus {
