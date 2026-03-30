@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use scannerlib::feed;
-use scannerlib::feed::FakeVerifier;
+use scannerlib::feed::NoVerifier;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::scan_ctx::ContextStorage;
 
@@ -54,7 +54,7 @@ where
     // needed to strip the root path so that we can build a relative path
     // e.g. 2006/something.nasl
     let loader = Loader::from_feed_path(path);
-    let verifier = FakeVerifier::new(&loader);
+    let verifier = NoVerifier::nasl(&loader);
     let updater = feed::Update::init("1", 5, loader.clone(), &storage, verifier);
 
     updater.perform_update().await?;

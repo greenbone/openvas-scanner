@@ -308,6 +308,14 @@ impl<'a> HashSumNameLoader<'a> {
             self.hasher.sum_file(),
         )
     }
+
+    pub fn root_path(&self) -> &Path {
+        self.reader.root_path()
+    }
+
+    pub fn load(&self, file: &str) -> Result<String, LoadError> {
+        self.reader.load(file)
+    }
 }
 
 impl<'a> Iterator for HashSumNameLoader<'a> {
@@ -371,11 +379,11 @@ impl HashSumFileItem<'_> {
     }
 }
 
-fn get_all_plugins(loader: &Loader) -> Vec<PathBuf> {
+fn get_all_plugins(ext: &str, loader: &Loader) -> Vec<PathBuf> {
     let mut files = Vec::new();
     let rp = loader.root_path();
     for e in walkdir::WalkDir::new(rp).into_iter().filter_map(|e| e.ok()) {
-        if e.path().extension().is_some_and(|ext| ext == "nasl") {
+        if e.path().extension().is_some_and(|x| x == ext) {
             let relative_path = e.path().strip_prefix(Path::new(&rp)).unwrap();
             files.push(relative_path.to_owned());
         }
@@ -383,21 +391,33 @@ fn get_all_plugins(loader: &Loader) -> Vec<PathBuf> {
     files
 }
 
-pub struct FakeVerifier<'a> {
+pub struct NoVerifier<'a> {
     loader: &'a Loader,
     files: Vec<PathBuf>,
 }
 
-impl<'a> FakeVerifier<'a> {
-    pub fn new(loader: &'a Loader) -> Self {
+impl<'a> NoVerifier<'a> {
+    pub fn init(ext: &'a str, loader: &'a Loader) -> Self {
         Self {
             loader,
-            files: get_all_plugins(loader),
+            files: get_all_plugins(ext, loader),
         }
+    }
+
+    pub fn nasl(loader: &'a Loader) -> Self {
+        Self::init("nasl", loader)
+    }
+
+    pub fn notus(loader: &'a Loader) -> Self {
+        Self::init("notus", loader)
+    }
+
+    pub fn load(&self, filename: &str) -> Result<String, LoadError> {
+        self.loader.load(filename)
     }
 }
 
-impl<'a> Iterator for FakeVerifier<'a> {
+impl<'a> Iterator for NoVerifier<'a> {
     type Item = Result<HashSumFileItem<'a>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {

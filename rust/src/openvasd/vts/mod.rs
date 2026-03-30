@@ -8,7 +8,7 @@ use std::{
 use greenbone_scanner_framework::{GetVTsError, StreamResult};
 use scannerlib::Promise;
 use scannerlib::nasl::syntax::Loader;
-use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
+use scannerlib::notus::advisory_loader;
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
     notus::advisories::VulnerabilityData,
@@ -212,21 +212,15 @@ where
     synchronize_json::<_, VulnerabilityData, _>(ps, &hash, move |sender| {
         let loader = Loader::from_feed_path(&path);
         let advisories_files =
-            HashsumAdvisoryLoader::new(loader.clone()).map_err(error_vts_error)?;
-        for filename in advisories_files
-            .get_advisories()
-            .map_err(error_vts_error)?
-            .iter()
-        {
-            // TODO: move signature_check to HashsumAdvisoryLoader and out of the interface
-            let advisories = advisories_files
-                .load_advisory(filename, signature_check)
-                .map_err(error_vts_error)?;
-            for adv in advisories.advisories {
+            advisory_loader(signature_check, &loader).map_err(error_vts_error)?;
+        for result in advisories_files {
+            let container = result.map_err(error_vts_error)?;
+
+            for adv in container.advisories.advisories {
                 let data = VulnerabilityData {
                     adv,
-                    family: advisories.family.clone(),
-                    filename: filename.to_owned(),
+                    family: container.advisories.family.clone(),
+                    filename: container.filename.to_owned(),
                 };
 
                 if sender.send(data).is_err() {
