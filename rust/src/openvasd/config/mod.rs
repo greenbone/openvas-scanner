@@ -697,9 +697,6 @@ impl Config {
         if let Some(version) = cmds.get_one::<bool>("version") {
             config.version = *version;
         }
-        if let Some(version) = cmds.get_one::<bool>("version") {
-            config.version = *version;
-        }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-performance") {
             config.endpoints.enable_get_performance = Some(*enable);
         }
