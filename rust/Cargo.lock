@@ -1841,7 +1841,7 @@ version = "0.20.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b88256088d75a56f8ecfa070513a775dd9107f6530ef14919dac831af9cfe2b"
 dependencies = [
- "bitflags 2.11.0",
+ "bitflags 2.10.0",
  "libc",
  "libgit2-sys",
  "log",
@@ -2603,10 +2603,6 @@ dependencies = [
  "hashbrown 0.16.1",
  "rle-decode-fast",
 ]
-
-[[package]]
-name = "libgcrypt-sys"
-version = "0.1.0"
 
 [[package]]
 name = "libgit2-sys"
