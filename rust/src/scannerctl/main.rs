@@ -87,6 +87,7 @@ enum Action {
     NotusUpdate(NotusUpdateArgs),
     Feed(FeedArgs),
     Alivetest(alivetest::AliveTestArgs),
+    Version,
 }
 
 #[tokio::main]
@@ -123,6 +124,10 @@ async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError>
         Action::NotusUpdate(args) => notus_update::scanner::run(args).await,
         Action::Feed(args) => feed::run(args).await,
         Action::Alivetest(args) => alivetest::run(args).await,
+        Action::Version => {
+            scannerlib::utils::version::show_version("scannerctl");
+            Ok(())
+        }
     }
 }
 
