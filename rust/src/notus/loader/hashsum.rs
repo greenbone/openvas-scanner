@@ -95,6 +95,7 @@ impl ProductLoader for HashsumProductLoader {
     }
 }
 
+#[derive(Debug)]
 pub struct ProductsAdvisoriesContainer {
     pub filename: String,
     pub advisories: ProductsAdvisories,
@@ -109,10 +110,12 @@ impl<'a> Iterator for LoaderType<'a> {
     type Item = Result<ProductsAdvisoriesContainer, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self {
+        let result = match self {
             LoaderType::NoVerifier(x) => x.next(),
             LoaderType::Verifier(x) => x.next(),
-        }
+        };
+        tracing::warn!(?result);
+        result
     }
 }
 
