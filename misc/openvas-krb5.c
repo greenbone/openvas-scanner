@@ -371,18 +371,34 @@ okrb5_gss_authenticate (const OKrb5Credential *creds,
     gss_import_name (&min_stat, &userbuf, GSS_C_NT_USER_NAME, &gss_username);
   CHECK_MAJOR_STAT ();
 
-  maj_stat = gss_acquire_cred_with_password (&min_stat, gss_username, &pwbuf, 0,
-                                             &creds_mechs, GSS_C_INITIATE,
-                                             &cred, NULL, NULL);
+  // Try to acquire credentials from the CCache first
+  maj_stat = gss_acquire_cred (&min_stat, gss_username, 0, &creds_mechs,
+                               GSS_C_INITIATE, &cred, NULL, NULL);
+  if (maj_stat != GSS_S_COMPLETE)
+    {
+      // No cached credential found, authenticate with password
+      maj_stat = gss_acquire_cred_with_password (
+        &min_stat, gss_username, &pwbuf, 0, &creds_mechs, GSS_C_INITIATE, &cred,
+        NULL, NULL);
 
-  (void) gss_release_name (&min_stat, &gss_username);
-  CHECK_MAJOR_STAT ();
+      CHECK_MAJOR_STAT ();
+
+      // Store the new credential in the CCache for future use
+      maj_stat = gss_store_cred (&min_stat, cred, GSS_C_INITIATE, GSS_C_NO_OID,
+                                 1, 1, NULL, NULL);
+      CHECK_MAJOR_STAT ();
+    }
 
   // let spnego only use the desired mechs
   maj_stat = gss_set_neg_mechs (&min_stat, cred, &spnego_mechs);
   CHECK_MAJOR_STAT ();
   gss_creds->gss_creds = cred;
+  cred = GSS_C_NO_CREDENTIAL;
 result:
+  if (cred != GSS_C_NO_CREDENTIAL)
+    gss_release_cred (&min_stat, &cred);
+  if (gss_username != GSS_C_NO_NAME)
+    gss_release_name (&min_stat, &gss_username);
   if (user_principal != NULL)
     free (user_principal);
   return result;
