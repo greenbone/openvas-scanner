@@ -424,7 +424,6 @@ where
     loop {
         tokio::select! {
             maybe_exit = next_exit_signal(&mut signals) => {
-                tracing::debug!("hum");
                 if let Some(code) = maybe_exit {
                     return Ok(code);
                 }

@@ -33,7 +33,6 @@ pub struct FeedHash {
 
 pub type FeedHashes = (String, String);
 
-//TODO: move somewhere reusable if necessary
 fn sumfile_hash<S>(path: S) -> Result<String, scannerlib::feed::VerifyError>
 where
     S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
