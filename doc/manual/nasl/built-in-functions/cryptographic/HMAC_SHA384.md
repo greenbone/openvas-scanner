@@ -10,7 +10,7 @@
 **HMAC_SHA384** It takes two arguments.
 
 - key - the key to be used for hashing
-- data - to data to be used for hashin
+- data - to data to be used for hashing
 
 ## DESCRIPTION
 

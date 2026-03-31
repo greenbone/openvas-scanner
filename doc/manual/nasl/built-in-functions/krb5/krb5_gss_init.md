@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-Initializes the krb5 GSS-API library. This function can be ommited when gss_prepare_context is called.
+Initializes the krb5 GSS-API library. This function can be omitted when gss_prepare_context is called.
 
 When there is an already initialized context it will be destroyed and a new one will be created.
 

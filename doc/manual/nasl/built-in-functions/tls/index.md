@@ -6,7 +6,7 @@ These functions are related to the handling of the sockets within a NASL script 
 
 ## TABLE OF CONTENT
 
-- **[get_sock_info](get_sock_info.md)** - takes an unnamed integer as socket, unnamed string as keyword and optinal asstring argument
+- **[get_sock_info](get_sock_info.md)** - takes an unnamed integer as socket, unnamed string as keyword and optional asstring argument
 - **[socket_cert_verify](socket_cert_verify.md)** - takes an previously opened socket.
 - **[socket_check_ssl_safe_renegotiation](socket_check_ssl_safe_renegotiation.md)** - check if secure renegotiation is supported in the server side
 - **[socket_get_cert](socket_get_cert.md)** - takes an previously opened socket.

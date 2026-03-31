@@ -16,7 +16,7 @@ Here you can find general purpose functions.
 - **[gzip](gzip.md)** - compress given data with gzip
 - **[isnull](isnull.md)** - check if a given value is NULL
 - **[keys](keys.md)** - returns an array with the keys of a dict
-- **[localtime](localtime.md)** - returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optinal flag if utc or not.
+- **[localtime](localtime.md)** - returns an dict(mday, mon, min, wday, sec, yday, isdst, year, hour) based on optional given time in seconds and optional flag if utc or not.
 - **[make_array](make_array.md)** - takes any even number of unnamed arguments and returns an dictionary made from them
 - **[make_list](make_list.md)** - takes any number of unnamed arguments and returns an array made from them.
 - **[max_index](max_index.md)** - returns the length of an array.

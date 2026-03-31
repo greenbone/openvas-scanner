@@ -16,8 +16,8 @@ Encrypts provided data with the private RSA key given by e and n. Returns the en
 - pad: when true it is using padding\
 - data: the data to encrypt
 - e: part of the private rsa key
-- n: part of the private rsa ket
-- d: part of the private rsa ket
+- n: part of the private rsa key
+- d: part of the private rsa key
 
 
 ## RETURN VALUE

@@ -18,7 +18,7 @@ It does **NOT** support Perl Compatible Regular Expressions (PCRE) like `\d`.
 
 ## TABLE OF CONTENT
 
-- **[egrep](egrep.md)** - looks for a patter in a string line by line and concatenates all lines the string was found
+- **[egrep](egrep.md)** - looks for a pattern in a string line by line and concatenates all lines the string was found
 - **[eregmatch](eregmatch.md)** - search for an pattern within a string
 - **[ereg](ereg.md)** - matches a given string against a regular expression
 - **[ereg_replace](ereg_replace.md)** - searches and replaces all the occurrences of a pattern inside a string

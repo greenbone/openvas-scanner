@@ -23,7 +23,7 @@ fn get_all(con: &mut redis::Connection) -> RedisResult<HashMap<String, Vec<Strin
                 Err(e) => match e.kind() {
                     // openvas doesn't store as UTF-8 therefore we have to react on type errors
                     // since the new implementation does use UTF-8 we cannot blindly assume that
-                    // each byte is infact a character therefore we try first the standard parsing
+                    // each byte is in fact a character therefore we try first the standard parsing
                     // and again in u8.
                     redis::ErrorKind::TypeError => {
                         let values: Vec<Vec<u8>> = match con.lrange(&k, 0, -1) {

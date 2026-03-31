@@ -282,7 +282,7 @@ ipc_lsc_destroy (ipc_lsc_t *data)
   g_free (data);
 }
 
-// General IPC data functios
+// General IPC data functions
 
 /**
  * @brief destroys ipc_data.
@@ -414,7 +414,7 @@ ipc_data_from_json (const char *json, size_t len)
     goto cleanup;
 
   /* Initialize the type with error.
-   * Usefull for cleanup, in case of parser error. */
+   * Useful for cleanup, in case of parser error. */
   ret->type = type;
 
   parser = json_parser_new ();

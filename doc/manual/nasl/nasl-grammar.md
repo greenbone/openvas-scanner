@@ -231,7 +231,7 @@ For binary operators:
 - break can (but should not) be used to exit from a function or the script.OB
 - The “magical strings” from NASL1 have been removed. In NASL1, adding a string to an integer might give an integer if the string contained only digits.
 - The minus operator follows the same type conversion rules as plus.
-- Using unitialized variables is bad. However, to ensure that old scripts still work, the NULL undefined value will be converted to 0 or “” according to the context (integer or string). That is why isnull has to be used to test if a variable is undefined. See “Warnings about the NULL value” in NASL Documentation.
+- Using uninitialized variables is bad. However, to ensure that old scripts still work, the NULL undefined value will be converted to 0 or “” according to the context (integer or string). That is why isnull has to be used to test if a variable is undefined. See “Warnings about the NULL value” in NASL Documentation.
 
 ### Retrieving Function Arguments
 The `_FCT_ANON_ARGS` variable exists in order to allow access to anonymous function args from within a function.

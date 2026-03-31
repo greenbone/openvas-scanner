@@ -444,7 +444,7 @@ nasl_toupper (lex_ctxt *lexic)
  *
  * @naslnparam
  * - @a string  String to search the pattern in
- * - @a pattern the patern that should be matched
+ * - @a pattern the pattern that should be matched
  * - @a icase   case insensitive flag
  * - @a rnul    replace the null char in the string. Default TRUE.
  * - @a multiline Is FALSE by default (string is truncated at the first
@@ -665,7 +665,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
  *
  * @naslnparam
  * - @a string  String to search the pattern in
- * - @a pattern patern to search in the string for
+ * - @a pattern pattern to search in the string for
  * - @a replace string to replace the pattern with
  * - @a icase   case insensitive flag
  * - @a rnul    replace the null char in the string. Default TRUE.
@@ -721,7 +721,7 @@ nasl_ereg_replace (lex_ctxt *lexic)
  *
  * @naslnparam
  * - @a string  String to search the pattern in
- * - @a pattern the patern that should be matched
+ * - @a pattern the pattern that should be matched
  * - @a icase   case insensitive flag
  * - @a rnul    replace the null char in the string. Default TRUE.
  *
