@@ -213,26 +213,30 @@ where
         let advisories_files =
             advisory_loader(signature_check, &loader).map_err(error_vts_error)?;
         for result in advisories_files {
-            let container = result.map_err(error_vts_error)?;
+            match result {
+                Ok(x) => {
+                    for adv in x.advisories.advisories {
+                        let data = VulnerabilityData {
+                            adv,
+                            family: x.advisories.family.clone(),
+                            filename: x.filename.to_owned(),
+                        };
 
-            for adv in container.advisories.advisories {
-                let data = VulnerabilityData {
-                    adv,
-                    family: container.advisories.family.clone(),
-                    filename: container.filename.to_owned(),
-                };
-
-                if sender.send(data).is_err() {
-                    break;
+                        if sender.send(data).is_err() {
+                            break;
+                        }
+                    }
                 }
-            }
+                Err(error) => {
+                    tracing::warn!(%error, "Unable to load advisories_file. Skipping.")
+                }
+            };
         }
         Ok(())
     })
     .await
 }
 
-// TODO: add signature_check
 async fn synchronize_plugins<T>(
     ps: &T,
     mut path: PathBuf,
