@@ -85,6 +85,7 @@ struct ScanArgs {
 }
 
 pub async fn run(args: ExecuteArgs) -> Result<(), CliError> {
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     match args.action {
         Action::Script(args) => script(args).await,
         Action::Scan(args) => scan(args).await,
