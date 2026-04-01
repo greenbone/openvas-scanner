@@ -57,7 +57,7 @@ where
     fn load_product(&self, os: &str) -> Result<(Product, FeedStamp), Error> {
         let notus_file = self.root.as_ref().join(format!("{os}.notus"));
         let notus_file_str = notus_file.to_string_lossy().to_string();
-        let mut file = match File::open(notus_file) {
+        let mut file = match File::open(&notus_file) {
             Ok(file) => file,
             Err(err) => {
                 if matches!(err.kind(), io::ErrorKind::NotFound) {

@@ -11,6 +11,7 @@
 //! be loaded
 
 use std::{
+    cell::LazyCell,
     fs::File,
     io::{self, BufRead, Cursor},
     path::{Path, PathBuf},

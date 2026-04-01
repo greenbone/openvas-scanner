@@ -110,12 +110,10 @@ impl<'a> Iterator for LoaderType<'a> {
     type Item = Result<ProductsAdvisoriesContainer, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = match self {
+        match self {
             LoaderType::NoVerifier(x) => x.next(),
             LoaderType::Verifier(x) => x.next(),
-        };
-        tracing::warn!(?result);
-        result
+        }
     }
 }
 
@@ -130,6 +128,7 @@ pub fn advisory_loader<'a>(
     check_feed_integrity: bool,
     loader: &'a Loader,
 ) -> Result<impl Iterator<Item = Result<ProductsAdvisoriesContainer, Error>>, Error> {
+    tracing::debug!(check_feed_integrity, "creating advisory_loader");
     Ok(if check_feed_integrity {
         LoaderType::Verifier(HashsumAdvisoryLoader::<HashSumNameLoader<'a>>::new(loader)?)
     } else {
@@ -182,6 +181,7 @@ impl<'a> Iterator for HashsumAdvisoryLoader<NoVerifier<'a>> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let entry = self.loader.next()?;
+
         Some(self.load_from_entry(entry))
     }
 }
