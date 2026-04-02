@@ -42,9 +42,6 @@ where
     S: NotusStorage,
 {
     let loader = Loader::from_feed_path(path);
-    // TODO: change if signature_check than use HashsumAdvisoryLoader and verify it otherwise use
-    // FileSystemLoader
-    //
     let advisories_files = match advisory_loader(signature_check, &loader) {
         Ok(loader) => loader,
         Err(_) => {
