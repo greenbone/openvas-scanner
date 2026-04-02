@@ -32,27 +32,24 @@ impl ProductLoader {
 
 impl ProductLoader {
     pub fn get_products(&self) -> Result<Vec<String>, Error> {
-        let mut ret = vec![];
-        // TODO: refactor, seems wrong to abort directly on an error instead of logging
-        if self.feed_integrity_check {
-            let loader =
-                HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
-
-            for entry in loader {
-                let item = entry.map_err(Error::HashsumLoadError)?;
-                if let Some(name) = item.get_filename().strip_suffix(".notus") {
-                    ret.push(name.to_string())
-                }
+        let fmap = |entry: Result<HashSumFileItem<'_>, VerifyError>| match entry {
+            Ok(x) => x
+                .get_filename()
+                .strip_suffix(".notus")
+                .map(|x| x.to_string()),
+            Err(error) => {
+                tracing::warn!(%error, "Unable to load product");
+                None
             }
+        };
+        let ret = if self.feed_integrity_check {
+            HashSumNameLoader::sha256(&self.loader)
+                .map_err(Error::HashsumLoadError)?
+                .filter_map(fmap)
+                .collect()
         } else {
-            let loader = NoVerifier::notus(&self.loader);
-            for entry in loader {
-                let item = entry.map_err(Error::HashsumLoadError)?;
-                if let Some(name) = item.get_filename().strip_suffix(".notus") {
-                    ret.push(name.to_string())
-                }
-            }
-        }
+            NoVerifier::notus(&self.loader).filter_map(fmap).collect()
+        };
         Ok(ret)
     }
 
