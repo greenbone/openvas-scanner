@@ -21,21 +21,17 @@ use std::sync::Arc;
 
 pub use error::Error as NotusError;
 pub use loader::advisory_loader;
-pub use loader::fs::FSProductLoader;
-pub use loader::hashsum::HashsumProductLoader;
 pub use notus::Notus;
 use tokio::sync::RwLock;
 
 use crate::nasl::syntax::Loader;
+pub use crate::notus::loader::ProductLoader;
 
-pub fn path_to_products<P>(
-    path: P,
-    signature_check: bool,
-) -> Arc<RwLock<Notus<HashsumProductLoader>>>
+pub fn products_loader<P>(path: P, signature_check: bool) -> Arc<RwLock<Notus>>
 where
     P: AsRef<Path>,
 {
     let loader = Loader::from_feed_path(path);
-    let loader = HashsumProductLoader::new(loader);
-    Arc::new(RwLock::new(Notus::new(loader, signature_check)))
+    let loader = ProductLoader::new(signature_check, loader);
+    Arc::new(RwLock::new(Notus::new(loader)))
 }

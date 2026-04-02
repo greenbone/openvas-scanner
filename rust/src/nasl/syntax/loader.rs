@@ -116,7 +116,6 @@ impl Loader {
 
     /// Create an empty loader that returns a `LoadError::NotFound`
     /// for any given filename.
-    // TODO: hide behind vfg?
     pub fn test_empty() -> Self {
         Self::test().build()
     }
@@ -133,7 +132,6 @@ impl Loader {
     ///     .with_file("foo.nasl", "display('hello world')".into())
     ///     .build();
     /// ```
-    // TODO: hide behind cfg?
     pub fn test() -> TestLoader {
         TestLoader {
             files: HashMap::new(),

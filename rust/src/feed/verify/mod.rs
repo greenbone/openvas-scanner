@@ -11,7 +11,6 @@
 //! be loaded
 
 use std::{
-    cell::LazyCell,
     fs::File,
     io::{self, BufRead, Cursor},
     path::{Path, PathBuf},
@@ -390,6 +389,10 @@ impl HashSumFileItem<'_> {
             }
         }
         Ok(())
+    }
+
+    pub fn load(&self) -> Result<String, LoadError> {
+        self.reader.load(&self.file_name)
     }
 
     /// returns file name
