@@ -223,7 +223,7 @@ pub mod scans_utils {
         },
         scheduling::{Scheduler, db::DataBase},
     };
-    use scannerlib::notus::path_to_products;
+    use scannerlib::notus::products_loader;
 
     pub fn client_id() -> String {
         ClientHash::default().to_string()
@@ -250,7 +250,7 @@ pub mod scans_utils {
         let scheduler = Scheduler::<R, E>::init(
             config.into(),
             pool.clone(),
-            path_to_products(products_path, false),
+            products_loader(products_path, false),
         );
         let scans = super::Scans { pool: pool.clone() };
         (scheduler, scans)

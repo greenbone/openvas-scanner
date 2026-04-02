@@ -14,7 +14,7 @@ use tokio::sync::RwLock;
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
 use crate::nasl::{FromNaslValue, WithErrorInfo};
-use crate::notus::{HashsumProductLoader, Notus};
+use crate::notus::Notus;
 use crate::scanner::preferences::preference::{ScanPrefs, pref_is_true};
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbKey};
@@ -275,7 +275,7 @@ impl<T> ContextStorage for T where
 
 #[derive(Clone)]
 pub enum NotusCtx {
-    Direct(Arc<Mutex<Notus<HashsumProductLoader>>>),
+    Direct(Arc<Mutex<Notus>>),
     Address(SocketAddr),
 }
 

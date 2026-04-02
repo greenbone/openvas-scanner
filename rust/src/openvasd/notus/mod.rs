@@ -9,12 +9,12 @@ use greenbone_scanner_framework::{
     entry::{Bytes, Method, Prefixed, Uri, response::BodyKind},
 };
 use http::StatusCode;
-use scannerlib::notus::{HashsumProductLoader, Notus, NotusError, path_to_products};
+use scannerlib::notus::{Notus, NotusError, products_loader};
 use tokio::sync::RwLock;
 
 use crate::config::Config;
 
-type Oz = Notus<HashsumProductLoader>;
+type Oz = Notus;
 
 pub struct GetOSIcnomingRequest(Arc<RwLock<Oz>>);
 
@@ -122,13 +122,11 @@ impl RequestHandler for PostOSIcnomingRequest {
     }
 }
 
-pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus<HashsumProductLoader>>> {
-    path_to_products(&config.notus.products_path, config.feed.signature_check)
+pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus>> {
+    products_loader(&config.notus.products_path, config.feed.signature_check)
 }
 
-pub fn init(
-    notus: Arc<RwLock<Notus<HashsumProductLoader>>>,
-) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
+pub fn init(notus: Arc<RwLock<Notus>>) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
     (
         GetOSIcnomingRequest(notus.clone()),
         PostOSIcnomingRequest(notus),
@@ -157,6 +155,7 @@ mod tests {
 
         let feed = crate::config::Feed {
             path: nasl,
+            signature_check: false,
             ..Default::default()
         };
         let notus = crate::config::Notus {

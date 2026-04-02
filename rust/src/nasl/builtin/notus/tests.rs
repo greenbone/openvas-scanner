@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     nasl::{Loader, test_utils::TestBuilder},
-    notus::{HashsumProductLoader, Notus},
+    notus::{Notus, ProductLoader},
 };
 
 fn make_test_path(sub_components: &[&str]) -> std::path::PathBuf {
@@ -20,13 +20,16 @@ fn make_test_path(sub_components: &[&str]) -> std::path::PathBuf {
     path.to_owned()
 }
 
-pub fn setup_loader() -> HashsumProductLoader {
-    HashsumProductLoader::new(Loader::from_feed_path(make_test_path(&["data", "notus"])))
+pub fn setup_loader() -> ProductLoader {
+    ProductLoader::new(
+        true,
+        Loader::from_feed_path(make_test_path(&["data", "notus"])),
+    )
 }
 
-fn setup() -> Arc<Mutex<Notus<HashsumProductLoader>>> {
+fn setup() -> Arc<Mutex<Notus>> {
     let loader = setup_loader();
-    Arc::new(Mutex::new(Notus::new(loader, false)))
+    Arc::new(Mutex::new(Notus::new(loader)))
 }
 
 #[test]

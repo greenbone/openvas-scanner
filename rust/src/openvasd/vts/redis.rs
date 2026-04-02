@@ -324,7 +324,11 @@ impl orchestrator::Worker for FeedSynchronizer {
                 .map_err(redis_error_to_worker_error)?;
             Ok(ck.pop())
         };
+        let feed_integrity_check = self.signature_check;
         Box::pin(async move {
+            if !feed_integrity_check {
+                return Ok(None);
+            }
             tokio::task::spawn_blocking(move || {
                 let vtc = feed_version(&address, FeedType::NASL)?;
                 let nc = feed_version(&address, FeedType::Advisories)?;

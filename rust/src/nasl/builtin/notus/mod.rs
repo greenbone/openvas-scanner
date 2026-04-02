@@ -19,7 +19,7 @@ use crate::{
         ArgumentError, FnError, NaslValue, ScanCtx, builtin::http::HttpError,
         utils::scan_ctx::NotusCtx,
     },
-    notus::{HashsumProductLoader, Notus},
+    notus::Notus,
 };
 
 #[nasl_function]
@@ -36,7 +36,7 @@ struct NotusResult {
 impl NaslNotus {
     fn notus_self(
         &self,
-        notus: &mut Notus<HashsumProductLoader>,
+        notus: &mut Notus,
         pkg_list: &[String],
         product: &str,
     ) -> Result<NaslValue, FnError> {

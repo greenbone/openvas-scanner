@@ -18,7 +18,6 @@ mod vts;
 use sqlx::migrate::Migrator;
 use std::{
     marker::{Send, Sync},
-    process::ExitCode,
     sync::Arc,
 };
 
@@ -64,7 +63,6 @@ async fn _main() -> Result<i32> {
     let config = Config::load();
     let _guard = config.logging.init();
 
-    //TODO: AsRef impl for Config
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
     let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
@@ -74,8 +72,6 @@ async fn _main() -> Result<i32> {
     let (get_notus, post_notus) = notus::init(products.clone());
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
-        // TODO: use a lambda like in scanner instead.
-        // That way we don't need to manage tokio::spawn_blocking all over the place
         .feed_version(feed_snapshot.clone());
     match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
@@ -90,6 +86,11 @@ async fn _main() -> Result<i32> {
             )
         }
     };
+    if !config.feed.signature_check {
+        tracing::warn!(
+            "Integrity check for feed has been disabled. Neither hashsums nor GPG signature will get verified."
+        );
+    }
     if let Some(client_certs) = config.tls.client_certs.clone() {
         rb = rb.path_client_certs(client_certs);
     }
@@ -113,12 +114,14 @@ async fn _main() -> Result<i32> {
 }
 
 #[tokio::main]
-async fn main() -> ExitCode {
-    match _main().await {
-        Ok(x) => ExitCode::from(x as u8),
+async fn main() {
+    let rc = match _main().await {
+        Ok(x) => x,
         Err(error) => {
             tracing::error!(%error, "Unexpected error result");
-            ExitCode::from(1)
+            1
         }
-    }
+    };
+    // we call process exit, on return ExitCode it kept lingering.
+    std::process::exit(rc);
 }

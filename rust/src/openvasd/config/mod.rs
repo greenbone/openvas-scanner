@@ -29,6 +29,9 @@ pub struct Feed {
         serialize_with = "scannerlib::utils::duration::serialize"
     )]
     pub check_interval: Duration,
+
+    // TODO: rename to feed_integrity_check and tell serde to accept:
+    // signature_check as weel as feed_integrity_check.
     pub signature_check: bool,
 }
 
@@ -130,7 +133,7 @@ impl Default for Feed {
         Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
             check_interval: Duration::from_secs(3600),
-            signature_check: false,
+            signature_check: true,
         }
     }
 }
@@ -414,9 +417,8 @@ impl Config {
                     .long("feed-signature-check")
                     .short('x')
                     .action(ArgAction::SetTrue)
-                    .help("Enable feed signature check"),
+                    .help("Deprecated. To enable or disable feed signature use the configuration."),
             )
-
             .arg(
                 clap::Arg::new("feed-check-interval")
                     .env("FEED_CHECK_INTERVAL")
