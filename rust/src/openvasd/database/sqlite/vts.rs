@@ -131,8 +131,12 @@ impl orchestrator::Worker for FeedSynchronizer {
                 None
             }
         };
+        let feed_integrity_check = self.signature_check;
 
         Box::pin(async move {
+            if !feed_integrity_check {
+                return Ok(None);
+            }
             let rofl = (
                 transform(fetched.next().await),
                 transform(fetched.next().await),
@@ -161,8 +165,10 @@ impl orchestrator::Worker for FeedSynchronizer {
             path,
             typus: kind,
         };
-        let verify = self.signature_check;
-        Box::pin(async move { crate::vts::synchronize_feed(&ps, feed_hash, verify).await })
+        let feed_integrity_check = self.signature_check;
+        Box::pin(
+            async move { crate::vts::synchronize_feed(&ps, feed_hash, feed_integrity_check).await },
+        )
     }
 
     fn signature_check(&self) -> bool {
