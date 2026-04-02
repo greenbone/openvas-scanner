@@ -2,37 +2,226 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{path::Path, time::SystemTime};
-
 // Maybe move products to notus so they are the same as advisories
+
 use greenbone_scanner_framework::models::Product;
 
-use crate::{feed::VerifyError, notus::error::Error};
+use crate::nasl::syntax::{LoadError, Loader};
 
-pub mod fs;
-pub mod hashsum;
-pub use hashsum::advisory_loader;
+use crate::feed::{HashSumFileItem, HashSumNameLoader, SignatureChecker, VerifyError};
+use crate::feed::{NoVerifier, check_signature};
+use crate::notus::advisories::ProductsAdvisories;
+use crate::notus::error::{Error, LoadProductErrorKind};
 
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
-pub enum FeedStamp {
-    Time(SystemTime),
-    Hashsum(String),
+#[derive(Clone)]
+pub struct ProductLoader {
+    loader: Loader,
+    feed_integrity_check: bool,
 }
 
-/// Trait for an ProductLoader
-pub trait ProductLoader {
-    /// Load product file corresponding to the given string. The given name must match the name of
-    /// the product file without its extension. Also a stamp is returned to be able to check if the
-    /// file has changed. This is useful when caching loaded products.
-    fn load_product(&self, os: &str) -> Result<(Product, FeedStamp), Error>;
-    /// Get a list of all available products. This list contains the exact strings, that can also be
-    /// used for `load_product`.
-    fn get_products(&self) -> Result<Vec<String>, Error>;
-    /// Check if a requested product file has changed based on a stamp created with `load_product`.
-    /// Useful for checking if a requested product has changed.
-    fn has_changed(&self, os: &str, stamp: &FeedStamp) -> bool;
-    /// Verify the signature of the Hashsum file
-    fn verify_signature(&self) -> Result<(), VerifyError>;
-    /// Get the root directory of the notus products
-    fn root_path(&self) -> &Path;
+impl SignatureChecker for ProductLoader {}
+
+impl ProductLoader {
+    pub fn new(feed_integrity_check: bool, loader: Loader) -> Self {
+        Self {
+            loader,
+            feed_integrity_check,
+        }
+    }
+}
+
+impl ProductLoader {
+    pub fn get_products(&self) -> Result<Vec<String>, Error> {
+        let mut ret = vec![];
+        // TODO: refactor, seems wrong to abort directly on an error instead of logging
+        if self.feed_integrity_check {
+            let loader =
+                HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
+
+            for entry in loader {
+                let item = entry.map_err(Error::HashsumLoadError)?;
+                if let Some(name) = item.get_filename().strip_suffix(".notus") {
+                    ret.push(name.to_string())
+                }
+            }
+        } else {
+            let loader = NoVerifier::notus(&self.loader);
+            for entry in loader {
+                let item = entry.map_err(Error::HashsumLoadError)?;
+                if let Some(name) = item.get_filename().strip_suffix(".notus") {
+                    ret.push(name.to_string())
+                }
+            }
+        }
+        Ok(ret)
+    }
+
+    pub fn load_product(&self, os: &str) -> Result<Product, Error> {
+        tracing::debug!(
+            root=?self.loader.root_path(),
+            os =?os,
+            "Loading notus product",
+        );
+        let file_name = format!("{os}.notus");
+        if self.feed_integrity_check {
+            let mut loader =
+                HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
+            let file_item = loader
+                .find(|entry| {
+                    if let Ok(item) = entry {
+                        return item.get_filename() == file_name;
+                    }
+                    false
+                })
+                .ok_or_else(|| Error::UnknownProduct(os.to_string()))?
+                .map_err(Error::HashsumLoadError)?;
+
+            file_item.verify().map_err(Error::HashsumLoadError)?;
+        }
+
+        let file = self.loader.load(&file_name).map_err(|e| {
+            if let LoadError::NotFound(_) = e {
+                Error::UnknownProduct(os.to_string())
+            } else {
+                Error::LoadProductError(os.to_string(), LoadProductErrorKind::LoadError(e))
+            }
+        })?;
+
+        match serde_json::from_str(&file) {
+            Ok(adv) => Ok(adv),
+            Err(err) => Err(Error::JSONParseError(os.to_string(), err)),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ProductsAdvisoriesContainer {
+    pub filename: String,
+    pub advisories: ProductsAdvisories,
+}
+
+enum LoaderType<'a> {
+    NoVerifier(HashsumAdvisoryLoader<NoVerifier<'a>>),
+    Verifier(HashsumAdvisoryLoader<HashSumNameLoader<'a>>),
+}
+
+impl<'a> Iterator for LoaderType<'a> {
+    type Item = Result<ProductsAdvisoriesContainer, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            LoaderType::NoVerifier(x) => x.next(),
+            LoaderType::Verifier(x) => x.next(),
+        }
+    }
+}
+
+#[derive(Clone)]
+struct HashsumAdvisoryLoader<T> {
+    first: bool,
+    end: bool,
+    loader: T,
+}
+
+pub fn advisory_loader<'a>(
+    check_feed_integrity: bool,
+    loader: &'a Loader,
+) -> Result<impl Iterator<Item = Result<ProductsAdvisoriesContainer, Error>>, Error> {
+    tracing::debug!(check_feed_integrity, "creating advisory_loader");
+    Ok(if check_feed_integrity {
+        LoaderType::Verifier(HashsumAdvisoryLoader::<HashSumNameLoader<'a>>::new(loader)?)
+    } else {
+        LoaderType::NoVerifier(HashsumAdvisoryLoader::<NoVerifier<'a>>::new(loader)?)
+    })
+}
+
+impl<'a> HashsumAdvisoryLoader<HashSumNameLoader<'a>> {
+    fn new(loader: &'a Loader) -> Result<Self, Error> {
+        Ok(Self {
+            first: true,
+            end: false,
+            loader: HashSumNameLoader::sha256(loader).map_err(Error::SignatureCheckError)?,
+        })
+    }
+}
+
+impl<'a> HashsumAdvisoryLoader<NoVerifier<'a>> {
+    fn new(loader: &'a Loader) -> Result<Self, Error> {
+        Ok(Self {
+            first: true,
+            end: false,
+            loader: NoVerifier::notus(loader),
+        })
+    }
+}
+
+impl<'a> HashsumAdvisoryLoader<NoVerifier<'a>> {
+    fn load_from_entry(
+        &self,
+        entry: Result<HashSumFileItem<'a>, VerifyError>,
+    ) -> Result<ProductsAdvisoriesContainer, Error> {
+        let entry = entry.map_err(Error::HashsumLoadError)?;
+        let filename = entry.get_filename();
+        let file = self.loader.load(&filename).map_err(|e| {
+            Error::LoadProductError(filename.clone(), LoadProductErrorKind::LoadError(e))
+        })?;
+        match serde_json::from_str(&file) {
+            Ok(advisories) => Ok(ProductsAdvisoriesContainer {
+                filename,
+                advisories,
+            }),
+            Err(err) => Err(Error::JSONParseError(filename, err)),
+        }
+    }
+}
+
+impl<'a> Iterator for HashsumAdvisoryLoader<NoVerifier<'a>> {
+    type Item = Result<ProductsAdvisoriesContainer, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let entry = self.loader.next()?;
+
+        Some(self.load_from_entry(entry))
+    }
+}
+
+impl<'a> HashsumAdvisoryLoader<HashSumNameLoader<'a>> {
+    fn load_from_entry(
+        &self,
+        entry: Result<HashSumFileItem<'a>, VerifyError>,
+    ) -> Result<ProductsAdvisoriesContainer, Error> {
+        let entry = entry.map_err(Error::HashsumLoadError)?;
+        entry.verify().map_err(Error::HashsumLoadError)?;
+        let filename = entry.get_filename();
+        let file = self.loader.load(&filename).map_err(|e| {
+            Error::LoadProductError(filename.clone(), LoadProductErrorKind::LoadError(e))
+        })?;
+        match serde_json::from_str(&file) {
+            Ok(advisories) => Ok(ProductsAdvisoriesContainer {
+                filename,
+                advisories,
+            }),
+            Err(err) => Err(Error::JSONParseError(filename, err)),
+        }
+    }
+}
+
+impl<'a> Iterator for HashsumAdvisoryLoader<HashSumNameLoader<'a>> {
+    type Item = Result<ProductsAdvisoriesContainer, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.first {
+            self.first = false;
+            if let Err(error) = check_signature(&self.loader.root_path()) {
+                self.end = true;
+                tracing::warn!(%error, "Unable to check advisories signature");
+                return Some(Err(Error::SignatureCheckError(error)));
+            }
+        }
+        if self.end {
+            return None;
+        }
+        let entry = self.loader.next()?;
+        Some(self.load_from_entry(entry))
+    }
 }

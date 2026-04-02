@@ -14,7 +14,6 @@ use std::{
 use crate::{nasl::prelude::*, notus::Notus, scanner::preferences::preference::ScanPrefs};
 use crate::{
     nasl::utils::scan_ctx::NotusCtx,
-    notus::HashsumProductLoader,
     storage::{ScanID, inmemory::InMemoryStorage},
 };
 use futures::{Stream, StreamExt};
@@ -134,7 +133,7 @@ pub struct TestBuilder<S: ContextStorage> {
     storage: S,
     executor: Executor,
     version: NaslVersion,
-    notus: Option<Arc<Mutex<Notus<HashsumProductLoader>>>>,
+    notus: Option<Arc<Mutex<Notus>>>,
 }
 
 pub type DefaultTestBuilder = TestBuilder<InMemoryStorage>;
@@ -220,7 +219,7 @@ impl TestBuilder<InMemoryStorage> {
         t
     }
 
-    pub fn from_notus(notus: Arc<Mutex<Notus<HashsumProductLoader>>>) -> Self {
+    pub fn from_notus(notus: Arc<Mutex<Notus>>) -> Self {
         Self {
             lines: vec![],
             results: vec![],

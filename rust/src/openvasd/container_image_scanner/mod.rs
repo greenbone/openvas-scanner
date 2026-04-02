@@ -79,7 +79,7 @@ use endpoints::scans::Scans;
 //TODO: move endpoints to openvasd?
 use endpoints::vts::VTEndpoints;
 
-use scannerlib::notus::{HashsumProductLoader, Notus};
+use scannerlib::notus::Notus;
 
 use crate::{
     container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
@@ -88,7 +88,7 @@ use crate::{
 pub async fn init(
     vt_pool: DataBase,
     feed_state: Arc<RwLock<FeedState>>,
-    products: Arc<tokio::sync::RwLock<Notus<HashsumProductLoader>>>,
+    products: Arc<tokio::sync::RwLock<Notus>>,
     config: Config,
 ) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
     let pool = config

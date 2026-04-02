@@ -27,7 +27,7 @@ use crate::{
     },
     database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
 };
-use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
+use scannerlib::notus::{Notus, NotusError};
 
 // TODO: refactor, this got a bit too messy
 pub mod db;
@@ -68,15 +68,11 @@ pub struct Scheduler<Registry, Extractor> {
     config: Arc<Config>,
     registry: PhantomData<Registry>,
     extractor: PhantomData<Extractor>,
-    products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+    products: Arc<RwLock<Notus>>,
 }
 
 impl<Registry, Extractor> Scheduler<Registry, Extractor> {
-    fn new(
-        config: Arc<Config>,
-        pool: DataBase,
-        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
-    ) -> Self {
+    fn new(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Self {
         Scheduler {
             pool,
             config,
@@ -89,7 +85,7 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
     pub fn init(
         config: Arc<Config>,
         pool: DataBase,
-        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+        products: Arc<RwLock<Notus>>,
     ) -> Scheduler<Registry, Extractor> {
         Self::new(config, pool, products)
     }
@@ -119,7 +115,7 @@ where
     }
 
     #[cfg(test)]
-    pub fn products(&self) -> Arc<RwLock<Notus<HashsumProductLoader>>> {
+    pub fn products(&self) -> Arc<RwLock<Notus>> {
         self.products.clone()
     }
 
@@ -187,7 +183,7 @@ where
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
         conn: Arc<Mutex<DataBase>>,
-        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+        products: Arc<RwLock<Notus>>,
     ) where
         T: ToNotus,
     {
@@ -219,7 +215,7 @@ where
     async fn scan_image<T>(
         config: Arc<Config>,
         pool: DataBase,
-        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+        products: Arc<RwLock<Notus>>,
         id: &ImageID,
         credentials: Option<Credential>,
     ) where
@@ -286,11 +282,8 @@ where
         }
     }
 
-    async fn scan_images<T>(
-        config: Arc<Config>,
-        pool: DataBase,
-        products: Arc<RwLock<Notus<HashsumProductLoader>>>,
-    ) where
+    async fn scan_images<T>(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>)
+    where
         T: ToNotus,
     {
         let scans = match DBImages::new(

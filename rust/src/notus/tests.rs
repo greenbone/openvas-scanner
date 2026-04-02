@@ -6,7 +6,10 @@ use std::path::{Path, PathBuf};
 
 use greenbone_scanner_framework::models::{FixedPackage, FixedVersion, Specifier};
 
-use crate::notus::{error::Error, loader::fs::FSProductLoader, notus::Notus};
+use crate::{
+    nasl::Loader,
+    notus::{ProductLoader, error::Error, notus::Notus},
+};
 
 pub fn make_test_path(sub_components: &[&str]) -> PathBuf {
     let mut path = Path::new(env!("CARGO_MANIFEST_DIR")).to_owned();
@@ -16,13 +19,10 @@ pub fn make_test_path(sub_components: &[&str]) -> PathBuf {
     path.to_owned()
 }
 
-pub fn setup_loader() -> FSProductLoader<PathBuf> {
-    FSProductLoader::new(make_test_path(&["data", "notus"])).unwrap()
-}
-
-fn setup() -> Notus<FSProductLoader<PathBuf>> {
-    let loader = setup_loader();
-    Notus::new(loader, false)
+fn setup() -> Notus {
+    let loader = Loader::from_feed_path(make_test_path(&["data", "notus"]));
+    let loader = ProductLoader::new(false, loader);
+    Notus::new(loader)
 }
 
 #[test]

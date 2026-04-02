@@ -20,7 +20,7 @@ use crate::{
     },
     database::dao::Fetch,
 };
-use scannerlib::notus::{HashsumProductLoader, Notus, NotusError};
+use scannerlib::notus::{Notus, NotusError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScannerArchImageError {
@@ -155,7 +155,7 @@ impl Measured<ImageResults> {
 }
 
 async fn scan_arch_image<L, T>(
-    products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+    products: Arc<RwLock<Notus>>,
     locator: &L,
     image: String,
     digest: &Image,
@@ -294,7 +294,7 @@ where
 pub async fn scan_image<'a, E, R, T>(
     config: Arc<Config>,
     pool: DataBase,
-    products: Arc<RwLock<Notus<HashsumProductLoader>>>,
+    products: Arc<RwLock<Notus>>,
     registry: &'a super::InitializedRegistry<'a, R>,
 ) -> Result<(), Vec<ScannerError>>
 where
