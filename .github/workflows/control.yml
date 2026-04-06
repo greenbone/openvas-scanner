@@ -71,6 +71,37 @@ jobs:
     uses: ./.github/workflows/init.yaml
     with:
       release: ${{ needs.adapt_release.outputs.kind }}
+  bin_version:
+    needs: init
+    runs-on: ubuntu-latest
+    outputs:
+      bin_version: ${{ steps.bin_version.outputs.bin_version}}
+    env:
+      VER_KIND: 
+    steps:
+      - name: "Check KIND = major"
+        if: contains(github.event.pull_request.labels.*.name, 'major_release')
+        run: echo "VER_KIND=major" >> $GITHUB_ENV
+      - name: "Check KIND = minor"
+        if: contains(github.event.pull_request.labels.*.name, 'minor_release')
+        run: echo "VER_KIND=minor" >> $GITHUB_ENV
+      - name: "Check KIND = patch"
+        if: contains(github.event.pull_request.labels.*.name, 'patch_release')
+        run: echo "VER_KIND=patch" >> $GITHUB_ENV
+      - uses: actions/checkout@v6
+      - name: Debug
+        run: echo "${{ env.VER_KIND }}"
+      - uses: greenbone/actions/setup-pontos@v3
+      - name: find_version
+        run: |
+          if [ "${{ env.VER_KIND }}" == "major" ] ||  [ "${{ env.VER_KIND }}" == "minor" ] ||  [ "${{ env.VER_KIND }}" == "patch" ]; then
+            echo "BIN_VERSION=$(pontos-version next ${{ env.VER_KIND }})">> "$GITHUB_ENV"
+          else
+            echo "BIN_VERSION=$(pontos-version show)">> "$GITHUB_ENV"
+          fi
+      - id: bin_version
+        run: |
+          echo "bin_version=${{ env.BIN_VERSION}}" >> "$GITHUB_OUTPUT"
   unittests:
     name: unit-tests
     uses: ./.github/workflows/tests.yml
@@ -79,15 +110,19 @@ jobs:
   linting:
     uses: ./.github/workflows/linting.yml
   build-rs-amd64:
+    needs: bin_version
     uses: ./.github/workflows/build-rs.yaml
     with:
       arch: amd64
       runner: ubuntu-latest
+      binary_version:  ${{ needs.bin_version.outputs.bin_version }}
   build-rs-arm64:
+    needs: bin_version
     uses: ./.github/workflows/build-rs.yaml
     with:
       arch: arm64
       runner: self-hosted-generic-arm64
+      binary_version:  ${{ needs.bin_version.outputs.bin_version }}
   # maybe create functional tests for arm64 as well?
   functional:
     needs: [build-rs-amd64]

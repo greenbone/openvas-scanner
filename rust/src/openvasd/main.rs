@@ -27,6 +27,7 @@ use container_image_scanner::config::{DBLocation, SqliteConfiguration};
 use greenbone_scanner_framework::{RuntimeBuilder, ServerCertificate};
 use notus::config_to_products;
 use scannerlib::models::FeedState;
+use scannerlib::utils::version::show_version;
 use sqlx::SqlitePool;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -63,6 +64,11 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
 async fn _main() -> Result<i32> {
     let config = Config::load();
     let _guard = config.logging.init();
+
+    show_version("openvasd");
+    if config.version {
+        return Ok(0);
+    }
 
     //TODO: AsRef impl for Config
     let products = config_to_products(&config);

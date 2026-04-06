@@ -11,6 +11,11 @@ on:
         description: "runner label"
         required: true
         type: string
+      binary_version:
+        description: "Binary version"
+        required: false
+        type: string
+
 
 jobs:
   build:
@@ -21,17 +26,21 @@ jobs:
       DIST: dist-${{ inputs.arch }}
       ARTIFACT_NAME: rs-binaries-${{ inputs.arch }}
       ASSETS_SUBDIR: assets/linux/${{ inputs.arch }}
+      BIN_VERSION: ${{ inputs.binary_version }}
     steps:
       - uses: actions/checkout@v6
       - name: build
         shell: bash
         run: |
+          echo "${BIN_VERSION}"
+
           docker build \
             --pull \
             --target rs-binaries \
             --platform "${PLATFORM}" \
             --cache-from=type=gha \
             --cache-to=type=gha,mode=max \
+            --build-arg "${BIN_VERSION}" \
             -o type=local,dest="./${DIST}" \
             -f .docker/prod-oldstable.Dockerfile .
           mkdir -p "${ASSETS_SUBDIR}"
