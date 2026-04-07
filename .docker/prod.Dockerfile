@@ -3,6 +3,8 @@ ARG VERSION=latest
 ARG GVM_LIBS=ghcr.io/greenbone/gvm-libs
 
 FROM rust AS rust
+ARG BIN_VERSION
+ENV BIN_VERSION=${BIN_VERSION}
 COPY . /source
 # if we have already binaries available we don't need to build them again
 RUN mv /source/.docker/install /install || true
@@ -15,6 +17,7 @@ RUN apt update && apt install -y \
     libclang-dev \
     libpcap-dev \
     libsnmp-dev
+
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/source/rust/target \

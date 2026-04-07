@@ -29,7 +29,7 @@ jobs:
       BIN_VERSION: ${{ inputs.binary_version }}
     steps:
       - uses: actions/checkout@v6
-      - name: build ${{ inputs.binary_version }}
+      - name: build ${{ inputs.arch }}
         shell: bash
         run: |
           docker build \
@@ -38,7 +38,7 @@ jobs:
             --platform "${PLATFORM}" \
             --cache-from=type=gha \
             --cache-to=type=gha,mode=max \
-            --build-arg "${BIN_VERSION}" \
+            --build-arg "BIN_VERSION=${BIN_VERSION}" \
             -o type=local,dest="./${DIST}" \
             -f .docker/prod-oldstable.Dockerfile .
           mkdir -p "${ASSETS_SUBDIR}"

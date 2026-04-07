@@ -75,7 +75,6 @@ jobs:
     name: unit-tests
     uses: ./.github/workflows/tests.yml
   build:
-    name: "build ${{ needs.init.outputs.binary_version }}"
     needs: init
     uses: ./.github/workflows/build.yml
     with:
@@ -87,7 +86,7 @@ jobs:
     needs: [build]
     uses: ./.github/workflows/functional.yaml
   container:
-    needs: [build, init]
+    needs: [init]
     uses: ./.github/workflows/push-container.yml
     secrets:
       dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -106,6 +105,7 @@ jobs:
     with:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version }}
+      binary_version: ${{ needs.init.outputs.binary_version }}
   release:
     name: "release (${{ needs.init.outputs.latest_version }} -> ${{ needs.init.outputs.new_version }}"
     permissions:

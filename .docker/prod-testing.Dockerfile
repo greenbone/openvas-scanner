@@ -7,6 +7,8 @@ FROM greenbone/openvas-smb:testing-edge AS openvas-smb
 FROM rust AS rust
 
 FROM ghcr.io/greenbone/gvm-libs:${GVM_LIBS_VERSION} AS build
+ARG BIN_VERSION
+ENV BIN_VERSION=${BIN_VERSION}
 COPY . /source
 RUN sh /source/.github/install-openvas-dependencies.sh
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
