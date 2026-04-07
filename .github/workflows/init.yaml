@@ -42,6 +42,9 @@ on:
       release_project:
         description: "The name of the project to be released"
         value: ${{ jobs.init.outputs.project }}
+      binary_version:
+        description: "The version used by scannerctl/openvasd."
+        value: ${{ jobs.init.outputs.binary_version }}
 
 jobs:
   init:
@@ -55,6 +58,7 @@ jobs:
       release_kind:  ${{ steps.version.outputs.release_kind }}
       release_ref:  ${{ steps.version.outputs.release_ref }}
       project:  ${{ steps.version.outputs.project}}
+      binary_version: ${{ steps.version.outputs.binary_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -106,7 +110,6 @@ jobs:
       - name: RELEASE_REF != NULL
         run: ([ -n "${{ env.RELEASE_REF }}" ])
       - name: "LATEST_VERSION"
-        if: inputs.release != 'no_release'
         run: |
           git tag
           if [[ "${{ env.RELEASE_REF }}" = "main" ]]; then
@@ -145,6 +148,11 @@ jobs:
           echo "release_kind=${{ env.KIND }}">> "$GITHUB_OUTPUT"
           echo "release_ref=${{ env.RELEASE_REF }}">> "$GITHUB_OUTPUT"
           echo "project=$(echo "${{ github.repository }}" | sed 's/.*\///' )" >> "$GITHUB_OUTPUT"
+          if [ -n "${NEW_VERSION}" ]; then
+            echo "binary_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "binary_version=${LATEST_VERSION}" >> "$GITHUB_OUTPUT"
+          fi
           # docker
           echo "is_latest_tag=${{ env.IS_LATEST_TAG }}">> "$GITHUB_OUTPUT"
           echo "is_version_tag=${{ env.IS_VERSION_TAG }}">> "$GITHUB_OUTPUT"

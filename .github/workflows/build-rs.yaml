@@ -29,11 +29,9 @@ jobs:
       BIN_VERSION: ${{ inputs.binary_version }}
     steps:
       - uses: actions/checkout@v6
-      - name: build
+      - name: build ${{ inputs.binary_version }}
         shell: bash
         run: |
-          echo "${BIN_VERSION}"
-
           docker build \
             --pull \
             --target rs-binaries \
