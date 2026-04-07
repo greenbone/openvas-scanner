@@ -7,7 +7,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use scannerlib::notus::{FSProductLoader, Notus};
+use scannerlib::{
+    nasl::Loader,
+    notus::{Notus, ProductLoader},
+};
 
 use crate::{CliError, utils::ArgOrStdin};
 
@@ -48,8 +51,9 @@ fn execute<T>(packages: PackageList, os: &str, products_path: T) -> Result<(), C
 where
     T: AsRef<Path>,
 {
-    let loader = FSProductLoader::new(products_path)?;
-    let mut notus = Notus::new(loader, false);
+    let loader = Loader::from_feed_path(products_path);
+    let loader = ProductLoader::new(false, loader);
+    let mut notus = Notus::new(loader);
     tracing::debug!(?packages, "going to scan");
     serde_json::to_writer_pretty(io::stdout(), &notus.scan(os, &packages.0)?)?;
     Ok(())
