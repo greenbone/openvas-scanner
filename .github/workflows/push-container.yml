@@ -9,6 +9,9 @@ on:
       is_version_tag:
         required: true
         type: string
+      binary_version:
+        required: false
+        type: string
     secrets:
       dockerhub_user:
         required: true
@@ -88,9 +91,9 @@ jobs:
       labels: |
         org.opencontainers.image.vendor=Greenbone
         org.opencontainers.image.base.name=debian:stable-slim
-      build-args: ${{ matrix.build.build-args }}
       prefix: ${{ matrix.build.prefix }}
       tags: ${{ matrix.tags }}
+      build-args: "BIN_VERSION=${{ inputs.binary_version }}"
       images: |
         ghcr.io/${{ github.repository }},enable=true
         ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}

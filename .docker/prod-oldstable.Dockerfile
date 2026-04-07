@@ -3,6 +3,8 @@ ARG VERSION=oldstable
 ARG GVM_LIBS=ghcr.io/greenbone/gvm-libs
 
 FROM rust:bookworm AS rust
+ARG BIN_VERSION
+ENV BIN_VERSION=${BIN_VERSION}
 COPY . /source
 # if we have already binaries available we don't need to build them again
 RUN mv /source/.docker/install /install || true

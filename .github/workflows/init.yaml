@@ -151,7 +151,7 @@ jobs:
           if [ -n "${NEW_VERSION}" ]; then
             echo "binary_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
           else
-            echo "binary_version=${LATEST_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "binary_version=${LATEST_VERSION}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
           # docker
           echo "is_latest_tag=${{ env.IS_LATEST_TAG }}">> "$GITHUB_OUTPUT"
