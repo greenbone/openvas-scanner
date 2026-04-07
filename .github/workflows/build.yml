@@ -1,6 +1,12 @@
 name: "Build"
 
-on: [workflow_call]
+on:
+  workflow_call:
+    inputs:
+      binary_version:
+        description: "Binary version"
+        required: false
+        type: string
 
 jobs:
   C:
@@ -16,14 +22,15 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-19/libexec/ccc-analyzer
           cmake --build build
-  Rust:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-rust
-      # we just check if it is compilable, the actual compilation is now done in:
-      # - in the Dockefiles
-      # - in functional.yml (x86_64) only
-      # - in release.yml (aarch64, x86_64)
-      - run: cargo check
-        working-directory: rust
+  rs-amd64:
+    uses: ./.github/workflows/build-rs.yaml
+    with:
+      arch: amd64
+      runner: ubuntu-latest
+      binary_version: ${{ inputs.binary_version }}
+  rs-arm64:
+    uses: ./.github/workflows/build-rs.yaml
+    with:
+      arch: arm64
+      runner: self-hosted-generic-arm64
+      binary_version: ${{ inputs.binary_version }}

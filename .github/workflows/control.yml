@@ -75,26 +75,16 @@ jobs:
     name: unit-tests
     uses: ./.github/workflows/tests.yml
   build:
+    name: "build ${{ needs.init.outputs.binary_version }}"
+    needs: init
     uses: ./.github/workflows/build.yml
+    with:
+      binary_version: ${{ needs.init.outputs.binary_version }}
   linting:
     uses: ./.github/workflows/linting.yml
-  build-rs-amd64:
-    needs: init
-    uses: ./.github/workflows/build-rs.yaml
-    with:
-      arch: amd64
-      runner: ubuntu-latest
-      binary_version: ${{ needs.init.outputs.binary_version }}
-  build-rs-arm64:
-    needs: init
-    uses: ./.github/workflows/build-rs.yaml
-    with:
-      arch: arm64
-      runner: self-hosted-generic-arm64
-      binary_version: ${{ needs.init.outputs.binary_version }}
   # maybe create functional tests for arm64 as well?
   functional:
-    needs: [build-rs-amd64]
+    needs: [build]
     uses: ./.github/workflows/functional.yaml
   container:
     needs: [build, init]
@@ -117,11 +107,12 @@ jobs:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version }}
   release:
+    name: "release (${{ needs.init.outputs.latest_version }} -> ${{ needs.init.outputs.new_version }}"
     permissions:
       contents: write
     # we release after container build so that we can release on a closed pr as we don't push the release container yet
     # instead it is pushed after the tag is created.
-    needs: [functional, build-rs-arm64, init]
+    needs: [functional, build, init]
     if: ( needs.init.outputs.release_kind == 'major' || needs.init.outputs.release_kind == 'minor' || needs.init.outputs.release_kind == 'patch' )
     uses: ./.github/workflows/release.yml
     with:
