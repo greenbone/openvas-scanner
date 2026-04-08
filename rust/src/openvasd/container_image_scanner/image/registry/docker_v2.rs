@@ -215,7 +215,10 @@ impl Client {
                 let arch = m.architecture.clone();
                 Ok((Manifest::S1Signed(m), arch, digest))
             }
-
+            Manifest::OciIndex(_) => Err(self.builder.functional_error(
+                RegistryErrorKind::Manifest,
+                "Embedded OciIndex manifest are currently not supported.",
+            )),
             Manifest::ML(_) => Err(self.builder.functional_error(
                 RegistryErrorKind::Manifest,
                 "Embedded manifests lists are currently not supported.",
@@ -233,6 +236,18 @@ impl Client {
             Ok((Manifest::ML(ml), _)) => {
                 let mut results = Vec::with_capacity(ml.manifests.len());
                 for m in ml.manifests.into_iter() {
+                    match self.get_manifest(name, &m.digest).await {
+                        Ok((m, digest)) => {
+                            results.push(self.manifest_to_architecture(digest, m));
+                        }
+                        Err(error) => results.push(Err(error)),
+                    }
+                }
+                results
+            }
+            Ok((Manifest::OciIndex(oi), _)) => {
+                let mut results = Vec::with_capacity(oi.manifests.len());
+                for m in oi.manifests.into_iter() {
                     match self.get_manifest(name, &m.digest).await {
                         Ok((m, digest)) => {
                             results.push(self.manifest_to_architecture(digest, m));
