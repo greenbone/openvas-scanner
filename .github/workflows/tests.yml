@@ -24,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
+      - run: cd crates/rpmdb-rs && sh prepare-test-data.sh
       - name: unit-tests
         run: cargo test --lib --tests --workspace
       - name: experimental unit-tests
