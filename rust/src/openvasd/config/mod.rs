@@ -609,6 +609,7 @@ impl Config {
             )
             .arg(
                 clap::Arg::new("version")
+                    .long("version")
                     .action(ArgAction::SetTrue)
                     .help("Show openvasd version and exit."),
             )
