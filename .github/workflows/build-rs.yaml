@@ -44,7 +44,6 @@ jobs:
           mkdir -p "${ASSETS_SUBDIR}"
           cp "./${DIST}/install/usr/local/bin/openvasd"      "${ASSETS_SUBDIR}/openvasd"
           cp "./${DIST}/install/usr/local/bin/scannerctl"    "${ASSETS_SUBDIR}/scannerctl"
-          cp "./${DIST}/install/usr/local/bin/feed-verifier" "${ASSETS_SUBDIR}/feed-verifier"
       # - name: verify
       #   shell: bash
       #   run: |
