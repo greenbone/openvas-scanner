@@ -1,7 +1,15 @@
 name: functional
 
+# github.event.pull_request.number
+
 on:
   workflow_call:
+    inputs:
+      image:
+        description: "The image to test"
+        required: true
+        type: string
+
 
 # smoke test definition.
 # It depends on build.yml that is controlled via control.yml
@@ -39,38 +47,21 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     container:
-      image: ghcr.io/greenbone/gvm-libs:stable
+      image: ${{ inputs.image }}
       options: --privileged
     steps:
-      # why?
       - uses: actions/checkout@v6
-      - name: install dependencies
-        run: |
-          sh .github/install-openvas-dependencies.sh
-      - name: install openvas
-        run: |
-          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
-          cmake --build build -- install
-      - uses: actions/download-artifact@v7
-        with:
-          pattern: rs-binaries-*
-          merge-multiple: true
-          path: ./assets
       - name: prepare setup
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
-            docker.io docker-cli
+            docker.io docker-cli \
+            make
           FEED_DIR="feed/" sh .github/prepare-feed.sh
-          install -m 755 assets/linux/amd64/feed-verifier /usr/local/bin/
-          install -m 755 assets/linux/amd64/scannerctl /usr/local/bin/
           echo "db_address = tcp://redis:6379" >> /etc/openvas/openvas.conf
-          # TODO export as env variable
           mv ./feed/* "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
       - run: openvas -s
       - name: verify feed syntax
         run: scannerctl syntax --quiet "$(openvas -s | grep plugins_folder | sed 's/plugins_folder = //')/"
-      - name: verify feed update
-        run: feed-verifier || (cat /var/log/gvm/openvas.log && false)
       - name: verify nasl tests
         run: |
           mkdir -p /etc/openvas

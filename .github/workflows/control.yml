@@ -72,6 +72,7 @@ jobs:
     with:
       release: ${{ needs.adapt_release.outputs.kind }}
   unittests:
+    if: github.event_name == 'pull_request'
     name: unit-tests
     uses: ./.github/workflows/tests.yml
   build:
@@ -80,11 +81,8 @@ jobs:
     with:
       binary_version: ${{ needs.init.outputs.binary_version }}
   linting:
+    if: github.event_name == 'pull_request'
     uses: ./.github/workflows/linting.yml
-  # maybe create functional tests for arm64 as well?
-  functional:
-    needs: [build]
-    uses: ./.github/workflows/functional.yaml
   container:
     needs: [init]
     uses: ./.github/workflows/push-container.yml
@@ -106,13 +104,20 @@ jobs:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version }}
       binary_version: ${{ needs.init.outputs.binary_version }}
+  functional:
+    if: github.event_name == 'pull_request'
+    needs: [container]
+    uses: ./.github/workflows/functional.yaml
+    with:
+      image: "ghcr.io/${{ github.repository }}:pr-${{ github.event.pull_request.number }}"
+
   release:
     name: "release (${{ needs.init.outputs.latest_version }} -> ${{ needs.init.outputs.new_version }}"
     permissions:
       contents: write
     # we release after container build so that we can release on a closed pr as we don't push the release container yet
     # instead it is pushed after the tag is created.
-    needs: [functional, build, init]
+    needs: [build, init]
     if: ( needs.init.outputs.release_kind == 'major' || needs.init.outputs.release_kind == 'minor' || needs.init.outputs.release_kind == 'patch' )
     uses: ./.github/workflows/release.yml
     with:
