@@ -7,11 +7,9 @@ use std::collections::HashMap;
 use greenbone_scanner_framework::models::{NotusResults, VulnerablePackage};
 use tracing::debug;
 
-use crate::feed::VerifyError;
-
 use super::{
     error::Error,
-    loader::{FeedStamp, ProductLoader},
+    loader::ProductLoader,
     packages::Package,
     vts::{Product, VulnerabilityTests},
 };
@@ -25,44 +23,26 @@ use super::{
 ///
 /// Notus will cache loaded products to increase speed for repeated scans of the same systems and
 /// automatically updates the cache, when the according file changes.
-#[derive(Debug)]
-pub struct Notus<L>
-where
-    L: ProductLoader,
-{
-    loader: L,
-    loaded_products: HashMap<String, (Product, FeedStamp)>,
-    signature_check: bool,
+pub struct Notus {
+    loader: ProductLoader,
 }
 
-impl<L> Notus<L>
-where
-    L: ProductLoader,
-{
+impl Notus {
     /// Create a new Notus instance based on the given loader.
-    pub fn new(loader: L, signature_check: bool) -> Self {
-        Notus {
-            loader,
-            loaded_products: Default::default(),
-            signature_check,
-        }
+    pub fn new(loader: ProductLoader) -> Self {
+        Notus { loader }
     }
 
-    fn load_new_product(&self, os: &str) -> Result<(Product, FeedStamp), Error> {
-        tracing::debug!(
-            root=?self.loader.root_path(),
-            os =?os,
-            "Loading notus product",
-        );
-        let (product, stamp) = self.loader.load_product(os)?;
+    fn load_product(&self, os: &str) -> Result<Product, Error> {
+        let product = self.loader.load_product(os)?;
 
-        match Product::try_from(product) {
-            Ok(adv) => Ok((adv, stamp)),
-            Err(Error::VulnerabilityTestParseError(_, pkg)) => {
-                Err(Error::VulnerabilityTestParseError(os.to_string(), pkg))
+        Product::try_from(product).map_err(|e| {
+            if let Error::VulnerabilityTestParseError(_, pkg) = e {
+                Error::VulnerabilityTestParseError(os.to_string(), pkg)
+            } else {
+                e
             }
-            Err(err) => Err(err),
-        }
+        })
     }
 
     fn parse<P: Package>(packages: &[String]) -> Result<Vec<P>, Error> {
@@ -125,55 +105,16 @@ where
         Ok(Self::compare(&packages, vts))
     }
 
-    fn signature_check(&self) -> Result<(), Error> {
-        if self.signature_check {
-            match self.loader.verify_signature() {
-                Ok(_) => tracing::trace!("Signature check successful"),
-                Err(VerifyError::MissingKeyring) => {
-                    tracing::warn!("Signature check enabled but missing keyring");
-                    return Err(Error::SignatureCheckError(VerifyError::MissingKeyring));
-                }
-                Err(VerifyError::BadSignature(e)) => {
-                    tracing::warn!("{}", e);
-                    return Err(Error::SignatureCheckError(VerifyError::BadSignature(e)));
-                }
-                Err(e) => {
-                    tracing::warn!("Unexpected error during signature verification: {e}");
-                    return Err(Error::HashsumLoadError(e));
-                }
-            }
-        }
-        Ok(())
-    }
-
     /// Start a scan of a system given its Operating System as a string and a list of installed
     /// packages. The list of installed packages must also contain their versions. On success a list
     /// of vulnerable packages, including their fixed versions is returned.
     pub fn scan(&mut self, os: &str, packages: &[String]) -> Result<NotusResults, Error> {
-        // Load product if not loaded
-        let product = match self.loaded_products.get(os) {
-            Some((adv, stamp)) => {
-                if self.loader.has_changed(os, stamp) {
-                    self.signature_check()?;
-                    self.loaded_products.remove(os);
-                    self.loaded_products
-                        .insert(os.to_string(), self.load_new_product(os)?);
-                    &self.loaded_products[&os.to_string()].0
-                } else {
-                    adv
-                }
-            }
-            None => {
-                self.signature_check()?;
-                self.loaded_products
-                    .insert(os.to_string(), self.load_new_product(os)?);
-                &self.loaded_products[&os.to_string()].0
-            }
-        };
+        let product = self.load_product(os)?;
+
         tracing::trace!(os, packages = packages.len(), "products known.");
 
         // Parse and compare package list depending on package type of loaded product
-        let results = match product {
+        let results = match &product {
             Product::Deb(adv) => Self::parse_and_compare(packages, adv)?,
             Product::EBuild(adv) => Self::parse_and_compare(packages, adv)?,
             Product::Rpm(adv) => Self::parse_and_compare(packages, adv)?,
@@ -190,7 +131,6 @@ where
     /// Get the list of available products. These are the supported Operating Systems, that can be
     /// used for a `scan`
     pub fn get_available_os(&self) -> Result<Vec<String>, Error> {
-        self.signature_check()?;
         self.loader.get_products()
     }
 }

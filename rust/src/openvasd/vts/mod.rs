@@ -8,7 +8,7 @@ use std::{
 use greenbone_scanner_framework::{GetVTsError, StreamResult};
 use scannerlib::Promise;
 use scannerlib::nasl::syntax::Loader;
-use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
+use scannerlib::notus::advisory_loader;
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
     notus::advisories::VulnerabilityData,
@@ -33,7 +33,6 @@ pub struct FeedHash {
 
 pub type FeedHashes = (String, String);
 
-//TODO: move somewhere reusable if necessary
 fn sumfile_hash<S>(path: S) -> Result<String, scannerlib::feed::VerifyError>
 where
     S: AsRef<Path> + Clone + std::fmt::Debug + Sync + Send,
@@ -212,26 +211,26 @@ where
     synchronize_json::<_, VulnerabilityData, _>(ps, &hash, move |sender| {
         let loader = Loader::from_feed_path(&path);
         let advisories_files =
-            HashsumAdvisoryLoader::new(loader.clone()).map_err(error_vts_error)?;
-        for filename in advisories_files
-            .get_advisories()
-            .map_err(error_vts_error)?
-            .iter()
-        {
-            let advisories = advisories_files
-                .load_advisory(filename, signature_check)
-                .map_err(error_vts_error)?;
-            for adv in advisories.advisories {
-                let data = VulnerabilityData {
-                    adv,
-                    family: advisories.family.clone(),
-                    filename: filename.to_owned(),
-                };
+            advisory_loader(signature_check, &loader).map_err(error_vts_error)?;
+        for result in advisories_files {
+            match result {
+                Ok(x) => {
+                    for adv in x.advisories.advisories {
+                        let data = VulnerabilityData {
+                            adv,
+                            family: x.advisories.family.clone(),
+                            filename: x.filename.to_owned(),
+                        };
 
-                if sender.send(data).is_err() {
-                    break;
+                        if sender.send(data).is_err() {
+                            break;
+                        }
+                    }
                 }
-            }
+                Err(error) => {
+                    tracing::warn!(%error, "Unable to load advisories_file. Skipping.")
+                }
+            };
         }
         Ok(())
     })

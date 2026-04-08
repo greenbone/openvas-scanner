@@ -7,7 +7,7 @@ mode = 'service'
 [feed]
 path = '/var/lib/openvas/plugins'
 check_interval = '3600s'
-signature_check = false
+signature_check = true
 
 [notus]
 products_path = '/var/lib/notus/products'
