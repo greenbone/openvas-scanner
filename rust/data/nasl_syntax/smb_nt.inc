@@ -368,7 +368,7 @@ function smb_recv( socket ) {
     len = strlen( decrypt );
     header += raw_string( 0x00, len/256, len%256 );
 
-    # Make the decrpyted part the trailer of the packet.
+    # Make the decrypted part the trailer of the packet.
     trailer = decrypt;
 
   }
