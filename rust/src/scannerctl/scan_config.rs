@@ -93,11 +93,12 @@ async fn execute(
     };
     let mut vts = HashSet::new();
     let mut scan_prefs = Vec::new();
-    for a in config.iter().map(|f| {
-        as_bufreader(f)
-            .and_then(|r| parse_vts(r, storage.as_ref(), &scan.vts).map_err(|e| map_error(f, e)))
-    }) {
-        match a {
+    for f in config.iter() {
+        let reader = as_bufreader(f).unwrap();
+        let result = parse_vts(reader, storage.as_ref(), &scan.vts)
+            .await
+            .map_err(|e| map_error(f, e));
+        match result {
             Ok(r) => {
                 vts.extend(r.vts_list);
                 scan_prefs.extend(r.scan_preferences);
@@ -296,7 +297,7 @@ struct VtsScanPrefs {
     pub scan_preferences: Vec<ScanPreference>,
 }
 
-fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<VtsScanPrefs, Error>
+async fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<VtsScanPrefs, Error>
 where
     R: BufRead,
 {
@@ -338,113 +339,87 @@ where
     };
 
     let clone_oid = |oid: &String| -> String { oid.clone() };
-    let excluded: Vec<String> = result
-        .nvt_selectors
-        .nvt_selector
-        .iter()
-        .flat_map(|s| {
-            if s.nvt_type == 2 && s.include == 0 {
-                vec![s.family_or_nvt.clone()]
-            } else if s.nvt_type == 1 && s.include == 0 {
-                let f: Vec<String> = match retriever.retrieve(&Feed) {
-                    Ok(Some(vts)) => {
-                        let excl: Vec<String> = vts
-                            .iter()
-                            .filter(|x| x.family == s.family_or_nvt)
-                            .map(|x| clone_oid(&x.oid))
-                            .collect();
-                        excl
-                    }
-                    Ok(None) => vec![],
-                    Err(_) => vec![],
-                };
-                f
-            } else {
-                vec![]
-            }
-        })
-        .collect();
+    let mut excluded: Vec<String> = vec![];
+    for s in result.nvt_selectors.nvt_selector.iter() {
+        if s.nvt_type == 2 && s.include == 0 {
+            excluded.push(s.family_or_nvt.clone());
+        } else if s.nvt_type == 1
+            && s.include == 0
+            && let Ok(Some(vts)) = retriever.retrieve(&Feed).await
+        {
+            excluded.extend(
+                vts.iter()
+                    .filter(|x| x.family == s.family_or_nvt)
+                    .map(|x| clone_oid(&x.oid)),
+            );
+        }
+    }
     tracing::debug!("Excluded {} oids", excluded.len());
 
     let is_not_already_present = |oid: &String| -> bool { !vts.iter().any(|vt| vt.oid == *oid) };
     let is_not_excluded = |oid: &String| -> bool { !excluded.iter().any(|vt| vt == oid) };
-
     let vt_list: Result<Vec<VT>, Error> = if !result.nvt_selectors.nvt_selector.is_empty() {
-        result
-            .nvt_selectors
-            .nvt_selector
-            .iter()
-            .flat_map(|s| {
-                //is an oid
-                if s.nvt_type == 2 {
-                    if is_not_already_present(&s.family_or_nvt) {
-                        vec![oid_to_vt(&s.family_or_nvt)]
-                    } else {
-                        vec![]
-                    }
-                    //is a family
-                } else if s.nvt_type == 1 {
-                    // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
-                    // feed, the result will be an empty vector.
-                    match retriever.retrieve(&Feed) {
-                        Ok(Some(vts)) => {
-                            if s.family_or_nvt.is_empty() {
-                                let oids: Vec<_> = vts
-                                    .iter()
-                                    .filter(|x| is_not_already_present(&x.oid))
-                                    .map(|x| oid_to_vt(&x.oid))
-                                    .collect();
-                                tracing::debug!("found {} nvt entries", oids.len(),);
-                                oids
-                            } else {
-                                let fvts: Vec<_> = vts
-                                    .clone()
-                                    .into_iter()
-                                    .filter(|x| {
-                                        x.family == s.family_or_nvt
-                                            && is_not_already_present(&x.oid)
-                                            && is_not_excluded(&x.oid)
-                                    })
-                                    .map(|x| oid_to_vt(&x.oid))
-                                    .collect();
-                                tracing::debug!(
-                                    "found {} nvt entries for family {}",
-                                    fvts.len(),
-                                    s.family_or_nvt
-                                );
-                                fvts
-                            }
-                        }
-                        Ok(None) => vec![],
-                        Err(e) => vec![Err(e.into())],
-                    }
-                    //a whole family
-                } else {
-                    // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
-                    // feed, the result will be an empty vector.
-                    match retriever.retrieve(&Feed) {
-                        Ok(Some(vts)) => {
+        let mut items: Vec<Result<VT, Error>> = Vec::new();
+        for s in result.nvt_selectors.nvt_selector.iter() {
+            if s.nvt_type == 2 {
+                if is_not_already_present(&s.family_or_nvt) {
+                    items.push(oid_to_vt(&s.family_or_nvt));
+                }
+            } else if s.nvt_type == 1 {
+                match retriever.retrieve(&Feed).await {
+                    Ok(Some(vts)) => {
+                        if s.family_or_nvt.is_empty() {
                             let oids: Vec<_> = vts
                                 .iter()
-                                .filter(|x| x.oid == s.family_or_nvt || s.family_or_nvt.is_empty())
-                                .filter(|x| {
-                                    is_not_excluded(&x.oid) && is_not_already_present(&x.oid)
-                                })
+                                .filter(|x| is_not_already_present(&x.oid))
                                 .map(|x| oid_to_vt(&x.oid))
                                 .collect();
                             tracing::debug!("found {} nvt entries", oids.len(),);
-                            oids
+                            items.extend(oids);
+                        } else {
+                            let fvts: Vec<_> = vts
+                                .clone()
+                                .into_iter()
+                                .filter(|x| {
+                                    x.family == s.family_or_nvt
+                                        && is_not_already_present(&x.oid)
+                                        && is_not_excluded(&x.oid)
+                                })
+                                .map(|x| oid_to_vt(&x.oid))
+                                .collect();
+                            tracing::debug!(
+                                "found {} nvt entries for family {}",
+                                fvts.len(),
+                                s.family_or_nvt
+                            );
+                            items.extend(fvts);
                         }
-                        Ok(None) => {
-                            unreachable!();
-                        }
-                        Err(e) => vec![Err(e.into())],
                     }
+                    Ok(None) => {}
+                    Err(e) => items.push(Err(e.into())),
                 }
-            })
-            .collect()
+            } else {
+                match retriever.retrieve(&Feed).await {
+                    Ok(Some(vts)) => {
+                        let oids: Vec<_> = vts
+                            .iter()
+                            .filter(|x| x.oid == s.family_or_nvt || s.family_or_nvt.is_empty())
+                            .filter(|x| is_not_excluded(&x.oid) && is_not_already_present(&x.oid))
+                            .map(|x| oid_to_vt(&x.oid))
+                            .collect();
+                        tracing::debug!("found {} nvt entries", oids.len(),);
+                        items.extend(oids);
+                    }
+                    Ok(None) => {
+                        unreachable!();
+                    }
+                    Err(e) => items.push(Err(e.into())),
+                }
+            }
+        }
+        items.into_iter().collect()
     } else {
-        match retriever.retrieve(&Feed) {
+        match retriever.retrieve(&Feed).await {
             Ok(Some(vts)) => {
                 let oids: Vec<_> = vts
                     .iter()
@@ -525,8 +500,8 @@ mod tests {
         assert_eq!(result[2].range.len(), 1);
     }
 
-    #[test]
-    fn parse_scanconfig() {
+    #[tokio::test]
+    async fn parse_scanconfig() {
         let sc = r#"
         <config id="8715c877-47a0-438d-98a3-27c7a6ab2196">
   <name>Discovery</name>
@@ -579,9 +554,9 @@ mod tests {
         let result = quick_xml::de::from_str::<ScanConfig>(sc).unwrap();
         assert_eq!(result.nvt_selectors.nvt_selector.len(), 2);
         assert_eq!(result.preferences.preference.len(), 3);
-        let shop: InMemoryStorage = InMemoryStorage::default();
-        let add_product_detection = |oid: &str| {
-            shop.dispatch(
+        let d: InMemoryStorage = InMemoryStorage::default();
+        async fn add_product_detection(d: &InMemoryStorage, oid: &str) {
+            d.dispatch(
                 FileName(oid.to_string()),
                 VTData {
                     oid: oid.to_string(),
@@ -590,18 +565,19 @@ mod tests {
                     ..Default::default()
                 },
             )
+            .await
             .unwrap();
-        };
-        add_product_detection("1");
-        add_product_detection("2");
-        add_product_detection("4");
-        add_product_detection("5");
+        }
+        add_product_detection(&d, "1").await;
+        add_product_detection(&d, "2").await;
+        add_product_detection(&d, "4").await;
+        add_product_detection(&d, "5").await;
         let exists = vec![scannerlib::models::VT {
             oid: "1".to_string(),
             parameters: vec![],
         }];
 
-        let result = super::parse_vts(sc.as_bytes(), &shop, &exists).unwrap();
+        let result = super::parse_vts(sc.as_bytes(), &d, &exists).await.unwrap();
         assert_eq!(result.vts_list.len(), 4);
     }
 }

@@ -79,7 +79,7 @@ use endpoints::scans::Scans;
 //TODO: move endpoints to openvasd?
 use endpoints::vts::VTEndpoints;
 
-use scannerlib::notus::{HashsumProductLoader, Notus};
+use scannerlib::notus::Notus;
 
 use crate::{
     container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
@@ -88,7 +88,7 @@ use crate::{
 pub async fn init(
     vt_pool: DataBase,
     feed_state: Arc<RwLock<FeedState>>,
-    products: Arc<tokio::sync::RwLock<Notus<HashsumProductLoader>>>,
+    products: Arc<tokio::sync::RwLock<Notus>>,
     config: Config,
 ) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
     let pool = config
@@ -97,7 +97,7 @@ pub async fn init(
         .await?;
     MIGRATOR.run(&pool).await?;
 
-    let (sender, scheduler) = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
+    let scheduler = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
         config.into(),
         pool.clone(),
         products,
@@ -106,10 +106,7 @@ pub async fn init(
         scheduler.run::<AllTypes>().await;
     });
 
-    let scan = Scans {
-        pool,
-        scheduling: sender,
-    };
+    let scan = Scans { pool };
     let vts = VTEndpoints::new(
         SqlPluginStorage::from(vt_pool),
         feed_state,

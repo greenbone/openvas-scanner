@@ -330,7 +330,7 @@ fn str_to_int(s: &str) -> i64 {
 /// 1st positional argument: string in which the replacement takes place.
 /// 2nd positional argument: string to replace the substring in the 1st argument with
 /// 3rd positional argument: start index in the original string at which to perform the replacement
-/// 4rd positional argument (optional): end index in the original string at which to perform the replacement.
+/// 4th positional argument (optional): end index in the original string at which to perform the replacement.
 #[nasl_function]
 fn insstr(
     s: NaslValue,

@@ -29,6 +29,9 @@ pub struct Feed {
         serialize_with = "scannerlib::utils::duration::serialize"
     )]
     pub check_interval: Duration,
+
+    // TODO: rename to feed_integrity_check and tell serde to accept:
+    // signature_check as weel as feed_integrity_check.
     pub signature_check: bool,
 }
 
@@ -130,7 +133,7 @@ impl Default for Feed {
         Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
             check_interval: Duration::from_secs(3600),
-            signature_check: false,
+            signature_check: true,
         }
     }
 }
@@ -329,6 +332,8 @@ pub struct Config {
     pub scanner: Scanner,
     #[serde(alias = "container-image-scanner")]
     pub container_image_scanner: crate::container_image_scanner::Config,
+    #[serde(skip)]
+    pub version: bool,
 }
 
 impl Display for Config {
@@ -414,9 +419,8 @@ impl Config {
                     .long("feed-signature-check")
                     .short('x')
                     .action(ArgAction::SetTrue)
-                    .help("Enable feed signature check"),
+                    .help("Deprecated. To enable or disable feed signature use the configuration."),
             )
-
             .arg(
                 clap::Arg::new("feed-check-interval")
                     .env("FEED_CHECK_INTERVAL")
@@ -604,6 +608,12 @@ impl Config {
                     .help("Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR"),
             )
             .arg(
+                clap::Arg::new("version")
+                    .long("version")
+                    .action(ArgAction::SetTrue)
+                    .help("Show openvasd version and exit."),
+            )
+            .arg(
                 clap::Arg::new("mode")
                     .env("OPENVASD_MODE")
                     .long("mode")
@@ -685,6 +695,9 @@ impl Config {
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-scans") {
             config.endpoints.enable_get_scans = *enable;
+        }
+        if let Some(version) = cmds.get_one::<bool>("version") {
+            config.version = *version;
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-performance") {
             config.endpoints.enable_get_performance = Some(*enable);

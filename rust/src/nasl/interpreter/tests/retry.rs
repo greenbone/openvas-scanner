@@ -15,7 +15,7 @@ impl Counter {
     fn check_and_increment(&mut self) -> Result<usize, FnError> {
         self.count += 1;
         if self.count < 3 {
-            // Return a dummy error, it doesnt matter what it is.
+            // Return a dummy error, it does not matter what it is.
             Err(FnError::from(ArgumentError::WrongArgument("test".into())))
         } else {
             Ok(self.count)

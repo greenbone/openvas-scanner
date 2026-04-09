@@ -2160,7 +2160,7 @@ nasl_smb3kdf (lex_ctxt *lexic)
 
   // Prepare buffer as in [SP800-108] section 5.1
   // [i]2 || Label || 0x00 || Context || [L]2
-  // [i]2 is the binary presentation of the iteration. Allways 1
+  // [i]2 is the binary presentation of the iteration. Always 1
   // Label is given by caller
   // 0x00 is a byte set to 0
   // Context is given by caller

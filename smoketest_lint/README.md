@@ -4,8 +4,8 @@ Contains a bunch of predefined nasl finds which are used by a go program to test
 
 To build and run the tests a Makefile is provided:
 - make build - builds the file `run` in the root directory
-- make run - runs the program `run` builded with `make build`
-- make clean - removes the builded program `run`
+- make run - runs the program `run` built with `make build`
+- make clean - removes the built program `run`
 - make all - automatically builds, runs and cleans
 
 To verify in your local environment you need to have `go` installed:

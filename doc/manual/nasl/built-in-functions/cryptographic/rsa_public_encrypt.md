@@ -16,7 +16,7 @@ Encrypts provided data with the public RSA key given by e and n. Returns the enc
 - pad: when true it is using padding\
 - data: the data to encrypt
 - e: part of the public rsa key
-- n: part of the public rsa ket
+- n: part of the public rsa key
 
 
 ## RETURN VALUE

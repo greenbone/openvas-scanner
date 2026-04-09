@@ -4,7 +4,15 @@
 //! requires client-id/api-key and adds all required header information for each
 //! response.
 
-use std::{convert::Infallible, fmt::Display, pin::Pin, sync::Arc};
+use std::{
+    convert::Infallible,
+    fmt::Display,
+    pin::Pin,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+};
 pub mod response;
 
 use hyper::{StatusCode, header::HeaderValue};
@@ -247,8 +255,8 @@ pub struct EntryPoint {
     scanner: Arc<super::Scanner>,
     handlers: Arc<RequestHandlers>,
     client_identifier: Arc<ClientIdentifier>,
-    current_connections: usize,
     max_connections: usize,
+    counter: Arc<AtomicUsize>,
 }
 
 impl EntryPoint {
@@ -257,14 +265,14 @@ impl EntryPoint {
         client_identifier: Arc<ClientIdentifier>,
         handlers: Arc<RequestHandlers>,
         max_connections: usize,
-        current_connections: usize,
+        counter: Arc<AtomicUsize>,
     ) -> EntryPoint {
         EntryPoint {
+            max_connections,
             scanner,
             client_identifier,
             handlers,
-            current_connections,
-            max_connections,
+            counter,
         }
     }
 }
@@ -334,10 +342,11 @@ where
             .header("api-version", &cbs.api_version)
             .header("feed-version", &feed_version);
         let incoming = self.handlers.clone();
-        let too_many_connection = self.current_connections > self.max_connections;
 
+        let acc = self.counter.clone();
+        let max_connections = self.max_connections;
         Box::pin(async move {
-            if too_many_connection {
+            if acc.load(Ordering::Relaxed) > max_connections {
                 tracing::trace!("Too many open connections, returning 503");
                 return Ok(rb
                     .header("Retry-After", 10)
@@ -345,6 +354,9 @@ where
                     .body(BodyKindContent::Empty)
                     .unwrap());
             }
+
+            let current = acc.fetch_add(1, Ordering::Relaxed);
+            tracing::trace!(current, max_connections, "handling request");
             let resp = incoming.call(cid, req).await;
             let rb = match &resp.content {
                 BodyKindContent::Empty => rb,
@@ -353,6 +365,8 @@ where
                     .header("Content-Length", x.len()),
                 BodyKindContent::BinaryStream(_) => rb.header("Content-Type", "application/json"),
             };
+            let current = acc.fetch_sub(1, Ordering::Relaxed);
+            tracing::trace!(current, max_connections, "releasing request");
 
             Ok(rb.status(resp.status_code).body(resp.content).unwrap())
         })
@@ -418,7 +432,7 @@ pub mod test_utilities {
             None => ClientIdentifier::Unknown,
         });
         let ir = Arc::new(handlers);
-        EntryPoint::new(configuration, client_identifier, ir, 10, 1)
+        EntryPoint::new(configuration, client_identifier, ir, 10, Default::default())
     }
 
     pub fn empty_request(method: Method, uri: &str) -> Request<Empty<Bytes>> {

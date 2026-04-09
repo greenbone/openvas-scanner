@@ -14,7 +14,7 @@ use scannerlib::models;
 use scannerlib::nasl::nasl_std_functions;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::scan_ctx::NotusCtx;
-use scannerlib::notus::{HashsumProductLoader, Notus};
+use scannerlib::notus::{Notus, ProductLoader};
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::scanner::{Scan, ScanRunner};
 use scannerlib::scheduling::Scheduler;
@@ -108,9 +108,10 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
     updater.perform_update().await?;
 
     let vts_cloned = scan.vts.clone();
-    let scheduler = Scheduler::new(storage.as_ref());
+    let scheduler = Scheduler::new(storage.clone());
     let schedule = scheduler
         .execution_plan(&vts_cloned)
+        .await
         .expect("expected to be schedulable");
     info!("creating scheduling plan");
     if args.schedule_only {
@@ -131,8 +132,8 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
         let notus = args.notus.map(|x| match x {
             NotusArgs::Address(addr) => NotusCtx::Address(addr),
             NotusArgs::Internal(path) => NotusCtx::Direct(Arc::new(Mutex::new(Notus::new(
-                HashsumProductLoader::new(Loader::from_feed_path(path)),
-                false,
+                // we don't require a correctly setup feed for scannerctl
+                ProductLoader::new(false, Loader::from_feed_path(path)),
             )))),
         });
         let runner: ScanRunner<Arc<InMemoryStorage>> =
@@ -164,8 +165,8 @@ async fn script(args: ScriptArgs) -> Result<(), CliError> {
     let notus = args.notus.map(|x| match x {
         NotusArgs::Address(addr) => NotusCtx::Address(addr),
         NotusArgs::Internal(path) => NotusCtx::Direct(Arc::new(Mutex::new(Notus::new(
-            HashsumProductLoader::new(Loader::from_feed_path(path)),
-            false,
+            // scannerctl doesn't require a proper feed
+            ProductLoader::new(false, Loader::from_feed_path(path)),
         )))),
     });
     let scan_preferences = ScanPrefs::new()

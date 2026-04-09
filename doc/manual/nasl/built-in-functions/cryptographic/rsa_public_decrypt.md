@@ -15,7 +15,7 @@ Decrypts provided sig with the public RSA key given by e and n. Returns the decr
 
 - sign: the data to encrypt
 - e: part of the public rsa key
-- n: part of the public rsa ket
+- n: part of the public rsa key
 
 
 ## RETURN VALUE

@@ -40,6 +40,6 @@ for dir in ${dirs[@]}; do
 	fi
 	chown -R user:$group_name $dir
 done
-# allow user to run sudo without password since it is intented as development 
+# allow user to run sudo without password since it is intended as development 
 # container it is assumed that the user wants to install or manipulate the container
 echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/user

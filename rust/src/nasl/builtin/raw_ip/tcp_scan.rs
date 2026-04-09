@@ -443,54 +443,74 @@ struct PortResult {
     read_time: Option<Duration>,
 }
 
-fn set_rtt_stats(context: &ScanCtx<'_>, stat: &RttStats, rtt_type: &str) -> Result<(), FnError> {
+async fn set_rtt_stats(
+    context: &ScanCtx<'_>,
+    stat: &RttStats,
+    rtt_type: &str,
+) -> Result<(), FnError> {
     if stat.count == 0 {
         return Ok(());
     }
 
     // Unwrapping the mean is safe here since count > 0
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::MeanRTT(rtt_type.to_string())),
-        KbItem::String(format!("{:.6}", stat.mean().unwrap().as_secs_f64())),
-    )?;
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::MeanRTT1000(rtt_type.to_string())),
-        KbItem::Number(stat.mean().unwrap().as_millis() as i64),
-    )?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::MeanRTT(rtt_type.to_string())),
+            KbItem::String(format!("{:.6}", stat.mean().unwrap().as_secs_f64())),
+        )
+        .await?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::MeanRTT1000(rtt_type.to_string())),
+            KbItem::Number(stat.mean().unwrap().as_millis() as i64),
+        )
+        .await?;
 
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::MaxRTT(rtt_type.to_string())),
-        KbItem::String(format!("{:.6}", stat.max.as_secs_f64())),
-    )?;
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::MaxRTT1000(rtt_type.to_string())),
-        KbItem::Number(stat.max.as_millis() as i64),
-    )?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::MaxRTT(rtt_type.to_string())),
+            KbItem::String(format!("{:.6}", stat.max.as_secs_f64())),
+        )
+        .await?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::MaxRTT1000(rtt_type.to_string())),
+            KbItem::Number(stat.max.as_millis() as i64),
+        )
+        .await?;
 
     if stat.count == 1 {
         return Ok(());
     }
 
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::SDRTT(rtt_type.to_string())),
-        KbItem::String(format!("{:.6}", stat.std_dev().unwrap())),
-    )?;
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::SDRTT1000(rtt_type.to_string())),
-        KbItem::Number((stat.std_dev().unwrap() * 1000.0) as i64),
-    )?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::SDRTT(rtt_type.to_string())),
+            KbItem::String(format!("{:.6}", stat.std_dev().unwrap())),
+        )
+        .await?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::SDRTT1000(rtt_type.to_string())),
+            KbItem::Number((stat.std_dev().unwrap() * 1000.0) as i64),
+        )
+        .await?;
 
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::EstimatedMaxRTT(rtt_type.to_string())),
-        KbItem::String(format!(
-            "{:.6}",
-            stat.estimated_max().unwrap().as_secs_f64()
-        )),
-    )?;
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::EstimatedMaxRTT1000(rtt_type.to_string())),
-        KbItem::Number(stat.estimated_max().unwrap().as_millis() as i64),
-    )?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::EstimatedMaxRTT(rtt_type.to_string())),
+            KbItem::String(format!(
+                "{:.6}",
+                stat.estimated_max().unwrap().as_secs_f64()
+            )),
+        )
+        .await?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::EstimatedMaxRTT1000(rtt_type.to_string())),
+            KbItem::Number(stat.estimated_max().unwrap().as_millis() as i64),
+        )
+        .await?;
 
     Ok(())
 }
@@ -537,27 +557,39 @@ async fn plugin_run_openvas_tcp_scanner(context: &ScanCtx<'_>) -> Result<(), FnE
     let results = scanner.scan().await.unwrap();
 
     // Store results in context
-    context.set_kb_item(KbKey::Host(Host::Tcp), KbItem::Boolean(true))?;
-    context.set_kb_item(KbKey::Host(Host::TcpScanned), KbItem::Boolean(true))?;
+    context
+        .set_kb_item(KbKey::Host(Host::Tcp), KbItem::Boolean(true))
+        .await?;
+    context
+        .set_kb_item(KbKey::Host(Host::TcpScanned), KbItem::Boolean(true))
+        .await?;
     for (port, time) in &results.connection_times {
-        context.set_kb_item(
-            KbKey::TcpScanner(kb::TcpScanner::CnxTime(*port)),
-            KbItem::Number(time.as_secs() as i64),
-        )?;
-        context.set_kb_item(
-            KbKey::TcpScanner(kb::TcpScanner::CnxTime1000(*port)),
-            KbItem::Number(time.as_millis() as i64),
-        )?;
+        context
+            .set_kb_item(
+                KbKey::TcpScanner(kb::TcpScanner::CnxTime(*port)),
+                KbItem::Number(time.as_secs() as i64),
+            )
+            .await?;
+        context
+            .set_kb_item(
+                KbKey::TcpScanner(kb::TcpScanner::CnxTime1000(*port)),
+                KbItem::Number(time.as_millis() as i64),
+            )
+            .await?;
     }
     for (port, time) in &results.banner_read_times {
-        context.set_kb_item(
-            KbKey::TcpScanner(kb::TcpScanner::RwTime(*port)),
-            KbItem::Number(time.as_secs() as i64),
-        )?;
-        context.set_kb_item(
-            KbKey::TcpScanner(kb::TcpScanner::RwTime1000(*port)),
-            KbItem::Number(time.as_millis() as i64),
-        )?;
+        context
+            .set_kb_item(
+                KbKey::TcpScanner(kb::TcpScanner::RwTime(*port)),
+                KbItem::Number(time.as_secs() as i64),
+            )
+            .await?;
+        context
+            .set_kb_item(
+                KbKey::TcpScanner(kb::TcpScanner::RwTime1000(*port)),
+                KbItem::Number(time.as_millis() as i64),
+            )
+            .await?;
     }
 
     for port in &results.open_ports {
@@ -565,50 +597,69 @@ async fn plugin_run_openvas_tcp_scanner(context: &ScanCtx<'_>) -> Result<(), FnE
             // No need for BannerHex in rust anymore, as it was only needed, if the Banner contained
             // a \0, which ends a string in c. But in rust a \0 is just ignored in a String.
             // context.set_kb_item(KbKey::BannerHex(*port), KbItem::String(hex::encode(banner)))?;
-            context.set_kb_item(
-                KbKey::Banner(*port),
-                KbItem::String(String::from_utf8_lossy(banner).to_string()),
-            )?;
+            context
+                .set_kb_item(
+                    KbKey::Banner(*port),
+                    KbItem::String(String::from_utf8_lossy(banner).to_string()),
+                )
+                .await?;
         } else {
-            context.set_kb_item(KbKey::TmpNoBanner(*port), KbItem::Boolean(true))?;
+            context
+                .set_kb_item(KbKey::TmpNoBanner(*port), KbItem::Boolean(true))
+                .await?;
         }
     }
 
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::NbPasses),
-        KbItem::Number(results.passes as i64),
-    )?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::NbPasses),
+            KbItem::Number(results.passes as i64),
+        )
+        .await?;
 
-    set_rtt_stats(context, &results.rtt_stats[0], "unfiltered")?;
-    set_rtt_stats(context, &results.rtt_stats[1], "open")?;
-    set_rtt_stats(context, &results.rtt_stats[2], "closed")?;
+    set_rtt_stats(context, &results.rtt_stats[0], "unfiltered").await?;
+    set_rtt_stats(context, &results.rtt_stats[1], "open").await?;
+    set_rtt_stats(context, &results.rtt_stats[2], "closed").await?;
 
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::OpenPortsNb),
-        KbItem::Number(results.open_ports.len() as i64),
-    )?;
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::ClosedPortsNb),
-        KbItem::Number(results.closed_ports.len() as i64),
-    )?;
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::FilteredPortsNb),
-        KbItem::Number(results.filtered_ports.len() as i64),
-    )?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::OpenPortsNb),
+            KbItem::Number(results.open_ports.len() as i64),
+        )
+        .await?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::ClosedPortsNb),
+            KbItem::Number(results.closed_ports.len() as i64),
+        )
+        .await?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::FilteredPortsNb),
+            KbItem::Number(results.filtered_ports.len() as i64),
+        )
+        .await?;
 
-    context.set_kb_item(
-        KbKey::TcpScanner(kb::TcpScanner::RSTRateLimit),
-        KbItem::Boolean(results.rst_rate_limited),
-    )?;
+    context
+        .set_kb_item(
+            KbKey::TcpScanner(kb::TcpScanner::RSTRateLimit),
+            KbItem::Boolean(results.rst_rate_limited),
+        )
+        .await?;
 
-    context.set_kb_item(KbKey::Host(Host::FullScan), KbItem::Boolean(true))?;
-    context.set_kb_item(
-        KbKey::Host(Host::NumPortsScanned),
-        KbItem::Number(
-            (results.open_ports.len() + results.closed_ports.len() + results.filtered_ports.len())
-                as i64,
-        ),
-    )?;
+    context
+        .set_kb_item(KbKey::Host(Host::FullScan), KbItem::Boolean(true))
+        .await?;
+    context
+        .set_kb_item(
+            KbKey::Host(Host::NumPortsScanned),
+            KbItem::Number(
+                (results.open_ports.len()
+                    + results.closed_ports.len()
+                    + results.filtered_ports.len()) as i64,
+            ),
+        )
+        .await?;
 
     Ok(())
 }

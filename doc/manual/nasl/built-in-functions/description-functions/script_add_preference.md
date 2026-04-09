@@ -36,7 +36,7 @@ KB items as a list of key-value pairs or None if array size is 0
 
 ## ERRORS
 
- - Invalid id or not allowed id value. ID must be greather than 0. 
+ - Invalid id or not allowed id value. ID must be greater than 0. 
  - Argument error in the call to script_add_preference. No name nor type neither value.
  - Preference already exists.
  

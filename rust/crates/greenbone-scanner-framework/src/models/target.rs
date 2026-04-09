@@ -46,6 +46,7 @@ pub enum AliveTestMethods {
     Arp = 0x04,
     ConsiderAlive = 0x08,
     TcpSyn = 0x10,
+    HostDiscoveryIpv6 = 0x20,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -62,6 +63,7 @@ impl AsRef<str> for AliveTestMethods {
             AliveTestMethods::Arp => "arp",
             AliveTestMethods::ConsiderAlive => "consider_alive",
             AliveTestMethods::TcpSyn => "tcp_syn",
+            AliveTestMethods::HostDiscoveryIpv6 => "host_discovery_ipv6",
         }
     }
 }
@@ -76,6 +78,7 @@ impl TryFrom<u8> for AliveTestMethods {
             0x04 => Ok(AliveTestMethods::Arp),
             0x08 => Ok(AliveTestMethods::ConsiderAlive),
             0x10 => Ok(AliveTestMethods::TcpSyn),
+            0x20 => Ok(AliveTestMethods::HostDiscoveryIpv6),
             _ => Err(AliveTestMethodsError::InvalidValue(value)),
         }
     }
@@ -88,6 +91,7 @@ impl From<&str> for AliveTestMethods {
             "tcp_syn" => AliveTestMethods::TcpSyn,
             "icmp" => AliveTestMethods::Icmp,
             "arp" => AliveTestMethods::Arp,
+            "host_discovery_ipv6" => AliveTestMethods::HostDiscoveryIpv6,
             _ => AliveTestMethods::ConsiderAlive,
         }
     }
@@ -101,6 +105,7 @@ impl Display for AliveTestMethods {
             AliveTestMethods::Arp => write!(f, "arp"),
             AliveTestMethods::ConsiderAlive => write!(f, "consider_alive"),
             AliveTestMethods::TcpSyn => write!(f, "tcp_ping"),
+            AliveTestMethods::HostDiscoveryIpv6 => write!(f, "host_discovery_ipv6"),
         }
     }
 }

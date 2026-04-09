@@ -16,7 +16,7 @@ pub fn aes_cmac(key: &[u8], data: &[u8]) -> Result<NaslValue, FnError> {
     Ok(mac.finalize().into_bytes().to_vec().into())
 }
 
-/// NASL function to calculate CMAC wit AES128.
+/// NASL function to calculate CMAC with AES128.
 ///
 /// This function expects 2 named arguments key and data either in a string or data type.
 /// It is important to notice, that internally the CMAC algorithm is used and not, as the name

@@ -13,7 +13,7 @@ use scannerlib::nasl::WithErrorInfo;
 use scannerlib::nasl::syntax::LoadError;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::advisories::VulnerabilityData;
-use scannerlib::notus::{AdvisoryLoader, HashsumAdvisoryLoader};
+use scannerlib::notus::advisory_loader;
 use scannerlib::storage::Dispatcher;
 use scannerlib::storage::items::notus_advisory::NotusCache;
 use scannerlib::storage::redis::RedisAddAdvisory;
@@ -37,12 +37,12 @@ pub fn signature_error(e: impl std::fmt::Display) -> CliError {
         .with(Filename(Path::new(feed::Hasher::Sha256.sum_file())))
 }
 
-pub fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
+pub async fn run<S>(storage: S, path: PathBuf, signature_check: bool) -> Result<(), CliError>
 where
     S: NotusStorage,
 {
     let loader = Loader::from_feed_path(path);
-    let advisories_files = match HashsumAdvisoryLoader::new(loader.clone()) {
+    let advisories_files = match advisory_loader(signature_check, &loader) {
         Ok(loader) => loader,
         Err(_) => {
             return Err(CliErrorKind::LoadError(LoadError::Dirty(
@@ -52,42 +52,24 @@ where
         }
     };
 
-    if signature_check {
-        match advisories_files.verify_signature() {
-            Ok(_) => tracing::info!("Signature check successful"),
-            Err(feed::VerifyError::MissingKeyring) => {
-                tracing::warn!("Signature check enabled but missing keyring");
-                return Err(feed::VerifyError::MissingKeyring.into());
-            }
-            Err(feed::VerifyError::BadSignature(e)) => {
-                tracing::warn!("{}", e);
-                return Err(signature_error(e));
-            }
-            Err(e) => {
-                tracing::warn!("Unexpected error during signature verification: {e}");
-                return Err(signature_error(e));
-            }
-        }
-    }
-
     // Get the all products files and process
-    for filename in advisories_files.get_advisories().unwrap().iter() {
-        let advisories = advisories_files
-            .load_advisory(filename, signature_check)
-            .unwrap();
+    for entry in advisories_files {
+        let container = entry?;
 
-        for adv in advisories.advisories {
-            let _ = storage.dispatch(
-                (),
-                VulnerabilityData {
-                    adv,
-                    family: advisories.family.clone(),
-                    filename: filename.to_owned(),
-                },
-            );
+        for adv in container.advisories.advisories {
+            let _ = storage
+                .dispatch(
+                    (),
+                    VulnerabilityData {
+                        adv,
+                        family: container.advisories.family.clone(),
+                        filename: container.filename.clone(),
+                    },
+                )
+                .await;
         }
     }
-    let _ = storage.dispatch(NotusCache, ());
+    let _ = storage.dispatch(NotusCache, ()).await;
 
     Ok(())
 }

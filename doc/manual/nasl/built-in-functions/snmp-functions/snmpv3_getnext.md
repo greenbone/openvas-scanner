@@ -86,7 +86,7 @@ community = 'public';
 display("version 2c");
 ret = snmpv2c_get( port:port, oid:oid, protocol:protocol, community:community );
 display (ret, "\n");
-display("getnext version 2c . No OID (optional), because it was alredy stored during the last call with an oid\n");
+display("getnext version 2c . No OID (optional), because it was already stored during the last call with an oid\n");
 for (i = 0; i < 5; i++)
 {   
     ret = snmpv2c_getnext( port:port, protocol:protocol, community:community );
@@ -111,13 +111,13 @@ ret = snmpv3_get(port:port, protocol:"udp", username:user, oid:oid,
                   privproto:"aes");
 display (ret, "\n");
  
-display("getnext WITH oid (optinal)");
+display("getnext WITH oid (optional)");
 ret = snmpv3_getnext(port:port, protocol:"udp", username:user, oid:oid,
                   authpass:pass, authproto:"sha1", privpass:passph,
                   privproto:"aes");
 display (ret, "\n");
  
-display("getnext WITHOUT oid (which is optional. Using the last one from teh last call)");
+display("getnext WITHOUT oid (which is optional. Using the last one from the last call)");
 for (i = 0; i< 5; i++)
 {
         ret = snmpv3_getnext(port:port, protocol:"udp", username:user,

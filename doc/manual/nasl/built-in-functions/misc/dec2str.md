@@ -16,7 +16,7 @@ Converts a given number `num` to string.
 
 ## Returns
 
-A string represenation of the given number.
+A string representation of the given number.
 
 ## EXAMPLES
 

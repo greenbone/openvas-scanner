@@ -3,10 +3,7 @@ use std::{
     net::SocketAddr,
     path::PathBuf,
     pin::Pin,
-    sync::{
-        Arc, RwLock,
-        atomic::{AtomicUsize, Ordering},
-    },
+    sync::{Arc, RwLock, atomic::AtomicUsize},
 };
 
 use delete_scans_id::{DeleteScansId, DeleteScansIdHandler};
@@ -46,6 +43,7 @@ use get_health::{GetHealthAliveHandler, GetHealthReadyHandler, GetHealthStartedH
 pub mod models;
 mod post_scans;
 use models::FeedState;
+use once_cell::sync::Lazy;
 pub use post_scans::{PostScans, PostScansError};
 mod post_scans_id;
 mod tls;
@@ -397,25 +395,21 @@ async fn next_exit_signal(signals: &mut Signals) -> Option<i32> {
     }
 }
 
+static REQUEST_COUNTER: Lazy<Arc<AtomicUsize>> = Lazy::new(Default::default);
+
 fn make_service(
     scanner: Arc<Scanner>,
     handlers: Arc<RequestHandlers>,
     client_id: ClientIdentifier,
     max_connections: usize,
-    connection_counter: Arc<AtomicUsize>,
 ) -> entry::EntryPoint {
     entry::EntryPoint::new(
         scanner,
         Arc::new(client_id),
         handlers,
         max_connections,
-        connection_counter.fetch_add(1, Ordering::SeqCst),
+        REQUEST_COUNTER.clone(),
     )
-}
-
-fn release_connection(connection_counter: &Arc<AtomicUsize>) {
-    let released = connection_counter.fetch_sub(1, Ordering::SeqCst);
-    tracing::trace!(released, "released");
 }
 
 async fn run_accept_loop<F, Fut>(
@@ -458,7 +452,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
 
         let incoming = TcpListener::bind(&self.listener_address).await?;
         let handlers = Arc::new(self.handlers);
-        let connection_counter = Arc::new(AtomicUsize::new(0));
+
         let max_connections = self.max_concurrent_connections;
 
         if let Some(tls_config) = tls_config {
@@ -473,14 +467,12 @@ impl RuntimeBuilder<runtime_builder_states::End> {
             run_accept_loop(incoming, signals, {
                 let scanner = scanner.clone();
                 let handlers = handlers.clone();
-                let connection_counter = connection_counter.clone();
 
                 move |tcp_stream| {
                     let tls_acceptor = tls_acceptor.clone();
                     let identifier = identifier.clone();
                     let scanner = scanner.clone();
                     let handlers = handlers.clone();
-                    let connection_counter = connection_counter.clone();
 
                     async move {
                         let tls_stream = match tls_acceptor.accept(tcp_stream).await {
@@ -492,13 +484,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                         };
 
                         let cci = retrieve_and_reset_client_identifier(identifier);
-                        let service = make_service(
-                            scanner,
-                            handlers,
-                            cci,
-                            max_connections,
-                            connection_counter.clone(),
-                        );
+                        let service = make_service(scanner, handlers, cci, max_connections);
 
                         if let Err(err) = Builder::new(TokioExecutor::new())
                             .max_concurrent_streams(20)
@@ -507,8 +493,6 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                         {
                             tracing::debug!("failed to serve connection: {err:#}");
                         }
-
-                        release_connection(&connection_counter);
                     }
                 }
             })
@@ -521,12 +505,10 @@ impl RuntimeBuilder<runtime_builder_states::End> {
             run_accept_loop(incoming, signals, {
                 let scanner = scanner.clone();
                 let handlers = handlers.clone();
-                let connection_counter = connection_counter.clone();
 
                 move |tcp_stream| {
                     let scanner = scanner.clone();
                     let handlers = handlers.clone();
-                    let connection_counter = connection_counter.clone();
 
                     async move {
                         let service = make_service(
@@ -534,7 +516,6 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                             handlers,
                             ClientIdentifier::Unknown,
                             max_connections,
-                            connection_counter.clone(),
                         );
 
                         if let Err(err) = Builder::new()
@@ -543,8 +524,6 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                         {
                             tracing::debug!("failed to serve connection: {err:#}");
                         }
-
-                        release_connection(&connection_counter);
                     }
                 }
             })

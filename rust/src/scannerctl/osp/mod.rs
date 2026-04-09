@@ -36,7 +36,7 @@ async fn may_transform_start_scan<R, S>(
 ) -> Result<String, CliErrorKind>
 where
     R: BufRead,
-    S: Retriever<Feed, Item = Vec<VTData>>,
+    S: Retriever<Feed, Item = Vec<VTData>> + Sync,
 {
     let xml = quick_xml::de::from_reader(reader)?;
     if print_back {
@@ -49,6 +49,7 @@ where
 async fn transform_vts<S>(feed: S, vts: VtSelection) -> Result<Vec<models::VT>, CliErrorKind>
 where
     S: Retriever<Feed, Item = Vec<VTData>>,
+    S: Sync,
 {
     let mut result: Vec<_> = vts
         .vt_single
@@ -79,7 +80,7 @@ where
     for family in gvts {
         // Retrieving the whole feed is always wrapped in a Some. In case there are no vts in the
         // feed, the result will be an empty vector.
-        let vts = feed.retry_retrieve(&Feed, 5)?.unwrap();
+        let vts = feed.retry_retrieve(&Feed, 5).await?.unwrap();
         let fvts: Vec<VT> = vts
             .into_iter()
             .filter_map(|x| {
@@ -103,6 +104,7 @@ where
 async fn transform_start_scan<S>(feed: S, sc: StartScan) -> Result<String, CliErrorKind>
 where
     S: Retriever<Feed, Item = Vec<VTData>>,
+    S: Sync,
 {
     // currently we ignore the previous order as the scanner will reorder
     // when scheduling internally anyway.
@@ -194,19 +196,20 @@ mod tests {
     "#;
         let reader = BufReader::new(Cursor::new(input));
         let d = InMemoryStorage::new();
-        let dispatch = |k: &str, f: &str| {
+        async fn dispatch(d: &InMemoryStorage, k: &str, f: &str) {
             let key = FileName(format!("{k}.nasl"));
             let nvt = VTData {
                 oid: k.into(),
                 family: f.into(),
                 ..Default::default()
             };
-            d.dispatch(key, nvt).unwrap();
-        };
-        dispatch("0", "A");
-        dispatch("1", "A");
-        dispatch("2", "A");
-        dispatch("3", "A");
+            d.dispatch(key, nvt).await.unwrap();
+        }
+
+        dispatch(&d, "0", "A").await;
+        dispatch(&d, "1", "A").await;
+        dispatch(&d, "2", "A").await;
+        dispatch(&d, "3", "A").await;
 
         let output = may_transform_start_scan(false, Some(d), reader)
             .await

@@ -103,8 +103,7 @@ impl<T> SchedulerStorage for RedisStorage<T> where
     T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
 {
 }
-impl<T: SchedulerStorage> SchedulerStorage for Arc<T> {}
-impl<T: SchedulerStorage + ?Sized> SchedulerStorage for &T {}
+impl<T: SchedulerStorage> SchedulerStorage for Arc<T> where Arc<T>: Sync {}
 
 pub struct Scheduler<S> {
     storage: S,
@@ -171,7 +170,7 @@ where
         Self { storage }
     }
 
-    pub fn execution_plan(
+    pub async fn execution_plan(
         &self,
         scan_vts: &[VT],
     ) -> Result<impl Iterator<Item = ConcurrentVTResult> + '_, VTError> {
@@ -182,7 +181,7 @@ where
 
         // Collect all VT information
         for vt in scan_vts {
-            if let Some(nvt) = self.storage.retrieve(&Oid(vt.oid.clone()))? {
+            if let Some(nvt) = self.storage.retrieve(&Oid(vt.oid.clone())).await? {
                 unknown_dependencies.extend(nvt.dependencies.clone());
                 vts.push((nvt, Some(vt.parameters.clone())));
             } else {
@@ -194,7 +193,7 @@ where
             if known_dependencies.contains_key(&vt_name) {
                 continue;
             }
-            if let Some(nvt) = self.storage.retrieve(&FileName(vt_name))? {
+            if let Some(nvt) = self.storage.retrieve(&FileName(vt_name)).await? {
                 unknown_dependencies.extend(nvt.dependencies.clone());
                 known_dependencies.insert(nvt.filename.clone(), nvt);
             }
@@ -222,9 +221,9 @@ mod tests {
     use crate::storage::items::nvt::FileName;
     use greenbone_scanner_framework::models::VTData;
 
-    #[test]
+    #[tokio::test]
     #[tracing_test::traced_test]
-    fn load_dependencies() {
+    async fn load_dependencies() {
         let feed = vec![
             VTData {
                 oid: "0".to_string(),
@@ -245,11 +244,12 @@ mod tests {
             },
         ];
         let storage = InMemoryStorage::new();
-        feed.clone().into_iter().for_each(|nvt| {
+        for nvt in feed.clone().into_iter() {
             storage
                 .dispatch(FileName(nvt.filename.clone()), nvt)
+                .await
                 .expect("should store");
-        });
+        }
 
         let scan = Scan {
             vts: vec![VT {
@@ -258,9 +258,10 @@ mod tests {
             }],
             ..Default::default()
         };
-        let scheduler = Scheduler::new(&storage);
+        let scheduler = Scheduler::new(storage);
         let results: Vec<_> = scheduler
             .execution_plan(&scan.vts)
+            .await
             .expect("no error expected")
             .filter_map(|x| x.ok())
             .collect();

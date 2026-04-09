@@ -75,6 +75,7 @@ Your contributions are highly appreciated. Please [create a pull
 request](https://github.com/greenbone/openvas-scanner/pulls) on GitHub.
 Remember to commit the contribution agreement as explained in [RELICENSING](https://github.com/greenbone/openvas-scanner/tree/main/RELICENSE) folder with your first PR.
 Bigger changes should be discussed with the development team via the [issues section at GitHub](https://github.com/greenbone/openvas-scanner/issues) first.
+Since the project has an autolabel for releases (patch, minor and major), commit messages should follow the rules explained in [conventional commit rules](https://github.com/greenbone/openvas-scanner/tree/main/CONVENTIONAL-COMMITS.md) document.
 
 ## License
 

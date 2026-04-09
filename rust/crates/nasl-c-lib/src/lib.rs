@@ -2,4 +2,5 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-pub mod cryptographic;
+pub use libcrypt_sys as crypt;
+pub use libopenvas_krb5_sys as krb5;

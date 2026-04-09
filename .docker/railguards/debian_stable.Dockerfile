@@ -20,7 +20,7 @@ COPY . /source
 RUN apt update && apt install -y git
 RUN bash /source/.devcontainer/github-clone.sh greenbone/gvm-libs
 RUN bash /source/.devcontainer/github-clone.sh greenbone/openvas-smb
-# tests implicitely if there are dependencies conflicts
+# tests implicitly if there are dependencies conflicts
 RUN sh /workspaces/greenbone/gvm-libs/.github/install-dependencies.sh
 RUN sh /workspaces/greenbone/openvas-smb/.github/install-openvas-smb-dependencies.sh
 RUN sh /source/.github/install-openvas-dependencies.sh

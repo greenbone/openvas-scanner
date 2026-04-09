@@ -19,7 +19,7 @@ The first unnamed argument is an *int*.
 ## RETURN VALUE
 
 The hexadecimal number as *string* for numbers between 0 and 255 or *NULL* on error. -1 counts as error.
-Numbers exceeding this limit starts from 0x00 or 0xff. For example the number -2 converts to 0xfe, the number 257 coverts to 0x01.
+Numbers exceeding this limit starts from 0x00 or 0xff. For example the number -2 converts to 0xfe, the number 257 converts to 0x01.
 
 ## ERRORS
 

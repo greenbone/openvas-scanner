@@ -4,6 +4,7 @@
 
 use thiserror::Error;
 
+use crate::nasl::builtin::krb5::Krb5Error;
 use crate::nasl::prelude::*;
 use crate::nasl::utils::error::FnErrorKind;
 use crate::notus::NotusError;
@@ -57,6 +58,8 @@ pub enum BuiltinError {
     RawIp(RawIpError),
     #[error("{0}")]
     Preference(String),
+    #[error("{0}")]
+    Krb5(Krb5Error),
 }
 
 macro_rules! builtin_error_variant (
@@ -104,3 +107,4 @@ builtin_error_variant!(FindServiceError, FindService);
 builtin_error_variant!(SnmpError, Snmp);
 builtin_error_variant!(NotusError, Notus);
 builtin_error_variant!(RawIpError, RawIp);
+builtin_error_variant!(Krb5Error, Krb5);
