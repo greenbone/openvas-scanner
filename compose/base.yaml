@@ -2,24 +2,24 @@ name: greenbone-community-edition
 
 services:
   vulnerability-tests:
-    image: registry.community.greenbone.net/community/vulnerability-tests
+    image: ${VT_IMAGE:-registry.community.greenbone.net/community/vulnerability-tests}
     environment:
       FEED_RELEASE: "24.10"
     volumes:
       - vt_data_vol:/mnt
 
   notus-data:
-    image: registry.community.greenbone.net/community/notus-data
+    image: ${NOTUS_IMAGE:-registry.community.greenbone.net/community/notus-data}
     volumes:
       - notus_data_vol:/mnt
 
   gpg-data:
-    image: registry.community.greenbone.net/community/gpg-data
+    image: ${GPG_IMAGE:-registry.community.greenbone.net/community/gpg-data}
     volumes:
       - gpg_data_vol:/mnt
 
   redis-server:
-    image: ghcr.io/greenbone/redis-server
+    image: ${REDIS_IMAGE:-ghcr.io/greenbone/redis-server}
     deploy:
       resources:
         limits:
@@ -36,7 +36,7 @@ services:
   # and changes log output to /var/log/openvas instead /var/log/gvm
   # to reduce likelihood of unwanted log interferences
   configure-openvas-log:
-    image: ghcr.io/greenbone/openvas-scanner:stable
+    image: ${OPENVAS_IMAGE:-ghcr.io/greenbone/openvas-scanner:stable}
     volumes:
       - openvas_data_vol:/mnt
       - openvas_log_data_vol:/var/log/openvas
@@ -58,7 +58,7 @@ services:
         chmod 666 /var/log/openvas/openvas.log
 
   configure-openvas:
-    image: ghcr.io/greenbone/openvas-scanner:stable
+    image: ${OPENVAS_IMAGE:-ghcr.io/greenbone/openvas-scanner:stable}
     volumes:
       - openvas_data_vol:/mnt
     environment:
@@ -74,7 +74,7 @@ services:
 
   # shows logs of openvas
   openvas:
-    image: ghcr.io/greenbone/openvas-scanner:stable
+    image: ${OPENVAS_IMAGE:-ghcr.io/greenbone/openvas-scanner:stable}
     restart: on-failure
     volumes:
       - openvas_data_vol:/etc/openvas
@@ -92,10 +92,11 @@ services:
         condition: service_completed_successfully
 
   openvasd:
-    image: ghcr.io/greenbone/openvas-scanner:stable
-    # we need privileged because of:
-    # setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
-    privileged: true 
+    image: ${OPENVAS_IMAGE:-ghcr.io/greenbone/openvas-scanner:stable}
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+      - NET_BIND_SERVICE
     deploy:
       resources:
         limits:
@@ -111,7 +112,7 @@ services:
       XDG_CACHE_HOME: /var/cache/
       STORAGE_TYPE: ${OPENVAS_SCANNER_STORAGE_TYPE:-fs}
       LISTENING: 0.0.0.0:3000
-      OPENVASD_LOG: DEBUG
+      OPENVASD_LOG: INFO
     volumes:
       - openvas_data_vol:/etc/openvas
       - openvas_log_data_vol:/var/log/openvas

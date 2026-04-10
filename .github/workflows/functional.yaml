@@ -36,6 +36,15 @@ jobs:
       - run: docker run --rm test /usr/local/bin/openvasd -h
       - run: docker run --rm test /usr/local/bin/scannerctl -h
       - run: docker rmi test || true
+  smokey:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        # TODO: make version robust
+      - run: curl -L https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb -o hurl.deb
+      - run: sudo apt-get install -y ./hurl.deb
+      - run: cd compose && OPENVAS_IMAGE="${{ inputs.image }}" make test-environment-up
+      - run: cd compose/tests/smoketest && make
   tests:
     runs-on: ubuntu-latest
     services:

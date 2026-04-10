@@ -142,7 +142,7 @@ rustls-pki-types = { version = "1.14.0", features = ["std"] }
 cidr = "0.3.2"
 
 [workspace]
-members = ["crates/smoketest", "crates/nasl-function-proc-macro"]
+members = ["crates/nasl-function-proc-macro"]
 
 [dev-dependencies]
 tracing-test = "0.2.5"

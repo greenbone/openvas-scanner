@@ -1,4 +1,4 @@
-POST {{server}}/notus/{{os}}
+POST {{server}}/notus/debian_10
 [
     "libzmq3-dev-4.3.0-4+deb10u1"
 ]
@@ -9,8 +9,8 @@ jsonpath "$.*[0].installed_version" first == "4.3.0-4+deb10u1"
 jsonpath "$.*[0].fixed_version.version" first == "4.3.1-4+deb10u1"
 jsonpath "$.*[0].fixed_version.specifier" first == ">="
 
-# POST {{server}}/notus/{{os}}
-# [
-#     "BAD_REQUEST_BODY"
-# ]
-# HTTP 400
+POST {{server}}/notus/not_a_system
+[
+    "libzmq3-dev-4.3.0-4+deb10u1"
+]
+HTTP 404
