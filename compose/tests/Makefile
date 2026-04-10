@@ -1,4 +1,4 @@
-SCAN_DIR := scans
+SCAN_DIR := smoketest/scans-user-flows/
 STARTED_SCAN_DIR := known-scans
 
 JSON_FILES := $(wildcard $(SCAN_DIR)/*.json)
@@ -20,7 +20,7 @@ STARTED_SCANS := $(wildcard $(STARTED_SCAN_DIR)/*)
 START_SCANS := $(basename $(notdir $(JSON_FILES)))
 
 CURL := curl -vk --key ../client-keys/client1.key --cert ../client-certs/client1.pem 
-CIS_ADDRESS := https://localhost:3000
+CIS_ADDRESS := https://127.0.0.1:3000
 
 $(CREATE_TARGETS):
 	$(eval TARGET_NAME := $(patsubst create-%,%,$@))
@@ -55,3 +55,6 @@ $(STATUS_TARGETS):
 	@ID=$$(cat $(STARTED_SCAN_DIR)/$(TARGET_NAME)) && \
 	${CURL} $(CIS_ADDRESS)/scans/$$ID/status | jq
 
+.PHONY: smoketests
+smoketests:
+	make -f smoketest/Makefile

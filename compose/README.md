@@ -73,32 +73,18 @@ curl -vk \
 
 Additionally to the OpenVASD compose definition we also provide a possibility to verify the setup.
 
-This is done by adding `tests/victim.yaml` to the compose chain like
+This is done by calling `make smoketests`.
+
+Alternatively you can call 
 
 ```
-podman-compose -f base.yaml -f mtls.yaml -f tests/victim.yaml up
+make test-environment-up
+cd tests
+make smoketests
+cd ..
+make test-environment-down
 ```
 
-and then use `make` within the `tests` directory to create and start predefined scans:
-
-```bash
-make create-victim-simple-auth-ssh
-make start-victim-simple-auth-ssh
-make results-victim-simple-auth-ssh
-make status-victim-simple-auth-ssh
-```
-
-The naming scheme of that Makefile is `command-` and the name of the json
-within `tests/scans` without the json suffix.
-
-Depending on your auto-completion behaviour the `create-` should be able to
-expand immediately while 
-- `start-`, 
-- `results-`, 
-- `status-`, 
-- `stop-` 
-- `rm-` 
-are only available for scans that have already been created.
 
 ## Environment variables
 
