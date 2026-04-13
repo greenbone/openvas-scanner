@@ -7,12 +7,12 @@ HTTP 200
 [Asserts]
 jsonpath "$.*" count > 100000
 
-GET {{server}}/health/ready
+HEAD {{server}}/health/ready
 HTTP 200
 
-GET {{server}}/health/alive
+HEAD {{server}}/health/alive
 HTTP 200
 
-GET {{server}}/health/started
+HEAD {{server}}/health/started
 HTTP 200
 
