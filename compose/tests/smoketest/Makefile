@@ -18,7 +18,7 @@ endif
 
 ifndef HURL_BASE
 	HURL_BASE := hurl -vk \
-							 --http2 \
+							 --test \
 							 --key ${CLIENT_KEY} \
 							 --cert ${CLIENT_CERT} \
 							 --variable server=${OPENVASD_SERVER} 
