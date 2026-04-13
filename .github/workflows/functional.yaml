@@ -45,6 +45,8 @@ jobs:
       - run: sudo apt-get install -y ./hurl.deb
       - run: cd compose && OPENVAS_IMAGE="${{ inputs.image }}" make test-environment-up
       - run: cd compose/tests/smoketest && make
+      - run: cd compose && make test-environment-logs
+        if: always()
   tests:
     runs-on: ubuntu-latest
     services:
