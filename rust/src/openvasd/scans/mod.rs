@@ -158,7 +158,7 @@ where
                 .fetch()
                 .await
                 .map_err(|e| match e {
-                    DAOError::NotFound => GetScansIDResultsIDError::InvalidID,
+                    DAOError::NotFound => GetScansIDResultsIDError::NotFound,
                     e => e.into(),
                 })
         })
