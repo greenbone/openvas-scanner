@@ -43,7 +43,7 @@ jobs:
         # TODO: make version robust
       - run: curl -L https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb -o hurl.deb
       - run: sudo apt-get install -y ./hurl.deb
-      - run: cd compose && OPENVAS_IMAGE="${{ inputs.image }}" make test-environment-up
+      - run: cd compose && OPENVAS_IMAGE="${{ inputs.image }}" make test-environment-running
       - run: cd compose/tests/smoketest && make
       - run: cd compose && make test-environment-logs
         if: always()

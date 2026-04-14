@@ -1,0 +1,51 @@
+name: greenbone-community-edition
+
+services:
+  auth_server:
+    image: docker.io/cesanta/docker_auth
+    container_name: auth_server
+    ports:
+      - "127.0.0.1:5001:5001"
+    volumes:
+      # assumes to be started from Makefile above
+      - ./local-registry:/config
+      - ${OPENVASD_SERVER_PEM:-./openvasd-server.pem}:/server.pem:ro
+      - ${OPENVASD_SERVER_KEY:-./openvasd-server.key}:/server.key:ro
+    restart: unless-stopped
+
+  registry:
+    image: docker.io/registry:2
+    container_name: registry
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - ${OPENVASD_SERVER_PEM:-./openvasd-server.pem}:/server.pem:ro
+      - ${OPENVASD_SERVER_KEY:-./openvasd-server.key}:/server.key:ro
+    environment:
+      REGISTRY_AUTH: token
+      REGISTRY_HTTP_TLS_CERTIFICATE: /server.pem
+      REGISTRY_HTTP_TLS_KEY: /server.key
+      REGISTRY_AUTH_TOKEN_REALM: https://auth_server:5001/auth
+      REGISTRY_AUTH_TOKEN_SERVICE: registry:5000
+      REGISTRY_AUTH_TOKEN_ISSUER: MyAuthServer
+      REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE: /server.pem
+    depends_on:
+      - auth_server
+    restart: unless-stopped
+
+  registry_seed:
+    build:
+      context: ./local-registry
+      dockerfile: skopeo.Dockerfile
+    depends_on:
+      - registry
+    environment:
+      REGISTRY: registry:5000
+      USERNAME: test
+      PASSWORD: test
+      IMAGES: >
+        docker.io/nichtsfrei/victim:latest
+        docker.io/openeuler/openeuler:latest
+        docker.io/openeuler/openeuler:24.03-lts-sp1
+        docker.io/openeuler/openeuler:20.03-lts-sp4
+    restart: "no"

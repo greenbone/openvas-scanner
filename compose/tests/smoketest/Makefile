@@ -29,7 +29,13 @@ SCANS_USER_FLOW := ${MAKEFILE_PATH}/scans-user-flows
 SCANS_USER_FLOW := $(basename $(notdir $(wildcard $(SCANS_USER_FLOW)/*.json)))
 SCANS_USER_FLOW := $(addprefix scans-user-flow-,$(SCANS_USER_FLOW))
 
-all: up-and-running notus scans-user-flow-victim-simple-auth-ssh
+CONTAINER_IMAGE_SCANNER_USER_FLOW := ${MAKEFILE_PATH}/container-image-scanner-user-flows
+CONTAINER_IMAGE_SCANNER_USER_FLOW := $(basename $(notdir $(wildcard $(CONTAINER_IMAGE_SCANNER_USER_FLOW)/*.json)))
+CONTAINER_IMAGE_SCANNER_USER_FLOW := $(addprefix container-image-scanner-user-flow-,$(CONTAINER_IMAGE_SCANNER_USER_FLOW))
+
+
+
+all: up-and-running notus scans-user-flow-victim-simple-auth-ssh container-image-scanner-user-flow-local-registry-full
 
 .PHONY: up-and-running
 up-and-running:
@@ -52,4 +58,10 @@ scans:
 $(SCANS_USER_FLOW):
 	$(eval SCAN_CONFIG := $(patsubst scans-user-flow-%,%,$@))
 	${HURL_BASE} --variable scan_config=${SCAN_CONFIG}.json ${MAKEFILE_PATH}/scans-user-flows/*.hurl
+
+.PHONY: $(CONTAINER_IMAGE_SCANNER_USER_FLOW)
+$(CONTAINER_IMAGE_SCANNER_USER_FLOW):
+	$(eval SCAN_CONFIG := $(patsubst container-image-scanner-user-flow-%,%,$@))
+	${HURL_BASE} --variable scan_config=${SCAN_CONFIG}.json ${MAKEFILE_PATH}/container-image-scanner-user-flows/*.hurl
+
 
