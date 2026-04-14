@@ -237,3 +237,112 @@ where
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scans::tests::create_pool;
+    use sqlx::query_scalar;
+
+    async fn insert_test_scan(pool: &SqlitePool) -> String {
+        let row = sqlx::query("INSERT INTO client_scan_map(client_id, scan_id) VALUES (?, ?)")
+            .bind("test-client")
+            .bind("test-scan-id")
+            .execute(pool)
+            .await
+            .unwrap();
+        let id = row.last_insert_rowid();
+        sqlx::query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
+            .bind(id)
+            .bind("")
+            .execute(pool)
+            .await
+            .unwrap();
+        id.to_string()
+    }
+
+    fn make_results(n: usize) -> Vec<models::Result> {
+        (0..n)
+            .map(|i| models::Result {
+                message: Some(format!("result-{i}")),
+                ..Default::default()
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn store_single_chunk() -> crate::Result<()> {
+        let (_config, pool) = create_pool().await?;
+        let scan_id = insert_test_scan(&pool).await;
+
+        let results = make_results(10);
+        try_store(&pool, &scan_id, &results).await?;
+
+        let count: i64 = query_scalar("SELECT COUNT(*) FROM results WHERE scan_id = ?")
+            .bind(&scan_id)
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(count, 10);
+
+        let ids: Vec<i64> = query_scalar("SELECT id FROM results WHERE scan_id = ? ORDER BY id")
+            .bind(&scan_id)
+            .fetch_all(&pool)
+            .await?;
+        assert_eq!(ids, (0..10).collect::<Vec<i64>>());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn store_multi_chunk_ids_are_sequential() -> crate::Result<()> {
+        let (_config, pool) = create_pool().await?;
+        let scan_id = insert_test_scan(&pool).await;
+
+        let chunk_size = SQLITE_LIMIT_VARIABLE_NUMBER / 14;
+        let n = chunk_size + 1;
+        let results = make_results(n);
+        try_store(&pool, &scan_id, &results).await?;
+
+        let count: i64 = query_scalar("SELECT COUNT(*) FROM results WHERE scan_id = ?")
+            .bind(&scan_id)
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(count, n as i64);
+
+        let ids: Vec<i64> = query_scalar("SELECT id FROM results WHERE scan_id = ? ORDER BY id")
+            .bind(&scan_id)
+            .fetch_all(&pool)
+            .await?;
+        let expected: Vec<i64> = (0..n as i64).collect();
+        assert_eq!(ids, expected);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn append_results_continues_ids() -> crate::Result<()> {
+        let (_config, pool) = create_pool().await?;
+        let scan_id = insert_test_scan(&pool).await;
+
+        let first_batch = make_results(100);
+        try_store(&pool, &scan_id, &first_batch).await?;
+
+        let second_batch = make_results(50);
+        try_store(&pool, &scan_id, &second_batch).await?;
+
+        let count: i64 = query_scalar("SELECT COUNT(*) FROM results WHERE scan_id = ?")
+            .bind(&scan_id)
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(count, 150);
+
+        let ids: Vec<i64> = query_scalar("SELECT id FROM results WHERE scan_id = ? ORDER BY id")
+            .bind(&scan_id)
+            .fetch_all(&pool)
+            .await?;
+        let expected: Vec<i64> = (0..150).collect();
+        assert_eq!(ids, expected);
+
+        Ok(())
+    }
+}
