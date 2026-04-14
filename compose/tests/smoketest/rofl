@@ -1,4 +1,0 @@
-curl --cert ../../client-certs/client1.pem --key ../../client-keys/client1.key --insecure 'https://localhost:3000/notus'
-curl --head --cert ../../client-certs/client1.pem --key ../../client-keys/client1.key --insecure 'https://localhost:3000/notus'
-curl --header 'Content-Type: application/json' --data $'[\n    "libzmq3-dev-4.3.0-4+deb10u1"\n]' --cert ../../client-certs/client1.pem --key ../../client-keys/client1.key --insecure 'https://localhost:3000/notus/debian_10'
-curl --header 'Content-Type: application/json' --data $'[\n    "libzmq3-dev-4.3.0-4+deb10u1"\n]' --cert ../../client-certs/client1.pem --key ../../client-keys/client1.key --insecure 'https://localhost:3000/notus/not_a_system'

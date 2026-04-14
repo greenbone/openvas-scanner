@@ -1,7 +1,8 @@
 {
   "target": {
     "hosts": [
-      "oci://localhost:5000"
+      "oci://registry:5000/openeuler/openeuler:24.03-lts-sp1",
+      "oci://registry:5000/openeuler/openeuler:20.03-lts-sp4"
     ],
    "credentials": [
       {
