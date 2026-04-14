@@ -19,7 +19,7 @@ STARTED_SCANS := $(wildcard $(STARTED_SCAN_DIR)/*)
 
 START_SCANS := $(basename $(notdir $(JSON_FILES)))
 
-CURL := curl -vk --key ../client-keys/client1.key --cert ../client-certs/client1.pem 
+CURL := curl -vk --key ../certs/clients/client1.key --cert ../certs/clients/client1.pem 
 CIS_ADDRESS := https://127.0.0.1:3000
 
 $(CREATE_TARGETS):

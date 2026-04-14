@@ -18,19 +18,18 @@ ifndef OPENVAS_IMAGE
 endif
 
 
-all: openvasd-server.key client-certs/client1.pem
+all: certs/server.key certs/clients/client1.pem
 
-openvasd-server.key:
+certs/server.key:
 	cd ../rust/examples/tls/self-signed/ && make
-	mv ../rust/examples/tls/self-signed/server.pem openvasd-server.pem
-	mv ../rust/examples/tls/self-signed/server.rsa openvasd-server.key
+	mv ../rust/examples/tls/self-signed/server.pem certs/server.pem
+	mv ../rust/examples/tls/self-signed/server.rsa certs/server.key
 
-client-certs/client1.pem:
-	mkdir -p client-certs
-	mkdir -p client-keys
+certs/clients/client1.pem:
+	mkdir -p certs/clients
 	cd ../rust/examples/tls/self-signed/ && make
-	mv ../rust/examples/tls/self-signed/server.pem client-certs/client1.pem
-	mv ../rust/examples/tls/self-signed/server.rsa client-keys/client1.key
+	mv ../rust/examples/tls/self-signed/server.pem certs/clients/client1.pem
+	mv ../rust/examples/tls/self-signed/server.rsa certs/clients/client1.key
 
 .PHONY: test-environment-down
 test-environment-down:
@@ -41,13 +40,13 @@ test-environment-logs:
 	${CMD} ${TEST_ENVIRONMENTS} logs
 
 .PHONY: test-environment-up
-test-environment-up: openvasd-server.key client-certs/client1.pem
+test-environment-up: certs/server.key certs/clients/client1.pem
 	OPENVAS_IMAGE=${OPENVAS_IMAGE} ${CMD} ${TEST_ENVIRONMENTS} up -d
 
 .PHONY: local-test-environment-up
-local-test-environment-up: openvasd-server.key client-certs/client1.pem
+local-test-environment-up: certs/server.key certs/clients/client1.pem
 	cd .. && podman build -f .docker/prod.Dockerfile -t localhost/openvas:latest --build-arg BIN_VERSION=0.0.1 . 
-	OPENVAS_IMAGE=localhost/openvas:latest ${CMD} ${TEST_ENVIRONMENTS} up
+	OPENVAS_IMAGE=localhost/openvas:latest ${CMD} ${TEST_ENVIRONMENTS} up -d
 
 define check_container_status
 $(CCMD) ps -a --format '{{.Names}}' \
