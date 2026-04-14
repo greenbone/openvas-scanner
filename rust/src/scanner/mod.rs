@@ -60,10 +60,7 @@ impl<S> OpenvasdScanner<S>
 where
     S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
 {
-    // TODO: Actually use this in normal execution, so we can remove
-    // the cfg directive here.
-    #[cfg(test)]
-    fn new(storage: S, loader: Loader, executor: Executor, notus: Option<NotusCtx>) -> Self {
+    pub fn new(storage: S, loader: Loader, executor: Executor, notus: Option<NotusCtx>) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),
