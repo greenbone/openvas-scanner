@@ -147,7 +147,7 @@ impl GetScansIdResultsId for Scans {
                 .fetch()
                 .await
                 .map_err(|e| match e {
-                    DAOError::NotFound => GetScansIDResultsIDError::InvalidID,
+                    DAOError::NotFound => GetScansIDResultsIDError::NotFound,
                     e => e.into(),
                 })
         })
@@ -713,7 +713,7 @@ mod test {
             let (scan_id, _) = fakes.create_start_results(&client_id, scan).await;
             let result = fakes.entry.get_scans_id_results_id(scan_id, 4242).await;
             let result = result.map(|x| x.id);
-            assert!(matches!(result, Err(GetScansIDResultsIDError::InvalidID)))
+            assert!(matches!(result, Err(GetScansIDResultsIDError::NotFound)))
         }
     }
 }
