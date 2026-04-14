@@ -63,8 +63,8 @@ when in mTLS mode you have to provide the client-certificate and the correspondi
 
 ```
 curl -vk \
-    --key client-keys/client1.key \
-    --cert client-certs/client1.pem \
+    --key  certs/clients/client1.key \
+    --cert certs/clients/client1.pem \
     https://localhost:3000/scans
 ```
 
@@ -78,7 +78,7 @@ This is done by calling `make smoketests`.
 Alternatively you can call 
 
 ```
-make test-environment-up
+make test-environment-running
 cd tests
 make smoketests
 cd ..

@@ -21,6 +21,4 @@ services:
       TLS_KEY: /var/lib/openvasd/certs/server.key
       TLS_CLIENT_CERTS: /var/lib/openvasd/certs/clients/
     volumes:
-      - ${OPENVASD_SERVER_PEM:-./openvasd-server.pem}:/var/lib/openvasd/certs/server.pem:ro
-      - ${OPENVASD_SERVER_KEY:-./openvasd-server.key}:/var/lib/openvasd/certs/server.key:ro
-      - ${OPENVASD_CLIENT_CERTS:-./client-certs}:/var/lib/openvasd/certs/clients:ro
+      - ${OPENVASD_CERTS:-./certs}:/var/lib/openvasd/certs:ro,z

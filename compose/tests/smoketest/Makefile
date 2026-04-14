@@ -9,11 +9,11 @@ ifndef OPENVASD_SERVER
 endif
 
 ifndef CLIENT_KEY
-	CLIENT_KEY := ${MAKEFILE_PATH}/../../client-keys/client1.key
+	CLIENT_KEY := ${MAKEFILE_PATH}/../../certs/clients/client1.key
 endif
 
 ifndef CLIENT_CERT
-	CLIENT_CERT := ${MAKEFILE_PATH}/../../client-certs/client1.pem
+	CLIENT_CERT := ${MAKEFILE_PATH}/../../certs/clients/client1.pem
 endif
 
 ifndef HURL_BASE

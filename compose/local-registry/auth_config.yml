@@ -1,7 +1,7 @@
 server:
   addr: ":5001"
-  certificate: "/server.pem"
-  key: "/server.key"
+  certificate: "/certs/server.pem"
+  key: "/certs/server.key"
 
 token:
   issuer: "MyAuthServer"
