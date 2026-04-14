@@ -188,8 +188,10 @@ where
         }
     };
     tracing::trace!(id, base_id, "Results.");
-    let mut builder = QueryBuilder::new(
-        r#"
+    let mut offset = base_id;
+    for results in results.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 14) {
+        let mut builder = QueryBuilder::new(
+            r#"
             INSERT INTO results (
                 scan_id,
                 id,
@@ -207,14 +209,12 @@ where
                 source_description
             )
             "#,
-    );
-
-    for results in results.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 14) {
+        );
         builder.push_values(results.iter().enumerate(), |mut b, (idx, result)| {
             let result: models::Result = result.to_owned().into();
             let detail = result.detail.unwrap_or_default();
             b.push_bind(id)
-                .push_bind(idx as i64 + base_id)
+                .push_bind(idx as i64 + offset)
                 .push_bind(result.r_type.to_string())
                 .push_bind(result.ip_address.unwrap_or_default())
                 .push_bind(result.hostname.unwrap_or_default())
@@ -231,6 +231,7 @@ where
 
         let query = builder.build();
         query.execute(&mut *tx).await?;
+        offset += results.len() as i64;
     }
 
     tx.commit().await?;
