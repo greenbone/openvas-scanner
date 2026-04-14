@@ -45,11 +45,6 @@ up-and-running:
 notus:
 	${HURL_BASE} ${MAKEFILE_PATH}/notus/*.hurl
 
-.PHONY: dump-notus
-dump-notus:
-	${HURL_BASE} --curl rofl ${MAKEFILE_PATH}/notus/*.hurl
-
-
 .PHONY: scans
 scans:
 	${HURL_BASE} ${MAKEFILE_PATH}/scans/*.hurl
