@@ -5,6 +5,7 @@ ifeq ($(HAS_DOCKER_COMPOSE_V2),1)
 	CCMD := docker
 	CMD := docker compose
 else ifneq ($(HAS_DOCKER_COMPOSE_V1),)
+	CCMD := docker
 	CMD := docker-compose
 else
 	CCMD := podman
@@ -45,7 +46,7 @@ test-environment-up: certs/server.key certs/clients/client1.pem
 
 .PHONY: local-test-environment-up
 local-test-environment-up: certs/server.key certs/clients/client1.pem
-	cd .. && podman build -f .docker/prod.Dockerfile -t localhost/openvas:latest --build-arg BIN_VERSION=0.0.1 . 
+	cd .. && ${CCMD} build -f .docker/prod.Dockerfile -t localhost/openvas:latest --build-arg BIN_VERSION=0.0.1 .
 	OPENVAS_IMAGE=localhost/openvas:latest ${CMD} ${TEST_ENVIRONMENTS} up -d
 
 define check_container_status

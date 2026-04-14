@@ -2,7 +2,8 @@
 set -e
 
 PROFILE=${PROFILE:-release}
-OPENVASD_PATH=/opt/openvasd_target/${PROFILE}/openvasd
+OPENVASD_SRC=/opt/openvasd_target/${PROFILE}/openvasd
+OPENVASD_PATH=/usr/local/bin/openvasd
 
 mkdir -p /run/redis
 redis-server /etc/redis/redis.conf
@@ -16,12 +17,16 @@ export API_KEY=${API_KEY:-changeme}
 
 # A small hack so simply copying the binary works even if
 # the host system is NixOS. This doesn't have any effect
-# for other systems.
-if [ -f  $OPENVASD_PATH ]; then
-    patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $OPENVASD_PATH 2>/dev/null || true
-    chmod +x $OPENVASD_PATH
+# for other systems
+if [ -f "$OPENVASD_SRC" ]; then
+    cp "$OPENVASD_SRC" "$OPENVASD_PATH"
+    chmod +x "$OPENVASD_PATH"
+
+    if [ ! -d /nix/store ]; then
+        patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 "$OPENVASD_PATH" 2>/dev/null || true
+    fi
 else
-    echo "ERROR: openvasd binary not found at $OPENVASD_PATH"
+    echo "ERROR: openvasd binary not found at $OPENVASD_SRC"
     exit 1
 fi
 
@@ -40,5 +45,4 @@ enable_get_scans = true
 key = "${API_KEY:-changeme}"
 EOF
 
-# Start openvasd
 exec $OPENVASD_PATH --config /etc/openvas/openvasd.toml

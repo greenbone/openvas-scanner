@@ -2,7 +2,7 @@ ARG VERSION=latest
 # this allows to override gvm-libs for e.g. smoketests
 ARG GVM_LIBS=ghcr.io/greenbone/gvm-libs
 
-FROM rust AS rust
+FROM docker.io/library/rust AS rust
 ARG BIN_VERSION
 ENV BIN_VERSION=${BIN_VERSION}
 COPY . /source

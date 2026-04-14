@@ -2,3 +2,5 @@ target/
 libsrc/
 *.rsa
 *.cert
+compose/certs/server.key
+compose/certs/clients/client1.key

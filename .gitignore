@@ -13,3 +13,4 @@ target/
 *.rsa
 *.pem
 *.snap.new
+compose/certs

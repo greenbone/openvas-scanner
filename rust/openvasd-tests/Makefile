@@ -6,6 +6,10 @@ PORT = 3000
 API_KEY = changeme
 PROFILE ?= release
 
+# Mount /nix/store read-only when running on NixOS so
+# the host-built binary can resolve its nix library paths.
+NIX_MOUNT := $(if $(wildcard /nix/store),-v /nix/store:/nix/store:ro)
+
 .PHONY: build start-scanner openvas ospd-openvas clean status
 
 build:
@@ -26,6 +30,7 @@ start-scanner: build
 		-e API_KEY=$(API_KEY) \
 		-v "$(realpath ../target):/opt/openvasd_target" \
 		-e PROFILE=$(PROFILE) \
+		$(NIX_MOUNT) \
 		$(DOCKER_IMAGE)
 	@echo "Container started. Waiting for service to be ready..."
 	@for i in $$(seq 1 20); do \
@@ -50,7 +55,10 @@ openvas:
 ospd:
 	@$(MAKE) start-scanner SCANNER_TYPE=ospd
 
-logs: 
+openvasd:
+	@$(MAKE) start-scanner SCANNER_TYPE=openvasd
+
+logs:
 	docker logs -f $(CONTAINER_NAME)
 
 rebuild: clean build
@@ -58,10 +66,10 @@ rebuild: clean build
 shell:  build
 	docker exec -it $(CONTAINER_NAME) /bin/bash
 
-status: 
+status:
 	@curl -v -s -H "X-Api-Key: $(API_KEY)" http://localhost:$(PORT)/health/ready
 
-clean: 
+clean:
 	@echo "Stopping and removing container..."
 	@docker rm -f $(CONTAINER_NAME) 2>/dev/null || true
 	@echo "Cleanup complete!"
