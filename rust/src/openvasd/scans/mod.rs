@@ -472,7 +472,7 @@ pub mod tests {
     pub fn generate_scan() -> Vec<models::Scan> {
         let discovery = include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/examples/openvasd/discovery.json"
+            "/examples/discovery.json"
         ));
         let mut discovery: models::Scan = serde_json::from_slice(discovery).unwrap();
         discovery.scan_id = "discovery".to_string();
