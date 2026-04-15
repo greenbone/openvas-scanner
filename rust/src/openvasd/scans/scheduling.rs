@@ -139,10 +139,14 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    async fn scan_stored_to_requested(&self, id: i64) -> R<()> {
+    async fn scan_to_requested(&self, id: i64) -> R<()> {
         self.scan_state
             .change_state(id, "stored", "requested")
             .await?;
+        self.scan_state
+            .change_state(id, "stopped", "requested")
+            .await?;
+
         Ok(())
     }
 
@@ -333,7 +337,7 @@ where
 
     async fn on_user_action(&self, message: &Message) -> R<()> {
         match message {
-            Message::Start(id) => self.scan_stored_to_requested(id.parse()?).await?,
+            Message::Start(id) => self.scan_to_requested(id.parse()?).await?,
             Message::Stop(id) => self.scan_stop(id.parse()?).await?,
         };
         Ok(())

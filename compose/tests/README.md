@@ -1,80 +1,94 @@
-# OpenVASD Scan Makefile
+# Manual Scan API Helpers
 
-This Makefile provides a simple interface to manage scans via the
-OpenVASD HTTP API.
+This directory contains helper targets for manually creating and controlling
+scans against a running `openvasd` instance.
 
-It uses JSON scan definitions and stores created scan IDs locally to
-allow follow-up actions.
+The automated smoketest suite is separate and lives in `smoketest/`.
+
+## Purpose
+
+Use `tests/Makefile` when you want to interact with the API manually during
+development, for example to:
+
+- create a scan from a JSON definition
+- start or stop an existing scan
+- inspect scan status or results
+- remove a previously created scan
+
+Use `tests/smoketest/` when you want the automated Hurl-based validation suite.
 
 ## Requirements
 
-- running OpenVASD instance
+- running `openvasd` instance
 - `make`
 - `curl`
 - `jq`
+- client certificates in `../certs/clients/`
 
-## Structure
+## Layout
 
-- `smoketest/scans-user-flows/`
-  - JSON scan definitions
-
-- `known-scans/`
-  - stores scan IDs after creation
+- `smoketest/scans-user-flows/`: JSON scan definitions used by the helper targets
+- `known-scans/`: local files containing scan IDs returned by the API
 
 ## Usage
 
-### Create scans
+Run these commands from `compose/tests/`.
 
-Creates a scan from a JSON definition and stores its ID:
+### Create a scan
 
 ```bash
 make create-<name>
 ```
 
-### Start scans
+This reads `smoketest/scans-user-flows/<name>.json`, creates the scan through
+the API, and stores the returned scan ID in `known-scans/<name>`.
+
+### Start a scan
+
 ```bash
 make start-<name>
 ```
-### Stop scans
+
+### Stop a scan
 
 ```bash
 make stop-<name>
 ```
-### Get scan status
+
+### Show status
+
 ```bash
 make status-<name>
 ```
-### Get scan results
+
+### Show results
+
 ```bash
 make results-<name>
 ```
 
-### Remove scans
-
-Deletes the scan and removes the stored ID:
+### Remove a scan
 
 ```bash
 make rm-<name>
 ```
 
-### Available Targets
+This deletes the scan through the API and removes the local ID file.
 
-Targets are derived from JSON files in:
+## Available Targets
 
-`smoketest/scans-user-flows/`
+Targets are generated from JSON files in `smoketest/scans-user-flows/`.
 
-For each file:
+For each `<name>.json`, the following targets are available:
 
-`<name>.json`
+- `create-<name>`
+- `start-<name>`
+- `stop-<name>`
+- `status-<name>`
+- `results-<name>`
+- `rm-<name>`
 
-the following targets are available:
-- create-<name>
-- start-<name>
-- stop-<name>
-- status-<name>
-- results-<name>
-- rm-<name>
-#### Example
+## Example
 
 ```bash
 make create-victim-full-and-fast
@@ -82,4 +96,18 @@ make start-victim-full-and-fast
 make status-victim-full-and-fast
 make results-victim-full-and-fast
 make rm-victim-full-and-fast
+```
+
+## Smoketests
+
+Run the automated suite from `compose/` with:
+
+```bash
+make smoketest
+```
+
+Or run the Hurl suite directly with:
+
+```bash
+make -C smoketest
 ```

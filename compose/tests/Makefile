@@ -54,7 +54,3 @@ $(STATUS_TARGETS):
 	$(eval TARGET_NAME := $(patsubst status-%,%,$@))
 	@ID=$$(cat $(STARTED_SCAN_DIR)/$(TARGET_NAME)) && \
 	${CURL} $(CIS_ADDRESS)/scans/$$ID/status | jq
-
-.PHONY: smoketests
-smoketests:
-	make -f smoketest/Makefile

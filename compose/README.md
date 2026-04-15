@@ -1,101 +1,119 @@
-# OpenVASD compose definition
+# OpenVAS Scanner Compose
 
-This dir contains the compose definition for:
-- docker-compose
-- podman-compose
+This directory contains compose files and helper targets for running
+`openvasd` locally with Docker or Podman.
 
-Requirements:
-- either podman-compose or docker-compose
-- Optional (for tests): openssl, make, curl, jq
+## Files
 
-It is divided into three definitions:
-1. base.yaml - contains the actual definition of the services starts OpenVASD in http mode
-2. tls.yaml - overrides the settings within base.yaml to start OpenVASD in TLS mode
-3. mtls.yaml - overrides the settings within base.yaml to start OpenVASD in mTLS mode (preferred)
+- `base.yaml`: base service definition with HTTP enabled
+- `tls.yaml`: adds TLS
+- `mtls.yaml`: adds mutual TLS
+- `local-registry.yaml`: local registry services used by the compose test setup
+- `tests/victim.yaml`: extra services used by the compose test setup
+- `Makefile`: helper targets for certificates, local startup, and smoketests
 
-## How to start
+## Requirements
 
-### HTTP
+- `docker compose`, `docker-compose`, or `podman-compose`
+- `make`
+- for mTLS and smoketests: `curl`, `jq`, `hurl`
 
-To start the scanner compose with http you can use the base.yaml:
+## Certificates
 
-```
-podman-compose -f base.yaml up
-```
+The TLS and mTLS setups use certificates from `certs/` by default.
 
-### HTTPS
+If you do not have local certificates yet, generate the development ones with:
 
-By default the compose definitions (tls.yaml as well as mtls.yaml) use the certificates:
-- ./openvasd-server.key
-- ./openvasd-server.pem
-the directory
-- ./client-certs
-for the client certificates.
-
-You can either copy your certificates into that location or set the environment variables:
-- OPENVASD_SERVER_KEY - the key file of your certificate
-- OPENVASD_SERVER_PEM - the pem file of your certificate
-- OPENVASD_CLIENT_CERTS - the directory containing public certificates of clients that are allowed to use OpenVASD 
-
-NOTE: if the files specified by OPENVASD_SERVER_KEY, OPENVASD_SERVER_PEM or the
-directory OPENVASD_CLIENT_CERTS are not available directories with that path
-may be created.
-
-If you don't have certificates you can use the Makefile to create some:
-
-```
+```bash
 make
 ```
 
-To start scanner compose with TLS but without client-certificates:
+This creates:
 
+- `certs/server.pem`
+- `certs/server.key`
+- `certs/clients/client1.pem`
+- `certs/clients/client1.key`
+
+## Running The Stack
+
+Start the base HTTP setup:
+
+```bash
+podman-compose -f base.yaml up
 ```
+
+Start with TLS:
+
+```bash
 podman-compose -f base.yaml -f tls.yaml up
 ```
 
-To start scanner compose with mTLS:
+Start with mTLS:
 
-```
+```bash
 podman-compose -f base.yaml -f mtls.yaml up
 ```
 
-when in mTLS mode you have to provide the client-certificate and the corresponding key when connecting to OpenVASD:
+When mTLS is enabled, client requests must include the client key and certificate:
 
-```
+```bash
 curl -vk \
-    --key  certs/clients/client1.key \
-    --cert certs/clients/client1.pem \
-    https://localhost:3000/scans
+  --key certs/clients/client1.key \
+  --cert certs/clients/client1.pem \
+  https://localhost:3000/scans
 ```
 
-## How to test
+## Makefile Targets
 
+The main helper targets are:
 
-Additionally to the OpenVASD compose definition we also provide a possibility to verify the setup.
+- `make test-environment-up`: start the compose test environment
+- `make test-environment-running`: start the compose test environment and wait for services
+- `make local-test-environment-up`: build the local image and start the compose test environment
+- `make local-test-environment-running`: build the local image, start it, and wait for services
+- `make test-environment-down`: stop the compose test environment and remove volumes
+- `make smoketest`: build the local image, wait for services, and run the Hurl smoketest suite
+- `make smoketests`: alias for `make smoketest`
 
-This is done by calling `make smoketests`.
+## Smoketests
 
-Alternatively you can call 
+Run the full local smoketest flow with:
 
+```bash
+make smoketest
 ```
-make test-environment-running
-cd tests
-make smoketests
-cd ..
-make test-environment-down
+
+That target:
+
+1. builds the local `openvas` image
+2. starts the compose test environment
+3. waits until `openvasd` is running and the registry seed job finished
+4. runs the Hurl tests from `tests/smoketest`
+
+If the environment is already running, you can run the Hurl suite directly with:
+
+```bash
+make -C tests/smoketest
 ```
 
+## Tests Directory Layout
 
-## Environment variables
+- `tests/smoketest/`: automated Hurl-based smoketests
+- `tests/Makefile`: manual helper targets for creating, starting, stopping, querying, and removing scans via the API
+
+`tests/Makefile` is still useful if you want interactive scan lifecycle helpers while developing. If you no longer use those manual targets, deleting that file would be reasonable. I would keep the Hurl suite in `tests/smoketest/` rather than flattening it into `tests/`.
+
+## Environment Variables
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| OPENVASD_EXTERNAL_BIND_ADDRESS |127.0.0.1:3000 |The bind address on the host. |
-| OPENVAS_LOG_LEVEL | 64 | The numeric log level definition used for openvas. See base.yaml comment on `configure-openvas-log` for more details|
-| OPENVAS_REDIS_MEMORY_LIMIT | 0 | Prevents the host to allocate more memory for redis. |
-| OPENVAS_REDIS_MEMORY_RESERVATION | 0 | Host hint to have at least that amount of memory available for redis. |
-| OPENVAS_REDIS_RESTART_CONDITION | on-failure | Dictates when the container manager should restart the container when it is not running anymore|
-| OPENVASD_MEMORY_LIMIT | 0 | Prevents the host to allocate more memory for OpenVASD. |
-| OPENVASD_MEMORY_RESERVATION | 0 | Host hint to have at least that amount of memory available for OpenVASD. |
-| OPENVASD_RESTART_CONDITION | on-failure | Dictates when the container manager should restart the container when it is not running anymore|
-
+| `OPENVAS_IMAGE` | `ghcr.io/greenbone/openvas-scanner:stable` | Image used by `test-environment-up` |
+| `OPENVASD_EXTERNAL_BIND_ADDRESS` | `127.0.0.1:3000` | Host bind address |
+| `OPENVAS_LOG_LEVEL` | `64` | Numeric log level for OpenVAS |
+| `OPENVAS_REDIS_MEMORY_LIMIT` | `0` | Redis memory limit |
+| `OPENVAS_REDIS_MEMORY_RESERVATION` | `0` | Redis memory reservation hint |
+| `OPENVAS_REDIS_RESTART_CONDITION` | `on-failure` | Redis restart policy |
+| `OPENVASD_MEMORY_LIMIT` | `0` | `openvasd` memory limit |
+| `OPENVASD_MEMORY_RESERVATION` | `0` | `openvasd` memory reservation hint |
+| `OPENVASD_RESTART_CONDITION` | `on-failure` | `openvasd` restart policy |

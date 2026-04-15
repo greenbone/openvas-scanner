@@ -74,6 +74,8 @@ test-environment-running: test-environment-up wait-for-services
 .PHONY: local-test-environment-up
 local-test-environment-running: local-test-environment-up wait-for-services
 
-.PHONY: smoketests
-smoketests: wait-for-images
-	cd tests && make smoketests
+.PHONY: smoketest smoketests
+smoketest: local-test-environment-running
+	$(MAKE) -C tests/smoketest
+
+smoketests: smoketest
