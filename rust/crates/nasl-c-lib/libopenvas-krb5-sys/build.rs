@@ -51,10 +51,12 @@ fn main() {
 
 fn fetch_krb5(destination: &Path) -> PathBuf {
     let krb5_version = env::var("KRB5_VERSION").unwrap_or_else(|_| KRB5_VERSION.to_string());
-    let (krb5_version, krb5_patch) = krb5_version.rsplit_once('.').expect(&format!(
-        "Invalid KRB5_VERSION format: expected major.minor.patch, got {}",
-        krb5_version
-    ));
+    let (krb5_version, krb5_patch) = krb5_version.rsplit_once('.').unwrap_or_else(|| {
+        panic!(
+            "Invalid KRB5_VERSION format: expected major.minor.patch, got {}",
+            krb5_version
+        )
+    });
     let folder_name = format!("krb5-{}.{}", krb5_version, krb5_patch);
     let extract_path = destination.join(&folder_name);
     let tar_path = extract_path.with_added_extension("tar.gz");
