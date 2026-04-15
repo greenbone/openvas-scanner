@@ -14,6 +14,7 @@ use std::{
     fs::File,
     io::{self, BufRead, Cursor},
     path::{Path, PathBuf},
+    sync::OnceLock,
 };
 
 use crate::nasl::syntax::{LoadError, Loader};
@@ -174,35 +175,40 @@ impl VerificationHelper for VHelper {
     }
 }
 
-fn pubring() -> Result<PathBuf, Error> {
-    if let Ok(home) = std::env::var("FEED_PUBLIC_KEY") {
-        let fpk = PathBuf::from(home);
-        if !fpk.is_file() {
-            tracing::warn!(?fpk, "Is not pointing to a file.");
-            Err(Error::MissingKeyring)
-        } else {
-            Ok(fpk)
-        }
-    // Although using GNUPGHOME is very misleading it is kept due to downwards compatibility reasons
-    } else if let Ok(val) = std::env::var("GNUPGHOME") {
-        let kbx = PathBuf::from(val).join("pubring.kbx");
-        if !kbx.is_file() {
-            tracing::info!(
-                ?kbx,
-                "GNUPGHOME does not contain pubring.kbx. Falling back to default key"
-            );
+static PUBRING: OnceLock<Result<PathBuf, Error>> = OnceLock::new();
 
-            Ok(PathBuf::new())
-        } else {
-            Ok(kbx)
-        }
-    } else {
-        tracing::info!(
-            "Signature check is enabled without FEED_PUBLIC_KEY being set. Falling back to default key"
-        );
-        // we fallback to key inside this binary
-        Ok(PathBuf::new())
-    }
+fn pubring() -> Result<PathBuf, Error> {
+    PUBRING.get_or_init(|| {
+            if let Ok(home) = std::env::var("FEED_PUBLIC_KEY") {
+                let fpk = PathBuf::from(home);
+                if !fpk.is_file() {
+                    tracing::warn!(?fpk, "Is not pointing to a file.");
+                    Err(Error::MissingKeyring)
+                } else {
+                    Ok(fpk)
+                }
+            // Although using GNUPGHOME is very misleading it is kept due to downwards compatibility reasons
+            } else if let Ok(val) = std::env::var("GNUPGHOME") {
+                let kbx = PathBuf::from(val).join("pubring.kbx");
+                if !kbx.is_file() {
+                    tracing::info!(
+                        ?kbx,
+                        "GNUPGHOME does not contain pubring.kbx. Falling back to default key"
+                    );
+
+                    Ok(PathBuf::new())
+                } else {
+                    Ok(kbx)
+                }
+            } else {
+                tracing::info!(
+                    "Signature check is enabled without FEED_PUBLIC_KEY being set. Falling back to default key"
+                );
+                // we fallback to key inside this binary
+                Ok(PathBuf::new())
+            }
+        })
+        .clone()
 }
 
 pub fn check_signature<P>(path: &P) -> Result<(), Error>
