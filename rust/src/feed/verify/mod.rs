@@ -175,8 +175,16 @@ impl VerificationHelper for VHelper {
 }
 
 fn pubring() -> Result<PathBuf, Error> {
+    if let Ok(home) = std::env::var("FEED_PUBLIC_KEY") {
+        let fpk = PathBuf::from(home);
+        if !fpk.is_file() {
+            tracing::warn!(?fpk, "Is not pointing to a file.");
+            Err(Error::MissingKeyring)
+        } else {
+            Ok(fpk)
+        }
     // Although using GNUPGHOME is very misleading it is kept due to downwards compatibility reasons
-    if let Ok(val) = std::env::var("GNUPGHOME") {
+    } else if let Ok(val) = std::env::var("GNUPGHOME") {
         let kbx = PathBuf::from(val).join("pubring.kbx");
         if !kbx.is_file() {
             tracing::info!(
@@ -187,14 +195,6 @@ fn pubring() -> Result<PathBuf, Error> {
             Ok(PathBuf::new())
         } else {
             Ok(kbx)
-        }
-    } else if let Ok(home) = std::env::var("FEED_PUBLIC_KEY") {
-        let fpk = PathBuf::from(home);
-        if !fpk.is_file() {
-            tracing::warn!(?fpk, "Is not pointing to a file.");
-            Err(Error::MissingKeyring)
-        } else {
-            Ok(fpk)
         }
     } else {
         tracing::info!(
