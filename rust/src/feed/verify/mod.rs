@@ -177,11 +177,11 @@ impl VerificationHelper for VHelper {
 fn pubring() -> Result<PathBuf, Error> {
     // Although using GNUPGHOME is very misleading it is kept due to downwards compatibility reasons
     if let Ok(val) = std::env::var("GNUPGHOME") {
-        let kbx = PathBuf::from(val).join("gnupg").join("pubring.kbx");
+        let kbx = PathBuf::from(val).join("pubring.kbx");
         if !kbx.is_file() {
             tracing::info!(
                 ?kbx,
-                "GNUPGHOME does not contain gnupg/pubring.kbx. Falling back to default key"
+                "GNUPGHOME does not contain pubring.kbx. Falling back to default key"
             );
 
             Ok(PathBuf::new())
