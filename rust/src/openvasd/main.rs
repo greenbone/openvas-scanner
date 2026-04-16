@@ -124,8 +124,7 @@ async fn main() {
     let rc = match _main().await {
         Ok(x) => x,
         Err(error) => {
-            tracing::error!(%error, "Unexpected error result");
-            1
+            panic!("{error}")
         }
     };
     // we call process exit, on return ExitCode it kept lingering.
