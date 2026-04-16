@@ -16,6 +16,7 @@ mod isotime;
 mod knowledge_base;
 mod krb5;
 pub mod misc;
+mod naslsmb;
 pub mod network;
 mod notus;
 mod preferences;
@@ -51,6 +52,7 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(host::Host)
         .add_set(http::NaslHttp2::default())
         .add_set(http::NaslHttp)
+        .add_set(naslsmb::Smb::default())
         .add_set(network::socket::SocketFns)
         .add_set(network::network::Network)
         .add_set(regex::RegularExpressions)
@@ -62,9 +64,9 @@ pub fn nasl_std_functions() -> Executor {
         .add_set(sys::Sys)
         .add_set(ssh::Ssh::default())
         .add_set(find_service::FindService)
-        .add_set(wmi::Wmi)
         .add_set(snmp::Snmp)
         .add_set(cert::NaslCerts::default())
+        .add_set(wmi::Wmi)
         .add_set(notus::NaslNotus::default());
 
     executor.add_set(krb5::Krb5::default());
