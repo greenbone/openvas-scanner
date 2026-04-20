@@ -18,4 +18,7 @@ if (description)
   script_xref(name:"URL", value:"https://greenbone.net");
   exit(0);
 }
+
+log_message(data: "0.0.0.0.0.0.0.0.0.1", uri: "file:///tmp/openvasd/oids");
 exit(0);
+
