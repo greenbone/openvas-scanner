@@ -41,6 +41,8 @@ or provide the `-c` flag when starting openvasd.
 
 An example can be found [here](../../examples/openvasd/config.example.toml)
 
+For customer-facing tuning guidance for `[container_image_scanner.image]`, see [Container Image Scanner Configuration](../../doc/container-image-scanner-configuration.md).
+
 ## Authentication
 
 The API supports two kinds of authentication methods:
