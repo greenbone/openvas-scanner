@@ -39,8 +39,10 @@ jobs:
             --cache-from=type=gha \
             --cache-to=type=gha,mode=max \
             --build-arg "BIN_VERSION=${BIN_VERSION}" \
+            --build-arg "VERSION=oldstable" \
+            --build-arg "RUST_IMAGE=rust:bookworm" \
             -o type=local,dest="./${DIST}" \
-            -f .docker/prod-oldstable.Dockerfile .
+            -f .docker/prod.Dockerfile .
           mkdir -p "${ASSETS_SUBDIR}"
           cp "./${DIST}/install/usr/local/bin/openvasd"      "${ASSETS_SUBDIR}/openvasd"
           cp "./${DIST}/install/usr/local/bin/scannerctl"    "${ASSETS_SUBDIR}/scannerctl"

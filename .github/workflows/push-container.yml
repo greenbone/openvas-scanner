@@ -59,6 +59,7 @@ jobs:
               dockerfile: .docker/prod.Dockerfile
               stable-name: stable
               edge-name: edge
+              variant-build-args: ""
               tags: |
                     type=raw,value=latest,enable=${{ inputs.is_latest_tag }}
                     type=raw,value=stable,enable=${{ inputs.is_latest_tag }}
@@ -70,14 +71,20 @@ jobs:
                     type=ref,event=pr
           - build:
               name: testing
-              dockerfile: .docker/prod-testing.Dockerfile
+              dockerfile: .docker/prod.Dockerfile
               stable-name: testing
               edge-name: testing-edge
+              variant-build-args: |
+                VERSION=testing-edge
+                OPENVAS_SMB_IMAGE=greenbone/openvas-smb:testing-edge
           - build:
               name: oldstable
-              dockerfile: .docker/prod-oldstable.Dockerfile
+              dockerfile: .docker/prod.Dockerfile
               stable-name: oldstable
               edge-name: oldstable-edge
+              variant-build-args: |
+                VERSION=oldstable
+                RUST_IMAGE=rust:bookworm
     name: Build and Push Container Images (${{ matrix.build.name }})
     uses: greenbone/workflows/.github/workflows/container-build-push-gea.yml@main
     with:
@@ -93,7 +100,9 @@ jobs:
         org.opencontainers.image.base.name=debian:stable-slim
       prefix: ${{ matrix.build.prefix }}
       tags: ${{ matrix.tags }}
-      build-args: "BIN_VERSION=${{ inputs.binary_version }}"
+      build-args: |
+        BIN_VERSION=${{ inputs.binary_version }}
+        ${{ matrix.build.variant-build-args }}
       images: |
         ghcr.io/${{ github.repository }},enable=true
         ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}

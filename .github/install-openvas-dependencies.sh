@@ -24,7 +24,8 @@ apt-get install --no-install-recommends --no-install-suggests -y \
     libksba-dev \
     libpaho-mqtt-dev \
     libpcap-dev \
-    libgcrypt-dev \
+    libgcrypt20-dev \
+    libgpg-error-dev \
     libssh-dev \
     libbsd-dev \
     libsnmp-dev \
