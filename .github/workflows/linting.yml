@@ -18,6 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
+      - name: Prepare nasl-c-lib archives
+        run: make
       - run: cargo fmt --check
       - run: cargo clippy -V
       - run: cargo clippy --all-targets -- -D warnings --no-deps

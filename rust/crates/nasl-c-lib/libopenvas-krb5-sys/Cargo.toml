@@ -6,5 +6,4 @@ links = "openvas-krb5"
 
 [build-dependencies]
 cc = { workspace = true }
-autotools = { workspace = true }
 bindgen = { workspace = true }

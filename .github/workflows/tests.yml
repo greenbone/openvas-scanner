@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
+      - name: Prepare nasl-c-lib archives
+        run: make
       - run: cd crates/rpmdb-rs && sh prepare-test-data.sh
       - name: unit-tests
         run: cargo test --lib --tests --workspace
