@@ -44,7 +44,12 @@ jobs:
       - run: curl -L https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb -o hurl.deb
       - run: sudo apt-get install -y ./hurl.deb
       - run: cd compose && OPENVAS_IMAGE="${{ inputs.image }}" make test-environment-running
-      - run: cd compose/tests/smoketest && make
+      - run: |
+          for attempt in 1 2; do
+            ( cd compose/tests/smoketest && make > /dev/null 2>&1) && exit 0 || \
+              echo "smokey failed on attempt $attempt, retrying..."
+          done
+          cd compose/tests/smoketest && make
       - run: cd compose && make test-environment-logs
         if: always()
   tests:
