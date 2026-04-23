@@ -4,8 +4,8 @@
 
 #[cfg(test)]
 mod tests;
-
 use dns_lookup::lookup_addr;
+use std::{net::IpAddr, str::FromStr};
 use thiserror::Error;
 
 use crate::nasl::interpreter::{Fork, ForkKind};
@@ -20,6 +20,8 @@ pub enum HostError {
     EmptyAddress,
     #[error("Target is not a hostname.")]
     TargetIsNotAHostname,
+    #[error("{0}")]
+    InvalidHost(String),
 }
 
 struct Hostname(String);
@@ -172,6 +174,24 @@ fn same_host(h1: &str, h2: &str, cmp_hostname: Option<bool>) -> Result<bool, FnE
     Ok(any_ip_address_matches || (cmp_hostname && any_hostname_matches))
 }
 
+/// Return the hostname of the given ip or the target if given or localhost as default
+#[nasl_function]
+fn host_reverse_lookup(
+    context: &ScanCtx,
+    ip_str: Option<String>,
+) -> Result<Option<String>, FnError> {
+    let target = if let Some(t) = ip_str {
+        match IpAddr::from_str(&t) {
+            Ok(a) => Some(a),
+            Err(e) => return Err(HostError::InvalidHost(e.to_string()).into()),
+        }
+    } else {
+        Some(context.target().ip_addr())
+    };
+    //safe to unwrap the target, since it always defaults to localhost
+    Ok(lookup_addr(&target.unwrap()).ok())
+}
+
 pub struct Host;
 
 function_set! {
@@ -181,10 +201,11 @@ function_set! {
         (nasl_get_host_ip, "get_host_ip"),
         resolve_host_name,
         resolve_hostname_to_multiple_ips,
+        (host_reverse_lookup, "ip_reverse_lookup"),
         (target_is_ipv6, "TARGET_IS_IPV6"),
         same_host,
         add_host_name,
         get_host_name,
-        get_host_name_source
+        get_host_name_source,
     )
 }
