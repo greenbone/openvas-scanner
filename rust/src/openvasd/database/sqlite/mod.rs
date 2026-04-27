@@ -9,6 +9,7 @@ use sqlx::{
 use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
 
 pub mod results;
+pub mod scan_storage;
 pub mod scans;
 pub mod state_change;
 pub mod vts;

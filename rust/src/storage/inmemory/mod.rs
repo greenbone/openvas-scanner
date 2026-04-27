@@ -86,8 +86,18 @@ impl InMemoryStorage {
         (FeedType::Advisories, oid.to_string())
     }
 
-    fn all_vts(&self) -> Result<Vec<VTData>, StorageError> {
+    pub fn all_vts(&self) -> Result<Vec<VTData>, StorageError> {
         Ok(self.vts.read()?.values().cloned().collect())
+    }
+
+    pub fn nasl_oids(&self) -> Result<Vec<String>, StorageError> {
+        Ok(self
+            .oid_lookup
+            .read()?
+            .keys()
+            .filter(|(ft, _)| *ft == FeedType::NASL)
+            .map(|(_, oid)| oid.clone())
+            .collect())
     }
 }
 

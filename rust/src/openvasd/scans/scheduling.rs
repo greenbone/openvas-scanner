@@ -11,8 +11,9 @@ use scannerlib::{
         OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
         preferences,
     },
-    storage::inmemory::InMemoryStorage,
 };
+
+use crate::database::sqlite::scan_storage::ScanStorage;
 use tokio::{
     sync::mpsc::{self, Sender},
     time::MissedTickBehavior,
@@ -553,7 +554,7 @@ where
                 .notus
                 .address
                 .map(scannerlib::nasl::utils::scan_ctx::NotusCtx::Address);
-            let storage = Arc::new(InMemoryStorage::new());
+            let storage = ScanStorage::new(pool.clone());
             let scanner = OpenvasdScanner::new(storage, loader, executor, notus);
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
