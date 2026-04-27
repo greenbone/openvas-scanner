@@ -148,14 +148,17 @@ where
             .get(id)
             .ok_or_else(|| Error::ScanNotFound(id.to_string()))?;
         let status = r.status().await;
+        let scan_id = ScanID(id.to_string());
+        let results = self
+            .storage
+            .remove(&scan_id)
+            .await
+            .map_err(|e| Error::Unexpected(e.to_string()))?
+            .unwrap_or_default();
         Ok(ScanResults {
             id: id.to_string(),
             status,
-            // TODO: verify
-            // The results are directly stored by the storage implementation:
-            // inmemory.rs
-            // file.rs
-            results: vec![],
+            results,
         })
     }
 }
