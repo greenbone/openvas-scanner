@@ -11,7 +11,7 @@ use chacha20::ChaCha20;
 use chacha20::cipher::{KeyIvInit, StreamCipher};
 use generic_array::typenum::U32;
 use pbkdf2::pbkdf2_hmac;
-use rand::{self, RngCore};
+use rand::{self, Rng};
 use sha2::Sha256;
 
 use sha2::digest::generic_array::GenericArray;

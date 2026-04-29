@@ -4,7 +4,7 @@
 
 use digest::typenum;
 use md5::Digest;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::nasl::{builtin::cryptographic::hmac::hmac, prelude::*, utils::function::StringOrData};
 
