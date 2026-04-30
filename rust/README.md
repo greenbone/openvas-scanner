@@ -36,8 +36,11 @@ To build and create the executables
 
 You have to execute
 ```
+make
 cargo build --release
 ```
+
+The `make` command builds required c libraries. For more information check [Documentation](./crates/nasl-c-lib/README.md)
 
 # Contribution
 
