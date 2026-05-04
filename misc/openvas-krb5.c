@@ -7,7 +7,11 @@
 #include <ctype.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
+#if __has_include(<krb5/krb5.h>)
 #include <krb5/krb5.h>
+#else
+#include <krb5.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
