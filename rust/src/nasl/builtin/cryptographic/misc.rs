@@ -5,7 +5,7 @@
 use crate::nasl::{prelude::*, utils::function::StringOrData};
 
 use num_bigint::BigUint;
-use rand::{Rng, rng};
+use rand::{RngExt, rng};
 
 #[nasl_function]
 fn insert_hexzeros(register: &Register) -> Result<Vec<u8>, FnError> {

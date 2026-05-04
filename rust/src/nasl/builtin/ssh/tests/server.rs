@@ -119,14 +119,12 @@ impl server::Handler for TestServer {
         async move {
             let _ = match String::from_utf8(cmd.to_vec()).unwrap().as_str() {
                 // Send to stdout.
-                "write_foo_stdout" => session.data(channel, CryptoVec::from("foo".to_string())),
+                "write_foo_stdout" => session.data(channel, "foo"),
                 // Send to stderr.
-                "write_bar_stderr" => {
-                    session.extended_data(channel, 1, CryptoVec::from("bar".to_string()))
-                }
+                "write_bar_stderr" => session.extended_data(channel, 1, "bar"),
                 "write_both" => {
-                    let _ = session.data(channel, CryptoVec::from("foo".to_string()));
-                    session.extended_data(channel, 1, CryptoVec::from("bar".to_string()))
+                    let _ = session.data(channel, "foo");
+                    session.extended_data(channel, 1, "bar")
                 }
                 _ => panic!(),
             };

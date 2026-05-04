@@ -8,7 +8,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use rand_core::OsRng;
 use russh::server::Config as ServerConfig;
 use russh::server::Server as _;
 
@@ -30,7 +29,7 @@ static LOCK: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
 const PORT: u16 = 2223;
 
 fn default_config() -> ServerConfig {
-    let mut rng = OsRng;
+    let mut rng = rand::rng();
     ServerConfig {
         keys: vec![PrivateKey::random(&mut rng, russh::keys::Algorithm::Ed25519).unwrap()],
         inactivity_timeout: Some(std::time::Duration::from_secs(3600)),
