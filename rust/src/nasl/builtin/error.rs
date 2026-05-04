@@ -16,6 +16,7 @@ use super::find_service::FindServiceError;
 use super::host::HostError;
 use super::http::HttpError;
 use super::isotime::IsotimeError;
+use super::naslsmb::SmbError;
 use super::raw_ip::RawIpError;
 use super::regex::RegexError;
 use super::snmp::SnmpError;
@@ -28,6 +29,8 @@ pub enum BuiltinError {
     Ssh(SshError),
     #[error("{0}")]
     Http(HttpError),
+    #[error("{0}")]
+    NaslWmi(SmbError),
     #[error("{0}")]
     Notus(NotusError),
     #[error("{0}")]
@@ -97,6 +100,7 @@ builtin_error_variant!(SocketError, Socket);
 builtin_error_variant!(CryptographicError, Cryptographic);
 builtin_error_variant!(SshError, Ssh);
 builtin_error_variant!(HttpError, Http);
+builtin_error_variant!(SmbError, NaslWmi);
 builtin_error_variant!(IsotimeError, Isotime);
 builtin_error_variant!(RegexError, Regex);
 builtin_error_variant!(KBError, KB);
