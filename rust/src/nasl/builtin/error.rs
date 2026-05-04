@@ -18,6 +18,7 @@ use super::http::HttpError;
 use super::isotime::IsotimeError;
 use super::raw_ip::RawIpError;
 use super::regex::RegexError;
+use super::smb::SmbError;
 use super::snmp::SnmpError;
 use super::sys::SysError;
 use super::{misc::MiscError, network::socket::SocketError, ssh::SshError, string::StringError};
@@ -28,6 +29,8 @@ pub enum BuiltinError {
     Ssh(SshError),
     #[error("{0}")]
     Http(HttpError),
+    #[error("{0}")]
+    Smb(SmbError),
     #[error("{0}")]
     Notus(NotusError),
     #[error("{0}")]
@@ -97,6 +100,7 @@ builtin_error_variant!(SocketError, Socket);
 builtin_error_variant!(CryptographicError, Cryptographic);
 builtin_error_variant!(SshError, Ssh);
 builtin_error_variant!(HttpError, Http);
+builtin_error_variant!(SmbError, Smb);
 builtin_error_variant!(IsotimeError, Isotime);
 builtin_error_variant!(RegexError, Regex);
 builtin_error_variant!(KBError, KB);
