@@ -2,7 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#![doc = include_str!("README.md")]
+//! # redis-storage
+//!
+//! Is the redis implementation for [storage](../../storage/).
+//!
+//! It is written in a downwards compatible way so that `ospd-openvas` is capable of reading and writing the data.
+//!
 /// Module with structures and methods to access redis.
 mod connector;
 /// Module to handle custom errors

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Defines NASL functions to perform HTTP/1 and HTTP/2 request.
+//! Defines NASL functions to perform HTTP/1 and HTTP/2 requests
 
 mod error;
 
