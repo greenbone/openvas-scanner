@@ -7,6 +7,3 @@ edition = "2024"
 [dependencies]
 libcrypt-sys = { path = "libcrypt-sys" }
 libopenvas-krb5-sys = { path = "libopenvas-krb5-sys" }
-
-[build-dependencies]
-cc = { workspace = true }
