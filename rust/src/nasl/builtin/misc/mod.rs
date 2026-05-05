@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-//! Defines NASL miscellaneous functions
-
 #[cfg(test)]
 mod tests;
 
