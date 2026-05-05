@@ -152,7 +152,7 @@ impl Display for BuiltinStats {
             if !stats.implemented.is_empty() {
                 writeln!(f, "### Implemented Functions\n")?;
                 let mut funcs = stats.implemented.clone();
-                funcs.sort_by(|(_, a), (_, b)| a.cmp(b));
+                funcs.sort_by_key(|(_, a)| *a);
                 funcs.reverse();
                 for (func, count) in funcs {
                     writeln!(f, "- {} (used {} times)", func, count)?;
@@ -181,7 +181,7 @@ impl Display for BuiltinStats {
                         }
                     }
                     let mut funcs = funcs.clone();
-                    funcs.sort_by(|(_, a), (_, b)| a.cmp(b));
+                    funcs.sort_by_key(|(_, a)| *a);
                     funcs.reverse();
                     for (func, count) in funcs {
                         writeln!(f, "- {} (used {} times)", func, count)?;
