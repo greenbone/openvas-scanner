@@ -1,0 +1,23 @@
+ScanID:
+  name: id
+  in: path
+  description: "ID of a Scan"
+  required: true
+  schema:
+    type: "string"
+
+ResultID:
+  name: rid
+  in: path
+  description: "ID of a Result"
+  required: true
+  schema:
+    type: "string"
+
+NotusOS:
+  name: os
+  in: path
+  description: "Operative System"
+  required: true
+  schema:
+    type: "string"

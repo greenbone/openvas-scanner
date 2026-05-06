@@ -1,0 +1,75 @@
+Status:
+  description: "The status of a scan"
+  type: "object"
+  properties:
+    start_time:
+      description: "A UNIX time format describing when the scan started."
+      type: "integer"
+      format: "int32"
+    end_time:
+      description: "A UNIX time format describing when the scan ended."
+      type: "integer"
+      format: "int32"
+    status:
+      description: "In which phase the scan is currently in."
+      type: "string"
+      enum:
+        - stored
+        - requested
+        - running
+        - stopped
+        - failed
+        - succeeded
+    host_info:
+      $ref: "#/HostInfo"
+    _links:
+      $ref: "./hateoas.yml#/ScanLinks"
+  required:
+    - status
+
+HostInfo:
+  description: "Information about the progress for each host of the scan."
+  type: "object"
+  properties:
+    all:
+      description: "The number of host in the target of the scan."
+      type: "integer"
+      format: "int32"
+    excluded:
+      description: "The number of hosts excluded from the target if the scan."
+      type: "integer"
+      format: "int32"
+    dead:
+      description: "The number of host detected as not reachable."
+      type: "integer"
+      format: "int32"
+    alive:
+      description: "The number of hosts that are reachable and will be scanned."
+      type: "integer"
+      format: "int32"
+    queued:
+      description: "The number of hosts that are waiting to be scanned."
+      type: "integer"
+      format: "int32"
+    finished:
+      description: "The number hosts that are finished with scanning."
+      type: "integer"
+      format: "int32"
+    scanning:
+      deprecated: true
+      description: |
+        The current implementation is not implemented in accordance with the
+        API spec as it does not return a list of hosts (strings) but a list of host (string) : progress (int32) pairs.
+
+        Although still available, we highly recommend not using it for progress information/calculation.
+        A more suitable API definition and implementation will be done in the next major API version. We apologize for the inconvenience.
+      type: "array"
+      items:
+        type: "string"
+  required:
+    - all
+    - excluded
+    - dead
+    - alive
+    - queued
+    - finished

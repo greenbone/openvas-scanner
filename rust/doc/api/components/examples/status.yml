@@ -1,0 +1,88 @@
+scan_status_stored:
+  description: "Status of a queued Scan"
+  value:
+    {
+      "status": "stored",
+      "_links":
+        {
+          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
+          "start": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "POST" },
+          "delete": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "DELETE" },
+        },
+    }
+
+scan_status_running:
+  description: "Status of a running Scan"
+  value:
+    {
+      "start_time": 1679649183,
+      "status": "running",
+      "host_info":
+        {
+          "all": 14,
+          "excluded": 0,
+          "dead": 4,
+          "alive": 6,
+          "queued": 1,
+          "finished": 1,
+          "scanning": [
+            "127.0.0.1": 80,
+            "10.0.5.1": 55,
+            "10.0.5.3": 40
+          ]
+        },
+      "_links":
+        {
+          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
+          "stop": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "POST" },
+          "results": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results", "method": "GET" },
+        },
+    }
+
+scan_status_success:
+  description: "Status of a successfully finished Scan"
+  value:
+    {
+      "start_time": 1679649183,
+      "end_time": 1679656139,
+      "status": "succeeded",
+      "host_info":
+        {
+          "all": 14,
+          "excluded": 0,
+          "dead": 4,
+          "alive": 10,
+          "queued": 0,
+          "finished": 10,
+        },
+      "_links":
+        {
+          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
+          "results": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results", "method": "GET" },
+          "delete": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "DELETE" },
+        },
+    }
+
+scan_status_fail:
+  description: "Status of an interrupted Scan. Except for the status, a stopped scan could look like the same."
+  value:
+    {
+      "start_time": 1679649183,
+      "end_time": 1679656139,
+      "status": "failed",
+      "host_info":
+        {
+          "all": 14,
+          "excluded": 0,
+          "dead": 4,
+          "alive": 10,
+          "queued": 1,
+          "finished": 8,
+        },
+      "_links":
+        {
+          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
+          "results": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results", "method": "GET" },
+          "delete": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "DELETE" },
+        },
+    }

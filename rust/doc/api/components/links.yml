@@ -1,0 +1,29 @@
+GetScan:
+  operationId: get_scan
+  parameters:
+    id: "$response.body#/"
+  description: "Get the scan by its ID (used when response body is the scan ID string)."
+
+ScanAction:
+  operationId: scan_action
+  parameters:
+    id: "$response.body#/"
+  description: "Perform an action (start/stop) on the scan."
+
+GetScanStatus:
+  operationId: get_scan_status
+  parameters:
+    id: "$response.body#/"
+  description: "Get the current status of the scan."
+
+GetScanResults:
+  operationId: get_results
+  parameters:
+    id: "$response.body#/"
+  description: "Get the results of the scan."
+
+DeleteScan:
+  operationId: delete_scan
+  parameters:
+    id: "$response.body#/"
+  description: "Delete the scan."
