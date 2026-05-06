@@ -470,7 +470,7 @@ pub trait RedisAddNvt: RedisWrapper {
     #[inline(always)]
     fn prefs(preferences: &[NvtPreference]) -> Vec<String> {
         let mut prefs = Vec::from(preferences);
-        prefs.sort_by(|a, b| b.id.unwrap_or_default().cmp(&a.id.unwrap_or_default()));
+        prefs.sort_by_key(|b| std::cmp::Reverse(b.id.unwrap_or_default()));
         let results: Vec<String> = prefs
             .iter()
             .map(|pref| {

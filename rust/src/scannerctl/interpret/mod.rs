@@ -190,8 +190,8 @@ pub async fn run(
         })
         .unwrap_or(Target::localhost());
     let ports = Ports {
-        tcp: BTreeSet::from_iter(tcp_ports.into_iter()),
-        udp: BTreeSet::from_iter(udp_ports.into_iter()),
+        tcp: BTreeSet::from_iter(tcp_ports),
+        udp: BTreeSet::from_iter(udp_ports),
     };
 
     let result = match (db, feed) {
