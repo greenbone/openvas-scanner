@@ -129,7 +129,7 @@ where
                     }
                     debug!(result=?result, "script finished");
 
-                    if !result.has_succeeded() {
+                    if result.kind.is_fatal() {
                         end_phase = Phase::Failed;
                     }
                 }
