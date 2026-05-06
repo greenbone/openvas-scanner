@@ -5,9 +5,7 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use async_trait::async_trait;
-use greenbone_scanner_framework::models::{
-    AliveTestMethods, Port, PortRange, Protocol, ScanPreference,
-};
+use greenbone_scanner_framework::models::{AliveTestMethods, Port, Protocol, ScanPreference};
 use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
 
@@ -383,12 +381,8 @@ impl<'a> ScanCtx<'a> {
         self.target.add_hostname(hostname, source);
     }
 
-    fn port_range(&self) -> PortRange {
-        // TODO Get this from the scan prefs
-        PortRange {
-            start: 0,
-            end: None,
-        }
+    fn configured_tcp_ports(&self) -> Vec<u16> {
+        self.target.ports_tcp.iter().cloned().collect()
     }
 
     /// Get the storage
@@ -561,9 +555,9 @@ impl<'a> ScanCtx<'a> {
             })
             .collect();
 
-        // If no ports found in KB, fall back to context port range
+        // If no ports found in KB, fall back to the ports configured in the scan
         if port_numbers.is_empty() {
-            Ok(self.port_range().into_iter().collect())
+            Ok(self.configured_tcp_ports())
         } else {
             Ok(port_numbers)
         }
