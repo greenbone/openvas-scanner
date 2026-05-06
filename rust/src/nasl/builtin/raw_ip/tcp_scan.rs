@@ -15,6 +15,8 @@ use tokio::time::timeout;
 use tracing::{debug, warn};
 
 use crate::function_set;
+use crate::nasl::builtin::network::Port;
+use crate::nasl::builtin::network::network::scanner_add_port_shared;
 use crate::nasl::{FnError, ScanCtx};
 use crate::storage::items::kb::{self, Host, KbItem, KbKey};
 
@@ -593,6 +595,11 @@ async fn plugin_run_openvas_tcp_scanner(context: &ScanCtx<'_>) -> Result<(), FnE
     }
 
     for port in &results.open_ports {
+        // Register the port as open under the canonical Ports/tcp/<port> key
+        // so that downstream NASL scripts (find_service, secpod_open_tcp_ports, …)
+        // can discover it via get_kb_list("Ports/tcp/*").
+        scanner_add_port_shared(context, Port::from(*port), Some("tcp")).await?;
+
         if let Some(banner) = results.banners.get(port) {
             // No need for BannerHex in rust anymore, as it was only needed, if the Banner contained
             // a \0, which ends a string in c. But in rust a \0 is just ignored in a String.
