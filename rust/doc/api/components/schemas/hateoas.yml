@@ -1,0 +1,55 @@
+Link:
+  description: "A hypermedia link to a related resource or action."
+  type: "object"
+  properties:
+    href:
+      description: "The URL of the linked resource."
+      type: "string"
+    method:
+      description: "The HTTP method to use for this link."
+      type: "string"
+      enum:
+        - GET
+        - POST
+        - DELETE
+        - HEAD
+  required:
+    - href
+    - method
+
+ScanLinks:
+  description: "HATEOAS links for a scan resource. Available links depend on the current scan state."
+  type: "object"
+  properties:
+    self:
+      description: "The canonical URL of this scan."
+      $ref: "#/Link"
+    start:
+      description: "Start the scan. Present when status is stored or requested."
+      $ref: "#/Link"
+    stop:
+      description: "Stop the scan. Present when status is running."
+      $ref: "#/Link"
+    results:
+      description: "Retrieve the scan results. Present after the scan has started."
+      $ref: "#/Link"
+    status:
+      description: "Get the current scan status."
+      $ref: "#/Link"
+    delete:
+      description: "Delete the scan. Present when the scan is not running."
+      $ref: "#/Link"
+
+ResultsLinks:
+  description: "HATEOAS links for a results collection."
+  type: "object"
+  properties:
+    self:
+      description: "The canonical URL of this result page."
+      $ref: "#/Link"
+    next:
+      description: "The next page of results. Present when more results are available."
+      $ref: "#/Link"
+    scan:
+      description: "The scan that produced these results."
+      $ref: "#/Link"

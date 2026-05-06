@@ -1,0 +1,227 @@
+Target:
+  description: "A target is a list of hosts to scan, including their UDP and TCP ports. Additionally for further access to the systems credentials can be given."
+  type: "object"
+  properties:
+    hosts:
+      description: "A list of hosts."
+      type: "array"
+      items:
+        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname."
+        type: "string"
+    excluded_hosts:
+      description: "A list of excluded hosts."
+      type: "array"
+      items:
+        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname."
+        type: "string"
+    ports:
+      description: "A list of ports."
+      type: "array"
+      items:
+        $ref: "#/PortRange"
+    credentials:
+      description: "A list of credentials used for further access to a target system."
+      type: "array"
+      items:
+        $ref: "#/Credential"
+    alive_test_ports:
+      description: "Dedicated port list for alive detection. Used for TCP-SYN and TCP-ACK ping when Boreas is enabled."
+      type: "array"
+      items:
+        $ref: "#/PortRange"
+    alive_test_methods:
+      description: "List of alive test to be performed against the target. Can be one or a combination of icmp, tcp_syn, tcp_ack, arp, consider_alive methods"
+      type: "array"
+      items:
+        $ref: "#/AliveTestMethod"
+    reverse_lookup_unify:
+      description: "If multiple IP addresses resolve to the same DNS name the DNS name will only get scanned once."
+      type: "boolean"
+    reverse_lookup_only:
+      description: "Only scan IP addresses that can be resolved into a DNS name."
+      type: "boolean"
+  required:
+    - hosts
+    - ports
+
+AliveTestMethod:
+  description: "Alive test method to be performed against the target"
+  type: "string"
+  enum:
+    - icmp
+    - tcp_syn
+    - tcp_ack
+    - arp
+    - consider_alive
+
+PortRange:
+  description: "A port range for either UDP or TCP ports"
+  type: "object"
+  properties:
+    protocol:
+      description: "The protocol for the port range. If missing the port range is applied for UDP and TCP."
+      type: "string"
+      enum:
+        - udp
+        - tcp
+    range:
+      type: "array"
+      description: "A list of ranges"
+      items:
+        type: "object"
+        properties:
+          start:
+            type: "number"
+            description: "The inclusive start port. When end is not set only the start port is used"
+          end:
+            type: "number"
+            description: "The inclusive end port."
+  required:
+    - range
+
+Credential:
+  description: "Data for authentication for a target system."
+  type: "object"
+  properties:
+    service:
+      description: "The service used for authentication."
+      type: "string"
+      enum:
+        - ssh
+        - smb
+        - esxi
+        - snmp
+        - krb5
+    port:
+      description: "The port the authentication service is running."
+      type: "integer"
+      format: "int32"
+    up:
+      $ref: "#/UP"
+    krb5:
+      $ref: "#/KRB5"
+    usk:
+      $ref: "#/USK"
+    snmp:
+      $ref: "#/SNMP"
+
+UP:
+  description: "Authentication via Username and Password."
+  type: "object"
+  properties:
+    username:
+      description: "Username for authentication."
+      type: "string"
+    password:
+      description: "Password for authentication."
+      type: "string"
+    privilege_username:
+      description: "Privilege username for authentication."
+      type: "string"
+    privilege_password:
+      description: "Privilege password for authentication."
+      type: "string"
+  required:
+    - username
+
+KRB5:
+  description: "Authentication via Kerberos GSA."
+  type: "object"
+  properties:
+    username:
+      description: "Username for authentication."
+      type: "string"
+    password:
+      description: "Password for authentication."
+      type: "string"
+    realm:
+      description: "Realm to be used by KRB5"
+      type: "string"
+    kdc:
+      description: "KDC to be defined within the realm."
+      type: "string"
+  required:
+    - username
+    - password
+    - realm
+    - kdc
+
+USK:
+  description: "Authentication via Username and Security Key."
+  type: "object"
+  properties:
+    username:
+      description: "Username for authentication."
+      type: "string"
+    password:
+      description: "Password for Security Key."
+      type: "string"
+    private:
+      description: "SSH private key."
+      type: "string"
+    privilege_username:
+      description: "Privilege username for authentication."
+      type: "string"
+    privilege_password:
+      description: "Privilege password for authentication."
+      type: "string"
+  required:
+    - username
+    - private
+
+SNMP:
+  description: "Authentication via SNMP."
+  type: "object"
+  properties:
+    username:
+      description: "Username for SNMP authentication."
+      type: "string"
+    password:
+      description: "Password for SNMP authentication."
+      type: "string"
+    community:
+      description: "Community string for SNMP authentication."
+      type: "string"
+    auth_algorithm:
+      description: "Algorithm for SNMP authentication."
+      type: "string"
+      enum:
+        - md5
+        - sha1
+    privacy_password:
+      description: "Privacy Password for SNMP authentication."
+      type: "string"
+    privacy_algorithm:
+      description: "Algorithm used for encrypting privacy password."
+      type: "string"
+      enum:
+        - aes
+        - des
+
+VT:
+  description: "A single VT and its parameters."
+  type: "object"
+  properties:
+    oid:
+      description: "The identifier for a VT"
+      type: "string"
+    parameters:
+      description: "A list of parameters for the VT. In case a VT has parameters but these are not set here, then the defaults will be applied. A default exists for any parameter."
+      type: "array"
+      items:
+        $ref: "#/Parameter"
+
+Parameter:
+  description: "Consists of a parameter ID and its value."
+  type: "object"
+  properties:
+    id:
+      description: "ID of the parameter to set."
+      type: "integer"
+      format: "int32"
+    value:
+      description: "Value of the parameter."
+      type: "string"
+  required:
+    - value
+    - id

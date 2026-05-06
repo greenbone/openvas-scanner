@@ -1,0 +1,86 @@
+Result:
+  description: "A result of a Scan"
+  type: "object"
+  properties:
+    id:
+      description: "An ID, which is unique for the scan. It is auto incremental and starts at 0 for the first result."
+      type: "integer"
+      format: "int32"
+    type:
+      description: "The type of the result."
+      type: "string"
+      enum:
+        - alarm
+        - log
+        - error
+        - host_start
+        - host_stop
+        - host_detail
+    ip_address:
+      description: "The IPv4 or IPv6 of the target the result was found."
+      type: "string"
+    hostname:
+      description: "The hostname of the target the result was found."
+      type: "string"
+    oid:
+      description: "The identifier of the VT in which found the result."
+      type: "string"
+    port:
+      description: "The port that was used to find the result."
+      type: "integer"
+      format: "int32"
+    protocol:
+      description: "The protocol that was used to find the result, corresponding to the port."
+      type: "string"
+      enum:
+        - udp
+        - tcp
+    message:
+      description: "Additional information about the result."
+      type: "string"
+    detail:
+      description: "The detail object is only used for results of type host_detail. It contains information about a scanned hosted such as hardware information, architecture and many more."
+      type: "object"
+      properties:
+        name:
+          description: "descriptive name of the detail"
+          type: "string"
+        value:
+          description: "value of the host detail"
+          type: "string"
+        source:
+          description: "source of the host detail"
+          type: "object"
+          properties:
+            type:
+              description: "type of the source, e.g. nvt"
+              type: "string"
+            name:
+              description: "descriptive name of the source, in case of type nvt this is its OID"
+              type: "string"
+            description:
+              description: "Optional information about the detection, could contain how the data actually was collected."
+              type: "string"
+          required:
+            - type
+            - name
+      required:
+        - name
+        - value
+        - source
+  required:
+    - type
+
+ResultsResponse:
+  description: "A paginated collection of scan results."
+  type: "object"
+  properties:
+    items:
+      description: "The list of results for the requested range."
+      type: "array"
+      items:
+        $ref: "#/Result"
+    _links:
+      $ref: "./hateoas.yml#/ResultsLinks"
+  required:
+    - items
