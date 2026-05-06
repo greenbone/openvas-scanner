@@ -9,7 +9,6 @@ build = "build.rs"
 anyhow = "1.0.75"
 cc = "1.0"
 bindgen = "0.72"
-autotools = "0.2"
 clap = { version = "4.5.27", features = ["derive", "env"] }
 futures = "0.3.30"
 futures-util = "0.3.28"
@@ -84,7 +83,6 @@ quick-xml = { version = "0.38.1", features = [
     "serialize",
 ] }
 rand = "0.10.0"
-rand_core = "0.6.4"
 rc4 = "0.1.0"
 redis = "0.32.5"
 regex = "1.10.6"
