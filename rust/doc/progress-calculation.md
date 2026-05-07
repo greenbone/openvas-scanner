@@ -57,7 +57,7 @@ scan_progress = (sum(scanning.values) + 100 * alive) / (all - dead)
 ## Special Case: Resuming a Scan
 
 When resuming a stopped scan, already-finished hosts must not be scanned again. They are
-therefore passed as `excluded_hosts` when creating the new scan. See [resume scan](faq/resume-scan.md)
+therefore passed as `excluded_hosts` when creating the new scan. See [resume scan](resume-scan.md)
 for details on how to set that up.
 
 Because those hosts are now excluded, the new scan starts with `all` reduced by the number of
