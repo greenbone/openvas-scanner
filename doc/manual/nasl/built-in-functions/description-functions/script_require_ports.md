@@ -14,6 +14,8 @@
 
 Sets the list of TCP ports that must be open to run this script in “optimize mode”.
 
+Note: Please see the *non_simult_ports* option of [openvas](../../../openvas/openvas.md) for some special handling of some ports.
+
 ## RETURN VALUE
 
 Returns nothing.
@@ -25,7 +27,7 @@ Returns nothing.
 
 **1**: 
 ```cpp
-script_require_ports("ssh", 443);
+script_require_ports("Services/www", 443);
 ```
 
 ## SEE ALSO

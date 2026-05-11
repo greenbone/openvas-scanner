@@ -25,7 +25,7 @@ Returns nothing.
 
 **1**: 
 ```cpp
-script_require_udp_ports("sip", 5060);
+script_require_udp_ports("Services/udp/sip", 5060);
 ```
 
 ## SEE ALSO
