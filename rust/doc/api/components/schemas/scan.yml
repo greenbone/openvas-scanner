@@ -40,8 +40,6 @@ ScanResp:
       description: "A collection of VTs, which are run for the given target."
       items:
         $ref: "./target.yml#/VT"
-    _links:
-      $ref: "./hateoas.yml#/ScanLinks"
   required:
     - target
     - vts

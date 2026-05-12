@@ -50,12 +50,6 @@ scan_results:
             "message": "Installed version: 9.53.3\nFixed version:     9.55\nInstallation\npath / port:       /usr/bin/gs",
           },
         ],
-      "_links":
-        {
-          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results?range=0", "method": "GET" },
-          "next": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results?range=4", "method": "GET" },
-          "scan": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "GET" },
-        },
     }
 
 scan_result:

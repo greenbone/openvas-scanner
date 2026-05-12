@@ -3,12 +3,6 @@ scan_status_stored:
   value:
     {
       "status": "stored",
-      "_links":
-        {
-          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
-          "start": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "POST" },
-          "delete": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "DELETE" },
-        },
     }
 
 scan_status_running:
@@ -31,12 +25,6 @@ scan_status_running:
             "10.0.5.3": 40
           ]
         },
-      "_links":
-        {
-          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
-          "stop": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "POST" },
-          "results": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results", "method": "GET" },
-        },
     }
 
 scan_status_success:
@@ -55,12 +43,6 @@ scan_status_success:
           "queued": 0,
           "finished": 10,
         },
-      "_links":
-        {
-          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
-          "results": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results", "method": "GET" },
-          "delete": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "DELETE" },
-        },
     }
 
 scan_status_fail:
@@ -78,11 +60,5 @@ scan_status_fail:
           "alive": 10,
           "queued": 1,
           "finished": 8,
-        },
-      "_links":
-        {
-          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
-          "results": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results", "method": "GET" },
-          "delete": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "DELETE" },
         },
     }

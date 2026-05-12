@@ -80,7 +80,5 @@ ResultsResponse:
       type: "array"
       items:
         $ref: "#/Result"
-    _links:
-      $ref: "./hateoas.yml#/ResultsLinks"
   required:
     - items
