@@ -1,17 +1,44 @@
 scan_simple:
-  description: "A simple example for creating a scan."
+  description: "A small authenticated scan, that will gather all packages of the target system and
+    check them for vulnerabilities. Note, that the hosts field, as well as the credentials are
+    adjusted and a ssh server is running on the target machine."
   value:
     {
-      "target":
+      "target": {
+        "hosts": [
+          "127.0.0.1"
+        ],
+        "ports": [
+          {
+            "range": [
+              {
+                "start": 22
+              }
+            ]
+          }
+        ],
+        "credentials": [
+          {
+            "service": "ssh",
+            "port": 22,
+            "up": {
+              "username": "user",
+              "password": "pass"
+            }
+          }
+        ]
+      },
+      "vts": [
         {
-          "hosts": ["127.0.0.1"],
-          "ports": [{ "range": [{ "start": 22 }] }],
-        },
-      "vts": [{ "oid": "1.3.6.1.4.1.25623.1.0.10267" }],
+          "oid": "1.3.6.1.4.1.25623.1.0.50282"
+        }
+      ]
     }
 
 scan_full_req:
-  description: "A complex example for creating a scan, that uses all available fields."
+  description: "This scan does not show any special focus, but will use all available fields to
+    demonstrate, what a full scan request could look like, as well show all setting available
+    for the scanner via the API."
   value:
     {
       "target":
@@ -77,16 +104,42 @@ scan_full_req:
         },
       "scan_preferences":
         [
-          { "id": "target_port", "value": "443" },
-          { "id": "use_https", "value": "1" },
-          { "id": "profile", "value": "fast_scan" },
+          { "id": "auto_enable_dependencies", "value": "true" },
+          { "id": "cgi_path", "value": "/cgi-bin:/scripts" },
+          { "id": "checks_read_timeout", "value": "5" },
+          { "id": "non_simult_ports", "value": "139, 445, 3389, Services/irc" },
+          { "id": "open_sock_max_attempts", "value": "5" },
+          { "id": "timeout_retry", "value": "5" },
+          { "id": "optimize_test", "value": "true" },
+          { "id": "plugins_timeout", "value": "320" },
+          { "id": "report_host_details", "value": "true" },
+          { "id": "safe_checks", "value": "true" },
+          { "id": "scanner_plugins_timeout", "value": "36000" },
+          { "id": "time_between_request", "value": "0" },
+          { "id": "unscanned_closed", "value": "true" },
+          { "id": "unscanned_closed_udp", "value": "true" },
+          { "id": "expand_vhosts", "value": "true" },
+          { "id": "test_empty_vhost", "value": "false" },
+          { "id": "alive_test_ports", "value": "21-23,25,53,80,110-111,135,139,143,443,445,993,995,1723,3306,3389,5900,8080" },
+          { "id": "test_alive_hosts_only", "value": "true" },
+          { "id": "test_alive_wait_timeout", "value": "1" },
+          { "id": "table_driven_lsc", "value": "true" },
+          { "id": "dry_run", "value": "false" },
+          { "id": "results_per_host", "value": "10" },
+          { "id": "max_mem_kb", "value": "0" },
         ],
       "vts":
         [
           {
             "oid": "1.3.6.1.4.1.25623.1.0.10662",
             "parameters":
-              [{ "id": 1, "value": "200" }, { "id": 2, "value": "yes" }],
+              [
+                { "id": 1, "value": "200" },
+                { "id": 2, "value": "/" },
+                { "id": 3, "value": "128" },
+                { "id": 4, "value": "\\.(js|css)" },
+                { "id": 5, "value": "yes" },
+              ],
           },
           { "oid": "1.3.6.1.4.1.25623.1.0.10330" },
         ],
@@ -109,6 +162,7 @@ scan_full_resp:
               "2002::1234:abcd:ffff:c0a8:101/64",
               "examplehost",
             ],
+          "excluded_hosts": ["192.168.0.14"],
           "ports":
             [
               {
@@ -159,27 +213,45 @@ scan_full_resp:
         },
       "scan_preferences":
         [
-          { "id": "target_port", "value": "443" },
-          { "id": "use_https", "value": "1" },
-          { "id": "profile", "value": "fast_scan" },
+          { "id": "auto_enable_dependencies", "value": "true" },
+          { "id": "cgi_path", "value": "/cgi-bin:/scripts" },
+          { "id": "checks_read_timeout", "value": "5" },
+          { "id": "non_simult_ports", "value": "139, 445, 3389, Services/irc" },
+          { "id": "open_sock_max_attempts", "value": "5" },
+          { "id": "timeout_retry", "value": "5" },
+          { "id": "optimize_test", "value": "true" },
+          { "id": "plugins_timeout", "value": "320" },
+          { "id": "report_host_details", "value": "true" },
+          { "id": "safe_checks", "value": "true" },
+          { "id": "scanner_plugins_timeout", "value": "36000" },
+          { "id": "time_between_request", "value": "0" },
+          { "id": "unscanned_closed", "value": "true" },
+          { "id": "unscanned_closed_udp", "value": "true" },
+          { "id": "expand_vhosts", "value": "true" },
+          { "id": "test_empty_vhost", "value": "false" },
+          { "id": "alive_test_ports", "value": "21-23,25,53,80,110-111,135,139,143,443,445,993,995,1723,3306,3389,5900,8080" },
+          { "id": "test_alive_hosts_only", "value": "true" },
+          { "id": "test_alive_wait_timeout", "value": "1" },
+          { "id": "table_driven_lsc", "value": "true" },
+          { "id": "dry_run", "value": "false" },
+          { "id": "results_per_host", "value": "10" },
+          { "id": "max_mem_kb", "value": "0" },
         ],
       "vts":
         [
           {
             "oid": "1.3.6.1.4.1.25623.1.0.10662",
             "parameters":
-              [{ "id": 1, "value": "200" }, { "id": 2, "value": "yes" }],
+              [
+                { "id": 1, "value": "200" },
+                { "id": 2, "value": "/" },
+                { "id": 3, "value": "128" },
+                { "id": 4, "value": "\\.(js|css)" },
+                { "id": 5, "value": "yes" },
+              ],
           },
           { "oid": "1.3.6.1.4.1.25623.1.0.10330" },
         ],
-      "_links":
-        {
-          "self": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "GET" },
-          "start": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "POST" },
-          "status": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/status", "method": "GET" },
-          "results": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f/results", "method": "GET" },
-          "delete": { "href": "/scans/6c591f83-8f7b-452a-8c78-ba35779e682f", "method": "DELETE" },
-        },
     }
 
 scan_id:

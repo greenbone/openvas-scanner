@@ -22,8 +22,6 @@ Status:
         - succeeded
     host_info:
       $ref: "#/HostInfo"
-    _links:
-      $ref: "./hateoas.yml#/ScanLinks"
   required:
     - status
 
