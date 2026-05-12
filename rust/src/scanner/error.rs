@@ -51,6 +51,22 @@ pub enum ScriptResultKind {
     Error(InterpreterError),
 }
 
+impl ScriptResultKind {
+    pub(crate) fn is_fatal(&self) -> bool {
+        // Keep this match exhaustive in order to check when new variants appear
+        match self {
+            ScriptResultKind::ReturnCode(_) => false,
+            ScriptResultKind::MissingPort(_, _) => false,
+            ScriptResultKind::InvalidPort(_, _) => false,
+            ScriptResultKind::ContainsExcludedKey(_) => false,
+            ScriptResultKind::MissingRequiredKey(_) => false,
+            ScriptResultKind::MissingMandatoryKey(_) => false,
+            ScriptResultKind::Error(_) => false,
+            ScriptResultKind::StorageError(_) => true,
+        }
+    }
+}
+
 impl From<StorageError> for ScriptResultKind {
     fn from(value: StorageError) -> Self {
         Self::StorageError(value)

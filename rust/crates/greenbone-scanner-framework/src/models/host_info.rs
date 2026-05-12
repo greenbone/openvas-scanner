@@ -47,6 +47,9 @@ impl HostInfo {
             if *num_vts == 0 {
                 self.finished += 1;
                 self.queued -= 1;
+                // A host whose VTs have all run is implicitly alive (the
+                // openvasd scanner type has no separate alive-detection phase).
+                self.alive += 1;
                 self.remaining_vts_per_host.remove(target);
             }
         }

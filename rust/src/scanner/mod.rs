@@ -60,10 +60,7 @@ impl<S> OpenvasdScanner<S>
 where
     S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
 {
-    // TODO: Actually use this in normal execution, so we can remove
-    // the cfg directive here.
-    #[cfg(test)]
-    fn new(storage: S, loader: Loader, executor: Executor, notus: Option<NotusCtx>) -> Self {
+    pub fn new(storage: S, loader: Loader, executor: Executor, notus: Option<NotusCtx>) -> Self {
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),
@@ -151,14 +148,17 @@ where
             .get(id)
             .ok_or_else(|| Error::ScanNotFound(id.to_string()))?;
         let status = r.status().await;
+        let scan_id = ScanID(id.to_string());
+        let results = self
+            .storage
+            .remove(&scan_id)
+            .await
+            .map_err(|e| Error::Unexpected(e.to_string()))?
+            .unwrap_or_default();
         Ok(ScanResults {
             id: id.to_string(),
             status,
-            // TODO: verify
-            // The results are directly stored by the storage implementation:
-            // inmemory.rs
-            // file.rs
-            results: vec![],
+            results,
         })
     }
 }

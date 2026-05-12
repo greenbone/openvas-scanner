@@ -2,11 +2,15 @@ use std::path::PathBuf;
 
 use crate::vts::FeedHashes;
 use crate::vts::Plugin;
+use async_trait::async_trait;
 use futures::StreamExt;
 use greenbone_scanner_framework::GetVTsError;
 use scannerlib::Promise;
-use scannerlib::models::FeedType;
+use scannerlib::models::{FeedType, VTData};
 use scannerlib::notus::advisories::VulnerabilityData;
+use scannerlib::storage::Retriever;
+use scannerlib::storage::error::StorageError;
+use scannerlib::storage::items::nvt::{FileName, Oid};
 use sqlx::Row;
 use sqlx::SqlitePool;
 use sqlx::query;
@@ -109,6 +113,54 @@ impl PluginStorer for SqlPluginStorage {
                 .map_err(error_vts_error)?;
             Ok(())
         })
+    }
+}
+
+fn deserialize_vt(row: &SqliteRow) -> Result<Option<VTData>, StorageError> {
+    let feed_type: &str = row.get("feed_type");
+    let json: &[u8] = row.get("json_blob");
+    match feed_type {
+        "nasl" => serde_json::from_slice::<VTData>(json)
+            .map(Some)
+            .map_err(|e| StorageError::Dirty(e.to_string())),
+        "advisories" => serde_json::from_slice::<VulnerabilityData>(json)
+            .map(|v| Some(v.into()))
+            .map_err(|e| StorageError::Dirty(e.to_string())),
+        other => Err(StorageError::Dirty(format!("unknown feed_type: {other}"))),
+    }
+}
+
+#[async_trait]
+impl Retriever<Oid> for SqlPluginStorage {
+    type Item = VTData;
+    async fn retrieve(&self, key: &Oid) -> Result<Option<Self::Item>, StorageError> {
+        let row = query("SELECT feed_type, json_blob FROM plugins WHERE oid = ?")
+            .bind(&key.0)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| StorageError::Dirty(e.to_string()))?;
+        row.as_ref()
+            .map(deserialize_vt)
+            .transpose()
+            .map(Option::flatten)
+    }
+}
+
+#[async_trait]
+impl Retriever<FileName> for SqlPluginStorage {
+    type Item = VTData;
+    async fn retrieve(&self, key: &FileName) -> Result<Option<Self::Item>, StorageError> {
+        let row = query(
+            "SELECT feed_type, json_blob FROM plugins WHERE json_extract(json_blob, '$.filename') = ?",
+        )
+        .bind(&key.0)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| StorageError::Dirty(e.to_string()))?;
+        row.as_ref()
+            .map(deserialize_vt)
+            .transpose()
+            .map(Option::flatten)
     }
 }
 

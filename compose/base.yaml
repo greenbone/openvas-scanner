@@ -107,7 +107,7 @@ services:
         condition: ${OPENVASD_RESTART_CONDITION:-on-failure}
         delay: '3s'
     environment:
-      SCANNER_TYPE: openvas
+      SCANNER_TYPE: ${SCANNER_TYPE:-openvas}
       GNUPGHOME: /etc/openvas/gnupg
       XDG_CACHE_HOME: /var/cache/
       STORAGE_TYPE: ${OPENVAS_SCANNER_STORAGE_TYPE:-fs}

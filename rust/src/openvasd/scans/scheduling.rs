@@ -4,13 +4,16 @@ use tokio::sync::RwLock;
 use greenbone_scanner_framework::models::{self, Scan};
 use scannerlib::{
     models::FeedType,
+    nasl::{builtin::nasl_std_functions, syntax::Loader},
     openvas::{self, cmd},
     osp,
     scanner::{
-        Lambda, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
+        OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
         preferences,
     },
 };
+
+use crate::database::sqlite::scan_storage::ScanStorage;
 use tokio::{
     sync::mpsc::{self, Sender},
     time::MissedTickBehavior,
@@ -545,7 +548,14 @@ where
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
         crate::config::ScannerType::Openvasd => {
-            let scanner: Lambda = Lambda::default();
+            let loader = Loader::from_feed_path(&config.feed.path);
+            let executor = nasl_std_functions();
+            let notus = config
+                .notus
+                .address
+                .map(scannerlib::nasl::utils::scan_ctx::NotusCtx::Address);
+            let storage = ScanStorage::new(pool.clone());
+            let scanner = OpenvasdScanner::new(storage, loader, executor, notus);
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
     }
