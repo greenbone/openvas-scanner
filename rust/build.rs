@@ -23,9 +23,9 @@ fn create_test_layer(name: &str) -> Option<()> {
         }
     }
 
-    let input_dir = format!("test-data/images/{name}");
+    let input_dir = format!("data/tests/images/{name}");
     let input_dir = Path::new(&input_dir);
-    let output = format!("test-data/layers/{name}.tar.gz");
+    let output = format!("data/tests/layers/{name}.tar.gz");
     let output_path = Path::new(&output);
 
     if !output_path.exists() {

@@ -90,7 +90,7 @@ mod fakes {
 
             Box::pin(async move {
                 let file = match &name as &str {
-                    "var/lib/dpkg/status" => "test-data/images/victim/var/lib/dpkg/status",
+                    "var/lib/dpkg/status" => "data/tests/images/victim/var/lib/dpkg/status",
                     "var/lib/rpm/rpmdb.sqlite" => "crates/rpmdb-rs/testdata/rpmdb.sqlite",
                     _ => {
                         return Err(LocatorError::NotFound(

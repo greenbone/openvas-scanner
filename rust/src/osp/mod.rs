@@ -2,7 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#![doc = include_str!("README.md")]
+//! # OSP
+//!
+//! OSP is a Rust crate designed for sending commands to an OSPD socket. It enables the execution of the following commands:
+//!
+//! - Start: to initiate a scan
+//! - Delete: to delete a specific scan
+//! - Stop: to terminate a running scan
+//! - Get: to retrieve scan results
+//! - GetDelete: to fetch and delete scan results simultaneously
+
 mod commands;
 mod connection;
 mod response;

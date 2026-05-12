@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#![doc = include_str!("README.md")]
+//! Storage implementation that transforms NVTs to json.
 
 use std::{
     io::{self, Write},

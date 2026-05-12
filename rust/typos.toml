@@ -14,7 +14,7 @@ nversion = "nversion"
 
 [files]
 extend-exclude = [
-    "test-data/*",
+    "data/tests/*",
     "data/osp/response_*.xml",
     "crates/smoketest/configs/client_sample.cert",
     "*.notus",

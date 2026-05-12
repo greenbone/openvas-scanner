@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#![doc = include_str!("README.md")]
+//! Contains builtin functions (i.e. the standard library of NASL).
 
 mod array;
 mod cert;

@@ -801,7 +801,7 @@ pub mod fake {
         ) -> Vec<mockito::Mock> {
             const NICHTSFREI_VICTIM_LAYER: &[u8] = include_bytes!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/test-data/layers/victim.tar.gz"
+                "/data/tests/layers/victim.tar.gz"
             ));
 
             // we currently just have one layer example and are repeating it for each image.
@@ -987,7 +987,7 @@ pub mod fake {
         /// download only for nichtsfrei/victim:latest. This is because there is just one binary
         /// layer available at the moment.
         ///
-        /// If new entries are added to the build.rs and inside `test-data/;layers` those
+        /// If new entries are added to the build.rs and inside `data/tests/layers` those
         /// manifest_mocks needs to be extended within FakeResponses::Pull.
         pub async fn serve_images(images: &[Image], status_codes: &[usize]) -> Self {
             let mut port_expander: PortExpander = status_codes.into();

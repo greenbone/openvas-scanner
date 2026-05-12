@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-#![doc = include_str!("README.md")]
 pub mod grammar;
 mod loader;
 mod metadata;
