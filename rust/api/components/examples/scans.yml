@@ -136,7 +136,10 @@ scan_full_req:
     }
 
 scan_full_resp:
-  description: "A complex example for a scan response, that uses all available fields."
+  description:
+    "This scan does not show any special focus, but will use all available fields to
+    demonstrate, what a full scan request could look like, as well show all preferences available
+    for the scanner via the API."
   value:
     {
       "scan_id": "6c591f83-8f7b-452a-8c78-ba35779e682f",

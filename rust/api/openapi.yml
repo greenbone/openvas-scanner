@@ -117,7 +117,8 @@ paths:
               $ref: "#/components/headers/Authentication"
           description: "Authenticated and authorized"
     get:
-      description: "Get Notus supported OS products"
+      description: "Get a list of all available OS products available for the
+        [POST /notus/{os}](#/notus/notus_run) endpoint."
       operationId: "get_notus"
       tags:
         - "notus"
@@ -131,10 +132,6 @@ paths:
                 items:
                   type: "string"
               examples:
-                schema:
-                  description:
-                    "Schema of supported OS products. The OS product name is used within
-                    the path for running a Notus scan. For more information see [POST /notus/{os}](#/notus/notus_run)."
                 get notus products:
                   $ref: "./components/examples/notus.yml#/notus_products"
 
@@ -170,8 +167,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/NotusResult"
               examples:
-                schema:
-                  description: "Schema of a list of results response"
                 get results:
                   $ref: "./components/examples/notus.yml#/notus_results"
         "400":
@@ -349,7 +344,8 @@ paths:
       description:
         "This endpoint is used to perform an action on the scan. The scan can be either
         started or stopped. Notice, that only a stored scan can be started and only a running scan
-        can be stopped."
+        can be stopped. To create a scan, use [POST /scans](#/scan/create_scan). After it is created,
+        the scan is in the status stored."
       operationId: "scan_action"
       tags:
         - "scan"
@@ -378,7 +374,9 @@ paths:
         "501":
           description: "Action not supported"
     delete:
-      description: "Delete a scan from the scan manager."
+      description:
+        "Delete a scan, that is not running. Running scans must be either stored, stopped or finished
+        before they can be deleted. To get the status of the scan, use [GET /scans/{id}/status](#/scan/get_scan_status)."
       operationId: "delete_scan"
       tags:
         - "scan"
@@ -478,7 +476,7 @@ paths:
   /scans/{id}/status:
     get:
       description:
-        "This endpoint provides usefull information about a scan. This includes the
+        "This endpoint provides useful information about a scan. This includes the
         current scan status (running, finished, etc.), the start and end time of the scan, as
         well as information about the progress of the scan."
       operationId: "get_scan_status"
@@ -545,7 +543,9 @@ paths:
               $ref: "#/components/headers/Authentication"
           description: "Authenticated and authorized"
     get:
-      description: "Get a Identifier list of all VTs that are available to the scanner."
+      description:
+        "Get a list of all available vulnerability tests (VTs) to the scanner. Note, that not the
+        tests itself, but a list of identifiers (OIDs) of the tests is returned."
       operationId: "get_vts"
       tags:
         - "feed"
