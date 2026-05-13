@@ -24,7 +24,7 @@ scan_simple:
 scan_full_req:
   description:
     "This scan does not show any special focus, but will use all available fields to
-    demonstrate, what a full scan request could look like, as well show all setting available
+    demonstrate, what a full scan request could look like, as well show all preferences available
     for the scanner via the API."
   value:
     {
@@ -260,7 +260,7 @@ scan_action_stop:
   value: { "action": "stop" }
 
 preferences:
-  description: "A example with a list of preferences"
+  description: "An example with a list of preferences"
   value:
     [
       {
