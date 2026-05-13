@@ -183,12 +183,7 @@ impl orchestrator::Worker for FeedSynchronizer {
                 None
             }
         };
-        let feed_integrity_check = self.signature_check;
-
         Box::pin(async move {
-            if !feed_integrity_check {
-                return Ok(None);
-            }
             let rofl = (
                 transform(fetched.next().await),
                 transform(fetched.next().await),
