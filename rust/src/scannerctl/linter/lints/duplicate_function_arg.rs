@@ -56,3 +56,12 @@ pub fn get_duplicate_args(fn_call: &FnCall) -> Vec<LintMsg> {
 pub fn duplicate_function_args(ast: &Ast) -> Vec<LintMsg> {
     ast.iter_fn_calls().flat_map(get_duplicate_args).collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::linter_test;
+
+    linter_test!(duplicate_arg, "foo(a: 1, a: 2);");
+    linter_test!(duplicate_arg_triple, "foo(x: 1, y: 2, x: 3);");
+    linter_test!(no_duplicate_args, "foo(a: 1, b: 2);");
+}

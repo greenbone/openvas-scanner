@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (defined_fn), \"function foo() {} foo();\",)"
+---
+

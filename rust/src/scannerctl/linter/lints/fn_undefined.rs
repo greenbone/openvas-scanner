@@ -20,3 +20,12 @@ pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::linter_test;
+
+    linter_test!(undefined_fn, "foo();");
+    linter_test!(defined_fn, "function foo() {} foo();");
+    linter_test!(builtin_fn, "display(\"hello\");");
+}

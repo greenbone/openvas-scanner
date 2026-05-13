@@ -1,6 +1,8 @@
 mod cli;
 mod ctx;
 mod lints;
+#[cfg(test)]
+pub(crate) mod tests;
 
 use std::path::PathBuf;
 

@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function_arg.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (no_duplicate_args), \"foo(a: 1, b: 2);\",)"
+---
+error: Undefined function 'foo'
+  ┌─ no_duplicate_args:1:1
+  │
+1 │ foo(a: 1, b: 2);
+  │ ^^^ undefined function
