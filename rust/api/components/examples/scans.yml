@@ -1,7 +1,7 @@
 scan_simple:
   description:
-    "A small authenticated scan, that will gather all packages of the target system and
-    check them for vulnerabilities. Note, that the hosts field, as well as the credentials are
+    "A small authenticated scan that will gather all packages of the target system and
+    check them for vulnerabilities. Note that the hosts field and the credentials have to be
     adjusted and a ssh server is running on the target machine."
   value:
     {
