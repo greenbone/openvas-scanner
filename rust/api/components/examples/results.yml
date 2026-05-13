@@ -1,15 +1,5 @@
 scan_results:
-  description: "Example for getting results.
-    The query range for this example could be either
-
-    - 0-3
-
-    - 0
-
-    - missing
-
-
-    In case it is 0 or missing the running scan has only generated 4 results so far."
+  description: "Example for getting results."
   value:
     {
       "items":
