@@ -99,7 +99,18 @@ where
         let mut pref_list: HashMap<String, String> = HashMap::new();
 
         for vt in vts {
-            if let Some(nvt) = self.redis_connector.get_vt(&vt.oid).unwrap() {
+            let nvt_opt = match self.redis_connector.get_vt(&vt.oid) {
+                Ok(nvt) => nvt,
+                Err(e) => {
+                    tracing::warn!(
+                        oid = %vt.oid,
+                        error = %e,
+                        "failed to load VT from redis; skipping (likely non-UTF8 byte in NVT cache)"
+                    );
+                    continue;
+                }
+            };
+            if let Some(nvt) = nvt_opt {
                 // add oid to the target list
                 vts_list.push(vt.oid.clone());
 
