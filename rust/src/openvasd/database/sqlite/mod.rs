@@ -1,8 +1,10 @@
+use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 use sqlx::query::QueryAs;
 
 use sqlx::{
-    FromRow, IntoArguments, Sqlite, SqliteConnection, SqlitePool,
+    FromRow, IntoArguments, QueryBuilder, Sqlite, SqliteConnection, SqlitePool,
     query::{Query, QueryScalar},
+    query_builder::Separated,
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
@@ -40,6 +42,37 @@ impl<'o, T> DAOHandler<&'o DataBase, T> for OpenVASDDB<'o, T> {
     fn inner(self) -> (&'o DataBase, T) {
         (self.pool, self.input)
     }
+}
+
+pub async fn insert_values_chunked<'args, T, E, F>(
+    executor: &mut E,
+    query: &str,
+    mut push_value: F,
+    values: &'args [T],
+    num_args: usize,
+) -> Result<(), sqlx::Error>
+where
+    for<'e> &'e mut E: sqlx::Executor<'e, Database = Sqlite>,
+    F: for<'qb> FnMut(Separated<'qb, 'args, Sqlite, &'static str>, &'args T),
+{
+    if values.is_empty() {
+        return Ok(());
+    }
+
+    if num_args == 0 {
+        return Err(sqlx::Error::Protocol(
+            "insert_values_chunked: num_args must be greater than zero".into(),
+        ));
+    }
+
+    for chunk in values.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / num_args) {
+        let mut builder = QueryBuilder::new(query);
+        builder.push_values(chunk, &mut push_value);
+        let query = builder.build();
+        query.execute(&mut *executor).await?;
+    }
+
+    Ok(())
 }
 
 /// Contains a single connection to be used and allows replacing that connection on certain errors.
