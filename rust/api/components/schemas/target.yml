@@ -1,18 +1,55 @@
 Target:
-  description: "A target is a list of hosts to scan, including their UDP and TCP ports. Additionally for further access to the systems credentials can be given."
+  description:
+    "The target contains necessary information about the hosts to be scanned, such as
+    their IP addresses or hostnames, the ports to be scanned and credentials for authenticated
+    scans."
   type: "object"
   properties:
     hosts:
       description: "A list of hosts."
       type: "array"
       items:
-        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname."
+        description:
+          "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname.
+
+          Examples:
+
+          IPv4: 192.168.178.42
+
+          IPv6: 2001:0db8:85a3:0000:0000:8a2e:1370:7334
+
+          IPv4 range: 192.167.178.1-93 or 192.167.178.1-192.167.178.93
+
+          IPv6 range: 2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
+
+          IPv4 CIDR: 192.168.178.0/24
+
+          IPv6 CIDR: 2001:0db8:85a3::/64
+
+          Hostname: localhost"
         type: "string"
     excluded_hosts:
       description: "A list of excluded hosts."
       type: "array"
       items:
-        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname."
+        description:
+          "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname.
+
+          Examples:
+
+          IPv4: 192.168.178.42
+
+          IPv6: 2001:0db8:85a3:0000:0000:8a2e:1370:7334
+
+          IPv4 range: 192.167.178.1-93 or 192.167.178.1-192.167.178.93
+
+          IPv6 range: 2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
+
+          IPv4 CIDR: 192.168.178.0/24
+
+          IPv6 CIDR: 2001:0db8:85a3::/64
+
+          Hostname: localhost"
         type: "string"
     ports:
       description: "A list of ports."
