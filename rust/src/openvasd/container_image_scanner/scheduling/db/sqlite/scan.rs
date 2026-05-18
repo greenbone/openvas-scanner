@@ -1,18 +1,15 @@
 use std::str::FromStr;
 
-use scannerlib::{
-    SQLITE_LIMIT_VARIABLE_NUMBER,
-    models::{self, Action, Scan},
-};
+use scannerlib::models::{self, Action, Scan};
 
-use sqlx::{
-    Acquire, Database, QueryBuilder, Row, Sqlite, SqlitePool, query, query::Query,
-    sqlite::SqliteRow,
-};
+use sqlx::{Acquire, Database, Row, Sqlite, SqlitePool, query, query::Query, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::image::{Image, ImageState, RegistryError},
-    database::dao::{DAOError, DAOPromiseRef, DBViolation, Execute, Fetch},
+    database::{
+        dao::{DAOError, DAOPromiseRef, DBViolation, Execute, Fetch},
+        sqlite::insert_values_chunked,
+    },
 };
 
 pub type DBScan<'o, T> = super::DB<'o, T>;
@@ -76,16 +73,23 @@ async fn set_scan_images(
     .execute(&mut *tx)
     .await?;
     if success_count > 0 {
-        let mut builder = QueryBuilder::new("INSERT OR IGNORE INTO images (id, image)");
-        builder.push_values(images.iter().filter(|x| x.is_ok()), |mut b, image| {
-            let oci = match image {
-                Ok(x) => x.to_string(),
-                Err(_) => unreachable!("images are filtered for ok"),
-            };
-            b.push_bind(id).push_bind(oci);
-        });
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
+        let images = images
+            .iter()
+            .filter_map(|image| match image {
+                Ok(image) => Some(image.to_string()),
+                Err(_) => None,
+            })
+            .collect::<Vec<_>>();
+        insert_values_chunked(
+            &mut *tx,
+            "INSERT OR IGNORE INTO images (id, image)",
+            |mut b, image| {
+                b.push_bind(id).push_bind(image);
+            },
+            &images,
+            2,
+        )
+        .await?;
     }
     tx.commit().await?;
 
@@ -245,59 +249,61 @@ impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
                 .execute(&mut *tx)
                 .await?;
             tracing::debug!(internal_id = id, "creating scan");
-            if !scan.target.hosts.is_empty() {
-                let mut builder = QueryBuilder::new("INSERT INTO registry (id, host) ");
-                builder.push_values(&scan.target.hosts, |mut b, registry| {
+            insert_values_chunked(
+                &mut *tx,
+                "INSERT INTO registry (id, host)",
+                |mut b, registry| {
                     b.push_bind(id).push_bind(registry);
-                });
-                let query = builder.build();
-                query.execute(&mut *tx).await?;
-            }
-            if !scan.target.credentials.is_empty() {
-                let mut builder =
-                    QueryBuilder::new("INSERT INTO credentials (id, username, password) ");
-                builder.push_values(
-                    scan.target
-                        .credentials
-                        .iter()
-                        .filter_map(|c| match &c.credential_type {
-                            models::CredentialType::UP {
-                                username,
-                                password,
-                                privilege: _,
-                            } => Some((username, password)),
-                            _ => None,
-                        }),
-                    |mut b, (username, password)| {
-                        b.push_bind(id).push_bind(username).push_bind(password);
-                    },
-                );
-                let query = builder.build();
-                query.execute(&mut *tx).await?;
-            }
-            if !scan.scan_preferences.is_empty() {
-                let mut builder = QueryBuilder::new("INSERT INTO preferences (id, key, value) ");
-                builder.push_values(&scan.scan_preferences, |mut b, pref| {
-                    b.push_bind(id).push_bind(&pref.id).push_bind(&pref.value);
-                });
-                let query = builder.build();
-                query.execute(&mut *tx).await?;
-            }
-            for image in scan
+                },
+                &scan.target.hosts,
+                2,
+            )
+            .await?;
+            let credentials = scan
                 .target
-                .excluded_hosts
-                .chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 2)
-            {
-                let mut builder =
-                    QueryBuilder::new("INSERT OR IGNORE INTO images (id, image, status)");
-                builder.push_values(image, |mut b, img| {
+                .credentials
+                .iter()
+                .filter_map(|c| match &c.credential_type {
+                    models::CredentialType::UP {
+                        username,
+                        password,
+                        privilege: _,
+                    } => Some((username, password)),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            insert_values_chunked(
+                &mut *tx,
+                "INSERT INTO credentials (id, username, password)",
+                |mut b, (username, password)| {
+                    b.push_bind(id).push_bind(*username).push_bind(*password);
+                },
+                &credentials,
+                3,
+            )
+            .await?;
+            insert_values_chunked(
+                &mut *tx,
+                "INSERT INTO preferences (id, key, value)",
+                |mut b, pref| {
+                    b.push_bind(id).push_bind(&pref.id).push_bind(&pref.value);
+                },
+                &scan.scan_preferences,
+                3,
+            )
+            .await?;
+            insert_values_chunked(
+                &mut *tx,
+                "INSERT OR IGNORE INTO images (id, image, status)",
+                |mut b, img| {
                     b.push_bind(id)
                         .push_bind(img)
                         .push_bind(ImageState::Excluded.as_ref());
-                });
-                let query = builder.build();
-                query.execute(&mut *tx).await?;
-            }
+                },
+                &scan.target.excluded_hosts,
+                3,
+            )
+            .await?;
 
             tx.commit().await?;
             Ok(())

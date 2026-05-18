@@ -1,8 +1,11 @@
 use futures::StreamExt;
-use scannerlib::{SQLITE_LIMIT_VARIABLE_NUMBER, models};
-use sqlx::{Acquire, QueryBuilder, Row, SqlitePool, sqlite::SqliteRow};
+use scannerlib::models;
+use sqlx::{Acquire, Row, SqlitePool, sqlite::SqliteRow};
 
-use crate::database::dao::{DAOError, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch};
+use crate::database::{
+    dao::{DAOError, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
+    sqlite::insert_values_chunked,
+};
 fn row_to_result(row: SqliteRow) -> models::Result {
     let detail = match (
         row.try_get::<Option<String>, _>("detail_name")
@@ -188,7 +191,14 @@ where
         }
     };
     tracing::trace!(id, base_id, "Results.");
-    let mut builder = QueryBuilder::new(
+    let results = results
+        .iter()
+        .enumerate()
+        .map(|(idx, result)| (base_id + idx as i64, result.to_owned().into()))
+        .collect::<Vec<(i64, models::Result)>>();
+
+    insert_values_chunked(
+        &mut *tx,
         r#"
             INSERT INTO results (
                 scan_id,
@@ -207,31 +217,27 @@ where
                 source_description
             )
             "#,
-    );
-
-    for results in results.chunks(SQLITE_LIMIT_VARIABLE_NUMBER / 14) {
-        builder.push_values(results.iter().enumerate(), |mut b, (idx, result)| {
-            let result: models::Result = result.to_owned().into();
-            let detail = result.detail.unwrap_or_default();
+        |mut b, (result_id, result)| {
+            let detail = result.detail.clone().unwrap_or_default();
             b.push_bind(id)
-                .push_bind(idx as i64 + base_id)
+                .push_bind(*result_id)
                 .push_bind(result.r_type.to_string())
-                .push_bind(result.ip_address.unwrap_or_default())
-                .push_bind(result.hostname.unwrap_or_default())
-                .push_bind(result.oid.unwrap_or_default())
+                .push_bind(result.ip_address.clone().unwrap_or_default())
+                .push_bind(result.hostname.clone().unwrap_or_default())
+                .push_bind(result.oid.clone().unwrap_or_default())
                 .push_bind(result.port.unwrap_or_default())
                 .push_bind(result.protocol.map(|x| x.to_string()).unwrap_or_default())
-                .push_bind(result.message.unwrap_or_default())
+                .push_bind(result.message.clone().unwrap_or_default())
                 .push_bind(detail.name)
                 .push_bind(detail.value)
                 .push_bind(detail.source.s_type)
                 .push_bind(detail.source.name)
                 .push_bind(detail.source.description);
-        });
-
-        let query = builder.build();
-        query.execute(&mut *tx).await?;
-    }
+        },
+        &results,
+        14,
+    )
+    .await?;
 
     tx.commit().await?;
 
