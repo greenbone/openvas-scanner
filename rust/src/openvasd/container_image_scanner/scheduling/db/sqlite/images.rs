@@ -8,24 +8,22 @@ use crate::{
         image::{Credential, Image, ImageID, ImageParseError, ImageState},
         scheduling::ProcessingImage,
     },
+    credentials::decrypt_credentials,
+    crypt::Crypt,
     database::dao::{DAOError, DAOPromiseRef, Execute, Fetch},
 };
 
-impl TryFrom<&SqliteRow> for Credential {
-    type Error = DAOError;
-
-    fn try_from(row: &SqliteRow) -> Result<Self, Self::Error> {
-        let username: Option<String> = row.get("username");
-        let password: Option<String> = row.get("password");
-        match (username, password) {
-            (None, None) => Err(DAOError::NotFound),
-            (None, Some(_)) => Err(DAOError::Corrupt),
-            (user, pass) => Ok(Credential {
-                username: user.unwrap_or_default(),
-                password: pass.unwrap_or_default(),
-            }),
-        }
-    }
+fn registry_credential(credentials: Vec<scannerlib::models::Credential>) -> Option<Credential> {
+    credentials
+        .into_iter()
+        .find_map(|credential| match credential.credential_type {
+            scannerlib::models::CredentialType::UP {
+                username,
+                password,
+                privilege: _,
+            } => Some(Credential { username, password }),
+            _ => None,
+        })
 }
 
 pub type DBImages<'o, T> = super::DB<'o, T>;
@@ -85,13 +83,16 @@ impl<'o> Execute<()> for DBImages<'o, (&'o ImageID, ImageState)> {
     }
 }
 
-impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, usize)> {
+impl<'o, C> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (&'o C, (usize, usize))>
+where
+    C: Crypt + Sync,
+{
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<(ImageID, Option<Credential>)>>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let (max_scanning, batch_size) = self.input;
+            let (crypter, (max_scanning, batch_size)) = self.input;
 
             let mut tx = self.pool.begin().await?;
             let scan_limit = match max_scanning {
@@ -120,10 +121,9 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
 
             let rows = sqlx::query(
                 r#"
-    SELECT i.id, i.image, c.username, c.password
+    SELECT i.id, i.image, s.auth_data
     FROM images i
     JOIN scans s ON s.id = i.id
-    LEFT JOIN credentials c ON i.id = c.id
     WHERE i.status = 'pending'
     ORDER BY s.host_finished ASC, s.id ASC, i.image ASC
     LIMIT ?
@@ -134,7 +134,11 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
             .await?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows {
-                let credentials = Credential::try_from(&row).ok();
+                let auth_data: String = row.get("auth_data");
+                let credentials = decrypt_credentials(crypter, &auth_data)
+                    .await
+                    .ok()
+                    .and_then(registry_credential);
                 let id: ImageID = row.into();
 
                 sqlx::query(
@@ -156,17 +160,17 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
         })
     }
 }
-impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
+impl<'o, C> Fetch<Vec<ProcessingImage>> for DBImages<'o, (&'o C, usize)>
+where
+    C: Crypt + Sync,
+{
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<ProcessingImage>>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let limit = if self.input == 0 {
-                254
-            } else {
-                self.input as i64
-            };
+            let (crypter, input) = self.input;
+            let limit = if input == 0 { 254 } else { input as i64 };
             let mut stream = sqlx::query(
                 r#"
         WITH running_count AS (
@@ -175,7 +179,7 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
             WHERE status = 'running'
         ),
         selected_scans AS (
-            SELECT id
+            SELECT id, auth_data
             FROM scans
             WHERE status = 'requested'
             ORDER BY created_at ASC
@@ -190,13 +194,10 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
         SELECT 
             r.id,
             r.host AS registry,
-            c.username,
-            c.password
+            s.auth_data
         FROM registry r
         JOIN selected_scans s
           ON r.id = s.id
-        LEFT JOIN credentials c
-          ON r.id = c.id
         "#,
             )
             .bind(limit)
@@ -220,7 +221,15 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
                 let image = registry.parse();
 
                 let id: i64 = row.get("id");
-                let credential = Credential::try_from(&row).ok();
+                let credential = if let Some((_, credential)) = map.get(&id) {
+                    credential.clone()
+                } else {
+                    let auth_data: String = row.get("auth_data");
+                    decrypt_credentials(crypter, &auth_data)
+                        .await
+                        .ok()
+                        .and_then(registry_credential)
+                };
 
                 let entry = map.entry(id).or_insert_with(|| (Vec::new(), credential));
 
@@ -286,6 +295,7 @@ mod test {
         let scans = [generate_scan(10), generate_scan(3), generate_scan(5)];
         let mut ids = Vec::with_capacity(scans.len());
         let pool = fakes.pool();
+        let crypter = fakes.scheduler.crypter();
         for s in scans {
             let images: Vec<Result<Image, RegistryError>> = s
                 .target
@@ -305,7 +315,10 @@ mod test {
         let validate = async |rounds, ids| {
             for _ in 0..rounds {
                 for id in &ids {
-                    let mut requested = DBImages::new(&pool, (0, 1)).exec().await.unwrap();
+                    let mut requested = DBImages::new(&pool, (crypter.as_ref(), (0, 1)))
+                        .exec()
+                        .await
+                        .unwrap();
                     assert_eq!(requested.len(), 1);
                     let rid = requested.pop().unwrap().0;
                     assert_eq!(id, &rid.id);

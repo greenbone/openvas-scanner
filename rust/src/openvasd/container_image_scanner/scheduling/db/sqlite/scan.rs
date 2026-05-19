@@ -6,6 +6,8 @@ use sqlx::{Acquire, Database, Row, Sqlite, SqlitePool, query, query::Query, sqli
 
 use crate::{
     container_image_scanner::image::{Image, ImageState, RegistryError},
+    credentials::{decrypt_credentials, encrypt_credentials},
+    crypt::Crypt,
     database::{
         dao::{DAOError, DAOPromiseRef, DBViolation, Execute, Fetch},
         sqlite::insert_values_chunked,
@@ -172,23 +174,26 @@ async fn set_scan_to_failed(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Err
     .map(|_| ())
 }
 
-impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
+impl<'o, C> Fetch<models::Scan> for DBScan<'o, (&'o C, String)>
+where
+    C: Crypt + Sync,
+{
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Scan>
     where
         'a: 'b,
     {
         Box::pin(async move {
             let mut conn = self.pool.acquire().await?;
-            let id = &self.input;
+            let (crypter, id) = &self.input;
             let hosts: Vec<(String,)> = sqlx::query_as("SELECT host FROM registry WHERE id = ?")
                 .bind(id)
                 .fetch_all(&mut *conn)
                 .await?;
-            let creds: Vec<(String, String)> =
-                sqlx::query_as("SELECT username, password FROM credentials WHERE id = ?")
-                    .bind(id)
-                    .fetch_all(&mut *conn)
-                    .await?;
+            let auth_data: String = sqlx::query_scalar("SELECT auth_data FROM scans WHERE id = ?")
+                .bind(id)
+                .fetch_one(&mut *conn)
+                .await?;
+            let credentials = decrypt_credentials(*crypter, &auth_data).await?;
 
             let preferences: Vec<(String, String)> =
                 sqlx::query_as("SELECT key, value FROM preferences WHERE id = ?")
@@ -204,18 +209,7 @@ impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
                 scan_id,
                 target: models::Target {
                     hosts: hosts.into_iter().map(|(h,)| h).collect(),
-                    credentials: creds
-                        .into_iter()
-                        .map(|(u, p)| models::Credential {
-                            credential_type: models::CredentialType::UP {
-                                username: u,
-                                password: p,
-                                privilege: None,
-                            },
-                            service: models::Service::Generic,
-                            port: None,
-                        })
-                        .collect(),
+                    credentials,
                     ..Default::default()
                 },
                 scan_preferences: preferences
@@ -228,13 +222,16 @@ impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
     }
 }
 
-impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
+impl<'o, C> Execute<()> for DBScan<'o, (&'o C, &'o str, &'o Scan)>
+where
+    C: Crypt + Sync,
+{
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let (client_id, scan) = &self.input;
+            let (crypter, client_id, scan) = &self.input;
             let mut conn = self.pool.acquire().await?;
             let mut tx = conn.begin().await?;
             let row = query(
@@ -247,8 +244,10 @@ impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
             .execute(&mut *tx)
             .await?;
             let id = row.last_insert_rowid();
-            let _ = query("INSERT INTO scans(id) VALUES (?)")
+            let auth_data = encrypt_credentials(*crypter, &scan.target.credentials).await?;
+            let _ = query("INSERT INTO scans(id, auth_data) VALUES (?, ?)")
                 .bind(id)
+                .bind(auth_data)
                 .execute(&mut *tx)
                 .await?;
             tracing::debug!(internal_id = id, "creating scan");
@@ -260,29 +259,6 @@ impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
                 },
                 &scan.target.hosts,
                 2,
-            )
-            .await?;
-            let credentials = scan
-                .target
-                .credentials
-                .iter()
-                .filter_map(|c| match &c.credential_type {
-                    models::CredentialType::UP {
-                        username,
-                        password,
-                        privilege: _,
-                    } => Some((username, password)),
-                    _ => None,
-                })
-                .collect::<Vec<_>>();
-            insert_values_chunked(
-                &mut *tx,
-                "INSERT INTO credentials (id, username, password)",
-                |mut b, (username, password)| {
-                    b.push_bind(id).push_bind(*username).push_bind(*password);
-                },
-                &credentials,
-                3,
             )
             .await?;
             insert_values_chunked(
