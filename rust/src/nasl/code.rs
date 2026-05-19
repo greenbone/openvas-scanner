@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    error::Level,
-    syntax::{DescriptionBlock, LoadError, Loader, ParseError, Parser, Tokenizer, grammar::Ast},
+    Loader,
+    syntax::{DescriptionBlock, LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
 fn parse(code: &str) -> Result<Ast, Vec<ParseError>> {
@@ -60,7 +60,7 @@ impl ParseResult {
         match self.result {
             Ok(result) => Ok(result),
             Err(errors) => {
-                super::error::emit_errors(&self.file, errors.iter().cloned(), Level::Error);
+                super::error::emit_errors(&self.file, errors.iter().cloned());
                 Err(errors)
             }
         }
@@ -70,7 +70,7 @@ impl ParseResult {
         match self.result {
             Ok(result) => Ok((result, self.file)),
             Err(errors) => {
-                super::error::emit_errors(&self.file, errors.iter().cloned(), Level::Error);
+                super::error::emit_errors(&self.file, errors.iter().cloned());
                 Err(errors)
             }
         }
@@ -132,6 +132,16 @@ impl Code {
         }
     }
 
+    pub fn file(&self) -> SourceFile {
+        SimpleFile::new(
+            self.path
+                .clone()
+                .map(|path| path.to_string_lossy().into())
+                .unwrap_or("".into()),
+            self.code.to_owned(),
+        )
+    }
+
     pub fn parse_description_block(self) -> ParseResult {
         let path = self.path.unwrap_or(Path::new("").to_owned());
         ParseResult::new_with_parse_fn(&self.code, &path, parse_description_block)
@@ -152,10 +162,7 @@ mod tokenize {
     use codespan_reporting::files::SimpleFile;
     use itertools::{Either, Itertools};
 
-    use crate::nasl::{
-        error::Level,
-        syntax::{Token, Tokenizer, TokenizerError},
-    };
+    use crate::nasl::syntax::{Token, Tokenizer, TokenizerError};
 
     use super::{super::error, SourceFile};
 
@@ -187,7 +194,7 @@ mod tokenize {
             match self.result {
                 Ok(result) => Some(result),
                 Err(errors) => {
-                    error::emit_errors(&self.file, errors.into_iter(), Level::Error);
+                    error::emit_errors(&self.file, errors.into_iter());
                     None
                 }
             }

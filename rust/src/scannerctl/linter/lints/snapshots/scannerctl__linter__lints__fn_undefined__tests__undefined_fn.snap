@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests :: lint(stringify! (undefined_fn), \"foo();\",)"
+---
+error: Undefined function 'foo'
+  ┌─ undefined_fn:1:1
+  │
+1 │ foo();
+  │ ^^^ undefined function

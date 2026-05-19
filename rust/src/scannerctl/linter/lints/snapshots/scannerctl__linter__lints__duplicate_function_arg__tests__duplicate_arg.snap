@@ -1,0 +1,17 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function_arg.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (duplicate_arg), \"foo(a: 1, a: 2);\",)"
+---
+warning: Function argument passed multiple times: a
+  ┌─ duplicate_arg:1:5
+  │
+1 │ foo(a: 1, a: 2);
+  │     ^     ^ Also here
+  │     │      
+  │     Function argument passed multiple times: a
+
+error: Undefined function 'foo'
+  ┌─ duplicate_arg:1:1
+  │
+1 │ foo(a: 1, a: 2);
+  │ ^^^ undefined function

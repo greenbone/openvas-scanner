@@ -360,8 +360,8 @@ impl Parse for Include {
     fn parse(parser: &mut Parser) -> Result<Self> {
         parser.consume(TokenKind::Keyword(Keyword::Include))?;
         parser.consume(TokenKind::LeftParen)?;
-        let path: Literal = parser.parse()?;
         let span = parser.peek_span();
+        let path: Literal = parser.parse()?;
         if !matches!(path.kind, LiteralKind::String(_) | LiteralKind::Data(_)) {
             let error: Error = ErrorKind::StringExpected.into();
             return Err(error.with_span(&span));

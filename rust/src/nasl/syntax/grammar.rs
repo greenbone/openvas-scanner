@@ -41,8 +41,28 @@ impl Ast {
         ExprIterator::new(self)
     }
 
+    pub fn iter_fn_calls(&self) -> impl Iterator<Item = &FnCall> {
+        ExprIterator::new(self).filter_map(|expr| {
+            if let Expr::Atom(Atom::FnCall(call)) = expr {
+                Some(call)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn iter_stmts(&self) -> impl Iterator<Item = &Statement> {
         StmtIterator::new(self)
+    }
+
+    pub fn iter_includes(&self) -> impl Iterator<Item = &Include> {
+        StmtIterator::new(self).filter_map(|stmt| {
+            if let Statement::Include(include) = stmt {
+                Some(include)
+            } else {
+                None
+            }
+        })
     }
 
     pub(crate) fn get(&self, stmt_index: usize) -> Option<&Statement> {
