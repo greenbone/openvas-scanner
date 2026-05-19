@@ -151,3 +151,88 @@ impl AsRef<str> for CredentialType {
         }
     }
 }
+
+impl CredentialType {
+    pub fn hide_pass(&mut self) -> Self {
+        match self {
+            CredentialType::UP {
+                username,
+                privilege,
+                ..
+            } => {
+                let pr = match privilege {
+                    Some(x) => Some(PrivilegeInformation {
+                        username: x.username.clone(),
+                        password: "".to_string(),
+                    }),
+                    None => None,
+                };
+
+                Self::UP {
+                    username: username.to_string(),
+                    password: "".to_string(),
+                    privilege: pr,
+                }
+            }
+            CredentialType::USK {
+                username,
+                password,
+                privilege,
+                private_key,
+            } => {
+                let pr = match privilege {
+                    Some(x) => Some(PrivilegeInformation {
+                        username: x.username.clone(),
+                        password: "".to_string(),
+                    }),
+                    None => None,
+                };
+                if let Some(p) = password.as_mut() {
+                    p.clear();
+                };
+
+                CredentialType::USK {
+                    username: username.to_string(),
+                    password: password.clone(),
+                    privilege: pr,
+                    private_key: private_key.to_string(),
+                }
+            }
+            CredentialType::SNMP {
+                username,
+                auth_algorithm,
+                privacy_algorithm,
+                community,
+                ..
+            } => CredentialType::SNMP {
+                username: username.to_string(),
+                password: "".to_string(),
+                privacy_password: "".to_string(),
+                privacy_algorithm: privacy_algorithm.to_string(),
+                auth_algorithm: auth_algorithm.to_string(),
+                community: community.to_string(),
+            },
+
+            CredentialType::KRB5 {
+                username,
+                realm,
+                kdc,
+                ..
+            } => CredentialType::KRB5 {
+                username: username.to_string(),
+                password: String::new(),
+                realm: realm.to_string(),
+                kdc: kdc.to_string(),
+            },
+        }
+    }
+}
+
+impl Credential {
+    pub fn hide_pass(mut self) -> Self {
+        Self {
+            credential_type: self.credential_type.hide_pass(),
+            ..self
+        }
+    }
+}

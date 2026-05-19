@@ -59,7 +59,16 @@ where
         Box::pin(async move {
             enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |id| {
                 match gsp.get_scans_id(id).await {
-                    Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
+                    Ok(mut x) => {
+                        x.target.credentials = x
+                            .clone()
+                            .target
+                            .credentials
+                            .into_iter()
+                            .map(|c| c.hide_pass())
+                            .collect();
+                        BodyKind::json_content(StatusCode::OK, &x)
+                    }
                     Err(e) => e.into(),
                 }
             })
