@@ -1,4 +1,4 @@
-use std::pin::Pin;
+use std::{pin::Pin, sync::Arc};
 
 use futures::TryStreamExt;
 use greenbone_scanner_framework::{
@@ -11,20 +11,29 @@ use tracing::instrument;
 
 use crate::{
     container_image_scanner::scheduling::db::{DBResults, DataBase, scan::DBScan},
-    database::dao::{DAOError, DBViolation, Execute, Fetch, RetryExec, StreamFetch},
+    crypt::{ChaCha20Crypt, Crypt},
+    database::dao::{Execute, Fetch, RetryExec, StreamFetch},
+    endpoint_helpers,
 };
 
-pub struct Scans {
+pub struct Scans<E = ChaCha20Crypt> {
     pub pool: DataBase,
+    pub crypter: Arc<E>,
 }
 
-impl Prefixed for Scans {
+impl<E> Prefixed for Scans<E>
+where
+    E: Send + Sync,
+{
     fn prefix(&self) -> &'static str {
         "container-image-scanner"
     }
 }
 
-impl PostScans for Scans {
+impl<E> PostScans for Scans<E>
+where
+    E: Crypt + Send + Sync,
+{
     #[instrument(skip_all, fields(client_id=client_id, scan_id=scan.scan_id))]
     fn post_scans(
         &self,
@@ -34,21 +43,24 @@ impl PostScans for Scans {
         Box::pin(async move {
             // maybe get rid of clone
             let scan_id = scan.scan_id.clone();
-            match DBScan::new(&self.pool, (client_id.as_str(), &scan))
+            endpoint_helpers::map_post_scan_result(
+                DBScan::new(
+                    &self.pool,
+                    (self.crypter.as_ref(), client_id.as_str(), &scan),
+                )
                 .exec()
-                .await
-            {
-                Ok(_) => Ok(scan_id),
-                Err(DAOError::DBViolation(DBViolation::UniqueViolation)) => {
-                    Err(PostScansError::DuplicateId(scan_id))
-                }
-                Err(error) => Err(PostScansError::External(Box::new(error))),
-            }
+                .await,
+                scan_id,
+            )
+            .map(|_| scan.scan_id.clone())
         })
     }
 }
 
-impl MapScanID for Scans {
+impl<E> MapScanID for Scans<E>
+where
+    E: Send + Sync,
+{
     fn contains_scan_id<'a>(
         &'a self,
         client_id: &'a str,
@@ -61,28 +73,30 @@ impl MapScanID for Scans {
         >,
     > {
         Box::pin(async move {
-            match DBScan::new(&self.pool, (client_id, scan_id)).fetch().await {
-                Ok(x) => x,
-                Err(error) => {
-                    tracing::warn!(%error, "Unable to fetch id from client_scan_map. Returning no id found.");
-                    None
-                }
-            }
+            endpoint_helpers::map_contains_scan_id(
+                DBScan::new(&self.pool, (client_id, scan_id)).fetch().await,
+            )
         })
     }
 }
 
-impl GetScans for Scans {
+impl<E> GetScans for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
         let result = DBScan::new(&self.pool, client_id)
             .stream_fetch()
-            .map_err(GetScansError::from_external);
+            .map_err(endpoint_helpers::into_get_scans_error);
 
         Box::pin(result)
     }
 }
 
-impl GetScansPreferences for Scans {
+impl<E> GetScansPreferences for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans_preferences(
         &self,
     ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
@@ -106,13 +120,16 @@ impl GetScansPreferences for Scans {
     }
 }
 
-impl GetScansId for Scans {
+impl<E> GetScansId for Scans<E>
+where
+    E: Crypt + Send + Sync,
+{
     fn get_scans_id<'a>(
         &'a self,
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + 'a>> {
         Box::pin(async move {
-            DBScan::new(&self.pool, id)
+            DBScan::new(&self.pool, (self.crypter.as_ref(), id))
                 .fetch()
                 .await
                 .map_err(GetScansError::from_external)
@@ -120,7 +137,10 @@ impl GetScansId for Scans {
     }
 }
 
-impl GetScansIdResults for Scans {
+impl<E> GetScansIdResults for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans_id_results(
         &self,
         id: String,
@@ -135,7 +155,10 @@ impl GetScansIdResults for Scans {
     }
 }
 
-impl GetScansIdResultsId for Scans {
+impl<E> GetScansIdResultsId for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans_id_results_id(
         &self,
         id: String,
@@ -143,18 +166,17 @@ impl GetScansIdResultsId for Scans {
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
         Box::pin(async move {
-            DBResults::new(&self.pool, (id, result_id))
-                .fetch()
-                .await
-                .map_err(|e| match e {
-                    DAOError::NotFound => GetScansIDResultsIDError::NotFound,
-                    e => e.into(),
-                })
+            endpoint_helpers::map_result_id_fetch(
+                DBResults::new(&self.pool, (id, result_id)).fetch().await,
+            )
         })
     }
 }
 
-impl GetScansIdStatus for Scans {
+impl<E> GetScansIdStatus for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans_id_status(
         &self,
         id: String,
@@ -169,7 +191,10 @@ impl GetScansIdStatus for Scans {
     }
 }
 
-impl PostScansId for Scans {
+impl<E> PostScansId for Scans<E>
+where
+    E: Send + Sync,
+{
     fn post_scans_id(
         &self,
         id: String,
@@ -184,23 +209,17 @@ impl PostScansId for Scans {
     }
 }
 
-impl DeleteScansId for Scans {
+impl<E> DeleteScansId for Scans<E>
+where
+    E: Send + Sync,
+{
     fn delete_scans_id(
         &self,
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         Box::pin(async move {
             let db = DBScan::new(&self.pool, id);
-            let phase: models::Phase = db
-                .fetch()
-                .await
-                .map_err(DeleteScansIDError::from_external)?;
-            if phase.is_running() {
-                return Err(DeleteScansIDError::Running);
-            }
-            db.retry_exec()
-                .await
-                .map_err(DeleteScansIDError::from_external)
+            endpoint_helpers::delete_scan_if_not_running(db.fetch(), db.retry_exec()).await
         })
     }
 }
@@ -214,14 +233,18 @@ pub mod scans_utils {
     use tokio::sync::Mutex;
 
     use super::Scans;
-    use crate::container_image_scanner::{
-        Config, MIGRATOR,
-        config::DBLocation,
-        image::{
-            DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
-            packages::AllTypes,
+    use crate::{
+        container_image_scanner::{
+            Config, MIGRATOR,
+            config::DBLocation,
+            config_to_crypt,
+            image::{
+                DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
+                packages::AllTypes,
+            },
+            scheduling::{Scheduler, db::DataBase},
         },
-        scheduling::{Scheduler, db::DataBase},
+        crypt::ChaCha20Crypt,
     };
     use scannerlib::notus::products_loader;
 
@@ -235,7 +258,7 @@ pub mod scans_utils {
 
     async fn in_memory_scheduler_and_scan<R, E>(
         config: crate::container_image_scanner::Config,
-    ) -> (Scheduler<R, E>, Scans) {
+    ) -> (Scheduler<R, E, ChaCha20Crypt>, Scans<ChaCha20Crypt>) {
         let pool = DataBase::connect(&DBLocation::InMemory.sqlite_address("test"))
             .await
             .expect("inmemory database must be available");
@@ -247,19 +270,24 @@ pub mod scans_utils {
         let products_path: &str =
             concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
-        let scheduler = Scheduler::<R, E>::init(
+        let crypter = Arc::new(config_to_crypt(&config));
+        let scheduler = Scheduler::<R, E, ChaCha20Crypt>::init(
             config.into(),
             pool.clone(),
+            crypter.clone(),
             products_loader(products_path, false),
         );
-        let scans = super::Scans { pool: pool.clone() };
+        let scans = super::Scans {
+            pool: pool.clone(),
+            crypter,
+        };
         (scheduler, scans)
     }
 
     pub struct Fakes {
         registry: DockerRegistryV2Mock,
-        pub entry: super::Scans,
-        pub scheduler: Scheduler<DockerRegistryV2, filtered_image::Extractor>,
+        pub entry: super::Scans<ChaCha20Crypt>,
+        pub scheduler: Scheduler<DockerRegistryV2, filtered_image::Extractor, ChaCha20Crypt>,
     }
 
     impl Fakes {
@@ -336,12 +364,17 @@ pub mod scans_utils {
         pub async fn run_scheduler_rounds(&self, rounds: usize) {
             let conn = Arc::new(Mutex::new(self.scheduler.pool()));
             for _ in 0..rounds {
-                Scheduler::<DockerRegistryV2, filtered_image::Extractor>::start_scans::<AllTypes>(
-                    self.scheduler.config(),
-                    conn.clone(),
-                    self.scheduler.products(),
-                )
-                .await;
+                Scheduler::<
+                DockerRegistryV2,
+                filtered_image::Extractor,
+                ChaCha20Crypt,
+            >::start_scans::<AllTypes>(
+                self.scheduler.config(),
+                self.scheduler.crypter(),
+                conn.clone(),
+                self.scheduler.products(),
+            )
+            .await;
             }
         }
 
@@ -564,6 +597,7 @@ mod test {
         let result = entry.get_scans_id(id).await.unwrap();
         assert_eq!(scan.scan_id, result.scan_id);
         assert_eq!(scan.target.hosts, result.target.hosts);
+        assert_eq!(scan.target.credentials, result.target.credentials);
     }
 
     #[tokio::test]

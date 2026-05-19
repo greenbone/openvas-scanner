@@ -25,6 +25,7 @@ use crate::{
             scanner::{ScannerArchImageError, ScannerError},
         },
     },
+    crypt::Crypt,
     database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
 };
 use scannerlib::notus::{Notus, NotusError};
@@ -63,19 +64,26 @@ pub struct ProcessingImage {
 /// It retrieves commands usually by the endpoint handler to either start or stop a scan.
 /// It then sets the status of that scan to queued and regularly verifies if a scan can be started
 /// when the scan is finished it also sets the status to either succeed or failed.
-pub struct Scheduler<Registry, Extractor> {
+pub struct Scheduler<Registry, Extractor, Cryptor> {
     pool: DataBase,
     config: Arc<Config>,
+    crypter: Arc<Cryptor>,
     registry: PhantomData<Registry>,
     extractor: PhantomData<Extractor>,
     products: Arc<RwLock<Notus>>,
 }
 
-impl<Registry, Extractor> Scheduler<Registry, Extractor> {
-    fn new(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Self {
+impl<Registry, Extractor, Cryptor> Scheduler<Registry, Extractor, Cryptor> {
+    fn new(
+        config: Arc<Config>,
+        pool: DataBase,
+        crypter: Arc<Cryptor>,
+        products: Arc<RwLock<Notus>>,
+    ) -> Self {
         Scheduler {
             pool,
             config,
+            crypter,
             registry: PhantomData,
             extractor: PhantomData,
             products,
@@ -85,9 +93,10 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
     pub fn init(
         config: Arc<Config>,
         pool: DataBase,
+        crypter: Arc<Cryptor>,
         products: Arc<RwLock<Notus>>,
-    ) -> Scheduler<Registry, Extractor> {
-        Self::new(config, pool, products)
+    ) -> Scheduler<Registry, Extractor, Cryptor> {
+        Self::new(config, pool, crypter, products)
     }
 }
 
@@ -99,10 +108,11 @@ struct InitializedRegistry<'a, Registry> {
 
 use crate::container_image_scanner::image::RegistryError;
 
-impl<R, E> Scheduler<R, E>
+impl<R, E, C> Scheduler<R, E, C>
 where
     R: container_image_scanner::image::Registry + Send + Sync,
     E: container_image_scanner::image::extractor::Extractor + Send + Sync,
+    C: Crypt + Send + Sync + 'static,
 {
     #[cfg(test)]
     pub fn pool(&self) -> DataBase {
@@ -117,6 +127,11 @@ where
     #[cfg(test)]
     pub fn products(&self) -> Arc<RwLock<Notus>> {
         self.products.clone()
+    }
+
+    #[cfg(test)]
+    pub fn crypter(&self) -> Arc<C> {
+        self.crypter.clone()
     }
 
     async fn registry(
@@ -182,6 +197,7 @@ where
 
     pub(crate) async fn start_scans<T>(
         config: Arc<Config>,
+        crypter: Arc<C>,
         conn: Arc<Mutex<DataBase>>,
         products: Arc<RwLock<Notus>>,
     ) where
@@ -189,7 +205,10 @@ where
     {
         tracing::trace!("checking for requested and scanning");
         let pool = conn.lock().await;
-        let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
+        let requested = match DBImages::new(&pool, (crypter.as_ref(), config.max_scans))
+            .fetch()
+            .await
+        {
             Ok(r) => r,
             Err(error) => {
                 tracing::warn!(%error, "Unable to fetch images from the DB");
@@ -204,7 +223,7 @@ where
         }
 
         let scan_pool = pool.clone();
-        Self::scan_images::<T>(config, scan_pool, products).await;
+        Self::scan_images::<T>(config, crypter, scan_pool, products).await;
 
         if let Err(error) = DBScan::new(&pool, models::Phase::Succeeded).exec().await {
             tracing::warn!(%error, "Unable to set scans to finished");
@@ -282,13 +301,20 @@ where
         }
     }
 
-    async fn scan_images<T>(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>)
-    where
+    async fn scan_images<T>(
+        config: Arc<Config>,
+        crypter: Arc<C>,
+        pool: DataBase,
+        products: Arc<RwLock<Notus>>,
+    ) where
         T: ToNotus,
     {
         let scans = match DBImages::new(
             &pool,
-            (config.image_max_scanning(), config.image_batch_size()),
+            (
+                crypter.as_ref(),
+                (config.image_max_scanning(), config.image_batch_size()),
+            ),
         )
         .exec()
         .await
@@ -341,10 +367,11 @@ where
                 _ = interval.tick() => {
                 let products = self.products.clone();
                 let config = config.clone();
+                let crypter = self.crypter.clone();
                 let conn = conn.clone();
 
                 tokio::spawn(async move {
-                    Self::start_scans::<T>(config, conn, products).await
+                    Self::start_scans::<T>(config, crypter, conn, products).await
                 });
                 }
 
