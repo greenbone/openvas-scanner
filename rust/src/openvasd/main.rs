@@ -15,6 +15,7 @@ mod endpoint_helpers;
 mod json_stream;
 mod notus;
 mod scans;
+mod scheduler_common;
 mod vts;
 
 use sqlx::migrate::Migrator;
