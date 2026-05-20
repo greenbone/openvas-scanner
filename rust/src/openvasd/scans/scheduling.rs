@@ -26,6 +26,7 @@ use crate::{
         dao::{Fetch, RetryExec},
         sqlite::{DataBase, results::DBResults, scans::ScanDB, state_change::ScanStateController},
     },
+    scheduler_common,
     vts::orchestrator::{self, FeedStatusChange},
 };
 
@@ -196,25 +197,6 @@ where
         }
     }
 
-    async fn fetch_requested(&self) -> R<Vec<i64>> {
-        let limit: Option<i64> = if self.max_concurrent_scan > 0 {
-            let running = self.scan_state.count_scans_in_state("running").await?;
-            Some(if running > self.max_concurrent_scan {
-                0
-            } else {
-                (self.max_concurrent_scan - running) as i64
-            })
-        } else {
-            None
-        };
-        let ids = self
-            .scan_state
-            .fetch_scans_in_state("requested", limit)
-            .await?;
-
-        Ok(ids)
-    }
-
     async fn is_feed_sync_in_progress(&self) -> bool {
         self.feed_sync_in_progress
             .read()
@@ -250,7 +232,9 @@ where
             return Ok(());
         }
 
-        let ids = self.fetch_requested().await?;
+        let ids =
+            scheduler_common::fetch_requested_scans(&self.scan_state, self.max_concurrent_scan)
+                .await?;
         for id in ids {
             // To prevent accidental state change from running -> requested based on an old
             // snapshot we only do a resource when a scan has not already been started.
@@ -375,11 +359,8 @@ where
     }
 
     async fn get_running_count(&self) -> i64 {
-        match ScanDB::new(&self.pool, models::Phase::Running)
-            .fetch()
-            .await
-        {
-            Ok(x) => x,
+        match self.scan_state.count_scans_in_state("running").await {
+            Ok(x) => x as i64,
             Err(error) => {
                 tracing::warn!(
                     %error,
