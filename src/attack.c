@@ -1032,7 +1032,7 @@ apply_hosts_reverse_lookup_preferences (gvm_hosts_t *hosts)
       gvm_hosts_t *excluded;
 
       excluded = gvm_hosts_reverse_lookup_only_excluded (hosts);
-      g_debug ("reverse_lookup_unify: Skipped %zu host(s).", excluded->count);
+      g_debug ("reverse_lookup_only: Skipped %zu host(s).", excluded->count);
       // Get the amount of hosts which are excluded now for this option,
       // but they are already in the exclude list.
       // This is to avoid issues with the scan progress calculation, since
