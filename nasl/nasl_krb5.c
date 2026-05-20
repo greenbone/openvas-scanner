@@ -54,6 +54,8 @@ static bool gss_update_context_more = false;
 
 // Stores the path to the generated krb5 config file for cleanup.
 static char *generated_config_path = NULL;
+// Stores the path to the generated CCache file for cleanup.
+static char *generated_ccache_path = NULL;
 
 #define SET_SLICE_FROM_LEX_OR_ENV(lexic, slice, name, env_name)            \
   do                                                                       \
@@ -90,28 +92,38 @@ build_krb5_credential (lex_ctxt *lexic)
 
   char *kdc = NULL;
 
-  SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.config_path, "config_path",
-                             "KRB5_CONFIG");
-  if (credential.config_path.len == 0)
+  char *ip_str = addr6_as_str (lexic->script_infos->ip);
+  for (int i = 0; ip_str[i] != '\0'; i++)
     {
-      char *ip_str = addr6_as_str (lexic->script_infos->ip);
-      for (int i = 0; ip_str[i] != '\0'; i++)
+      if (ip_str[i] == '.' || ip_str[i] == ':')
         {
-          if (ip_str[i] == '.' || ip_str[i] == ':')
-            {
-              ip_str[i] = '_';
-            }
+          ip_str[i] = '_';
         }
-      char default_config_path[256];
-      snprintf (default_config_path, sizeof (default_config_path),
-                "/tmp/krb5_%s.conf", ip_str);
-      setenv ("KRB5_CONFIG", default_config_path, 1);
+    }
 
+  // Set a per-target CCache path unconditionally, unless one is already
+  // provided via parameter or environment.
+  if (getenv ("KRB5CCNAME") == NULL
+      && get_str_var_by_name (lexic, "ccache_path") == NULL)
+    {
       char default_ccache_path[256];
       snprintf (default_ccache_path, sizeof (default_ccache_path),
                 "/tmp/krb5cc_%s", ip_str);
       setenv ("KRB5CCNAME", default_ccache_path, 1);
 
+      if (generated_ccache_path != NULL)
+        free (generated_ccache_path);
+      generated_ccache_path = strdup (default_ccache_path);
+    }
+
+  SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.config_path, "config_path",
+                             "KRB5_CONFIG");
+  if (credential.config_path.len == 0)
+    {
+      char default_config_path[256];
+      snprintf (default_config_path, sizeof (default_config_path),
+                "/tmp/krb5_%s.conf", ip_str);
+      setenv ("KRB5_CONFIG", default_config_path, 1);
       okrb5_set_slice_from_str (credential.config_path, default_config_path);
     }
 
@@ -361,6 +373,12 @@ nasl_okrb5_clean (void)
       unlink (generated_config_path);
       free (generated_config_path);
       generated_config_path = NULL;
+    }
+  if (generated_ccache_path != NULL)
+    {
+      unlink (generated_ccache_path);
+      free (generated_ccache_path);
+      generated_ccache_path = NULL;
     }
 }
 

@@ -179,6 +179,7 @@ pub struct Krb5 {
     to_application: Arc<Mutex<*mut OKrb5Slice>>,
     gss_context_needs_more: bool,
     config_path: Option<String>,
+    ccache_path: Option<String>,
 }
 
 impl Drop for Krb5 {
@@ -202,6 +203,9 @@ impl Drop for Krb5 {
         }
         if let Some(config_path) = &self.config_path {
             let _ = std::fs::remove_file(config_path);
+        }
+        if let Some(ccache_path) = &self.ccache_path {
+            let _ = std::fs::remove_file(ccache_path);
         }
     }
 }
@@ -247,7 +251,11 @@ impl Krb5 {
         } else {
             let path = format!(
                 "/tmp/krb5_{}.conf",
-                context.target().ip_addr().to_string().replace(".", "_")
+                context
+                    .target()
+                    .ip_addr()
+                    .to_string()
+                    .replace(['.', ':'], "_")
             );
             unsafe { std::env::set_var("KRB5_CONFIG", &path) };
             path
@@ -256,9 +264,14 @@ impl Krb5 {
         if std::env::var("KRB5CCNAME").is_err() {
             let ccache_path = format!(
                 "/tmp/krb5cc_{}",
-                context.target().ip_addr().to_string().replace(".", "_")
+                context
+                    .target()
+                    .ip_addr()
+                    .to_string()
+                    .replace(['.', ':'], "_")
             );
             unsafe { std::env::set_var("KRB5CCNAME", &ccache_path) };
+            self.ccache_path = Some(ccache_path);
         }
 
         self.config_path = Some(config_path.clone());
