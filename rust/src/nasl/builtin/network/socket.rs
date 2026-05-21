@@ -163,7 +163,7 @@ impl NaslSocket {
         &None
     }
 
-    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
         if let NaslSocket::Tcp(tcp_connection) = self {
             tcp_connection.set_transport(transport);
         };
@@ -212,13 +212,6 @@ impl NaslSocket {
     pub fn ssl_version(&self) -> Option<i64> {
         if let NaslSocket::Tcp(tcp_connection) = self {
             return tcp_connection.ssl_version();
-        }
-        None
-    }
-
-    pub fn ssl_session_id(&self) -> Option<String> {
-        if let NaslSocket::Tcp(tcp_connection) = self {
-            return tcp_connection.session_id();
         }
         None
     }
@@ -760,7 +753,7 @@ async fn socket_negotiate_ssl(
             &conf.key_path,
             &conf.password,
             &conf.cafile_path,
-            // safe to unwrap() because knowon from above
+            // safe to unwrap() because known from above
             &OpenvasEncaps::from_i64(transport).unwrap(),
             &session_id,
         )
@@ -778,6 +771,7 @@ async fn socket_negotiate_ssl(
             return Ok(NaslValue::Null);
         }
     };
+
     soc.set_tls(client);
     soc.set_session_id(session_id);
 
