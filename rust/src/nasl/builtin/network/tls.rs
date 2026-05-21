@@ -7,12 +7,12 @@ use std::{
     fmt::{Display, Formatter},
     fs,
     io::{self, BufRead, BufReader},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use pkcs8::der::Decode;
 use rustls::{
-    ClientConfig, ClientConnection, RootCertStore,
+    ClientConfig, ClientConnection, KeyLog, RootCertStore,
     pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
     version::{TLS12, TLS13},
 };
@@ -50,6 +50,46 @@ impl Display for TLSError {
     }
 }
 
+#[derive(Debug)]
+pub struct MemoryKeyLogger {
+    // Usamos Arc<Mutex<>> para que sea seguro modificarlo entre hilos
+    pub storage: Arc<Mutex<Vec<String>>>,
+}
+
+impl KeyLog for MemoryKeyLogger {
+    fn log(&self, label: &str, client_random: &[u8], _secret: &[u8]) {
+        if label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET" {
+            let session_hex: String = client_random.iter().map(|b| format!("{:02x}", b)).collect();
+
+            // Bloqueamos el Mutex temporalmente para añadir el ID a la lista
+            if let Ok(mut lock) = self.storage.lock() {
+                lock.push(session_hex);
+            }
+        }
+    }
+}
+
+//#[derive(Debug)]
+//pub struct SessionIdLogger{
+//  pub storage: Arc<Mutex<Vec<String>>>,
+//}
+//
+//impl KeyLog for SessionIdLogger {
+//    fn log(&self, label: &str, client_random: &[u8], _secret: &[u8]) {
+//        // Only log on the first handshake secret message to avoid duplicate log noise
+//        if label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET" || label == "CLIENT_RANDOM" {
+//            // Format bytes as a hex string for easy readability in your log aggregator
+//            let session_hex: String = client_random
+//                .iter()
+//                .map(|b| format!("{:02x}", b))
+//                .collect();
+//            if let Ok(mut lock) = self.storage.lock() {
+//                lock.push(session_hex);
+//            }
+//        }
+//    }
+//}
+
 fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, TLSError> {
     let keyfile = fs::File::open(filename)?;
     let mut reader = BufReader::new(keyfile);
@@ -74,6 +114,7 @@ pub fn prepare_tls_client(
     password: &str,
     cafile_path: &str,
     transport: &OpenvasEncaps,
+    shared_storage: &Arc<Mutex<Vec<String>>>,
 ) -> Result<ClientConfig, TLSError> {
     let config = match transport {
         OpenvasEncaps::Tls12 => ClientConfig::builder_with_protocol_versions(&[&TLS12]),
@@ -96,7 +137,7 @@ pub fn prepare_tls_client(
         ClientConfig::builder().with_root_certificates(root_store)
     };
 
-    let config = if !cert_path.is_empty() && !key_path.is_empty() {
+    let mut config = if !cert_path.is_empty() && !key_path.is_empty() {
         let cert_file = fs::File::open(cert_path)?;
         let mut reader = BufReader::new(cert_file);
         let cert = rustls::pki_types::pem::ReadIter::new(&mut reader)
@@ -121,6 +162,10 @@ pub fn prepare_tls_client(
         config.with_no_client_auth()
     };
 
+    config.key_log = Arc::new(MemoryKeyLogger {
+        storage: Arc::clone(shared_storage),
+    });
+
     Ok(config)
 }
 
@@ -131,8 +176,17 @@ pub fn create_tls_client(
     password: &str,
     cafile_path: &str,
     transport: &OpenvasEncaps,
+    shared_storage: &Arc<Mutex<Vec<String>>>,
 ) -> Result<ClientConnection, TLSError> {
     let server = ServerName::try_from(hostname.to_owned()).unwrap();
-    let config = prepare_tls_client(cert_path, key_path, password, cafile_path, transport)?;
+    let config = prepare_tls_client(
+        cert_path,
+        key_path,
+        password,
+        cafile_path,
+        transport,
+        shared_storage,
+    )?;
+
     ClientConnection::new(Arc::new(config), server).map_err(|e| e.into())
 }
