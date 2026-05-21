@@ -13,14 +13,10 @@ ARG KRB5_VERSION=1.22.2
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
     ca-certificates \
-    curl \
     make \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /tmp
-RUN KRB5_SERIES="${KRB5_VERSION%.*}" \
-    && curl --fail -L -O "https://kerberos.org/dist/krb5/${KRB5_SERIES}/krb5-${KRB5_VERSION}.tar.gz" \
-    && tar -xzf "krb5-${KRB5_VERSION}.tar.gz"
+COPY .docker/vendor/krb5-${KRB5_VERSION} /tmp/krb5-${KRB5_VERSION}
 # Build only the MIT krb5 subtrees that produce the static archives and
 # headers used by the Rust build; the full tree pulls in broken utility
 # targets we do not need here.
@@ -61,14 +57,11 @@ ARG LIBPCAP_VERSION=1.10.6
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
     ca-certificates \
-    curl \
     flex \
     make \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /tmp
-RUN curl --fail -L -O "https://www.tcpdump.org/release/libpcap-${LIBPCAP_VERSION}.tar.gz" \
-    && tar -xzf "libpcap-${LIBPCAP_VERSION}.tar.gz"
+COPY .docker/vendor/libpcap-${LIBPCAP_VERSION} /tmp/libpcap-${LIBPCAP_VERSION}
 
 WORKDIR "/tmp/libpcap-${LIBPCAP_VERSION}"
 RUN ./configure --prefix=/opt/libpcap-static \
@@ -114,7 +107,7 @@ RUN DEB_HOST_MULTIARCH="$(gcc -print-multiarch)" \
     && install -m 644 /opt/krb5-static/include/krb5/krb5.h /archives/include/krb5/krb5.h
 
 FROM ${RUST_IMAGE} AS rust
-ARG BIN_VERSION
+ARG BIN_VERSION=
 ENV BIN_VERSION=${BIN_VERSION}
 COPY . /source
 COPY --from=build-archives /archives /archives
