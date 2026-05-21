@@ -5,6 +5,7 @@
 use std::{
     io::{self, BufRead, BufReader, Read, Write},
     net::{IpAddr, SocketAddr},
+    sync::{Arc, Mutex},
     time::Duration,
 };
 
@@ -20,6 +21,7 @@ pub struct TcpDataStream {
     sock: Socket,
     tls: Option<ClientConnection>,
     transport: Option<OpenvasEncaps>,
+    session_id: Arc<Mutex<Vec<String>>>,
     last_err: i64,
 }
 
@@ -52,6 +54,14 @@ impl TcpDataStream {
         &self.transport
     }
 
+    pub fn set_session_id(&mut self, sid: Arc<Mutex<Vec<String>>>) {
+        self.session_id = sid
+    }
+
+    pub fn session_id(&self) -> Option<String> {
+        self.session_id.lock().unwrap().first().cloned()
+    }
+
     pub fn set_last_err(&mut self, nasl_err: i64) {
         self.last_err = nasl_err
     }
@@ -68,6 +78,15 @@ impl TcpDataStream {
         }
         0
     }
+
+    //  pub fn get_tls_ticket (&self) -> &[u8] {
+    //      let mut unique_binding = [0u8; 32];
+    //      if let Some(conn) = self.tls {
+    //       return conn.export_keying_material(&mut unique_binding, b"", None).unwrap();
+    //      }
+    //      &[]
+    //
+    //  }
 }
 
 pub struct TcpConnection {
@@ -146,6 +165,16 @@ impl TcpConnection {
     pub fn transport(&self) -> &Option<OpenvasEncaps> {
         let stream = self.stream.get_ref();
         stream.transport()
+    }
+
+    pub fn set_session_id(&mut self, sid: Arc<Mutex<Vec<String>>>) {
+        let stream = self.stream.get_mut();
+        stream.set_session_id(sid);
+    }
+
+    pub fn session_id(&self) -> Option<String> {
+        let stream = self.stream.get_ref();
+        stream.session_id()
     }
 
     pub fn set_last_err(&mut self, nasl_err: i64) {
@@ -230,6 +259,7 @@ impl TcpConnection {
                 tls,
                 transport: None,
                 last_err: NASL_ERR_NOERR,
+                session_id: Arc::new(Mutex::new(Vec::new())),
             },
             bufsz,
         ))
@@ -270,6 +300,7 @@ impl TcpConnection {
                 tls: None,
                 transport: None,
                 last_err: err,
+                session_id: Arc::new(Mutex::new(Vec::new())),
             },
             None,
         ))
