@@ -46,8 +46,8 @@ impl TcpDataStream {
         &self.tls
     }
 
-    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
-        self.transport = Some(transport);
+    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
+        self.transport = transport;
     }
 
     pub fn transport(&self) -> &Option<OpenvasEncaps> {
@@ -157,7 +157,7 @@ impl TcpConnection {
         stream.tls()
     }
 
-    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
         let stream = self.stream.get_mut();
         stream.set_transport(transport);
     }
@@ -202,17 +202,20 @@ impl TcpConnection {
     }
 
     pub fn ssl_version(&self) -> Option<i64> {
+        let ret;
         if let Some(tls_conn) = &self.stream.get_ref().tls {
-            match tls_conn.protocol_version() {
-                Some(ProtocolVersion::SSLv3) => Some(OpenvasEncaps::Ssl3),
-                Some(ProtocolVersion::TLSv1_0) => Some(OpenvasEncaps::Tls1),
-                Some(ProtocolVersion::TLSv1_1) => Some(OpenvasEncaps::Tls11),
-                Some(ProtocolVersion::TLSv1_2) => Some(OpenvasEncaps::Tls12),
-                Some(ProtocolVersion::TLSv1_3) => Some(OpenvasEncaps::Tls13),
+            ret = match tls_conn.protocol_version() {
+                Some(ProtocolVersion::SSLv3) => Some(i64::from(OpenvasEncaps::Ssl3)),
+                Some(ProtocolVersion::TLSv1_0) => Some(i64::from(OpenvasEncaps::Tls1)),
+                Some(ProtocolVersion::TLSv1_1) => Some(i64::from(OpenvasEncaps::Tls11)),
+                Some(ProtocolVersion::TLSv1_2) => Some(i64::from(OpenvasEncaps::Tls12)),
+                Some(ProtocolVersion::TLSv1_3) => Some(i64::from(OpenvasEncaps::Tls13)),
                 _ => None,
             };
+        } else {
+            ret = None;
         }
-        None
+        ret
     }
 
     /// Create a new TCP connection.
