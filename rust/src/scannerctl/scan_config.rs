@@ -362,7 +362,11 @@ where
         let mut items: Vec<Result<VT, Error>> = Vec::new();
         for s in result.nvt_selectors.nvt_selector.iter() {
             if s.nvt_type == 2 {
-                if is_not_already_present(&s.family_or_nvt) {
+                // Only include selectors (include != 0) add the NVT here.
+                // Exclude selectors are already collected into `excluded`
+                // above; without this guard a single-NVT exclude would be
+                // re-added, silently ignoring the exclusion.
+                if s.include != 0 && is_not_already_present(&s.family_or_nvt) {
                     items.push(oid_to_vt(&s.family_or_nvt));
                 }
             } else if s.nvt_type == 1 {
@@ -579,5 +583,81 @@ mod tests {
 
         let result = super::parse_vts(sc.as_bytes(), &d, &exists).await.unwrap();
         assert_eq!(result.vts_list.len(), 4);
+    }
+
+    /// Regression test for NVT-level (type 2) exclude selectors.
+    ///
+    /// The "Full and Fast" config excludes individual NVTs by OID (include=0,
+    /// type=2) and re-includes a couple of port scanners by OID on top of a
+    /// "Port scanners" family exclude. The selectors mirror that shape:
+    /// include all, exclude a family, re-include one of its members, and
+    /// exclude two single NVTs by OID.
+    #[tokio::test]
+    async fn parse_scanconfig_honors_nvt_excludes() {
+        let sc = r#"
+        <config id="00000000-0000-0000-0000-000000000000">
+  <name>Exclude</name>
+  <type>0</type>
+  <usage_type>scan</usage_type>
+  <preferences/>
+  <nvt_selectors>
+    <nvt_selector>
+      <include>1</include>
+      <type>2</type>
+      <family_or_nvt>keep_me</family_or_nvt>
+    </nvt_selector>
+    <nvt_selector>
+      <include>0</include>
+      <type>1</type>
+      <family_or_nvt>Port scanners</family_or_nvt>
+    </nvt_selector>
+    <nvt_selector>
+      <include>0</include>
+      <type>2</type>
+      <family_or_nvt>drop_me</family_or_nvt>
+    </nvt_selector>
+    <nvt_selector>
+      <include>1</include>
+      <type>0</type>
+      <family_or_nvt></family_or_nvt>
+    </nvt_selector>
+  </nvt_selectors>
+    </config>"#;
+
+        let d: InMemoryStorage = InMemoryStorage::default();
+        async fn add(d: &InMemoryStorage, oid: &str, family: &str) {
+            d.dispatch(
+                FileName(oid.to_string()),
+                VTData {
+                    oid: oid.to_string(),
+                    filename: oid.to_string(),
+                    family: family.to_string(),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        }
+        add(&d, "keep_me", "Port scanners").await; // re-included by OID
+        add(&d, "scanner", "Port scanners").await; // excluded via family
+        add(&d, "drop_me", "General").await; // excluded by OID
+        add(&d, "regular", "General").await; // pulled in by the all-selector
+
+        let result = super::parse_vts(sc.as_bytes(), &d, &[]).await.unwrap();
+        let oids: Vec<&str> = result.vts_list.iter().map(|v| v.oid.as_str()).collect();
+
+        assert!(
+            oids.contains(&"regular"),
+            "all-selector NVT must be present"
+        );
+        assert!(
+            oids.contains(&"keep_me"),
+            "type-2 include must survive a same-config family exclude"
+        );
+        assert!(
+            !oids.contains(&"drop_me"),
+            "type-2 (single NVT) exclude must be honored"
+        );
+        assert!(!oids.contains(&"scanner"), "family exclude must be honored");
     }
 }
