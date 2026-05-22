@@ -218,6 +218,16 @@ impl TcpConnection {
         ret
     }
 
+    pub fn ssl_ciphersuite(&self) -> Option<&str> {
+        let ret;
+        if let Some(tls_conn) = &self.stream.get_ref().tls {
+            ret = tls_conn.negotiated_cipher_suite().unwrap().suite().as_str();
+        } else {
+            ret = None;
+        }
+        ret
+    }
+
     /// Create a new TCP connection.
     pub fn connect(
         addr: IpAddr,
