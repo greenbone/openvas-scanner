@@ -216,6 +216,13 @@ impl NaslSocket {
         None
     }
 
+    pub fn ssl_ciphersuite(&self) -> Option<&str> {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.ssl_ciphersuite();
+        }
+        None
+    }
+
     pub fn check_safe_renegotiation(&mut self) -> NaslValue {
         // TODO: This is not possible. rustls does not provide
         // a feature to check secure renegotiation
@@ -847,6 +854,18 @@ async fn socket_get_ssl_version(
 }
 
 #[nasl_function(named(socket))]
+async fn socket_get_ssl_ciphersuite(
+    nasl_sockets: &mut NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    if let Some(v) = soc.ssl_ciphersuite() {
+        return Ok(NaslValue::String(v.to_string()));
+    }
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function(named(socket))]
 async fn socket_get_ssl_session_id(
     nasl_sockets: &mut NaslSockets,
     socket: usize,
@@ -1402,6 +1421,7 @@ function_set! {
         socket_negotiate_ssl,
         socket_get_cert,
         socket_get_ssl_version,
+        socket_get_ssl_ciphersuite ,
         socket_get_ssl_session_id,
         socket_get_error,
         socket_cert_verify,
