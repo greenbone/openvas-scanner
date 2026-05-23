@@ -34,9 +34,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   inherit src;
 
-  # GCC 14+ flags a sign-compare warning in the NASL packet-forgery code
-  # that upstream treats as -Werror.  Strip -Werror rather than adding a
-  # blanket compiler flag.
+  # Upstream builds with -Werror; nixpkgs GCC 14+ triggers a sign-compare
+  # warning in the NASL packet-forgery code. Strip it rather than adding a
+  # blanket -Wno-error= flag.
   postPatch = ''
     substituteInPlace CMakeLists.txt nasl/CMakeLists.txt src/CMakeLists.txt misc/CMakeLists.txt \
       --replace-warn "-Werror" ""
@@ -72,24 +72,17 @@ stdenv.mkDerivation (finalAttrs: {
     paho-mqtt-c
   ];
 
-  # Install to the Nix store via DESTDIR while keeping runtime paths as
-  # standard FHS locations (the binary reads openvas.conf at runtime).
-  # /usr sets runtime prefix; DESTDIR below overlays $out on top.
+  # CMAKE_INSTALL_PREFIX=/usr sets the *runtime* prefix baked into the
+  # binary (so it looks for /etc/openvas/openvas.conf at runtime).
+  # DESTDIR=$out overlays the Nix store on top at build time, and
+  # autoPatchelfHook fixes RPATH since libs land in $out/usr/lib/.
   cmakeFlags = [ "-DCMAKE_INSTALL_PREFIX=/usr" ];
 
   installPhase = ''
     runHook preInstall
     DESTDIR="$out" cmake --install .
-
     mkdir -p "$out/bin"
-    for bin in openvas openvas-nasl openvas-nasl-lint; do
-      if [ -x "$out/usr/sbin/$bin" ]; then
-        ln -s "$out/usr/sbin/$bin" "$out/bin/$bin"
-      elif [ -x "$out/usr/bin/$bin" ]; then
-        ln -s "$out/usr/bin/$bin" "$out/bin/$bin"
-      fi
-    done
-
+    ln -sf "$out/usr/sbin/openvas" "$out/bin/openvas"
     runHook postInstall
   '';
 
