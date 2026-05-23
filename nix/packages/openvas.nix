@@ -1,6 +1,7 @@
 {
   stdenv,
   lib,
+  version,
   autoPatchelfHook,
   cmake,
   pkg-config,
@@ -30,7 +31,7 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "openvas";
-  version = "23.45.5";
+  inherit version;
 
   inherit src;
 
