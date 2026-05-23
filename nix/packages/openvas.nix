@@ -74,12 +74,8 @@ stdenv.mkDerivation (finalAttrs: {
 
   # Install to the Nix store via DESTDIR while keeping runtime paths as
   # standard FHS locations (the binary reads openvas.conf at runtime).
-  cmakeFlags = [
-    "-DCMAKE_INSTALL_PREFIX=/usr"
-    "-DLOCALSTATEDIR=/var"
-    "-DSYSCONFDIR=/etc"
-    "-DCMAKE_INSTALL_SYSCONFDIR=/etc"
-  ];
+  # /usr sets runtime prefix; DESTDIR below overlays $out on top.
+  cmakeFlags = [ "-DCMAKE_INSTALL_PREFIX=/usr" ];
 
   installPhase = ''
     runHook preInstall
