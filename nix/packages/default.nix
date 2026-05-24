@@ -9,15 +9,11 @@ let
 
   # Read scanner release version from CMakeLists.txt — upstream releases
   # use this version for both the C scanner and the Rust binaries.
-  version =
-    let
-      cmake = builtins.replaceStrings [ "\n" ] [ " " ] (
-        builtins.readFile (src + "/CMakeLists.txt")
-      );
-    in
-      builtins.head (
-        builtins.match ".*project *\\( *openvas +VERSION +([0-9.]+).*" cmake
-      );
+  version = builtins.head (
+    builtins.match ".*project[[:space:]]*\\([^)]*VERSION[[:space:]]+([0-9.]+).*" (
+      builtins.readFile ./CMakeLists.txt
+    )
+  );
 
   cargoToml = fromTOML (builtins.readFile (src + "/rust/Cargo.toml"));
 
