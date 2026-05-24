@@ -11,7 +11,7 @@ let
   # use this version for both the C scanner and the Rust binaries.
   version = builtins.head (
     builtins.match ".*project[[:space:]]*\\([^)]*VERSION[[:space:]]+([0-9.]+).*" (
-      builtins.readFile ./CMakeLists.txt
+      builtins.readFile (src + /CMakeLists.txt)
     )
   );
 
