@@ -10,6 +10,7 @@ Tests are executed via `make` and implemented using Hurl.
 - running OpenVASD instance
 - `make`
 - `hurl`
+- `curl` and `jq` for the OpenVAS compatibility target
 
 ## Configuration
 
@@ -45,10 +46,10 @@ make scans-user-flow-victim-simple-auth-ssh
 make up-and-running
 make notus
 make scans
+make openvas-compat
 # User flow targets are derived from JSON files in scans-user-flows/.
 make scans-user-flow-victim-simple-auth-ssh
 # those take longer
 make scans-user-flow-victim-discovery
 make scans-user-flow-victim-full-and-fast
 ```
-

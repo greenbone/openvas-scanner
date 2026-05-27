@@ -12,6 +12,7 @@ else
 endif
 
 TEST_ENVIRONMENTS := -f base.yaml -f mtls.yaml -f tests/victim.yaml -f local-registry.yaml
+OPENVAS_COMPAT_ENVIRONMENTS := -f base.yaml -f mtls.yaml -f tests/victim.yaml
 
 ifndef OPENVAS_IMAGE
 	OPENVAS_IMAGE := ghcr.io/greenbone/openvas-scanner:stable
@@ -68,6 +69,10 @@ wait-for-services:
 	@$(call wait_for_status,openvasd,running)
 	@$(call wait_for_status,registry_seed,exited)
 
+.PHONY: wait-for-openvasd
+wait-for-openvasd:
+	@$(call wait_for_status,openvasd,running)
+
 .PHONY: test-environment-up
 test-environment-running: test-environment-up wait-for-services
 
@@ -79,3 +84,13 @@ smoketest: local-test-environment-running
 	$(MAKE) -C tests/smoketest
 
 smoketests: smoketest
+
+.PHONY: openvas-compat-snapshots
+openvas-compat-snapshots:
+	$(MAKE) TEST_ENVIRONMENTS="$(OPENVAS_COMPAT_ENVIRONMENTS)" local-test-environment-up wait-for-openvasd
+	START_ENVIRONMENT=0 COMPOSE_FILE_ARGS="$(OPENVAS_COMPAT_ENVIRONMENTS)" ../rust/data/tests/scans/generate-openvas-snapshots.sh
+
+.PHONY: openvas-compat
+openvas-compat:
+	SCANNER_TYPE=openvasd FEED_PATH=/tmp/openvas-compat-feed FEED_CHECK_INTERVAL=1 OPENVASD_FEED_SIGNATURE_CHECK=false $(MAKE) TEST_ENVIRONMENTS="$(OPENVAS_COMPAT_ENVIRONMENTS)" local-test-environment-up wait-for-openvasd
+	$(MAKE) -C tests/smoketest openvas-compat COMPOSE_FILE_ARGS="$(OPENVAS_COMPAT_ENVIRONMENTS)"

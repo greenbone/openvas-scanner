@@ -14,8 +14,10 @@ services:
       - /bin/sh
       - -c
       - |
-        printf "table_driven_lsc = yes\nopenvasd_server = $OPENVASD_PROTOCOL://openvasd:$OPENVASD_PORT\n" > /mnt/openvas.conf
+        printf "table_driven_lsc = yes\nopenvasd_server = $$OPENVASD_PROTOCOL://openvasd:$$OPENVASD_PORT\n" > /mnt/openvas.conf
+        printf "[feed]\npath = '%s'\ncheck_interval = '%ss'\nsignature_check = %s\n" "$$FEED_PATH" "$$FEED_CHECK_INTERVAL" "$$OPENVASD_FEED_SIGNATURE_CHECK" > /mnt/openvasd.toml
         chmod 644 /mnt/openvas.conf
+        chmod 644 /mnt/openvasd.toml
 
   openvasd:
     environment:
