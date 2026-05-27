@@ -1,6 +1,6 @@
 openapi: "3.1.1"
 info:
-  title: "Scanner"
+  title: "Scanner v1"
   description: "
     # Authentication
 
@@ -38,7 +38,7 @@ info:
     name: "GPL-2.0-or-later"
     identifier: "GPL-2.0-or-later"
     url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
-  version: "0.1"
+  version: "1.0"
 servers:
   - url: /
 tags:
