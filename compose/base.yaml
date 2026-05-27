@@ -52,7 +52,7 @@ services:
       - /bin/sh
       - -c
       - |
-        sed "s/127/$OPENVAS_LOG_LEVEL/" /etc/openvas/openvas_log.conf | sed 's/gvm/openvas/' > /mnt/openvas_log.conf
+        sed "s/127/$$OPENVAS_LOG_LEVEL/" /etc/openvas/openvas_log.conf | sed 's/gvm/openvas/' > /mnt/openvas_log.conf
         chmod 644 /mnt/openvas_log.conf
         touch /var/log/openvas/openvas.log
         chmod 666 /var/log/openvas/openvas.log
@@ -64,12 +64,17 @@ services:
     environment:
       OPENVASD_PROTOCOL: http
       OPENVASD_PORT: 3000
+      FEED_PATH: ${FEED_PATH:-/var/lib/openvas/plugins}
+      FEED_CHECK_INTERVAL: ${FEED_CHECK_INTERVAL:-3600}
+      OPENVASD_FEED_SIGNATURE_CHECK: ${OPENVASD_FEED_SIGNATURE_CHECK:-true}
     command:
       - /bin/sh
       - -c
       - |
-        printf "table_driven_lsc = yes\nopenvasd_server = $OPENVASD_PROTOCOL://openvasd:$OPENVASD_PORT\n" > /mnt/openvas.conf
+        printf "table_driven_lsc = yes\nopenvasd_server = $$OPENVASD_PROTOCOL://openvasd:$$OPENVASD_PORT\n" > /mnt/openvas.conf
+        printf "[feed]\npath = '%s'\ncheck_interval = '%ss'\nsignature_check = %s\n" "$$FEED_PATH" "$$FEED_CHECK_INTERVAL" "$$OPENVASD_FEED_SIGNATURE_CHECK" > /mnt/openvasd.toml
         chmod 644 /mnt/openvas.conf
+        chmod 644 /mnt/openvasd.toml
 
 
   # shows logs of openvas
@@ -108,7 +113,9 @@ services:
         delay: '3s'
     environment:
       SCANNER_TYPE: ${SCANNER_TYPE:-openvas}
-      GNUPGHOME: /etc/openvas/gnupg
+      OPENVASD_CONFIG: /etc/openvas/openvasd.toml
+      FEED_PATH: ${FEED_PATH:-/var/lib/openvas/plugins}
+      GNUPGHOME: /var/lib/openvas/gnupg
       XDG_CACHE_HOME: /var/cache/
       STORAGE_TYPE: ${OPENVAS_SCANNER_STORAGE_TYPE:-fs}
       LISTENING: 0.0.0.0:3000
@@ -117,6 +124,7 @@ services:
       - openvas_data_vol:/etc/openvas
       - openvas_log_data_vol:/var/log/openvas
       - gpg_data_vol:/etc/openvas/gnupg
+      - gpg_data_vol:/var/lib/openvas/gnupg
       - notus_data_vol:/var/lib/notus
       - vt_data_vol:/var/lib/openvas/plugins
       - redis_socket_vol:/run/redis/

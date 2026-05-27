@@ -1,0 +1,131 @@
+{
+  "results": [
+    {
+      "detail": {
+        "name": "",
+        "source": {
+          "description": "",
+          "name": "",
+          "type": ""
+        },
+        "value": ""
+      },
+      "hostname": "",
+      "id": 0,
+      "ip_address": "127.0.0.1",
+      "message": "Mon Jun  1 14:45:46 2026",
+      "oid": "",
+      "port": 0,
+      "type": "host_start"
+    },
+    {
+      "detail": {
+        "name": "",
+        "source": {
+          "description": "",
+          "name": "",
+          "type": ""
+        },
+        "value": ""
+      },
+      "hostname": "localhost",
+      "id": 1,
+      "ip_address": "127.0.0.1",
+      "message": "compat log tcp/80",
+      "oid": "1.3.6.1.4.1.25623.1.0.9900001",
+      "port": 80,
+      "protocol": "tcp",
+      "type": "log"
+    },
+    {
+      "detail": {
+        "name": "",
+        "source": {
+          "description": "",
+          "name": "",
+          "type": ""
+        },
+        "value": ""
+      },
+      "hostname": "localhost",
+      "id": 2,
+      "ip_address": "127.0.0.1",
+      "message": "compat alarm tcp/443",
+      "oid": "1.3.6.1.4.1.25623.1.0.9900001",
+      "port": 443,
+      "protocol": "tcp",
+      "type": "alarm"
+    },
+    {
+      "detail": {
+        "name": "",
+        "source": {
+          "description": "",
+          "name": "",
+          "type": ""
+        },
+        "value": ""
+      },
+      "hostname": "localhost",
+      "id": 3,
+      "ip_address": "127.0.0.1",
+      "message": "compat alarm udp/53",
+      "oid": "1.3.6.1.4.1.25623.1.0.9900001",
+      "port": 53,
+      "protocol": "udp",
+      "type": "alarm"
+    },
+    {
+      "detail": {
+        "name": "",
+        "source": {
+          "description": "",
+          "name": "",
+          "type": ""
+        },
+        "value": ""
+      },
+      "hostname": "localhost",
+      "id": 4,
+      "ip_address": "127.0.0.1",
+      "message": "compat error tcp/25",
+      "oid": "1.3.6.1.4.1.25623.1.0.9900001",
+      "port": 25,
+      "protocol": "tcp",
+      "type": "error"
+    },
+    {
+      "detail": {
+        "name": "",
+        "source": {
+          "description": "",
+          "name": "",
+          "type": ""
+        },
+        "value": ""
+      },
+      "hostname": "",
+      "id": 5,
+      "ip_address": "127.0.0.1",
+      "message": "Mon Jun  1 14:45:46 2026",
+      "oid": "",
+      "port": 0,
+      "type": "host_end"
+    }
+  ],
+  "scan_id": "openvas-compat-report-functions",
+  "status": {
+    "end_time": 1780325147,
+    "host_info": {
+      "alive": 1,
+      "all": 1,
+      "dead": 0,
+      "excluded": 0,
+      "finished": 1,
+      "queued": 0,
+      "scanning": {}
+    },
+    "start_time": 1780325145,
+    "status": "succeeded"
+  }
+}
