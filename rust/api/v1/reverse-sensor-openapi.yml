@@ -1,6 +1,6 @@
 openapi: "3.0.3"
 info:
-  title: "Reverse Scanner"
+  title: "Reverse Scanner v1"
   description: "
     # General
 
@@ -42,7 +42,7 @@ info:
   license:
     name: "GPL-2.0-or-later"
     url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
-  version: "0.1"
+  version: "1.0"
 servers:
   - url: /
 tags:
