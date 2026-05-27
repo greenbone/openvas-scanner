@@ -1,0 +1,79 @@
+scan_results:
+  description: "Example for getting results."
+  value:
+    {
+      "items":
+        [
+          {
+            "id": 0,
+            "type": "host_start",
+            "ip_address": "127.0.0.1",
+            "port": 22,
+            "protocol": "tcp",
+            "message": "Thu Mar 23 15:16:37 2023",
+          },
+          {
+            "id": 1,
+            "type": "error",
+            "ip_address": "127.0.0.1",
+            "hostname": "localhost",
+            "protocol": "tcp",
+            "message": "MQTT initialization failed",
+          },
+          {
+            "id": 2,
+            "type": "log",
+            "ip_address": "127.0.0.1",
+            "hostname": "localhost",
+            "oid": "1.3.6.1.4.1.25623.1.0.117628",
+            "port": 22,
+            "protocol": "tcp",
+            "message": "FTP is enabled on the remote SSH service.",
+          },
+          {
+            "id": 3,
+            "type": "alarm",
+            "ip_address": "127.0.0.1",
+            "hostname": "localhost",
+            "oid": "1.3.6.1.4.1.25623.1.0.147696",
+            "protocol": "tcp",
+            "message": "Installed version: 9.53.3\nFixed version:     9.55\nInstallation\npath / port:       /usr/bin/gs",
+          },
+        ],
+    }
+
+scan_result:
+  description: "Example for getting a single result. The Result ID in the request path was set to 3."
+  value:
+    {
+      "id": 3,
+      "type": "alarm",
+      "ip_address": "127.0.0.1",
+      "hostname": "localhost",
+      "oid": "1.3.6.1.4.1.25623.1.0.147696",
+      "port": 22,
+      "protocol": "tcp",
+      "message": "Installed version: 9.53.3\nFixed version:     9.55\nInstallation\npath / port:       /usr/bin/gs",
+    }
+
+host_detail:
+  description: "Example for a result of type host detail"
+  value:
+    {
+      "id": 3,
+      "type": "host_detail",
+      "ip_address": "127.0.0.1",
+      "hostname": "localhost",
+      "oid": "1.3.6.1.4.1.25623.1.0.103997",
+      "detail":
+        {
+          "name": "OS",
+          "value": "Debian GNU/Linux 11.5",
+          "source":
+            {
+              "type": "nvt",
+              "name": "1.3.6.1.4.1.25623.1.0.50282",
+              "description": "Determine OS and list of installed packages via SSH login",
+            },
+        },
+    }

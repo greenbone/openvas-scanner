@@ -1,0 +1,14 @@
+ApiVersion:
+  description: "Comma separated list of available API versions"
+  schema:
+    type: "string"
+
+FeedVersion:
+  description: "The version of the VT feed"
+  schema:
+    type: "string"
+
+Authentication:
+  description: "Supported authentication methods"
+  schema:
+    type: "string"

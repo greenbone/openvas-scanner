@@ -1,0 +1,887 @@
+openapi: "3.0.3"
+info:
+  title: "Reverse Scanner"
+  description: "
+    # General
+
+    Reverse Scanner is intended for those situation in which the client can     not start a connection from outside the sensor's network, and in this case is the scanner which opens the connection and ask the client for a scan to run.
+
+    Since REST API is stateless, and to avoid sending the feed periodically, a new concept of 'sensor mode' is introduced. This allows the sensor to be changed from one of the two existing modes to the other.
+
+    # Authentication
+
+    The API supports two kinds of authentication methods:
+
+    - API Key
+
+    - Certificates
+
+
+    The authentication modes are set within a configuration file or via the argument list, when starting the server.
+
+    The authentication is required for each request except for a HEAD request.
+
+    ## API Key
+
+    An API key is a token that the client provides when doing API requests and are used to authorize access.
+    The `X-API-KEY` must be in the header.
+
+    <!--More details about this method follows with its implementation.-->
+
+
+    ## Certificates
+
+    This option uses [X.509](https://en.wikipedia.org/wiki/X.509), based on CA to verify derived certificates to allow access.
+
+
+    <!--More details about this method follows with its implementation.-->
+    "
+  contact:
+    name: "Greenbone AG"
+    url: "https://www.greenbone.net/"
+  license:
+    name: "GPL-2.0-or-later"
+    url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
+  version: "0.1"
+servers:
+  - url: /
+tags:
+  - name: general
+    description: General requests
+  - name: scan
+    description: Reverse Scan resource
+  - name: feed
+    description: Feed related
+paths:
+  /:
+    head:
+      description: "Get the response header. It contains the API version and available authentication methods."
+      operationId: "get_info"
+      tags:
+        - "general"
+      responses:
+        "200":
+          headers:
+            api-version:
+              description: "Comma separated list of available API versions"
+              schema:
+                type: "string"
+            authentication:
+              description: "Supported authentication methods"
+              schema:
+                type: "string"
+          description: "Header"
+
+  /scans:
+    get:
+      description: "Get the actions to perform for every scan."
+      operationId: "get_scan_actions"
+      tags:
+        - "scan"
+      responses:
+        "200":
+          description: "Perform actions"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanActions"
+              examples:
+                get_actions:
+                  $ref: "#/components/examples/scan_actions"
+
+  /scans/preferences:
+    get:
+      description: "Get all preferences available for a scan. These can be set, when creating a scan via scan_preferences."
+      operationId: "get_preferences"
+      tags:
+        - "scan"
+      requestBody:
+        description: "Get Preferences"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Preferences"
+            examples:
+              preferences:
+                $ref: "#/components/examples/preferences"
+      responses:
+        "204":
+          description: "Scan Preferences received"
+        "400":
+          description: "Bad request"
+
+  /scans/{id}:
+    get:
+      description: "Get a scan from the scan manager."
+      operationId: "get_scan"
+      tags:
+        - "scan"
+      parameters:
+        - $ref: "#/components/parameters/ScanID"
+      responses:
+        "200":
+          description: "Get Scan"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scan"
+              examples:
+                schema:
+                  description: "Schema of a Scan."
+                create simple scan:
+                  $ref: "#/components/examples/scan_simple"
+                create complex scan:
+                  $ref: "#/components/examples/scan_full"
+        "404":
+          description: "Scan not found"
+
+  /scans/{id}/results:
+    post:
+      description: "Send results from a scan."
+      operationId: "send_results"
+      tags:
+        - "scan"
+      parameters:
+        - $ref: "#/components/parameters/ScanID"
+      requestBody:
+        description: "A list of results"
+        content:
+          application/json:
+            schema:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/Result"
+            examples:
+              schema:
+                description: "Schema of a list of results response"
+              get results 0-3:
+                $ref: "#/components/examples/scan_results"
+      responses:
+        "204":
+          description: "Received list of results"
+        "400":
+          description: "Bad request body"
+        "404":
+          description: "Scan not found"
+
+  /scans/{id}/status:
+    post:
+      description: "Send the current status of a scan"
+      operationId: "send_scan_status"
+      tags:
+        - "scan"
+      parameters:
+        - $ref: "#/components/parameters/ScanID"
+      requestBody:
+        description: "The new status"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Status"
+            examples:
+              schema:
+                description: "Schema of a status response."
+              status of a stored scan:
+                $ref: "#/components/examples/scan_status_stored"
+              status of a running scan:
+                $ref: "#/components/examples/scan_status_running"
+              status of a succeeded scan:
+                $ref: "#/components/examples/scan_status_success"
+              status of a failed scan:
+                $ref: "#/components/examples/scan_status_fail"
+      responses:
+        "204":
+          description: "Status received"
+        "400":
+          description: "Bad request"
+        "404":
+          description: "Scan not found"
+  /vts:
+    post:
+      description: "Send a Identifier list of all VTs that are available to the scanner."
+      operationId: "send_vts"
+      tags:
+        - "feed"
+      requestBody:
+        description: "A list of available VTs."
+        content:
+          application/json:
+            schema:
+              type: "array"
+              items:
+                type: "string"
+            examples:
+              list of OIDs:
+                $ref: "#/components/examples/list_of_oids"
+      responses:
+        "204":
+          description: "VT list received"
+        "400":
+          description: "Bad request"
+
+components:
+  parameters:
+    ScanID:
+      name: id
+      in: path
+      description: "ID of a Scan"
+      required: true
+      schema:
+        type: "string"
+    ResultID:
+      name: rid
+      in: path
+      description: "ID of a Result"
+      required: true
+      schema:
+        type: "string"
+
+  schemas:
+    ScanID:
+      description: "A scan ID to identify a scan."
+      type: "string"
+
+    Scan:
+      description: "Model representing a scan."
+      type: "object"
+      properties:
+        scan_id:
+          $ref: "#/components/schemas/ScanID"
+        target:
+          $ref: "#/components/schemas/Target"
+        scan_preferences:
+          description: "Overwrite the default settings of the Scanner."
+          type: "array"
+          items:
+            $ref: "#/components/schemas/ScannerPreference"
+        vts:
+          type: "array"
+          description: "A collection of VTs, which are run for the given target."
+          items:
+            $ref: "#/components/schemas/VT"
+      required:
+        - target
+        - vts
+
+    Target:
+      description: "A target is a list of hosts to scan, including their UDP and TCP ports. Additionally for further access to the systems credentials can be given."
+      type: "object"
+      properties:
+        hosts:
+          description: "A list of hosts."
+          type: "array"
+          items:
+            description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname."
+            type: "string"
+        ports:
+          description: "A list of ports."
+          type: "array"
+          items:
+            $ref: "#/components/schemas/PortRange"
+        credentials:
+          description: "A list of credentials used for further access to a target system."
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Credential"
+        alive_test_ports:
+          description: "Dedicated port list for alive detection. Used for TCP-SYN and TCP-ACK ping when Boreas is enabled."
+          type: "array"
+          items:
+            $ref: "#/components/schemas/PortRange"
+        alive_test_methods:
+          description: "List of alive test to be performed against the target. Can be one or a combination of icmp, tcp_syn, tcp_ack, arp, consider_alive methods"
+          type: "array"
+          items:
+            $ref: "#/components/schemas/AliveTestMethod"
+        reverse_lookup_unify:
+          description: "If multiple IP addresses resolve to the same DNS name the DNS name will only get scanned once."
+          type: "boolean"
+        reverse_lookup_only:
+          description: "Only scan IP addresses that can be resolved into a DNS name."
+          type: "boolean"
+      required:
+        - hosts
+        - ports
+
+    AliveTestMethod:
+      description: "Alive test method to be performed against the target"
+      type: "string"
+      enum:
+        - icmp
+        - tcp_syn
+        - tcp_ack
+        - arp
+        - consider_alive
+
+    PortRange:
+      description: "A port range for either UDP or TCP ports"
+      type: "object"
+      properties:
+        protocol:
+          description: "The protocol for the port range. If missing the port range is applied for UDP and TCP."
+          type: "string"
+          enum:
+            - udp
+            - tcp
+        range:
+          description: "A list of ranges, start and end are inclusive."
+          type: "object"
+          properties:
+            start:
+              type: "number"
+              description: "The inclusive start port. When end is not set only the start port is used"
+            end:
+              type: "number"
+              description: "The inclusive end port."
+      required:
+        - range
+
+    Credential:
+      description: "Data for authentication for a target system."
+      type: "object"
+      properties:
+        service:
+          description: "The service used for authentication."
+          type: "string"
+          enum:
+            - ssh
+            - smb
+            - esxi
+            - snmp
+        port:
+          description: "The port the authentication service is running."
+          type: "integer"
+          format: "int32"
+        up:
+          $ref: "#/components/schemas/UP"
+        usk:
+          $ref: "#/components/schemas/USK"
+        snmp:
+          $ref: "#/components/schemas/SNMP"
+
+    UP:
+      description: "Authentication via Username and Password."
+      type: "object"
+      properties:
+        username:
+          description: "Username for authentication."
+          type: "string"
+        password:
+          description: "Password for authentication."
+      required:
+        - username
+
+    USK:
+      description: "Authentication via Username and Security Key."
+      type: "object"
+      properties:
+        username:
+          description: "Username for authentication."
+          type: "string"
+        password:
+          description: "Password for Security Key."
+          type: "string"
+        private:
+          description: "SSH private key."
+          type: "string"
+      required:
+        - username
+        - private
+
+    SNMP:
+      description: "Authentication via SNMP."
+      type: "object"
+      properties:
+        username:
+          description: "Username for SNMP authentication."
+          type: "string"
+        password:
+          description: "Password for SNMP authentication."
+          type: "string"
+        community:
+          description: "Community string for SNMP authentication."
+          type: "string"
+        auth_algorithm:
+          description: "Algorithm for SNMP authentication."
+          type: "string"
+          enum:
+            - md5
+            - sha1
+        privacy_password:
+          description: "Privacy Password for SNMP authentication."
+          type: "string"
+        privacy_algorithm:
+          description: "Algorithm used for encrypting privacy password."
+          type: "string"
+          enum:
+            - aes
+            - des
+
+    ScannerPreference:
+      description: "Consists of a preference ID and its value."
+      type: "object"
+      properties:
+        id:
+          description: "ID of the preference to set."
+          type: "string"
+        value:
+          description: "Value of the preference."
+          type: "string"
+      required:
+        - value
+        - id
+
+    Parameter:
+      description: "Consists of a parameter ID and its value."
+      type: "object"
+      properties:
+        id:
+          description: "ID of the parameter to set."
+          type: "integer"
+          format: "int32"
+        value:
+          description: "Value of the parameter."
+          type: "string"
+      required:
+        - value
+        - id
+
+    VT:
+      description: "A single VT and its parameters."
+      type: "object"
+      properties:
+        oid:
+          description: "The identifier for a VT"
+          type: "string"
+        parameters:
+          description: "A list of parameters for the VT. In case a VT has parameters but these are not set here, then the defaults will be applied. A default exists for any parameter."
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Parameter"
+
+    Result:
+      description: "A result of a Scan"
+      type: "object"
+      properties:
+        id:
+          description: "An ID, which is unique for the scan. It is auto incremental and starts at 0 for the first result."
+          type: "integer"
+          format: "int32"
+        type:
+          description: "The type of the result."
+          type: "string"
+          enum:
+            - alarm
+            - log
+            - error
+            - host_start
+            - host_stop
+            - host_detail
+        ip_address:
+          description: "The IPv4 or IPv6 of the target the result was found."
+          type: "string"
+        hostname:
+          description: "The hostname of the target the result was found."
+          type: "string"
+        oid:
+          description: "The identifier of the VT in which found the result."
+          type: "string"
+        port:
+          description: "The port that was used to find the result."
+          type: "integer"
+          format: "int32"
+        protocol:
+          description: "The protocol that was used to find the result, corresponding to the port."
+          type: "string"
+          enum:
+            - udp
+            - tcp
+        message:
+          description: "Additional information about the result."
+          type: "string"
+        details:
+          description: "An object with key and value pairs. Only set on `host_detail` and should be treated as a `HashMap<String, String>` as there is not formalization possible."
+          type: "object"
+      required:
+        - type
+
+    Status:
+      description: "The status of a scan"
+      type: "object"
+      properties:
+        start_time:
+          description: "A UNIX time format describing when the scan started."
+          type: "integer"
+          format: "int32"
+        end_time:
+          description: "A UNIX time format describing when the scan ended."
+          type: "integer"
+          format: "int32"
+        status:
+          description: "In which phase the scan is currently in."
+          type: "string"
+          enum:
+            - stored
+            - requested
+            - running
+            - stopped
+            - failed
+            - succeeded
+        host_info:
+          $ref: "#/components/schemas/HostInfo"
+      required:
+        - status
+
+    HostInfo:
+      description: "Information about the progress for each host of the scan."
+      type: "object"
+      properties:
+        all:
+          description: "The number of host in the target of the scan."
+          type: "integer"
+          format: "int32"
+        excluded:
+          description: "The number of hosts excluded from the target if the scan."
+          type: "integer"
+          format: "int32"
+        dead:
+          description: "The number of host detected as not reachable."
+          type: "integer"
+          format: "int32"
+        alive:
+          description: "The number of hosts that are reachable and will be scanned."
+          type: "integer"
+          format: "int32"
+        queued:
+          description: "The number of hosts that are waiting to be scanned."
+          type: "integer"
+          format: "int32"
+        finished:
+          description: "The number hosts that are finished with scanning."
+          type: "integer"
+          format: "int32"
+        scanning:
+          description: "The IP Addresses of the currently scanned hosts."
+          type: "array"
+          items:
+            type: "string"
+
+      required:
+        - all
+        - excluded
+        - dead
+        - alive
+        - queued
+        - finished
+
+    ScanAction:
+      description: "An action to perform on a scan"
+      type: "object"
+      properties:
+        scan_id:
+          $ref: "#/components/schemas/ScanID"
+        action:
+          description: "The action to perform"
+          type: "string"
+          enum:
+            - start
+            - stop
+            - delete
+
+    ScanActions:
+      description: "List of scan_ids and the action to perform for each one."
+      type: "array"
+      items:
+        $ref: "#/components/schemas/ScanAction"
+
+    Preferences:
+      description: "List of preferences available"
+      type: "array"
+      items:
+        type: "object"
+        properties:
+          id:
+            description: "ID of the preference"
+            type: "string"
+          type:
+            description: "Type of the preference"
+          name:
+            description: "Display name for the preference"
+            type: "string"
+          description:
+            description: "Description of the preference"
+            type: "string"
+          default:
+            description: "Default value for scans"
+            type: "string"
+          values:
+            description: "Allowed values"
+            type: "string"
+
+  examples:
+    sensor_simple:
+      description: "A simple example for sensor."
+      value: { "sensor_id": "6c591f83-8f7b-452a-8c78-ba35779e682f" }
+    scan_simple:
+      description: "A simple example for creating a scan."
+      value:
+        {
+          "target":
+            {
+              "hosts": ["127.0.0.1"],
+              "ports": [{ "range": [{ "start": 22 }] }],
+            },
+          "vts": [{ "oid": "1.3.6.1.4.1.25623.1.0.10267" }],
+        }
+    scan_full:
+      description: "A complex example for creating a scan, that uses all available fields."
+      value:
+        {
+          "target":
+            {
+              "hosts":
+                [
+                  "127.0.0.1",
+                  "192.168.0.1-15",
+                  "10.0.5.0/24",
+                  "::1",
+                  "2001:db8:0000:0000:0000:0000:0000:0001-00ff",
+                  "2002::1234:abcd:ffff:c0a8:101/64",
+                  "examplehost",
+                ],
+              "ports":
+                [
+                  {
+                    "protocol": "udp",
+                    "range": [{ "start": 22 }, { "start": 1024, "end": 1030 }],
+                  },
+                  { "protocol": "tcp", "range": [{ "start": 24, "end": 30 }] },
+                  { "range": [{ "start": 100, "end": 1000 }] },
+                ],
+              "credentials":
+                [
+                  {
+                    "service": "ssh",
+                    "port": 22,
+                    "usk":
+                      {
+                        "username": "user",
+                        "password": "pw",
+                        "private": "ssh-key...",
+                      },
+                  },
+                  {
+                    "service": "smb",
+                    "up": { "username": "user", "password": "pw" },
+                  },
+                  {
+                    "service": "snmp",
+                    "snmp":
+                      {
+                        "username": "user",
+                        "password": "pw",
+                        "community": "my_community",
+                        "auth_algorithm": "md5",
+                        "privacy_password": "priv_pw",
+                        "privacy_algorithm": "aes",
+                      },
+                  },
+                ],
+              "alive_test_ports":
+                [
+                  { "protocol": "tcp", "range": [{ "start": 1, "end": 100 }] },
+                  { "range": [{ "start": 443 }] },
+                ],
+              "alive_test_methods":
+                ["icmp", "tcp_syn", "tcp_ack", "arp", "consider_alive"],
+              "reverse_lookup_unify": true,
+              "reverse_lookup_only": false,
+            },
+          "scan_preferences":
+            [
+              { "id": "target_port", "value": "443" },
+              { "id": "use_https", "value": "1" },
+              { "id": "profile", "value": "fast_scan" },
+            ],
+          "vts":
+            [
+              {
+                "oid": "1.3.6.1.4.1.25623.1.0.10662",
+                "parameters":
+                  [{ "id": 1, "value": "200" }, { "id": 2, "value": "yes" }],
+              },
+              { "oid": "1.3.6.1.4.1.25623.1.0.10330" },
+            ],
+        }
+    scan_id:
+      description: "The ID of the created scan"
+      value: "6c591f83-8f7b-452a-8c78-ba35779e682f"
+    scan_actions:
+      description: "Actions to perform"
+      value:
+        [
+          {
+            "scan_id": "6c591f83-8f7b-452a-8c78-ba35779e682f",
+            "action": "start",
+          },
+          {
+            "scan_id": "24591f83-8f7b-452a-8c78-ba35779e6816",
+            "action": "stop",
+          },
+          {
+            "scan_id": "13591f83-8f74-45da-8c7d-ba35779e682a",
+            "action": "delete",
+          },
+        ]
+
+    scan_results:
+      description: "Example for getting results.
+        The query range for this example could be either
+
+        - 0-3
+
+        - 0
+
+        - missing
+
+
+        In case it is 0 or missing the running scan has only generated 4 results so far."
+      value:
+        [
+          {
+            "id": 0,
+            "type": "host_start",
+            "ip_address": "127.0.0.1",
+            "port": 22,
+            "protocol": "tcp",
+            "message": "Thu Mar 23 15:16:37 2023",
+          },
+          {
+            "id": 1,
+            "type": "error",
+            "ip_address": "127.0.0.1",
+            "hostname": "localhost",
+            "protocol": "tcp",
+            "message": "MQTT initialization failed",
+          },
+          {
+            "id": 2,
+            "type": "log",
+            "ip_address": "127.0.0.1",
+            "hostname": "localhost",
+            "oid": "1.3.6.1.4.1.25623.1.0.117628",
+            "port": 22,
+            "protocol": "tcp",
+            "message": "FTP is enabled on the remote SSH service.",
+          },
+          {
+            "id": 3,
+            "type": "alarm",
+            "ip_address": "127.0.0.1",
+            "hostname": "localhost",
+            "oid": "1.3.6.1.4.1.25623.1.0.147696",
+            "protocol": "tcp",
+            "message": "Installed version: 9.53.3\nFixed version:     9.55\nInstallation\npath / port:       /usr/bin/gs",
+          },
+        ]
+
+    scan_result:
+      description: "Example for getting a single result. The Result ID in the request path was set to 3."
+      value:
+        {
+          "id": 3,
+          "type": "alarm",
+          "ip_address": "127.0.0.1",
+          "hostname": "localhost",
+          "oid": "1.3.6.1.4.1.25623.1.0.147696",
+          "protocol": "tcp",
+          "message": "Installed version: 9.53.3\nFixed version:     9.55\nInstallation\npath / port:       /usr/bin/gs",
+        }
+
+    scan_status_stored:
+      description: "Status of a queued Scan"
+      value: { "status": "stored" }
+
+    scan_status_running:
+      description: "Status of a running Scan"
+      value:
+        {
+          "start_time": 1679649183,
+          "status": "running",
+          "host_info":
+            {
+              "all": 14,
+              "excluded": 0,
+              "dead": 4,
+              "alive": 6,
+              "queued": 1,
+              "finished": 1,
+              "scanning": ["127.0.0.1", "10.0.5.1", "10.0.5.2", "10.0.5.3"],
+            },
+        }
+
+    scan_status_success:
+      description: "Status of a successfully finished Scan"
+      value:
+        {
+          "start_time": 1679649183,
+          "end_time": 1679656139,
+          "status": "succeeded",
+          "host_info":
+            {
+              "all": 14,
+              "excluded": 0,
+              "dead": 4,
+              "alive": 10,
+              "queued": 0,
+              "finished": 10,
+            },
+        }
+
+    scan_status_fail:
+      description: "Status of an interrupted Scan. Except for the status, a stopped scan could look like the same."
+      value:
+        {
+          "start_time": 1679649183,
+          "end_time": 1679656139,
+          "status": "failed",
+          "host_info":
+            {
+              "all": 14,
+              "excluded": 0,
+              "dead": 4,
+              "alive": 10,
+              "queued": 1,
+              "finished": 8,
+            },
+        }
+
+    list_of_oids:
+      description: "
+        A small list of OIDs for requesting the available VTs.
+        For a regular feed this is typically over 100K OIDs."
+      value:
+        [
+          "1.3.6.1.4.1.25623.1.0.100196",
+          "1.3.6.1.4.1.25623.1.0.100127",
+          "1.3.6.1.4.1.25623.1.0.10441",
+          "1.3.6.1.4.1.25623.1.0.100313",
+        ]
+
+    preferences:
+      description: "A example with a list of preferences"
+      value:
+        [
+          {
+            "id": "optimize_test",
+            "name": "Optimize Test",
+            "default": true,
+            "description": "By default, optimize_test is enabled which means openvas does trust the remote host banners and is only launching plugins against the services they have been designed to check. For example it will check a web server claiming to be IIS only for IIS related flaws but will skip plugins testing for Apache flaws, and so on. This default behavior is used to optimize the scanning performance and to avoid false positives. If you are not sure that the banners of the remote host have been tampered with, you can disable this option.",
+          },
+          {
+            "id": "plugins_timeout",
+            "name": "Plugins Timeout",
+            "default": 5,
+            "description": "This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin. Doesn't affect ACT_SCANNER plugins, use 'ACT_SCANNER plugins timeout' for them instead.",
+          },
+        ]
