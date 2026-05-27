@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use greenbone_scanner_framework::models::{self, Scan};
+use scannerlib::models::{self, Scan};
 use scannerlib::{
     models::FeedType,
     nasl::{builtin::nasl_std_functions, syntax::Loader},
@@ -313,10 +313,17 @@ where
         self.scan_import_results(id, scan_id.clone()).await?;
         self.scanner.stop_scan(scan_id.clone()).await?;
 
-        let changed = self
+        // TODO: add abstraction for multiple status, this happens more often than thought
+        let mut changed = self
             .scan_state
             .change_state(id, "running", "stopped")
             .await?;
+        if !changed {
+            changed = self
+                .scan_state
+                .change_state(id, "requested", "stopped")
+                .await?;
+        }
         tracing::debug!(changed, id, "Changed scan from running to stopped");
 
         Ok(())
@@ -583,7 +590,7 @@ pub(crate) mod tests {
             pool: pool.clone(),
             scanner,
             cryptor,
-            max_concurrent_scan: 4,
+            max_concurrent_scan: 1,
             feed_sync_in_progress: Arc::new(RwLock::new(feed_changes)),
             scan_state: change_scan_status,
         };
@@ -592,7 +599,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn start_scan() -> TR {
+    async fn start_stop_scan() -> TR {
         let (under_test, known_scans) = setup_test_env().await?;
 
         for id in known_scans.iter() {
@@ -606,6 +613,20 @@ pub(crate) mod tests {
         assert_eq!(status.len(), known_scans.len());
         assert_eq!(
             status.iter().filter(|s| s as &str == "requested").count(),
+            status.len()
+        );
+        for id in known_scans.iter() {
+            under_test
+                .on_user_action(&Message::Stop(id.to_string()))
+                .await?;
+        }
+        let status: Vec<String> = query_scalar("SELECT status FROM scans")
+            .fetch_all(&under_test.pool)
+            .await?;
+        dbg!(&status);
+        assert_eq!(status.len(), known_scans.len());
+        assert_eq!(
+            status.iter().filter(|s| s as &str == "stopped").count(),
             status.len()
         );
 

@@ -6,7 +6,7 @@
 
 use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 
-use crate::time::AsUnixTimeStamp;
+use crate::storage::time::AsUnixTimeStamp;
 
 use super::KbItem;
 

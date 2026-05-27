@@ -1,5 +1,5 @@
+use crate::framework::InternalIdentifier;
 use futures::StreamExt;
-use greenbone_scanner_framework::InternalIdentifier;
 use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 use sqlx::query::QueryAs;
 

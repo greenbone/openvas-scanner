@@ -35,7 +35,7 @@ use scannerlib::{
 };
 use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 
-use greenbone_scanner_framework::models::VTData;
+use scannerlib::models::VTData;
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 

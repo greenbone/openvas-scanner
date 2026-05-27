@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::models::VTData;
 use crate::storage::redis::{DbError, RedisCtx, RedisGetNvt, RedisStorageResult, RedisWrapper};
-use greenbone_scanner_framework::models::VTData;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug, Default)]
@@ -116,6 +116,7 @@ impl VtHelper for RedisHelper<RedisCtx> {
 pub mod test {
     use std::collections::{BTreeMap, HashMap};
 
+    use crate::models::{PreferenceType, VTData};
     use crate::{
         openvas::openvas_redis::{KbAccess, VtHelper},
         storage::{
@@ -123,7 +124,6 @@ pub mod test {
             redis::RedisStorageResult,
         },
     };
-    use greenbone_scanner_framework::models::{PreferenceType, VTData};
 
     pub struct FakeRedis {
         pub data: HashMap<String, Vec<Vec<u8>>>,
