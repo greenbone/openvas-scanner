@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use greenbone_scanner_framework::{GetVTsError, StreamResult};
+use crate::framework::{GetVTsError, StreamResult};
 use scannerlib::Promise;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::advisory_loader;
@@ -89,40 +89,35 @@ pub trait PluginFetcher {
     fn get_vts(&self) -> StreamResult<VTData, WorkerError>;
 }
 
-pub async fn _init<F, W>(
+// FIXME: remove
+pub async fn _init<W>(
     config: &Config,
-    fetcher: F,
     worker: W,
     snapshot: Arc<RwLock<FeedState>>,
-) -> (orchestrator::Communicator, Endpoints)
+) -> orchestrator::Communicator
 where
-    F: PluginFetcher + Send + Sync + 'static,
     W: orchestrator::Worker + Send + Sync + 'static,
 {
-    let communicator =
-        orchestrator::Orchestrator::init(config.feed.check_interval, snapshot.clone(), worker)
-            .await;
-
-    (communicator, Endpoints::new(fetcher, snapshot, None))
+    orchestrator::Orchestrator::init(config.feed.check_interval, snapshot.clone(), worker).await
 }
 /// Initializes endpoints, spawns background task for feed verification.
 pub async fn init(
     pool: DataBase,
     config: &Config,
     snapshot: Arc<RwLock<FeedState>>,
-) -> (orchestrator::Communicator, Endpoints) {
+) -> orchestrator::Communicator {
     match config.scanner.scanner_type {
         ScannerType::Openvas => {
-            let fetcher = redis::RedisPluginHandler::from(config);
+            //let fetcher = redis::RedisPluginHandler::from(config);
             let worker = redis::FeedSynchronizer::from(config);
-            _init(config, fetcher, worker, snapshot).await
+            _init(config, worker, snapshot).await
         }
         // For OSPD we actually don't need a communicator at all, however as we are facing out OSPD
         // altogether the effort of getting rid of that seems not worth it.
         ScannerType::Openvasd | ScannerType::Ospd => {
-            let fetcher = crate::database::sqlite::vts::SqlPluginStorage::from(pool.clone());
+            //let fetcher = crate::database::sqlite::vts::SqlPluginStorage::from(pool.clone());
             let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
-            _init(config, fetcher, worker, snapshot).await
+            _init(config, worker, snapshot).await
         }
     }
 }

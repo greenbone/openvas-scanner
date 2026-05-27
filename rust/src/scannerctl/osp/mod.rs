@@ -6,7 +6,7 @@ use std::io::BufRead;
 use std::path::Path;
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use greenbone_scanner_framework::models::VTData;
+use scannerlib::models::VTData;
 use scannerlib::models::{self, Parameter, Scan, VT};
 use scannerlib::storage::Retriever;
 use scannerlib::storage::inmemory::InMemoryStorage;

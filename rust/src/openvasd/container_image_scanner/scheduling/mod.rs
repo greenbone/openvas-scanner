@@ -7,7 +7,7 @@ use container_image_scanner::{
     image::{Credential, Image, ImageID, packages::ToNotus},
 };
 use futures::StreamExt;
-use greenbone_scanner_framework::models;
+use scannerlib::models;
 use tokio::{
     sync::RwLock,
     task::JoinSet,

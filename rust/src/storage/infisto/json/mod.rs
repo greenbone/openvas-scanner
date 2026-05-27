@@ -19,8 +19,8 @@ use crate::storage::{
     },
 };
 
+use crate::models::VTData;
 use async_trait::async_trait;
-use greenbone_scanner_framework::models::VTData;
 
 /// Wraps write calls of json elements to be as list.
 ///
@@ -211,12 +211,12 @@ impl<S: Write + Send + Sync> Remover<ScanID> for JsonStorage<S> {
 mod tests {
     use std::collections::BTreeMap;
 
+    use crate::models::PreferenceType;
     use crate::storage::items::nvt::{
         ACT, NvtPreference, NvtRef,
         TagKey::{self, *},
         TagValue,
     };
-    use greenbone_scanner_framework::models::PreferenceType;
 
     use super::*;
 

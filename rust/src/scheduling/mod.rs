@@ -16,8 +16,8 @@ use crate::storage::{
     redis::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper},
 };
 
-use greenbone_scanner_framework::models::VTData;
-use greenbone_scanner_framework::models::{Parameter, VT};
+use crate::models::VTData;
+use crate::models::{Parameter, VT};
 use thiserror::Error;
 
 use wave::WaveExecutionPlan;
@@ -211,15 +211,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use greenbone_scanner_framework::models::VT;
+    use crate::models::VT;
 
+    use crate::models::VTData;
     use crate::scanner::Scan;
     use crate::scheduling::Scheduler;
     use crate::scheduling::Stage;
     use crate::storage::Dispatcher;
     use crate::storage::inmemory::InMemoryStorage;
     use crate::storage::items::nvt::FileName;
-    use greenbone_scanner_framework::models::VTData;
 
     #[tokio::test]
     #[tracing_test::traced_test]

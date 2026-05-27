@@ -267,7 +267,7 @@ paths:
               description: "Delete the scan."
         "400":
           description: "Bad Request body"
-        "403":
+        "409":
           description: "ScanID already in use"
 
   /scans/preferences:
@@ -369,7 +369,7 @@ paths:
           description: "Bad request body"
         "404":
           description: "Scan not found"
-        "406":
+        "409":
           description: "Unable to perform action because of the current scan status"
         "501":
           description: "Action not supported"
@@ -387,7 +387,7 @@ paths:
           description: "Scan deleted"
         "404":
           description: "Scan not found"
-        "406":
+        "409":
           description: "A running scan cannot be deleted"
 
   /scans/{id}/results:
@@ -440,7 +440,7 @@ paths:
           description: "Bad range format"
         "404":
           description: "Scan not found"
-        "406":
+        "409":
           description: "A scan, that has not started, does not contain results"
 
   /scans/{id}/results/{rid}:
@@ -470,7 +470,7 @@ paths:
                   $ref: "./components/examples/results.yml#/host_detail"
         "404":
           description: "Result or Scan not found"
-        "406":
+        "409":
           description: "A scan that has not started, cannot contain results"
 
   /scans/{id}/status:

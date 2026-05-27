@@ -6,16 +6,19 @@
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
 
+mod app;
 mod config;
 mod container_image_scanner;
 mod credentials;
 mod crypt;
 mod database;
-mod endpoint_helpers;
+mod framework;
 mod json_stream;
 mod notus;
+mod scan_routes;
 mod scans;
 mod scheduler_common;
+mod server;
 mod vts;
 
 use sqlx::migrate::Migrator;
@@ -26,11 +29,12 @@ use std::{
 
 use config::{Config, StorageType};
 use container_image_scanner::config::{DBLocation, SqliteConfiguration};
-use greenbone_scanner_framework::{RuntimeBuilder, ServerCertificate};
 use notus::config_to_products;
 use scannerlib::models::FeedState;
 use scannerlib::utils::version::show_version;
 use sqlx::SqlitePool;
+
+use crate::app::AppState;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -75,20 +79,12 @@ async fn _main() -> Result<i32> {
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
     let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
-    let (sender, vts) = vts::init(pool.clone(), &config, feed_snapshot.clone()).await;
-    let vts = Arc::new(vts);
-    let scan = scans::init(pool.clone(), &config, sender).await?;
-    let (get_notus, post_notus) = notus::init(products.clone());
+    let sender = vts::init(pool.clone(), &config, feed_snapshot.clone()).await;
 
-    let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
-        .feed_version(feed_snapshot.clone());
+    let scan = scans::init(pool.clone(), &config, sender).await?;
+
     match (config.tls.certs.clone(), config.tls.key.clone()) {
-        (Some(certificate), Some(key)) => {
-            rb = rb.server_tls_cer(ServerCertificate::new(key, certificate))
-        }
-        (None, None) => {
-            // ok no TLS
-        }
+        (Some(_), Some(_)) | (None, None) => {}
         _ => {
             tracing::warn!(
                 "Invalid TLS configuration. Please provide a certificate path and a key path. Falling back to http."
@@ -100,26 +96,21 @@ async fn _main() -> Result<i32> {
             "Integrity check for feed has been disabled. Neither hashsums nor GPG signature will get verified."
         );
     }
-    if let Some(client_certs) = config.tls.client_certs.clone() {
-        rb = rb.path_client_certs(client_certs);
-    }
+    let cis_scan_state =
+        container_image_scanner::init(products.clone(), config.container_image_scanner.clone())
+            .await?;
 
-    let (cis_scans, cis_vts) = container_image_scanner::init(
-        pool.clone(),
-        feed_snapshot,
-        products,
-        config.container_image_scanner,
-    )
-    .await?;
+    let scan_state = Arc::new(scan);
+    let cis_scan_state = Arc::new(cis_scan_state);
+    let app_state = AppState {
+        feed_state: feed_snapshot,
+        config: &config,
+        scan_state,
+        cis_scan_state,
+        notus_state: products,
+    };
 
-    rb.insert_scans(Arc::new(scan))
-        .insert_get_vts(vts.clone())
-        .max_concurrent_connections(config.storage.max_connections() * 10)
-        .add_request_handler(get_notus)
-        .add_request_handler(post_notus)
-        .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts))
-        .run_blocking()
-        .await
+    server::serve(&app_state).await
 }
 
 #[tokio::main]
