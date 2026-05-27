@@ -1,0 +1,39 @@
+notus_products:
+  description: "A simple example for supported OS products by notus"
+  value:
+    [
+      "debian_10",
+      "debian_11",
+      "debian_12",
+      "debian_12",
+      "slackware_10.0",
+      "suse_linux_enterprise_module_for_live_patching_15-sp1",
+      "suse_manager_debian_9.0",
+      "slackware_10.1",
+      "slackware_10.2",
+    ]
+
+notus_simple:
+  description: "A simple example for notus run."
+  value: ["foo", "bar", "foo2"]
+
+notus_results:
+  description:
+    "A simple example for a notus run response, including a list of vulnerable packages
+    and their fixed versions."
+  value:
+    {
+      "1.3.6.1.4.1.25623.1.1.1.2.2022.3200":
+        [
+          {
+            "name": "foo",
+            "installed_version": "1.2.3",
+            "fixed_version": { "start": "1.2.2", "end": "1.2.5" },
+          },
+          {
+            "name": "bar",
+            "installed_version": "1.2.4",
+            "fixed_version": { "version": "1.2.5", "specifier": ">=" },
+          },
+        ],
+    }
