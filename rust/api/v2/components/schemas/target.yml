@@ -61,6 +61,13 @@ Target:
       type: "array"
       items:
         $ref: "#/Credential"
+    multiple_credentials:
+      description:
+        "If true, multiple credentials per host are allowed. WARNING: this can massively slow down
+        the scan for many credentials and hosts, as each authentication attempt takes some time. If
+        false, only one credential per host is allowed and a error is thrown otherwise. The default
+        is false."
+      type: "boolean"
     alive_test_ports:
       description: "Dedicated port list for alive detection. Used for TCP-SYN and TCP-ACK ping when Boreas is enabled."
       type: "array"
@@ -120,6 +127,14 @@ Credential:
   description: "Data for authentication for a target system."
   type: "object"
   properties:
+    hosts:
+      description:
+        "A list of hosts for which the credential is valid. The format is the same as for the hosts
+        in the target. This field is optional, if not set the credential is the default cedential
+        for all hosts of the target."
+      type: "array"
+      items:
+        type: "string"
     service:
       description: "The service used for authentication."
       type: "string"
