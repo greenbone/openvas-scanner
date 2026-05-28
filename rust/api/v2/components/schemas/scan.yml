@@ -42,7 +42,8 @@ ScanPreferences:
   description:
     "Overwrite the default settings of the Scanner. The given preferences are key
     value pairs. The key is always a string, the value can either be a string, number or
-    boolean. The given value is automatically converted to the correct type, if possible."
+    boolean. The given value is automatically converted to the correct type, if possible.
+    To get a list of available preferences, use the GET /scans/preferences endpoint."
   type: "object"
 
 ScanActionBody:
