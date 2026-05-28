@@ -49,8 +49,6 @@ tags:
     description: Scan resource
   - name: feed
     description: Feed related
-  - name: notus
-    description: Notus vulnerability scanner
 paths:
   /health:
     head:
@@ -98,84 +96,6 @@ paths:
       responses:
         "200":
           description: "Ok"
-
-  /notus:
-    head:
-      description: "Get the response header. It contains the API version, feed version and available authentication methods."
-      operationId: "head_notus"
-      tags:
-        - "general"
-      responses:
-        "200":
-          headers:
-            api-version:
-              $ref: "#/components/headers/ApiVersion"
-            feed-version:
-              $ref: "#/components/headers/FeedVersion"
-            authentication:
-              $ref: "#/components/headers/Authentication"
-          description: "Authenticated and authorized"
-    get:
-      description: "Get a list of all available OS products available for the
-        [POST /notus/{os}](#/notus/notus_run) endpoint."
-      operationId: "get_notus"
-      tags:
-        - "notus"
-      responses:
-        "200":
-          description: "Ok"
-          content:
-            application/json:
-              schema:
-                type: "array"
-                items:
-                  type: "string"
-              examples:
-                get notus products:
-                  $ref: "./components/examples/notus.yml#/notus_products"
-
-  /notus/{os}:
-    post:
-      description:
-        "Runs Notus with the given package list for the given OS. The OS is contained
-        within the path. To get a list with all supported OS products, use [GET /notus](#/notus/get_notus). The request
-        body contains the list of packages to check. The response contains the list of vulnerable
-        packages with their fixed versions. The scan is performed synchronously, so the response is
-        only returned when the scan is finished."
-      operationId: "notus_run"
-      tags:
-        - "notus"
-      parameters:
-        - $ref: "#/components/parameters/NotusOS"
-      requestBody:
-        description: "Run Notus."
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NotusPkgList"
-            examples:
-              schema:
-                description: "Schema of package list"
-              create simple scan:
-                $ref: "./components/examples/notus.yml#/notus_simple"
-      responses:
-        "200":
-          description: "A list of all found vulnerable packages with their fixed versions."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NotusResult"
-              examples:
-                get results:
-                  $ref: "./components/examples/notus.yml#/notus_results"
-        "400":
-          description: "Bad request body"
-        "404":
-          description: "Scan not found"
-        "406":
-          description: "Unable to perform action because of the current scan status"
-        "501":
-          description: "Action not supported"
 
   /scans:
     head:
@@ -577,8 +497,6 @@ components:
       $ref: "./components/parameters.yml#/ScanID"
     ResultID:
       $ref: "./components/parameters.yml#/ResultID"
-    NotusOS:
-      $ref: "./components/parameters.yml#/NotusOS"
 
   schemas:
     # Scan lifecycle
@@ -625,14 +543,3 @@ components:
       $ref: "./components/schemas/status.yml#/Status"
     HostInfo:
       $ref: "./components/schemas/status.yml#/HostInfo"
-    # Notus
-    NotusPkgList:
-      $ref: "./components/schemas/notus.yml#/NotusPkgList"
-    NotusResult:
-      $ref: "./components/schemas/notus.yml#/NotusResult"
-    NotusVulnPkgs:
-      $ref: "./components/schemas/notus.yml#/NotusVulnPkgs"
-    FixedPackage:
-      $ref: "./components/schemas/notus.yml#/FixedPackage"
-    FixedRange:
-      $ref: "./components/schemas/notus.yml#/FixedRange"
