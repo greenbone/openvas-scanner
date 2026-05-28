@@ -36,7 +36,6 @@ info:
     url: "https://www.greenbone.net/"
   license:
     name: "GPL-2.0-or-later"
-    identifier: "GPL-2.0-or-later"
     url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
   version: "2.0"
 servers:
@@ -591,8 +590,8 @@ components:
       $ref: "./components/schemas/scan.yml#/ScanResp"
     ScanActionBody:
       $ref: "./components/schemas/scan.yml#/ScanActionBody"
-    ScannerPreference:
-      $ref: "./components/schemas/scan.yml#/ScannerPreference"
+    ScanPreferences:
+      $ref: "./components/schemas/scan.yml#/ScanPreferences"
     Preferences:
       $ref: "./components/schemas/scan.yml#/Preferences"
     # Target & VTs

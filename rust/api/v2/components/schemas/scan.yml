@@ -9,10 +9,7 @@ ScanReq:
     target:
       $ref: "./target.yml#/Target"
     scan_preferences:
-      description: "Overwrite the default settings of the Scanner."
-      type: "array"
-      items:
-        $ref: "#/ScanPreference"
+      $ref: "#/ScanPreferences"
     vts:
       type: "array"
       description: "A collection of VTs, which are run for the given target."
@@ -31,10 +28,7 @@ ScanResp:
     target:
       $ref: "./target.yml#/Target"
     scan_preferences:
-      description: "Overwrite the default settings of the Scanner."
-      type: "array"
-      items:
-        $ref: "#/ScanPreference"
+      $ref: "#/ScanPreferences"
     vts:
       type: "array"
       description: "A collection of VTs, which are run for the given target."
@@ -43,6 +37,13 @@ ScanResp:
   required:
     - target
     - vts
+
+ScanPreferences:
+  description:
+    "Overwrite the default settings of the Scanner. The given preferences are key
+    value pairs. The key is always a string, the value can either be a string, number or
+    boolean. The given value is automatically converted to the correct type, if possible."
+  type: "object"
 
 ScanActionBody:
   description: "An action to perform on a scan"
@@ -56,20 +57,6 @@ ScanActionBody:
         - stop
   required:
     - "action"
-
-ScanPreference:
-  description: "Consists of a preference ID and its value."
-  type: "object"
-  properties:
-    id:
-      description: "ID of the preference to set."
-      type: "string"
-    value:
-      description: "Value of the preference."
-      type: "string"
-  required:
-    - value
-    - id
 
 Preferences:
   description: "List of preferences available"
