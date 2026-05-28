@@ -30,11 +30,10 @@ HostInfo:
   type: "object"
   properties:
     all:
-      description: "The number of host in the target of the scan."
-      type: "integer"
-      format: "int32"
-    excluded:
-      description: "The number of hosts excluded from the target if the scan."
+      description:
+        "The total number of theoretical hosts that are part of the scan. Theoretical
+        means, that they might not be reachable and are not necessarily scanned. This number is not
+        necessarily the sum of dead and alive, as the alive detection might not be finished yet."
       type: "integer"
       format: "int32"
     dead:
@@ -54,16 +53,34 @@ HostInfo:
       type: "integer"
       format: "int32"
     scanning:
-      deprecated: true
-      description: |
-        The current implementation is not implemented in accordance with the
-        API spec as it does not return a list of hosts (strings) but a list of host (string) : progress (int32) pairs.
-
-        Although still available, we highly recommend not using it for progress information/calculation.
-        A more suitable API definition and implementation will be done in the next major API version. We apologize for the inconvenience.
-      type: "array"
-      items:
-        type: "string"
+      description: "List of hosts that are currently being scanned, including the progress of them."
+      type: "object"
+      properties:
+        host:
+          description: "The host for which the progress is given."
+          type: "string"
+        checks:
+          description:
+            "Information about the progress of the scan. It is called checks to keep it as generic
+            as possible."
+          type: "object"
+          properties:
+            total:
+              description: "The total number of checks that are run for the host."
+              type: "integer"
+              format: "int32"
+            executed:
+              description: "The number of checks that were already executed for the host."
+              type: "integer"
+              format: "int32"
+        total_vts:
+          description: "The total number of VTs that are run for the host."
+          type: "integer"
+          format: "int32"
+        finished_vts:
+          description: "The number of VTs that are finished for the host."
+          type: "integer"
+          format: "int32"
   required:
     - all
     - excluded
