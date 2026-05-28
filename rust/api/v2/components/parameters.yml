@@ -13,11 +13,3 @@ ResultID:
     required: true
     schema:
       type: "string"
-
-NotusOS:
-  - name: os
-    in: path
-    description: "Operating System"
-    required: true
-    schema:
-      type: "string"
