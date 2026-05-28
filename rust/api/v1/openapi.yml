@@ -36,7 +36,6 @@ info:
     url: "https://www.greenbone.net/"
   license:
     name: "GPL-2.0-or-later"
-    identifier: "GPL-2.0-or-later"
     url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
   version: "1.0"
 servers:
