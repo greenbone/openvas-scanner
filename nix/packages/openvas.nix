@@ -6,7 +6,6 @@
   cmake,
   pkg-config,
   bison,
-  flex,
   glib,
   json-glib,
   libgcrypt,
@@ -20,10 +19,6 @@
   krb5,
   file,
   net-snmp,
-  nmap,
-  redis,
-  doxygen,
-  pandoc,
   gvm-libs,
   paho-mqtt-c,
   src,
@@ -48,9 +43,6 @@ stdenv.mkDerivation (finalAttrs: {
     cmake
     pkg-config
     bison
-    flex
-    doxygen
-    pandoc
   ];
 
   buildInputs = [
@@ -67,8 +59,6 @@ stdenv.mkDerivation (finalAttrs: {
     krb5
     file
     net-snmp
-    nmap
-    redis
     gvm-libs
     paho-mqtt-c
   ];
@@ -91,7 +81,7 @@ stdenv.mkDerivation (finalAttrs: {
     description = "Open Vulnerability Assessment Scanner";
     homepage = "https://github.com/greenbone/openvas";
     license = licenses.gpl2Plus;
-    platforms = platforms.linux ++ platforms.darwin;
+    platforms = platforms.linux;
     mainProgram = "openvas";
   };
 })
