@@ -133,7 +133,7 @@ let
           description = "OpenVAS — ${bin}";
           homepage = "https://github.com/greenbone/openvas";
           license = licenses.gpl2Plus;
-          platforms = platforms.linux ++ platforms.darwin;
+          platforms = platforms.linux;
           mainProgram = bin;
         };
       }
@@ -159,7 +159,7 @@ in
         description = "OpenVAS Rust workspace — builds openvasd, scannerctl, and feed-filter together";
         homepage = "https://github.com/greenbone/openvas";
         license = licenses.gpl2Plus;
-        platforms = platforms.linux ++ platforms.darwin;
+        platforms = platforms.linux;
       };
     }
   );
