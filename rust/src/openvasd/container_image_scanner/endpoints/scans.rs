@@ -208,7 +208,7 @@ impl DeleteScansId for Scans {
 #[cfg(test)]
 pub mod scans_utils {
 
-    use std::sync::Arc;
+    use std::{sync::Arc, time::Duration};
 
     use greenbone_scanner_framework::prelude::*;
     use tokio::sync::Mutex;
@@ -307,9 +307,11 @@ pub mod scans_utils {
         }
 
         pub async fn init() -> Self {
-            let registry = DockerRegistryV2Mock::serve_default().await;
+            Self::init_with_config(Config::default()).await
+        }
 
-            let config = Config::default();
+        pub async fn init_with_config(config: Config) -> Self {
+            let registry = DockerRegistryV2Mock::serve_default().await;
             let (scheduler, entry) = in_memory_scheduler_and_scan(config).await;
 
             Self {
@@ -331,6 +333,38 @@ pub mod scans_utils {
             scan_id
         }
 
+        pub async fn run_scheduler_rounds(&self, rounds: usize) {
+            let conn = Arc::new(Mutex::new(self.scheduler.pool()));
+            for _ in 0..rounds {
+                Scheduler::<DockerRegistryV2, filtered_image::Extractor>::start_scans::<AllTypes>(
+                    self.scheduler.config(),
+                    conn.clone(),
+                    self.scheduler.products(),
+                )
+                .await;
+            }
+        }
+
+        pub async fn status_for_scan_id(&self, client_id: &str, scan_id: &str) -> models::Status {
+            let id = self.internal_id(client_id, scan_id).await;
+            self.entry
+                .get_scans_id_status(id)
+                .await
+                .expect("get_scans_id_status must function")
+        }
+
+        pub async fn start_scan_and_run(
+            &mut self,
+            client_id: &str,
+            scan: models::Scan,
+            rounds: usize,
+        ) -> (String, models::Status) {
+            let (scan_id, _) = self.simulate_start_scan(client_id, scan).await;
+            self.run_scheduler_rounds(rounds).await;
+            let status = self.status_for_scan_id(client_id, &scan_id).await;
+            (scan_id, status)
+        }
+
         pub async fn create_start_results<ClientID>(
             &mut self,
             client_id: &ClientID,
@@ -341,16 +375,7 @@ pub mod scans_utils {
         {
             let scans = scan.target.hosts.len();
             let scan_id = self.create_start_scan(&client_id, scan).await;
-            let pool = self.scheduler.pool();
-            let conn = Arc::new(Mutex::new(pool));
-            for _ in 0..scans {
-                Scheduler::<DockerRegistryV2, filtered_image::Extractor>::start_scans::<AllTypes>(
-                    self.scheduler.config(),
-                    conn.clone(),
-                    self.scheduler.products(),
-                )
-                .await;
-            }
+            self.run_scheduler_rounds(scans).await;
             let id = self
                 .entry
                 .contains_scan_id(&client_id(), &scan_id)
@@ -363,6 +388,22 @@ pub mod scans_utils {
                 .expect("get_scans_id_status must function");
 
             (id, result)
+        }
+
+        pub fn insecure_scan<I, H>(&self, scan_id: impl Into<String>, hosts: I) -> models::Scan
+        where
+            I: IntoIterator<Item = H>,
+            H: Into<String>,
+        {
+            models::Scan {
+                scan_id: scan_id.into(),
+                target: models::Target {
+                    hosts: hosts.into_iter().map(Into::into).collect(),
+                    ..Default::default()
+                },
+                scan_preferences: vec![(RegistrySetting::Insecure.preference_key(), "true").into()],
+                ..Default::default()
+            }
         }
 
         pub fn success_scan(&self) -> models::Scan {
@@ -393,6 +434,13 @@ pub mod scans_utils {
         }
         pub fn pool(&self) -> DataBase {
             self.scheduler.pool()
+        }
+
+        pub fn config_without_retries() -> Config {
+            let mut config = Config::default();
+            config.image.scanning_retries = 0;
+            config.image.retry_timeout = Duration::from_millis(1);
+            config
         }
 
         #[allow(dead_code)]
@@ -426,7 +474,41 @@ mod test {
     use sqlx::query_scalar;
 
     use super::scans_utils::second_client_id;
-    use crate::container_image_scanner::endpoints::scans::scans_utils::{Fakes, client_id};
+    use crate::container_image_scanner::{
+        endpoints::scans::scans_utils::{Fakes, client_id},
+        image::DockerRegistryV2Mock,
+    };
+
+    fn auth_header(registry: &mockito::ServerGuard) -> String {
+        format!(
+            r#"Bearer realm="http://{}/token""#,
+            registry.host_with_port()
+        )
+    }
+
+    fn mock_registry_bearer_auth(
+        registry: &mut mockito::ServerGuard,
+        scope: &str,
+        token_status: usize,
+    ) -> (mockito::Mock, mockito::Mock) {
+        let v2 = registry
+            .mock("GET", "/v2/")
+            .with_status(401)
+            .with_header("WWW-Authenticate", &auth_header(registry))
+            .expect_at_least(1)
+            .create();
+        let token = registry
+            .mock("GET", "/token")
+            .match_query(mockito::Matcher::UrlEncoded(
+                "scope".into(),
+                scope.to_owned(),
+            ))
+            .with_status(token_status)
+            .with_header("Content-Type", "application/json")
+            .with_body(r#"{"token": "waldfee"}"#)
+            .create();
+        (v2, token)
+    }
 
     #[tokio::test]
     async fn post_scan_double_id() {
@@ -566,6 +648,82 @@ mod test {
 
         let result = status.status;
         assert_eq!(result, Phase::Succeeded);
+    }
+
+    #[tokio::test]
+    // Regression for when no images got found and the scan sticked to requested.
+    async fn start_scan_failed_when_tag_resolution_returns_no_images() {
+        let mut fakes = Fakes::init().await;
+        let client_id = client_id();
+        let mut registry = mockito::Server::new_async().await;
+        let _auth =
+            mock_registry_bearer_auth(&mut registry, "repository:nichtsfrei/victim:pull", 200);
+        let _tags = registry
+            .mock("GET", "/v2/nichtsfrei/victim/tags/list")
+            .with_status(200)
+            .with_header("Content-Type", "application/json")
+            .with_body(r#"{"name": "nichtsfrei/victim", "tags": []}"#)
+            .expect(1)
+            .create();
+
+        let scan = fakes.insecure_scan(
+            "empty-tag-resolution",
+            [format!(
+                "oci://{}/nichtsfrei/victim",
+                registry.host_with_port()
+            )],
+        );
+
+        let (_, status) = fakes.start_scan_and_run(&client_id, scan, 1).await;
+
+        assert_eq!(status.status, Phase::Failed);
+        let host_info = status.host_info.expect("status should include host info");
+        assert_eq!(host_info.all, 0);
+        assert_eq!(host_info.dead, 0);
+        assert_eq!(host_info.queued, 0);
+    }
+
+    #[tokio::test]
+    async fn start_scan_failed_when_registry_authentication_returns_503() {
+        let mut fakes = Fakes::init_with_config(Fakes::config_without_retries()).await;
+        let client_id = client_id();
+        let mut registry = mockito::Server::new_async().await;
+        let _auth =
+            mock_registry_bearer_auth(&mut registry, "repository:nichtsfrei/victim:pull", 503);
+
+        let scan = fakes.insecure_scan(
+            "auth-503-during-scan",
+            [format!(
+                "oci://{}/nichtsfrei/victim:latest",
+                registry.host_with_port()
+            )],
+        );
+
+        let (_, status) = fakes.start_scan_and_run(&client_id, scan, 1).await;
+
+        assert_eq!(status.status, Phase::Failed);
+    }
+
+    #[tokio::test]
+    async fn start_scan_failed_when_blob_download_returns_503() {
+        let mut fakes = Fakes::init_with_config(Fakes::config_without_retries()).await;
+        let client_id = client_id();
+        let mut image = DockerRegistryV2Mock::supported_images()
+            .into_iter()
+            .next()
+            .expect("expected at least one supported image");
+        let registry = DockerRegistryV2Mock::serve_images(
+            &[image.clone()],
+            &[200, 200, 200, 200, 200, 200, 503],
+        )
+        .await;
+        image.registry = registry.address();
+
+        let scan = fakes.insecure_scan("blob-503-during-scan", [image.to_string()]);
+
+        let (_, status) = fakes.start_scan_and_run(&client_id, scan, 1).await;
+
+        assert_eq!(status.status, Phase::Failed);
     }
 
     #[tokio::test]
