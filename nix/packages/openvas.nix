@@ -30,14 +30,6 @@ stdenv.mkDerivation (finalAttrs: {
 
   inherit src;
 
-  # Upstream builds with -Werror; nixpkgs GCC 14+ triggers a sign-compare
-  # warning in the NASL packet-forgery code. Strip it rather than adding a
-  # blanket -Wno-error= flag.
-  postPatch = ''
-    substituteInPlace CMakeLists.txt nasl/CMakeLists.txt src/CMakeLists.txt misc/CMakeLists.txt \
-      --replace-warn "-Werror" ""
-  '';
-
   nativeBuildInputs = [
     autoPatchelfHook
     cmake
