@@ -10,53 +10,146 @@
   krb5,
   gvm-libs,
   repoRoot ? null,
-  autoPatchelfHook,
   openssl,
   libpcap,
   sqlite,
   zstd,
   bzip2,
-  pkgs,
   libclang,
   craneLib,
   pname,
   version,
+  rustPlatform,
+  stdenvNoCC,
   src,
+  libnl,
+  keyutils,
+  libedit,
+  libverto,
 }:
 
 let
-  # ── build-cache for nasl-c-lib -sys crates ─────────────────
-  #
-  # The -sys crates use a custom build_support.rs that discovers
-  # native libraries via $OPENVAS_ARCHIVES rather than pkg-config.
-  # We populate this directory from the Nix-provided shared .so
-  # libraries and patch the link directives to use dylib instead
-  # of static (see postPatch below).
-  #
-  # Using shared libraries is the natural Nix approach: nixpkgs
-  # ships .so files by default and the stdenv linker wrapper
-  # handles RPATH for standard buildInputs.  Because these crates
-  # bypass the wrapper by emitting their own cargo:rustc-link
-  # directives, we also use autoPatchelfHook to restore RPATH.
-  buildCache = pkgs.runCommand "nasl-build-cache" { } ''
-    mkdir -p "$out/include"
-    mkdir -p "$out/include/gssapi"
+  libgpgErrorStatic = libgpg-error.overrideAttrs (old: {
+    dontDisableStatic = true;
+    configureFlags = (old.configureFlags or [ ]) ++ [ "--enable-static" ];
+  });
 
-    # ── gcrypt ──
-    ln -s "${lib.getLib libgcrypt}/lib/libgcrypt.so" "$out/libgcrypt.so"
-    ln -s "${lib.getLib libgpg-error}/lib/libgpg-error.so" "$out/libgpg-error.so"
-    for h in gcrypt.h gcrypt-module.h; do
-      f="${lib.getDev libgcrypt}/include/$h"
-      test -f "$f" && ln -s "$f" "$out/include/$h"
-    done
-    ln -s "${lib.getDev libgpg-error}/include/gpg-error.h" "$out/include/gpg-error.h"
+  libgcryptStatic =
+    (libgcrypt.override {
+      libgpg-error = libgpgErrorStatic;
+    }).overrideAttrs
+      (old: {
+        dontDisableStatic = true;
+        configureFlags = (old.configureFlags or [ ]) ++ [ "--enable-static" ];
+      });
 
-    # ── krb5 ──
-    ln -s ${lib.getLib krb5}/lib/{libgssapi_krb5,libkrb5,libk5crypto,libcom_err,libkrb5support}.so "$out/"
-    ln -s "${lib.getDev krb5}/include/krb5.h" "$out/include/krb5.h"
-    ln -s "${lib.getDev krb5}/include/gssapi/gssapi.h" "$out/include/gssapi/gssapi.h"
-    ln -s "${lib.getDev krb5}/include/gssapi/gssapi_krb5.h" "$out/include/gssapi/gssapi_krb5.h"
-  '';
+  libpcapStatic = libpcap.overrideAttrs (old: {
+    dontDisableStatic = true;
+
+    configureFlags = (old.configureFlags or [ ]) ++ [
+      "--disable-dbus"
+      "--without-libnl"
+    ];
+
+    buildInputs = lib.remove libnl (old.buildInputs or [ ]);
+
+    propagatedBuildInputs = lib.remove (lib.getDev libnl) (old.propagatedBuildInputs or [ ]);
+  });
+
+  krb5OpenvasStatic = krb5.overrideAttrs (old: {
+    dontDisableStatic = true;
+
+    configureFlags = lib.remove "--with-libedit" (old.configureFlags or [ ]) ++ [
+      "--enable-static"
+      "--disable-shared"
+      "--without-system-verto"
+      "--without-libedit"
+      "--without-keyutils"
+      "--disable-rpath"
+    ];
+
+    buildInputs = lib.remove keyutils (
+      lib.remove libedit (lib.remove libverto (old.buildInputs or [ ]))
+    );
+
+    propagatedBuildInputs = lib.remove (lib.getDev keyutils) (
+      lib.remove (lib.getDev libedit) (
+        lib.remove (lib.getDev libverto) (old.propagatedBuildInputs or [ ])
+      )
+    );
+
+    buildPhase = ''
+      runHook preBuild
+
+      for dir in \
+        util/support \
+        util/et \
+        util/profile \
+        include \
+        lib/crypto \
+        lib/krb5 \
+        lib/gssapi
+      do
+        make -C "$dir" -j"$NIX_BUILD_CORES"
+      done
+
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+
+      make install-mkdirs
+
+      for dir in \
+        util/support \
+        util/et \
+        util/profile \
+        include \
+        lib/crypto \
+        lib/krb5 \
+        lib/gssapi
+      do
+        make -C "$dir" install
+      done
+
+      runHook postInstall
+    '';
+  });
+
+  # ── archive cache for nasl-c-lib -sys crates ────────────────
+  #
+  # The -sys crates use custom build scripts that discover native
+  # libraries via $OPENVAS_ARCHIVES rather than pkg-config.
+  #
+  # Upstream expects this directory to contain static archives (.a)
+  # and headers.
+  openvasArchives = stdenvNoCC.mkDerivation {
+    pname = "openvas-archives";
+    inherit version;
+
+    dontUnpack = true;
+
+    installPhase = ''
+      mkdir -p "$out"
+      mkdir -p "$out/include"
+
+      ln -s "${lib.getLib libgcryptStatic}/lib/libgcrypt.a" "$out/libgcrypt.a"
+      ln -s "${lib.getLib libgpgErrorStatic}/lib/libgpg-error.a" "$out/libgpg-error.a"
+      ln -s "${lib.getLib libpcapStatic}/lib/libpcap.a" "$out/libpcap.a"
+
+      ln -s "${lib.getLib krb5OpenvasStatic}/lib/libgssapi_krb5.a" "$out/libgssapi_krb5.a"
+      ln -s "${lib.getLib krb5OpenvasStatic}/lib/libkrb5.a" "$out/libkrb5.a"
+      ln -s "${lib.getLib krb5OpenvasStatic}/lib/libk5crypto.a" "$out/libk5crypto.a"
+      ln -s "${lib.getLib krb5OpenvasStatic}/lib/libcom_err.a" "$out/libcom_err.a"
+      ln -s "${lib.getLib krb5OpenvasStatic}/lib/libkrb5support.a" "$out/libkrb5support.a"
+
+      cp -r "${lib.getDev libgcryptStatic}/include/"* "$out/include/"
+      cp -r "${lib.getDev libgpgErrorStatic}/include/"* "$out/include/"
+      cp -r "${lib.getDev libpcapStatic}/include/"* "$out/include/"
+      cp -r "${lib.getDev krb5OpenvasStatic}/include/"* "$out/include/"
+    '';
+  };
 
   commonArgs = {
     inherit pname version;
@@ -68,10 +161,7 @@ let
       perl
       gnumake
       capnproto
-      pkgs.rustPlatform.bindgenHook
-      # Restore RPATH on binaries whose link directives bypass
-      # the Nix stdenv linker wrapper (see buildCache comment).
-      autoPatchelfHook
+      rustPlatform.bindgenHook
     ];
 
     buildInputs = [
@@ -88,7 +178,8 @@ let
       bzip2
     ];
 
-    OPENVAS_ARCHIVES = "${buildCache}";
+    OPENVAS_ARCHIVES = "${openvasArchives}";
+    LIBPCAP_LIBDIR = "${openvasArchives}";
   };
 
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
@@ -98,18 +189,10 @@ let
     mkdir -p ../misc
     ln -sf ${repoRoot}/misc/openvas-krb5.c ../misc/openvas-krb5.c
     ln -sf ${repoRoot}/misc/openvas-krb5.h ../misc/openvas-krb5.h
-
-    substituteInPlace crates/nasl-c-lib/build_support.rs \
-      --replace-fail 'cargo:rustc-link-lib=static=' 'cargo:rustc-link-lib=dylib='
-    substituteInPlace crates/nasl-c-lib/libopenvas-krb5-sys/build.rs \
-      --replace-fail '.a"' '.so"'
-    substituteInPlace crates/nasl-c-lib/libcrypt-sys/build.rs \
-      --replace-fail '.a"' '.so"'
   '';
 
   # Build each workspace binary separately, reusing the dependency artifacts
-  # so the workspace is compiled once.  Each binary gets its own derivation
-  # with its own RPATH fixed up by autoPatchelfHook.
+  # so the workspace is compiled once.
   buildBin =
     bin:
     craneLib.buildPackage (
@@ -122,9 +205,7 @@ let
         cargoExtraArgs = "--bin ${bin}";
 
         preCheck = ''
-          export LD_LIBRARY_PATH=${
-            pkgs.lib.makeLibraryPath commonArgs.buildInputs
-          }
+          export LD_LIBRARY_PATH=${lib.makeLibraryPath commonArgs.buildInputs}
         '';
 
         cargoTestExtraArgs = "-- --skip container_image_scanner";
