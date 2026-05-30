@@ -32,7 +32,7 @@
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
         in
         rec {
-          formatter = pkgs.nixfmt-rfc-style;
+          formatter = pkgs.nixfmt;
 
           _module.args.pkgs = import inputs.nixpkgs {
             inherit system;
