@@ -35,5 +35,7 @@ tree_cell *
 nasl_smb_file_trustee_rights (lex_ctxt *lexic);
 tree_cell *
 nasl_win_cmd_exec (lex_ctxt *lexic);
+tree_cell *
+nasl_psrp_cli (lex_ctxt *lexic);
 
 #endif

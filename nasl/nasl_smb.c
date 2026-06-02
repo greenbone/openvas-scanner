@@ -17,6 +17,12 @@
 
 #include "../misc/plugutils.h"
 #include "base/hosts.h"
+#include "glib.h"
+#include "glibconfig.h"
+#include "nasl_debug.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_misc_funcs.h"
+#include "nasl_var.h"
 #include "openvas_smb_interface.h"
 
 #include <arpa/inet.h>
@@ -30,6 +36,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define KERBEROS_AUTH_TYPE "Kerberos"
 #define IMPORT(var) char *var = get_str_var_by_name (lexic, #var)
 
 #undef G_LOG_DOMAIN
@@ -492,5 +499,384 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = string->str;
   retc->size = string->len;
+  return retc;
+}
+
+static tree_cell *
+array_from_psrp_error (int ret, char *err)
+{
+  anon_nasl_var v;
+
+  assert (err);
+  tree_cell *retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+  /* Return code */
+  memset (&v, 0, sizeof (v));
+  v.var_type = VAR2_INT;
+  v.v.v_int = ret;
+  add_var_to_list (retc->x.ref_val, 0, &v);
+  /* Return error */
+  memset (&v, 0, sizeof v);
+  v.var_type = VAR2_STRING;
+  v.v.v_str.s_val = (unsigned char *) err;
+  v.v.v_str.s_siz = strlen (err);
+  add_var_to_list (retc->x.ref_val, 1, &v);
+
+  return retc;
+}
+
+typedef struct
+{
+  GMainLoop *loop;
+  gint exit_code;
+} ProcessContext;
+
+static void
+on_child_exited (GPid pid, gint wait_status, gpointer user_data)
+{
+  GError *error = NULL;
+  ProcessContext *context = (ProcessContext *) user_data;
+  if (g_spawn_check_wait_status (wait_status, &error))
+    {
+      context->exit_code = 0;
+    }
+  else
+    {
+      context->exit_code = error->code;
+      g_error_free (error);
+    }
+
+  g_spawn_close_pid (pid);
+  g_main_loop_quit (context->loop);
+}
+
+/**
+ * @brief Execute the PowerShell command in windows
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ *
+ * @return Nasl Array. The first element is the exit code.
+ *         The second element is the output. Code are 0 for success
+ *         1 for error comming from the binary and
+ *         2 error from the nasl function.
+ *
+ * Retrieves local variables "cmd" from the lexical
+ * context, performs the windows command execution operation
+ * returning the result.
+ */
+
+tree_cell *
+nasl_psrp_cli (lex_ctxt *lexic)
+{
+  struct script_infos *script_infos = lexic->script_infos;
+  struct in6_addr *host_ip = plug_get_host_ip (script_infos);
+  gvm_host_t *gvm_host = NULL;
+  char *argv[48], *unicode, port_str[6];
+  tree_cell *retc;
+  anon_nasl_var v;
+  GString *string = NULL;
+  int sout, ret, port, ssl;
+  GError *err = NULL;
+  bool krb5 = false;
+  bool calculate_host = false;
+  char first_kdc[INET6_ADDRSTRLEN] = {0};
+  const char *delimiter;
+  GString *missing_args;
+  int missing_arg_flag = 0;
+
+  IMPORT (interpreter);
+  IMPORT (cmd);
+  IMPORT (host);
+  IMPORT (path);
+  IMPORT (authentication);
+  IMPORT (username);
+  IMPORT (password);
+  IMPORT (realm);
+  IMPORT (kdc);
+
+  missing_args = g_string_new ("Following are missing arguments:\n");
+  if ((ssl = get_int_var_by_name (lexic, "ssl", -1)) < 0)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "ssl\n");
+    }
+
+  if ((port = get_int_var_by_name (lexic, "port", -1)) < 0)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "port\n");
+    }
+
+  if (interpreter == NULL)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "interpreter\n");
+    }
+
+  if (cmd == NULL)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "cmd\n");
+    }
+
+  if (host == NULL && host_ip == NULL)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "host\n");
+    }
+
+  if (path == NULL)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "path\n");
+    }
+
+  if (authentication == NULL)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "authentication\n");
+    }
+
+  if (username == NULL)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "username\n");
+    }
+
+  if (password == NULL)
+    {
+      missing_arg_flag = 1;
+      g_string_append (missing_args, "password\n");
+    }
+
+  if (missing_arg_flag)
+    return array_from_psrp_error (2, g_string_free (missing_args, FALSE));
+  g_string_free (missing_args, TRUE);
+
+  snprintf (port_str, sizeof (port_str), "%d", port);
+
+  krb5 = !g_strcmp0 (authentication, KERBEROS_AUTH_TYPE);
+  if (host == NULL && host_ip != NULL)
+    {
+      calculate_host = true;
+      host = addr6_as_str (host_ip);
+      if (host != NULL && krb5)
+        {
+          gvm_host = gvm_host_from_str (host);
+          g_free (host);
+          host = gvm_host_reverse_lookup (gvm_host);
+          g_free (gvm_host);
+        }
+    }
+
+  if (host == NULL)
+    return array_from_psrp_error (
+      2, g_strdup ("Not possible to reverse lookup the target IP"));
+
+  // Mandatory arguments
+  int argv_pos = 0;
+
+  argv[argv_pos++] = g_strdup ("pypsrp-cli");
+  argv[argv_pos++] = g_strdup ("--interpreter");
+  argv[argv_pos++] = g_strdup (interpreter);
+  argv[argv_pos++] = g_strdup ("--command");
+  argv[argv_pos++] = g_strdup (cmd);
+  argv[argv_pos++] = g_strdup ("--target");
+  argv[argv_pos++] = g_strdup (host);
+  argv[argv_pos++] = g_strdup ("--path");
+  argv[argv_pos++] = g_strdup (path);
+  argv[argv_pos++] = g_strdup ("--ssl");
+  argv[argv_pos++] = g_strdup (ssl ? "1" : "0");
+  argv[argv_pos++] = g_strdup ("--port");
+  argv[argv_pos++] = g_strdup (port_str);
+  argv[argv_pos++] = g_strdup ("--username");
+  argv[argv_pos++] = g_strdup (username);
+  argv[argv_pos++] = g_strdup ("--password");
+  argv[argv_pos++] = g_strdup (password);
+  argv[argv_pos++] = g_strdup ("--authentication");
+  argv[argv_pos++] = g_strdup (authentication);
+
+  if (calculate_host == true)
+    g_free (host);
+
+  // kdc and realm are optional if no krb5 auth method.
+  if (krb5 && kdc != NULL && realm != NULL)
+    {
+      delimiter = strchr (kdc, ',');
+      if (delimiter && (delimiter - kdc > INET6_ADDRSTRLEN - 1))
+        {
+          for (int i = 0; i < argv_pos; i++)
+            g_free (argv[i]);
+          return array_from_psrp_error (
+            2, g_strdup ("kdc hostname value too long (max 45 chars)"));
+        }
+
+      if (delimiter != NULL)
+        {
+          strncpy (first_kdc, kdc, delimiter - kdc);
+        }
+      else
+        {
+          strncpy (first_kdc, kdc, sizeof (first_kdc) - 1);
+        }
+
+      argv[argv_pos++] = g_strdup ("--kdc");
+      argv[argv_pos++] = g_strdup (first_kdc);
+      argv[argv_pos++] = g_strdup ("--realm");
+      argv[argv_pos++] = g_strdup (realm);
+    }
+
+  // additional arguments
+  tree_cell *anon_args = get_variable_by_name (lexic, "additional_args");
+  if (anon_args != NULL)
+    {
+      anon_nasl_var *args_var = NULL;
+      nasl_array *array_values;
+      int n;
+      char *str;
+      if ((args_var = anon_args->x.ref_val) == NULL)
+        {
+          deref_cell (anon_args);
+          nasl_perror (lexic, "%s empty array for additional arguments\n",
+                       __func__);
+          for (int i = 0; i < argv_pos; i++)
+            g_free (argv[i]);
+          return array_from_psrp_error (
+            2, g_strdup ("empty array for additional arguments"));
+        }
+
+      deref_cell (anon_args);
+      if (args_var->var_type == VAR2_ARRAY)
+        {
+          array_values = &args_var->v.v_arr;
+
+          n = array_max_index (array_values);
+          if (n > 9)
+            {
+              nasl_perror (lexic, "%s: too many additional arguments!\n",
+                           __func__);
+              for (int i = 0; i < argv_pos; i++)
+                g_free (argv[i]);
+              return array_from_psrp_error (
+                2, g_strdup ("too many additional arguments"));
+            }
+
+          for (int i = 0; i < n; i++)
+            {
+              str = (char *) var2str (array_values->num_elt[i]);
+              if (str != NULL)
+                argv[argv_pos++] = g_strdup (str);
+            }
+        }
+      else if (args_var->var_type == VAR2_UNDEF)
+        {
+        }
+      else
+        {
+          nasl_perror (lexic, "%s: argv element must be an array (0x%x)\n",
+                       __func__, args_var->var_type);
+          for (int i = 0; i < argv_pos; i++)
+            g_free (argv[i]);
+          return array_from_psrp_error (
+            2, g_strdup ("argv element must be an array"));
+        }
+    }
+  argv[argv_pos++] = NULL;
+
+  GPid child_pid;
+  int err_code = 0;
+  // shared structure to get process exit code
+  ProcessContext context = {.loop = g_main_loop_new (NULL, FALSE),
+                            .exit_code = -1};
+
+  ret = g_spawn_async_with_pipes (
+    NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD, NULL,
+    NULL, &child_pid, NULL, &sout, NULL, &err);
+
+  for (int i = 0; i < argv_pos; i++)
+    g_free (argv[i]);
+
+  if (ret == FALSE)
+    {
+      g_main_loop_unref (context.loop);
+      char *err_aux = err ? g_strdup (err->message) : g_strdup ("Error");
+      g_warning ("%s: %s", __func__, err_aux);
+      if (err)
+        g_error_free (err);
+      return array_from_psrp_error (2, err_aux);
+    }
+
+  g_child_watch_add (child_pid, on_child_exited, &context);
+
+  string = g_string_new ("");
+  while (1)
+    {
+      char buf[4096];
+      ssize_t bytes;
+
+      bytes = read (sout, buf, sizeof (buf));
+      if (!bytes)
+        break;
+      else if (bytes > 0)
+        g_string_append_len (string, buf, bytes);
+      else
+        {
+          char *err_aux = g_strdup (strerror (errno));
+          g_warning ("%s: %s", __func__, err_aux);
+          g_string_free (string, TRUE);
+          close (sout);
+          g_main_loop_run (context.loop);
+           g_main_loop_unref (context.loop);
+
+          return array_from_psrp_error (2, err_aux);
+        }
+    }
+  close (sout);
+
+  g_main_loop_run (context.loop);
+  err_code = context.exit_code;
+  g_main_loop_unref (context.loop);
+
+  if (g_str_has_prefix (string->str, "[-]") || err_code != 0)
+    {
+      char *err_aux = g_string_free (string, FALSE);
+      g_warning ("%s: %s", __func__, err_aux);
+      return array_from_psrp_error (1, err_aux);
+    }
+  else if ((unicode = strstr (string->str, "\xff\xfe")))
+    {
+      /* UTF-16 case. */
+      size_t length, diff;
+      err = NULL;
+      char *tmp;
+
+      diff = unicode - string->str + 2;
+      tmp = g_convert (unicode + 2, string->len - diff, "UTF-8", "UTF-16", NULL,
+                       &length, &err);
+      if (!tmp)
+        {
+          char *err_aux = g_strdup (err->message);
+          g_warning ("%s: %s", __func__, err_aux);
+          g_string_free (string, TRUE);
+          g_error_free (err);
+          return array_from_psrp_error (2, err_aux);
+        }
+      g_free (string->str);
+      string->len = length;
+      string->str = tmp;
+    }
+
+  retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+  memset (&v, 0, sizeof (v));
+  v.var_type = VAR2_INT;
+  v.v.v_int = 0; // success
+  add_var_to_list (retc->x.ref_val, 0, &v);
+  memset (&v, 0, sizeof v);
+  v.var_type = VAR2_STRING;
+  v.v.v_str.s_siz = string->len;
+  v.v.v_str.s_val = (unsigned char *) g_string_free (string, FALSE);
+  add_var_to_list (retc->x.ref_val, 1, &v);
+
   return retc;
 }
