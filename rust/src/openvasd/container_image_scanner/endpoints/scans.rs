@@ -950,6 +950,47 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn start_scan_succeeds_after_two_authentication_503s_during_tag_resolution_with_retry_3()
+    -> crate::Result<()> {
+        let mut image = DockerRegistryV2Mock::supported_images()
+            .into_iter()
+            .next()
+            .unwrap();
+        image.registry = Default::default();
+        let registry = DockerRegistryV2Mock::serve_images_with_auth_status_codes(
+            &[image.clone()],
+            &[],
+            &[503, 503, 200],
+        )
+        .await;
+
+        let mut config = Fakes::config_without_retries();
+        config.image.scanning_retries = 3;
+        let fakes = Fakes::init_with_config(config).await;
+        let app = fakes.app(known_ident());
+        let scan = Fakes::insecure_scan(vec![image_host(
+            &registry.address(),
+            Some("nichtsfrei/victim"),
+            None,
+        )]);
+
+        fakes.start_scan_and_run(&app, &scan, 1).await?;
+
+        let status = wait_for_scan_phase(
+            &app,
+            &scan.scan_id,
+            models::Phase::Succeeded,
+            Duration::from_secs(2),
+        )
+        .await?;
+        assert_eq!(
+            status.get("status").and_then(|value| value.as_str()),
+            Some("succeeded")
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn start_scan_failed_when_blob_download_returns_503() -> crate::Result<()> {
         let mut image = DockerRegistryV2Mock::supported_images()
             .into_iter()
