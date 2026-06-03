@@ -281,7 +281,7 @@ pub async fn serve<'a>(app_state: &'a AppState<'a>) -> Result<i32> {
         .merge(cis_scans.router())
         .merge(notus.router());
     let listener_address = app_state.config.listener.address;
-    let max_concurrent_requests = app_state.config.storage.max_connections();
+    let max_concurrent_requests = app_state.config.storage.max_http_connections();
     let request_guard = Arc::new(Semaphore::new(max_concurrent_requests));
 
     if let Some(tls_setup) = rustls_config(app_state.config)? {
