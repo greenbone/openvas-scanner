@@ -9,10 +9,10 @@
  * @mainpage
  *
  * @section Introduction
- * @verbinclude README.md
+ * @includedoc README.md
  *
  * @section license License Information
- * @verbinclude COPYING
+ * @includedoc COPYING
  */
 
 /**
