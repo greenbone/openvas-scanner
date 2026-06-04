@@ -1,10 +1,13 @@
-use std::{pin::Pin, sync::Arc};
+use std::{collections::HashSet, pin::Pin, sync::Arc};
 
 use hyper::StatusCode;
 
 use crate::{
     ExternalError, auth_method_segments,
-    entry::{self, Bytes, Prefixed, RequestHandler, enforce_client_hash, response::BodyKind},
+    entry::{
+        self, Bytes, Prefixed, RequestHandler, enforce_client_hash,
+        response::{BadRequest, BodyKind},
+    },
     internal_server_error, models,
 };
 
@@ -48,6 +51,9 @@ where
         Box::pin(async move {
             match serde_json::from_slice::<models::Scan>(&body) {
                 Ok(mut scan) => {
+                    if let Some(error) = reject_duplicate_credential_services(&scan) {
+                        return error;
+                    }
                     if scan.scan_id.is_empty() {
                         scan.scan_id = uuid::Uuid::new_v4().into();
                     }
@@ -63,6 +69,24 @@ where
             }
         })
     }
+}
+
+fn reject_duplicate_credential_services(scan: &models::Scan) -> Option<BodyKind> {
+    let mut services = HashSet::new();
+
+    for credential in &scan.target.credentials {
+        let service = credential.service.as_ref();
+        if !services.insert(service) {
+            let br = BadRequest {
+                line: 0,
+                column: 0,
+                message: format!("Multiple credentials for service {service} are not supported."),
+            };
+            return Some(BodyKind::json_content(StatusCode::BAD_REQUEST, &br));
+        }
+    }
+
+    None
 }
 
 impl<T> From<T> for PostScansHandler<T>
@@ -202,6 +226,30 @@ mod tests {
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::NOT_ACCEPTABLE);
+    }
+
+    #[tokio::test]
+    async fn duplicate_credential_service() {
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            create_single_handler!(PostScansHandler::from(Test {})),
+            Some(ClientHash::from("ok")),
+        );
+        let mut scans = models::Scan::default();
+        scans.target.credentials =
+            vec![models::Credential::default(), models::Credential::default()];
+
+        let req = Request::builder()
+            .uri("/scans")
+            .method(Method::POST)
+            .body(json_bytes(&scans))
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+
+        let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+        let resp = String::from_utf8_lossy(bytes.as_ref());
+        assert!(resp.contains("Multiple credentials for service ssh are not supported."));
     }
 
     #[tokio::test]
