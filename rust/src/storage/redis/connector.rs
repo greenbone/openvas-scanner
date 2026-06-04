@@ -69,6 +69,7 @@ impl TryFrom<NvtKey> for KbNvtPos {
 pub struct RedisCtx {
     kb: Option<Connection>, //a redis connection
     pub db: u32,            // the name space
+    address: String,
 }
 
 impl Debug for RedisCtx {
@@ -284,6 +285,14 @@ pub trait RedisAddAdvisory: RedisWrapper {
 impl RedisAddAdvisory for RedisCtx {}
 
 pub trait RedisGetNvt: RedisWrapper {
+    fn redis_address(&self) -> Option<&str> {
+        None
+    }
+
+    fn redis_db(&self) -> Option<u32> {
+        None
+    }
+
     #[inline(always)]
     fn get_refs(bids: &str, cves: &str, xrefs: &str) -> Vec<NvtRef> {
         let f = |x: &str| match x.split_once(':') {
@@ -359,11 +368,8 @@ pub trait RedisGetNvt: RedisWrapper {
             Ok(None)
         }
     }
-    /// Nvt metadata is stored under two different keys
-    /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
-    /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
-    ///   (which is especial and uses preferences id 0)
-    fn redis_get_vt(&mut self, oid: &str) -> RedisStorageResult<Option<VTData>> {
+
+    fn redis_get_nasl_vt(&mut self, oid: &str) -> RedisStorageResult<Option<VTData>> {
         let keyname = format!("nvt:{oid}");
         let nvt_data = self.lrange(&keyname, 0, -1)?;
 
@@ -417,9 +423,51 @@ pub trait RedisGetNvt: RedisWrapper {
 
         Ok(Some(nvt))
     }
+
+    /// Nvt metadata is stored under two different keys
+    /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
+    /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
+    ///   (which is especial and uses preferences id 0)
+    fn redis_get_vt(&mut self, oid: &str) -> RedisStorageResult<Option<VTData>> {
+        if let Some(vt) = self.redis_get_advisory(oid)? {
+            return Ok(Some(vt));
+        }
+
+        if let Some(vt) = self.redis_get_nasl_vt(oid)? {
+            return Ok(Some(vt));
+        }
+
+        let Some(address) = self.redis_address() else {
+            return Ok(None);
+        };
+        let current_db = self.redis_db();
+
+        if let Ok(mut rctx) = RedisCtx::open(address, NOTUSUPDATE_SELECTOR)
+            && Some(rctx.db) != current_db
+            && let Some(vt) = rctx.redis_get_advisory(oid)?
+        {
+            return Ok(Some(vt));
+        }
+
+        if let Ok(mut rctx) = RedisCtx::open(address, FEEDUPDATE_SELECTOR)
+            && Some(rctx.db) != current_db
+        {
+            return rctx.redis_get_nasl_vt(oid);
+        }
+
+        Ok(None)
+    }
 }
 
-impl RedisGetNvt for RedisCtx {}
+impl RedisGetNvt for RedisCtx {
+    fn redis_address(&self) -> Option<&str> {
+        Some(&self.address)
+    }
+
+    fn redis_db(&self) -> Option<u32> {
+        Some(self.db)
+    }
+}
 
 pub trait RedisAddNvt: RedisWrapper {
     /// Get References. It returns a tuple of three strings
@@ -570,6 +618,7 @@ impl RedisCtx {
                     return Ok(RedisCtx {
                         kb: Some(kb),
                         db: x,
+                        address: address.to_string(),
                     });
                 }
                 Err(DbError::NoAvailDbErr) => {}
@@ -602,5 +651,120 @@ impl RedisCtx {
             .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))?;
         self.release_namespace()?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[derive(Default)]
+    struct FakeRedis {
+        lists: HashMap<String, Vec<String>>,
+    }
+
+    impl FakeRedis {
+        fn with_nasl(oid: &str, name: &str) -> Self {
+            let mut lists = HashMap::new();
+            lists.insert(
+                format!("nvt:{oid}"),
+                vec![
+                    "test.nasl".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                    "summary=nasl".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                    (ACT::GatherInfo as i32).to_string(),
+                    "General".to_string(),
+                    name.to_string(),
+                ],
+            );
+            Self { lists }
+        }
+
+        fn add_advisory(&mut self, oid: &str, name: &str) {
+            let advisory = Vulnerability {
+                name: name.to_string(),
+                filename: "test.notus".to_string(),
+                family: "Notus".to_string(),
+                category: "3".to_string(),
+                ..Default::default()
+            };
+            self.lists.insert(
+                format!("internal/notus/advisories/{oid}"),
+                vec![serde_json::to_string(&advisory).expect("valid advisory json")],
+            );
+        }
+    }
+
+    impl RedisWrapper for FakeRedis {
+        fn rpush<T: ToRedisArgs>(&mut self, _key: &str, _val: T) -> RedisStorageResult<()> {
+            unimplemented!()
+        }
+
+        fn lpush<T: ToRedisArgs>(&mut self, _key: &str, _val: T) -> RedisStorageResult<()> {
+            unimplemented!()
+        }
+
+        fn del(&mut self, _key: &str) -> RedisStorageResult<()> {
+            unimplemented!()
+        }
+
+        fn lindex(&mut self, key: &str, index: isize) -> RedisStorageResult<String> {
+            Ok(self
+                .lists
+                .get(key)
+                .and_then(|values| values.get(index as usize))
+                .cloned()
+                .unwrap_or_default())
+        }
+
+        fn lrange(
+            &mut self,
+            key: &str,
+            _start: isize,
+            _end: isize,
+        ) -> RedisStorageResult<Vec<String>> {
+            Ok(self.lists.get(key).cloned().unwrap_or_default())
+        }
+
+        fn keys(&mut self, _pattern: &str) -> RedisStorageResult<Vec<String>> {
+            unimplemented!()
+        }
+
+        fn pop(&mut self, _pattern: &str) -> RedisStorageResult<Vec<String>> {
+            unimplemented!()
+        }
+    }
+
+    impl RedisGetNvt for FakeRedis {}
+
+    #[test]
+    fn redis_get_vt_falls_back_to_nasl() {
+        let mut redis = FakeRedis::with_nasl("1.3.6.1.4.1", "NASL VT");
+
+        let vt = redis.redis_get_vt("1.3.6.1.4.1").unwrap().unwrap();
+
+        assert_eq!(vt.name, "NASL VT");
+        assert_eq!(vt.filename, "test.nasl");
+    }
+
+    #[test]
+    fn redis_get_vt_prefers_advisory_over_nasl() {
+        let mut redis = FakeRedis::with_nasl("1.3.6.1.4.2", "NASL VT");
+        redis.add_advisory("1.3.6.1.4.2", "Notus Advisory");
+
+        let vt = redis.redis_get_vt("1.3.6.1.4.2").unwrap().unwrap();
+
+        assert_eq!(vt.name, "Notus Advisory");
+        assert_eq!(vt.filename, "test.notus");
+        assert_eq!(vt.family, "Notus");
     }
 }
