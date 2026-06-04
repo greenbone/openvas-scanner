@@ -69,10 +69,11 @@ typedef struct vulnerable_pkg vuln_pkg_t;
  */
 struct notus_advisory
 {
-  char *oid;             // Advisory OID
-  vuln_pkg_t *pkgs[100]; // list of vulnerable packages, installed version and
-                         // fixed versions
-  size_t count;          // Count of vulnerable packages this advisory has
+  char *oid;         // Advisory OID
+  vuln_pkg_t **pkgs; // list of vulnerable packages, installed version and
+                     // fixed versions
+  size_t count;      // Count of vulnerable packages this advisory has
+  size_t max_size;   // Max size of the vulnerable packages list
 };
 typedef struct notus_advisory advisory_t;
 
