@@ -155,6 +155,32 @@ COPY --from=build /install /install
 COPY --from=rs-binaries /install/usr/local/bin/openvasd /install/usr/local/bin/openvasd
 COPY --from=rs-binaries /install/usr/local/bin/scannerctl /install/usr/local/bin/scannerctl
 
+FROM ${FINAL_IMAGE} AS pypsrp-cli-build
+ARG VERSION
+RUN if ! printf '%s' "${VERSION}" | grep -q -- '-edge$'; then \
+      suite_name="${VERSION}"; \
+      if [ "${suite_name}" = "latest" ]; then suite_name=stable; fi; \
+      . /etc/os-release && sed -i "s/${suite_name}/$VERSION_CODENAME/g" /etc/apt/sources.list.d/*.sources; \
+    fi
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends --no-install-suggests -y \
+        gcc \
+        git \
+        krb5-user \
+        libkrb5-dev \
+        python3 \
+        python3-cryptography \
+        python3-dev \
+        python3-gssapi \
+        python3-pip \
+        python3-requests \
+    && rm -rf /var/lib/apt/lists/*
+ARG PYPSRP_CLI_VERSION=v0.1.0
+RUN git clone --depth 1 --branch "${PYPSRP_CLI_VERSION}" https://github.com/greenbone/pypsrp-cli.git /tmp/pypsrp-cli \
+    && python3 -m pip install --break-system-packages --no-cache-dir --root /install /tmp/pypsrp-cli \
+    && test -x /install/usr/local/bin/pypsrp-cli \
+    && rm -rf /tmp/pypsrp-cli
+
 FROM ${FINAL_IMAGE}
 ARG VERSION
 ARG FINAL_PACKAGE_SET
@@ -169,12 +195,19 @@ RUN if ! printf '%s' "${VERSION}" | grep -q -- '-edge$'; then \
 RUN test -f "/tmp/openvas-packages/${FINAL_PACKAGE_SET}.txt" \
     && apt-get update \
     && xargs -a "/tmp/openvas-packages/${FINAL_PACKAGE_SET}.txt" apt-get install --no-install-recommends --no-install-suggests -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends --no-install-suggests -y \
+        krb5-user \
+        python3 \
+        python3-cryptography \
+        python3-gssapi \
+        python3-requests \
     && rm -rf /var/lib/apt/lists/*
 
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
 # binary is available.
 COPY --from=prepared /install/ /
+COPY --from=pypsrp-cli-build /install/usr/local/ /usr/local/
 COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 COPY --from=openvas-smb /usr/local/bin/ /usr/local/bin/
 RUN ldconfig
