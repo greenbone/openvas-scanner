@@ -16,8 +16,8 @@ ScanReq:
       items:
         $ref: "./target.yml#/VT"
   required:
-    - target
-    - vts
+  - target
+  - vts
 
 ScanResp:
   description: "Model representing a scan response."
@@ -35,15 +35,14 @@ ScanResp:
       items:
         $ref: "./target.yml#/VT"
   required:
-    - target
-    - vts
+  - target
+  - vts
 
 ScanPreferences:
-  description:
-    "Overwrite the default settings of the Scanner. The given preferences are key
-    value pairs. The key is always a string, the value can either be a string, number or
-    boolean. The given value is automatically converted to the correct type, if possible.
-    To get a list of available preferences, use the GET /scans/preferences endpoint."
+  description: "Overwrite the default settings of the Scanner. The given preferences are key value
+    pairs. The key is always a string, the value can either be a string, number or boolean. The
+    given value is automatically converted to the correct type, if possible. To get a list of
+    available preferences, use the GET /scans/preferences endpoint."
   type: "object"
 
 ScanActionBody:
@@ -54,10 +53,10 @@ ScanActionBody:
       description: "The action to perform"
       type: "string"
       enum:
-        - start
-        - stop
+      - start
+      - stop
   required:
-    - "action"
+  - "action"
 
 Preferences:
   description: "List of preferences available"

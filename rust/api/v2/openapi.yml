@@ -1,8 +1,7 @@
 openapi: "3.1.1"
 info:
   title: "Scanner v2"
-  description: "
-    # Authentication
+  description: " # Authentication
 
     The API supports two kinds of authentication methods:
 
@@ -11,14 +10,15 @@ info:
     - Certificates
 
 
-    The authentication modes are set within a configuration file or via the argument list, when starting the server.
+    The authentication modes are set within a configuration file or via the argument list, when
+    starting the server.
 
     The authentication is required for each request except for a HEAD request.
 
     ## API Key
 
-    An API key is a token that the client provides when doing API requests and are used to authorize access.
-    The `X-API-KEY` must be in the header.
+    An API key is a token that the client provides when doing API requests and are used to authorize
+    access. The `X-API-KEY` must be in the header.
 
 
     <!--More details about this method follows with its implementation.-->
@@ -26,11 +26,11 @@ info:
 
     ## Certificates
 
-    This option uses [X.509](https://en.wikipedia.org/wiki/X.509), based on CA to verify derived certificates to allow access.
+    This option uses [X.509](https://en.wikipedia.org/wiki/X.509), based on CA to verify derived
+    certificates to allow access.
 
 
-    <!--More details about this method follows with its implementation.-->
-    "
+    <!--More details about this method follows with its implementation.--> "
   contact:
     name: "Greenbone AG"
     url: "https://www.greenbone.net/"
@@ -39,23 +39,24 @@ info:
     url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
   version: "2.0"
 servers:
-  - url: /
+- url: /
 tags:
-  - name: general
-    description: General requests
-  - name: health
-    description: Health checks
-  - name: scan
-    description: Scan resource
-  - name: feed
-    description: Feed related
+- name: general
+  description: General requests
+- name: health
+  description: Health checks
+- name: scan
+  description: Scan resource
+- name: feed
+  description: Feed related
 paths:
   /health:
     head:
-      description: "Get the response header. It contains the API version, feed version and available authentication methods."
+      description: "Get the response header. It contains the API version, feed version and available
+        authentication methods."
       operationId: "head_health"
       tags:
-        - "general"
+      - "general"
       responses:
         "200":
           headers:
@@ -71,7 +72,7 @@ paths:
       description: "Get application's health information"
       operationId: "get_health_alive"
       tags:
-        - "health"
+      - "health"
       responses:
         "200":
           description: "Ok"
@@ -81,7 +82,7 @@ paths:
       description: "Get application's health information"
       operationId: "get_health_ready"
       tags:
-        - "health"
+      - "health"
       responses:
         "200":
           description: "Ok"
@@ -92,17 +93,18 @@ paths:
       description: "Get application's health information"
       operationId: "get_health_started"
       tags:
-        - "health"
+      - "health"
       responses:
         "200":
           description: "Ok"
 
   /scans:
     head:
-      description: "Get the response header. It contains the API version, feed version and available authentication methods."
+      description: "Get the response header. It contains the API version, feed version and available
+        authentication methods."
       operationId: "get_info_auth"
       tags:
-        - "general"
+      - "general"
       responses:
         "204":
           headers:
@@ -123,18 +125,19 @@ paths:
               $ref: "#/components/headers/Authentication"
           description: "Unauthorized. Required or invalid client certificates"
     post:
-      description:
-        "This endpoint is the entrypoint to run a scan. The request body contains a scan
+      description: "This endpoint is the entrypoint to run a scan. The request body contains a scan
         configuration. The scan configuration includes all necessary information to run a scan. If a
         scan was successfully created, the response contains the scan ID, which then can be used to
-        start it with [POST /scans/{id}](#/scan/scan_action). For more information about the scan configuration,
-        see the schema of the request body. For additional information about the scan preferences,
-        see [GET /scans/preferences](#/scan/get_preferences). To get information about the scan after it was created, use
-        [GET /scans/{id}](#/scan/get_scan). To get the results of the scan, use [GET /scans/{id}/results](#/scan/get_results). To get the status
-        of the scan, use [GET /scans/{id}/status](#/scan/get_scan_status). To delete the scan, use [DELETE /scans/{id}](#/scan/delete_scan)."
+        start it with [POST /scans/{id}](#/scan/scan_action). For more information about the scan
+        configuration, see the schema of the request body. For additional information about the scan
+        preferences, see [GET /scans/preferences](#/scan/get_preferences). To get information about
+        the scan after it was created, use [GET /scans/{id}](#/scan/get_scan). To get the results of
+        the scan, use [GET /scans/{id}/results](#/scan/get_results). To get the status of the scan,
+        use [GET /scans/{id}/status](#/scan/get_scan_status). To delete the scan, use [DELETE
+        /scans/{id}](#/scan/delete_scan)."
       operationId: "create_scan"
       tags:
-        - "scan"
+      - "scan"
       requestBody:
         description: "Scan to add"
         content:
@@ -191,14 +194,14 @@ paths:
 
   /scans/preferences:
     get:
-      description:
-        "This endpoint provides a list of all available scan preferences, which can be
-        set within the scan configuration via the [POST /scans](#/scan/create_scan) endpoint. The response contains the
-        ID, name, type, description and default value of each preference. For more information about
-        the scan configuration, see the schema of the request body of the [POST /scans](#/scan/create_scan) endpoint."
+      description: "This endpoint provides a list of all available scan preferences, which can be set
+        within the scan configuration via the [POST /scans](#/scan/create_scan) endpoint. The
+        response contains the ID, name, type, description and default value of each preference. For
+        more information about the scan configuration, see the schema of the request body of the
+        [POST /scans](#/scan/create_scan) endpoint."
       operationId: "get_preferences"
       tags:
-        - "scan"
+      - "scan"
       responses:
         "200":
           description: "Get Preferences"
@@ -212,14 +215,14 @@ paths:
 
   /scans/{id}:
     get:
-      description:
-        "This endpoint provides information about the scan configuration provided with [POST /scans](#/scan/create_scan). It does not
-        contain any information about the status or results of the scan."
+      description: "This endpoint provides information about the scan configuration provided with [POST
+        /scans](#/scan/create_scan). It does not contain any information about the status or results
+        of the scan."
       operationId: "get_scan"
       tags:
-        - "scan"
+      - "scan"
       parameters:
-        - $ref: "#/components/parameters/ScanID"
+      - $ref: "#/components/parameters/ScanID"
       responses:
         "200":
           description: "Get Scan"
@@ -260,16 +263,15 @@ paths:
         "404":
           description: "Scan not found"
     post:
-      description:
-        "This endpoint is used to perform an action on the scan. The scan can be either
-        started or stopped. Notice, that only a stored scan can be started and only a running scan
-        can be stopped. To create a scan, use [POST /scans](#/scan/create_scan). After it is created,
-        the scan is in the status stored."
+      description: "This endpoint is used to perform an action on the scan. The scan can be either started
+        or stopped. Notice, that only a stored scan can be started and only a running scan can be
+        stopped. To create a scan, use [POST /scans](#/scan/create_scan). After it is created, the
+        scan is in the status stored."
       operationId: "scan_action"
       tags:
-        - "scan"
+      - "scan"
       parameters:
-        - $ref: "#/components/parameters/ScanID"
+      - $ref: "#/components/parameters/ScanID"
       requestBody:
         description: "Action to perform."
         content:
@@ -293,14 +295,14 @@ paths:
         "501":
           description: "Action not supported"
     delete:
-      description:
-        "Delete a scan, that is not running. Running scans must be either stored, stopped or finished
-        before they can be deleted. To get the status of the scan, use [GET /scans/{id}/status](#/scan/get_scan_status)."
+      description: "Delete a scan, that is not running. Running scans must be either stored, stopped or
+        finished before they can be deleted. To get the status of the scan, use [GET
+        /scans/{id}/status](#/scan/get_scan_status)."
       operationId: "delete_scan"
       tags:
-        - "scan"
+      - "scan"
       parameters:
-        - $ref: "#/components/parameters/ScanID"
+      - $ref: "#/components/parameters/ScanID"
       responses:
         "204":
           description: "Scan deleted"
@@ -311,27 +313,26 @@ paths:
 
   /scans/{id}/results:
     get:
-      description:
-        "While a scan is running it will generate results. This endpoint is used to get
-        a list of all results that were generated by the scan. If you only need specific results,
-        the query `range` can be used. This will then only return the results within the given
-        range. This is helpful to only get new results. The IDs of the results are incremental.
-        Alternative to only receive single results the endpoint [GET /scans/{id}/results/{rid}](#/scan/get_result) can be
-        used."
+      description: "While a scan is running it will generate results. This endpoint is used to get a list
+        of all results that were generated by the scan. If you only need specific results, the query
+        `range` can be used. This will then only return the results within the given range. This is
+        helpful to only get new results. The IDs of the results are incremental. Alternative to only
+        receive single results the endpoint [GET /scans/{id}/results/{rid}](#/scan/get_result) can
+        be used."
       operationId: "get_results"
       tags:
-        - "scan"
+      - "scan"
       parameters:
-        - $ref: "#/components/parameters/ScanID"
-        - name: range
-          in: query
-          description: "Get a range of results (e.g. `0-12`).
-            In case only a single number is given (e.g. `13`), all available results from this index on are returned.
-            If the scan is still running, new results will occur and must be collected with new request starting from the last processed index.
-            If no results are in the given range, an empty array is returned."
-          required: false
-          schema:
-            type: "string"
+      - $ref: "#/components/parameters/ScanID"
+      - name: range
+        in: query
+        description: "Get a range of results (e.g. `0-12`). In case only a single number is given (e.g.
+          `13`), all available results from this index on are returned. If the scan is still
+          running, new results will occur and must be collected with new request starting from the
+          last processed index. If no results are in the given range, an empty array is returned."
+        required: false
+        schema:
+          type: "string"
       responses:
         "200":
           description: "A list of results"
@@ -364,15 +365,15 @@ paths:
 
   /scans/{id}/results/{rid}:
     get:
-      description:
-        "Get a single result by its ID. To retrieve multiple results, use
-        [GET /scans/{id}/results](#/scan/get_results) with the range query parameter or without it to get all results."
+      description: "Get a single result by its ID. To retrieve multiple results, use [GET
+        /scans/{id}/results](#/scan/get_results) with the range query parameter or without it to get
+        all results."
       operationId: "get_result"
       tags:
-        - "scan"
+      - "scan"
       parameters:
-        - $ref: "#/components/parameters/ScanID"
-        - $ref: "#/components/parameters/ResultID"
+      - $ref: "#/components/parameters/ScanID"
+      - $ref: "#/components/parameters/ResultID"
       responses:
         "200":
           description: "The requested result"
@@ -394,15 +395,14 @@ paths:
 
   /scans/{id}/status:
     get:
-      description:
-        "This endpoint provides useful information about a scan. This includes the
-        current scan status (running, finished, etc.), the start and end time of the scan, as
-        well as information about the progress of the scan."
+      description: "This endpoint provides useful information about a scan. This includes the current scan
+        status (running, finished, etc.), the start and end time of the scan, as well as information
+        about the progress of the scan."
       operationId: "get_scan_status"
       tags:
-        - "scan"
+      - "scan"
       parameters:
-        - $ref: "#/components/parameters/ScanID"
+      - $ref: "#/components/parameters/ScanID"
       responses:
         "200":
           description: "The requested status"
@@ -447,10 +447,11 @@ paths:
 
   /vts:
     head:
-      description: "Get the response header. It contains the API version, feed version and available authentication methods."
+      description: "Get the response header. It contains the API version, feed version and available
+        authentication methods."
       operationId: "head_vts"
       tags:
-        - "general"
+      - "general"
       responses:
         "200":
           headers:
@@ -462,12 +463,11 @@ paths:
               $ref: "#/components/headers/Authentication"
           description: "Authenticated and authorized"
     get:
-      description:
-        "Get a list of all available vulnerability tests (VTs) to the scanner. Note, that not the
-        tests itself, but a list of identifiers (OIDs) of the tests is returned."
+      description: "Get a list of all available vulnerability tests (VTs) to the scanner. Note, that not
+        the tests itself, but a list of identifiers (OIDs) of the tests is returned."
       operationId: "get_vts"
       tags:
-        - "feed"
+      - "feed"
       responses:
         "200":
           description: "A list of available VTs."

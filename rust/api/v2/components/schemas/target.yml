@@ -1,16 +1,14 @@
 Target:
-  description:
-    "The target contains necessary information about the hosts to be scanned, such as
-    their IP addresses or hostnames, the ports to be scanned and credentials for authenticated
-    scans."
+  description: "The target contains necessary information about the hosts to be scanned, such as their
+    IP addresses or hostnames, the ports to be scanned and credentials for authenticated scans."
   type: "object"
   properties:
     hosts:
       description: "A list of hosts."
       type: "array"
       items:
-        description:
-          "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname.
+        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or
+          hostname.
 
           Examples:
 
@@ -20,7 +18,8 @@ Target:
 
           IPv4 range: 192.167.178.1-93 or 192.167.178.1-192.167.178.93
 
-          IPv6 range: 2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
+          IPv6 range:
+          2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
 
           IPv4 CIDR: 192.168.178.0/24
 
@@ -32,8 +31,8 @@ Target:
       description: "A list of excluded hosts."
       type: "array"
       items:
-        description:
-          "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or hostname.
+        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or
+          hostname.
 
           Examples:
 
@@ -43,7 +42,8 @@ Target:
 
           IPv4 range: 192.167.178.1-93 or 192.167.178.1-192.167.178.93
 
-          IPv6 range: 2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
+          IPv6 range:
+          2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
 
           IPv4 CIDR: 192.168.178.0/24
 
@@ -62,41 +62,43 @@ Target:
       items:
         $ref: "#/Credential"
     multiple_credentials:
-      description:
-        "If true, multiple credentials per host are allowed. WARNING: this can massively slow down
-        the scan for many credentials and hosts, as each authentication attempt takes some time. If
-        false, only one credential per host is allowed and a error is thrown otherwise. The default
-        is false."
+      description: "If true, multiple credentials per host are allowed. WARNING: this can massively slow
+        down the scan for many credentials and hosts, as each authentication attempt takes some
+        time. If false, only one credential per host is allowed and a error is thrown otherwise. The
+        default is false."
       type: "boolean"
     alive_test_ports:
-      description: "Dedicated port list for alive detection. Used for TCP-SYN and TCP-ACK ping when Boreas is enabled."
+      description: "Dedicated port list for alive detection. Used for TCP-SYN and TCP-ACK ping when Boreas
+        is enabled."
       type: "array"
       items:
         $ref: "#/PortRange"
     alive_test_methods:
-      description: "List of alive test to be performed against the target. Can be one or a combination of icmp, tcp_syn, tcp_ack, arp, consider_alive methods"
+      description: "List of alive test to be performed against the target. Can be one or a combination of
+        icmp, tcp_syn, tcp_ack, arp, consider_alive methods"
       type: "array"
       items:
         $ref: "#/AliveTestMethod"
     reverse_lookup_unify:
-      description: "If multiple IP addresses resolve to the same DNS name the DNS name will only get scanned once."
+      description: "If multiple IP addresses resolve to the same DNS name the DNS name will only get
+        scanned once."
       type: "boolean"
     reverse_lookup_only:
       description: "Only scan IP addresses that can be resolved into a DNS name."
       type: "boolean"
   required:
-    - hosts
-    - ports
+  - hosts
+  - ports
 
 AliveTestMethod:
   description: "Alive test method to be performed against the target"
   type: "string"
   enum:
-    - icmp
-    - tcp_syn
-    - tcp_ack
-    - arp
-    - consider_alive
+  - icmp
+  - tcp_syn
+  - tcp_ack
+  - arp
+  - consider_alive
 
 PortRange:
   description: "A port range for either UDP or TCP ports"
@@ -106,8 +108,8 @@ PortRange:
       description: "The protocol for the port range. If missing the port range is applied for UDP and TCP."
       type: "string"
       enum:
-        - udp
-        - tcp
+      - udp
+      - tcp
     range:
       type: "array"
       description: "A list of ranges"
@@ -121,17 +123,16 @@ PortRange:
             type: "number"
             description: "The inclusive end port."
   required:
-    - range
+  - range
 
 Credential:
   description: "Data for authentication for a target system."
   type: "object"
   properties:
     hosts:
-      description:
-        "A list of hosts for which the credential is valid. The format is the same as for the hosts
-        in the target. This field is optional, if not set the credential is the default cedential
-        for all hosts of the target."
+      description: "A list of hosts for which the credential is valid. The format is the same as for the
+        hosts in the target. This field is optional, if not set the credential is the default
+        cedential for all hosts of the target."
       type: "array"
       items:
         type: "string"
@@ -139,11 +140,11 @@ Credential:
       description: "The service used for authentication."
       type: "string"
       enum:
-        - ssh
-        - smb
-        - esxi
-        - snmp
-        - krb5
+      - ssh
+      - smb
+      - esxi
+      - snmp
+      - krb5
     port:
       description: "The port the authentication service is running."
       type: "integer"
@@ -174,7 +175,7 @@ UP:
       description: "Privilege password for authentication."
       type: "string"
   required:
-    - username
+  - username
 
 KRB5:
   description: "Authentication via Kerberos GSA."
@@ -193,10 +194,10 @@ KRB5:
       description: "KDC to be defined within the realm."
       type: "string"
   required:
-    - username
-    - password
-    - realm
-    - kdc
+  - username
+  - password
+  - realm
+  - kdc
 
 USK:
   description: "Authentication via Username and Security Key."
@@ -218,8 +219,8 @@ USK:
       description: "Privilege password for authentication."
       type: "string"
   required:
-    - username
-    - private
+  - username
+  - private
 
 SNMP:
   description: "Authentication via SNMP."
@@ -238,8 +239,8 @@ SNMP:
       description: "Algorithm for SNMP authentication."
       type: "string"
       enum:
-        - md5
-        - sha1
+      - md5
+      - sha1
     privacy_password:
       description: "Privacy Password for SNMP authentication."
       type: "string"
@@ -247,8 +248,8 @@ SNMP:
       description: "Algorithm used for encrypting privacy password."
       type: "string"
       enum:
-        - aes
-        - des
+      - aes
+      - des
 
 VT:
   description: "A single VT and its parameters."
@@ -258,7 +259,8 @@ VT:
       description: "The identifier for a VT"
       type: "string"
     parameters:
-      description: "A list of parameters for the VT. In case a VT has parameters but these are not set here, then the defaults will be applied. A default exists for any parameter."
+      description: "A list of parameters for the VT. In case a VT has parameters but these are not set
+        here, then the defaults will be applied. A default exists for any parameter."
       type: "array"
       items:
         $ref: "#/Parameter"
@@ -275,5 +277,5 @@ Parameter:
       description: "Value of the parameter."
       type: "string"
   required:
-    - value
-    - id
+  - value
+  - id

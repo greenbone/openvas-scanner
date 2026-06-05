@@ -3,19 +3,20 @@ Result:
   type: "object"
   properties:
     id:
-      description: "An ID, which is unique for the scan. It is auto incremental and starts at 0 for the first result."
+      description: "An ID, which is unique for the scan. It is auto incremental and starts at 0 for the
+        first result."
       type: "integer"
       format: "int32"
     type:
       description: "The type of the result."
       type: "string"
       enum:
-        - alarm
-        - log
-        - error
-        - host_start
-        - host_stop
-        - host_detail
+      - alarm
+      - log
+      - error
+      - host_start
+      - host_stop
+      - host_detail
     ip_address:
       description: "The IPv4 or IPv6 of the target the result was found."
       type: "string"
@@ -33,13 +34,15 @@ Result:
       description: "The protocol that was used to find the result, corresponding to the port."
       type: "string"
       enum:
-        - udp
-        - tcp
+      - udp
+      - tcp
     message:
       description: "Additional information about the result."
       type: "string"
     detail:
-      description: "The detail object is only used for results of type host_detail. It contains information about a scanned hosted such as hardware information, architecture and many more."
+      description: "The detail object is only used for results of type host_detail. It contains
+        information about a scanned hosted such as hardware information, architecture and many
+        more."
       type: "object"
       properties:
         name:
@@ -59,17 +62,18 @@ Result:
               description: "descriptive name of the source, in case of type nvt this is its OID"
               type: "string"
             description:
-              description: "Optional information about the detection, could contain how the data actually was collected."
+              description: "Optional information about the detection, could contain how the data actually was
+                collected."
               type: "string"
           required:
-            - type
-            - name
+          - type
+          - name
       required:
-        - name
-        - value
-        - source
+      - name
+      - value
+      - source
   required:
-    - type
+  - type
 
 ResultsResponse:
   description: "A paginated collection of scan results."
@@ -81,4 +85,4 @@ ResultsResponse:
       items:
         $ref: "#/Result"
   required:
-    - items
+  - items

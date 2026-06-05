@@ -14,25 +14,24 @@ Status:
       description: "In which phase the scan is currently in."
       type: "string"
       enum:
-        - stored
-        - requested
-        - running
-        - stopped
-        - failed
-        - succeeded
+      - stored
+      - requested
+      - running
+      - stopped
+      - failed
+      - succeeded
     host_info:
       $ref: "#/HostInfo"
   required:
-    - status
+  - status
 
 HostInfo:
   description: "Information about the progress for each host of the scan."
   type: "object"
   properties:
     all:
-      description:
-        "The total number of theoretical hosts that are part of the scan. Theoretical
-        means, that they might not be reachable and are not necessarily scanned. This number is not
+      description: "The total number of theoretical hosts that are part of the scan. Theoretical means,
+        that they might not be reachable and are not necessarily scanned. This number is not
         necessarily the sum of dead and alive, as the alive detection might not be finished yet."
       type: "integer"
       format: "int32"
@@ -60,8 +59,7 @@ HostInfo:
           description: "The host for which the progress is given."
           type: "string"
         checks:
-          description:
-            "Information about the progress of the scan. It is called checks to keep it as generic
+          description: "Information about the progress of the scan. It is called checks to keep it as generic
             as possible."
           type: "object"
           properties:
@@ -82,9 +80,9 @@ HostInfo:
           type: "integer"
           format: "int32"
   required:
-    - all
-    - excluded
-    - dead
-    - alive
-    - queued
-    - finished
+  - all
+  - excluded
+  - dead
+  - alive
+  - queued
+  - finished

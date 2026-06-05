@@ -19,8 +19,8 @@ ScanReq:
       items:
         $ref: "./target.yml#/VT"
   required:
-    - target
-    - vts
+  - target
+  - vts
 
 ScanResp:
   description: "Model representing a scan response."
@@ -41,8 +41,8 @@ ScanResp:
       items:
         $ref: "./target.yml#/VT"
   required:
-    - target
-    - vts
+  - target
+  - vts
 
 ScanActionBody:
   description: "An action to perform on a scan"
@@ -52,10 +52,10 @@ ScanActionBody:
       description: "The action to perform"
       type: "string"
       enum:
-        - start
-        - stop
+      - start
+      - stop
   required:
-    - "action"
+  - "action"
 
 ScannerPreference:
   description: "Consists of a preference ID and its value."
@@ -68,8 +68,8 @@ ScannerPreference:
       description: "Value of the preference."
       type: "string"
   required:
-    - value
-    - id
+  - value
+  - id
 
 Preferences:
   description: "List of preferences available"
