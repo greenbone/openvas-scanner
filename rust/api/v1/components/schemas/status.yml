@@ -14,16 +14,16 @@ Status:
       description: "In which phase the scan is currently in."
       type: "string"
       enum:
-        - stored
-        - requested
-        - running
-        - stopped
-        - failed
-        - succeeded
+      - stored
+      - requested
+      - running
+      - stopped
+      - failed
+      - succeeded
     host_info:
       $ref: "#/HostInfo"
   required:
-    - status
+  - status
 
 HostInfo:
   description: "Information about the progress for each host of the scan."
@@ -65,9 +65,9 @@ HostInfo:
       items:
         type: "string"
   required:
-    - all
-    - excluded
-    - dead
-    - alive
-    - queued
-    - finished
+  - all
+  - excluded
+  - dead
+  - alive
+  - queued
+  - finished

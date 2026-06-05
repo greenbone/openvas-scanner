@@ -1,11 +1,10 @@
 list_of_oids:
-  description: "
-    A small list of OIDs for requesting the available VTs.
-    For a regular feed this is typically over 100K OIDs."
+  description: " A small list of OIDs for requesting the available VTs. For a regular feed this is
+    typically over 100K OIDs."
   value:
     [
       "1.3.6.1.4.1.25623.1.0.100196",
       "1.3.6.1.4.1.25623.1.0.100127",
       "1.3.6.1.4.1.25623.1.0.10441",
-      "1.3.6.1.4.1.25623.1.0.100313",
+      "1.3.6.1.4.1.25623.1.0.100313"
     ]

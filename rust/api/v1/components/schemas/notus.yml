@@ -6,7 +6,8 @@ NotusPkgList:
     type: "string"
 
 NotusResult:
-  description: "A dictionary of Notus results, where the key is an OID corresponding to the advisory and the value is a list of found vulnerable packages."
+  description: "A dictionary of Notus results, where the key is an OID corresponding to the advisory
+    and the value is a list of found vulnerable packages."
   type: "object"
   additionalProperties:
     type: "array"
@@ -25,8 +26,8 @@ NotusVulnPkgs:
       type: "string"
     fixed_version:
       oneOf:
-        - $ref: "#/FixedPackage"
-        - $ref: "#/FixedRange"
+      - $ref: "#/FixedPackage"
+      - $ref: "#/FixedRange"
 
 FixedPackage:
   description: "A fixed package"
@@ -39,11 +40,11 @@ FixedPackage:
       description: "Specifier of the fixed package"
       type: "string"
       enum:
-        - ">"
-        - ">="
-        - "<"
-        - "<="
-        - "="
+      - ">"
+      - ">="
+      - "<"
+      - "<="
+      - "="
 
 FixedRange:
   description: "A fixed range. The start version is inclusive and the end version exclusive"
