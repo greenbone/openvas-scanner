@@ -132,7 +132,7 @@ Credential:
     hosts:
       description: "A list of hosts for which the credential is valid. The format is the same as for the
         hosts in the target. This field is optional, if not set the credential is the default
-        cedential for all hosts of the target."
+        credential for all hosts of the target."
       type: "array"
       items:
         type: "string"
