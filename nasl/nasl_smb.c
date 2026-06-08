@@ -800,7 +800,7 @@ nasl_psrp_cli (lex_ctxt *lexic)
     {
       g_main_loop_unref (context.loop);
       char *err_aux = err ? g_strdup (err->message) : g_strdup ("Error");
-      g_warning ("%s: %s", __func__, err_aux);
+      g_debug ("%s: %s", __func__, err_aux);
       if (err)
         g_error_free (err);
       return array_from_psrp_error (2, err_aux);
@@ -822,7 +822,7 @@ nasl_psrp_cli (lex_ctxt *lexic)
       else
         {
           char *err_aux = g_strdup (strerror (errno));
-          g_warning ("%s: %s", __func__, err_aux);
+          g_debug ("%s: %s", __func__, err_aux);
           g_string_free (string, TRUE);
           close (sout);
           g_main_loop_run (context.loop);
@@ -840,7 +840,7 @@ nasl_psrp_cli (lex_ctxt *lexic)
   if (g_str_has_prefix (string->str, "[-]") || err_code != 0)
     {
       char *err_aux = g_string_free (string, FALSE);
-      g_warning ("%s: %s", __func__, err_aux);
+      g_debug ("%s: %s", __func__, err_aux);
       return array_from_psrp_error (1, err_aux);
     }
   else if ((unicode = strstr (string->str, "\xff\xfe")))
@@ -856,7 +856,7 @@ nasl_psrp_cli (lex_ctxt *lexic)
       if (!tmp)
         {
           char *err_aux = g_strdup (err->message);
-          g_warning ("%s: %s", __func__, err_aux);
+          g_debug ("%s: %s", __func__, err_aux);
           g_string_free (string, TRUE);
           g_error_free (err);
           return array_from_psrp_error (2, err_aux);
