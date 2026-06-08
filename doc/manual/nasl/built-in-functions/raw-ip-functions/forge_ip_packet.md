@@ -21,7 +21,7 @@ Forge an IP datagram inside the block of data. It takes following arguments:
 - ip_off: is the fragment offset in 64 bits words. By default, 0.
 - ip_p: is the IP protocol. 0 by default.
 - ip_src: is the source address in ASCII. NASL will convert it into an integer in network order.
-- ip_dst: is the destination address in ASCII. NASL will convert it into an integer in network order. By default it takes the target IP address via call to **[plug_get_host_ip(3)](plug_get_host_ip.md)**. This option looks dangerous, but since anybody can edit an IP packet with the string functions, we make it possible to set directly during the forge.
+- ip_dst: is the destination address in ASCII. NASL will convert it into an integer in network order. By default it takes the target IP address via call to **[get_host_ip(3)](../network-functions/get_host_ip.md)**. This option looks dangerous, but since anybody can edit an IP packet with the string functions, we make it possible to set directly during the forge.
 - ip_sum: is the packet header checksum. It will be computed by default.
 - ip_tos: is the “type of service” field. 0 by default
 - ip_ttl: is the “Time To Live”. 64 by default.
@@ -33,7 +33,7 @@ The IP datagram or NULL on error.
 
 ## ERRORS
 
-- No valid dst_addr could be determined via call to **[plug_get_host_ip(3)](plug_get_host_ip.md)**
+- No valid dst_addr could be determined via call to **[get_host_ip(3)](../network-functions/get_host_ip.md)**
 
 ## EXAMPLES
 

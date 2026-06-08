@@ -29,4 +29,4 @@ if (safe_checks())
 
 ## SEE ALSO
 
-**[exit(3)](exit.md)**,
+**[exit(3)](../misc/exit.md)**,

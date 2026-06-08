@@ -235,7 +235,7 @@ Options:
 
 On `feed transform` it will create a list of `nasl` files within the feed directory, without verification. Each mentioned `*.nasl` script within that dir will be executed  with `description = 1`.
 
-It will produce a json array in stdout in the format described within [json-storage](../storage/json/README.md)
+It will produce a json array in stdout in the format described within [json-storage](#nvt)
 
 #### transpile
 

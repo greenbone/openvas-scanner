@@ -87,7 +87,7 @@ Strings
 - `>!<` is the negated string-match operator.
 - `=~` is the regex matching operator. It interprets the RHS as a regular expression and checks whether the LHS matches the regular expression.
 - `!~` is the negated regex matching operator.
-Note: `=~` and `!~` support the (standard extended POSIX) regex pattern. See [Regular Expression Functions](../built-in-functions/regular-expressions/index.md) for more background info on the supported regex expression support.
+Note: `=~` and `!~` support the (standard extended POSIX) regex pattern. See [Regular Expression Functions](built-in-functions/regular-expressions/index.md) for more background info on the supported regex expression support.
 
 ### Assignment
 An assignment expression is syntactically similar to a binary expression but assigns the RHS expression to the LHS value. The LHS is restricted to valid assignment targets:

@@ -49,4 +49,4 @@ errcode = socket_get_error( 0 );
 
 ## SEE ALSO
 
-**[open_priv_sock_tcp](../network/open_priv_sock_tcp.md)**,  **[open_priv_sock_udp](../network/open_priv_sock_udp.md)**,  **[open_sock_tcp](../network/open_sock_tcp.md)**,  **[open_sock_udp](../network/open_sock_udp.md)**, **[socket_negotiate_ssl(3)](socket_negotiate_ssl.md)**
+**[open_priv_sock_tcp](../network-functions/open_priv_sock_tcp.md)**,  **[open_priv_sock_udp](../network-functions/open_priv_sock_udp.md)**,  **[open_sock_tcp](../network-functions/open_sock_tcp.md)**,  **[open_sock_udp](../network-functions/open_sock_udp.md)**, **[socket_negotiate_ssl(3)](socket_negotiate_ssl.md)**
