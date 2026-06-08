@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use greenbone_scanner_framework::models::PreferenceType::Password;
-use greenbone_scanner_framework::models::VTData;
+use crate::models::PreferenceType::Password;
+use crate::models::VTData;
 
 use crate::storage::Retriever;
 use crate::storage::inmemory::InMemoryStorage;

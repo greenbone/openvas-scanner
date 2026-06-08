@@ -26,7 +26,7 @@ pub mod utils;
 use std::pin::Pin;
 
 use futures::Stream;
-pub use greenbone_scanner_framework::models;
+pub mod models;
 
 pub type Promise<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 pub type PromiseRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;

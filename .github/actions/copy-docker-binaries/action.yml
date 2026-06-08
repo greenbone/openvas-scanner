@@ -14,7 +14,9 @@ runs:
         pattern: rs-binaries-${{ inputs.arch }}
         merge-multiple: true
         path: ./assets
-    - run: mkdir -p .docker/install/usr/local
+    - run: |
+        test -d assets/linux/${{ inputs.arch }}
+        mkdir -p .docker/install/usr/local
       shell: bash
     - run: mv assets/linux/${{ inputs.arch }} .docker/install/usr/local/bin
       shell: bash

@@ -438,7 +438,7 @@ advisories_new_notus ()
   advisories_t *advisories_list = g_malloc0 (sizeof (advisories_t));
   advisories_list->max_size = 100;
   advisories_list->advisories =
-    g_malloc0_n (advisories_list->max_size, sizeof (advisory_t));
+    g_malloc0_n (advisories_list->max_size, sizeof (advisory_t *));
   advisories_list->type = NOTUS;
 
   return advisories_list;
@@ -499,6 +499,8 @@ advisory_new (char *oid)
   adv = g_malloc0 (sizeof (advisory_t));
   adv->oid = g_strdup (oid);
   adv->count = 0;
+  adv->max_size = 100;
+  adv->pkgs = g_malloc0_n (adv->max_size, sizeof (vuln_pkg_t *));
   return adv;
 }
 
@@ -523,13 +525,12 @@ skiron_advisory_new (char *oid, char *message)
 static void
 advisory_add_vuln_pkg (advisory_t *adv, vuln_pkg_t *vuln)
 {
-  if (adv->count == 100)
+  if (adv->count == adv->max_size)
     {
-      g_warning (
-        "%s: Failed adding new vulnerable package to the notus_advisory %s. "
-        "No more free slots",
-        __func__, adv->oid);
-      return;
+      adv->max_size *= 2;
+      adv->pkgs = g_realloc_n (adv->pkgs, adv->max_size, sizeof (vuln_pkg_t *));
+      memset (adv->pkgs + adv->count, '\0',
+              (adv->max_size - adv->count) * sizeof (vuln_pkg_t *));
     }
 
   adv->pkgs[adv->count] = vuln;
@@ -558,15 +559,19 @@ advisory_free (advisory_t *notus_advisory)
             {
               g_free (notus_advisory->pkgs[i]->range->start);
               g_free (notus_advisory->pkgs[i]->range->stop);
+              g_free (notus_advisory->pkgs[i]->range);
             }
           else if (notus_advisory->pkgs[i]->type == SINGLE)
             {
               g_free (notus_advisory->pkgs[i]->version->version);
               g_free (notus_advisory->pkgs[i]->version->specifier);
+              g_free (notus_advisory->pkgs[i]->version);
             }
+          g_free (notus_advisory->pkgs[i]);
         }
     }
-  notus_advisory = NULL;
+  g_free (notus_advisory->pkgs);
+  g_free (notus_advisory);
 }
 
 static void
@@ -577,7 +582,7 @@ skiron_advisory_free (skiron_advisory_t *skiron_advisory)
 
   g_free (skiron_advisory->oid);
   g_free (skiron_advisory->message);
-  skiron_advisory = NULL;
+  g_free (skiron_advisory);
 }
 
 /** @brief Free()'s an advisories
@@ -597,7 +602,8 @@ advisories_free (advisories_t *advisories)
       else
         skiron_advisory_free (advisories->skiron_advisories[i]);
     }
-  advisories = NULL;
+  g_free (advisories->advisories);
+  g_free (advisories);
 }
 
 /** @brief Creates a new Vulnerable packages which belongs to an notus_advisory

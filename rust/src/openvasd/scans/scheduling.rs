@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use greenbone_scanner_framework::models::{self, Scan};
+use scannerlib::models::{self, Scan};
 use scannerlib::{
     models::FeedType,
     nasl::{builtin::nasl_std_functions, syntax::Loader},
@@ -26,6 +26,7 @@ use crate::{
         dao::{Fetch, RetryExec},
         sqlite::{DataBase, results::DBResults, scans::ScanDB, state_change::ScanStateController},
     },
+    scheduler_common,
     vts::orchestrator::{self, FeedStatusChange},
 };
 
@@ -196,25 +197,6 @@ where
         }
     }
 
-    async fn fetch_requested(&self) -> R<Vec<i64>> {
-        let limit: Option<i64> = if self.max_concurrent_scan > 0 {
-            let running = self.scan_state.count_scans_in_state("running").await?;
-            Some(if running > self.max_concurrent_scan {
-                0
-            } else {
-                (self.max_concurrent_scan - running) as i64
-            })
-        } else {
-            None
-        };
-        let ids = self
-            .scan_state
-            .fetch_scans_in_state("requested", limit)
-            .await?;
-
-        Ok(ids)
-    }
-
     async fn is_feed_sync_in_progress(&self) -> bool {
         self.feed_sync_in_progress
             .read()
@@ -250,7 +232,9 @@ where
             return Ok(());
         }
 
-        let ids = self.fetch_requested().await?;
+        let ids =
+            scheduler_common::fetch_requested_scans(&self.scan_state, self.max_concurrent_scan)
+                .await?;
         for id in ids {
             // To prevent accidental state change from running -> requested based on an old
             // snapshot we only do a resource when a scan has not already been started.
@@ -329,10 +313,17 @@ where
         self.scan_import_results(id, scan_id.clone()).await?;
         self.scanner.stop_scan(scan_id.clone()).await?;
 
-        let changed = self
+        // TODO: add abstraction for multiple status, this happens more often than thought
+        let mut changed = self
             .scan_state
             .change_state(id, "running", "stopped")
             .await?;
+        if !changed {
+            changed = self
+                .scan_state
+                .change_state(id, "requested", "stopped")
+                .await?;
+        }
         tracing::debug!(changed, id, "Changed scan from running to stopped");
 
         Ok(())
@@ -375,11 +366,8 @@ where
     }
 
     async fn get_running_count(&self) -> i64 {
-        match ScanDB::new(&self.pool, models::Phase::Running)
-            .fetch()
-            .await
-        {
-            Ok(x) => x,
+        match self.scan_state.count_scans_in_state("running").await {
+            Ok(x) => x as i64,
             Err(error) => {
                 tracing::warn!(
                     %error,
@@ -602,7 +590,7 @@ pub(crate) mod tests {
             pool: pool.clone(),
             scanner,
             cryptor,
-            max_concurrent_scan: 4,
+            max_concurrent_scan: 1,
             feed_sync_in_progress: Arc::new(RwLock::new(feed_changes)),
             scan_state: change_scan_status,
         };
@@ -611,7 +599,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn start_scan() -> TR {
+    async fn start_stop_scan() -> TR {
         let (under_test, known_scans) = setup_test_env().await?;
 
         for id in known_scans.iter() {
@@ -625,6 +613,20 @@ pub(crate) mod tests {
         assert_eq!(status.len(), known_scans.len());
         assert_eq!(
             status.iter().filter(|s| s as &str == "requested").count(),
+            status.len()
+        );
+        for id in known_scans.iter() {
+            under_test
+                .on_user_action(&Message::Stop(id.to_string()))
+                .await?;
+        }
+        let status: Vec<String> = query_scalar("SELECT status FROM scans")
+            .fetch_all(&under_test.pool)
+            .await?;
+        dbg!(&status);
+        assert_eq!(status.len(), known_scans.len());
+        assert_eq!(
+            status.iter().filter(|s| s as &str == "stopped").count(),
             status.len()
         );
 

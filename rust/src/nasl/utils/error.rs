@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use greenbone_scanner_framework::models::VtDataError;
+use crate::models::VtDataError;
 use std::str::Utf8Error;
 
 use thiserror::Error;

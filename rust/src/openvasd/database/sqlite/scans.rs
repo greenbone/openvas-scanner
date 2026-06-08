@@ -1,31 +1,19 @@
-use futures::StreamExt;
-use greenbone_scanner_framework::InternalIdentifier;
 use scannerlib::models::{self, AliveTestMethods};
-use sqlx::{Connection, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow};
+use sqlx::{Connection, Row, Sqlite, query, query_scalar, sqlite::SqliteRow};
 
 use crate::{
-    crypt::{self, Crypt, Encrypted},
+    credentials::{decrypt_credentials, encrypt_credentials},
+    crypt::Crypt,
     database::{
-        dao::{DAOError, DAOHandler, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
-        sqlite::{DataBase, OpenVASDDB, insert_values_chunked, state_change},
+        dao::{DAOError, DAOPromiseRef, Execute, Fetch},
+        sqlite::{
+            DataBase, OpenVASDDB, insert_client_scan_map, insert_scan_with_auth_data,
+            insert_values_chunked, state_change,
+        },
     },
 };
 
 pub type ScanDB<'o, T> = OpenVASDDB<'o, T>;
-
-impl From<crypt::ParseError> for DAOError {
-    fn from(value: crypt::ParseError) -> Self {
-        tracing::warn!(%value, "Unable to handle encryption on credentials.");
-        Self::Corrupt
-    }
-}
-
-impl From<serde_json::Error> for DAOError {
-    fn from(value: serde_json::Error) -> Self {
-        tracing::warn!(%value, "Invalid json stored.");
-        Self::Corrupt
-    }
-}
 
 impl<'o, C> Execute<String> for ScanDB<'o, (&'o C, &'o str, &models::Scan)>
 where
@@ -49,28 +37,15 @@ async fn scan_insert<C>(
     scan: &models::Scan,
 ) -> Result<String, DAOError>
 where
-    C: Crypt,
+    C: Crypt + Sync,
 {
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
 
-    let row = query("INSERT INTO client_scan_map(client_id, scan_id) VALUES (?, ?)")
-        .bind(client.to_string())
-        .bind(&scan.scan_id)
-        .execute(&mut *tx)
-        .await?;
-
-    let mapped_id = row.last_insert_rowid().to_string();
-    let auth_data = {
-        let bytes = serde_json::to_vec(&scan.target.credentials)?;
-        let bytes = crypter.encrypt(bytes).await;
-        bytes.to_string()
-    };
-    query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
-        .bind(&mapped_id)
-        .bind(auth_data)
-        .execute(&mut *tx)
-        .await?;
+    let mapped_id = insert_client_scan_map(&mut *tx, client, &scan.scan_id).await?;
+    let auth_data = encrypt_credentials(crypter, &scan.target.credentials).await?;
+    insert_scan_with_auth_data(&mut *tx, mapped_id, &auth_data).await?;
+    let mapped_id = mapped_id.to_string();
     if !scan.vts.is_empty() {
         insert_values_chunked(
             &mut *tx,
@@ -356,9 +331,7 @@ where
         .await?;
 
     let auth_data = scan_row.get::<String, _>("auth_data");
-    let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
-    let auth_data = crypter.decrypt(encrypted).await;
-    let credentials = serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?;
+    let credentials = decrypt_credentials(crypter, &auth_data).await?;
 
     let scan = models::Scan {
         scan_id,
@@ -444,95 +417,6 @@ impl<'o> Fetch<String> for ScanDB<'o, i64> {
                 .bind(self.input)
                 .fetch_one(self.pool)
                 .await
-                .map_err(DAOError::from)
-        })
-    }
-}
-
-// match query_scalar("SELECT count(id) FROM scans WHERE status = 'running'")
-//     .fetch_one(&self.pool)
-//     .await
-// {
-//     Ok(x) => x,
-//     Err(error) => {
-//         tracing::warn!(
-//             %error,
-//             "Unable to count running scans, still preventing start of new scans"
-//         );
-//         1
-//     }
-// }
-impl<'o> Fetch<i64> for ScanDB<'o, models::Phase> {
-    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, i64>
-    where
-        'a: 'b,
-    {
-        Box::pin(async move {
-            query_scalar("SELECT count(id) FROM scans WHERE status = ?")
-                .bind(self.input.as_ref())
-                .fetch_one(self.pool)
-                .await
-                .map_err(DAOError::from)
-        })
-    }
-}
-
-impl<'o, T> Fetch<Option<InternalIdentifier>> for T
-where
-    T: DAOHandler<&'o SqlitePool, (&'o str, &'o str)> + Sync,
-{
-    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<InternalIdentifier>>
-    where
-        'a: 'b,
-    {
-        Box::pin(async move {
-            let (client_id, scan) = self.input();
-            let x = query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
-                .bind(client_id)
-                .bind(scan)
-                .fetch_optional(self.db())
-                .await?;
-            Ok(x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()))
-        })
-    }
-}
-
-impl<'o, T> StreamFetch<String> for T
-where
-    T: DAOHandler<&'o SqlitePool, String> + Sync,
-{
-    fn stream_fetch(self) -> DAOStreamer<String> {
-        let (db, client_id) = self.inner();
-        let result = query(
-            r#"
-                SELECT scan_id FROM client_scan_map WHERE client_id = ?
-            "#,
-        )
-        .bind(client_id)
-        .fetch(db)
-        .map(|x| {
-            x.map(|x| x.get::<String, _>("scan_id"))
-                .map_err(DAOError::from)
-        });
-        Box::pin(result)
-    }
-}
-
-impl<'o, T> Execute<()> for T
-where
-    T: DAOHandler<&'o SqlitePool, String> + Sync,
-{
-    fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
-    where
-        'a: 'b,
-    {
-        const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
-        Box::pin(async move {
-            query(DELETE_SQL)
-                .bind(self.input())
-                .execute(self.db())
-                .await
-                .map(|_| ())
                 .map_err(DAOError::from)
         })
     }

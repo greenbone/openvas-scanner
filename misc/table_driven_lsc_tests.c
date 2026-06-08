@@ -89,6 +89,45 @@ Ensure (lsc, process_resp)
   advisories_free (advisories);
 }
 
+Ensure (lsc, process_resp_more_than_100_pkgs)
+{
+  const int num_pkgs = 150;
+  GString *resp =
+    g_string_new ("{\"1.3.6.1.4.1.25623.1.1.7.2.2023.0000000000001\": [");
+
+  for (int i = 0; i < num_pkgs; i++)
+    {
+      if (i > 0)
+        g_string_append (resp, ",");
+      g_string_append_printf (
+        resp,
+        "{\"name\": \"pkg%d\", \"installed_version\": \"1.0\","
+        " \"fixed_version\": {\"version\": \"1.1\", \"specifier\": \">=\"}}",
+        i);
+    }
+  g_string_append (resp, "]}");
+
+  advisories_t *advisories = lsc_process_response (resp->str, resp->len);
+  g_string_free (resp, TRUE);
+
+  assert_that (advisories, is_not_null);
+  assert_that (advisories->count, is_equal_to (1));
+  assert_that (advisories->advisories[0]->count, is_equal_to (num_pkgs));
+
+  for (int i = 0; i < num_pkgs; i++)
+    {
+      char expected_name[32];
+      snprintf (expected_name, sizeof (expected_name), "pkg%d", i);
+      assert_that (
+        strcmp (advisories->advisories[0]->pkgs[i]->pkg_name, expected_name),
+        is_equal_to (0));
+      assert_that (advisories->advisories[0]->pkgs[i]->type,
+                   is_equal_to (SINGLE));
+    }
+
+  advisories_free (advisories);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -99,6 +138,7 @@ main (int argc, char **argv)
 
   add_test_with_context (suite, lsc, process_resp);
   add_test_with_context (suite, lsc, make_pkg_in_json);
+  add_test_with_context (suite, lsc, process_resp_more_than_100_pkgs);
   if (argc > 1)
     ret = run_single_test (suite, argv[1], create_text_reporter ());
   else

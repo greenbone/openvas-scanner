@@ -244,13 +244,13 @@ impl TryFrom<Response> for Scan {
     }
 }
 
-impl From<Scan> for Vec<greenbone_scanner_framework::models::Result> {
+impl From<Scan> for Vec<crate::models::Result> {
     fn from(scan: Scan) -> Self {
         scan.results.into()
     }
 }
 
-impl TryFrom<Response> for Vec<greenbone_scanner_framework::models::Result> {
+impl TryFrom<Response> for Vec<crate::models::Result> {
     type Error = Error;
     fn try_from(response: Response) -> Result<Self, Self::Error> {
         let scan = Scan::try_from(response)?;
@@ -360,7 +360,7 @@ pub struct ScanResult {
     pub description: String,
 }
 
-use greenbone_scanner_framework::models::ResultType as RT;
+use crate::models::ResultType as RT;
 impl From<&ScanResult> for RT {
     fn from(sr: &ScanResult) -> Self {
         match (
@@ -396,7 +396,7 @@ impl HostDetail {
     }
 }
 
-use greenbone_scanner_framework::models::{self, Detail, Phase, Protocol, Result as Vulnerability};
+use crate::models::{self, Detail, Phase, Protocol, Result as Vulnerability};
 impl From<&ScanResult> for Vulnerability {
     fn from(result: &ScanResult) -> Self {
         // name == script_name can be found via oid and is ignored here
@@ -598,7 +598,7 @@ impl From<Scan> for models::Status {
                 scanning.insert(host.name.clone(), 0);
             }
         }
-        use greenbone_scanner_framework::models::HostInfo as HI;
+        use crate::models::HostInfo as HI;
         models::Status {
             status: phase,
             start_time: value.start_time.map(|s| s.0),
@@ -838,9 +838,8 @@ mod tests {
 </get_scans_response>
             "#;
         let response: Response = from_str(xml).unwrap();
-        let results: Vec<greenbone_scanner_framework::models::Result> =
-            response.try_into().unwrap();
-        use greenbone_scanner_framework::models::ResultType::*;
+        let results: Vec<crate::models::Result> = response.try_into().unwrap();
+        use crate::models::ResultType::*;
         let expected = [HostStart, HostDetail, HostEnd];
         assert_eq!(results.len(), expected.len());
         for (result, expected) in results.iter().zip(expected.iter()) {
@@ -861,8 +860,7 @@ mod tests {
 </get_scans_response>
             "#;
         let response: Response = from_str(xml).unwrap();
-        let results: Vec<greenbone_scanner_framework::models::Result> =
-            response.try_into().unwrap();
+        let results: Vec<crate::models::Result> = response.try_into().unwrap();
         assert_eq!(results.len(), 1);
         let result = results.first().unwrap();
         let detail = result.detail.clone().unwrap();

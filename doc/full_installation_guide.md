@@ -691,7 +691,7 @@ EOF
 
 <i>WARNING
 
-The systemd setup only includes the API-key setup. Please follow the instructions at https://github.com/greenbone/openvas-scanner/tree/main/rust/openvasd for more information about authentication methods.
+The systemd setup only includes the API-key setup. Please follow the instructions at https://github.com/greenbone/openvas-scanner/tree/main/rust/src/openvasd#authentication for more information about authentication methods.
 </i>
 
 Systemd service file for openvasd:

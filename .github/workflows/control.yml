@@ -106,7 +106,7 @@ jobs:
       binary_version: ${{ needs.init.outputs.binary_version }}
   functional:
     if: github.event_name == 'pull_request'
-    needs: [container]
+    needs: [build, container]
     uses: ./.github/workflows/functional.yaml
     with:
       image: "ghcr.io/${{ github.repository }}:pr-${{ github.event.pull_request.number }}"

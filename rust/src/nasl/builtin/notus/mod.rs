@@ -7,7 +7,7 @@ mod tests;
 
 use std::{collections::HashMap, net::SocketAddr};
 
-use greenbone_scanner_framework::models::FixedVersion;
+use crate::models::FixedVersion;
 use http::StatusCode;
 use nasl_function_proc_macro::nasl_function;
 use serde::{Deserialize, Serialize};

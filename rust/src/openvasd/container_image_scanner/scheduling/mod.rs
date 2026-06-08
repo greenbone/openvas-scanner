@@ -7,11 +7,11 @@ use container_image_scanner::{
     image::{Credential, Image, ImageID, packages::ToNotus},
 };
 use futures::StreamExt;
-use greenbone_scanner_framework::models;
+use scannerlib::models;
 use tokio::{
-    sync::{Mutex, RwLock},
+    sync::RwLock,
     task::JoinSet,
-    time,
+    time::{self, MissedTickBehavior},
 };
 use tracing::{debug, instrument, warn};
 
@@ -25,7 +25,12 @@ use crate::{
             scanner::{ScannerArchImageError, ScannerError},
         },
     },
-    database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
+    crypt::Crypt,
+    database::{
+        dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
+        sqlite::state_change::ScanStateController,
+    },
+    scheduler_common,
 };
 use scannerlib::notus::{Notus, NotusError};
 
@@ -63,31 +68,43 @@ pub struct ProcessingImage {
 /// It retrieves commands usually by the endpoint handler to either start or stop a scan.
 /// It then sets the status of that scan to queued and regularly verifies if a scan can be started
 /// when the scan is finished it also sets the status to either succeed or failed.
-pub struct Scheduler<Registry, Extractor> {
+pub struct Scheduler<Registry, Extractor, Cryptor> {
     pool: DataBase,
     config: Arc<Config>,
+    crypter: Arc<Cryptor>,
+    scan_state: ScanStateController,
     registry: PhantomData<Registry>,
     extractor: PhantomData<Extractor>,
     products: Arc<RwLock<Notus>>,
 }
 
-impl<Registry, Extractor> Scheduler<Registry, Extractor> {
-    fn new(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Self {
+impl<Registry, Extractor, Cryptor> Scheduler<Registry, Extractor, Cryptor> {
+    fn new(
+        config: Arc<Config>,
+        pool: DataBase,
+        crypter: Arc<Cryptor>,
+        scan_state: ScanStateController,
+        products: Arc<RwLock<Notus>>,
+    ) -> Self {
         Scheduler {
             pool,
             config,
+            crypter,
+            scan_state,
             registry: PhantomData,
             extractor: PhantomData,
             products,
         }
     }
 
-    pub fn init(
+    pub async fn init(
         config: Arc<Config>,
         pool: DataBase,
+        crypter: Arc<Cryptor>,
         products: Arc<RwLock<Notus>>,
-    ) -> Scheduler<Registry, Extractor> {
-        Self::new(config, pool, products)
+    ) -> Result<Scheduler<Registry, Extractor, Cryptor>, DAOError> {
+        let scan_state = ScanStateController::init(pool.clone()).await?;
+        Ok(Self::new(config, pool, crypter, scan_state, products))
     }
 }
 
@@ -99,10 +116,11 @@ struct InitializedRegistry<'a, Registry> {
 
 use crate::container_image_scanner::image::RegistryError;
 
-impl<R, E> Scheduler<R, E>
+impl<R, E, C> Scheduler<R, E, C>
 where
     R: container_image_scanner::image::Registry + Send + Sync,
     E: container_image_scanner::image::extractor::Extractor + Send + Sync,
+    C: Crypt + Send + Sync + 'static,
 {
     #[cfg(test)]
     pub fn pool(&self) -> DataBase {
@@ -110,13 +128,8 @@ where
     }
 
     #[cfg(test)]
-    pub fn config(&self) -> Arc<Config> {
-        self.config.clone()
-    }
-
-    #[cfg(test)]
-    pub fn products(&self) -> Arc<RwLock<Notus>> {
-        self.products.clone()
+    pub fn crypter(&self) -> Arc<C> {
+        self.crypter.clone()
     }
 
     async fn registry(
@@ -180,33 +193,65 @@ where
         DBScan::new(&pool, (id, &images as &[_])).retry_exec().await
     }
 
-    pub(crate) async fn start_scans<T>(
-        config: Arc<Config>,
-        conn: Arc<Mutex<DataBase>>,
-        products: Arc<RwLock<Notus>>,
-    ) where
-        T: ToNotus,
-    {
-        tracing::trace!("checking for requested and scanning");
-        let pool = conn.lock().await;
-        let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
-            Ok(r) => r,
-            Err(error) => {
-                tracing::warn!(%error, "Unable to fetch images from the DB");
-                return;
-            }
-        };
-        let catalog_pool = pool.clone();
-        for r in requested {
-            if let Err(error) = Self::resolve_and_store_images(catalog_pool.clone(), r).await {
+    async fn running_to_failed(&self) -> Result<(), DAOError> {
+        let affected = self
+            .scan_state
+            .change_state_all("running", "failed")
+            .await?;
+        if affected > 0 {
+            tracing::warn!(
+                scans_failed = affected,
+                "Set scans to failed from previous runs."
+            );
+        }
+        Ok(())
+    }
+
+    async fn set_to_running(&self, id: i64) -> Result<ProcessingImage, DAOError> {
+        let id = id.to_string();
+        DBScan::new(&self.pool, (&id as &str, models::Phase::Running))
+            .retry_exec()
+            .await?;
+        tracing::debug!(id, "Set to running.");
+        DBImages::new(&self.pool, (self.crypter.as_ref(), id))
+            .fetch()
+            .await
+    }
+
+    async fn requested_to_running(&self) -> Result<(), DAOError> {
+        tracing::trace!("checking for requested scans");
+        let requested =
+            scheduler_common::fetch_requested_scans(&self.scan_state, self.config.max_scans)
+                .await?;
+        for id in requested {
+            let image = self.set_to_running(id).await?;
+            if let Err(error) = Self::resolve_and_store_images(self.pool.clone(), image).await {
                 tracing::warn!(%error, "Unable to set image status after fetching the images");
             }
         }
+        Ok(())
+    }
 
-        let scan_pool = pool.clone();
-        Self::scan_images::<T>(config, scan_pool, products).await;
+    pub(crate) async fn on_schedule<T>(&self)
+    where
+        T: ToNotus,
+    {
+        if let Err(error) = self.requested_to_running().await {
+            tracing::warn!(%error, "Unable to resolve requested scans");
+        }
 
-        if let Err(error) = DBScan::new(&pool, models::Phase::Succeeded).exec().await {
+        Self::scan_images::<T>(
+            self.config.clone(),
+            self.crypter.clone(),
+            self.pool.clone(),
+            self.products.clone(),
+        )
+        .await;
+
+        if let Err(error) = DBScan::new(&self.pool, models::Phase::Succeeded)
+            .exec()
+            .await
+        {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
     }
@@ -282,13 +327,20 @@ where
         }
     }
 
-    async fn scan_images<T>(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>)
-    where
+    async fn scan_images<T>(
+        config: Arc<Config>,
+        crypter: Arc<C>,
+        pool: DataBase,
+        products: Arc<RwLock<Notus>>,
+    ) where
         T: ToNotus,
     {
         let scans = match DBImages::new(
             &pool,
-            (config.image_max_scanning(), config.image_batch_size()),
+            (
+                crypter.as_ref(),
+                (config.image_max_scanning(), config.image_batch_size()),
+            ),
         )
         .exec()
         .await
@@ -316,6 +368,9 @@ where
     where
         T: ToNotus,
     {
+        if let Err(error) = self.running_to_failed().await {
+            tracing::warn!(%error, "Unable to set not stopped runs from a previous session to failed.")
+        }
         // we use the batch_size as the check_interval this allows customers to express:
         // 10:2 for a 1000mb/s
         // 25:2 for a 2500mb/s
@@ -328,24 +383,11 @@ where
             self.config.image.batch_size as u64
         });
         let mut interval = time::interval(check_interval);
-        let config = self.config.clone();
-
-        let pool = self.pool.clone();
-        // ehww....
-        let conn = pool.clone();
-        let conn = Arc::new(Mutex::new(conn));
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
         loop {
             tokio::select! {
-
-
                 _ = interval.tick() => {
-                let products = self.products.clone();
-                let config = config.clone();
-                let conn = conn.clone();
-
-                tokio::spawn(async move {
-                    Self::start_scans::<T>(config, conn, products).await
-                });
+                    self.on_schedule::<T>().await;
                 }
 
                 else => {

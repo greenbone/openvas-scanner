@@ -4,6 +4,8 @@
 
 use std::path::PathBuf;
 
+use crate::models::VTData;
+use crate::models::{AliveTestMethods, Parameter, Protocol};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
@@ -13,8 +15,6 @@ use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
 use futures::StreamExt;
-use greenbone_scanner_framework::models::VTData;
-use greenbone_scanner_framework::models::{AliveTestMethods, Parameter, Protocol};
 use tracing::{trace, warn};
 
 use crate::nasl::prelude::*;

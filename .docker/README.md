@@ -5,6 +5,8 @@ This directory contains the container build files and data used for OpenVAS scan
 ## Files
 
 - `prod.Dockerfile` builds all supported production-style image variants.
+- `Makefile` downloads and extracts the vendored source trees used by `prod.Dockerfile`.
+- `vendor/` contains the extracted upstream source trees.
 - `packages/` contains the runtime package lists selected by `VERSION`.
 
 ## Supported Variants
@@ -19,7 +21,13 @@ The single `prod.Dockerfile` is parameterized and is used for:
 
 The default build produces the stable image variant.
 
-Example:
+Prepare the vendored source trees first:
+
+```sh
+make -C .docker
+```
+
+Then build:
 
 ```sh
 podman build -f .docker/prod.Dockerfile .
@@ -116,6 +124,7 @@ This keeps package differences out of the Dockerfile.
 ### Stable
 
 ```sh
+make -C .docker
 podman build \
   -f .docker/prod.Dockerfile \
   --build-arg VERSION=latest \
@@ -125,6 +134,7 @@ podman build \
 ### Oldstable
 
 ```sh
+make -C .docker
 podman build \
   -f .docker/prod.Dockerfile \
   --build-arg VERSION=oldstable \
@@ -135,6 +145,7 @@ podman build \
 ### Testing
 
 ```sh
+make -C .docker
 podman build \
   -f .docker/prod.Dockerfile \
   --build-arg VERSION=testing-edge \
