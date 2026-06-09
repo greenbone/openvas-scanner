@@ -99,7 +99,7 @@ where
         let mut pref_list: HashMap<String, String> = HashMap::new();
 
         for vt in vts {
-            let nvt_opt = match self.redis_connector.get_vt(&vt.oid) {
+            let nvt_opt = match self.redis_connector.get_nasl_vt(&vt.oid) {
                 Ok(nvt) => nvt,
                 Err(e) => {
                     tracing::warn!(
