@@ -60,7 +60,7 @@ Additionally we want to:
 - extend `scannerctl` with a `openvas-nasl` like functionality so that we can test scripts
 - implement multithreading of interpreter
 - implement scheduling for a multi script run
-- create an http frontend based on [OpenAPI definition](./doc/openapi.yml)
+- create an http frontend based on [OpenAPI definition](./api/openapi.yml)
 
 # Structure of the code
 The codebase is structured roughly as follows:

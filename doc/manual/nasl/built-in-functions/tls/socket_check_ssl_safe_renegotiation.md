@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](../ssh-functions/ssh_connect.md)**.
 
 ## RETURN VALUE
 
@@ -20,4 +20,4 @@ The first positional argument contains the SSH session ID as *int* returned by *
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3)](../ssh-functions/ssh_connect.md)**

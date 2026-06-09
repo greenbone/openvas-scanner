@@ -33,4 +33,4 @@ display(st);
 
 ## SEE ALSO
 
-**[display(3)](display.md)**
+**[display(3)](../string-functions/display.md)**

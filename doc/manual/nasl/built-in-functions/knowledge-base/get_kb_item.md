@@ -48,4 +48,4 @@ To avoid forking use [get_kb_list(3)](get_kb_list.md) instead
 
 ## SEE ALSO
 
-**[set_kb_item(3)](set_kb_item.md)**, **[get_kb_list(3)](get_kb_list.md)**, **[replace_kb_item(3)](replace_kb_item.md)**, **[get_host_kb_index(3)](get_host_kb_index.md)**, **[display(3)](../misc/display)**, **[openvas-nasl(1)](../../openvas-nasl.md)**
+**[set_kb_item(3)](set_kb_item.md)**, **[get_kb_list(3)](get_kb_list.md)**, **[replace_kb_item(3)](replace_kb_item.md)**, **[get_host_kb_index(3)](get_host_kb_index.md)**, **[display(3)](../string-functions/display.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**

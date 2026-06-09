@@ -36,4 +36,4 @@ cert = socket_cert_verify( socket:soc );
 
 ## SEE ALSO
 
-**[open_sock_tcp](../network/open_sock_tcp.md)**, **[get_sock_info](get_sock_info.md)**
+**[open_sock_tcp](../network-functions/open_sock_tcp.md)**, **[get_sock_info](get_sock_info.md)**

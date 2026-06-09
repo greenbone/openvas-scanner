@@ -50,4 +50,4 @@ if( ! socket_negotiate_ssl( socket:soc ) )
 
 ## SEE ALSO
 
-**[open_sock_tcp](../network/open_sock_tcp.md)**
+**[open_sock_tcp](../network-functions/open_sock_tcp.md)**

@@ -36,4 +36,4 @@ version = socket_get_ssl_session_id( socket:soc );
 
 ## SEE ALSO
 
-**[open_sock_tcp](../network/open_sock_tcp.md)**, **[get_sock_info](get_sock_info.md)**
+**[open_sock_tcp](../network-functions/open_sock_tcp.md)**, **[get_sock_info](get_sock_info.md)**

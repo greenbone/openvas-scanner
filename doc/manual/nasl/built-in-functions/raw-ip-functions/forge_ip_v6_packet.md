@@ -21,7 +21,7 @@ Forge an IPv6 datagram inside the block of data. It takes following arguments:
 - ip_p: is the IP protocol. 0 by default.
 - ip6_hlim: Hop limit. Max. 255. 64 by default.
 - ip6_src: is the source address in ASCII. NASL will convert it into an integer in network order.
-- ip6_dst: is the destination address in ASCII. NASL will convert it into an integer in network order. By default it takes the target IP address via call to **[plug_get_host_ip(3)](plug_get_host_ip.md)**. This option looks dangerous, but since anybody can edit an IP packet with the string functions, we make it possible to set directly during the forge.
+- ip6_dst: is the destination address in ASCII. NASL will convert it into an integer in network order. By default it takes the target IP address via call to **[get_host_ip(3)](../network-functions/get_host_ip.md)**. This option looks dangerous, but since anybody can edit an IP packet with the string functions, we make it possible to set directly during the forge.
 
 ## RETURN VALUE
 

@@ -23,7 +23,7 @@ results of the notus scan are then directly published.
 
 ## DEPRECATED
 
-This function is deprecated and **[notus(3)](notus.md)** and **[security_notus(3)](security_notus.md)** should be used instead.
+This function is deprecated and **[notus(3)](notus.md)** and **[security_notus(3)](../report-functions/security_notus.md)** should be used instead.
 
 ## RETURN VALUE
 
@@ -31,6 +31,6 @@ This function returns nothing.
 
 ## SEE ALSO
 
-**[log_message(3)](log_message.md)**,
+**[log_message(3)](../report-functions/log_message.md)**,
 **[notus(3)](notus.md)**,
-**[security_notus(3)](security_notus.md)**
+**[security_notus(3)](../report-functions/security_notus.md)**
