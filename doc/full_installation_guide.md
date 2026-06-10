@@ -612,7 +612,7 @@ For vulnerability scanning, it is required to have several capabilities for whic
 
 <i><b>Warning</b>
 
-Make sure that only necessary users have access to the gvm group. Each user of the gvm group can manipulate the Vulnerability Test (VT) scripts (.nasl files). These scripts are run with root privileges and therefore can be used for exploits. See https://csal.medium.com/pentesters-tricks-local-privilege-escalation-in-openvas-fe933d7f161f.</i>
+Make sure that only necessary users have access to the gvm group. Each user of the gvm group can manipulate the Vulnerability Test (VT) scripts (.nasl files). These scripts are run with root privileges and therefore can be used for exploits.</i>
 
 ```shell
 sudo visudo

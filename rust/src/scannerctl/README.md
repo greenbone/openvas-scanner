@@ -133,7 +133,7 @@ Options:
 
 ### scan-config
 
-Transforms a scan-config from gvmds data-objects to scan json of [openvasd](https://greenbone.github.io/scanner-api/#/scan/create_scanl).
+Transforms a scan-config from gvmds data-objects to scan json of [openvasd](https://greenbone.github.io/scanner-api/#/scan/create_scan).
 
 To set the target and credentials you can pipe a partial scan json into `scannerctl scan-config` by providing `-i` flag.
 
