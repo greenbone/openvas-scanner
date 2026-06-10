@@ -18,8 +18,8 @@ use crate::builtins::BuiltinFunctions;
 use crate::dep_filter::{DepReader, resolve_script};
 use crate::error::CliError;
 use crate::output::{
-    copy_dep_feed, copy_feed, print_dep_scripts, print_scripts, write_dep_scan_config,
-    write_scan_config,
+    copy_dep_feed, copy_feed, print_dep_scripts, print_scripts, write_dep_dot,
+    write_dep_scan_config, write_scan_config,
 };
 use crate::script::{RunnableScripts, ScriptReader};
 use crate::stats::BuiltinStats;
@@ -106,6 +106,10 @@ struct DepFilterArgs {
     /// Write a scan-config JSON with the OIDs of all collected scripts to this path.
     #[clap(short, long)]
     scan_config: Option<PathBuf>,
+    /// Write a Graphviz DOT dependency graph to this path.
+    /// Include edges are drawn as dashed gray arrows; script_dependencies edges as solid black arrows.
+    #[clap(long)]
+    dot_graph: Option<PathBuf>,
 }
 
 fn run_dep_filter(args: DepFilterArgs) -> Result<(), CliError> {
@@ -142,7 +146,9 @@ fn run_dep_filter(args: DepFilterArgs) -> Result<(), CliError> {
     if let Some(ref scan_config) = args.scan_config {
         write_dep_scan_config(&collected, &dep_map, scan_config)?;
     }
-
+    if let Some(ref dot_path) = args.dot_graph {
+        write_dep_dot(&dep_map, dot_path)?;
+    }
     Ok(())
 }
 
