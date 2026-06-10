@@ -14,3 +14,4 @@ Provides SMB API as built-in functions to NASL via calling corresponding functio
 - **[smb_file_trustee_rights](smb_file_trustee_rights.md)** - obtain file trustee SID with access mask
 - **[smb_versioninfo](smb_versioninfo.md)** - get a version string of the SMB implementation
 - **[win_cmd_exec](win_cmd_exec.md)** - execute a command on a windows machine
+- **[psrp_cli](psrp.md)** - execute a command on a windows machine
