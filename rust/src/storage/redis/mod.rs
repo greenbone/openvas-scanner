@@ -139,7 +139,7 @@ where
         item: Self::Item,
     ) -> Result<(), crate::storage::error::StorageError> {
         let mut vts = self.cache.lock()?;
-        vts.redis_add_nvt(item)?;
+        vts.redis_add_nvt(item, "2".to_string())?;
         Ok(())
     }
 }

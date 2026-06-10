@@ -541,7 +541,7 @@ pub trait RedisAddNvt: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    fn redis_add_nvt(&mut self, nvt: VTData) -> RedisStorageResult<()> {
+    fn redis_add_nvt(&mut self, nvt: VTData, mtime: String) -> RedisStorageResult<()> {
         let oid = nvt.oid;
         let name = nvt.name;
         let required_keys = nvt.required_keys.join(", ");
@@ -600,7 +600,11 @@ pub trait RedisAddNvt: RedisWrapper {
         // under the filename key is added.
         // Once openvas is no longer used, the dummy item can be removed.
         let key_name = format!("filename:{filename}");
-        self.rpush(&key_name, &["1", &oid])?;
+        self.rpush(&key_name, &[mtime.as_str(), &oid])?;
+        let key_name = format!("signaturecheck:{filename}");
+        self.del(&key_name)?;
+        self.rpush(&key_name, mtime)?;
+
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, task::Poll};
+use std::{fs, path::PathBuf, str::FromStr, task::Poll, time::UNIX_EPOCH};
 
 use futures::Stream;
 use greenbone_scanner_framework::GetVTsError;
@@ -35,6 +35,7 @@ impl FeedSynchronizer {
         let signature_check = config.feed.signature_check;
         let plugin_storer = RedisPluginHandler {
             address: address.clone(),
+            feed_path: plugin_feed.clone(),
         };
         Self {
             plugin_feed,
@@ -66,12 +67,14 @@ fn init_redis_storage(redis_url: &str, ft: FeedType) -> R<RedisCtx> {
 #[derive(Debug, Clone)]
 pub struct RedisPluginHandler {
     address: String,
+    feed_path: PathBuf,
 }
 
 impl From<&Config> for RedisPluginHandler {
     fn from(_: &Config) -> Self {
         Self {
             address: cmd::get_redis_socket(),
+            feed_path: PathBuf::from_str(cmd::get_plugins_folder().as_str()).unwrap(),
         }
     }
 }
@@ -82,6 +85,7 @@ fn redis_error_to_worker_error(error: DbError) -> WorkerError {
 
 fn redis_with_hash<T, F>(
     address: String,
+    feed_path: PathBuf,
     hash: &super::FeedHash,
     f: F,
 ) -> scannerlib::Promise<Result<T, WorkerError>>
@@ -91,22 +95,25 @@ where
 {
     let kind = hash.typus;
     let hash = hash.hash.clone();
-    redis_with_feed_type(address, kind, move |r, k| f(r, k, hash.clone()))
+    redis_with_feed_type(address, feed_path, kind, move |r, _p, k| {
+        f(r, k, hash.clone())
+    })
 }
 
 fn redis_with_feed_type<T, F>(
     address: String,
+    feed_path: PathBuf,
     kind: FeedType,
     f: F,
 ) -> scannerlib::Promise<Result<T, WorkerError>>
 where
-    F: Fn(RedisCtx, FeedType) -> Result<T, WorkerError> + Send + 'static,
+    F: Fn(RedisCtx, PathBuf, FeedType) -> Result<T, WorkerError> + Send + 'static,
     T: Send + 'static,
 {
     Box::pin(async move {
         tokio::task::spawn_blocking(move || {
             let rctx = init_redis_storage(&address, kind)?;
-            f(rctx, kind)
+            f(rctx, feed_path, kind)
         })
         .await
         .unwrap()
@@ -269,17 +276,22 @@ impl PluginFetcher for RedisPluginHandler {
 
 impl PluginStorer for RedisPluginHandler {
     fn store_hash(&self, hash: &super::FeedHash) -> scannerlib::Promise<Result<(), WorkerError>> {
-        redis_with_hash(self.address.clone(), hash, |mut rctx, kind, hash| {
-            tracing::debug!(?kind, ?hash, "Changing hash");
-            if kind == FeedType::NASL {
-                rctx.del(CACHE_KEY)
-                    .and_then(move |_| rctx.rpush(CACHE_KEY, &[&hash]))
-            } else {
-                rctx.del(NOTUS_KEY)
-                    .and_then(move |_| rctx.rpush(NOTUS_KEY, &[&hash]))
-            }
-            .map_err(redis_error_to_worker_error)
-        })
+        redis_with_hash(
+            self.address.clone(),
+            self.feed_path.clone(),
+            hash,
+            |mut rctx, kind, hash| {
+                tracing::debug!(?kind, ?hash, "Changing hash");
+                if kind == FeedType::NASL {
+                    rctx.del(CACHE_KEY)
+                        .and_then(move |_| rctx.rpush(CACHE_KEY, &[&hash]))
+                } else {
+                    rctx.del(NOTUS_KEY)
+                        .and_then(move |_| rctx.rpush(NOTUS_KEY, &[&hash]))
+                }
+                .map_err(redis_error_to_worker_error)
+            },
+        )
     }
 
     fn store_plugin<T>(
@@ -290,21 +302,40 @@ impl PluginStorer for RedisPluginHandler {
     where
         T: super::Plugin + Send + Sync + 'static,
     {
-        redis_with_feed_type(self.address.clone(), hash.typus, move |mut rctx, kind| {
-            match kind {
-                scannerlib::models::FeedType::Products
-                | scannerlib::models::FeedType::Advisories => {
-                    rctx.redis_add_advisory(plugin.advisory().cloned())
-                }
-                scannerlib::models::FeedType::NASL => match plugin.vulnerability_test().cloned() {
-                    None => {
-                        unreachable!("FeedType::NASL must have vulnerability test data.")
+        redis_with_feed_type(
+            self.address.clone(),
+            self.feed_path.clone(),
+            hash.typus,
+            move |mut rctx, feed_path, kind| {
+                match kind {
+                    scannerlib::models::FeedType::Products
+                    | scannerlib::models::FeedType::Advisories => {
+                        rctx.redis_add_advisory(plugin.advisory().cloned())
                     }
-                    Some(vt) => rctx.redis_add_nvt(vt),
-                },
-            }
-            .map_err(redis_error_to_worker_error)
-        })
+                    scannerlib::models::FeedType::NASL => {
+                        match plugin.vulnerability_test().cloned() {
+                            None => {
+                                unreachable!("FeedType::NASL must have vulnerability test data.")
+                            }
+                            Some(vt) => {
+                                let mut file = feed_path;
+                                file.push(vt.filename.clone());
+                                let mtime = fs::metadata(file)
+                                    .expect("File Metadata")
+                                    .modified()
+                                    .expect("File mtime not supported")
+                                    .duration_since(UNIX_EPOCH)
+                                    .expect("invalid duration for mtime")
+                                    .as_secs()
+                                    .to_string();
+                                rctx.redis_add_nvt(vt, mtime)
+                            }
+                        }
+                    }
+                }
+                .map_err(redis_error_to_worker_error)
+            },
+        )
     }
 }
 
