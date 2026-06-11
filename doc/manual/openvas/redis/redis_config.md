@@ -110,7 +110,7 @@ The default path is `/run/redis-openvas/redis.sock`. Then start the scan or
 openvas-nasl. You should be able to follow precisely the interactions
 between the scanner and the KB server.
 
-See also: http://redis.io/commands/MONITOR
+See also: https://redis.io/docs/latest/commands/monitor/
 
 
 To enter an interactive mode type
