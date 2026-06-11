@@ -104,11 +104,18 @@ impl KbAccess for RedisHelper<RedisCtx> {
 
 pub trait VtHelper {
     fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>>;
+    fn get_nasl_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>> {
+        self.get_vt(oid)
+    }
 }
 
 impl VtHelper for RedisHelper<RedisCtx> {
     fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>> {
         self.lock_cache()?.redis_get_vt(oid)
+    }
+
+    fn get_nasl_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>> {
+        self.lock_cache()?.redis_get_nasl_vt(oid)
     }
 }
 

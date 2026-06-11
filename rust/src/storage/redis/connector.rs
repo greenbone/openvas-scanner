@@ -767,4 +767,16 @@ mod tests {
         assert_eq!(vt.filename, "test.notus");
         assert_eq!(vt.family, "Notus");
     }
+
+    #[test]
+    fn redis_get_nasl_vt_excludes_advisory() {
+        let mut redis = FakeRedis::default();
+        redis.add_advisory("1.3.6.1.4.3", "Notus Advisory");
+
+        assert!(redis.redis_get_nasl_vt("1.3.6.1.4.3").unwrap().is_none());
+
+        let vt = redis.redis_get_vt("1.3.6.1.4.3").unwrap().unwrap();
+        assert_eq!(vt.name, "Notus Advisory");
+        assert_eq!(vt.family, "Notus");
+    }
 }
