@@ -197,6 +197,10 @@ impl orchestrator::Worker for FeedSynchronizer {
         })
     }
 
+    fn storage_kind(&self) -> String {
+        String::from("sqlite")
+    }
+
     fn update_feed(
         &self,
         kind: FeedType,

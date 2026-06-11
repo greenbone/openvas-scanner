@@ -400,4 +400,8 @@ impl orchestrator::Worker for FeedSynchronizer {
     fn advisory_feed(&self) -> PathBuf {
         self.advisory_feed.clone()
     }
+
+    fn storage_kind(&self) -> String {
+        String::from("redis")
+    }
 }

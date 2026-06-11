@@ -148,6 +148,7 @@ pub trait Worker {
     fn signature_check(&self) -> bool;
     fn plugin_feed(&self) -> PathBuf;
     fn advisory_feed(&self) -> PathBuf;
+    fn storage_kind(&self) -> String;
 
     fn calculated_hashes(&self) -> Promise<Result<FeedHashes, WorkerError>> {
         let signature_check = self.signature_check();
@@ -268,76 +269,98 @@ where
                 .await;
             return Ok(());
         }
-        if sync_nasl {
-            send_need(FeedType::NASL).await?;
-        }
-        if sync_advisories {
-            send_need(FeedType::Advisories).await?;
-        }
 
         let mut nasl_handle = None;
         let mut advisory_handle = None;
 
-        loop {
-            // we wait for messages from the scheduler to continue.
-            // This can potentially endup in a endless loop/await when there is no scheduler
-            // reacting to those messages. But since we don't know how long the already started
-            // scans will be running we cannot simply put a timeout onto recv and call it a day.
-            // As the consequences of a task that is stuck and never finishing the feed
-            // synchronization is rather limited compared to not having a scheduler and thus not
-            // being able to scan anything I think it is fine as is.
-            match self.receiver.recv().await {
-                Some(x) => match x {
-                    FeedType::NASL if sync_nasl => {
-                        if advisory_handle.is_none() {
-                            self.change_outer_state(FeedState::Syncing).await;
-                        }
-                        let worker = self.worker.clone();
-                        let calc_nasl = calc_nasl.clone();
-                        nasl_handle = Some(tokio::task::spawn(async move {
-                            worker.update_feed(FeedType::NASL, calc_nasl).await
-                        }));
-                    }
-                    FeedType::Advisories if sync_advisories => {
-                        if nasl_handle.is_none() {
-                            self.change_outer_state(FeedState::Syncing).await;
-                        }
-                        let worker = self.worker.clone();
-                        let calc_advisories = calc_advisories.clone();
-                        advisory_handle = Some(tokio::task::spawn(async move {
-                            worker
-                                .update_feed(FeedType::Advisories, calc_advisories)
-                                .await
-                        }))
-                    }
-                    msg => {
-                        tracing::warn!(
-                            ?msg,
-                            sync_nasl,
-                            sync_advisories,
-                            "Received approval without request."
-                        )
-                    }
-                },
-                None => tracing::warn!("Sender dropped."),
+        // Always perform the feed update if the storage is redis, without allowance
+        if self.worker.storage_kind() == "redis" {
+            let worker1 = self.worker.clone();
+            let worker2 = self.worker.clone();
+
+            let calc_nasl = calc_nasl.clone();
+            let calc_advisories = calc_advisories.clone();
+            self.change_outer_state(FeedState::Syncing).await;
+            nasl_handle = Some(tokio::task::spawn(async move {
+                worker1.update_feed(FeedType::NASL, calc_nasl).await
+            }));
+            advisory_handle = Some(tokio::task::spawn(async move {
+                worker2
+                    .update_feed(FeedType::Advisories, calc_advisories)
+                    .await
+            }));
+        } else {
+            //Ask for allowance if the storage is sqlite
+            if sync_nasl {
+                send_need(FeedType::NASL).await?;
+            }
+            if sync_advisories {
+                send_need(FeedType::Advisories).await?;
             }
 
-            match (
-                sync_nasl,
-                nasl_handle.is_some(),
-                sync_advisories,
-                advisory_handle.is_some(),
-            ) {
-                (true, true, true, true)
-                | (false, false, true, true)
-                | (true, true, false, false) => break,
-                (sync_nasl, nasl_handle, sync_advisories, advisories_handle) => tracing::debug!(
+            loop {
+                // we wait for messages from the scheduler to continue.
+                // This can potentially endup in a endless loop/await when there is no scheduler
+                // reacting to those messages. But since we don't know how long the already started
+                // scans will be running we cannot simply put a timeout onto recv and call it a day.
+                // As the consequences of a task that is stuck and never finishing the feed
+                // synchronization is rather limited compared to not having a scheduler and thus not
+                // being able to scan anything I think it is fine as is.
+                match self.receiver.recv().await {
+                    Some(x) => match x {
+                        FeedType::NASL if sync_nasl => {
+                            if advisory_handle.is_none() {
+                                self.change_outer_state(FeedState::Syncing).await;
+                            }
+                            let worker = self.worker.clone();
+                            let calc_nasl = calc_nasl.clone();
+                            nasl_handle = Some(tokio::task::spawn(async move {
+                                worker.update_feed(FeedType::NASL, calc_nasl).await
+                            }));
+                        }
+                        FeedType::Advisories if sync_advisories => {
+                            if nasl_handle.is_none() {
+                                self.change_outer_state(FeedState::Syncing).await;
+                            }
+                            let worker = self.worker.clone();
+                            let calc_advisories = calc_advisories.clone();
+                            advisory_handle = Some(tokio::task::spawn(async move {
+                                worker
+                                    .update_feed(FeedType::Advisories, calc_advisories)
+                                    .await
+                            }))
+                        }
+                        msg => {
+                            tracing::warn!(
+                                ?msg,
+                                sync_nasl,
+                                sync_advisories,
+                                "Received approval without request."
+                            )
+                        }
+                    },
+                    None => tracing::warn!("Sender dropped."),
+                }
+
+                match (
                     sync_nasl,
-                    nasl_handle,
+                    nasl_handle.is_some(),
                     sync_advisories,
-                    advisories_handle,
-                    "Continue waiting for Allow message"
-                ),
+                    advisory_handle.is_some(),
+                ) {
+                    (true, true, true, true)
+                    | (false, false, true, true)
+                    | (true, true, false, false) => break,
+                    (sync_nasl, nasl_handle, sync_advisories, advisories_handle) => {
+                        tracing::debug!(
+                            sync_nasl,
+                            nasl_handle,
+                            sync_advisories,
+                            advisories_handle,
+                            "Continue waiting for Allow message"
+                        )
+                    }
+                }
             }
         }
 
@@ -395,6 +418,10 @@ pub mod test {
 
         fn advisory_feed(&self) -> PathBuf {
             PathBuf::default()
+        }
+
+        fn storage_kind(&self) -> String {
+            String::new()
         }
     }
 
