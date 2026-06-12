@@ -1,7 +1,7 @@
 use axum::{
     Extension, Json, Router,
     body::Bytes,
-    extract::{Path, Query},
+    extract::{DefaultBodyLimit, Path, Query},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
@@ -13,6 +13,12 @@ use crate::framework::{
     ApiError, AppResult, ClientIdentifier, GetScansError, GetScansIDResultsIDError, PostScansError,
     PostScansIDError, StreamResult, stream_json_array_response,
 };
+
+/// Maximum size of a `POST /scans` request body.
+///
+/// It is set to 64MB this should be sufficient for every scan
+/// A full-and-fast scan config is about 10MB
+const MAX_SCAN_BODY_SIZE: usize = 64 * 1024 * 1024;
 
 #[derive(Clone)]
 pub(crate) struct ScanRoutes<S> {
@@ -233,7 +239,8 @@ where
                     move |Extension(ident): Extension<ClientIdentifier>, body: Bytes| async move {
                         scans.post_scans_response(ident, body).await
                     }
-                }),
+                })
+                .layer(DefaultBodyLimit::max(MAX_SCAN_BODY_SIZE)),
             )
             .route(
                 "/scans/preferences",
