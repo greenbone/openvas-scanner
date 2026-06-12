@@ -388,7 +388,7 @@ process_ipc_data (struct attack_start_args *args, const gchar *result)
           set_lsc_flag ();
           if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
               && (prefs_get_bool ("mqtt_enabled")
-                  || prefs_get_bool ("openvasd_lsc_enabled")))
+                  || prefs_get_bool ("http_lsc_enabled")))
             {
               struct in6_addr hostip;
               gchar ip_str[INET6_ADDRSTRLEN];
@@ -680,7 +680,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
       && !lsc_has_run ()
       && (prefs_get_bool ("mqtt_enabled")
-          || prefs_get_bool ("openvasd_lsc_enabled")))
+          || prefs_get_bool ("http_lsc_enabled")))
     {
       call_lsc (args, ip_str);
     }
