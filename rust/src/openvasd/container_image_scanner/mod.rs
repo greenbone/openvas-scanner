@@ -2,7 +2,6 @@ mod benchy;
 pub mod config;
 use std::sync::{Arc, RwLock};
 
-use crate::{credentials, crypt::ChaCha20Crypt};
 pub use config::Config;
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
@@ -86,34 +85,28 @@ use crate::{
     container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
 };
 
-pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
-    credentials::config_to_crypt(config.database.credential_key.as_deref())
-}
-
 pub async fn init(
     vt_pool: DataBase,
     feed_state: Arc<RwLock<FeedState>>,
     products: Arc<tokio::sync::RwLock<Notus>>,
     config: Config,
-) -> Result<(Scans<ChaCha20Crypt>, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<(Scans, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
     let pool = config
         .database
         .create_pool("container-image-scanner")
         .await?;
     MIGRATOR.run(&pool).await?;
 
-    let crypter = Arc::new(config_to_crypt(&config));
-    let scheduler = Scheduler::<DockerRegistryV2, filtered_image::Extractor, ChaCha20Crypt>::init(
+    let scheduler = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
         config.into(),
         pool.clone(),
-        crypter.clone(),
         products,
     );
     tokio::spawn(async move {
         scheduler.run::<AllTypes>().await;
     });
 
-    let scan = Scans { pool, crypter };
+    let scan = Scans { pool };
     let vts = VTEndpoints::new(
         SqlPluginStorage::from(vt_pool),
         feed_state,

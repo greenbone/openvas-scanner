@@ -4,8 +4,7 @@ use scannerlib::models::{self, AliveTestMethods};
 use sqlx::{Connection, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow};
 
 use crate::{
-    credentials::{decrypt_credentials, encrypt_credentials},
-    crypt::Crypt,
+    crypt::{self, Crypt, Encrypted},
     database::{
         dao::{DAOError, DAOHandler, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
         sqlite::{DataBase, OpenVASDDB, insert_values_chunked, state_change},
@@ -13,6 +12,20 @@ use crate::{
 };
 
 pub type ScanDB<'o, T> = OpenVASDDB<'o, T>;
+
+impl From<crypt::ParseError> for DAOError {
+    fn from(value: crypt::ParseError) -> Self {
+        tracing::warn!(%value, "Unable to handle encryption on credentials.");
+        Self::Corrupt
+    }
+}
+
+impl From<serde_json::Error> for DAOError {
+    fn from(value: serde_json::Error) -> Self {
+        tracing::warn!(%value, "Invalid json stored.");
+        Self::Corrupt
+    }
+}
 
 impl<'o, C> Execute<String> for ScanDB<'o, (&'o C, &'o str, &models::Scan)>
 where
@@ -36,7 +49,7 @@ async fn scan_insert<C>(
     scan: &models::Scan,
 ) -> Result<String, DAOError>
 where
-    C: Crypt + Sync,
+    C: Crypt,
 {
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
@@ -48,7 +61,11 @@ where
         .await?;
 
     let mapped_id = row.last_insert_rowid().to_string();
-    let auth_data = encrypt_credentials(crypter, &scan.target.credentials).await?;
+    let auth_data = {
+        let bytes = serde_json::to_vec(&scan.target.credentials)?;
+        let bytes = crypter.encrypt(bytes).await;
+        bytes.to_string()
+    };
     query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
         .bind(&mapped_id)
         .bind(auth_data)
@@ -339,7 +356,9 @@ where
         .await?;
 
     let auth_data = scan_row.get::<String, _>("auth_data");
-    let credentials = decrypt_credentials(crypter, &auth_data).await?;
+    let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
+    let auth_data = crypter.decrypt(encrypted).await;
+    let credentials = serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?;
 
     let scan = models::Scan {
         scan_id,

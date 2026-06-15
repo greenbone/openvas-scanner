@@ -8,10 +8,8 @@
 
 mod config;
 mod container_image_scanner;
-mod credentials;
 mod crypt;
 mod database;
-mod endpoint_helpers;
 mod json_stream;
 mod notus;
 mod scans;

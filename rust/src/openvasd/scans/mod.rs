@@ -1,7 +1,7 @@
 use std::{pin::Pin, sync::Arc};
 
 use crate::database::{
-    dao::{Execute, Fetch, StreamFetch},
+    dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
     sqlite::{DataBase, results::DBResults, scans::ScanDB},
 };
 use futures::TryStreamExt;
@@ -12,9 +12,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     config::Config,
-    credentials,
     crypt::{ChaCha20Crypt, Crypt},
-    endpoint_helpers,
     vts::orchestrator,
 };
 mod scheduling;
@@ -40,15 +38,19 @@ where
         scan: models::Scan,
     ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
         Box::pin(async move {
-            endpoint_helpers::map_post_scan_result(
-                ScanDB::new(
-                    &self.pool,
-                    (self.crypter.as_ref(), &client_id as &str, &scan),
-                )
-                .exec()
-                .await,
-                scan.scan_id,
+            match ScanDB::new(
+                &self.pool,
+                (self.crypter.as_ref(), &client_id as &str, &scan),
             )
+            .exec()
+            .await
+            {
+                Ok(result) => Ok(result),
+                Err(DAOError::DBViolation(DBViolation::UniqueViolation)) => {
+                    Err(PostScansError::DuplicateId(scan.scan_id))
+                }
+                Err(x) => Err(PostScansError::External(Box::new(x))),
+            }
         })
     }
 }
@@ -63,11 +65,22 @@ where
         scan_id: &'a str,
     ) -> Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>> {
         Box::pin(async move {
-            endpoint_helpers::map_contains_scan_id(
-                ScanDB::new(&self.pool, (client_id, scan_id)).fetch().await,
-            )
+            match ScanDB::new(&self.pool, (client_id, scan_id)).fetch().await {
+                Ok(x) => x,
+                Err(error) => {
+                    tracing::warn!(%error, "Unable to fetch id from client_scan_map. Returning no id found.");
+                    None
+                }
+            }
         })
     }
+}
+
+fn into_external_error<T>(value: T) -> GetScansError
+where
+    T: std::error::Error + Send + Sync + 'static,
+{
+    GetScansError::External(Box::new(value))
 }
 
 impl<E> GetScans for Endpoints<E>
@@ -78,7 +91,7 @@ where
         Box::pin(
             ScanDB::new(&self.pool, client_id)
                 .stream_fetch()
-                .map_err(endpoint_helpers::into_get_scans_error),
+                .map_err(into_external_error),
         )
     }
 }
@@ -103,11 +116,11 @@ where
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>> {
         Box::pin(async move {
-            let id = id.parse().map_err(endpoint_helpers::into_get_scans_error)?;
+            let id = id.parse().map_err(into_external_error)?;
             ScanDB::new(&self.pool, (self.crypter.as_ref(), id))
                 .fetch()
                 .await
-                .map_err(endpoint_helpers::into_get_scans_error)
+                .map_err(into_external_error)
         })
     }
 }
@@ -141,9 +154,13 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
     {
         Box::pin(async move {
-            endpoint_helpers::map_result_id_fetch(
-                DBResults::new(&self.pool, (id, result_id)).fetch().await,
-            )
+            DBResults::new(&self.pool, (id, result_id))
+                .fetch()
+                .await
+                .map_err(|e| match e {
+                    DAOError::NotFound => GetScansIDResultsIDError::NotFound,
+                    e => e.into(),
+                })
         })
     }
 }
@@ -201,7 +218,7 @@ where
             ScanDB::new(&self.pool, id)
                 .exec()
                 .await
-                .map_err(DeleteScansIDError::from_external)
+                .map_err(|e| DeleteScansIDError::External(Box::new(e)))
                 .map(|_| ())
         })
     }
@@ -210,7 +227,11 @@ where
 pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
     // unwrap_or_else is a safe guard in the case the db is stored on disk but no key is provided.
     // Otherwise the credentials can never be decrypted.
-    credentials::config_to_crypt(config.storage.credential_key())
+    config
+        .storage
+        .credential_key()
+        .map(ChaCha20Crypt::new)
+        .unwrap_or_else(|| ChaCha20Crypt::new("insecure"))
 }
 
 pub async fn init(
