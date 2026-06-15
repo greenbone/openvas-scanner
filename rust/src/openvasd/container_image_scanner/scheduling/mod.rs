@@ -131,8 +131,40 @@ where
         R::initialize(credentials, prefs)
     }
 
+    async fn resolve_image_with_retries(
+        config: &Config,
+        registry: &R,
+        image: Image,
+    ) -> Vec<Result<Image, RegistryError>> {
+        let mut retries = config.image.scanning_retries;
+
+        loop {
+            let results = registry.resolve_image(image.clone()).await;
+            let retryable_errors = results
+                .iter()
+                .filter_map(|entry| entry.as_ref().err())
+                .filter(|error| error.can_retry())
+                .count();
+
+            if retryable_errors == 0 || retries == 0 {
+                return results;
+            }
+
+            retries -= 1;
+            tracing::info!(
+                image = %image,
+                retryable_errors,
+                retries_left = retries,
+                retry_delay_ms = config.image.retry_timeout.as_millis(),
+                "Retrying image resolution"
+            );
+            time::sleep(config.image.retry_timeout).await;
+        }
+    }
+
     #[instrument(skip_all, fields(id = pimage.id))]
     async fn resolve_all_images(
+        config: Arc<Config>,
         pool: DataBase,
         pimage: &ProcessingImage,
     ) -> Result<Vec<Result<Image, RegistryError>>, ExternalError> {
@@ -148,8 +180,7 @@ where
             match image {
                 Err(e) => result.push(Err(e)),
                 Ok(x) => {
-                    let extended_images = registry.resolve_image(x).await;
-                    result.extend(extended_images)
+                    result.extend(Self::resolve_image_with_retries(&config, &registry, x).await)
                 }
             }
         }
@@ -160,6 +191,7 @@ where
 
     #[instrument(skip_all, fields(id=image.id))]
     pub(crate) async fn resolve_and_store_images(
+        config: Arc<Config>,
         pool: DataBase,
         image: ProcessingImage,
     ) -> Result<(), DAOError> {
@@ -168,7 +200,7 @@ where
             .retry_exec()
             .await?;
         tracing::debug!("Set to running.");
-        let images = match Self::resolve_all_images(pool.clone(), &image).await {
+        let images = match Self::resolve_all_images(config, pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
                 return DBScan::new(&pool, (id, models::Phase::Failed))
@@ -198,7 +230,9 @@ where
         };
         let catalog_pool = pool.clone();
         for r in requested {
-            if let Err(error) = Self::resolve_and_store_images(catalog_pool.clone(), r).await {
+            if let Err(error) =
+                Self::resolve_and_store_images(config.clone(), catalog_pool.clone(), r).await
+            {
                 tracing::warn!(%error, "Unable to set image status after fetching the images");
             }
         }
