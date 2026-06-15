@@ -85,14 +85,6 @@ async fn request_middleware(
         request.extensions_mut().insert(ident);
     }
 
-    // FIXME: This semaphore only covers request handling until the `Response` is
-    // created. For streaming endpoints, response-body production continues after
-    // `next.run(request).await` returns, so the permit is released too early.
-    // That means this still helps against bursts of new requests, but it does
-    // not fully protect long-lived streams (for example `/scans/{id}/results`
-    // or `/vts`) or backend work that continues while the body is sent. Fixing
-    // that would require holding the permit for the full response-body lifetime,
-    // which does not seem worth it for now.
     let mut response = next.run(request).await;
     drop(permit);
     headers.apply_to_response(&mut response);
