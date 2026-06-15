@@ -7,16 +7,18 @@ use std::{
 use bzip2::read::BzDecoder;
 use docker_registry::render;
 use flate2::read::{GzDecoder, ZlibDecoder};
+use sha2::{Digest as _, Sha256};
 use tokio::fs::File;
 use zstd::stream::read::Decoder as ZstdDecoder;
 
 use super::{ExtractorError, LocatorError};
 use crate::container_image_scanner::{
     self, benchy, detection,
-    image::{Image, ImageID, PackedLayer, packages},
+    image::{ImageID, PackedLayer, packages},
 };
 
 pub struct Extractor {
+    root: PathBuf,
     base: PathBuf,
     architecture: Vec<String>,
     // is used for warnings when an layer was missing that it won't repeat the warning.
@@ -56,22 +58,28 @@ impl super::Extractor for Extractor {
         Self: Sized + Send + Sync,
     {
         Box::pin(async move {
-            let base = config.image_extraction_location();
-            let scan_id = image.id();
-            //TODO: remove unnecessary parsing
-            let image: Image = image.image.parse().unwrap();
-            let base = base
-                .join("images")
-                .join(scan_id)
-                .join(&image.registry)
-                .join(image.image.as_ref().map(|x| x as &str).unwrap_or_default())
-                .join(image.tag.as_ref().map(|x| x as &str).unwrap_or_default());
+            let root = config.image_extraction_location().join("images");
+            if !root.exists() {
+                tokio::fs::create_dir_all(&root).await?;
+            }
+            let root = tokio::fs::canonicalize(root).await?;
+            let base = root
+                .join(get_path_hash("scan", image.id()))
+                .join(get_path_hash("image", image.image()));
+
+            // This is not really necessary, since the path above
+            // is constructed entirely from hashes, so it cannot contain
+            // `..` or any other special path components. However, we still
+            // check just to make it explicit that `base` is required to be
+            // a subdirectory of `root`.
+            assert!(base.starts_with(&root));
 
             if !base.exists() {
                 tokio::fs::create_dir_all(&base).await?;
             }
 
             Ok(Self {
+                root,
                 base,
                 offset: 0,
                 last_index: 0,
@@ -85,9 +93,15 @@ impl super::Extractor for Extractor {
             self.architecture
                 .clone()
                 .into_iter()
-                .map(|arch| FileSystemLocator {
-                    base: self.base.join(&arch),
-                    arch,
+                .map(|arch| {
+                    let base = self.base.join(get_path_hash("arch", &arch));
+                    // See above, redundant check
+                    assert!(base.starts_with(&self.root));
+                    FileSystemLocator {
+                        root: self.root.clone(),
+                        base,
+                        arch,
+                    }
                 })
                 .collect()
         })
@@ -106,7 +120,9 @@ impl super::Extractor for Extractor {
         }
 
         self.last_index = layer.index;
-        let base = self.base.clone().join(&layer.arch);
+        let root = self.root.clone();
+        let base = self.base.clone().join(get_path_hash("arch", &layer.arch));
+        assert!(base.starts_with(root));
         if !self.architecture.contains(&layer.arch) {
             self.architecture.push(layer.arch);
         }
@@ -142,24 +158,54 @@ impl super::Extractor for Extractor {
 }
 
 pub struct FileSystemLocator {
+    root: PathBuf,
     base: PathBuf,
     arch: String,
 }
 
 impl Drop for FileSystemLocator {
     fn drop(&mut self) {
-        let result = std::fs::remove_dir_all(&self.base);
-        match result {
-            Ok(_) => tracing::trace!(dir = ?&self.base, "Removed dir"),
+        let base = match self.base.canonicalize() {
+            Ok(base) => base,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return,
             Err(e) => {
                 tracing::warn!(
                     dir = ?self.base,
+                    error = %e,
+                    "Failed to canonicalize directory before cleanup."
+                );
+                return;
+            }
+        };
+        if !base.starts_with(&self.root) {
+            tracing::warn!(
+                dir = ?base,
+                root = ?self.root,
+                "Refusing to remove directory outside extraction root."
+            );
+            return;
+        }
+
+        let result = std::fs::remove_dir_all(&base);
+        match result {
+            Ok(_) => tracing::trace!(dir = ?base, "Removed dir"),
+            Err(e) => {
+                tracing::warn!(
+                    dir = ?base,
                     error = %e,
                     "Failed to remove directory. It will remain on the filesystem but does not affect functionality."
                 );
             }
         }
     }
+}
+
+fn get_path_hash(kind: &str, value: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(kind.as_bytes());
+    hasher.update([0]);
+    hasher.update(value.as_bytes());
+    format!("{kind}-{}", hex::encode(hasher.finalize()))
 }
 
 impl super::Locator for FileSystemLocator {
@@ -260,4 +306,67 @@ where
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+    use crate::container_image_scanner::{
+        config::{Config, ImageExtractionLocation},
+        image::{ImageID, PackedLayer, extractor::Extractor as _},
+    };
+
+    #[tokio::test]
+    async fn extractor_does_not_delete_outside_directory() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let extract_to = temp_dir.path().join("cache");
+        let victim = temp_dir.path().join("VICTIM");
+        let important_file = victim.join("important.conf");
+        std::fs::create_dir_all(&victim).unwrap();
+        std::fs::write(&important_file, "do not delete").unwrap();
+
+        let mut config = Config::default();
+        config.image.extract_to = ImageExtractionLocation::File(extract_to);
+        let config = Arc::new(config);
+        let image = ImageID {
+            id: "poc".to_string(),
+            image: "oci://172.18.0.1:5000/../../../../:.".to_string(),
+        };
+        let layer = PackedLayer {
+            data: layer_with_os_release(),
+            index: 0,
+            digest: None,
+            arch: "VICTIM".to_string(),
+            download_time: Duration::default(),
+        };
+
+        let mut extractor = Extractor::initialize(config, image).await.unwrap();
+        extractor.extract(layer).await.unwrap();
+        let locators = extractor.locator().await;
+        drop(locators);
+
+        assert!(important_file.exists());
+        assert_eq!(
+            std::fs::read_to_string(important_file).unwrap(),
+            "do not delete"
+        );
+    }
+
+    fn layer_with_os_release() -> Vec<u8> {
+        let mut data = Vec::new();
+        {
+            let mut builder = tar::Builder::new(&mut data);
+            let content = b"NAME=test\nVERSION_ID=1\n";
+            let mut header = tar::Header::new_gnu();
+            header.set_size(content.len() as u64);
+            header.set_cksum();
+            builder
+                .append_data(&mut header, "etc/os-release", &content[..])
+                .unwrap();
+            builder.finish().unwrap();
+        }
+        data
+    }
 }
