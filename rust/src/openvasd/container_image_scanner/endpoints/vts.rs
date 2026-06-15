@@ -1,10 +1,13 @@
 use std::sync::{Arc, RwLock};
 
-use crate::framework::{
-    AppResult, ClientIdentifier, GetVTsError, StreamResult, stream_json_array_response,
+use crate::framework::{AppResult, ClientIdentifier, GetVTsError, StreamResult};
+use axum::{
+    Extension, Json, Router,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::get,
 };
-use axum::{Extension, Router, response::Response, routing::get};
-use futures::StreamExt;
+use futures::{StreamExt, TryStreamExt};
 use scannerlib::models::{self, FeedState};
 use serde::Deserialize;
 
@@ -62,9 +65,11 @@ impl VTEndpoints {
         let client_id = Self::client_id(&ident);
 
         if query.detailed() {
-            stream_json_array_response(self.get_vts(client_id)).await
+            let vts = self.get_vts(client_id).try_collect::<Vec<_>>().await?;
+            Ok((StatusCode::OK, Json(vts)).into_response())
         } else {
-            stream_json_array_response(self.get_oids(client_id)).await
+            let oids = self.get_oids(client_id).try_collect::<Vec<_>>().await?;
+            Ok((StatusCode::OK, Json(oids)).into_response())
         }
     }
 
@@ -132,11 +137,7 @@ mod test {
     use std::sync::{Arc, RwLock};
 
     use crate::framework::{ClientHash, ClientIdentifier, StreamResult};
-    use axum::{
-        Extension, Router,
-        body::Body,
-        http::{Request, StatusCode},
-    };
+    use axum::{Extension, Router, body::Body, http::Request};
     use futures::stream;
     use scannerlib::models::VTData;
     use tower::ServiceExt;

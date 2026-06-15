@@ -6,12 +6,13 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
+use futures::TryStreamExt;
 use scannerlib::{PromiseRef, models};
 use serde::Deserialize;
 
 use crate::framework::{
     ApiError, AppResult, ClientIdentifier, GetScansError, GetScansIDResultsIDError, PostScansError,
-    PostScansIDError, StreamResult, stream_json_array_response,
+    PostScansIDError, StreamResult,
 };
 
 #[derive(Clone)]
@@ -116,7 +117,12 @@ where
 
     async fn get_scans_response(&self, ident: ClientIdentifier) -> AppResult<Response> {
         let client_id = Self::client_id(&ident).ok_or(ApiError::Unauthorized)?;
-        stream_json_array_response(self.scans.get_scans(client_id)).await
+        let scans = self
+            .scans
+            .get_scans(client_id)
+            .try_collect::<Vec<_>>()
+            .await?;
+        Ok((StatusCode::OK, Json(scans)).into_response())
     }
 
     async fn post_scans_response(
@@ -192,7 +198,12 @@ where
     ) -> AppResult<Response> {
         let scan_id = self.authorized_scan_id(&ident, scan_id).await?;
         let (from, to) = Self::parse_range(query);
-        stream_json_array_response(self.scans.get_scans_id_results(scan_id, from, to)).await
+        let results = self
+            .scans
+            .get_scans_id_results(scan_id, from, to)
+            .try_collect::<Vec<_>>()
+            .await?;
+        Ok((StatusCode::OK, Json(results)).into_response())
     }
 
     async fn get_scan_result_response(

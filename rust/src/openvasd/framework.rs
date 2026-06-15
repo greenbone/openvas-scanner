@@ -3,11 +3,10 @@ use std::{fmt::Display, pin::Pin};
 use crate::database::dao::{DAOError, DBViolation};
 use axum::{
     Json,
-    body::{Body, Bytes},
-    http::{StatusCode, header},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
-use futures::{Stream, StreamExt};
+use futures::Stream;
 use serde::Serialize;
 
 pub type StreamResult<T, E> = Pin<Box<dyn Stream<Item = Result<T, E>> + Send>>;
@@ -256,44 +255,6 @@ pub(crate) fn map_contains_scan_id(
             None
         }
     }
-}
-
-pub async fn stream_json_array_response<T, E>(mut stream: StreamResult<T, E>) -> AppResult<Response>
-where
-    T: Serialize + Send + 'static,
-    E: Into<ApiError> + std::fmt::Display + Send + 'static,
-{
-    let Some(first) = stream.next().await else {
-        return Response::builder()
-            .status(StatusCode::OK)
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(Body::from("[]"))
-            .map_err(|e| ApiError::Internal(e.into()));
-    };
-
-    let first = first.map_err(Into::into)?;
-    let first = serde_json::to_vec(&first).map_err(|e| ApiError::Internal(Box::new(e)))?;
-
-    let chunks = futures::stream::once(async move {
-        Ok::<Bytes, std::io::Error>(Bytes::from([b"[", first.as_slice()].concat()))
-    })
-    .chain(stream.map(|item| {
-        match item {
-            Ok(item) => serde_json::to_vec(&item)
-                .map(|json| Bytes::from([b",", json.as_slice()].concat()))
-                .map_err(std::io::Error::other),
-            Err(error) => Err(std::io::Error::other(error.to_string())),
-        }
-    }))
-    .chain(futures::stream::once(async {
-        Ok::<Bytes, std::io::Error>(Bytes::from_static(b"]"))
-    }));
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from_stream(chunks))
-        .map_err(|e| ApiError::Internal(e.into()))
 }
 
 pub(crate) fn into_get_scans_error(value: DAOError) -> GetScansError {
