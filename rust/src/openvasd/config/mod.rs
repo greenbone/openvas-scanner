@@ -294,12 +294,23 @@ impl StorageTypes {
         }
     }
 
-    pub fn max_connections(&self) -> usize {
+    pub fn max_db_connections(&self) -> usize {
         let result = match self {
             StorageTypes::V1(_) => SqliteConfiguration::default().max_connections,
             StorageTypes::V2(sqlite_configuration) => sqlite_configuration.max_connections,
         };
         if result > 0 { result as usize } else { 1 }
+    }
+
+    pub fn max_http_connections(&self) -> usize {
+        // This is only a guess until HTTP concurrency becomes a dedicated config value.
+        // A single request usually does more than a DB operation and often spends time outside
+        // of SQLite, so allowing somewhat more in-flight HTTP requests than DB connections makes
+        // sense. We keep the factor conservative because openvasd uses SQLite with a small pool
+        // and a long busy timeout; a much higher multiplier would make it easy to pile many
+        // requests onto one writer connection and turn load spikes into long waits.
+        const HTTP_CONNECTION_MULTIPLIER: usize = 4;
+        self.max_db_connections() * HTTP_CONNECTION_MULTIPLIER
     }
 }
 impl Default for StorageTypes {
