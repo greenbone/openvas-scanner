@@ -86,6 +86,7 @@ impl super::Extractor for Extractor {
                 .clone()
                 .into_iter()
                 .map(|arch| FileSystemLocator {
+                    root: self.base.clone(),
                     base: self.base.join(&arch),
                     arch,
                 })
@@ -142,6 +143,7 @@ impl super::Extractor for Extractor {
 }
 
 pub struct FileSystemLocator {
+    root: PathBuf,
     base: PathBuf,
     arch: String,
 }
@@ -260,4 +262,67 @@ where
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+    use crate::container_image_scanner::{
+        config::{Config, ImageExtractionLocation},
+        image::{ImageID, PackedLayer, extractor::Extractor as _},
+    };
+
+    #[tokio::test]
+    async fn extractor_does_not_delete_outside_directory() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let extract_to = temp_dir.path().join("cache");
+        let victim = temp_dir.path().join("VICTIM");
+        let important_file = victim.join("important.conf");
+        std::fs::create_dir_all(&victim).unwrap();
+        std::fs::write(&important_file, "do not delete").unwrap();
+
+        let mut config = Config::default();
+        config.image.extract_to = ImageExtractionLocation::File(extract_to);
+        let config = Arc::new(config);
+        let image = ImageID {
+            id: "poc".to_string(),
+            image: "oci://172.18.0.1:5000/../../../../:.".to_string(),
+        };
+        let layer = PackedLayer {
+            data: layer_with_os_release(),
+            index: 0,
+            digest: None,
+            arch: "VICTIM".to_string(),
+            download_time: Duration::default(),
+        };
+
+        let mut extractor = Extractor::initialize(config, image).await.unwrap();
+        extractor.extract(layer).await.unwrap();
+        let locators = extractor.locator().await;
+        drop(locators);
+
+        assert!(important_file.exists());
+        assert_eq!(
+            std::fs::read_to_string(important_file).unwrap(),
+            "do not delete"
+        );
+    }
+
+    fn layer_with_os_release() -> Vec<u8> {
+        let mut data = Vec::new();
+        {
+            let mut builder = tar::Builder::new(&mut data);
+            let content = b"NAME=test\nVERSION_ID=1\n";
+            let mut header = tar::Header::new_gnu();
+            header.set_size(content.len() as u64);
+            header.set_cksum();
+            builder
+                .append_data(&mut header, "etc/os-release", &content[..])
+                .unwrap();
+            builder.finish().unwrap();
+        }
+        data
+    }
 }
