@@ -1,8 +1,5 @@
 use super::Scan;
 use super::preferences::preference::ScanPrefs;
-use crate::models::Phase;
-use crate::models::Protocol;
-use crate::models::VT;
 use crate::nasl::Code;
 use crate::nasl::ScanCtxBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
@@ -28,6 +25,9 @@ use crate::storage::items::kb::KbContextKey;
 use crate::storage::items::kb::KbItem;
 use crate::storage::items::kb::KbKey;
 use crate::storage::items::nvt::FileName;
+use greenbone_scanner_framework::models::Phase;
+use greenbone_scanner_framework::models::Protocol;
+use greenbone_scanner_framework::models::VT;
 
 use futures::StreamExt;
 use std::sync::Arc;
@@ -36,7 +36,7 @@ use tokio::time::Instant;
 use tracing_test::traced_test;
 
 type TestStack = Arc<InMemoryStorage>;
-use crate::models::VTData;
+use greenbone_scanner_framework::models::VTData;
 
 async fn setup(scripts: &[(String, VTData)]) -> (TestStack, Loader, Executor, Scan) {
     let storage = InMemoryStorage::new();

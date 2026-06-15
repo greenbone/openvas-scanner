@@ -4,11 +4,11 @@
 
 use std::collections::HashMap;
 
-use crate::models::{
+use crate::storage::redis::RedisStorageResult;
+use greenbone_scanner_framework::models::{
     AliveTestMethods, CredentialType, PreferenceValue, Scan, ScanPreferenceInformation, Service,
     VT, ports_to_openvas_port_list,
 };
-use crate::storage::redis::RedisStorageResult;
 
 use super::cmd;
 use super::openvas_redis::{KbAccess, VtHelper};
@@ -573,7 +573,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::models::{
+    use greenbone_scanner_framework::models::{
         self, AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan,
         Service,
     };

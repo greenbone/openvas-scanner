@@ -4,7 +4,9 @@
 
 use std::collections::HashMap;
 
-use crate::models::{self, FixedPackage, FixedVersion, PackageType, Specifier};
+use greenbone_scanner_framework::models::{
+    self, FixedPackage, FixedVersion, PackageType, Specifier,
+};
 
 use crate::{
     notus::error::Error,

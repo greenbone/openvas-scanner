@@ -7,7 +7,7 @@ use std::{collections::HashMap, sync::RwLock};
 use async_trait::async_trait;
 use kb::InMemoryKbStorage;
 
-use crate::models::FeedType;
+use greenbone_scanner_framework::models::FeedType;
 
 use super::{
     Dispatcher, Remover, Retriever, ScanID,
@@ -18,7 +18,7 @@ use super::{
         result::{ResultContextKeySingle, ResultItem},
     },
 };
-use crate::models::VTData;
+use greenbone_scanner_framework::models::VTData;
 
 pub mod kb;
 
@@ -236,7 +236,6 @@ impl Remover<ScanID> for InMemoryStorage {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::VTData;
     use crate::storage::{
         Dispatcher, Retriever,
         error::StorageError,
@@ -246,6 +245,7 @@ mod tests {
             nvt::{FileName, Oid},
         },
     };
+    use greenbone_scanner_framework::models::VTData;
 
     #[tokio::test]
     async fn nvt() -> Result<(), StorageError> {

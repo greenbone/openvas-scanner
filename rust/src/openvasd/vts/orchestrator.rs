@@ -3,9 +3,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 
-use crate::framework::GetVTsError;
+use greenbone_scanner_framework::GetVTsError;
+use greenbone_scanner_framework::models::FeedType;
 use scannerlib::models::FeedState;
-use scannerlib::models::FeedType;
 use scannerlib::{Promise, feed};
 use tokio::sync::mpsc;
 

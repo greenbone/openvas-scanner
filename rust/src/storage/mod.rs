@@ -7,7 +7,6 @@ pub mod infisto;
 pub mod inmemory;
 pub mod items;
 pub mod redis;
-pub mod time;
 
 use std::{fmt::Display, sync::Arc};
 

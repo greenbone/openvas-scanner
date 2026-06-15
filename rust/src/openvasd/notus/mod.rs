@@ -2,118 +2,147 @@
 // but should eventually solve this.
 #![allow(clippy::result_large_err)]
 
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
-use axum::{
-    Json, Router,
-    body::Body,
-    extract::Path,
-    http::{Response, StatusCode},
-    response::IntoResponse,
-    routing::{get, post},
+use greenbone_scanner_framework::{
+    ClientIdentifier, RequestHandler,
+    entry::{Bytes, Method, Prefixed, Uri, response::BodyKind},
 };
+use http::StatusCode;
 use scannerlib::notus::{Notus, NotusError, products_loader};
 use tokio::sync::RwLock;
 
-use crate::{app::AppState, config::Config};
+use crate::config::Config;
+
+type Oz = Notus;
+
+pub struct GetOSIcnomingRequest(Arc<RwLock<Oz>>);
+
+impl Prefixed for GetOSIcnomingRequest {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
+impl RequestHandler for GetOSIcnomingRequest {
+    fn needs_authentication(&self) -> bool {
+        false
+    }
+
+    fn path_segments(&self) -> &'static [&'static str] {
+        &["notus"]
+    }
+
+    fn http_method(&self) -> Method {
+        Method::GET
+    }
+
+    fn call<'a, 'b>(
+        &'b self,
+        _: Arc<ClientIdentifier>,
+        _: &'a Uri,
+        _: Bytes,
+        // req: Request<Body>,
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    where
+        'b: 'a,
+    {
+        let products = self.0.clone();
+        Box::pin(async move {
+            let p = products.read_owned().await;
+            match tokio::task::spawn_blocking(move || p.get_available_os())
+                .await
+                .expect("Tokio runtime must be available")
+            {
+                Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
+                Err(error) => {
+                    tracing::warn!(%error, "Unable to get available products.");
+                    BodyKind::no_content(StatusCode::INTERNAL_SERVER_ERROR)
+                }
+            }
+        })
+    }
+}
+
+pub struct PostOSIcnomingRequest(Arc<RwLock<Oz>>);
+
+impl Prefixed for PostOSIcnomingRequest {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
+
+impl RequestHandler for PostOSIcnomingRequest {
+    fn needs_authentication(&self) -> bool {
+        false
+    }
+
+    fn path_segments(&self) -> &'static [&'static str] {
+        &["notus", "*"]
+    }
+
+    fn http_method(&self) -> Method {
+        Method::POST
+    }
+
+    fn call<'a, 'b>(
+        &'b self,
+        _: Arc<ClientIdentifier>,
+        uri: &'a Uri,
+        body: Bytes,
+    ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
+    where
+        'b: 'a,
+    {
+        let products = self.0.clone();
+
+        let os = self
+            .ids(uri)
+            .into_iter()
+            .next()
+            .expect("expect OS, this is a toolkit error");
+
+        Box::pin(async move {
+            let mut p = products.write_owned().await;
+            match tokio::task::spawn_blocking(move || {
+                let packages: Vec<String> = serde_json::from_slice(&body)
+                    .map_err(|e| scannerlib::notus::NotusError::PackageParseError(e.to_string()))?;
+                p.scan(&os, &packages)
+            })
+            .await
+            .expect("Tokio runtime must be available")
+            {
+                Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
+                Err(NotusError::UnknownProduct(_)) => BodyKind::no_content(StatusCode::NOT_FOUND),
+                Err(error) => {
+                    tracing::warn!(%error, "Unable to get available products.");
+                    BodyKind::no_content(StatusCode::INTERNAL_SERVER_ERROR)
+                }
+            }
+        })
+    }
+}
 
 pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus>> {
     products_loader(&config.notus.products_path, config.feed.signature_check)
 }
 
-#[derive(Clone)]
-pub struct NotusEndpoints {
-    state: Arc<RwLock<Notus>>,
-}
-
-impl NotusEndpoints {
-    pub fn from_appstate(app_state: &AppState<'_>) -> Self {
-        Self {
-            state: app_state.notus_state.clone(),
-        }
-    }
-
-    fn internal_server_error(error: &dyn std::error::Error) -> Response<Body> {
-        tracing::warn!(error = %error, "Unexpected error occurred");
-        Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(Body::empty())
-            .unwrap()
-    }
-
-    async fn get_notus_response(&self) -> Response<Body> {
-        let products = self.state.clone().read_owned().await;
-        match tokio::task::spawn_blocking(move || products.get_available_os())
-            .await
-            .expect("Tokio runtime must be available")
-        {
-            Ok(products) => (StatusCode::OK, Json(products)).into_response(),
-            Err(error) => Self::internal_server_error(&error),
-        }
-    }
-
-    async fn post_notus_response(&self, os: String, body: Vec<u8>) -> Response<Body> {
-        let products = self.state.clone();
-
-        let packages: Vec<String> = match serde_json::from_slice(&body) {
-            Ok(packages) => packages,
-            Err(_) => {
-                return Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .body(Body::empty())
-                    .unwrap();
-            }
-        };
-
-        let mut products = products.write_owned().await;
-        match tokio::task::spawn_blocking(move || products.scan(&os, &packages))
-            .await
-            .expect("Tokio runtime must be available")
-        {
-            Ok(results) => (StatusCode::OK, Json(results)).into_response(),
-            Err(NotusError::UnknownProduct(_)) => Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(Body::empty())
-                .unwrap(),
-            Err(error) => Self::internal_server_error(&error),
-        }
-    }
-
-    pub fn router(&self) -> Router {
-        Router::new()
-            .route(
-                "/notus",
-                get({
-                    let notus = self.clone();
-                    move || async move { notus.get_notus_response().await }
-                }),
-            )
-            .route(
-                "/notus/{os}",
-                post({
-                    let notus = self.clone();
-                    move |Path(os): Path<String>, body: axum::body::Bytes| async move {
-                        notus.post_notus_response(os, body.to_vec()).await
-                    }
-                }),
-            )
-    }
+pub fn init(notus: Arc<RwLock<Notus>>) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
+    (
+        GetOSIcnomingRequest(notus.clone()),
+        PostOSIcnomingRequest(notus),
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use axum::{
-        Router,
-        body::Body,
-        http::{Method, Request, StatusCode},
+    use greenbone_scanner_framework::{
+        Authentication, ClientHash, create_single_handler,
+        entry::{Method, test_utilities},
     };
-    use tower::ServiceExt;
+    use http::StatusCode;
+    use hyper::service::Service;
 
-    use super::{NotusEndpoints, config_to_products};
     use crate::config::Config;
-
     fn config() -> Config {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let advisories_path = concat!(
@@ -142,58 +171,44 @@ mod tests {
         }
     }
 
-    fn router() -> Router {
-        let config = config();
-        let state = Arc::new(NotusEndpoints {
-            state: config_to_products(&config),
-        });
-        state.router()
-    }
-
-    async fn send(router: &Router, request: Request<Body>) -> axum::response::Response {
-        router.clone().oneshot(request).await.unwrap()
-    }
-
     #[tokio::test]
     async fn get_notus() -> crate::Result<()> {
-        let resp = send(
-            &router(),
-            Request::builder()
-                .method(Method::GET)
-                .uri("/notus")
-                .body(Body::empty())?,
-        )
-        .await;
+        let config = config();
+        let (undertest, _) = super::init(super::config_to_products(&config));
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            create_single_handler!(undertest),
+            Some(ClientHash::default()),
+        );
+        let req = test_utilities::empty_request(Method::GET, "/notus");
+        let resp = entry_point.call(req).await?;
         assert_eq!(resp.status(), StatusCode::OK);
         Ok(())
     }
 
     #[tokio::test]
     async fn post_notus_os() -> crate::Result<()> {
-        let router = router();
-
-        let resp = send(
-            &router,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/notus/not_found")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&vec!["aha".to_string()])?))?,
-        )
-        .await;
+        let config = config();
+        let (_, undertest) = super::init(super::config_to_products(&config));
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            create_single_handler!(undertest),
+            Some(ClientHash::default()),
+        );
+        let req = test_utilities::json_request(
+            Method::POST,
+            "/notus/not_found",
+            &vec!["aha".to_string()],
+        );
+        let resp = entry_point.call(req).await?;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 
-        let resp = send(
-            &router,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/notus/test")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&vec![
-                    "man-db-1.1.1".to_string(),
-                ])?))?,
-        )
-        .await;
+        let req = test_utilities::json_request(
+            Method::POST,
+            "/notus/test",
+            &vec!["man-db-1.1.1".to_string()],
+        );
+        let resp = entry_point.call(req).await?;
         assert_eq!(resp.status(), StatusCode::OK);
 
         Ok(())

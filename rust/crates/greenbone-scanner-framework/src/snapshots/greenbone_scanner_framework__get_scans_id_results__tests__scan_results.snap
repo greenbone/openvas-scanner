@@ -1,0 +1,5 @@
+---
+source: crates/greenbone-scanner-framework/src/get_scans_id_results.rs
+expression: resp
+---
+[]

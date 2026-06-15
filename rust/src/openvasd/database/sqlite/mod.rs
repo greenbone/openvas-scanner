@@ -1,19 +1,14 @@
-use crate::framework::InternalIdentifier;
-use futures::StreamExt;
 use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 use sqlx::query::QueryAs;
 
 use sqlx::{
-    FromRow, IntoArguments, QueryBuilder, Row, Sqlite, SqliteConnection, SqlitePool,
+    FromRow, IntoArguments, QueryBuilder, Sqlite, SqliteConnection, SqlitePool,
     query::{Query, QueryScalar},
     query_builder::Separated,
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
-use crate::database::dao::{
-    DAOError, DAOHandler, DAOStreamer, DBViolation, Execute, Fetch, InfrastructureReason,
-    StreamFetch,
-};
+use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
 
 pub mod results;
 pub mod scan_storage;
@@ -47,102 +42,6 @@ impl<'o, T> DAOHandler<&'o DataBase, T> for OpenVASDDB<'o, T> {
     fn inner(self) -> (&'o DataBase, T) {
         (self.pool, self.input)
     }
-}
-
-impl<'o, T> Fetch<Option<InternalIdentifier>> for T
-where
-    T: DAOHandler<&'o SqlitePool, (&'o str, &'o str)> + Sync,
-{
-    fn fetch<'a, 'b>(
-        &'a self,
-    ) -> crate::database::dao::DAOPromiseRef<'b, Option<InternalIdentifier>>
-    where
-        'a: 'b,
-    {
-        Box::pin(async move {
-            let (client_id, scan) = self.input();
-            let x =
-                sqlx::query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
-                    .bind(client_id)
-                    .bind(scan)
-                    .fetch_optional(self.db())
-                    .await?;
-            Ok(x.map(|r| r.get::<i64, _>("id")).map(|x| x.to_string()))
-        })
-    }
-}
-
-impl<'o, T> StreamFetch<String> for T
-where
-    T: DAOHandler<&'o SqlitePool, String> + Sync,
-{
-    fn stream_fetch(self) -> DAOStreamer<String> {
-        let (db, client_id) = self.inner();
-        let result = sqlx::query(
-            r#"
-                SELECT scan_id FROM client_scan_map WHERE client_id = ?
-            "#,
-        )
-        .bind(client_id)
-        .fetch(db)
-        .map(|x| {
-            x.map(|x| x.get::<String, _>("scan_id"))
-                .map_err(DAOError::from)
-        });
-        Box::pin(result)
-    }
-}
-
-impl<'o, T> Execute<()> for T
-where
-    T: DAOHandler<&'o SqlitePool, String> + Sync,
-{
-    fn exec<'a, 'b>(&'a self) -> crate::database::dao::DAOPromiseRef<'b, ()>
-    where
-        'a: 'b,
-    {
-        const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
-        Box::pin(async move {
-            sqlx::query(DELETE_SQL)
-                .bind(self.input())
-                .execute(self.db())
-                .await
-                .map(|_| ())
-                .map_err(DAOError::from)
-        })
-    }
-}
-
-pub async fn insert_client_scan_map<'args, E>(
-    executor: &mut E,
-    client_id: &'args str,
-    scan_id: &'args str,
-) -> Result<i64, sqlx::Error>
-where
-    for<'e> &'e mut E: sqlx::Executor<'e, Database = Sqlite>,
-{
-    sqlx::query("INSERT INTO client_scan_map(client_id, scan_id) VALUES (?, ?)")
-        .bind(client_id)
-        .bind(scan_id)
-        .execute(&mut *executor)
-        .await
-        .map(|row| row.last_insert_rowid())
-}
-
-pub async fn insert_scan_with_auth_data<'args, E>(
-    executor: &mut E,
-    id: i64,
-    auth_data: &'args str,
-) -> Result<(), sqlx::Error>
-where
-    for<'e> &'e mut E: sqlx::Executor<'e, Database = Sqlite>,
-{
-    sqlx::query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
-        .bind(id)
-        .bind(auth_data)
-        .execute(&mut *executor)
-        .await
-        .map(|_| ())
 }
 
 pub async fn insert_values_chunked<'args, T, E, F>(

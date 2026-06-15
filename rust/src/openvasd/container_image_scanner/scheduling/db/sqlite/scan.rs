@@ -6,11 +6,9 @@ use sqlx::{Acquire, Database, Row, Sqlite, SqlitePool, query, query::Query, sqli
 
 use crate::{
     container_image_scanner::image::{Image, ImageState, RegistryError},
-    credentials::{decrypt_credentials, encrypt_credentials},
-    crypt::Crypt,
     database::{
         dao::{DAOError, DAOPromiseRef, DBViolation, Execute, Fetch},
-        sqlite::{insert_client_scan_map, insert_scan_with_auth_data, insert_values_chunked},
+        sqlite::insert_values_chunked,
     },
 };
 
@@ -64,13 +62,12 @@ async fn set_scan_images(
         r#"
             UPDATE scans
             SET host_all = ?,
-                host_queued = ?,
+                host_queued = 0,
                 host_dead = ?
             WHERE id = ?
             "#,
     )
     .bind(count as i64)
-    .bind(success_count as i64)
     .bind(dead_count as i64)
     .bind(id)
     .execute(&mut *tx)
@@ -95,10 +92,6 @@ async fn set_scan_images(
         .await?;
     }
     tx.commit().await?;
-    if success_count == 0 || count == 0 {
-        set_scan_to_failed(pool, id).await?;
-    }
-
     if success_count == 0 || count == 0 {
         set_scan_to_failed(pool, id).await?;
     }
@@ -149,8 +142,8 @@ pub async fn set_scans_to_finished(pool: &SqlitePool) -> Result<(), sqlx::Error>
 }
 
 async fn set_scan_to_running(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error> {
-    // setting host_queued to 1 prevents the scan from being marked as finished before image
-    // resolution stored the actual pending image count.
+    // setting host_queued to 1 to not trigger success, it will be overridden on set_scan_images
+    // later.
     query(
         r#"
             UPDATE scans
@@ -179,26 +172,23 @@ async fn set_scan_to_failed(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Err
     .map(|_| ())
 }
 
-impl<'o, C> Fetch<models::Scan> for DBScan<'o, (&'o C, String)>
-where
-    C: Crypt + Sync,
-{
+impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, models::Scan>
     where
         'a: 'b,
     {
         Box::pin(async move {
             let mut conn = self.pool.acquire().await?;
-            let (crypter, id) = &self.input;
+            let id = &self.input;
             let hosts: Vec<(String,)> = sqlx::query_as("SELECT host FROM registry WHERE id = ?")
                 .bind(id)
                 .fetch_all(&mut *conn)
                 .await?;
-            let auth_data: String = sqlx::query_scalar("SELECT auth_data FROM scans WHERE id = ?")
-                .bind(id)
-                .fetch_one(&mut *conn)
-                .await?;
-            let credentials = decrypt_credentials(*crypter, &auth_data).await?;
+            let creds: Vec<(String, String)> =
+                sqlx::query_as("SELECT username, password FROM credentials WHERE id = ?")
+                    .bind(id)
+                    .fetch_all(&mut *conn)
+                    .await?;
 
             let preferences: Vec<(String, String)> =
                 sqlx::query_as("SELECT key, value FROM preferences WHERE id = ?")
@@ -214,7 +204,18 @@ where
                 scan_id,
                 target: models::Target {
                     hosts: hosts.into_iter().map(|(h,)| h).collect(),
-                    credentials,
+                    credentials: creds
+                        .into_iter()
+                        .map(|(u, p)| models::Credential {
+                            credential_type: models::CredentialType::UP {
+                                username: u,
+                                password: p,
+                                privilege: None,
+                            },
+                            service: models::Service::Generic,
+                            port: None,
+                        })
+                        .collect(),
                     ..Default::default()
                 },
                 scan_preferences: preferences
@@ -227,21 +228,29 @@ where
     }
 }
 
-impl<'o, C> Execute<()> for DBScan<'o, (&'o C, &'o str, &'o Scan)>
-where
-    C: Crypt + Sync,
-{
+impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let (crypter, client_id, scan) = &self.input;
+            let (client_id, scan) = &self.input;
             let mut conn = self.pool.acquire().await?;
             let mut tx = conn.begin().await?;
-            let id = insert_client_scan_map(&mut *tx, client_id, &scan.scan_id).await?;
-            let auth_data = encrypt_credentials(*crypter, &scan.target.credentials).await?;
-            insert_scan_with_auth_data(&mut *tx, id, &auth_data).await?;
+            let row = query(
+                r#"
+            INSERT INTO client_scan_map(scan_id, client_id) VALUES (?, ?)
+            "#,
+            )
+            .bind(&scan.scan_id)
+            .bind(client_id)
+            .execute(&mut *tx)
+            .await?;
+            let id = row.last_insert_rowid();
+            let _ = query("INSERT INTO scans(id) VALUES (?)")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
             tracing::debug!(internal_id = id, "creating scan");
             insert_values_chunked(
                 &mut *tx,
@@ -251,6 +260,29 @@ where
                 },
                 &scan.target.hosts,
                 2,
+            )
+            .await?;
+            let credentials = scan
+                .target
+                .credentials
+                .iter()
+                .filter_map(|c| match &c.credential_type {
+                    models::CredentialType::UP {
+                        username,
+                        password,
+                        privilege: _,
+                    } => Some((username, password)),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            insert_values_chunked(
+                &mut *tx,
+                "INSERT INTO credentials (id, username, password)",
+                |mut b, (username, password)| {
+                    b.push_bind(id).push_bind(*username).push_bind(*password);
+                },
+                &credentials,
+                3,
             )
             .await?;
             insert_values_chunked(
@@ -275,21 +307,6 @@ where
                 3,
             )
             .await?;
-            if !scan.target.excluded_hosts.is_empty() {
-                query(
-                    r#"
-                UPDATE scans
-                SET host_excluded = host_excluded + ?,
-                    host_finished = host_finished + ?
-                WHERE id = ?
-                "#,
-                )
-                .bind(scan.target.excluded_hosts.len() as i64)
-                .bind(scan.target.excluded_hosts.len() as i64)
-                .bind(id)
-                .execute(&mut *tx)
-                .await?;
-            }
 
             tx.commit().await?;
             Ok(())

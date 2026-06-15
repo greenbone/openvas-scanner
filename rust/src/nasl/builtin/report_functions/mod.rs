@@ -4,7 +4,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use crate::models::{self, Protocol, ResultType};
+use greenbone_scanner_framework::models::{self, Protocol, ResultType};
 
 use crate::nasl::prelude::*;
 

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::{self, Scan, Status};
 use async_trait::async_trait;
+use greenbone_scanner_framework::models::{self, Scan, Status};
 use thiserror::Error;
 /// ScanResults can differ in kind.
 ///

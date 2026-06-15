@@ -871,21 +871,8 @@ pub mod fake {
         }
     }
 
-    #[derive(Clone)]
-    pub struct Authenticated {
-        token_status_codes: Vec<usize>,
-    }
-
-    impl Default for Authenticated {
-        fn default() -> Self {
-            Self {
-                token_status_codes: vec![200],
-            }
-        }
-    }
-
     pub enum FakeResponses<'a> {
-        Authenticated(Authenticated),
+        Authenticated,
         Catalog(Catalog<'a>),
         Tags(Tags<'a>),
         Manifest(Manifest<'a>),
@@ -898,7 +885,7 @@ pub mod fake {
                 FakeResponses::Manifest(manifest) => 1 + 1 + manifest.blobconfig.layer.len(),
                 FakeResponses::Catalog(_) => 1,
                 FakeResponses::Pull(pull) => pull.images.len() * 3,
-                FakeResponses::Authenticated(auth) => 1 + auth.token_status_codes.len(),
+                FakeResponses::Authenticated => 2,
                 FakeResponses::Tags(tags) => tags.images.len(),
             }
         }
@@ -922,9 +909,8 @@ pub mod fake {
                 }
                 FakeResponses::Catalog(catalog) => vec![catalog.mock(server, next_sc())],
                 FakeResponses::Pull(pull) => pull.mocks(server, status_codes),
-                FakeResponses::Authenticated(auth) => {
-                    let mut mocks = Vec::with_capacity(1 + auth.token_status_codes.len());
-                    mocks.push(
+                FakeResponses::Authenticated => {
+                    vec![
                         server
                             .mock("GET", "/v2/")
                             .with_status(401)
@@ -935,20 +921,15 @@ pub mod fake {
                                     server.host_with_port()
                                 ),
                             )
-                            .expect_at_least(1)
                             .create(),
-                    );
-                    mocks.extend(auth.token_status_codes.iter().map(|status| {
                         server
                             .mock("GET", "/token")
                             .match_query(Matcher::Any)
-                            .with_status(*status)
+                            .with_status(200)
                             .with_header("Content-Type", "application/json")
                             .with_body(r#"{"token": "waldfee"}"#)
-                            .expect(1)
-                            .create()
-                    }));
-                    mocks
+                            .create(),
+                    ]
                 }
                 FakeResponses::Tags(tags) => tags.mocks(server, status_codes),
             }
@@ -1009,20 +990,10 @@ pub mod fake {
         /// If new entries are added to the build.rs and inside `data/tests/layers` those
         /// manifest_mocks needs to be extended within FakeResponses::Pull.
         pub async fn serve_images(images: &[Image], status_codes: &[usize]) -> Self {
-            Self::serve_images_with_auth_status_codes(images, status_codes, &[200]).await
-        }
-
-        pub async fn serve_images_with_auth_status_codes(
-            images: &[Image],
-            status_codes: &[usize],
-            auth_status_codes: &[usize],
-        ) -> Self {
             let mut port_expander: PortExpander = status_codes.into();
             let mut server = mockito::Server::new_async().await;
             let mocks = [
-                FakeResponses::Authenticated(Authenticated {
-                    token_status_codes: auth_status_codes.to_vec(),
-                }),
+                FakeResponses::Authenticated,
                 FakeResponses::Catalog(Catalog { images }),
                 FakeResponses::Tags(Tags { images }),
                 FakeResponses::Pull(Pull { images }),

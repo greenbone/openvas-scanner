@@ -1,3 +1,0 @@
-ALTER TABLE scans ADD COLUMN auth_data TEXT NOT NULL DEFAULT '';
-
-DROP TABLE credentials;
