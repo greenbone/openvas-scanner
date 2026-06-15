@@ -705,6 +705,34 @@ mod test {
     }
 
     #[tokio::test]
+    async fn start_scan_succeeds_after_two_authentication_503s_during_tag_resolution_with_retry_3()
+    {
+        let mut image = DockerRegistryV2Mock::supported_images()
+            .into_iter()
+            .next()
+            .expect("expected at least one supported image");
+        image.registry = Default::default();
+        let registry = DockerRegistryV2Mock::serve_images_with_auth_status_codes(
+            &[image.clone()],
+            &[],
+            &[503, 503, 200],
+        )
+        .await;
+
+        let mut config = Fakes::config_without_retries();
+        config.image.scanning_retries = 3;
+        let mut fakes = Fakes::init_with_config(config).await;
+        let client_id = client_id();
+        image.registry = registry.address();
+        image.tag = None;
+        let scan = fakes.insecure_scan("auth-retry-during-tag-resolution", [image.to_string()]);
+
+        let (_, status) = fakes.start_scan_and_run(&client_id, scan, 1).await;
+
+        assert_eq!(status.status, Phase::Succeeded);
+    }
+
+    #[tokio::test]
     async fn start_scan_failed_when_blob_download_returns_503() {
         let mut fakes = Fakes::init_with_config(Fakes::config_without_retries()).await;
         let client_id = client_id();
