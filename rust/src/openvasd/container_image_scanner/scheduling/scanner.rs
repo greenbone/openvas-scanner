@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use futures::{StreamExt, TryFutureExt};
-use scannerlib::models;
+use greenbone_scanner_framework::models;
 use tokio::sync::RwLock;
 
 use crate::{

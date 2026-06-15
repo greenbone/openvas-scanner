@@ -5,7 +5,7 @@
 use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use scannerlib::models::VTData;
+use greenbone_scanner_framework::models::VTData;
 use scannerlib::models::{Parameter, Port, Protocol, Scan, ScanPreference, VT};
 use scannerlib::nasl::WithErrorInfo;
 use scannerlib::storage::Retriever;

@@ -123,12 +123,10 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libsnmp-dev \
     && rm -rf /var/lib/apt/lists/*
 ENV OPENVAS_ARCHIVES=/archives \
-    LIBPCAP_LIBDIR=/archives \
-    CARGO_HOME=/usr/local/cargo
+    LIBPCAP_LIBDIR=/archives
 
-RUN --mount=type=cache,target=/usr/local/cargo/registry/index \
-    --mount=type=cache,target=/usr/local/cargo/registry/cache \
-    --mount=type=cache,target=/usr/local/cargo/git/db \
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/source/rust/target \
   [ -f /install/usr/local/bin/openvasd ] && \
   [ -f /install/usr/local/bin/scannerctl ] || \

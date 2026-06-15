@@ -10,10 +10,12 @@ anyhow = "1.0.75"
 cc = "1.0"
 bindgen = "0.72"
 clap = { version = "4.5.27", features = ["derive", "env"] }
-axum = "0.8.4"
-axum-server = { version = "0.7.2", features = ["tls-rustls-no-provider"] }
 futures = "0.3.30"
 futures-util = "0.3.28"
+http-body = "1"
+http-body-util = "0.1.0"
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0", features = ["tokio"] }
 insta = { version = "1.41.1", features = ["ron", "toml"] }
 rustls = "0.23.31"
 serde = { version = "1.0", features = ["derive"] }
@@ -23,7 +25,6 @@ thiserror = "2.0.14"
 time = { version = "0", features = ["parsing"] }
 tokio = { version = "1.39.3", features = ["full"] }
 tokio-rustls = "0.26.0"
-tower = "0.5.2"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 tracing-appender = "0.2.4"
@@ -108,19 +109,16 @@ x509-certificate = "0.24.0"
 x509-parser = "0.17.0"
 
 anyhow = { workspace = true }
-axum = { workspace = true }
-axum-server = { workspace = true }
 clap = { workspace = true }
 futures = { workspace = true }
+hyper = { workspace = true }
 rustls = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
-time = { workspace = true }
 tokio = { workspace = true }
 tokio-rustls = { workspace = true }
-tower = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
@@ -132,6 +130,7 @@ libssh-rs = { version = "0.3.5", features = [
 ] }
 
 nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
+greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
 nasl-c-lib = { path = "crates/nasl-c-lib" }
 rpmdb = { path = "crates/rpmdb-rs" }
 tar = "0"

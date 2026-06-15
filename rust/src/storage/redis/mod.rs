@@ -40,7 +40,7 @@ use super::items::nvt::FeedVersion;
 use super::items::nvt::FileName;
 use super::items::nvt::Oid;
 //TODO: rename
-use crate::models::VTData;
+use greenbone_scanner_framework::models::VTData;
 
 use super::items::result::ResultContextKeySingle;
 use super::items::result::ResultItem;
@@ -252,14 +252,14 @@ mod tests {
     use std::sync::Mutex;
     use std::sync::mpsc::{self, Sender, TryRecvError};
 
-    use crate::models::PreferenceType;
-    use crate::models::VTData;
     use crate::storage::Dispatcher;
     use crate::storage::inmemory::kb::InMemoryKbStorage;
     use crate::storage::items::nvt::{
         ACT, FeedVersion, FileName, NvtPreference, NvtRef, TagKey, TagValue,
     };
     use crate::storage::redis::RedisStorage;
+    use greenbone_scanner_framework::models::PreferenceType;
+    use greenbone_scanner_framework::models::VTData;
 
     use super::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorageResult, RedisWrapper};
 

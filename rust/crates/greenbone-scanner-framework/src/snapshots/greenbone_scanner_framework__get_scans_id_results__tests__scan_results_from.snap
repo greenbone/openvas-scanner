@@ -1,0 +1,14 @@
+---
+source: crates/greenbone-scanner-framework/src/get_scans_id_results.rs
+expression: resp
+---
+[
+  Result(
+    id: 99,
+    type: log,
+  ),
+  Result(
+    id: 100,
+    type: log,
+  ),
+]

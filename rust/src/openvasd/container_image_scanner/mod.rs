@@ -1,10 +1,11 @@
 mod benchy;
 pub mod config;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use crate::{credentials, crypt::ChaCha20Crypt};
 pub use config::Config;
 use futures::{Stream, StreamExt};
+use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
 use image::{DockerRegistryV2, extractor::filtered_image, packages::AllTypes};
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
@@ -75,17 +76,26 @@ trait ParsePreferences<T> {
 
 static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scanner/migrations");
 
-use endpoints::scans::ScanState;
+use endpoints::scans::Scans;
+//TODO: move endpoints to openvasd?
+use endpoints::vts::VTEndpoints;
+
 use scannerlib::notus::Notus;
+
+use crate::{
+    container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
+};
 
 pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
     credentials::config_to_crypt(config.database.credential_key.as_deref())
 }
 
 pub async fn init(
+    vt_pool: DataBase,
+    feed_state: Arc<RwLock<FeedState>>,
     products: Arc<tokio::sync::RwLock<Notus>>,
     config: Config,
-) -> Result<ScanState<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<(Scans<ChaCha20Crypt>, VTEndpoints), Box<dyn std::error::Error + Send + Sync>> {
     let pool = config
         .database
         .create_pool("container-image-scanner")
@@ -104,6 +114,11 @@ pub async fn init(
         scheduler.run::<AllTypes>().await;
     });
 
-    let scan_state = ScanState { pool, crypter };
-    Ok(scan_state)
+    let scan = Scans { pool, crypter };
+    let vts = VTEndpoints::new(
+        SqlPluginStorage::from(vt_pool),
+        feed_state,
+        Some(scan.prefix()),
+    );
+    Ok((scan, vts))
 }

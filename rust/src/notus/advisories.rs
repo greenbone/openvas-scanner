@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use crate::models::{ACT, NvtRef, TagKey, TagValue, VTData};
+use greenbone_scanner_framework::models::{ACT, NvtRef, TagKey, TagValue, VTData};
 use serde::Deserialize;
 
 /// Represents an advisory json file for notus product.
@@ -170,7 +170,7 @@ impl From<VulnerabilityData> for Vulnerability {
 impl From<VulnerabilityData> for VTData {
     fn from(value: VulnerabilityData) -> VTData {
         fn tag_to_vec(v: &Vulnerability) -> BTreeMap<TagKey, TagValue> {
-            use crate::models::*;
+            use greenbone_scanner_framework::models::*;
 
             let mut tags: BTreeMap<TagKey, TagValue> = BTreeMap::new();
             if !v.affected.is_empty() {

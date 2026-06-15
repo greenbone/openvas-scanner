@@ -1,4 +1,4 @@
-use crate::models::PreferenceValue;
+use greenbone_scanner_framework::models::PreferenceValue;
 
 // SPDX-FileCopyrightText: 2025 Greenbone AG
 //

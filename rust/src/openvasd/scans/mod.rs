@@ -1,39 +1,210 @@
-use std::sync::Arc;
-
-use crate::framework::{
-    GetScansError, GetScansIDResultsIDError, PostScansError, PostScansIDError, StreamResult,
-};
-use axum::Router;
-use futures::TryStreamExt;
-use scannerlib::{PromiseRef, models, scanner};
-use tokio::sync::mpsc::Sender;
+use std::{pin::Pin, sync::Arc};
 
 use crate::database::{
     dao::{Execute, Fetch, StreamFetch},
     sqlite::{DataBase, results::DBResults, scans::ScanDB},
 };
+use futures::TryStreamExt;
+use greenbone_scanner_framework::InternalIdentifier;
+use greenbone_scanner_framework::prelude::*;
+use scannerlib::scanner;
+use tokio::sync::mpsc::Sender;
 
 use crate::{
-    app::AppState,
     config::Config,
     credentials,
-    crypt::ChaCha20Crypt,
-    framework,
-    scan_routes::{ScanBackend, ScanRoutes},
+    crypt::{ChaCha20Crypt, Crypt},
+    endpoint_helpers,
     vts::orchestrator,
 };
-pub(crate) mod scheduling;
-
-#[derive(Clone)]
-pub(crate) struct ScanState {
+mod scheduling;
+pub struct Endpoints<E> {
     pool: DataBase,
-    crypter: Arc<ChaCha20Crypt>,
+    crypter: Arc<E>,
     scheduling: Sender<scheduling::Message>,
 }
 
-#[derive(Clone)]
-pub(crate) struct Scans {
-    state: Arc<ScanState>,
+impl<T> Prefixed for Endpoints<T> {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
+
+impl<E> PostScans for Endpoints<E>
+where
+    E: crate::crypt::Crypt + Sync + Send,
+{
+    fn post_scans(
+        &self,
+        client_id: String,
+        scan: models::Scan,
+    ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
+        Box::pin(async move {
+            endpoint_helpers::map_post_scan_result(
+                ScanDB::new(
+                    &self.pool,
+                    (self.crypter.as_ref(), &client_id as &str, &scan),
+                )
+                .exec()
+                .await,
+                scan.scan_id,
+            )
+        })
+    }
+}
+
+impl<E> MapScanID for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn contains_scan_id<'a>(
+        &'a self,
+        client_id: &'a str,
+        scan_id: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>> {
+        Box::pin(async move {
+            endpoint_helpers::map_contains_scan_id(
+                ScanDB::new(&self.pool, (client_id, scan_id)).fetch().await,
+            )
+        })
+    }
+}
+
+impl<E> GetScans for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
+        Box::pin(
+            ScanDB::new(&self.pool, client_id)
+                .stream_fetch()
+                .map_err(endpoint_helpers::into_get_scans_error),
+        )
+    }
+}
+
+impl<E> GetScansPreferences for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn get_scans_preferences(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
+        Box::pin(async move { scanner::preferences::preference::PREFERENCES.to_vec() })
+    }
+}
+
+impl<E> GetScansId for Endpoints<E>
+where
+    E: Send + Sync + Crypt,
+{
+    fn get_scans_id(
+        &self,
+        id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>> {
+        Box::pin(async move {
+            let id = id.parse().map_err(endpoint_helpers::into_get_scans_error)?;
+            ScanDB::new(&self.pool, (self.crypter.as_ref(), id))
+                .fetch()
+                .await
+                .map_err(endpoint_helpers::into_get_scans_error)
+        })
+    }
+}
+
+impl<E> GetScansIdResults for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn get_scans_id_results(
+        &self,
+        id: String,
+        from: Option<usize>,
+        to: Option<usize>,
+    ) -> StreamResult<models::Result, GetScansIDResultsError> {
+        let result = DBResults::new(&self.pool, (id, from, to))
+            .stream_fetch()
+            .map_err(GetScansError::from_external);
+
+        Box::pin(result)
+    }
+}
+
+impl<E> GetScansIdResultsId for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn get_scans_id_results_id(
+        &self,
+        id: String,
+        result_id: usize,
+    ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            endpoint_helpers::map_result_id_fetch(
+                DBResults::new(&self.pool, (id, result_id)).fetch().await,
+            )
+        })
+    }
+}
+
+impl<E> GetScansIdStatus for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn get_scans_id_status(
+        &self,
+        id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let id: i64 = id
+                .parse()
+                .map_err(|e| GetScansIDStatusError::External(Box::new(e)))?;
+            ScanDB::new(&self.pool, id)
+                .fetch()
+                .await
+                .map_err(|e| GetScansIDStatusError::External(Box::new(e)))
+        })
+    }
+}
+impl<E> PostScansId for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn post_scans_id(
+        &self,
+        id: String,
+        action: models::Action,
+    ) -> Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
+        Box::pin(async move {
+            self.scheduling
+                .send(match action {
+                    models::Action::Start => scheduling::Message::Start(id),
+                    models::Action::Stop => scheduling::Message::Stop(id),
+                })
+                .await
+                .map_err(|e| PostScansIDError::External(Box::new(e)))
+        })
+    }
+}
+impl<E> DeleteScansId for Endpoints<E>
+where
+    E: Send + Sync,
+{
+    fn delete_scans_id(
+        &self,
+        id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
+        Box::pin(async move {
+            // everything else should have ON DELETE CASCADE
+            ScanDB::new(&self.pool, id)
+                .exec()
+                .await
+                .map_err(DeleteScansIDError::from_external)
+                .map(|_| ())
+        })
+    }
 }
 
 pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
@@ -46,203 +217,263 @@ pub async fn init(
     pool: DataBase,
     config: &Config,
     feed_status: orchestrator::Communicator,
-) -> Result<ScanState, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
     let crypter = Arc::new(config_to_crypt(config));
     let scheduler_sender =
         scheduling::init(pool.clone(), crypter.clone(), config, feed_status).await?;
-    Ok(ScanState {
+    Ok(Endpoints {
         pool,
         crypter,
         scheduling: scheduler_sender,
     })
 }
 
-impl ScanState {
-    pub(crate) fn pool(&self) -> DataBase {
-        self.pool.clone()
-    }
-}
+#[cfg(test)]
+pub mod tests {
+    use std::time::Duration;
 
-impl Scans {
-    pub(crate) fn from_appstate(app_state: &AppState<'_>) -> Self {
-        Self {
-            state: app_state.scan_state.clone(),
+    use super::*;
+
+    use futures::StreamExt;
+    use greenbone_scanner_framework::{
+        GetScans, GetScansId, GetScansIdResults, GetScansIdStatus, GetScansPreferences, MapScanID,
+        PostScans, PostScansError,
+        models::{
+            self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
+            ScanPreference, Service,
+        },
+        prelude::PostScansId,
+    };
+    use scannerlib::{models::Phase, scanner};
+    use sqlx::{SqlitePool, query_scalar};
+
+    use crate::{
+        config::Config,
+        crypt::ChaCha20Crypt,
+        scans::{config_to_crypt, scheduling},
+    };
+
+    async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {
+        let ignored = Default::default();
+
+        super::init(pool, config, ignored).await.unwrap()
+    }
+
+    fn generate_hosts() -> Vec<Vec<String>> {
+        vec![vec![], vec!["0".into()]]
+    }
+    fn generate_excluded_hosts() -> Vec<Vec<String>> {
+        vec![vec![], vec!["1".into()]]
+    }
+
+    fn generate_ports() -> Vec<Vec<models::Port>> {
+        vec![
+            vec![],
+            vec![
+                models::Port {
+                    protocol: None,
+                    range: vec![],
+                },
+                models::Port {
+                    protocol: None,
+                    range: vec![
+                        models::PortRange {
+                            start: 22,
+                            end: None,
+                        },
+                        models::PortRange {
+                            start: 22,
+                            end: Some(23),
+                        },
+                    ],
+                },
+                models::Port {
+                    protocol: Some(models::Protocol::TCP),
+                    range: vec![models::PortRange {
+                        start: 42,
+                        end: None,
+                    }],
+                },
+                models::Port {
+                    protocol: Some(models::Protocol::UDP),
+                    range: vec![models::PortRange {
+                        start: 69,
+                        end: None,
+                    }],
+                },
+            ],
+        ]
+    }
+
+    fn all_services() -> Vec<Service> {
+        vec![
+            Service::SSH,
+            Service::SMB,
+            Service::ESXi,
+            Service::SNMP,
+            Service::KRB5,
+        ]
+    }
+
+    fn all_ports() -> Vec<Option<u16>> {
+        vec![None, Some(22)]
+    }
+
+    fn sample_privileges() -> Vec<Option<PrivilegeInformation>> {
+        vec![
+            None,
+            Some(PrivilegeInformation {
+                username: "priv_user".to_string(),
+                password: "priv_pass".to_string(),
+            }),
+        ]
+    }
+
+    fn all_credential_types_for_service(service: &Service) -> Vec<CredentialType> {
+        match service {
+            Service::SSH => {
+                let mut creds = Vec::new();
+                for privilege in sample_privileges() {
+                    creds.push(CredentialType::UP {
+                        username: "root".to_string(),
+                        password: "password".to_string(),
+                        privilege: privilege.clone(),
+                    });
+                    creds.push(CredentialType::USK {
+                        username: "root".to_string(),
+                        password: Some("keypass".to_string()),
+                        private_key: "private_key_data".to_string(),
+                        privilege: privilege.clone(),
+                    });
+                    creds.push(CredentialType::USK {
+                        username: "root".to_string(),
+                        password: None,
+                        private_key: "private_key_data".to_string(),
+                        privilege: privilege.clone(),
+                    });
+                }
+                creds
+            }
+            Service::SMB | Service::ESXi => {
+                vec![CredentialType::UP {
+                    username: "admin".to_string(),
+                    password: "adminpass".to_string(),
+                    privilege: None,
+                }]
+            }
+            Service::SNMP => vec![CredentialType::SNMP {
+                username: "snmpuser".to_string(),
+                password: "snmppass".to_string(),
+                community: "public".to_string(),
+                auth_algorithm: "SHA".to_string(),
+                privacy_password: "privpass".to_string(),
+                privacy_algorithm: "AES".to_string(),
+            }],
+            Service::KRB5 => vec![CredentialType::KRB5 {
+                username: "krbuser".to_string(),
+                password: "krbpass".to_string(),
+                realm: "EXAMPLE.COM".to_string(),
+                kdc: "kdc.example.com".to_string(),
+            }],
+            Service::Generic => vec![CredentialType::UP {
+                username: "moep".into(),
+                password: "moep".into(),
+                privilege: None,
+            }],
         }
     }
 
-    async fn post_scans(
-        &self,
-        client_id: String,
-        scan: models::Scan,
-    ) -> Result<String, PostScansError> {
-        framework::map_post_scan_result(
-            ScanDB::new(
-                &self.state.pool,
-                (self.state.crypter.as_ref(), client_id.as_str(), &scan),
-            )
-            .exec()
-            .await,
-            scan.scan_id,
+    fn generate_credentials() -> Vec<Credential> {
+        itertools::iproduct!(all_services().into_iter(), all_ports().into_iter())
+            .flat_map(|(s, p)| {
+                all_credential_types_for_service(&s)
+                    .into_iter()
+                    .map(move |c| (s.clone(), p, c))
+            })
+            .map(|(service, port, credential_type)| Credential {
+                service,
+                port,
+                credential_type,
+            })
+            .collect()
+    }
+
+    fn generate_alive_test_methods() -> Vec<AliveTestMethods> {
+        use AliveTestMethods::*;
+        vec![TcpAck, Icmp, Arp, ConsiderAlive, TcpSyn]
+    }
+
+    fn generate_targets() -> Vec<models::Target> {
+        itertools::iproduct!(
+            generate_hosts(),
+            generate_ports(),
+            generate_excluded_hosts(),
+            generate_ports()
         )
-    }
-
-    async fn contains_scan_id(&self, client_id: &str, scan_id: &str) -> Option<String> {
-        framework::map_contains_scan_id(
-            ScanDB::new(&self.state.pool, (client_id, scan_id))
-                .fetch()
-                .await,
+        .map(
+            |(hosts, ports, excluded_hosts, alive_test_ports)| models::Target {
+                hosts,
+                ports,
+                excluded_hosts,
+                credentials: generate_credentials(),
+                alive_test_ports,
+                alive_test_methods: generate_alive_test_methods(),
+                reverse_lookup_unify: None,
+                reverse_lookup_only: Some(true),
+            },
         )
-    }
-    pub(crate) fn router(&self) -> Router {
-        ScanRoutes::new(self.clone(), "").router()
-    }
-}
-
-impl ScanBackend for Scans {
-    fn post_scans(
-        &self,
-        client_id: String,
-        scan: models::Scan,
-    ) -> PromiseRef<'_, Result<String, PostScansError>> {
-        Box::pin(async move { Scans::post_scans(self, client_id, scan).await })
+        .collect()
     }
 
-    fn contains_scan_id<'a>(
-        &'a self,
-        client_id: &'a str,
-        scan_id: &'a str,
-    ) -> PromiseRef<'a, Option<String>> {
-        Box::pin(async move { Scans::contains_scan_id(self, client_id, scan_id).await })
+    fn generate_scan_prefs() -> Vec<ScanPreference> {
+        vec![ScanPreference {
+            id: "moep".into(),
+            value: "narf".into(),
+        }]
     }
 
-    fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
-        Box::pin(
-            ScanDB::new(&self.state.pool, client_id)
-                .stream_fetch()
-                .map_err(framework::into_get_scans_error),
-        )
+    fn generate_vts() -> Vec<models::VT> {
+        vec![
+            models::VT {
+                oid: "0".into(),
+                parameters: vec![],
+            },
+            models::VT {
+                oid: "1".into(),
+                parameters: vec![models::Parameter {
+                    id: 0,
+                    value: "aha".to_string(),
+                }],
+            },
+        ]
     }
 
-    fn get_scans_preferences(&self) -> PromiseRef<'_, Vec<models::ScanPreferenceInformation>> {
-        Box::pin(async move { scanner::preferences::preference::PREFERENCES.to_vec() })
+    pub fn generate_scan() -> Vec<models::Scan> {
+        let discovery = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/examples/discovery.json"
+        ));
+        let mut discovery: models::Scan = serde_json::from_slice(discovery).unwrap();
+        discovery.scan_id = "discovery".to_string();
+        let simple_auth_ssh_scan = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/examples/openvasd/simple_auth_ssh_scan.json"
+        ));
+        let mut simple_auth_ssh_scan: models::Scan =
+            serde_json::from_slice(simple_auth_ssh_scan).unwrap();
+        simple_auth_ssh_scan.scan_id = "simple_auth_ssh_scan".to_string();
+
+        let mut results = vec![simple_auth_ssh_scan, discovery];
+        results.extend(generate_targets().into_iter().map(|target| models::Scan {
+            scan_id: uuid::Uuid::new_v4().to_string(),
+            target,
+            scan_preferences: generate_scan_prefs(),
+            vts: generate_vts(),
+        }));
+        results
     }
 
-    fn get_scans_id(&self, id: String) -> PromiseRef<'_, Result<models::Scan, GetScansError>> {
-        Box::pin(async move {
-            let id = id.parse().map_err(GetScansError::from_external)?;
-            ScanDB::new(&self.state.pool, (self.state.crypter.as_ref(), id))
-                .fetch()
-                .await
-                .map_err(framework::into_get_scans_error)
-        })
-    }
-
-    fn get_scans_id_results(
-        &self,
-        id: String,
-        from: Option<usize>,
-        to: Option<usize>,
-    ) -> StreamResult<models::Result, GetScansError> {
-        Box::pin(
-            DBResults::new(&self.state.pool, (id, from, to))
-                .stream_fetch()
-                .map_err(GetScansError::from_external),
-        )
-    }
-
-    fn get_scans_id_results_id(
-        &self,
-        id: String,
-        result_id: usize,
-    ) -> PromiseRef<'_, Result<models::Result, GetScansIDResultsIDError>> {
-        Box::pin(async move {
-            framework::map_result_id_fetch(
-                DBResults::new(&self.state.pool, (id, result_id))
-                    .fetch()
-                    .await,
-            )
-        })
-    }
-
-    fn get_scans_id_status(
-        &self,
-        id: String,
-    ) -> PromiseRef<'_, Result<models::Status, GetScansError>> {
-        Box::pin(async move {
-            let id: i64 = id.parse().map_err(GetScansError::from_external)?;
-            ScanDB::new(&self.state.pool, id)
-                .fetch()
-                .await
-                .map_err(GetScansError::from_external)
-        })
-    }
-
-    fn post_scans_id(
-        &self,
-        id: String,
-        action: models::Action,
-    ) -> PromiseRef<'_, Result<(), PostScansIDError>> {
-        Box::pin(async move {
-            let status =
-                self.get_scans_id_status(id.clone())
-                    .await
-                    .map_err(|error| match error {
-                        GetScansError::NotFound => PostScansIDError::External(Box::new(
-                            std::io::Error::new(std::io::ErrorKind::NotFound, "scan not found"),
-                        )),
-                        GetScansError::External(error) => PostScansIDError::External(error),
-                    })?;
-            let message = match (action, status.status) {
-                (models::Action::Start, models::Phase::Stored | models::Phase::Stopped) => {
-                    Ok(scheduling::Message::Start(id))
-                }
-                (models::Action::Stop, models::Phase::Running) => Ok(scheduling::Message::Stop(id)),
-                _ => Err(PostScansIDError::Running),
-            }?;
-
-            self.state
-                .scheduling
-                .send(message)
-                .await
-                .map_err(|e| PostScansIDError::External(Box::new(e)))
-        })
-    }
-
-    fn delete_scans_id(&self, id: String) -> PromiseRef<'_, Result<(), PostScansIDError>> {
-        Box::pin(async move {
-            ScanDB::new(&self.state.pool, id)
-                .exec()
-                .await
-                .map_err(PostScansIDError::from_external)
-                .map(|_| ())
-        })
-    }
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use std::{sync::Arc, time::Duration};
-
-    use crate::framework::{ClientHash, ClientIdentifier};
-    use axum::{
-        Extension, Router,
-        body::Body,
-        http::{Method, Request, StatusCode},
-    };
-    use scannerlib::models;
-    use serde::de::DeserializeOwned;
-    use sqlx::{SqlitePool, query_scalar};
-    use tower::ServiceExt;
-
-    use super::{ScanState, Scans};
-    use crate::{
-        config::Config,
-        container_image_scanner::config::DBLocation,
-        database::dao::Execute,
-        database::sqlite::{results::DBResults, scans::ScanDB},
-    };
-
-    pub(crate) async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
+    pub async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let advisories_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -275,565 +506,244 @@ pub(crate) mod tests {
             notus,
             scanner,
             scheduler,
-            container_image_scanner: crate::container_image_scanner::config::Config {
-                database: crate::container_image_scanner::config::SqliteConfiguration {
-                    location: DBLocation::InMemory,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
             ..Default::default()
         };
 
         let pool = crate::setup_sqlite(&config).await?;
+
         Ok((config, pool))
     }
 
-    pub(crate) async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
+    pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
         let client_id = "moep".to_string();
-        let scans = [sample_scan("prepared-1"), sample_scan("prepared-2")];
-        let crypter = super::config_to_crypt(config);
-        let mut ids = Vec::new();
-
+        let scans = generate_scan();
+        let crypter = config_to_crypt(config);
         for scan in scans {
-            ScanDB::new(&pool, (&crypter, client_id.as_str(), &scan))
+            ScanDB::new(&pool, (&crypter, &client_id as &str, &scan))
                 .exec()
                 .await
                 .unwrap();
-            let id = query_scalar("SELECT id FROM client_scan_map WHERE scan_id = ?")
-                .bind(&scan.scan_id)
-                .fetch_one(&pool)
+        }
+        query_scalar("SELECT id FROM scans")
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn post_scan() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+
+        let undertest = init(pool, &config).await;
+        let client_id = "moep".to_string();
+        for scan in generate_scan() {
+            let id = scan.scan_id.clone();
+            let result = undertest.post_scans(client_id.clone(), scan).await.unwrap();
+            assert_eq!(id, result);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn post_scan_duplicate_id() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = init(pool, &config).await;
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            let id = scan.scan_id.clone();
+            let result = undertest.post_scans(client_id.clone(), scan).await;
+            assert!(result.is_ok(), "scan must be successfully added");
+            assert_eq!(id, result.unwrap());
+        }
+        for scan in scans {
+            let result = undertest.post_scans(client_id.clone(), scan).await;
+            assert!(
+                matches!(result, Err(PostScansError::DuplicateId(_))),
+                "scan must be declined"
+            );
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn map_id() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = init(pool, &config).await;
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        for scan in scans {
+            let result = undertest.contains_scan_id(&client_id, &scan.scan_id).await;
+            assert!(result.is_some(), "scan must be found");
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn get_scan_id() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = init(pool, &config).await;
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        for scan in scans {
+            let result = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
                 .await
                 .unwrap();
-            ids.push(id);
+            let result = undertest.get_scans_id(result).await?;
+            assert_eq!(scan.scan_id, result.scan_id);
+            assert_eq!(
+                scan.target.credentials.len(),
+                result.target.credentials.len()
+            );
         }
 
-        ids
+        Ok(())
     }
 
-    async fn create_scan_state() -> crate::Result<Arc<ScanState>> {
+    #[tokio::test]
+    async fn get_scans_preferences() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
-        Ok(Arc::new(
-            super::init(pool, &config, Default::default()).await?,
-        ))
-    }
-
-    fn router(state: Arc<ScanState>, ident: ClientIdentifier) -> Router {
-        Scans { state }.router().layer(Extension(ident))
-    }
-
-    fn known_ident() -> ClientIdentifier {
-        ClientIdentifier::Known(ClientHash::default())
-    }
-
-    fn other_ident() -> ClientIdentifier {
-        ClientIdentifier::Known(ClientHash::from("other-user"))
-    }
-
-    fn sample_scan(scan_id: &str) -> models::Scan {
-        let mut scan: models::Scan = serde_json::from_slice(include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/examples/discovery.json"
-        )))
-        .unwrap();
-        scan.scan_id = scan_id.to_string();
-        scan
-    }
-
-    async fn send(router: &Router, request: Request<Body>) -> axum::response::Response {
-        router.clone().oneshot(request).await.unwrap()
-    }
-
-    async fn body_json<T: DeserializeOwned>(response: axum::response::Response) -> T {
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        serde_json::from_slice(&bytes).unwrap()
-    }
-
-    async fn scan_status(router: &Router, scan_id: &str) -> crate::Result<serde_json::Value> {
-        let response = send(
-            router,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{scan_id}/status"))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        Ok(body_json(response).await)
-    }
-
-    async fn wait_for_scan_phase(
-        router: &Router,
-        scan_id: &str,
-        phase: models::Phase,
-        timeout: Duration,
-    ) -> crate::Result<serde_json::Value> {
-        let deadline = tokio::time::Instant::now() + timeout;
-        loop {
-            let status = scan_status(router, scan_id).await?;
-            let current = status
-                .get("status")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| std::io::Error::other("missing status field"))?
-                .parse::<models::Phase>()
-                .map_err(|e| std::io::Error::other(e.to_string()))?;
-            if current == phase {
-                return Ok(status);
-            }
-            if tokio::time::Instant::now() >= deadline {
-                panic!(
-                    "scan {scan_id} did not reach phase {:?} within {:?}, last phase: {:?}",
-                    phase, timeout, current
-                );
-            }
-            tokio::time::sleep(Duration::from_millis(50)).await;
-        }
-    }
-
-    async fn insert_results(pool: &SqlitePool, external_scan_id: &str) -> crate::Result<()> {
-        let internal_id: i64 = query_scalar("SELECT id FROM client_scan_map WHERE scan_id = ?")
-            .bind(external_scan_id)
-            .fetch_one(pool)
-            .await?;
-        let internal_id = internal_id.to_string();
-
-        let results = vec![
-            models::Result {
-                message: Some("first".to_string()),
-                ..Default::default()
-            },
-            models::Result {
-                message: Some("second".to_string()),
-                ..Default::default()
-            },
-            models::Result {
-                message: Some("third".to_string()),
-                ..Default::default()
-            },
-        ];
-
-        DBResults::new(pool, (internal_id.as_str(), results.as_slice()))
-            .exec()
-            .await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn post_list_and_get_scan_via_http() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, known_ident());
-        let scan = sample_scan("scan-http-roundtrip");
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-        let created_id: String = body_json(response).await;
-        assert_eq!(created_id, scan.scan_id);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri("/scans")
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let scan_ids: Vec<String> = body_json(response).await;
-        assert!(scan_ids.contains(&scan.scan_id));
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let returned_scan: models::Scan = body_json(response).await;
-        assert_eq!(returned_scan.scan_id, scan.scan_id);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn unauthenticated_requests_are_rejected() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, ClientIdentifier::Unknown);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri("/scans")
-                .body(Body::empty())?,
-        )
-        .await;
-
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn duplicate_scan_id_is_rejected_via_http() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, known_ident());
-        let scan = sample_scan("scan-duplicate");
-        let body = serde_json::to_vec(&scan)?;
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(body.clone()))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(body))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CONFLICT);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn scan_preferences_are_available_via_http() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, known_ident());
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri("/scans/preferences")
-                .body(Body::empty())?,
-        )
-        .await;
-
-        assert_eq!(response.status(), StatusCode::OK);
-        let preferences: serde_json::Value = body_json(response).await;
-        assert!(preferences.as_array().is_some_and(|x| !x.is_empty()));
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn foreign_client_cannot_access_other_clients_scan() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let owner_app = router(state.clone(), known_ident());
-        let other_app = router(state, other_ident());
-        let scan = sample_scan("scan-owner-only");
-
-        let response = send(
-            &owner_app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let response = send(
-            &other_app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn invalid_result_id_returns_bad_request() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, known_ident());
-        let scan = sample_scan("scan-invalid-result-id");
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}/results/not-a-number", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn get_results_ranges_via_http() -> crate::Result<()> {
-        let (config, pool) = create_pool().await?;
-        let state = Arc::new(super::init(pool.clone(), &config, Default::default()).await?);
-        let app = router(state, known_ident());
-        let scan = sample_scan("scan-results-ranges");
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        insert_results(&pool, &scan.scan_id).await?;
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}/results", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let results: Vec<models::Result> = body_json(response).await;
+        let undertest = init(pool, &config).await;
+        let result = undertest.get_scans_preferences().await;
         assert_eq!(
-            results.iter().map(|r| r.id).collect::<Vec<_>>(),
-            vec![0, 1, 2]
+            result,
+            scanner::preferences::preference::PREFERENCES.to_vec()
         );
 
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}/results?range=1", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let results: Vec<models::Result> = body_json(response).await;
-        assert_eq!(results.iter().map(|r| r.id).collect::<Vec<_>>(), vec![1, 2]);
+        Ok(())
+    }
 
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}/results?range=1-1", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let results: Vec<models::Result> = body_json(response).await;
-        assert_eq!(results.iter().map(|r| r.id).collect::<Vec<_>>(), vec![1]);
+    #[tokio::test]
+    async fn get_scan_id_status() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
 
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}/results?range=-1", scan.scan_id))
-                .body(Body::empty())?,
+        let crypter = Arc::new(config_to_crypt(&config));
+        let (_, _, communicator) = orchestrator::Communicator::init();
+        let scheduler_sender = scheduling::init_with_scanner(
+            pool.clone(),
+            crypter.clone(),
+            &config,
+            scheduling::tests::scanner_succeeded().build(),
+            communicator,
         )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let results: Vec<models::Result> = body_json(response).await;
-        assert_eq!(results.iter().map(|r| r.id).collect::<Vec<_>>(), vec![0, 1]);
+        .await?;
+        let undertest = super::Endpoints {
+            pool,
+            crypter,
+            scheduling: scheduler_sender,
+        };
 
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/scans/{}/results?range=23", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let results: Vec<models::Result> = body_json(response).await;
-        assert!(results.is_empty());
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.clone() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        for scan in scans.iter() {
+            let result = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
+                .await
+                .unwrap();
+            let result = undertest.get_scans_id_status(result).await?;
+            assert_eq!(result.status, Phase::Stored);
+        }
+
+        for scan in scans.iter() {
+            let id = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
+                .await
+                .unwrap();
+
+            undertest
+                .post_scans_id(id.clone(), models::Action::Start)
+                .await?;
+            let mut status;
+            loop {
+                status = undertest.get_scans_id_status(id.clone()).await?;
+                if status.is_running() {
+                    break;
+                }
+            }
+            assert!(matches!(status.status, Phase::Requested | Phase::Running));
+        }
+        for scan in scans.iter() {
+            let id = undertest
+                .contains_scan_id(&client_id, &scan.scan_id)
+                .await
+                .unwrap();
+
+            undertest
+                .post_scans_id(id.clone(), models::Action::Start)
+                .await?;
+            let mut status;
+            loop {
+                status = undertest.get_scans_id_status(id.clone()).await?;
+                if status.is_done() {
+                    break;
+                }
+            }
+            assert!(matches!(status.status, Phase::Succeeded));
+            let result = undertest
+                .get_scans_id_results(id.clone(), None, None)
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 2);
+            let result = undertest
+                .get_scans_id_results(id.clone(), Some(1), None)
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
+            let result = undertest
+                .get_scans_id_results(id.clone(), None, Some(0))
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
+            let result = undertest
+                .get_scans_id_results(id.clone(), Some(0), Some(0))
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
+            let result = undertest
+                .get_scans_id_results(id, Some(23), None)
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.len(), 0);
+        }
 
         Ok(())
     }
 
     #[tokio::test]
-    async fn get_scan_status_via_http() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, known_ident());
-        let scan = sample_scan("scan-status");
+    async fn get_scans() -> crate::Result<()> {
+        let (config, pool) = create_pool().await?;
+        let undertest = init(pool, &config).await;
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        for scan in generate_scan() {
+            undertest.post_scans(client_id.clone(), scan).await?;
+        }
+        let client_ids = undertest.get_scans(client_id).collect::<Vec<_>>().await;
+        assert_eq!(client_ids.iter().filter(|x| x.is_err()).count(), 0);
+        assert_eq!(client_ids.iter().filter(|x| x.is_ok()).count(), scans.len());
+        let client_ids = undertest
+            .get_scans("notme".to_string())
+            .collect::<Vec<_>>()
+            .await;
+        assert!(client_ids.is_empty());
 
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let status = scan_status(&app, &scan.scan_id).await?;
-        assert!(status.is_object());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn starting_a_non_stored_scan_returns_conflict_per_openapi() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, known_ident());
-        let scan = sample_scan("scan-start-twice");
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let start_body = serde_json::to_vec(&models::ScanAction {
-            action: models::Action::Start,
-        })?;
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(start_body.clone()))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Running,
-            Duration::from_secs(2),
-        )
-        .await?;
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(start_body))?,
-        )
-        .await;
-
-        assert_eq!(response.status(), StatusCode::CONFLICT);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn starting_a_stopped_scan_is_allowed() -> crate::Result<()> {
-        let state = create_scan_state().await?;
-        let app = router(state, known_ident());
-        let scan = sample_scan("scan-restart-after-stop");
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let start_body = serde_json::to_vec(&models::ScanAction {
-            action: models::Action::Start,
-        })?;
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(start_body.clone()))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Running,
-            Duration::from_secs(2),
-        )
-        .await?;
-
-        let stop_body = serde_json::to_vec(&models::ScanAction {
-            action: models::Action::Stop,
-        })?;
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(stop_body))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Stopped,
-            Duration::from_secs(2),
-        )
-        .await?;
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(start_body))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Running,
-            Duration::from_secs(2),
-        )
-        .await?;
         Ok(())
     }
 }

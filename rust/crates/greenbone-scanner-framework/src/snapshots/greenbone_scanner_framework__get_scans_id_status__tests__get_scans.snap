@@ -1,0 +1,5 @@
+---
+source: src/get_scans_id_status.rs
+expression: resp
+---
+{"start_time":null,"end_time":null,"status":"stored","host_info":null}

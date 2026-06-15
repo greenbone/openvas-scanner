@@ -3,7 +3,7 @@
 #![allow(clippy::result_large_err)]
 use std::{collections::HashMap, sync::Arc};
 
-use scannerlib::models::{self, FixedVersion, VulnerablePackage};
+use greenbone_scanner_framework::models::{self, FixedVersion, VulnerablePackage};
 use tokio::sync::RwLock;
 
 use crate::container_image_scanner::detection::OperatingSystem;

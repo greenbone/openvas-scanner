@@ -10,7 +10,7 @@ use super::{
     pref_handler::PreferenceHandler,
     result_collector::ResultHelper,
 };
-use crate::models::{self, HostInfo, Phase, Scan, Status};
+use greenbone_scanner_framework::models::{self, HostInfo, Phase, Scan, Status};
 
 use crate::storage::redis::{NameSpaceSelector, RedisCtx};
 use async_trait::async_trait;

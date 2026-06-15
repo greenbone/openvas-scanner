@@ -1,129 +1,113 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
-use crate::framework::{
-    DeleteScansIDError, GetScansError, GetScansIDError, GetScansIDResultsError,
-    GetScansIDResultsIDError, GetScansIDStatusError, PostScansError, PostScansIDError,
-    StreamResult,
-};
-use axum::Router;
 use futures::TryStreamExt;
-use scannerlib::{
-    PromiseRef,
-    models::{self, PreferenceValue, ScanPreferenceInformation},
+use greenbone_scanner_framework::{
+    MapScanID, StreamResult,
+    entry::Prefixed,
+    models::{PreferenceValue, ScanPreferenceInformation},
+    prelude::*,
 };
 use tracing::instrument;
 
 use crate::{
-    app::AppState,
     container_image_scanner::scheduling::db::{DBResults, DataBase, scan::DBScan},
     crypt::{ChaCha20Crypt, Crypt},
     database::dao::{Execute, Fetch, RetryExec, StreamFetch},
-    framework,
-    scan_routes::{ScanBackend, ScanRoutes},
+    endpoint_helpers,
 };
-
-pub struct ScanState<E = ChaCha20Crypt> {
-    pub pool: DataBase,
-    pub crypter: Arc<E>,
-}
-
-impl<E> Clone for ScanState<E> {
-    fn clone(&self) -> Self {
-        Self {
-            pool: self.pool.clone(),
-            crypter: self.crypter.clone(),
-        }
-    }
-}
 
 pub struct Scans<E = ChaCha20Crypt> {
     pub pool: DataBase,
     pub crypter: Arc<E>,
 }
 
-impl<E> Clone for Scans<E> {
-    fn clone(&self) -> Self {
-        Self {
-            pool: self.pool.clone(),
-            crypter: self.crypter.clone(),
-        }
+impl<E> Prefixed for Scans<E>
+where
+    E: Send + Sync,
+{
+    fn prefix(&self) -> &'static str {
+        "container-image-scanner"
     }
 }
 
-impl<E> Scans<E>
+impl<E> PostScans for Scans<E>
 where
-    E: Send + Sync + 'static,
+    E: Crypt + Send + Sync,
 {
-    async fn contains_scan_id(&self, client_id: &str, scan_id: &str) -> Option<String> {
-        framework::map_contains_scan_id(DBScan::new(&self.pool, (client_id, scan_id)).fetch().await)
-    }
-
     #[instrument(skip_all, fields(client_id=client_id, scan_id=scan.scan_id))]
-    pub async fn post_scans(
-        &self,
-        client_id: String,
-        scan: models::Scan,
-    ) -> Result<String, PostScansError>
-    where
-        E: Crypt,
-    {
-        let scan_id = scan.scan_id.clone();
-        framework::map_post_scan_result(
-            DBScan::new(
-                &self.pool,
-                (self.crypter.as_ref(), client_id.as_str(), &scan),
-            )
-            .exec()
-            .await,
-            scan_id,
-        )
-        .map(|_| scan.scan_id.clone())
-    }
-
-    pub fn router(self) -> Router
-    where
-        E: Crypt,
-    {
-        ScanRoutes::new(self, "/container-image-scanner").router()
-    }
-}
-
-impl<E> ScanBackend for Scans<E>
-where
-    E: Crypt + Send + Sync + 'static,
-{
     fn post_scans(
         &self,
         client_id: String,
         scan: models::Scan,
-    ) -> PromiseRef<'_, Result<String, PostScansError>> {
-        Box::pin(async move { Scans::post_scans(self, client_id, scan).await })
+    ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
+        Box::pin(async move {
+            // maybe get rid of clone
+            let scan_id = scan.scan_id.clone();
+            endpoint_helpers::map_post_scan_result(
+                DBScan::new(
+                    &self.pool,
+                    (self.crypter.as_ref(), client_id.as_str(), &scan),
+                )
+                .exec()
+                .await,
+                scan_id,
+            )
+            .map(|_| scan.scan_id.clone())
+        })
     }
+}
 
+impl<E> MapScanID for Scans<E>
+where
+    E: Send + Sync,
+{
     fn contains_scan_id<'a>(
         &'a self,
         client_id: &'a str,
         scan_id: &'a str,
-    ) -> PromiseRef<'a, Option<String>> {
-        Box::pin(async move { Scans::contains_scan_id(self, client_id, scan_id).await })
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Option<greenbone_scanner_framework::InternalIdentifier>>
+                + Send
+                + 'a,
+        >,
+    > {
+        Box::pin(async move {
+            endpoint_helpers::map_contains_scan_id(
+                DBScan::new(&self.pool, (client_id, scan_id)).fetch().await,
+            )
+        })
     }
+}
 
+impl<E> GetScans for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
-        Box::pin(
-            DBScan::new(&self.pool, client_id)
-                .stream_fetch()
-                .map_err(framework::into_get_scans_error),
-        )
-    }
+        let result = DBScan::new(&self.pool, client_id)
+            .stream_fetch()
+            .map_err(endpoint_helpers::into_get_scans_error);
 
-    fn get_scans_preferences(&self) -> PromiseRef<'_, Vec<models::ScanPreferenceInformation>> {
+        Box::pin(result)
+    }
+}
+
+impl<E> GetScansPreferences for Scans<E>
+where
+    E: Send + Sync,
+{
+    fn get_scans_preferences(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
         Box::pin(async move {
             vec![
                 ScanPreferenceInformation {
                     id: "accept_invalid_certs",
                     name: "Accepts certificates without trust chain verification",
                     default: PreferenceValue::Bool(true),
-                    description: "This disables the CA chain verification for TLS certificates when connecting to a registry. This is useful for self-signed certificates.",
+                    description: "This disables the CA chain verification for TLS certificates when connecting to a registry. \
+                    This is useful for self-signed certificates.",
                 },
                 ScanPreferenceInformation {
                     id: "registry_allow_insecure",
@@ -134,8 +118,16 @@ where
             ]
         })
     }
+}
 
-    fn get_scans_id(&self, id: String) -> PromiseRef<'_, Result<models::Scan, GetScansIDError>> {
+impl<E> GetScansId for Scans<E>
+where
+    E: Crypt + Send + Sync,
+{
+    fn get_scans_id<'a>(
+        &'a self,
+        id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + 'a>> {
         Box::pin(async move {
             DBScan::new(&self.pool, (self.crypter.as_ref(), id))
                 .fetch()
@@ -143,36 +135,53 @@ where
                 .map_err(GetScansError::from_external)
         })
     }
+}
 
+impl<E> GetScansIdResults for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans_id_results(
         &self,
         id: String,
         from: Option<usize>,
         to: Option<usize>,
     ) -> StreamResult<models::Result, GetScansIDResultsError> {
-        Box::pin(
-            DBResults::new(&self.pool, (id, from, to))
-                .stream_fetch()
-                .map_err(GetScansError::from_external),
-        )
-    }
+        let result = DBResults::new(&self.pool, (id, from, to))
+            .stream_fetch()
+            .map_err(GetScansError::from_external);
 
+        Box::pin(result)
+    }
+}
+
+impl<E> GetScansIdResultsId for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans_id_results_id(
         &self,
         id: String,
         result_id: usize,
-    ) -> PromiseRef<'_, Result<models::Result, GetScansIDResultsIDError>> {
+    ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
+    {
         Box::pin(async move {
-            framework::map_result_id_fetch(
+            endpoint_helpers::map_result_id_fetch(
                 DBResults::new(&self.pool, (id, result_id)).fetch().await,
             )
         })
     }
+}
 
+impl<E> GetScansIdStatus for Scans<E>
+where
+    E: Send + Sync,
+{
     fn get_scans_id_status(
         &self,
         id: String,
-    ) -> PromiseRef<'_, Result<models::Status, GetScansIDStatusError>> {
+    ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>
+    {
         Box::pin(async move {
             DBScan::new(&self.pool, id)
                 .fetch()
@@ -180,12 +189,17 @@ where
                 .map_err(GetScansIDStatusError::from_external)
         })
     }
+}
 
+impl<E> PostScansId for Scans<E>
+where
+    E: Send + Sync,
+{
     fn post_scans_id(
         &self,
         id: String,
         action: models::Action,
-    ) -> PromiseRef<'_, Result<(), PostScansIDError>> {
+    ) -> Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
         Box::pin(async move {
             DBScan::new(&self.pool, (id, action))
                 .retry_exec()
@@ -193,8 +207,16 @@ where
                 .map_err(PostScansIDError::from_external)
         })
     }
+}
 
-    fn delete_scans_id(&self, id: String) -> PromiseRef<'_, Result<(), DeleteScansIDError>> {
+impl<E> DeleteScansId for Scans<E>
+where
+    E: Send + Sync,
+{
+    fn delete_scans_id(
+        &self,
+        id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         Box::pin(async move {
             let db = DBScan::new(&self.pool, id);
             let phase: models::Phase = db
@@ -211,21 +233,12 @@ where
     }
 }
 
-impl Scans<ChaCha20Crypt> {
-    pub fn from_appstate(app_state: &AppState<'_>) -> Self {
-        let state = app_state.cis_scan_state.clone();
-        Self {
-            pool: state.pool.clone(),
-            crypter: state.crypter.clone(),
-        }
-    }
-}
-
 #[cfg(test)]
 pub mod scans_utils {
-    use std::sync::Arc;
 
-    use scannerlib::models;
+    use std::{sync::Arc, time::Duration};
+
+    use greenbone_scanner_framework::prelude::*;
 
     use super::Scans;
     use crate::{
@@ -233,62 +246,81 @@ pub mod scans_utils {
             Config, MIGRATOR,
             config::DBLocation,
             config_to_crypt,
-            image::{DockerRegistryV2, extractor::filtered_image},
-            scheduling::{
-                Scheduler,
-                db::{DataBase, scan::DBScan},
+            image::{
+                DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
+                packages::AllTypes,
             },
+            scheduling::{Scheduler, db::DataBase},
         },
         crypt::ChaCha20Crypt,
-        database::dao::{Fetch, RetryExec},
     };
     use scannerlib::notus::products_loader;
 
+    pub fn client_id() -> String {
+        ClientHash::default().to_string()
+    }
+
+    pub fn second_client_id() -> String {
+        ClientHash::from("second").to_string()
+    }
+
+    async fn in_memory_scheduler_and_scan<R, E>(
+        config: crate::container_image_scanner::Config,
+    ) -> (Scheduler<R, E, ChaCha20Crypt>, Scans<ChaCha20Crypt>) {
+        let pool = DataBase::connect(&DBLocation::InMemory.sqlite_address("test"))
+            .await
+            .expect("inmemory database must be available");
+
+        MIGRATOR
+            .run(&pool)
+            .await
+            .expect("need migrated database scheme");
+        let products_path: &str =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
+
+        let crypter = Arc::new(config_to_crypt(&config));
+        let scheduler = Scheduler::<R, E, ChaCha20Crypt>::init(
+            config.into(),
+            pool.clone(),
+            crypter.clone(),
+            products_loader(products_path, false),
+        )
+        .await
+        .unwrap();
+        let scans = super::Scans {
+            pool: pool.clone(),
+            crypter,
+        };
+        (scheduler, scans)
+    }
+
     pub struct Fakes {
-        pub entry: Scans<ChaCha20Crypt>,
+        registry: DockerRegistryV2Mock,
+        pub entry: super::Scans<ChaCha20Crypt>,
         pub scheduler: Scheduler<DockerRegistryV2, filtered_image::Extractor, ChaCha20Crypt>,
     }
 
     impl Fakes {
-        pub async fn init() -> Self {
-            let mut config = Config::default();
-            config.database = crate::container_image_scanner::config::SqliteConfiguration {
-                location: DBLocation::InMemory,
-                ..Default::default()
-            };
-            let pool = DataBase::connect(&config.database.location.sqlite_address("test"))
-                .await
-                .expect("inmemory database must be available");
-            MIGRATOR.run(&pool).await.expect("migrations must succeed");
-
-            let crypter = Arc::new(config_to_crypt(&config));
-            let products_path =
-                concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
-            let scheduler =
-                Scheduler::<DockerRegistryV2, filtered_image::Extractor, ChaCha20Crypt>::init(
-                    config.into(),
-                    pool.clone(),
-                    crypter.clone(),
-                    products_loader(products_path, false),
-                )
-                .await
-                .unwrap();
-
-            Self {
-                entry: Scans { pool, crypter },
-                scheduler,
-            }
-        }
-
-        pub fn pool(&self) -> DataBase {
-            self.scheduler.pool()
-        }
-
         pub async fn internal_id(&self, client_id: &str, scan_id: &str) -> String {
             self.entry
                 .contains_scan_id(client_id, scan_id)
                 .await
                 .unwrap()
+        }
+
+        pub async fn simulate_stop_scan(
+            &mut self,
+            client_id: &str,
+            scan_id: &str,
+        ) -> models::Status {
+            let id = self.internal_id(client_id, scan_id).await;
+
+            self.entry
+                .post_scans_id(id.clone(), models::Action::Stop)
+                .await
+                .unwrap();
+
+            self.entry.get_scans_id_status(id).await.unwrap()
         }
 
         pub async fn simulate_start_scan(
@@ -301,123 +333,105 @@ pub mod scans_utils {
                 .post_scans(client_id.to_owned(), scan)
                 .await
                 .unwrap();
+
             let id = self.internal_id(client_id, &scan_id).await;
-            DBScan::new(&self.entry.pool, (id.clone(), models::Action::Start))
-                .retry_exec()
+
+            self.entry
+                .post_scans_id(id.clone(), models::Action::Start)
                 .await
                 .unwrap();
 
-            let status = DBScan::new(&self.entry.pool, id).fetch().await.unwrap();
-
-            (scan_id, status)
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{sync::Arc, time::Duration};
-
-    use crate::framework::{ClientHash, ClientIdentifier};
-    use axum::{
-        Extension, Router,
-        body::Body,
-        http::{Method, Request, StatusCode},
-    };
-    use mockito::{Matcher, ServerGuard};
-    use scannerlib::models;
-    use serde::de::DeserializeOwned;
-    use sqlx::query_scalar;
-    use tower::ServiceExt;
-
-    use super::Scans;
-    use crate::{
-        container_image_scanner::{
-            Config, MIGRATOR,
-            config::DBLocation,
-            config_to_crypt,
-            image::{
-                DockerRegistryV2, DockerRegistryV2Mock, Image as CisImage, RegistrySetting,
-                extractor::filtered_image, packages::AllTypes,
-            },
-            scheduling::{Scheduler, db::DataBase},
-        },
-        crypt::ChaCha20Crypt,
-    };
-    use scannerlib::notus::products_loader;
-
-    struct Fakes {
-        pool: DataBase,
-        crypter: Arc<ChaCha20Crypt>,
-        scheduler: Scheduler<DockerRegistryV2, filtered_image::Extractor, ChaCha20Crypt>,
-    }
-
-    impl Fakes {
-        fn config_without_retries() -> Config {
-            let mut config = Config::default();
-            config.database = crate::container_image_scanner::config::SqliteConfiguration {
-                location: DBLocation::InMemory,
-                ..Default::default()
-            };
-            config.image.scanning_retries = 0;
-            config.image.retry_timeout = Duration::from_millis(1);
-            config
+            (scan_id, self.entry.get_scans_id_status(id).await.unwrap())
         }
 
-        async fn init_with_config(config: Config) -> Self {
-            let pool = DataBase::connect(&config.database.location.sqlite_address("test"))
-                .await
-                .expect("inmemory database must be available");
-            MIGRATOR
-                .run(&pool)
-                .await
-                .expect("need migrated database scheme");
+        pub async fn init() -> Self {
+            Self::init_with_config(Config::default()).await
+        }
 
-            let crypter = Arc::new(config_to_crypt(&config));
-            let products_path =
-                concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
-            let scheduler =
-                Scheduler::<DockerRegistryV2, filtered_image::Extractor, ChaCha20Crypt>::init(
-                    config.into(),
-                    pool.clone(),
-                    crypter.clone(),
-                    products_loader(products_path, false),
-                )
-                .await
-                .unwrap();
+        pub async fn init_with_config(config: Config) -> Self {
+            let registry = DockerRegistryV2Mock::serve_default().await;
+            let (scheduler, entry) = in_memory_scheduler_and_scan(config).await;
 
             Self {
-                pool,
-                crypter,
+                registry,
+                entry,
                 scheduler,
             }
         }
 
-        async fn init() -> Self {
-            Self::init_with_config(Self::config_without_retries()).await
+        async fn create_start_scan<ClientID>(
+            &mut self,
+            client_id: &ClientID,
+            scan: models::Scan,
+        ) -> String
+        where
+            ClientID: Fn() -> String,
+        {
+            let (scan_id, _) = self.simulate_start_scan(&client_id(), scan).await;
+            scan_id
         }
 
-        fn app(&self, ident: ClientIdentifier) -> Router {
-            Scans {
-                pool: self.pool.clone(),
-                crypter: self.crypter.clone(),
-            }
-            .router()
-            .layer(Extension(ident))
-        }
-
-        async fn run_scheduler_rounds(&self, rounds: usize) {
+        pub async fn run_scheduler_rounds(&self, rounds: usize) {
             for _ in 0..rounds {
                 self.scheduler.on_schedule::<AllTypes>().await;
             }
         }
 
-        fn insecure_scan(hosts: Vec<String>) -> models::Scan {
+        pub async fn status_for_scan_id(&self, client_id: &str, scan_id: &str) -> models::Status {
+            let id = self.internal_id(client_id, scan_id).await;
+            self.entry
+                .get_scans_id_status(id)
+                .await
+                .expect("get_scans_id_status must function")
+        }
+
+        pub async fn start_scan_and_run(
+            &mut self,
+            client_id: &str,
+            scan: models::Scan,
+            rounds: usize,
+        ) -> (String, models::Status) {
+            let (scan_id, _) = self.simulate_start_scan(client_id, scan).await;
+            self.run_scheduler_rounds(rounds).await;
+            let status = self.status_for_scan_id(client_id, &scan_id).await;
+            (scan_id, status)
+        }
+
+        pub async fn create_start_results<ClientID>(
+            &mut self,
+            client_id: &ClientID,
+            scan: models::Scan,
+        ) -> (String, models::Status)
+        where
+            ClientID: Fn() -> String,
+        {
+            let scans = scan.target.hosts.len();
+            let scan_id = self.create_start_scan(&client_id, scan).await;
+            self.run_scheduler_rounds(scans).await;
+
+            let id = self
+                .entry
+                .contains_scan_id(&client_id(), &scan_id)
+                .await
+                .unwrap();
+            let result = self
+                .entry
+                .get_scans_id_status(id.clone())
+                .await
+                .expect("get_scans_id_status must function");
+
+            (id, result)
+        }
+
+        pub fn insecure_scan<I, H>(&self, scan_id: impl Into<String>, hosts: I) -> models::Scan
+        where
+            I: IntoIterator<Item = H>,
+            H: Into<String>,
+        {
             models::Scan {
-                scan_id: uuid::Uuid::new_v4().to_string(),
+                scan_id: scan_id.into(),
                 target: models::Target {
-                    hosts,
-                    credentials: vec![],
+                    hosts: hosts.into_iter().map(Into::into).collect(),
                     ..Default::default()
                 },
                 scan_preferences: vec![(RegistrySetting::Insecure.preference_key(), "true").into()],
@@ -425,559 +439,473 @@ mod tests {
             }
         }
 
-        fn success_scan(registry: &str) -> models::Scan {
+        pub fn success_scan(&self) -> models::Scan {
+            let credentials = vec![];
             let hosts = DockerRegistryV2Mock::supported_images()
+                .clone()
                 .into_iter()
-                .map(|mut image| {
-                    image.registry = registry.to_string();
-                    image.to_string()
+                .map(|mut x| {
+                    x.registry = self.registry.address();
+                    x.to_string()
                 })
                 .collect();
-            Self::insecure_scan(hosts)
-        }
 
-        async fn start_scan_and_run(
-            &self,
-            app: &Router,
-            scan: &models::Scan,
-            rounds: usize,
-        ) -> crate::Result<()> {
-            let response = send(
-                app,
-                Request::builder()
-                    .method(Method::POST)
-                    .uri("/container-image-scanner/scans")
-                    .header("content-type", "application/json")
-                    .body(Body::from(serde_json::to_vec(scan)?))?,
-            )
-            .await;
-            assert_eq!(response.status(), StatusCode::CREATED);
+            let target = models::Target {
+                hosts,
+                credentials,
+                ..Default::default()
+            };
+            let scan_preferences =
+                vec![(RegistrySetting::Insecure.preference_key(), "true").into()];
 
-            let response = send(
-                app,
-                Request::builder()
-                    .method(Method::POST)
-                    .uri(format!("/container-image-scanner/scans/{}", scan.scan_id))
-                    .header("content-type", "application/json")
-                    .body(Body::from(serde_json::to_vec(&models::ScanAction {
-                        action: models::Action::Start,
-                    })?))?,
-            )
-            .await;
-            assert_eq!(response.status(), StatusCode::NO_CONTENT);
-
-            self.run_scheduler_rounds(rounds).await;
-            Ok(())
-        }
-    }
-
-    fn known_ident() -> ClientIdentifier {
-        ClientIdentifier::Known(ClientHash::default())
-    }
-
-    fn other_ident() -> ClientIdentifier {
-        ClientIdentifier::Known(ClientHash::from("other-user"))
-    }
-
-    async fn send(router: &Router, request: Request<Body>) -> axum::response::Response {
-        router.clone().oneshot(request).await.unwrap()
-    }
-
-    async fn body_json<T: DeserializeOwned>(response: axum::response::Response) -> T {
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        serde_json::from_slice(&bytes).unwrap()
-    }
-
-    async fn status_for_scan_id(app: &Router, scan_id: &str) -> crate::Result<serde_json::Value> {
-        let response = send(
-            app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/container-image-scanner/scans/{scan_id}/status"))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        Ok(body_json(response).await)
-    }
-
-    async fn wait_for_scan_phase(
-        app: &Router,
-        scan_id: &str,
-        phase: models::Phase,
-        timeout: Duration,
-    ) -> crate::Result<serde_json::Value> {
-        let deadline = tokio::time::Instant::now() + timeout;
-        loop {
-            let status = status_for_scan_id(app, scan_id).await?;
-            let current = status
-                .get("status")
-                .and_then(|value| value.as_str())
-                .ok_or_else(|| std::io::Error::other("missing status field"))?
-                .parse::<models::Phase>()
-                .map_err(|error| std::io::Error::other(error.to_string()))?;
-            if current == phase {
-                return Ok(status);
+            models::Scan {
+                scan_id: uuid::Uuid::new_v4().to_string(),
+                target,
+                scan_preferences,
+                ..Default::default()
             }
-            if tokio::time::Instant::now() >= deadline {
-                panic!(
-                    "scan {scan_id} did not reach phase {:?} within {:?}, last phase: {:?}",
-                    phase, timeout, current
-                );
-            }
-            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        pub fn pool(&self) -> DataBase {
+            self.scheduler.pool()
+        }
+
+        pub fn config_without_retries() -> Config {
+            let mut config = Config::default();
+            config.image.scanning_retries = 0;
+            config.image.retry_timeout = Duration::from_millis(1);
+            config
+        }
+
+        #[allow(dead_code)]
+        /// This is just a toggle to temporally use logging
+        fn init_logging() {
+            let filter = tracing_subscriber::filter::Targets::new()
+                .with_default(tracing::Level::WARN)
+                .with_target("greenbone_scanner_framework", tracing::Level::INFO)
+                .with_target("container_scanning", tracing::Level::TRACE);
+            let layer = tracing_subscriber::fmt::layer()
+                .with_span_events(tracing_subscriber::fmt::format::FmtSpan::FULL);
+            tracing_subscriber::util::SubscriberInitExt::init(
+                tracing_subscriber::layer::SubscriberExt::with(
+                    tracing_subscriber::layer::SubscriberExt::with(
+                        tracing_subscriber::registry(),
+                        layer,
+                    ),
+                    filter,
+                ),
+            );
         }
     }
+}
 
-    fn image_host(registry: &str, image: Option<&str>, tag: Option<&str>) -> String {
-        CisImage {
-            registry: registry.to_string(),
-            image: image.map(str::to_string),
-            tag: tag.map(str::to_string),
-        }
-        .to_string()
-    }
+#[cfg(test)]
+mod test {
 
-    fn auth_header(server: &ServerGuard) -> String {
+    use futures::StreamExt;
+    use greenbone_scanner_framework::prelude::*;
+    use models::Phase;
+    use sqlx::query_scalar;
+
+    use super::scans_utils::second_client_id;
+    use crate::container_image_scanner::{
+        endpoints::scans::scans_utils::{Fakes, client_id},
+        image::DockerRegistryV2Mock,
+    };
+
+    fn auth_header(registry: &mockito::ServerGuard) -> String {
         format!(
-            r#"Bearer realm=\"http://{}/token\""#,
-            server.host_with_port()
+            r#"Bearer realm="http://{}/token""#,
+            registry.host_with_port()
         )
     }
 
     fn mock_registry_bearer_auth(
-        server: &mut ServerGuard,
+        registry: &mut mockito::ServerGuard,
+        scope: &str,
         token_status: usize,
-    ) -> Vec<mockito::Mock> {
-        vec![
-            server
-                .mock("GET", "/v2/")
-                .with_status(401)
-                .with_header("WWW-Authenticate", &auth_header(server))
-                .create(),
-            server
-                .mock("GET", "/token")
-                .match_query(Matcher::Any)
-                .with_status(token_status)
-                .with_header("Content-Type", "application/json")
-                .with_body(r#"{"token":"waldfee"}"#)
-                .create(),
-        ]
-    }
-
-    #[tokio::test]
-    async fn post_list_and_get_scan_via_http() -> crate::Result<()> {
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::insecure_scan(vec!["oci://localhost/test/myimage".to_string()]);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/container-image-scanner/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-        let created_id: String = body_json(response).await;
-        assert_eq!(created_id, scan.scan_id);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri("/container-image-scanner/scans")
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let scan_ids: Vec<String> = body_json(response).await;
-        assert!(scan_ids.contains(&scan.scan_id));
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/container-image-scanner/scans/{}", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let returned_scan: models::Scan = body_json(response).await;
-        assert_eq!(returned_scan.scan_id, scan.scan_id);
-        assert_eq!(returned_scan.target.hosts, scan.target.hosts);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn duplicate_scan_id_is_rejected_via_http() -> crate::Result<()> {
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::insecure_scan(vec!["oci://localhost/test/myimage".to_string()]);
-        let body = serde_json::to_vec(&scan)?;
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/container-image-scanner/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(body.clone()))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/container-image-scanner/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(body))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CONFLICT);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn scan_preferences_are_available_via_http() -> crate::Result<()> {
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri("/container-image-scanner/scans/preferences")
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let preferences: serde_json::Value = body_json(response).await;
-        assert!(preferences.as_array().is_some_and(|x| !x.is_empty()));
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn foreign_client_cannot_access_other_clients_scan() -> crate::Result<()> {
-        let fakes = Fakes::init().await;
-        let owner_app = fakes.app(known_ident());
-        let other_app = fakes.app(other_ident());
-        let scan = Fakes::insecure_scan(vec!["oci://localhost/test/myimage".to_string()]);
-
-        let response = send(
-            &owner_app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/container-image-scanner/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let response = send(
-            &other_app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/container-image-scanner/scans/{}", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn start_scan_transitions_to_requested_via_http() -> crate::Result<()> {
-        let registry = DockerRegistryV2Mock::serve_default().await;
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::success_scan(&registry.address());
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/container-image-scanner/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/container-image-scanner/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&models::ScanAction {
-                    action: models::Action::Start,
-                })?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-
-        let status = status_for_scan_id(&app, &scan.scan_id).await?;
-        assert_eq!(
-            status.get("status").and_then(|value| value.as_str()),
-            Some("requested")
-        );
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn stop_scan_is_visible_via_http() -> crate::Result<()> {
-        let registry = DockerRegistryV2Mock::serve_default().await;
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::success_scan(&registry.address());
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri("/container-image-scanner/scans")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&scan)?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/container-image-scanner/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&models::ScanAction {
-                    action: models::Action::Start,
-                })?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::POST)
-                .uri(format!("/container-image-scanner/scans/{}", scan.scan_id))
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&models::ScanAction {
-                    action: models::Action::Stop,
-                })?))?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-
-        let status = wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Stopped,
-            Duration::from_secs(2),
-        )
-        .await?;
-        assert_eq!(
-            status.get("status").and_then(|value| value.as_str()),
-            Some("stopped")
-        );
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn start_scan_succeeded_via_http_after_scheduler_rounds() -> crate::Result<()> {
-        let registry = DockerRegistryV2Mock::serve_default().await;
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::success_scan(&registry.address());
-
-        fakes
-            .start_scan_and_run(&app, &scan, scan.target.hosts.len())
-            .await?;
-
-        let status = wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Succeeded,
-            Duration::from_secs(2),
-        )
-        .await?;
-        assert_eq!(
-            status.get("status").and_then(|value| value.as_str()),
-            Some("succeeded")
-        );
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!(
-                    "/container-image-scanner/scans/{}/results",
-                    scan.scan_id
-                ))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let results: Vec<models::Result> = body_json(response).await;
-        assert!(!results.is_empty());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn delete_scan_removes_results_via_http() -> crate::Result<()> {
-        let registry = DockerRegistryV2Mock::serve_default().await;
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::success_scan(&registry.address());
-
-        fakes
-            .start_scan_and_run(&app, &scan, scan.target.hosts.len())
-            .await?;
-        wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Succeeded,
-            Duration::from_secs(2),
-        )
-        .await?;
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::DELETE)
-                .uri(format!("/container-image-scanner/scans/{}", scan.scan_id))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NO_CONTENT);
-
-        let response = send(
-            &app,
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!(
-                    "/container-image-scanner/scans/{}/results",
-                    scan.scan_id
-                ))
-                .body(Body::empty())?,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-        let count: i64 = query_scalar("SELECT count(id) FROM client_scan_map WHERE scan_id = ?")
-            .bind(&scan.scan_id)
-            .fetch_one(&fakes.pool)
-            .await?;
-        assert_eq!(count, 0);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn start_scan_failed_when_tag_resolution_returns_no_images() -> crate::Result<()> {
-        let mut server = mockito::Server::new_async().await;
-        let _auth = mock_registry_bearer_auth(&mut server, 200);
-        let _catalog = server
-            .mock("GET", "/v2/_catalog")
-            .with_status(200)
-            .with_header("Content-Type", "application/json")
-            .with_body(r#"{"repositories":["nichtsfrei/victim"]}"#)
+    ) -> (mockito::Mock, mockito::Mock) {
+        let v2 = registry
+            .mock("GET", "/v2/")
+            .with_status(401)
+            .with_header("WWW-Authenticate", &auth_header(registry))
+            .expect_at_least(1)
             .create();
-        let _tags = server
+        let token = registry
+            .mock("GET", "/token")
+            .match_query(mockito::Matcher::UrlEncoded(
+                "scope".into(),
+                scope.to_owned(),
+            ))
+            .with_status(token_status)
+            .with_header("Content-Type", "application/json")
+            .with_body(r#"{"token": "waldfee"}"#)
+            .create();
+        (v2, token)
+    }
+
+    #[tokio::test]
+    async fn post_scan_double_id() {
+        let entry = Fakes::init().await.entry;
+        let scan = models::Scan {
+            scan_id: "test".to_owned(),
+            ..Default::default()
+        };
+        let result = entry
+            .post_scans(client_id(), scan.clone())
+            .await
+            .expect("post scans should succeed");
+        assert_eq!(result, "test".to_owned());
+        let result = entry.post_scans(client_id(), scan.clone()).await;
+        assert!(
+            matches!(result, Err(PostScansError::DuplicateId(_))),
+            "expected duplicate id result"
+        );
+    }
+
+    #[tokio::test]
+    async fn post_scan() {
+        let entry = Fakes::init().await.entry;
+        let hosts = vec!["oci://localhost/test/myimage".to_owned()];
+        let credentials = vec![models::Credential {
+            credential_type: models::CredentialType::UP {
+                username: "me".to_owned(),
+                password: "password".to_owned(),
+                privilege: None,
+            },
+            ..Default::default()
+        }];
+
+        let target = models::Target {
+            hosts,
+            credentials,
+            ..Default::default()
+        };
+        let scan = models::Scan {
+            scan_id: "test".to_owned(),
+            target,
+            ..Default::default()
+        };
+        let result = entry
+            .post_scans(client_id(), scan.clone())
+            .await
+            .expect("post scans should succeed");
+        assert_eq!(result, "test".to_owned());
+        let id = entry
+            .contains_scan_id(&client_id(), &scan.scan_id)
+            .await
+            .unwrap();
+        let result = entry.get_scans_id(id).await.unwrap();
+        assert_eq!(scan.scan_id, result.scan_id);
+        assert_eq!(scan.target.hosts, result.target.hosts);
+        assert_eq!(scan.target.credentials, result.target.credentials);
+    }
+
+    #[tokio::test]
+    async fn start_scan() -> Result<(), Box<dyn std::error::Error>> {
+        let mut fakes = Fakes::init().await;
+        let scan = fakes.success_scan();
+
+        let (_, status) = fakes.simulate_start_scan(&client_id(), scan).await;
+        assert_eq!(status.status, Phase::Requested);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn stop_scan() -> Result<(), Box<dyn std::error::Error>> {
+        let mut fakes = Fakes::init().await;
+        let scan = fakes.success_scan();
+        let client_id = client_id();
+
+        let (id, status) = fakes.simulate_start_scan(&client_id, scan).await;
+
+        assert_eq!(status.status, Phase::Requested);
+
+        let status = fakes.simulate_stop_scan(&client_id, &id).await;
+
+        assert_eq!(status.status, Phase::Stopped);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn delete_scan_running() -> Result<(), Box<dyn std::error::Error>> {
+        let mut fakes = Fakes::init().await;
+        let scan = fakes.success_scan();
+        let client_id = client_id();
+
+        let (scan_id, _) = fakes.simulate_start_scan(&client_id, scan).await;
+
+        let result = fakes
+            .entry
+            .delete_scans_id(fakes.internal_id(&client_id, &scan_id).await)
+            .await;
+        assert!(matches!(result, Err(DeleteScansIDError::Running)));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn delete_scan() {
+        let mut fakes = Fakes::init().await;
+        let scan = fakes.success_scan();
+        let (scan_id, _) = fakes.create_start_results(&client_id, scan).await;
+        let result = fakes
+            .entry
+            .get_scans_id_results(scan_id.clone(), None, None);
+        let result: Vec<_> = result.collect().await;
+
+        let result: Vec<_> = result
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .map(|x| x.id)
+            .collect();
+        assert!(!result.is_empty(), "expected results");
+        fakes.entry.delete_scans_id(scan_id.clone()).await.unwrap();
+        let result = fakes
+            .entry
+            .get_scans_id_results(scan_id.clone(), None, None);
+        let result: Vec<_> = result.collect().await;
+
+        let result = result.len();
+        assert_eq!(result, 0);
+        let count: i64 = query_scalar("SELECT count(id) FROM client_scan_map WHERE id = ?")
+            .bind(scan_id)
+            .fetch_one(&fakes.entry.pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[tokio::test]
+    async fn start_scan_succeeded() {
+        let mut fakes = Fakes::init().await;
+        let scan = fakes.success_scan();
+        let (_, status) = fakes.create_start_results(&client_id, scan).await;
+
+        let result = status.status;
+        assert_eq!(result, Phase::Succeeded);
+    }
+
+    #[tokio::test]
+    // Regression for when no images got found and the scan sticked to requested.
+    async fn start_scan_failed_when_tag_resolution_returns_no_images() {
+        let mut fakes = Fakes::init().await;
+        let client_id = client_id();
+        let mut registry = mockito::Server::new_async().await;
+        let _auth =
+            mock_registry_bearer_auth(&mut registry, "repository:nichtsfrei/victim:pull", 200);
+        let _tags = registry
             .mock("GET", "/v2/nichtsfrei/victim/tags/list")
             .with_status(200)
             .with_header("Content-Type", "application/json")
-            .with_body(r#"{"name":"nichtsfrei/victim","tags":[]}"#)
+            .with_body(r#"{"name": "nichtsfrei/victim", "tags": []}"#)
+            .expect(1)
             .create();
 
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::insecure_scan(vec![image_host(
-            &server.host_with_port(),
-            Some("nichtsfrei/victim"),
-            None,
-        )]);
-
-        fakes.start_scan_and_run(&app, &scan, 1).await?;
-
-        let status = wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Failed,
-            Duration::from_secs(2),
-        )
-        .await?;
-        assert_eq!(
-            status.get("status").and_then(|value| value.as_str()),
-            Some("failed")
+        let scan = fakes.insecure_scan(
+            "empty-tag-resolution",
+            [format!(
+                "oci://{}/nichtsfrei/victim",
+                registry.host_with_port()
+            )],
         );
-        Ok(())
+
+        let (_, status) = fakes.start_scan_and_run(&client_id, scan, 1).await;
+
+        assert_eq!(status.status, Phase::Failed);
+        let host_info = status.host_info.expect("status should include host info");
+        assert_eq!(host_info.all, 0);
+        assert_eq!(host_info.dead, 0);
+        assert_eq!(host_info.queued, 0);
     }
 
     #[tokio::test]
-    async fn start_scan_failed_when_registry_authentication_returns_503() -> crate::Result<()> {
-        let mut server = mockito::Server::new_async().await;
-        let _auth = mock_registry_bearer_auth(&mut server, 503);
+    async fn start_scan_failed_when_registry_authentication_returns_503() {
+        let mut fakes = Fakes::init_with_config(Fakes::config_without_retries()).await;
+        let client_id = client_id();
+        let mut registry = mockito::Server::new_async().await;
+        let _auth =
+            mock_registry_bearer_auth(&mut registry, "repository:nichtsfrei/victim:pull", 503);
 
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-        let scan = Fakes::insecure_scan(vec![image_host(
-            &server.host_with_port(),
-            Some("nichtsfrei/victim"),
-            Some("latest"),
-        )]);
-
-        fakes.start_scan_and_run(&app, &scan, 1).await?;
-
-        let status = wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Failed,
-            Duration::from_secs(2),
-        )
-        .await?;
-        assert_eq!(
-            status.get("status").and_then(|value| value.as_str()),
-            Some("failed")
+        let scan = fakes.insecure_scan(
+            "auth-503-during-scan",
+            [format!(
+                "oci://{}/nichtsfrei/victim:latest",
+                registry.host_with_port()
+            )],
         );
-        Ok(())
+
+        let (_, status) = fakes.start_scan_and_run(&client_id, scan, 1).await;
+
+        assert_eq!(status.status, Phase::Failed);
     }
 
     #[tokio::test]
-    async fn start_scan_failed_when_blob_download_returns_503() -> crate::Result<()> {
+    async fn start_scan_failed_when_blob_download_returns_503() {
+        let mut fakes = Fakes::init_with_config(Fakes::config_without_retries()).await;
+        let client_id = client_id();
         let mut image = DockerRegistryV2Mock::supported_images()
             .into_iter()
             .next()
-            .unwrap();
-        image.registry = Default::default();
-        let registry =
-            DockerRegistryV2Mock::serve_images(&[image.clone()], &[0, 0, 200, 200, 200, 200, 503])
-                .await;
-
-        image.registry = registry.address();
-        let scan = Fakes::insecure_scan(vec![image.to_string()]);
-        let fakes = Fakes::init().await;
-        let app = fakes.app(known_ident());
-
-        fakes.start_scan_and_run(&app, &scan, 1).await?;
-
-        let status = wait_for_scan_phase(
-            &app,
-            &scan.scan_id,
-            models::Phase::Failed,
-            Duration::from_secs(2),
+            .expect("expected at least one supported image");
+        let registry = DockerRegistryV2Mock::serve_images(
+            &[image.clone()],
+            &[200, 200, 200, 200, 200, 200, 503],
         )
-        .await?;
-        assert_eq!(
-            status.get("status").and_then(|value| value.as_str()),
-            Some("failed")
-        );
-        Ok(())
+        .await;
+        image.registry = registry.address();
+
+        let scan = fakes.insecure_scan("blob-503-during-scan", [image.to_string()]);
+
+        let (_, status) = fakes.start_scan_and_run(&client_id, scan, 1).await;
+
+        assert_eq!(status.status, Phase::Failed);
+    }
+
+    #[tokio::test]
+    async fn get_scans() {
+        let entry = Fakes::init().await.entry;
+        for i in 0..10 {
+            let scan = models::Scan {
+                scan_id: i.to_string(),
+                ..Default::default()
+            };
+            let client_id = if i % 2 == 0 {
+                client_id()
+            } else {
+                second_client_id()
+            };
+            entry
+                .post_scans(client_id, scan)
+                .await
+                .expect("post scans should succeed");
+        }
+        let result = entry.get_scans(client_id());
+
+        assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 5);
+        let result = entry.get_scans(second_client_id());
+
+        assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 5);
+        let result = entry.get_scans(ClientHash::from("third").to_string());
+        assert_eq!(result.filter_map(async move |x| x.ok()).count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn get_scans_preferences() {
+        let entry = Fakes::init().await.entry;
+        let result = entry.get_scans_preferences().await;
+
+        insta::assert_ron_snapshot!(result);
+    }
+
+    mod results {
+
+        use super::*;
+
+        #[tokio::test]
+        async fn all() {
+            let mut fakes = Fakes::init().await;
+            let scan = fakes.success_scan();
+            let (scan_id, _) = fakes.create_start_results(&client_id, scan).await;
+            let result = fakes.entry.get_scans_id_results(scan_id, None, None);
+            let result: Vec<_> = result.collect().await;
+
+            let result: Vec<_> = result.into_iter().filter_map(|x| x.ok()).collect();
+
+            let internal: Vec<_> = result
+                .iter()
+                .filter(|x| {
+                    x.oid.as_ref().map_or("", |x| x as &str) == "openvasd/container-image-scanner"
+                })
+                .collect();
+            // internal log messages per found host
+            assert_eq!(
+                internal.len(),
+                // best_os, best_os_cpe, hostname, architecture,
+                // packages, download, extract, scan, combined
+                // timings, host, start, host end per image
+                fakes.success_scan().target.hosts.len() * 11,
+                "Expected internal log messages"
+            );
+            assert_eq!(
+                result
+                    .iter()
+                    .filter_map(|x| x.oid.as_ref())
+                    .filter(|x| x as &str != "openvasd/container-image-scanner")
+                    .count(),
+                275 * fakes.success_scan().target.hosts.len(),
+                "Expected found vulnerabilities"
+            );
+        }
+
+        #[tokio::test]
+        async fn subset() {
+            let mut fakes = Fakes::init().await;
+            let scan = fakes.success_scan();
+            let (scan_id, _) = fakes.create_start_results(&client_id, scan).await;
+            let result = fakes
+                .entry
+                .get_scans_id_results(scan_id.clone(), None, None);
+            let all: Vec<_> = result.collect().await;
+            let all: Vec<_> = all.into_iter().filter_map(|x| x.ok()).collect();
+            let all = all.len();
+            let check_subset = async |range: (Option<usize>, Option<usize>)| {
+                let (start, end) = range;
+                let results = fakes.entry.get_scans_id_results(scan_id, start, end);
+                let results: Vec<_> = results.collect().await;
+                let results: Vec<_> = results.into_iter().filter_map(|x| x.ok()).collect();
+                let or_all = |x| {
+                    if x > all { None } else { Some(x) }
+                };
+                let normalized_range = match range {
+                    (None, Some(x)) => (None, or_all(x)),
+                    (Some(x), None) => (or_all(x), None),
+                    (Some(x), Some(y)) => {
+                        // if start is higher then end we manipulate so that zero is the output
+                        if x > y {
+                            (Some(all), None)
+                        } else {
+                            (or_all(x), or_all(y))
+                        }
+                    }
+                    a => a,
+                };
+                let expted_len = match normalized_range {
+                    // we are inclusive
+                    (Some(a), Some(b)) => b - a + 1,
+                    (None, Some(b)) => b + 1,
+                    (Some(a), None) => all - a,
+                    (None, None) => all,
+                };
+                let offset = start.unwrap_or(0);
+                assert_eq!(results.len(), expted_len);
+                for (i, x) in results.iter().enumerate() {
+                    assert_eq!(i + offset, x.id, "expected matching result id")
+                }
+            };
+            check_subset.clone()((Some(0), Some(5))).await;
+            check_subset.clone()((Some(5), None)).await;
+            check_subset.clone()((Some(5), Some(23))).await;
+            check_subset.clone()((None, Some(69))).await;
+            check_subset.clone()((Some(42), Some(4242))).await;
+            check_subset.clone()((Some(4242), Some(10))).await;
+        }
+
+        #[tokio::test]
+        async fn single_result() {
+            let mut fakes = Fakes::init().await;
+            let scan = fakes.success_scan();
+            let (scan_id, _) = fakes.create_start_results(&client_id, scan).await;
+            let result = fakes.entry.get_scans_id_results_id(scan_id, 42).await;
+            let result = result.map(|x| x.id).unwrap();
+            assert_eq!(result, 42)
+        }
+        #[tokio::test]
+        async fn invalid_result_id() {
+            let mut fakes = Fakes::init().await;
+            let scan = fakes.success_scan();
+            let (scan_id, _) = fakes.create_start_results(&client_id, scan).await;
+            let result = fakes.entry.get_scans_id_results_id(scan_id, 4242).await;
+            let result = result.map(|x| x.id);
+            assert!(matches!(result, Err(GetScansIDResultsIDError::NotFound)))
+        }
     }
 }

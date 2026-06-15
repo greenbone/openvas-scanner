@@ -9,7 +9,9 @@ use std::{
     fmt::{Debug, Display},
 };
 
-pub use crate::models::{ACT, NvtPreference, NvtRef, TagKey, TagValue, VTData};
+pub use greenbone_scanner_framework::models::{
+    ACT, NvtPreference, NvtRef, TagKey, TagValue, VTData,
+};
 
 use crate::notus::advisories::{Vulnerability, VulnerabilityData};
 
@@ -125,7 +127,7 @@ pub struct Feed;
 #[serde(transparent)]
 /// Structure to hold a VT
 pub struct Nvt {
-    pub data: crate::models::VTData,
+    pub data: greenbone_scanner_framework::models::VTData,
 }
 
 impl Display for Nvt {

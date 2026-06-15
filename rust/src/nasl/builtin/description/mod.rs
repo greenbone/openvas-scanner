@@ -4,7 +4,7 @@
 
 use std::str::FromStr;
 
-use crate::models::PreferenceType;
+use greenbone_scanner_framework::models::PreferenceType;
 
 use crate::nasl::prelude::*;
 

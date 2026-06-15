@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::models::{self, Protocol, ResultType};
+use greenbone_scanner_framework::models::{self, Protocol, ResultType};
 
 use crate::nasl::test_prelude::*;
 

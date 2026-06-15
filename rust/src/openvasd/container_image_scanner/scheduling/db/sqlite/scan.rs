@@ -99,10 +99,6 @@ async fn set_scan_images(
         set_scan_to_failed(pool, id).await?;
     }
 
-    if success_count == 0 || count == 0 {
-        set_scan_to_failed(pool, id).await?;
-    }
-
     Ok(())
 }
 
