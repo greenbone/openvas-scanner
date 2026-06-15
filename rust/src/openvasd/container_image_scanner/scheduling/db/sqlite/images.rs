@@ -1,10 +1,11 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
+use futures::StreamExt;
 use sqlx::{Row, sqlite::SqliteRow};
 
 use crate::{
     container_image_scanner::{
-        image::{Credential, Image, ImageID, ImageState},
+        image::{Credential, Image, ImageID, ImageParseError, ImageState},
         scheduling::ProcessingImage,
     },
     credentials::decrypt_credentials,
@@ -65,46 +66,19 @@ impl<'o> Execute<()> for DBImages<'o, (&'o ImageID, ImageState)> {
     {
         Box::pin(async move {
             let (ids, status) = &self.input;
-            let mut tx = self.pool.begin().await?;
-            let row = sqlx::query(
+            sqlx::query(
                 r#"
             UPDATE images
             SET status = ?
-            WHERE id = ? AND image = ? AND status = 'scanning'"#,
+            WHERE id = ? AND image = ?"#,
             )
             .bind(status.as_ref())
             .bind(ids.id())
             .bind(ids.image())
-            .execute(&mut *tx)
-            .await?;
-
-            if row.rows_affected() > 0 {
-                let (alive_inc, dead_inc) = match status {
-                    ImageState::Succeeded => (1_i64, 0_i64),
-                    ImageState::Failed => (0_i64, 1_i64),
-                    _ => (0_i64, 0_i64),
-                };
-
-                if alive_inc > 0 || dead_inc > 0 {
-                    sqlx::query(
-                        r#"
-                    UPDATE scans
-                    SET host_alive = host_alive + ?,
-                        host_dead = host_dead + ?,
-                        host_finished = host_finished + 1,
-                        host_queued = host_queued - 1
-                    WHERE id = ?"#,
-                    )
-                    .bind(alive_inc)
-                    .bind(dead_inc)
-                    .bind(ids.id())
-                    .execute(&mut *tx)
-                    .await?;
-                }
-            }
-
-            tx.commit().await?;
-            Ok(())
+            .execute(self.pool)
+            .await
+            .map_err(DAOError::from)
+            .map(|_| ())
         })
     }
 }
@@ -186,49 +160,91 @@ where
         })
     }
 }
-impl<'o, C> Fetch<ProcessingImage> for DBImages<'o, (&'o C, String)>
+impl<'o, C> Fetch<Vec<ProcessingImage>> for DBImages<'o, (&'o C, usize)>
 where
     C: Crypt + Sync,
 {
-    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ProcessingImage>
+    fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<ProcessingImage>>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let (crypter, id) = &self.input;
-            let rows = sqlx::query(
+            let (crypter, input) = self.input;
+            let limit = if input == 0 { 254 } else { input as i64 };
+            let mut stream = sqlx::query(
                 r#"
-        SELECT r.id, r.host AS registry, s.auth_data
+        WITH running_count AS (
+            SELECT COUNT(*) AS running_total
+            FROM scans
+            WHERE status = 'running'
+        ),
+        selected_scans AS (
+            SELECT id, auth_data
+            FROM scans
+            WHERE status = 'requested'
+            ORDER BY created_at ASC
+            LIMIT (
+                SELECT CASE
+                    WHEN running_total < ? THEN 1
+                    ELSE 0
+                END
+                FROM running_count
+            )
+        )
+        SELECT 
+            r.id,
+            r.host AS registry,
+            s.auth_data
         FROM registry r
-        JOIN scans s ON r.id = s.id
-        WHERE r.id = ?
+        JOIN selected_scans s
+          ON r.id = s.id
         "#,
             )
-            .bind(id)
-            .fetch_all(self.pool)
-            .await?;
+            .bind(limit)
+            .fetch(self.pool);
+            type ImageResult = Result<Image, ImageParseError>;
 
-            let mut image = Vec::with_capacity(rows.len());
-            let mut credentials = None;
+            let mut map: HashMap<i64, (Vec<ImageResult>, Option<Credential>)> = HashMap::new();
 
-            for row in rows {
+            while let Some(row_result) = stream.next().await {
+                let row = match row_result {
+                    Ok(x) => x,
+                    Err(e) => {
+                        unreachable!(
+                            "Unreachable: SQL query failed despite static structure. Error: {}",
+                            e
+                        )
+                    }
+                };
+
                 let registry: String = row.get("registry");
-                image.push(registry.parse());
+                let image = registry.parse();
 
-                if credentials.is_none() {
+                let id: i64 = row.get("id");
+                let credential = if let Some((_, credential)) = map.get(&id) {
+                    credential.clone()
+                } else {
                     let auth_data: String = row.get("auth_data");
-                    credentials = decrypt_credentials(*crypter, &auth_data)
+                    decrypt_credentials(crypter, &auth_data)
                         .await
                         .ok()
-                        .and_then(registry_credential);
-                }
+                        .and_then(registry_credential)
+                };
+
+                let entry = map.entry(id).or_insert_with(|| (Vec::new(), credential));
+
+                entry.0.push(image);
             }
 
-            Ok(ProcessingImage {
-                id: id.clone(),
-                image,
-                credentials,
-            })
+            map.into_iter()
+                .map(|(id, (image, credentials))| {
+                    Ok(ProcessingImage {
+                        id: id.to_string(),
+                        image,
+                        credentials,
+                    })
+                })
+                .collect()
         })
     }
 }

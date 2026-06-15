@@ -108,8 +108,7 @@ pub async fn init(
         pool.clone(),
         crypter.clone(),
         products,
-    )
-    .await?;
+    );
     tokio::spawn(async move {
         scheduler.run::<AllTypes>().await;
     });

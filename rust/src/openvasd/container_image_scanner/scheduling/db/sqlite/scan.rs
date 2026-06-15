@@ -10,7 +10,7 @@ use crate::{
     crypt::Crypt,
     database::{
         dao::{DAOError, DAOPromiseRef, DBViolation, Execute, Fetch},
-        sqlite::{insert_client_scan_map, insert_scan_with_auth_data, insert_values_chunked},
+        sqlite::insert_values_chunked,
     },
 };
 
@@ -64,13 +64,12 @@ async fn set_scan_images(
         r#"
             UPDATE scans
             SET host_all = ?,
-                host_queued = ?,
+                host_queued = 0,
                 host_dead = ?
             WHERE id = ?
             "#,
     )
     .bind(count as i64)
-    .bind(success_count as i64)
     .bind(dead_count as i64)
     .bind(id)
     .execute(&mut *tx)
@@ -145,8 +144,8 @@ pub async fn set_scans_to_finished(pool: &SqlitePool) -> Result<(), sqlx::Error>
 }
 
 async fn set_scan_to_running(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error> {
-    // setting host_queued to 1 prevents the scan from being marked as finished before image
-    // resolution stored the actual pending image count.
+    // setting host_queued to 1 to not trigger success, it will be overridden on set_scan_images
+    // later.
     query(
         r#"
             UPDATE scans
@@ -235,9 +234,22 @@ where
             let (crypter, client_id, scan) = &self.input;
             let mut conn = self.pool.acquire().await?;
             let mut tx = conn.begin().await?;
-            let id = insert_client_scan_map(&mut *tx, client_id, &scan.scan_id).await?;
+            let row = query(
+                r#"
+            INSERT INTO client_scan_map(scan_id, client_id) VALUES (?, ?)
+            "#,
+            )
+            .bind(&scan.scan_id)
+            .bind(client_id)
+            .execute(&mut *tx)
+            .await?;
+            let id = row.last_insert_rowid();
             let auth_data = encrypt_credentials(*crypter, &scan.target.credentials).await?;
-            insert_scan_with_auth_data(&mut *tx, id, &auth_data).await?;
+            let _ = query("INSERT INTO scans(id, auth_data) VALUES (?, ?)")
+                .bind(id)
+                .bind(auth_data)
+                .execute(&mut *tx)
+                .await?;
             tracing::debug!(internal_id = id, "creating scan");
             insert_values_chunked(
                 &mut *tx,
@@ -271,21 +283,6 @@ where
                 3,
             )
             .await?;
-            if !scan.target.excluded_hosts.is_empty() {
-                query(
-                    r#"
-                UPDATE scans
-                SET host_excluded = host_excluded + ?,
-                    host_finished = host_finished + ?
-                WHERE id = ?
-                "#,
-                )
-                .bind(scan.target.excluded_hosts.len() as i64)
-                .bind(scan.target.excluded_hosts.len() as i64)
-                .bind(id)
-                .execute(&mut *tx)
-                .await?;
-            }
 
             tx.commit().await?;
             Ok(())

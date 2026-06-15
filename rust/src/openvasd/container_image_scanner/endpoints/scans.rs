@@ -219,16 +219,7 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         Box::pin(async move {
             let db = DBScan::new(&self.pool, id);
-            let phase: models::Phase = db
-                .fetch()
-                .await
-                .map_err(DeleteScansIDError::from_external)?;
-            if phase.is_running() {
-                return Err(DeleteScansIDError::Running);
-            }
-            db.retry_exec()
-                .await
-                .map_err(DeleteScansIDError::from_external)
+            endpoint_helpers::delete_scan_if_not_running(db.fetch(), db.retry_exec()).await
         })
     }
 }
@@ -239,6 +230,7 @@ pub mod scans_utils {
     use std::{sync::Arc, time::Duration};
 
     use greenbone_scanner_framework::prelude::*;
+    use tokio::sync::Mutex;
 
     use super::Scans;
     use crate::{
@@ -284,9 +276,7 @@ pub mod scans_utils {
             pool.clone(),
             crypter.clone(),
             products_loader(products_path, false),
-        )
-        .await
-        .unwrap();
+        );
         let scans = super::Scans {
             pool: pool.clone(),
             crypter,
@@ -372,8 +362,19 @@ pub mod scans_utils {
         }
 
         pub async fn run_scheduler_rounds(&self, rounds: usize) {
+            let conn = Arc::new(Mutex::new(self.scheduler.pool()));
             for _ in 0..rounds {
-                self.scheduler.on_schedule::<AllTypes>().await;
+                Scheduler::<
+                DockerRegistryV2,
+                filtered_image::Extractor,
+                ChaCha20Crypt,
+            >::start_scans::<AllTypes>(
+                self.scheduler.config(),
+                self.scheduler.crypter(),
+                conn.clone(),
+                self.scheduler.products(),
+            )
+            .await;
             }
         }
 
@@ -408,7 +409,6 @@ pub mod scans_utils {
             let scans = scan.target.hosts.len();
             let scan_id = self.create_start_scan(&client_id, scan).await;
             self.run_scheduler_rounds(scans).await;
-
             let id = self
                 .entry
                 .contains_scan_id(&client_id(), &scan_id)

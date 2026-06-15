@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use greenbone_scanner_framework::{InternalIdentifier, prelude::*};
 
 use crate::database::dao::DAOError;
@@ -41,4 +43,19 @@ pub(crate) fn map_result_id_fetch(
         DAOError::NotFound => GetScansIDResultsIDError::NotFound,
         e => e.into(),
     })
+}
+
+pub(crate) async fn delete_scan_if_not_running<PhaseFut, DeleteFut>(
+    phase: PhaseFut,
+    delete: DeleteFut,
+) -> Result<(), DeleteScansIDError>
+where
+    PhaseFut: Future<Output = Result<scannerlib::models::Phase, DAOError>>,
+    DeleteFut: Future<Output = Result<(), DAOError>>,
+{
+    let phase = phase.await.map_err(DeleteScansIDError::from_external)?;
+    if phase.is_running() {
+        return Err(DeleteScansIDError::Running);
+    }
+    delete.await.map_err(DeleteScansIDError::from_external)
 }
