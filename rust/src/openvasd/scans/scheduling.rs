@@ -1,4 +1,6 @@
+use std::path::PathBuf;
 use std::sync::Arc;
+use fslock::LockFile;
 use tokio::sync::RwLock;
 
 use greenbone_scanner_framework::models::{self, Scan};
@@ -9,7 +11,7 @@ use scannerlib::{
     osp,
     scanner::{
         OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
-        preferences,
+        ScannerType, preferences,
     },
 };
 
@@ -28,6 +30,8 @@ use crate::{
     },
     vts::orchestrator::{self, FeedStatusChange},
 };
+
+const LOCK_FILE: &str = "feed-update.lock";
 
 #[derive(Default, Debug)]
 struct IsInProgress {
@@ -111,6 +115,7 @@ struct ScanScheduler<Scanner, Cryptor> {
     // otherwise we would need to store two separate lists.
     feed_sync_in_progress: Arc<RwLock<IsInProgress>>,
     scan_state: ScanStateController,
+    lock_file_dir: String,
 }
 
 #[derive(Debug)]
@@ -175,9 +180,20 @@ impl<T, C> ScanScheduler<T, C> {
     }
 }
 
+fn is_file_locked(path: String) -> bool {
+    let mut file = LockFile::open(&path).expect("Valid path to lock file");
+    
+    if file.try_lock().expect("already locked") {
+        file.unlock().expect("unlocking not locked file");
+        false
+    } else { //locked by another process
+        true
+    }
+}
+
 impl<Scanner, C> ScanScheduler<Scanner, C>
 where
-    Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    Scanner: ScannerType + ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     C: Crypt + Send + Sync + 'static,
 {
     async fn scan_start(&self, id: i64, scan: Scan) {
@@ -345,7 +361,7 @@ where
         };
         Ok(())
     }
-
+    
     async fn on_feed_action(
         &self,
         message: &orchestrator::FeedStatusChange,
@@ -358,7 +374,15 @@ where
         let result = match message {
             FeedStatusChange::Need(_) => {
                 let count_running: i64 = self.get_running_count().await;
-                if count_running == 0 {
+                let filelocked = {
+                    let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
+                    lockfile.push(LOCK_FILE);
+                    is_file_locked(lockfile.to_string_lossy().to_string())
+                };
+                if (self.scan_type() == "openvas") && !filelocked {
+                    Some(self.feed_sync_in_progress.write().await.approve())
+                }
+                else if count_running == 0 {
                     Some(self.feed_sync_in_progress.write().await.approve())
                 } else {
                     None
@@ -410,6 +434,10 @@ where
 
         Ok(vec![])
     }
+
+    fn scan_type(&self) -> String {
+        self.scanner.scanner_type()
+    }
 }
 
 async fn run_scheduler<S, E>(
@@ -418,7 +446,7 @@ async fn run_scheduler<S, E>(
     feed: orchestrator::Communicator,
 ) -> R<mpsc::Sender<Message>>
 where
-    S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    S: ScannerType + ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     // happens when openvasd was killed when scans did still run
@@ -492,7 +520,7 @@ pub(super) async fn init_with_scanner<E, S>(
     feed: orchestrator::Communicator,
 ) -> R<Sender<Message>>
 where
-    S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    S: ScannerType + ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     let change_scan_status = ScanStateController::init(pool.clone()).await?;
@@ -503,6 +531,7 @@ where
         scanner: Arc::new(scanner),
         feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
         scan_state: change_scan_status,
+        lock_file_dir: config.feed.lock_file_dir.to_string_lossy().to_string(),
     };
 
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await
@@ -605,6 +634,7 @@ pub(crate) mod tests {
             max_concurrent_scan: 4,
             feed_sync_in_progress: Arc::new(RwLock::new(feed_changes)),
             scan_state: change_scan_status,
+            lock_file_dir: String::new(),
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
         Ok((under_test, known_scans))

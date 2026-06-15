@@ -138,6 +138,7 @@ bzip2 = "0"
 zstd = "0"
 rustls-pki-types = { version = "1.14.0", features = ["std"] }
 cidr = "0.3.2"
+fslock = "0.2.1"
 
 [workspace]
 members = ["crates/nasl-function-proc-macro"]

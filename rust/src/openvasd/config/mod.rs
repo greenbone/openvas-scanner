@@ -33,6 +33,8 @@ pub struct Feed {
     // TODO: rename to feed_integrity_check and tell serde to accept:
     // signature_check as weel as feed_integrity_check.
     pub signature_check: bool,
+    #[serde(default)]
+    pub lock_file_dir: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -134,6 +136,7 @@ impl Default for Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
             check_interval: Duration::from_secs(3600),
             signature_check: true,
+            lock_file_dir: Some(PathBuf::from("/var/lib/openvas")),
         }
     }
 }
@@ -426,6 +429,15 @@ impl Config {
                     .help("path to openvas feed"),
             )
             .arg(
+                clap::Arg::new("lock-file-dir")
+                    .env("LOCK_FILE_DIR")
+                    .long("lock-file-dir")
+                    .value_parser(clap::builder::PathBufValueParser::new())
+                    .action(ArgAction::Set)
+                    .help("path to the lock file directory"),
+            )
+
+            .arg(
                 clap::Arg::new("feed-signature-check")
                     .long("feed-signature-check")
                     .short('x')
@@ -682,6 +694,9 @@ impl Config {
 
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
             config.feed.path.clone_from(path);
+        }
+        if let Some(path) = cmds.get_one::<PathBuf>("lock-file-dir") {
+            config.feed.lock_file_dir.clone_from(path);
         }
         if let Some(path) = cmds.get_one::<PathBuf>("notus-products") {
             config.notus.products_path.clone_from(path);

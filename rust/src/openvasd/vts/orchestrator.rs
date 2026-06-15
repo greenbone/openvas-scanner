@@ -275,20 +275,23 @@ where
 
         // Always perform the feed update if the storage is redis, without allowance
         if self.worker.storage_kind() == "redis" {
+            tracing::info!("Starting feed update");
             let worker1 = self.worker.clone();
             let worker2 = self.worker.clone();
+            self.change_outer_state(FeedState::Syncing).await;
 
             let calc_nasl = calc_nasl.clone();
-            let calc_advisories = calc_advisories.clone();
-            self.change_outer_state(FeedState::Syncing).await;
             nasl_handle = Some(tokio::task::spawn(async move {
                 worker1.update_feed(FeedType::NASL, calc_nasl).await
             }));
+            
+            let calc_advisories = calc_advisories.clone();
             advisory_handle = Some(tokio::task::spawn(async move {
                 worker2
                     .update_feed(FeedType::Advisories, calc_advisories)
                     .await
             }));
+            
         } else {
             //Ask for allowance if the storage is sqlite
             if sync_nasl {

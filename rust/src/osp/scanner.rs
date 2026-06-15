@@ -8,7 +8,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use crate::scanner::{
-    Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper,
+    Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, ScannerType,
 };
 use async_trait::async_trait;
 use greenbone_scanner_framework::models::Scan;
@@ -49,6 +49,13 @@ impl Scanner {
         tokio::task::spawn_blocking(move || f(socket).map_err(Into::into))
             .await
             .map_err(|_| Error::Poisoned)?
+    }
+}
+
+#[async_trait]
+impl ScannerType for Scanner {
+    fn scanner_type(&self) -> String {
+        String::from("ospd")
     }
 }
 

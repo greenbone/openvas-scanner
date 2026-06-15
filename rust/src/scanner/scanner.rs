@@ -28,6 +28,13 @@ pub struct ScanResults {
     pub results: Vec<models::Result>,
 }
 
+#[async_trait]
+pub trait ScannerType {
+    fn scanner_type (&self) -> String {
+        String::from("openvasd")
+    }
+}
+
 /// Starts a scan
 #[async_trait]
 pub trait ScanStarter {

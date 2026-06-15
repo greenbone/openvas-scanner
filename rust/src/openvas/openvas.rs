@@ -33,7 +33,7 @@ pub struct Scanner {
 }
 use crate::scanner::{
     Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanResults, ScanStarter,
-    ScanStopper,
+    ScanStopper, ScannerType,
 };
 
 impl From<OpenvasError> for ScanError {
@@ -156,6 +156,15 @@ impl Default for Scanner {
         }
     }
 }
+
+#[async_trait]
+impl ScannerType for Scanner {
+    fn scanner_type(&self) -> String {
+        String::from("openvas")
+    }    
+}
+
+
 #[async_trait]
 impl ScanStarter for Scanner {
     async fn start_scan(&self, scan: Scan) -> Result<(), ScanError> {

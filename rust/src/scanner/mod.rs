@@ -83,6 +83,16 @@ where
 }
 
 #[async_trait]
+impl<S> ScannerType for OpenvasdScanner<S>
+where
+    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
+{
+    fn scanner_type(&self) -> String {
+        String::from("openvasd")
+    }
+}
+
+#[async_trait]
 impl<S> ScanStarter for OpenvasdScanner<S>
 where
     S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
