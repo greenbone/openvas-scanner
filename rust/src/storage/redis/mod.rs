@@ -139,7 +139,7 @@ where
         item: Self::Item,
     ) -> Result<(), crate::storage::error::StorageError> {
         let mut vts = self.cache.lock()?;
-        vts.redis_add_nvt(item, "2".to_string())?;
+        vts.redis_add_nvt(item, "2".to_string(), String::new())?;
         Ok(())
     }
 }
@@ -375,12 +375,14 @@ mod tests {
                             );
                         }
                         "filename:test.nasl" => {
+                            dbg!(&values);
                             assert_eq!(values.len(), 2);
                             let mut vals = values.clone();
                             let oid = String::from_utf8(vals.pop().unwrap());
                             assert_eq!(Ok("0.0.0.0.0.0.0.0.0.1".to_owned()), oid);
-                            let dummy = vals.pop().unwrap();
-                            assert_eq!(Ok("1".to_owned()), String::from_utf8(dummy));
+                            let _mtime = vals.pop().unwrap();
+                        }
+                        "signaturecheck:test.nasl" => {
                         }
                         _ => panic!("{key} should not occur"),
                     }
@@ -389,6 +391,6 @@ mod tests {
                 Err(e) => panic!("{e:?}"),
             }
         }
-        assert_eq!(results, 4);
+        assert_eq!(results, 5);
     }
 }

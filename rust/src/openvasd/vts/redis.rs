@@ -320,15 +320,18 @@ impl PluginStorer for RedisPluginHandler {
                             Some(vt) => {
                                 let mut file = feed_path;
                                 file.push(vt.filename.clone());
-                                let mtime = fs::metadata(file)
-                                    .expect("File Metadata")
+                                let mtime = fs::metadata(&file)
+                                    .unwrap_or_else(|_| {
+                                        panic!("File Metadata {:?}", file.to_string_lossy())
+                                    })
                                     .modified()
                                     .expect("File mtime not supported")
                                     .duration_since(UNIX_EPOCH)
                                     .expect("invalid duration for mtime")
                                     .as_secs()
                                     .to_string();
-                                rctx.redis_add_nvt(vt, mtime)
+                                let hashsum = plugin.hashsum().into();
+                                rctx.redis_add_nvt(vt, mtime, hashsum)
                             }
                         }
                     }

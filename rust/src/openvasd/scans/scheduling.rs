@@ -531,7 +531,7 @@ where
         scanner: Arc::new(scanner),
         feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
         scan_state: change_scan_status,
-        lock_file_dir: config.feed.lock_file_dir.to_string_lossy().to_string(),
+        lock_file_dir: config.feed.lock_file_dir.clone().unwrap_or(PathBuf::from("/var/lib/openvas")).to_string_lossy().to_string(),
     };
 
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await

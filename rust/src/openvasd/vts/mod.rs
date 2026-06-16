@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::io::BufReader;
 use std::sync::RwLock;
 use std::{
@@ -7,12 +9,14 @@ use std::{
 
 use greenbone_scanner_framework::{GetVTsError, StreamResult};
 use scannerlib::Promise;
+use scannerlib::feed::{HashSumFileItem, HashSumNameLoader, check_signature};
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::advisory_loader;
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
     notus::advisories::VulnerabilityData,
 };
+use walkdir::WalkDir;
 
 use crate::config::{Config, ScannerType};
 pub mod orchestrator;
@@ -46,6 +50,7 @@ pub trait Plugin: serde::Serialize {
     fn oid(&self) -> &str;
     fn advisory(&self) -> Option<&VulnerabilityData>;
     fn vulnerability_test(&self) -> Option<&VTData>;
+    fn hashsum(&self) -> &str;
 }
 
 impl Plugin for VTData {
@@ -60,6 +65,14 @@ impl Plugin for VTData {
     fn vulnerability_test(&self) -> Option<&VTData> {
         Some(self)
     }
+
+    fn hashsum(&self) -> &str {
+        // This should not be called, as we only need this for
+        // storage of the hashsum in redis, where `VTData` is
+        // not directly used as a `Plugin`, but instead we use
+        // `VTDataMessage`
+        unimplemented!()
+    }
 }
 
 impl Plugin for VulnerabilityData {
@@ -73,6 +86,10 @@ impl Plugin for VulnerabilityData {
 
     fn vulnerability_test(&self) -> Option<&VTData> {
         None
+    }
+
+    fn hashsum(&self) -> &str {
+        ""
     }
 }
 
@@ -187,7 +204,7 @@ where
         }
         FeedType::NASL => {
             ps.store_hash(&feed_hash).await?;
-            synchronize_plugins(ps, feed_hash.path, feed_hash.hash).await?
+            synchronize_plugins(ps, feed_hash.path, feed_hash.hash, signature_check).await?
         }
     };
     Ok(())
@@ -241,6 +258,7 @@ async fn synchronize_plugins<T>(
     ps: &T,
     mut path: PathBuf,
     new_hash: String,
+    signature_check: bool,
 ) -> Result<(), WorkerError>
 where
     T: PluginStorer + Send + Sync + 'static,
@@ -252,14 +270,28 @@ where
     };
     // if a feedpath is provided we expect a vt-metadata.json
     // if it is not a dir we assume it is the json file and continue
+    let dir_path = path.clone();
+    let mut sumsfile = HashMap::new();
+    let loader = Loader::from_feed_path(&dir_path);
     if path.is_dir() {
-        // TODO: validate hash_sum if required? For that we would need load the sha256sums, find
-        // vt-metadata.json and then verify the sha256sum
+        if signature_check {
+            check_signature(&dir_path)?;
+            let mut hashsumloader = HashSumNameLoader::sha256(&loader)?;
+            while let Some(Ok(item)) = hashsumloader.next() {
+                sumsfile.insert(item.file_name.clone(), item);
+            }
+
+            if let Some(jsonfile) = sumsfile.get("vt-metadata.json") {
+                jsonfile.verify()?;
+            }
+        };
+
         path.push("vt-metadata.json");
         if !path.is_file() {
             return Err(not_found());
         }
     }
+
     let hash = FeedHash {
         hash: new_hash,
         path: path.clone(),
@@ -267,15 +299,92 @@ where
     };
 
     synchronize_json(ps, &hash, move |sender| {
+        let mut sumsfile = HashMap::new();
+        let loader = Loader::from_feed_path(&dir_path);
+
+        if signature_check {
+            check_signature(&dir_path)?;
+            let mut hashsumloader = HashSumNameLoader::sha256(&loader)?;
+            while let Some(Ok(item)) = hashsumloader.next() {
+                sumsfile.insert(item.file_name.clone(), item);
+            }
+        }
+        let target_ext = OsStr::new("inc");
+        let inc_files = WalkDir::new(&dir_path)
+            .into_iter()
+            .filter_map(Result::ok) // Skip unreadable items/errors
+            .filter(|entry| entry.file_type().is_file()) // Filter for files only
+            .map(|entry| entry.into_path()) // Convert entry to PathBuf
+            .filter(|path| path.extension() == Some(target_ext)) // Match extension
+            .collect::<Vec<_>>();
+        for element in inc_files.iter() {
+            let mut inc_f = VTData::default();
+            inc_f.oid = "fake_oid".to_string();
+            inc_f.filename = element
+                .strip_prefix(&dir_path)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+            verify_signature_and_send(&sender, &sumsfile, inc_f, signature_check);
+        }
+
         let file = std::fs::File::open(&path).map_err(|_| not_found())?;
         let reader = BufReader::new(file);
         for element in json_stream::iter_json_array::<VTData, _>(reader).filter_map(|x| x.ok()) {
-            if sender.send(element).is_err() {
-                break;
-            }
+            verify_signature_and_send(&sender, &sumsfile, element, signature_check);
         }
 
         Ok(())
     })
     .await
+}
+
+fn verify_signature_and_send(
+    sender: &std::sync::mpsc::Sender<VTDataMessage>,
+    sumsfile: &HashMap<String, HashSumFileItem<'_>>,
+    item: VTData,
+    signature_check: bool,
+) -> Result<(), String> {
+    let hashsum = if signature_check {
+        let Some(checker) = sumsfile.get(&item.filename) else {
+            return Err(format!(
+                "File not present in sumsfile: {:?}",
+                &item.filename
+            ));
+        };
+        checker
+            .verify()
+            .map_err(|e| format!("Wrong hashsum for file: {e:?}"))?;
+        checker.get_hashsum()
+    } else {
+        "".into()
+    };
+    sender
+        .send(VTDataMessage { item, hashsum })
+        .map_err(|e| e.to_string())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+struct VTDataMessage {
+    item: VTData,
+    hashsum: String,
+}
+
+impl Plugin for VTDataMessage {
+    fn oid(&self) -> &str {
+        self.item.oid()
+    }
+
+    fn advisory(&self) -> Option<&VulnerabilityData> {
+        self.item.advisory()
+    }
+
+    fn vulnerability_test(&self) -> Option<&VTData> {
+        Some(&self.item)
+    }
+
+    fn hashsum(&self) -> &str {
+        &self.hashsum
+    }
 }

@@ -30,7 +30,7 @@ pub struct ScanResults {
 
 #[async_trait]
 pub trait ScannerType {
-    fn scanner_type (&self) -> String {
+    fn scanner_type(&self) -> String {
         String::from("openvasd")
     }
 }
@@ -143,6 +143,12 @@ impl LambdaBuilder {
 
     pub fn build(self) -> Lambda {
         self.lambda
+    }
+}
+
+impl ScannerType for Lambda {
+    fn scanner_type(&self) -> String {
+        String::from("lambda")
     }
 }
 

@@ -5,6 +5,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use super::dberror::DbError;
@@ -541,7 +542,31 @@ pub trait RedisAddNvt: RedisWrapper {
     /// - 'nvt:<OID>': stores the general metadata ordered following the KbNvtPos indexes
     /// - 'oid:<OID>:prefs': stores the plugins preferences, including the script_timeout
     ///   (which is especial and uses preferences id 0)
-    fn redis_add_nvt(&mut self, nvt: VTData, mtime: String) -> RedisStorageResult<()> {
+    fn redis_add_nvt(
+        &mut self,
+        nvt: VTData,
+        mtime: String,
+        hashsum: String,
+    ) -> RedisStorageResult<()> {
+        tracing::info!("ADding the vt! {}", &nvt.filename);
+        let filename = nvt.filename;
+        if !hashsum.is_empty() {
+            let key_name = format!("sha256sums:{filename}");
+            self.del(&key_name)?;
+            self.rpush(&key_name, hashsum)?;
+        }
+        if !mtime.is_empty() {
+            let key_name = format!("signaturecheck:{filename}");
+            self.del(&key_name)?;
+            self.rpush(&key_name, &mtime)?;
+        }
+
+        if let Some(vt_fn) = PathBuf::from(filename.clone()).extension()
+            && vt_fn == "inc"
+        {
+            return Ok(());
+        };
+
         let oid = nvt.oid;
         let name = nvt.name;
         let required_keys = nvt.required_keys.join(", ");
@@ -558,7 +583,6 @@ pub trait RedisAddNvt: RedisWrapper {
             .join("|");
         let category = (nvt.category as i64).to_string();
         let family = nvt.family;
-        let filename = nvt.filename;
 
         // Get the references
         let (cves, bids, xrefs) = Self::refs(&nvt.references);
@@ -601,9 +625,6 @@ pub trait RedisAddNvt: RedisWrapper {
         // Once openvas is no longer used, the dummy item can be removed.
         let key_name = format!("filename:{filename}");
         self.rpush(&key_name, &[mtime.as_str(), &oid])?;
-        let key_name = format!("signaturecheck:{filename}");
-        self.del(&key_name)?;
-        self.rpush(&key_name, mtime)?;
 
         Ok(())
     }

@@ -696,7 +696,7 @@ impl Config {
             config.feed.path.clone_from(path);
         }
         if let Some(path) = cmds.get_one::<PathBuf>("lock-file-dir") {
-            config.feed.lock_file_dir.clone_from(path);
+            config.feed.lock_file_dir.clone_from(&Some(path.to_path_buf()));
         }
         if let Some(path) = cmds.get_one::<PathBuf>("notus-products") {
             config.notus.products_path.clone_from(path);
