@@ -52,9 +52,9 @@ The API supports two kinds of authentication methods:
 
 The authentication modes are set within a configuration file or via the argument list, when starting the server.
 
-By default, existing endpoint behavior is preserved. Scan endpoints require authentication when authentication is configured. Notus and VT endpoints can additionally require authentication by setting `require_authentication = true` under `[endpoints]`.
+Scan endpoints require authentication when authentication is configured. Notus and VT endpoints require authentication only when `require_authentication = true` is set under `[endpoints]`. With `require_authentication` enabled, `openvasd` refuses to start unless an API key (`key` under `[endpoints]`) or a complete mTLS configuration (`certs`, `key`, and `client_certs` under `[tls]`) is provided.
 
-Declined requests keep the existing response metadata headers by default. Set `hide_declined_response_headers = true` under `[endpoints]` to omit the `authentication`, `api-version`, and `feed-version` headers from `401 Unauthorized` and `403 Forbidden` responses.
+On `401 Unauthorized` and `403 Forbidden` responses, declined requests include the `authentication`, `api-version`, and `feed-version` response metadata headers. Set `hide_declined_response_headers = true` under `[endpoints]` to omit them.
 
 Implemented health probe routes are:
 
