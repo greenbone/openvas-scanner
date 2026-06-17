@@ -100,6 +100,9 @@ async fn _main() -> Result<i32> {
     if let Some(client_certs) = config.tls.client_certs.clone() {
         rb = rb.path_client_certs(client_certs);
     }
+    if let Some(pinned_client_certs) = config.tls.pinned_client_certs.clone() {
+        rb = rb.path_pinned_client_certs(pinned_client_certs);
+    }
 
     let (cis_scans, cis_vts) = container_image_scanner::init(
         pool.clone(),

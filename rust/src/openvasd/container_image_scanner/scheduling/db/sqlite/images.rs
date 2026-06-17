@@ -187,7 +187,7 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
                 FROM running_count
             )
         )
-        SELECT 
+        SELECT
             r.id,
             r.host AS registry,
             c.username,

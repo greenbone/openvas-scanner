@@ -95,6 +95,13 @@ impl ServerCertificate {
 struct TLSConfig {
     server_tls_cer: ServerCertificate,
     path_client_certs: Option<PathBuf>,
+    path_pinned_client_certs: Option<PathBuf>,
+}
+
+impl TLSConfig {
+    fn has_client_auth(&self) -> bool {
+        self.path_client_certs.is_some() || self.path_pinned_client_certs.is_some()
+    }
 }
 
 mod runtime_builder_states {
@@ -180,13 +187,16 @@ impl<T> RuntimeBuilder<T> {
             Some(TLSConfig {
                 server_tls_cer: _,
                 path_client_certs,
+                path_pinned_client_certs,
             }) => TLSConfig {
                 server_tls_cer,
                 path_client_certs,
+                path_pinned_client_certs,
             },
             None => TLSConfig {
                 server_tls_cer,
                 path_client_certs: None,
+                path_pinned_client_certs: None,
             },
         });
 
@@ -198,13 +208,39 @@ impl<T> RuntimeBuilder<T> {
             Some(TLSConfig {
                 server_tls_cer,
                 path_client_certs: _,
+                path_pinned_client_certs,
             }) => TLSConfig {
                 server_tls_cer,
                 path_client_certs: Some(path_client_certs),
+                path_pinned_client_certs,
             },
             None => TLSConfig {
                 server_tls_cer: Default::default(),
                 path_client_certs: Some(path_client_certs),
+                path_pinned_client_certs: None,
+            },
+        });
+        self
+    }
+
+    pub fn path_pinned_client_certs(
+        mut self,
+        path_pinned_client_certs: PathBuf,
+    ) -> RuntimeBuilder<T> {
+        self.tls = Some(match self.tls {
+            Some(TLSConfig {
+                server_tls_cer,
+                path_client_certs,
+                path_pinned_client_certs: _,
+            }) => TLSConfig {
+                server_tls_cer,
+                path_client_certs,
+                path_pinned_client_certs: Some(path_pinned_client_certs),
+            },
+            None => TLSConfig {
+                server_tls_cer: Default::default(),
+                path_client_certs: None,
+                path_pinned_client_certs: Some(path_pinned_client_certs),
             },
         });
         self
@@ -286,20 +322,8 @@ impl<T> RuntimeBuilder<T> {
 
     fn build_scanner(&self) -> Scanner {
         let authentication = match (&self.tls, &self.api_keys) {
-            (
-                Some(TLSConfig {
-                    server_tls_cer: _,
-                    path_client_certs: Some(_),
-                }),
-                None,
-            ) => Authentication::MTLS,
-            (
-                Some(TLSConfig {
-                    server_tls_cer: _,
-                    path_client_certs: Some(_),
-                }),
-                Some(_),
-            ) => {
+            (Some(tls), None) if tls.has_client_auth() => Authentication::MTLS,
+            (Some(tls), Some(_)) if tls.has_client_auth() => {
                 tracing::info!("mTLS and api-key configured, favoring mTLS and disabling api-key");
                 Authentication::MTLS
             }

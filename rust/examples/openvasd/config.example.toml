@@ -36,6 +36,11 @@ key = "/var/lib/openvasd/tls/server.rsa"
 # allowed to connect otherwise just the clients that have the configured
 # client certificates.
 client_certs = "/etc/openvasd/tls/client"
+# Optional file or directory of exact client leaf certificates to pin. These
+# certificates are accepted for mTLS without trusting their issuing CA for other
+# clients. Pinned certificates must be time-valid TLS client certificates with
+# clientAuth extended key usage.
+# pinned_client_certs = "/etc/openvasd/tls/pinned-client"
 
 [scanner]
 # Supported types:

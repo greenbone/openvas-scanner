@@ -1,0 +1,166 @@
+name: openvasd pinned mTLS smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/openvasd-pinned-mtls-smoke.yml"
+      - ".github/workflows/build-rs.yaml"
+      - ".docker/prod.Dockerfile"
+      - "rust/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-rs.yaml
+    with:
+      arch: amd64
+      runner: ubuntu-latest
+      binary_version: mtls-smoke
+
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: download openvasd binary
+        uses: actions/download-artifact@v7
+        with:
+          name: rs-binaries-amd64
+          path: rs-binaries
+
+      - name: install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --no-install-suggests -y \
+            curl \
+            libsnmp-dev \
+            openssl
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: generate smoke test certificates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p smoke-certs/pinned
+          cat > smoke-certs/server.ext <<'EOF'
+          basicConstraints = critical,CA:FALSE
+          keyUsage = critical,digitalSignature,keyEncipherment
+          extendedKeyUsage = serverAuth
+          subjectAltName = DNS:localhost,IP:127.0.0.1
+          EOF
+          cat > smoke-certs/client-ca.ext <<'EOF'
+          basicConstraints = critical,CA:TRUE
+          keyUsage = critical,keyCertSign,cRLSign
+          subjectKeyIdentifier = hash
+          EOF
+          cat > smoke-certs/client.ext <<'EOF'
+          basicConstraints = critical,CA:FALSE
+          keyUsage = critical,digitalSignature
+          extendedKeyUsage = clientAuth
+          subjectKeyIdentifier = hash
+          authorityKeyIdentifier = keyid,issuer
+          EOF
+
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -subj "/CN=openvasd-smoke-server-ca" \
+            -keyout smoke-certs/server-ca.key \
+            -out smoke-certs/server-ca.pem
+
+          openssl req -newkey rsa:2048 -nodes \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+            -keyout smoke-certs/server.key \
+            -out smoke-certs/server.csr
+          openssl x509 -req -days 1 \
+            -in smoke-certs/server.csr \
+            -CA smoke-certs/server-ca.pem \
+            -CAkey smoke-certs/server-ca.key \
+            -CAcreateserial \
+            -extfile smoke-certs/server.ext \
+            -out smoke-certs/server.pem
+
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -subj "/CN=openvasd-smoke-untrusted-client-ca" \
+            -addext "basicConstraints=critical,CA:TRUE" \
+            -addext "keyUsage=critical,keyCertSign,cRLSign" \
+            -keyout smoke-certs/untrusted-client-ca.key \
+            -out smoke-certs/untrusted-client-ca.pem
+
+          openssl req -newkey rsa:2048 -nodes \
+            -subj "/CN=pinned-client" \
+            -keyout smoke-certs/pinned-client.key \
+            -out smoke-certs/pinned-client.csr
+          openssl x509 -req -days 1 \
+            -in smoke-certs/pinned-client.csr \
+            -CA smoke-certs/untrusted-client-ca.pem \
+            -CAkey smoke-certs/untrusted-client-ca.key \
+            -CAcreateserial \
+            -extfile smoke-certs/client.ext \
+            -out smoke-certs/pinned-client.pem
+          cp smoke-certs/pinned-client.pem smoke-certs/pinned/pinned-client.pem
+
+          openssl req -newkey rsa:2048 -nodes \
+            -subj "/CN=unpinned-client" \
+            -keyout smoke-certs/unpinned-client.key \
+            -out smoke-certs/unpinned-client.csr
+          openssl x509 -req -days 1 \
+            -in smoke-certs/unpinned-client.csr \
+            -CA smoke-certs/untrusted-client-ca.pem \
+            -CAkey smoke-certs/untrusted-client-ca.key \
+            -CAcreateserial \
+            -extfile smoke-certs/client.ext \
+            -out smoke-certs/unpinned-client.pem
+
+      - name: verify pinned mTLS behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OPENVASD="$(find rs-binaries -type f -name openvasd | head -n 1)"
+          test -n "${OPENVASD}"
+          chmod +x "${OPENVASD}"
+
+          "${OPENVASD}" \
+            --mode service_notus \
+            --listening 127.0.0.1:3000 \
+            --tls-certs smoke-certs/server.pem \
+            --tls-key smoke-certs/server.key \
+            --tls-pinned-client-certs smoke-certs/pinned \
+            > openvasd-smoke.log 2>&1 &
+          OPENVASD_PID=$!
+          trap 'kill "${OPENVASD_PID}" 2>/dev/null || true; cat openvasd-smoke.log' EXIT
+
+          for _ in {1..60}; do
+            if curl --silent --show-error --fail \
+              --cacert smoke-certs/server-ca.pem \
+              --cert smoke-certs/pinned-client.pem \
+              --key smoke-certs/pinned-client.key \
+              https://localhost:3000/health/alive >/dev/null; then
+              break
+            fi
+            if ! kill -0 "${OPENVASD_PID}" 2>/dev/null; then
+              echo "openvasd exited before accepting pinned mTLS"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          curl --silent --show-error --fail \
+            --cacert smoke-certs/server-ca.pem \
+            --cert smoke-certs/pinned-client.pem \
+            --key smoke-certs/pinned-client.key \
+            https://localhost:3000/health/alive >/dev/null
+
+          if curl --silent --show-error --fail \
+            --cacert smoke-certs/server-ca.pem \
+            --cert smoke-certs/unpinned-client.pem \
+            --key smoke-certs/unpinned-client.key \
+            https://localhost:3000/health/alive >/dev/null; then
+            echo "openvasd accepted an unpinned client cert from the untrusted CA"
+            exit 1
+          fi

@@ -54,7 +54,7 @@ openssl x509 -req \
             -sha256 \
             -days 2000 \
             -set_serial 456 \
-            -extensions v3_end -extfile "$dir/../openssl.cnf"
+            -extensions v3_client -extfile "$dir/../openssl.cnf"
 
 cat end.cert inter.cert ca.cert > client.pem
 rm *.key *.cert *.req

@@ -215,6 +215,7 @@ pub struct Tls {
     pub certs: Option<PathBuf>,
     pub key: Option<PathBuf>,
     pub client_certs: Option<PathBuf>,
+    pub pinned_client_certs: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone, PartialEq, Eq)]
@@ -494,6 +495,14 @@ impl Config {
                     .help("path to client tls certs. Enables mtls."),
             )
             .arg(
+                clap::Arg::new("tls-pinned-client-certs")
+                    .env("TLS_PINNED_CLIENT_CERTS")
+                    .long("tls-pinned-client-certs")
+                    .value_parser(clap::builder::PathBufValueParser::new())
+                    .action(ArgAction::Set)
+                    .help("path to exact client tls certificates accepted for mTLS without trusting their CA."),
+            )
+            .arg(
                 clap::Arg::new("enable-get-scans")
                     .env("ENABLE_GET_SCANS")
                     .long("enable-get-scans")
@@ -703,6 +712,9 @@ impl Config {
         }
         if let Some(path) = cmds.get_one::<PathBuf>("tls-client-certs") {
             config.tls.client_certs = Some(path.clone());
+        }
+        if let Some(path) = cmds.get_one::<PathBuf>("tls-pinned-client-certs") {
+            config.tls.pinned_client_certs = Some(path.clone());
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-scans") {
             config.endpoints.enable_get_scans = *enable;

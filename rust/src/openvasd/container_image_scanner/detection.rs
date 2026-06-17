@@ -168,8 +168,6 @@ impl From<&'static str> for OperatingSystemDetector<&[u8]> {
 #[cfg(test)]
 mod test {
 
-    use tokio::{fs::File, io::AsyncWriteExt};
-
     use crate::container_image_scanner::detection::OperatingSystemDetector;
 
     #[tokio::test]
@@ -241,9 +239,11 @@ ID_LIKE=debian"#;
     VERSION="12 (bookworm)"
     VERSION_CODENAME=bookworm
     ID=debian"#;
-        let mut file = File::create("/tmp/os-release").await.unwrap();
-        file.write_all(content.as_bytes()).await.unwrap();
-        let detector = OperatingSystemDetector::try_open("/tmp/os-release")
+        let file = tempfile::NamedTempFile::new().unwrap();
+        tokio::fs::write(file.path(), content.as_bytes())
+            .await
+            .unwrap();
+        let detector = OperatingSystemDetector::try_open(file.path())
             .await
             .unwrap();
         let os = detector.detect_operating_system().await.unwrap();
