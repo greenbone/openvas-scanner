@@ -15,6 +15,9 @@ advisories_path = '/var/lib/notus/advisories'
 
 [endpoints]
 enable_get_scans = false
+require_authentication = false
+hide_declined_response_headers = false
+health_ip_allowlist = []
 
 [tls]
 

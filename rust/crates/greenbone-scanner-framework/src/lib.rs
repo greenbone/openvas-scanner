@@ -8,7 +8,7 @@ use std::{
 
 use delete_scans_id::{DeleteScansId, DeleteScansIdHandler};
 use entry::Prefixed;
-pub use entry::{ClientHash, ClientIdentifier, RequestHandler, RequestHandlers};
+pub use entry::{ClientHash, ClientIdentifier, EndpointPolicy, RequestHandler, RequestHandlers};
 use get_scans::GetScansHandler;
 use get_scans_id::GetScansIdHandler;
 use get_scans_id_results::GetScansIdResultsHandler;
@@ -129,6 +129,8 @@ pub struct RuntimeBuilder<T> {
     listener_address: SocketAddr,
     tls: Option<TLSConfig>,
     api_keys: Option<Vec<String>>,
+    endpoint_policy: EndpointPolicy,
+    require_authentication: bool,
     handlers: RequestHandlers,
     max_concurrent_connections: usize,
     _phantom: PhantomData<T>,
@@ -163,6 +165,8 @@ impl<T> RuntimeBuilder<T> {
             feed_state: None,
             tls: None,
             api_keys: None,
+            endpoint_policy: Default::default(),
+            require_authentication: false,
             handlers,
             listener_address,
             max_concurrent_connections: 10,
@@ -207,6 +211,21 @@ impl<T> RuntimeBuilder<T> {
                 path_client_certs: Some(path_client_certs),
             },
         });
+        self
+    }
+
+    pub fn api_key(mut self, api_key: String) -> RuntimeBuilder<T> {
+        self.api_keys = Some(vec![api_key]);
+        self
+    }
+
+    pub fn endpoint_policy(mut self, endpoint_policy: EndpointPolicy) -> RuntimeBuilder<T> {
+        self.endpoint_policy = endpoint_policy;
+        self
+    }
+
+    pub fn require_authentication(mut self, require_authentication: bool) -> RuntimeBuilder<T> {
+        self.require_authentication = require_authentication;
         self
     }
 
@@ -261,6 +280,7 @@ impl<T> RuntimeBuilder<T> {
             + 'static,
         V: GetVts + Prefixed + 'static,
     {
+        let require_authentication = self.require_authentication;
         let ior = self
             .add_request_handler(PostScansHandler::from(scans.clone()))
             .add_request_handler(GetScansHandler::from(scans.clone()))
@@ -271,13 +291,17 @@ impl<T> RuntimeBuilder<T> {
             .add_request_handler(GetScansIdStatusHandler::from(scans.clone()))
             .add_request_handler(PostScansIdHandler::from(scans.clone()))
             .add_request_handler(DeleteScansIdHandler::from(scans))
-            .add_request_handler(GetVTsHandler::from(vts));
+            .add_request_handler(
+                GetVTsHandler::from(vts).require_authentication(require_authentication),
+            );
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
+            endpoint_policy: ior.endpoint_policy,
+            require_authentication: ior.require_authentication,
             handlers: ior.handlers,
             _phantom: PhantomData,
             max_concurrent_connections: ior.max_concurrent_connections,
@@ -351,6 +375,8 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
+            endpoint_policy: ior.endpoint_policy,
+            require_authentication: ior.require_authentication,
             handlers: ior.handlers,
             _phantom: PhantomData,
             max_concurrent_connections: ior.max_concurrent_connections,
@@ -363,13 +389,18 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
     where
         T: GetVts + Prefixed + 'static,
     {
-        let ior = self.add_request_handler(GetVTsHandler::from(value));
+        let require_authentication = self.require_authentication;
+        let ior = self.add_request_handler(
+            GetVTsHandler::from(value).require_authentication(require_authentication),
+        );
         RuntimeBuilder {
             api_version: ior.api_version,
             feed_state: ior.feed_state,
             listener_address: ior.listener_address,
             tls: ior.tls,
             api_keys: ior.api_keys,
+            endpoint_policy: ior.endpoint_policy,
+            require_authentication: ior.require_authentication,
             handlers: ior.handlers,
             max_concurrent_connections: ior.max_concurrent_connections,
             _phantom: PhantomData,
@@ -401,12 +432,16 @@ fn make_service(
     scanner: Arc<Scanner>,
     handlers: Arc<RequestHandlers>,
     client_id: ClientIdentifier,
+    endpoint_policy: Arc<EndpointPolicy>,
+    peer_addr: SocketAddr,
     max_connections: usize,
 ) -> entry::EntryPoint {
     entry::EntryPoint::new(
         scanner,
         Arc::new(client_id),
         handlers,
+        endpoint_policy,
+        Some(peer_addr),
         max_connections,
         REQUEST_COUNTER.clone(),
     )
@@ -418,7 +453,7 @@ async fn run_accept_loop<F, Fut>(
     on_accept: F,
 ) -> Result<i32, Box<dyn std::error::Error + Send + Sync>>
 where
-    F: Fn(tokio::net::TcpStream) -> Fut + Send + Sync + Clone + 'static,
+    F: Fn(tokio::net::TcpStream, SocketAddr) -> Fut + Send + Sync + Clone + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
     loop {
@@ -430,10 +465,10 @@ where
             }
 
             accept_result = incoming.accept() => {
-                let (tcp_stream, _remote_addr) = accept_result?;
+                let (tcp_stream, remote_addr) = accept_result?;
                 let f = on_accept.clone();
                 tokio::spawn(async move {
-                    f(tcp_stream).await;
+                    f(tcp_stream, remote_addr).await;
                 });
             }
         }
@@ -452,6 +487,7 @@ impl RuntimeBuilder<runtime_builder_states::End> {
 
         let incoming = TcpListener::bind(&self.listener_address).await?;
         let handlers = Arc::new(self.handlers);
+        let endpoint_policy = Arc::new(self.endpoint_policy);
 
         let max_connections = self.max_concurrent_connections;
 
@@ -467,12 +503,14 @@ impl RuntimeBuilder<runtime_builder_states::End> {
             run_accept_loop(incoming, signals, {
                 let scanner = scanner.clone();
                 let handlers = handlers.clone();
+                let endpoint_policy = endpoint_policy.clone();
 
-                move |tcp_stream| {
+                move |tcp_stream, remote_addr| {
                     let tls_acceptor = tls_acceptor.clone();
                     let identifier = identifier.clone();
                     let scanner = scanner.clone();
                     let handlers = handlers.clone();
+                    let endpoint_policy = endpoint_policy.clone();
 
                     async move {
                         let tls_stream = match tls_acceptor.accept(tcp_stream).await {
@@ -484,7 +522,14 @@ impl RuntimeBuilder<runtime_builder_states::End> {
                         };
 
                         let cci = retrieve_and_reset_client_identifier(identifier);
-                        let service = make_service(scanner, handlers, cci, max_connections);
+                        let service = make_service(
+                            scanner,
+                            handlers,
+                            cci,
+                            endpoint_policy,
+                            remote_addr,
+                            max_connections,
+                        );
 
                         if let Err(err) = Builder::new(TokioExecutor::new())
                             .max_concurrent_streams(20)
@@ -505,16 +550,20 @@ impl RuntimeBuilder<runtime_builder_states::End> {
             run_accept_loop(incoming, signals, {
                 let scanner = scanner.clone();
                 let handlers = handlers.clone();
+                let endpoint_policy = endpoint_policy.clone();
 
-                move |tcp_stream| {
+                move |tcp_stream, remote_addr| {
                     let scanner = scanner.clone();
                     let handlers = handlers.clone();
+                    let endpoint_policy = endpoint_policy.clone();
 
                     async move {
                         let service = make_service(
                             scanner,
                             handlers,
                             ClientIdentifier::Unknown,
+                            endpoint_policy,
+                            remote_addr,
                             max_connections,
                         );
 

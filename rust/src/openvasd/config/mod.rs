@@ -12,14 +12,47 @@ use std::{
 };
 
 use crate::container_image_scanner::config::{DBLocation, SqliteConfiguration};
+use cidr::IpInet;
 use clap::{ArgAction, builder::TypedValueParser};
 use logging::SerLevel;
 use scannerlib::{
     models::PreferenceValue,
     scanner::preferences::preference::{PREFERENCES, ScanPrefValue},
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 mod logging;
+
+fn parse_health_ip_allowlist<I, S>(entries: I) -> Result<Vec<IpInet>, String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    entries
+        .into_iter()
+        .map(|entry| {
+            let entry = entry.as_ref();
+            entry
+                .parse::<IpInet>()
+                .map_err(|error| format!("invalid health IP allow-list entry `{entry}`: {error}"))
+        })
+        .collect()
+}
+
+fn deserialize_health_ip_allowlist<'de, D>(deserializer: D) -> Result<Vec<IpInet>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let values = Vec::<String>::deserialize(deserializer)?;
+    parse_health_ip_allowlist(values).map_err(serde::de::Error::custom)
+}
+
+fn serialize_health_ip_allowlist<S>(value: &Vec<IpInet>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let values = value.iter().map(ToString::to_string).collect::<Vec<_>>();
+    values.serialize(serializer)
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Feed {
@@ -203,6 +236,16 @@ impl TypedValueParser for Mode {
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Endpoints {
     pub enable_get_scans: bool,
+    #[serde(default)]
+    pub require_authentication: bool,
+    #[serde(default)]
+    pub hide_declined_response_headers: bool,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_health_ip_allowlist",
+        serialize_with = "serialize_health_ip_allowlist"
+    )]
+    pub health_ip_allowlist: Vec<IpInet>,
     #[serde(default)]
     pub enable_get_performance: Option<bool>,
     #[serde(default)]
@@ -512,6 +555,33 @@ impl Config {
                     .help("enable get performance endpoint. Default 'false'."),
             )
             .arg(
+                clap::Arg::new("require-authentication")
+                    .env("REQUIRE_AUTHENTICATION")
+                    .long("require-authentication")
+                    .num_args(0..=1)
+                    .value_parser(clap::builder::BoolValueParser::new())
+                    .default_missing_value("true")
+                    .help("require authentication for Notus and VT endpoints. Default 'false'."),
+            )
+            .arg(
+                clap::Arg::new("health-ip-allowlist")
+                    .env("HEALTH_IP_ALLOWLIST")
+                    .long("health-ip-allowlist")
+                    .action(ArgAction::Append)
+                    .value_delimiter(',')
+                    .num_args(1..)
+                    .help("IP addresses or CIDR networks allowed to use health endpoints."),
+            )
+            .arg(
+                clap::Arg::new("hide-declined-response-headers")
+                    .env("HIDE_DECLINED_RESPONSE_HEADERS")
+                    .long("hide-declined-response-headers")
+                    .num_args(0..=1)
+                    .value_parser(clap::builder::BoolValueParser::new())
+                    .default_missing_value("true")
+                    .help("hide metadata headers on declined requests. Default 'false'."),
+            )
+            .arg(
                 clap::Arg::new("api-key")
                     .env("API_KEY")
                     .long("api-key")
@@ -713,6 +783,18 @@ impl Config {
         if let Some(enable) = cmds.get_one::<bool>("enable-get-performance") {
             config.endpoints.enable_get_performance = Some(*enable);
         }
+        if let Some(require_authentication) = cmds.get_one::<bool>("require-authentication") {
+            config.endpoints.require_authentication = *require_authentication;
+        }
+        if let Some(allowlist) = cmds.get_many::<String>("health-ip-allowlist") {
+            config.endpoints.health_ip_allowlist =
+                parse_health_ip_allowlist(allowlist).unwrap_or_else(|error| panic!("{error}"));
+        }
+        if let Some(hide_declined_response_headers) =
+            cmds.get_one::<bool>("hide-declined-response-headers")
+        {
+            config.endpoints.hide_declined_response_headers = *hide_declined_response_headers;
+        }
         if let Some(api_key) = cmds.get_one::<String>("api-key") {
             config.endpoints.key = Some(api_key.clone());
         }
@@ -825,6 +907,35 @@ mod tests {
 
         let storage_test = toml::from_str::<super::Config>(&content).unwrap();
         assert!(matches!(storage_test.storage, StorageTypes::V1(_)));
+    }
+
+    #[test]
+    fn endpoint_security_settings_parse() {
+        let config: super::Config = toml::from_str(
+            r#"
+            [endpoints]
+            require_authentication = true
+            hide_declined_response_headers = true
+            health_ip_allowlist = ["127.0.0.1", "::1", "10.0.0.0/8"]
+            "#,
+        )
+        .unwrap();
+
+        assert!(config.endpoints.require_authentication);
+        assert!(config.endpoints.hide_declined_response_headers);
+        assert_eq!(config.endpoints.health_ip_allowlist.len(), 3);
+    }
+
+    #[test]
+    fn endpoint_health_ip_allowlist_rejects_invalid_entries() {
+        let result = toml::from_str::<super::Config>(
+            r#"
+            [endpoints]
+            health_ip_allowlist = ["not-an-ip"]
+            "#,
+        );
+
+        assert!(result.is_err());
     }
 
     #[test]

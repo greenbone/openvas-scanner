@@ -7,6 +7,7 @@
 use std::{
     convert::Infallible,
     fmt::Display,
+    net::SocketAddr,
     pin::Pin,
     sync::{
         Arc,
@@ -15,6 +16,7 @@ use std::{
 };
 pub mod response;
 
+use cidr::IpInet;
 use hyper::{StatusCode, header::HeaderValue};
 use response::{BodyKind, BodyKindContent};
 
@@ -126,6 +128,39 @@ pub trait RequestHandler: Prefixed {
         'b: 'a;
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct EndpointPolicy {
+    health_ip_allowlist: Vec<IpInet>,
+    hide_declined_response_headers: bool,
+}
+
+impl EndpointPolicy {
+    pub fn new(health_ip_allowlist: Vec<IpInet>) -> Self {
+        Self {
+            health_ip_allowlist,
+            hide_declined_response_headers: false,
+        }
+    }
+
+    pub fn hide_declined_response_headers(mut self, hide_declined_response_headers: bool) -> Self {
+        self.hide_declined_response_headers = hide_declined_response_headers;
+        self
+    }
+
+    fn allows_health_peer(&self, peer_addr: Option<SocketAddr>) -> bool {
+        if self.health_ip_allowlist.is_empty() {
+            return true;
+        }
+
+        peer_addr.is_some_and(|peer_addr| {
+            let peer_ip = peer_addr.ip();
+            self.health_ip_allowlist
+                .iter()
+                .any(|allowed| allowed.contains(&peer_ip))
+        })
+    }
+}
+
 /// Will be called after the authorization and sanity checks are done.
 ///
 /// It contains all the RequestHandler implementations and finds handler
@@ -175,6 +210,14 @@ fn segments_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) 
     true
 }
 
+fn is_health_probe_route(prefix: &str, handler_parts: &[&str], method: &Method) -> bool {
+    (method == &Method::GET || method == &Method::HEAD)
+        && prefix.is_empty()
+        && handler_parts.len() == 2
+        && handler_parts[0] == "health"
+        && matches!(handler_parts[1], "alive" | "ready" | "started")
+}
+
 type BodyKindFuture = Pin<Box<dyn futures_util::Future<Output = BodyKind> + Send>>;
 
 impl RequestHandlers {
@@ -190,6 +233,8 @@ impl RequestHandlers {
     fn call<R>(
         &self,
         client_identifier: Arc<ClientIdentifier>,
+        endpoint_policy: Arc<EndpointPolicy>,
+        peer_addr: Option<SocketAddr>,
         req: hyper::Request<R>,
     ) -> BodyKindFuture
     where
@@ -210,6 +255,12 @@ impl RequestHandlers {
 
             for rh in callbacks {
                 if segments_match(rh.prefix(), rh.path_segments(), &segments) {
+                    if is_health_probe_route(rh.prefix(), rh.path_segments(), req.method())
+                        && !endpoint_policy.allows_health_peer(peer_addr)
+                    {
+                        return BodyKind::no_content(StatusCode::FORBIDDEN);
+                    }
+
                     let needs_authentication = rh.needs_authentication();
                     let is_authenticated =
                         matches!(&*client_identifier, &ClientIdentifier::Known(_));
@@ -255,6 +306,8 @@ pub struct EntryPoint {
     scanner: Arc<super::Scanner>,
     handlers: Arc<RequestHandlers>,
     client_identifier: Arc<ClientIdentifier>,
+    endpoint_policy: Arc<EndpointPolicy>,
+    peer_addr: Option<SocketAddr>,
     max_connections: usize,
     counter: Arc<AtomicUsize>,
 }
@@ -264,6 +317,8 @@ impl EntryPoint {
         scanner: Arc<super::Scanner>,
         client_identifier: Arc<ClientIdentifier>,
         handlers: Arc<RequestHandlers>,
+        endpoint_policy: Arc<EndpointPolicy>,
+        peer_addr: Option<SocketAddr>,
         max_connections: usize,
         counter: Arc<AtomicUsize>,
     ) -> EntryPoint {
@@ -272,6 +327,8 @@ impl EntryPoint {
             scanner,
             client_identifier,
             handlers,
+            endpoint_policy,
+            peer_addr,
             counter,
         }
     }
@@ -307,6 +364,25 @@ fn api_key_to_client_identifier(
     result
 }
 
+fn should_hide_metadata_headers(
+    hide_declined_response_headers: bool,
+    status_code: StatusCode,
+) -> bool {
+    hide_declined_response_headers
+        && matches!(
+            status_code,
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN
+        )
+}
+
+fn feed_version_header(feed_version: &Arc<std::sync::RwLock<crate::models::FeedState>>) -> String {
+    match &*feed_version.read().unwrap() {
+        crate::models::FeedState::Unknown => "unavailable".to_string(),
+        crate::models::FeedState::Syncing => "unavailable".to_string(),
+        crate::models::FeedState::Synced(vt, adv) => format!("{vt}{adv}"),
+    }
+}
+
 use crate::{Authentication, MapScanID, internal_server_error};
 
 impl<R> hyper::service::Service<hyper::Request<R>> for EntryPoint
@@ -332,23 +408,23 @@ where
                 req.headers().get("x-api-key"),
             )),
         };
-        let feed_version = match &*cbs.feed_version.read().unwrap() {
-            crate::models::FeedState::Unknown => "unavailable".to_string(),
-            crate::models::FeedState::Syncing => "unavailable".to_string(),
-            crate::models::FeedState::Synced(vt, adv) => format!("{vt}{adv}"),
-        };
-        let rb = hyper::Response::builder()
-            .header("authentication", cbs.authentication.static_str())
-            .header("api-version", &cbs.api_version)
-            .header("feed-version", &feed_version);
         let incoming = self.handlers.clone();
+        let endpoint_policy = self.endpoint_policy.clone();
+        let peer_addr = self.peer_addr;
+        let hide_declined_response_headers = endpoint_policy.hide_declined_response_headers;
+        let authentication = cbs.authentication.static_str();
+        let api_version = cbs.api_version.clone();
+        let feed_version = cbs.feed_version.clone();
 
         let acc = self.counter.clone();
         let max_connections = self.max_connections;
         Box::pin(async move {
             if acc.load(Ordering::Relaxed) > max_connections {
                 tracing::trace!("Too many open connections, returning 503");
-                return Ok(rb
+                return Ok(hyper::Response::builder()
+                    .header("authentication", authentication)
+                    .header("api-version", &api_version)
+                    .header("feed-version", feed_version_header(&feed_version))
                     .header("Retry-After", 10)
                     .status(StatusCode::SERVICE_UNAVAILABLE)
                     .body(BodyKindContent::Empty)
@@ -357,7 +433,16 @@ where
 
             let current = acc.fetch_add(1, Ordering::Relaxed);
             tracing::trace!(current, max_connections, "handling request");
-            let resp = incoming.call(cid, req).await;
+            let resp = incoming.call(cid, endpoint_policy, peer_addr, req).await;
+            let rb = hyper::Response::builder();
+            let rb =
+                if should_hide_metadata_headers(hide_declined_response_headers, resp.status_code) {
+                    rb
+                } else {
+                    rb.header("authentication", authentication)
+                        .header("api-version", &api_version)
+                        .header("feed-version", feed_version_header(&feed_version))
+                };
             let rb = match &resp.content {
                 BodyKindContent::Empty => rb,
                 BodyKindContent::Binary(x) => rb
@@ -403,6 +488,7 @@ where
 
 pub mod test_utilities {
     use std::{
+        net::SocketAddr,
         pin::Pin,
         sync::{Arc, RwLock},
     };
@@ -410,13 +496,31 @@ pub mod test_utilities {
     use http_body_util::{Empty, Full};
     use hyper::{Request, body::Bytes};
 
-    use super::{ClientHash, ClientIdentifier, EntryPoint, Method, RequestHandlers};
+    use super::{
+        ClientHash, ClientIdentifier, EndpointPolicy, EntryPoint, Method, RequestHandlers,
+    };
     use crate::{Authentication, Scanner, models::FeedState};
 
     pub fn entry_point(
         authentication: Authentication,
         handlers: RequestHandlers,
         client_hash: Option<ClientHash>,
+    ) -> EntryPoint {
+        entry_point_with_policy(
+            authentication,
+            handlers,
+            client_hash,
+            Default::default(),
+            None,
+        )
+    }
+
+    pub fn entry_point_with_policy(
+        authentication: Authentication,
+        handlers: RequestHandlers,
+        client_hash: Option<ClientHash>,
+        endpoint_policy: EndpointPolicy,
+        peer_addr: Option<SocketAddr>,
     ) -> EntryPoint {
         let configuration = Arc::new(Scanner {
             api_version: "test".to_owned(),
@@ -432,7 +536,15 @@ pub mod test_utilities {
             None => ClientIdentifier::Unknown,
         });
         let ir = Arc::new(handlers);
-        EntryPoint::new(configuration, client_identifier, ir, 10, Default::default())
+        EntryPoint::new(
+            configuration,
+            client_identifier,
+            ir,
+            Arc::new(endpoint_policy),
+            peer_addr,
+            10,
+            Default::default(),
+        )
     }
 
     pub fn empty_request(method: Method, uri: &str) -> Request<Empty<Bytes>> {
@@ -494,6 +606,26 @@ mod tests {
     use super::*;
     use crate::Authentication;
 
+    fn assert_no_metadata_headers<T>(resp: &hyper::Response<T>) {
+        let headers = resp.headers();
+        assert!(headers.get("authentication").is_none());
+        assert!(headers.get("api-version").is_none());
+        assert!(headers.get("feed-version").is_none());
+    }
+
+    fn assert_metadata_headers<T>(resp: &hyper::Response<T>, authentication: HeaderValue) {
+        let headers = resp.headers();
+        assert_eq!(headers.get("authentication").unwrap(), authentication);
+        assert_eq!(
+            headers.get("api-version").unwrap(),
+            HeaderValue::from_static("test")
+        );
+        assert_eq!(
+            headers.get("feed-version").unwrap(),
+            HeaderValue::from_static("vtadvisories")
+        );
+    }
+
     struct IdPart {}
 
     impl Prefixed for IdPart {
@@ -553,6 +685,30 @@ mod tests {
 
     impl RequestHandler for NotAuthenticated {
         auth_method_segments!(authenticated: false, Method::GET, "test", "not_authn");
+        fn call<'a, 'b>(
+            &'b self,
+            _: Arc<ClientIdentifier>,
+            _: &'a Uri,
+            _: Bytes,
+        ) -> Pin<Box<dyn Future<Output = BodyKind> + Send>>
+        where
+            'b: 'a,
+        {
+            Box::pin(async move { BodyKind::no_content(StatusCode::OK) })
+        }
+    }
+
+    struct HealthReady {}
+
+    impl Prefixed for HealthReady {
+        fn prefix(&self) -> &'static str {
+            ""
+        }
+    }
+
+    impl RequestHandler for HealthReady {
+        auth_method_segments!(authenticated: false, Method::GET, "health", "ready");
+
         fn call<'a, 'b>(
             &'b self,
             _: Arc<ClientIdentifier>,
@@ -665,6 +821,7 @@ mod tests {
         let req = test_utilities::empty_request(Method::HEAD, "/test/authn");
         let resp = entry_point.call(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+        assert_metadata_headers(&resp, HeaderValue::from_static("mTLS"));
     }
 
     #[tokio::test]
@@ -678,6 +835,23 @@ mod tests {
         let req = test_utilities::empty_request(Method::HEAD, "/test/authn");
         let resp = entry_point.call(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+        assert_metadata_headers(&resp, HeaderValue::from_static("api-key"));
+    }
+
+    #[tokio::test]
+    async fn declined_auth_hides_metadata_headers_when_configured() {
+        let entry_point = test_utilities::entry_point_with_policy(
+            Authentication::MTLS,
+            create_single_handler!(Authenticated {}),
+            None,
+            EndpointPolicy::new(vec![]).hide_declined_response_headers(true),
+            None,
+        );
+
+        let req = test_utilities::empty_request(Method::HEAD, "/test/authn");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+        assert_no_metadata_headers(&resp);
     }
 
     #[tokio::test]
@@ -697,6 +871,91 @@ mod tests {
         let resp = entry_point.call(req).await.unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn health_allowlist_allows_matching_peer() {
+        let entry_point = test_utilities::entry_point_with_policy(
+            Authentication::MTLS,
+            create_single_handler!(HealthReady {}),
+            None,
+            EndpointPolicy::new(vec!["127.0.0.0/8".parse().unwrap()]),
+            Some(([127, 0, 0, 1], 1234).into()),
+        );
+
+        let req = test_utilities::empty_request(Method::GET, "/health/ready");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let req = test_utilities::empty_request(Method::HEAD, "/health/ready");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn health_allowlist_denies_non_matching_peer() {
+        let entry_point = test_utilities::entry_point_with_policy(
+            Authentication::MTLS,
+            create_single_handler!(HealthReady {}),
+            None,
+            EndpointPolicy::new(vec!["127.0.0.1".parse().unwrap()]),
+            Some(([192, 0, 2, 1], 1234).into()),
+        );
+
+        let req = test_utilities::empty_request(Method::GET, "/health/ready");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        assert_metadata_headers(&resp, HeaderValue::from_static("mTLS"));
+
+        let req = test_utilities::empty_request(Method::HEAD, "/health/ready");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        assert_metadata_headers(&resp, HeaderValue::from_static("mTLS"));
+    }
+
+    #[tokio::test]
+    async fn health_allowlist_hides_declined_metadata_headers_when_configured() {
+        let entry_point = test_utilities::entry_point_with_policy(
+            Authentication::MTLS,
+            create_single_handler!(HealthReady {}),
+            None,
+            EndpointPolicy::new(vec!["127.0.0.1".parse().unwrap()])
+                .hide_declined_response_headers(true),
+            Some(([192, 0, 2, 1], 1234).into()),
+        );
+
+        let req = test_utilities::empty_request(Method::GET, "/health/ready");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        assert_no_metadata_headers(&resp);
+
+        let req = test_utilities::empty_request(Method::HEAD, "/health/ready");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        assert_no_metadata_headers(&resp);
+    }
+
+    #[tokio::test]
+    async fn health_allowlist_keeps_unimplemented_health_routes_not_found() {
+        let entry_point = test_utilities::entry_point_with_policy(
+            Authentication::MTLS,
+            create_single_handler!(HealthReady {}),
+            None,
+            EndpointPolicy::new(vec!["127.0.0.1".parse().unwrap()]),
+            Some(([192, 0, 2, 1], 1234).into()),
+        );
+
+        let req = test_utilities::empty_request(Method::GET, "/health");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+        let req = test_utilities::empty_request(Method::POST, "/health/ready");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+        let req = test_utilities::empty_request(Method::GET, "/health/unknown");
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 
     struct PrefixedAuth {}

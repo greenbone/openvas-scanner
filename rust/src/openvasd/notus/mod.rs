@@ -16,7 +16,10 @@ use crate::config::Config;
 
 type Oz = Notus;
 
-pub struct GetOSIcnomingRequest(Arc<RwLock<Oz>>);
+pub struct GetOSIcnomingRequest {
+    notus: Arc<RwLock<Oz>>,
+    require_authentication: bool,
+}
 
 impl Prefixed for GetOSIcnomingRequest {
     fn prefix(&self) -> &'static str {
@@ -25,7 +28,7 @@ impl Prefixed for GetOSIcnomingRequest {
 }
 impl RequestHandler for GetOSIcnomingRequest {
     fn needs_authentication(&self) -> bool {
-        false
+        self.require_authentication
     }
 
     fn path_segments(&self) -> &'static [&'static str] {
@@ -46,7 +49,7 @@ impl RequestHandler for GetOSIcnomingRequest {
     where
         'b: 'a,
     {
-        let products = self.0.clone();
+        let products = self.notus.clone();
         Box::pin(async move {
             let p = products.read_owned().await;
             match tokio::task::spawn_blocking(move || p.get_available_os())
@@ -63,7 +66,10 @@ impl RequestHandler for GetOSIcnomingRequest {
     }
 }
 
-pub struct PostOSIcnomingRequest(Arc<RwLock<Oz>>);
+pub struct PostOSIcnomingRequest {
+    notus: Arc<RwLock<Oz>>,
+    require_authentication: bool,
+}
 
 impl Prefixed for PostOSIcnomingRequest {
     fn prefix(&self) -> &'static str {
@@ -73,7 +79,7 @@ impl Prefixed for PostOSIcnomingRequest {
 
 impl RequestHandler for PostOSIcnomingRequest {
     fn needs_authentication(&self) -> bool {
-        false
+        self.require_authentication
     }
 
     fn path_segments(&self) -> &'static [&'static str] {
@@ -93,7 +99,7 @@ impl RequestHandler for PostOSIcnomingRequest {
     where
         'b: 'a,
     {
-        let products = self.0.clone();
+        let products = self.notus.clone();
 
         let os = self
             .ids(uri)
@@ -126,10 +132,19 @@ pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus>> {
     products_loader(&config.notus.products_path, config.feed.signature_check)
 }
 
-pub fn init(notus: Arc<RwLock<Notus>>) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
+pub fn init(
+    notus: Arc<RwLock<Notus>>,
+    require_authentication: bool,
+) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
     (
-        GetOSIcnomingRequest(notus.clone()),
-        PostOSIcnomingRequest(notus),
+        GetOSIcnomingRequest {
+            notus: notus.clone(),
+            require_authentication,
+        },
+        PostOSIcnomingRequest {
+            notus,
+            require_authentication,
+        },
     )
 }
 
@@ -174,7 +189,7 @@ mod tests {
     #[tokio::test]
     async fn get_notus() -> crate::Result<()> {
         let config = config();
-        let (undertest, _) = super::init(super::config_to_products(&config));
+        let (undertest, _) = super::init(super::config_to_products(&config), false);
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
             create_single_handler!(undertest),
@@ -189,7 +204,7 @@ mod tests {
     #[tokio::test]
     async fn post_notus_os() -> crate::Result<()> {
         let config = config();
-        let (_, undertest) = super::init(super::config_to_products(&config));
+        let (_, undertest) = super::init(super::config_to_products(&config), false);
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
             create_single_handler!(undertest),
@@ -202,6 +217,64 @@ mod tests {
         );
         let resp = entry_point.call(req).await?;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+        let req = test_utilities::json_request(
+            Method::POST,
+            "/notus/test",
+            &vec!["man-db-1.1.1".to_string()],
+        );
+        let resp = entry_point.call(req).await?;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn notus_requires_authentication_when_enabled() -> crate::Result<()> {
+        let config = config();
+        let (get_notus, post_notus) = super::init(super::config_to_products(&config), true);
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            create_single_handler!(get_notus, post_notus),
+            None,
+        );
+
+        let req = test_utilities::empty_request(Method::GET, "/notus");
+        let resp = entry_point.call(req).await?;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        let req = test_utilities::empty_request(Method::HEAD, "/notus");
+        let resp = entry_point.call(req).await?;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        let req = test_utilities::json_request(
+            Method::POST,
+            "/notus/test",
+            &vec!["man-db-1.1.1".to_string()],
+        );
+        let resp = entry_point.call(req).await?;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn notus_required_authentication_allows_known_client() -> crate::Result<()> {
+        let config = config();
+        let (get_notus, post_notus) = super::init(super::config_to_products(&config), true);
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            create_single_handler!(get_notus, post_notus),
+            Some(ClientHash::default()),
+        );
+
+        let req = test_utilities::empty_request(Method::GET, "/notus");
+        let resp = entry_point.call(req).await?;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let req = test_utilities::empty_request(Method::HEAD, "/notus");
+        let resp = entry_point.call(req).await?;
+        assert_eq!(resp.status(), StatusCode::OK);
 
         let req = test_utilities::json_request(
             Method::POST,

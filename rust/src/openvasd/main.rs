@@ -23,7 +23,7 @@ use std::{
 
 use config::{Config, StorageType};
 use container_image_scanner::config::{DBLocation, SqliteConfiguration};
-use greenbone_scanner_framework::{RuntimeBuilder, ServerCertificate};
+use greenbone_scanner_framework::{EndpointPolicy, RuntimeBuilder, ServerCertificate};
 use notus::config_to_products;
 use scannerlib::models::FeedState;
 use scannerlib::utils::version::show_version;
@@ -69,16 +69,45 @@ async fn _main() -> Result<i32> {
         return Ok(0);
     }
 
+    let require_endpoint_authentication = config.endpoints.require_authentication;
+    let has_api_key = config
+        .endpoints
+        .key
+        .as_ref()
+        .is_some_and(|key| !key.is_empty());
+    let has_mtls =
+        config.tls.certs.is_some() && config.tls.key.is_some() && config.tls.client_certs.is_some();
+    if require_endpoint_authentication && !has_api_key && !has_mtls {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "require_authentication needs endpoints.key or complete mTLS configuration",
+        )
+        .into());
+    }
+
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
     let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
     let (sender, vts) = vts::init(pool.clone(), &config, feed_snapshot.clone()).await;
     let vts = Arc::new(vts);
     let scan = scans::init(pool.clone(), &config, sender).await?;
-    let (get_notus, post_notus) = notus::init(products.clone());
+    let (get_notus, post_notus) = notus::init(products.clone(), require_endpoint_authentication);
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
-        .feed_version(feed_snapshot.clone());
+        .feed_version(feed_snapshot.clone())
+        .endpoint_policy(
+            EndpointPolicy::new(config.endpoints.health_ip_allowlist.clone())
+                .hide_declined_response_headers(config.endpoints.hide_declined_response_headers),
+        )
+        .require_authentication(require_endpoint_authentication);
+    if let Some(api_key) = config
+        .endpoints
+        .key
+        .clone()
+        .filter(|api_key| !api_key.is_empty())
+    {
+        rb = rb.api_key(api_key);
+    }
     match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
             rb = rb.server_tls_cer(ServerCertificate::new(key, certificate))

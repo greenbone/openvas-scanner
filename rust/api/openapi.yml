@@ -53,12 +53,12 @@ tags:
   - name: notus
     description: Notus vulnerability scanner
 paths:
-  /health:
+  /health/alive:
     head:
-      description: "Get the response header. It contains the API version, feed version and available authentication methods."
-      operationId: "head_health"
+      description: "Get response headers for the liveness probe. Access can be restricted by the configured health IP allow-list."
+      operationId: "head_health_alive"
       tags:
-        - "general"
+        - "health"
       responses:
         "200":
           headers:
@@ -68,37 +68,82 @@ paths:
               $ref: "#/components/headers/FeedVersion"
             authentication:
               $ref: "#/components/headers/Authentication"
-          description: "Authenticated and authorized"
-  /health/alive:
+          description: "Ok"
+        "403":
+          description: "Forbidden by configured health IP allow-list"
     get:
-      description: "Get application's health information"
+      description: "Get application's liveness information. Access can be restricted by the configured health IP allow-list."
       operationId: "get_health_alive"
       tags:
         - "health"
       responses:
         "200":
           description: "Ok"
+        "403":
+          description: "Forbidden by configured health IP allow-list"
+        "503":
+          description: "Service Unavailable"
 
   /health/ready:
+    head:
+      description: "Get response headers for the readiness probe. Access can be restricted by the configured health IP allow-list."
+      operationId: "head_health_ready"
+      tags:
+        - "health"
+      responses:
+        "200":
+          headers:
+            api-version:
+              $ref: "#/components/headers/ApiVersion"
+            feed-version:
+              $ref: "#/components/headers/FeedVersion"
+            authentication:
+              $ref: "#/components/headers/Authentication"
+          description: "Ok"
+        "403":
+          description: "Forbidden by configured health IP allow-list"
     get:
-      description: "Get application's health information"
+      description: "Get application's readiness information. Access can be restricted by the configured health IP allow-list."
       operationId: "get_health_ready"
       tags:
         - "health"
       responses:
         "200":
           description: "Ok"
+        "403":
+          description: "Forbidden by configured health IP allow-list"
         "503":
           description: "Service Unavailable"
   /health/started:
+    head:
+      description: "Get response headers for the startup probe. Access can be restricted by the configured health IP allow-list."
+      operationId: "head_health_started"
+      tags:
+        - "health"
+      responses:
+        "200":
+          headers:
+            api-version:
+              $ref: "#/components/headers/ApiVersion"
+            feed-version:
+              $ref: "#/components/headers/FeedVersion"
+            authentication:
+              $ref: "#/components/headers/Authentication"
+          description: "Ok"
+        "403":
+          description: "Forbidden by configured health IP allow-list"
     get:
-      description: "Get application's health information"
+      description: "Get application's startup information. Access can be restricted by the configured health IP allow-list."
       operationId: "get_health_started"
       tags:
         - "health"
       responses:
         "200":
           description: "Ok"
+        "403":
+          description: "Forbidden by configured health IP allow-list"
+        "503":
+          description: "Service Unavailable"
 
   /notus:
     head:
@@ -116,6 +161,8 @@ paths:
             authentication:
               $ref: "#/components/headers/Authentication"
           description: "Authenticated and authorized"
+        "401":
+          description: "Unauthorized when endpoint authentication is required and credentials are missing or invalid"
     get:
       description: "Get a list of all available OS products available for the
         [POST /notus/{os}](#/notus/notus_run) endpoint."
@@ -134,6 +181,8 @@ paths:
               examples:
                 get notus products:
                   $ref: "./components/examples/notus.yml#/notus_products"
+        "401":
+          description: "Unauthorized when endpoint authentication is required and credentials are missing or invalid"
 
   /notus/{os}:
     post:
@@ -171,6 +220,8 @@ paths:
                   $ref: "./components/examples/notus.yml#/notus_results"
         "400":
           description: "Bad request body"
+        "401":
+          description: "Unauthorized when endpoint authentication is required and credentials are missing or invalid"
         "404":
           description: "Scan not found"
         "406":
@@ -542,6 +593,8 @@ paths:
             authentication:
               $ref: "#/components/headers/Authentication"
           description: "Authenticated and authorized"
+        "401":
+          description: "Unauthorized when endpoint authentication is required and credentials are missing or invalid"
     get:
       description:
         "Get a list of all available vulnerability tests (VTs) to the scanner. Note, that not the
@@ -561,6 +614,8 @@ paths:
               examples:
                 list of OIDs:
                   $ref: "./components/examples/vts.yml#/list_of_oids"
+        "401":
+          description: "Unauthorized when endpoint authentication is required and credentials are missing or invalid"
         "503":
           description: "The list of OIDs is currently updated. Please try again later."
 

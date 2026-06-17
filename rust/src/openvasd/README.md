@@ -52,7 +52,20 @@ The API supports two kinds of authentication methods:
 
 The authentication modes are set within a configuration file or via the argument list, when starting the server.
 
-The authentication is required for each request except for a HEAD request.
+By default, existing endpoint behavior is preserved. Scan endpoints require authentication when authentication is configured. Notus and VT endpoints can additionally require authentication by setting `require_authentication = true` under `[endpoints]`.
+
+Declined requests keep the existing response metadata headers by default. Set `hide_declined_response_headers = true` under `[endpoints]` to omit the `authentication`, `api-version`, and `feed-version` headers from `401 Unauthorized` and `403 Forbidden` responses.
+
+Implemented health probe routes are:
+
+- `GET /health/alive`
+- `HEAD /health/alive`
+- `GET /health/ready`
+- `HEAD /health/ready`
+- `GET /health/started`
+- `HEAD /health/started`
+
+`HEAD /health` is not implemented. Health probe access can be restricted to direct TCP peers by setting `health_ip_allowlist` under `[endpoints]`. The allow-list accepts bare IPv4/IPv6 addresses and CIDR networks, for example `127.0.0.1`, `::1`, or `10.0.0.0/8`. Forwarding headers such as `X-Forwarded-For` are not used for this check.
 
 ### API Key
 
@@ -170,6 +183,12 @@ Options:
           path to client tls certs. Enables mtls. [env: TLS_CLIENT_CERTS=]
       --enable-get-scans
           enable get scans endpoint [env: ENABLE_GET_SCANS=]
+      --require-authentication [<require-authentication>]
+          require authentication for Notus and VT endpoints [env: REQUIRE_AUTHENTICATION=]
+      --health-ip-allowlist <health-ip-allowlist>...
+          IP addresses or CIDR networks allowed to use health endpoints [env: HEALTH_IP_ALLOWLIST=]
+      --hide-declined-response-headers [<hide-declined-response-headers>]
+          hide metadata headers on declined requests [env: HIDE_DECLINED_RESPONSE_HEADERS=]
       --api-key <api-key>
           API key that must be set as X-API-KEY header to gain access [env: API_KEY=]
       --scanner-type <ospd,openvas>
@@ -223,6 +242,9 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 | TLS Key                  | --tls-key               |               | tls                                | key               | TLS_KEY                  | Path to server TLS key                                                                                                                                                    |                               |
 | TLS Client Certificates  | --tls-client-certs      |               | tls                                | client_certs      | TLS_CLIENT_CERTS         | Path to client TLS certs enables mTLS                                                                                                                                     |                               |
 | Enable get scans         | --enable-get-scans      |               | endpoints                          | enable_get_scans  | ENABLE_GET_SCANS         | Enables GET /scans endpoint                                                                                                                                               | false                         |
+| Require authentication   | --require-authentication |               | endpoints                          | require_authentication | REQUIRE_AUTHENTICATION | Requires configured authentication for Notus and VT endpoints                                                                                                               | false                         |
+| Health IP allow-list     | --health-ip-allowlist   |               | endpoints                          | health_ip_allowlist | HEALTH_IP_ALLOWLIST    | Allows only listed direct TCP peer IP addresses or CIDR networks to use implemented health probe routes                                                                     | []                            |
+| Hide declined response headers | --hide-declined-response-headers |               | endpoints                          | hide_declined_response_headers | HIDE_DECLINED_RESPONSE_HEADERS | Omits metadata headers from 401 and 403 responses                                                                                                                         | false                         |
 | API key                  | --api-key               |               | endpoints                          | key               | API_KEY                  | API key that must be set as X-API-KEY header to gain access. If none is given, api-key authorization is disabled                                                          |                               |
 | Scanner Type             | --scanner-type          |               | scanner                            | type              | SCANNER_TYPE             | Type of wrapper used to manage scans, currently only `OSPD` is available                                                                                                  | OSPD                          |
 | Max queued scans         | --max-queued-scans      |               | scheduler                          | max_queued_scans  | MAX_QUEUED_SCANS         | Maximum number of queued scans, omit for no limits                                                                                                                        |                               |

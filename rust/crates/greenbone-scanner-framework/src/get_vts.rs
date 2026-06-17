@@ -3,7 +3,7 @@ use std::{pin::Pin, sync::Arc};
 use hyper::StatusCode;
 
 use crate::{
-    ExternalError, StreamResult, auth_method_segments,
+    ExternalError, StreamResult,
     entry::{self, Bytes, Method, Prefixed, RequestHandler, response::BodyKind},
     internal_server_error,
     models::VTData,
@@ -17,6 +17,14 @@ pub trait GetVts: Send + Sync {
 
 pub struct GetVTsHandler<T> {
     get_scans: Arc<T>,
+    require_authentication: bool,
+}
+
+impl<T> GetVTsHandler<T> {
+    pub fn require_authentication(mut self, require_authentication: bool) -> Self {
+        self.require_authentication = require_authentication;
+        self
+    }
 }
 
 impl<T> Prefixed for GetVTsHandler<T>
@@ -32,11 +40,17 @@ impl<S> RequestHandler for GetVTsHandler<S>
 where
     S: GetVts + Prefixed + 'static,
 {
-    auth_method_segments!(
-        authenticated: false,
-        Method::GET,
-        "vts"
-    );
+    fn needs_authentication(&self) -> bool {
+        self.require_authentication
+    }
+
+    fn path_segments(&self) -> &'static [&'static str] {
+        &["vts"]
+    }
+
+    fn http_method(&self) -> Method {
+        Method::GET
+    }
 
     fn call<'a, 'b>(
         &'b self,
@@ -76,6 +90,7 @@ where
     fn from(value: T) -> Self {
         GetVTsHandler {
             get_scans: Arc::new(value),
+            require_authentication: false,
         }
     }
 }
@@ -85,7 +100,10 @@ where
     T: GetVts + 'static,
 {
     fn from(value: Arc<T>) -> Self {
-        GetVTsHandler { get_scans: value }
+        GetVTsHandler {
+            get_scans: value,
+            require_authentication: false,
+        }
     }
 }
 
@@ -250,5 +268,55 @@ mod tests {
         let bytes = resp.into_body().collect().await.unwrap().to_bytes();
         let resp = String::from_utf8_lossy(bytes.as_ref());
         insta::assert_snapshot!(resp);
+    }
+
+    #[tokio::test]
+    async fn get_vts_requires_authentication_when_enabled() {
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            create_single_handler!(GetVTsHandler::from(Test {}).require_authentication(true)),
+            None,
+        );
+
+        let req = Request::builder()
+            .uri("/vts")
+            .method(Method::GET)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        let req = Request::builder()
+            .uri("/vts")
+            .method(Method::HEAD)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn get_vts_with_required_authentication_allows_known_client() {
+        let entry_point = test_utilities::entry_point(
+            Authentication::MTLS,
+            create_single_handler!(GetVTsHandler::from(Test {}).require_authentication(true)),
+            Some(ClientHash::from("ok")),
+        );
+
+        let req = Request::builder()
+            .uri("/vts")
+            .method(Method::GET)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let req = Request::builder()
+            .uri("/vts")
+            .method(Method::HEAD)
+            .body(Empty::<Bytes>::new())
+            .unwrap();
+        let resp = entry_point.call(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 }

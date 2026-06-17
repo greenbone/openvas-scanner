@@ -24,6 +24,12 @@ advisories_path = "/var/lib/notus/advisories/"
 [endpoints]
 # Enables GET /scans endpoint
 enable_get_scans = true
+# Require configured authentication for /notus, /notus/{os}, and /vts.
+# require_authentication = false
+# Restrict implemented health probe routes to direct TCP peer IPs or CIDR networks.
+# health_ip_allowlist = ["127.0.0.1", "::1"]
+# Hide authentication, api-version, and feed-version headers on 401 and 403 responses.
+# hide_declined_response_headers = false
 # If set it requires `x-api-key` header to use the endpoint
 key = "mtls_is_preferred"
 
