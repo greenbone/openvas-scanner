@@ -5,7 +5,6 @@ on:
   pull_request:
     paths:
       - ".github/workflows/openvasd-pinned-mtls-smoke.yml"
-      - ".github/workflows/build-rs.yaml"
       - ".docker/prod.Dockerfile"
       - "rust/**"
 
@@ -13,24 +12,25 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    uses: ./.github/workflows/build-rs.yaml
-    with:
-      arch: amd64
-      runner: ubuntu-latest
-      binary_version: mtls-smoke
-
   smoke:
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: greenbone/actions/checkout@v3
 
-      - name: download openvasd binary
-        uses: actions/download-artifact@v7
-        with:
-          name: rs-binaries-amd64
-          path: rs-binaries
+      - name: build openvasd binary
+        shell: bash
+        run: |
+          docker build \
+            --pull \
+            --target rs-binaries \
+            --platform linux/amd64 \
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
+            --build-arg "BIN_VERSION=mtls-smoke" \
+            --build-arg "VERSION=oldstable" \
+            --build-arg "RUST_IMAGE=rust:bookworm" \
+            -o type=local,dest=./dist-amd64 \
+            -f .docker/prod.Dockerfile .
 
       - name: install runtime dependencies
         run: |
@@ -121,7 +121,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          OPENVASD="$(find rs-binaries -type f -name openvasd | head -n 1)"
+          OPENVASD="$(find dist-amd64 -type f -name openvasd | head -n 1)"
           test -n "${OPENVASD}"
           chmod +x "${OPENVASD}"
 
