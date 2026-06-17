@@ -188,7 +188,7 @@ fn error(err: String) -> io::Error {
 fn load_client_cert_paths(path: &Path) -> io::Result<Vec<PathBuf>> {
     let metadata = std::fs::metadata(path).map_err(|e| {
         error(format!(
-            "failed to read client certificate path {path:?}: {e}"
+            "failed to read client authentication certificate path {path:?}: {e}"
         ))
     })?;
 
@@ -198,7 +198,7 @@ fn load_client_cert_paths(path: &Path) -> io::Result<Vec<PathBuf>> {
 
     if !metadata.is_dir() {
         return Err(error(format!(
-            "client certificate path {path:?} is neither a file nor a directory"
+            "client authentication certificate path {path:?} is neither a file nor a directory"
         )));
     }
 
@@ -217,7 +217,7 @@ fn load_client_cert_paths(path: &Path) -> io::Result<Vec<PathBuf>> {
 
     if paths.is_empty() {
         return Err(error(format!(
-            "No client certificate files found in {path:?}; mTLS would not authenticate clients"
+            "No client authentication certificate files found in {path:?}; mTLS would not authenticate clients"
         )));
     }
 
@@ -496,6 +496,10 @@ mod tests {
         cert(include_bytes!("test-data/untrusted-pinned-client.pem"))
     }
 
+    fn no_client_auth_cert() -> CertificateDer<'static> {
+        cert(include_bytes!("test-data/no-client-auth-client.pem"))
+    }
+
     fn untrusted_other_client_cert() -> CertificateDer<'static> {
         cert(include_bytes!("test-data/untrusted-other-client.pem"))
     }
@@ -592,6 +596,16 @@ mod tests {
             .unwrap();
 
         assert!(verify_client_cert(verifier.as_ref(), &ca_cert()).is_err());
+    }
+
+    #[test]
+    fn pinned_client_verifier_rejects_pinned_leaf_without_client_auth_usage() {
+        ensure_crypto_provider();
+        let verifier = build_client_cert_verifier(vec![], vec![no_client_auth_cert()])
+            .unwrap()
+            .unwrap();
+
+        assert!(verify_client_cert(verifier.as_ref(), &no_client_auth_cert()).is_err());
     }
 
     #[test]

@@ -500,7 +500,7 @@ impl Config {
                     .long("tls-pinned-client-certs")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
-                    .help("path to exact client tls certificates accepted for mTLS without trusting their CA."),
+                    .help("path to a file or directory of exact client TLS certificates accepted for mTLS without trusting their CA."),
             )
             .arg(
                 clap::Arg::new("enable-get-scans")
