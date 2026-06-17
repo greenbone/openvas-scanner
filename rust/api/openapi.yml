@@ -71,6 +71,8 @@ paths:
           description: "Ok"
         "403":
           description: "Forbidden by configured health IP allow-list"
+        "503":
+          description: "Service Unavailable"
     get:
       description: "Get application's liveness information. Access can be restricted by the configured health IP allow-list."
       operationId: "get_health_alive"
@@ -102,6 +104,8 @@ paths:
           description: "Ok"
         "403":
           description: "Forbidden by configured health IP allow-list"
+        "503":
+          description: "Service Unavailable"
     get:
       description: "Get application's readiness information. Access can be restricted by the configured health IP allow-list."
       operationId: "get_health_ready"
@@ -132,6 +136,8 @@ paths:
           description: "Ok"
         "403":
           description: "Forbidden by configured health IP allow-list"
+        "503":
+          description: "Service Unavailable"
     get:
       description: "Get application's startup information. Access can be restricted by the configured health IP allow-list."
       operationId: "get_health_started"

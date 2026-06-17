@@ -46,7 +46,7 @@ where
     parse_health_ip_allowlist(values).map_err(serde::de::Error::custom)
 }
 
-fn serialize_health_ip_allowlist<S>(value: &Vec<IpInet>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_health_ip_allowlist<S>(value: &[IpInet], serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -235,6 +235,7 @@ impl TypedValueParser for Mode {
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Endpoints {
+    #[serde(default)]
     pub enable_get_scans: bool,
     #[serde(default)]
     pub require_authentication: bool,
@@ -567,6 +568,7 @@ impl Config {
                 clap::Arg::new("health-ip-allowlist")
                     .env("HEALTH_IP_ALLOWLIST")
                     .long("health-ip-allowlist")
+                    .value_parser(clap::value_parser!(IpInet))
                     .action(ArgAction::Append)
                     .value_delimiter(',')
                     .num_args(1..)
@@ -786,9 +788,8 @@ impl Config {
         if let Some(require_authentication) = cmds.get_one::<bool>("require-authentication") {
             config.endpoints.require_authentication = *require_authentication;
         }
-        if let Some(allowlist) = cmds.get_many::<String>("health-ip-allowlist") {
-            config.endpoints.health_ip_allowlist =
-                parse_health_ip_allowlist(allowlist).unwrap_or_else(|error| panic!("{error}"));
+        if let Some(allowlist) = cmds.get_many::<IpInet>("health-ip-allowlist") {
+            config.endpoints.health_ip_allowlist = allowlist.cloned().collect();
         }
         if let Some(hide_declined_response_headers) =
             cmds.get_one::<bool>("hide-declined-response-headers")

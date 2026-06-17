@@ -211,7 +211,7 @@ fn segments_match(prefix: &str, handler_parts: &[&str], request_parts: &[&str]) 
 }
 
 fn is_health_probe_route(prefix: &str, handler_parts: &[&str], method: &Method) -> bool {
-    (method == &Method::GET || method == &Method::HEAD)
+    (*method == Method::GET || *method == Method::HEAD)
         && prefix.is_empty()
         && handler_parts.len() == 2
         && handler_parts[0] == "health"

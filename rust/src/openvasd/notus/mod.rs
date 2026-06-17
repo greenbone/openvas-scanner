@@ -16,17 +16,17 @@ use crate::config::Config;
 
 type Oz = Notus;
 
-pub struct GetOSIcnomingRequest {
+pub struct GetOSIncomingRequest {
     notus: Arc<RwLock<Oz>>,
     require_authentication: bool,
 }
 
-impl Prefixed for GetOSIcnomingRequest {
+impl Prefixed for GetOSIncomingRequest {
     fn prefix(&self) -> &'static str {
         ""
     }
 }
-impl RequestHandler for GetOSIcnomingRequest {
+impl RequestHandler for GetOSIncomingRequest {
     fn needs_authentication(&self) -> bool {
         self.require_authentication
     }
@@ -66,18 +66,18 @@ impl RequestHandler for GetOSIcnomingRequest {
     }
 }
 
-pub struct PostOSIcnomingRequest {
+pub struct PostOSIncomingRequest {
     notus: Arc<RwLock<Oz>>,
     require_authentication: bool,
 }
 
-impl Prefixed for PostOSIcnomingRequest {
+impl Prefixed for PostOSIncomingRequest {
     fn prefix(&self) -> &'static str {
         ""
     }
 }
 
-impl RequestHandler for PostOSIcnomingRequest {
+impl RequestHandler for PostOSIncomingRequest {
     fn needs_authentication(&self) -> bool {
         self.require_authentication
     }
@@ -135,13 +135,13 @@ pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus>> {
 pub fn init(
     notus: Arc<RwLock<Notus>>,
     require_authentication: bool,
-) -> (GetOSIcnomingRequest, PostOSIcnomingRequest) {
+) -> (GetOSIncomingRequest, PostOSIncomingRequest) {
     (
-        GetOSIcnomingRequest {
+        GetOSIncomingRequest {
             notus: notus.clone(),
             require_authentication,
         },
-        PostOSIcnomingRequest {
+        PostOSIncomingRequest {
             notus,
             require_authentication,
         },
