@@ -492,6 +492,14 @@ mod tests {
         cert(include_bytes!("test-data/other-client.pem"))
     }
 
+    fn untrusted_pinned_client_cert() -> CertificateDer<'static> {
+        cert(include_bytes!("test-data/untrusted-pinned-client.pem"))
+    }
+
+    fn untrusted_other_client_cert() -> CertificateDer<'static> {
+        cert(include_bytes!("test-data/untrusted-other-client.pem"))
+    }
+
     fn verify_client_cert(
         verifier: &dyn ClientCertVerifier,
         cert: &CertificateDer<'_>,
@@ -577,12 +585,29 @@ mod tests {
     }
 
     #[test]
-    fn pinned_client_verifier_rejects_pinned_leaf_without_client_auth_usage() {
+    fn pinned_client_verifier_rejects_pinned_ca_certificate() {
         ensure_crypto_provider();
         let verifier = build_client_cert_verifier(vec![], vec![ca_cert()])
             .unwrap()
             .unwrap();
 
         assert!(verify_client_cert(verifier.as_ref(), &ca_cert()).is_err());
+    }
+
+    #[test]
+    fn ca_and_pinned_client_verifier_accepts_pinned_leaf_from_untrusted_ca() {
+        ensure_crypto_provider();
+        let verifier =
+            build_client_cert_verifier(vec![ca_cert()], vec![untrusted_pinned_client_cert()])
+                .unwrap()
+                .unwrap();
+
+        // The pinned leaf is accepted even though its issuing CA is not trusted.
+        assert!(verify_client_cert(verifier.as_ref(), &untrusted_pinned_client_cert()).is_ok());
+        // A different leaf from the same untrusted CA is rejected: pinning the
+        // leaf does not extend trust to its issuer.
+        assert!(verify_client_cert(verifier.as_ref(), &untrusted_other_client_cert()).is_err());
+        // Clients issued by the configured CA keep working.
+        assert!(verify_client_cert(verifier.as_ref(), &other_client_cert()).is_ok());
     }
 }

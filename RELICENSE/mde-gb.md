@@ -9,7 +9,7 @@ attribution.
  
 MIT No Attribution (MIT-0)
  
-Copyright <YEAR> <COPYRIGHT HOLDER>
+Copyright 2026 mde-gb
  
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
