@@ -138,7 +138,7 @@ On the client side, you use the client key and the client certificate. An exampl
 
 As can be seen, no CA certificate is used, since instead the client certificate is used on the server side.
 
-`client_certs` and `pinned_client_certs` can be used together. In that mode `client_certs` keeps normal CA based client certificate validation, while `pinned_client_certs` accepts only exact configured, time-valid client leaf certificates with `clientAuth` extended key usage without trusting their issuing CA for other clients.
+`client_certs` and `pinned_client_certs` can be used together. In that mode `client_certs` keeps normal CA-based client certificate validation, while `pinned_client_certs` accepts only exact configured, time-valid client leaf certificates with `clientAuth` extended key usage without trusting their issuing CA for other clients.
 
 ## Mode
 
@@ -171,7 +171,7 @@ Options:
       --tls-client-certs <tls-client-certs>
           path to client tls certs. Enables mtls. [env: TLS_CLIENT_CERTS=]
       --tls-pinned-client-certs <tls-pinned-client-certs>
-          path to exact client tls certificates accepted for mTLS without trusting their CA. [env: TLS_PINNED_CLIENT_CERTS=]
+          path to a file or directory of exact client TLS certificates accepted for mTLS without trusting their CA. [env: TLS_PINNED_CLIENT_CERTS=]
       --enable-get-scans
           enable get scans endpoint [env: ENABLE_GET_SCANS=]
       --api-key <api-key>
@@ -226,7 +226,7 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 | TLS Certificates         | --tls-certs             |               | tls                                | certs             | TLS_CERTS                | Path to server TLS certs file. If none is given, TLS is disabled                                                                                                          |                               |
 | TLS Key                  | --tls-key               |               | tls                                | key               | TLS_KEY                  | Path to server TLS key                                                                                                                                                    |                               |
 | TLS Client Certificates  | --tls-client-certs      |               | tls                                | client_certs      | TLS_CLIENT_CERTS         | Path to client TLS certs enables mTLS                                                                                                                                     |                               |
-| Pinned TLS Client Certificates | --tls-pinned-client-certs |          | tls                                | pinned_client_certs | TLS_PINNED_CLIENT_CERTS | Path to exact client TLS certificates accepted for mTLS without trusting their issuing CA                                                                                  |                               |
+| Pinned TLS Client Certificates | --tls-pinned-client-certs |          | tls                                | pinned_client_certs | TLS_PINNED_CLIENT_CERTS | Path to a file or directory of exact client TLS certificates accepted for mTLS without trusting their issuing CA                                                           |                               |
 | Enable get scans         | --enable-get-scans      |               | endpoints                          | enable_get_scans  | ENABLE_GET_SCANS         | Enables GET /scans endpoint                                                                                                                                               | false                         |
 | API key                  | --api-key               |               | endpoints                          | key               | API_KEY                  | API key that must be set as X-API-KEY header to gain access. If none is given, api-key authorization is disabled                                                          |                               |
 | Scanner Type             | --scanner-type          |               | scanner                            | type              | SCANNER_TYPE             | Type of wrapper used to manage scans, currently only `OSPD` is available                                                                                                  | OSPD                          |

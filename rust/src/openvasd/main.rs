@@ -81,16 +81,20 @@ async fn _main() -> Result<i32> {
         .feed_version(feed_snapshot.clone());
     let client_auth_configured =
         config.tls.client_certs.is_some() || config.tls.pinned_client_certs.is_some();
-    let server_tls_configured = match (config.tls.certs.clone(), config.tls.key.clone()) {
-        (Some(certificate), Some(key)) => {
+    let server_tls_configured = match (
+        config.tls.certs.clone(),
+        config.tls.key.clone(),
+        client_auth_configured,
+    ) {
+        (Some(certificate), Some(key), _) => {
             rb = rb.server_tls_cer(ServerCertificate::new(key, certificate));
             true
         }
-        (None, None) => {
+        (None, None, false) => {
             // ok no TLS
             false
         }
-        _ if client_auth_configured => {
+        (_, _, true) => {
             return Err(std::io::Error::other(
                 "Client certificate configuration requires server TLS. Please provide both tls.certs and tls.key.",
             )
@@ -118,11 +122,6 @@ async fn _main() -> Result<i32> {
         if let Some(pinned_client_certs) = config.tls.pinned_client_certs.clone() {
             rb = rb.path_pinned_client_certs(pinned_client_certs);
         }
-    } else if client_auth_configured {
-        return Err(std::io::Error::other(
-            "Client certificate configuration requires server TLS. Please provide both tls.certs and tls.key.",
-        )
-        .into());
     }
 
     let (cis_scans, cis_vts) = container_image_scanner::init(
