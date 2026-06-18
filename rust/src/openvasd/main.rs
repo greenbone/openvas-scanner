@@ -79,6 +79,9 @@ async fn _main() -> Result<i32> {
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
         .feed_version(feed_snapshot.clone());
+    if let Some(api_key) = config.endpoints.key.clone() {
+        rb = rb.api_keys(vec![api_key]);
+    }
     match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
             rb = rb.server_tls_cer(ServerCertificate::new(key, certificate))

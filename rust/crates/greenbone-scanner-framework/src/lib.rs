@@ -175,6 +175,15 @@ impl<T> RuntimeBuilder<T> {
         self
     }
 
+    pub fn api_keys(mut self, api_keys: Vec<String>) -> RuntimeBuilder<T> {
+        self.api_keys = if api_keys.is_empty() {
+            None
+        } else {
+            Some(api_keys)
+        };
+        self
+    }
+
     pub fn server_tls_cer(mut self, server_tls_cer: ServerCertificate) -> RuntimeBuilder<T> {
         self.tls = Some(match self.tls {
             Some(TLSConfig {
