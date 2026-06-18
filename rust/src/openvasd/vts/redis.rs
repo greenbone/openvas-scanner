@@ -318,19 +318,25 @@ impl PluginStorer for RedisPluginHandler {
                                 unreachable!("FeedType::NASL must have vulnerability test data.")
                             }
                             Some(vt) => {
-                                let mut file = feed_path;
-                                file.push(vt.filename.clone());
-                                let mtime = fs::metadata(&file)
-                                    .unwrap_or_else(|_| {
-                                        panic!("File Metadata {:?}", file.to_string_lossy())
-                                    })
-                                    .modified()
-                                    .expect("File mtime not supported")
-                                    .duration_since(UNIX_EPOCH)
-                                    .expect("invalid duration for mtime")
-                                    .as_secs()
-                                    .to_string();
-                                let hashsum = plugin.hashsum().into();
+                                // if the verification was successful, we calculate now the mtime
+                                // otherwise we avoid to store it
+                                let hashsum: String = plugin.hashsum().into();
+                                let mtime = if hashsum.is_empty() {
+                                    let mut file = feed_path;
+                                    file.push(vt.filename.clone());
+                                    fs::metadata(&file)
+                                        .unwrap_or_else(|_| {
+                                            panic!("File Metadata {:?}", file.to_string_lossy())
+                                        })
+                                        .modified()
+                                        .expect("File mtime not supported")
+                                        .duration_since(UNIX_EPOCH)
+                                        .expect("invalid duration for mtime")
+                                        .as_secs()
+                                        .to_string()
+                                } else {
+                                    String::new()
+                                };
                                 rctx.redis_add_nvt(vt, mtime, hashsum)
                             }
                         }

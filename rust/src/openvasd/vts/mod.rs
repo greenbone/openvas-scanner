@@ -275,6 +275,7 @@ where
     let loader = Loader::from_feed_path(&dir_path);
     if path.is_dir() {
         if signature_check {
+            // perform the signature check, and verify the vt-metadata json file
             check_signature(&dir_path)?;
             let mut hashsumloader = HashSumNameLoader::sha256(&loader)?;
             while let Some(Ok(item)) = hashsumloader.next() {
@@ -299,6 +300,8 @@ where
     };
 
     synchronize_json(ps, &hash, move |sender| {
+        // Load the hash256 sums and file names from the hash256sums file,
+        // which was already verified (signature check)
         let mut sumsfile = HashMap::new();
         let loader = Loader::from_feed_path(&dir_path);
 
@@ -309,6 +312,9 @@ where
                 sumsfile.insert(item.file_name.clone(), item);
             }
         }
+        // inc files in the feed, are not listed in the vt-metadata json.
+        // Therefore, we create a list of inc files and perform the integrity
+        // check iterating on this list.
         let target_ext = OsStr::new("inc");
         let inc_files = WalkDir::new(&dir_path)
             .into_iter()
@@ -328,13 +334,21 @@ where
                     .to_string(),
                 ..Default::default()
             };
-            let _ = verify_signature_and_send(&sender, &sumsfile, inc_f, signature_check);
+
+            if let Err(e) = verify_signature_and_send(&sender, &sumsfile, inc_f, signature_check) {
+                tracing::warn!(e);
+            }
         }
 
+        // for nasl files we do the same, but iteration is done over json objects in
+        // the vt-metadata.json
         let file = std::fs::File::open(&path).map_err(|_| not_found())?;
         let reader = BufReader::new(file);
         for element in json_stream::iter_json_array::<VTData, _>(reader).filter_map(|x| x.ok()) {
-            let _ = verify_signature_and_send(&sender, &sumsfile, element, signature_check);
+            if let Err(e) = verify_signature_and_send(&sender, &sumsfile, element, signature_check)
+            {
+                tracing::warn!(e);
+            }
         }
 
         Ok(())
@@ -342,6 +356,7 @@ where
     .await
 }
 
+// Sends a VTdatamessage struct to be loaded
 fn verify_signature_and_send(
     sender: &std::sync::mpsc::Sender<VTDataMessage>,
     sumsfile: &HashMap<String, HashSumFileItem<'_>>,

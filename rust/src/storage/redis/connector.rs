@@ -623,7 +623,17 @@ pub trait RedisAddNvt: RedisWrapper {
         // under the filename key is added.
         // Once openvas is no longer used, the dummy item can be removed.
         let key_name = format!("filename:{filename}");
-        self.rpush(&key_name, &[mtime.as_str(), &oid])?;
+        self.rpush(
+            &key_name,
+            &[
+                if mtime.is_empty() {
+                    "1"
+                } else {
+                    mtime.as_str()
+                },
+                &oid,
+            ],
+        )?;
 
         Ok(())
     }
