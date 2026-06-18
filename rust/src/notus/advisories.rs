@@ -124,9 +124,9 @@ pub struct VulnerabilityData {
 
 impl From<VulnerabilityData> for Vulnerability {
     fn from(data: VulnerabilityData) -> Self {
-        let sv = match data.adv.severity.cvss_v2 {
+        let sv = match data.adv.severity.cvss_v3 {
             Some(cvss) => cvss,
-            None => match data.adv.severity.cvss_v3 {
+            None => match data.adv.severity.cvss_v2 {
                 Some(cvss) => cvss,
                 None => "".to_string(),
             },
