@@ -115,13 +115,11 @@ fn config_to_tls_paths(
         .path_client_certs
         .as_deref()
         .map(load_client_cert_paths)
-        .transpose()
-        .map_err(|e| error(format!("failed to load tls.client_certs: {e}")))?
         .unwrap_or_default();
     let pinned_client_certs = config
         .path_pinned_client_certs
         .as_deref()
-        .map(load_client_cert_paths)
+        .map(load_pinned_client_cert_paths)
         .transpose()
         .map_err(|e| error(format!("failed to load tls.pinned_client_certs: {e}")))?
         .unwrap_or_default();
@@ -148,8 +146,8 @@ pub fn tls_config(config: &super::TLSConfig) -> Result<TlsConfig, Error> {
 
     let (key, certs, clients, pinned_clients) = config_to_tls_paths(config)?;
 
-    let ca_certs = load_client_certs(&clients)?;
-    let pinned_certs = load_client_certs(&pinned_clients)?;
+    let ca_certs = load_client_certs(&clients);
+    let pinned_certs = load_pinned_client_certs(&pinned_clients)?;
     let client_cert_verifier = build_client_cert_verifier(ca_certs, pinned_certs)?;
     let key = load_private_key(&key)?;
     let certs = load_certs(&certs)?;
@@ -187,7 +185,24 @@ fn error(err: String) -> io::Error {
     io::Error::other(err)
 }
 
-fn load_client_cert_paths(path: &Path) -> io::Result<Vec<PathBuf>> {
+fn load_client_cert_paths(path: &Path) -> Vec<PathBuf> {
+    match std::fs::read_dir(path) {
+        Ok(entries) => entries
+            .filter_map(|x| {
+                let entry = x.ok()?;
+                let file_type = entry.file_type().ok()?;
+                if file_type.is_file() || file_type.is_symlink() && !file_type.is_dir() {
+                    Some(entry.path())
+                } else {
+                    None
+                }
+            })
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+fn load_pinned_client_cert_paths(path: &Path) -> io::Result<Vec<PathBuf>> {
     let metadata = std::fs::metadata(path).map_err(|e| {
         error(format!(
             "failed to read client authentication certificate path {path:?}: {e}"
@@ -240,7 +255,7 @@ where
         .map_err(|e| error(format!("{e}")))
 }
 
-fn load_client_certs(paths: &[PathBuf]) -> io::Result<Vec<CertificateDer<'static>>> {
+fn load_pinned_client_certs(paths: &[PathBuf]) -> io::Result<Vec<CertificateDer<'static>>> {
     let certs = paths
         .iter()
         .map(load_certs)
@@ -256,6 +271,10 @@ fn load_client_certs(paths: &[PathBuf]) -> io::Result<Vec<CertificateDer<'static
     }
 
     Ok(certs)
+}
+
+fn load_client_certs(paths: &[PathBuf]) -> Vec<CertificateDer<'static>> {
+    paths.iter().flat_map(load_certs).flatten().collect()
 }
 
 // Load private key from file.
@@ -461,7 +480,10 @@ fn build_client_cert_verifier(
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{
+        fs,
+        time::{Duration, SystemTime, UNIX_EPOCH},
+    };
 
     use rustls::pki_types::pem::PemObject;
 
@@ -517,6 +539,19 @@ mod tests {
         }
     }
 
+    fn temp_test_dir(name: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "greenbone-scanner-framework-{name}-{}-{nanos}",
+            std::process::id()
+        ));
+        fs::create_dir(&path).unwrap();
+        path
+    }
+
     fn verify_client_cert(
         verifier: &dyn ClientCertVerifier,
         cert: &CertificateDer<'_>,
@@ -537,14 +572,27 @@ mod tests {
     }
 
     #[test]
-    fn config_to_tls_paths_labels_client_certs_path_errors() {
+    fn config_to_tls_paths_preserves_missing_client_certs_behavior() {
         let config = tls_config_with_client_certs(
             Some(PathBuf::from("/nonexistent/openvas-scanner/client-certs")),
             None,
         );
 
-        let err = config_to_tls_paths(&config).unwrap_err();
-        assert!(err.to_string().contains("tls.client_certs"), "{err}");
+        let (_, _, client_certs, pinned_client_certs) = config_to_tls_paths(&config).unwrap();
+        assert!(client_certs.is_empty());
+        assert!(pinned_client_certs.is_empty());
+    }
+
+    #[test]
+    fn config_to_tls_paths_preserves_empty_client_certs_dir_behavior() {
+        let client_certs_dir = temp_test_dir("empty-client-certs");
+        let config = tls_config_with_client_certs(Some(client_certs_dir.clone()), None);
+
+        let (_, _, client_certs, pinned_client_certs) = config_to_tls_paths(&config).unwrap();
+        assert!(client_certs.is_empty());
+        assert!(pinned_client_certs.is_empty());
+
+        fs::remove_dir(client_certs_dir).unwrap();
     }
 
     #[test]
@@ -561,6 +609,25 @@ mod tests {
             err.to_string().contains("tls.pinned_client_certs"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn config_to_tls_paths_rejects_empty_pinned_client_certs_dir() {
+        let pinned_client_certs_dir = temp_test_dir("empty-pinned-client-certs");
+        let config = tls_config_with_client_certs(None, Some(pinned_client_certs_dir.clone()));
+
+        let err = config_to_tls_paths(&config).unwrap_err();
+        assert!(
+            err.to_string().contains("tls.pinned_client_certs"),
+            "{err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("No client authentication certificate files found"),
+            "{err}"
+        );
+
+        fs::remove_dir(pinned_client_certs_dir).unwrap();
     }
 
     #[test]
