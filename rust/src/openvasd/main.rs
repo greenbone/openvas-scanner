@@ -79,17 +79,20 @@ async fn _main() -> Result<i32> {
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
         .feed_version(feed_snapshot.clone());
-    match (config.tls.certs.clone(), config.tls.key.clone()) {
+    let server_tls_configured = match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
-            rb = rb.server_tls_cer(ServerCertificate::new(key, certificate))
+            rb = rb.server_tls_cer(ServerCertificate::new(key, certificate));
+            true
         }
         (None, None) => {
             // ok no TLS
+            false
         }
         _ => {
             tracing::warn!(
                 "Invalid TLS configuration. Please provide a certificate path and a key path. Falling back to http."
-            )
+            );
+            false
         }
     };
     if !config.feed.signature_check {
@@ -97,11 +100,17 @@ async fn _main() -> Result<i32> {
             "Integrity check for feed has been disabled. Neither hashsums nor GPG signature will get verified."
         );
     }
-    if let Some(client_certs) = config.tls.client_certs.clone() {
-        rb = rb.path_client_certs(client_certs);
-    }
-    if let Some(pinned_client_certs) = config.tls.pinned_client_certs.clone() {
-        rb = rb.path_pinned_client_certs(pinned_client_certs);
+    if server_tls_configured {
+        if let Some(client_certs) = config.tls.client_certs.clone() {
+            rb = rb.path_client_certs(client_certs);
+        }
+        if let Some(pinned_client_certs) = config.tls.pinned_client_certs.clone() {
+            rb = rb.path_pinned_client_certs(pinned_client_certs);
+        }
+    } else if config.tls.client_certs.is_some() || config.tls.pinned_client_certs.is_some() {
+        tracing::warn!(
+            "Client certificate configuration requires server TLS. Ignoring client certificate paths while running without TLS."
+        );
     }
 
     let (cis_scans, cis_vts) = container_image_scanner::init(
