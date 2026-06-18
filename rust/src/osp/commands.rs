@@ -274,8 +274,8 @@ fn write_credentials(scan: &Scan, writer: &mut Writer) -> Result<()> {
     writer.within_element("credentials", &mut |writer| {
         for c in &scan.target.credentials {
             let mut parameter = vec![
-                ("type", c.credential_type.as_ref()),
-                ("service", c.service.as_ref()),
+                ("type", c.credential_type.to_str()),
+                ("service", c.service.to_str()),
             ];
             let sp = c.port.map(|p| p.to_string()).unwrap_or_default();
             if c.port.is_some() {
