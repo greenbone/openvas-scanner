@@ -133,7 +133,15 @@ jobs:
             --tls-pinned-client-certs smoke-certs/pinned \
             > openvasd-smoke.log 2>&1 &
           OPENVASD_PID=$!
-          trap 'kill "${OPENVASD_PID}" 2>/dev/null || true; cat openvasd-smoke.log' EXIT
+          cleanup_openvasd() {
+            status=$?
+            kill "${OPENVASD_PID}" 2>/dev/null || true
+            if [ "${status}" -ne 0 ] && [ -f openvasd-smoke.log ]; then
+              cat openvasd-smoke.log
+            fi
+            exit "${status}"
+          }
+          trap cleanup_openvasd EXIT
 
           for _ in {1..60}; do
             if curl --silent --show-error --fail \

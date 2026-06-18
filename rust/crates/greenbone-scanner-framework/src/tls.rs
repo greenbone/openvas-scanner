@@ -115,13 +115,15 @@ fn config_to_tls_paths(
         .path_client_certs
         .as_deref()
         .map(load_client_cert_paths)
-        .transpose()?
+        .transpose()
+        .map_err(|e| error(format!("failed to load tls.client_certs: {e}")))?
         .unwrap_or_default();
     let pinned_client_certs = config
         .path_pinned_client_certs
         .as_deref()
         .map(load_client_cert_paths)
-        .transpose()?
+        .transpose()
+        .map_err(|e| error(format!("failed to load tls.pinned_client_certs: {e}")))?
         .unwrap_or_default();
 
     Ok((
@@ -364,7 +366,7 @@ impl ClientCertVerifier for PinnedClientCertVerifier {
     }
 
     fn client_auth_mandatory(&self) -> bool {
-        true
+        false
     }
 
     fn root_hint_subjects(&self) -> &[DistinguishedName] {
@@ -504,6 +506,17 @@ mod tests {
         cert(include_bytes!("test-data/untrusted-other-client.pem"))
     }
 
+    fn tls_config_with_client_certs(
+        path_client_certs: Option<PathBuf>,
+        path_pinned_client_certs: Option<PathBuf>,
+    ) -> crate::TLSConfig {
+        crate::TLSConfig {
+            server_tls_cer: crate::ServerCertificate::default(),
+            path_client_certs,
+            path_pinned_client_certs,
+        }
+    }
+
     fn verify_client_cert(
         verifier: &dyn ClientCertVerifier,
         cert: &CertificateDer<'_>,
@@ -521,6 +534,33 @@ mod tests {
             &[],
             UnixTime::since_unix_epoch(Duration::from_secs(seconds_since_epoch)),
         )
+    }
+
+    #[test]
+    fn config_to_tls_paths_labels_client_certs_path_errors() {
+        let config = tls_config_with_client_certs(
+            Some(PathBuf::from("/nonexistent/openvas-scanner/client-certs")),
+            None,
+        );
+
+        let err = config_to_tls_paths(&config).unwrap_err();
+        assert!(err.to_string().contains("tls.client_certs"), "{err}");
+    }
+
+    #[test]
+    fn config_to_tls_paths_labels_pinned_client_certs_path_errors() {
+        let config = tls_config_with_client_certs(
+            None,
+            Some(PathBuf::from(
+                "/nonexistent/openvas-scanner/pinned-client-certs",
+            )),
+        );
+
+        let err = config_to_tls_paths(&config).unwrap_err();
+        assert!(
+            err.to_string().contains("tls.pinned_client_certs"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -552,6 +592,16 @@ mod tests {
             .unwrap();
 
         assert!(verify_client_cert(verifier.as_ref(), &pinned_client_cert()).is_ok());
+    }
+
+    #[test]
+    fn pinned_client_verifier_reports_client_auth_optional() {
+        ensure_crypto_provider();
+        let verifier = build_client_cert_verifier(vec![], vec![pinned_client_cert()])
+            .unwrap()
+            .unwrap();
+
+        assert!(!verifier.client_auth_mandatory());
     }
 
     #[test]
