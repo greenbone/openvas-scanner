@@ -312,27 +312,29 @@ where
         let target_ext = OsStr::new("inc");
         let inc_files = WalkDir::new(&dir_path)
             .into_iter()
-            .filter_map(Result::ok) // Skip unreadable items/errors
-            .filter(|entry| entry.file_type().is_file()) // Filter for files only
-            .map(|entry| entry.into_path()) // Convert entry to PathBuf
-            .filter(|path| path.extension() == Some(target_ext)) // Match extension
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+            .map(|entry| entry.into_path())
+            .filter(|path| path.extension() == Some(target_ext))
             .collect::<Vec<_>>();
         for element in inc_files.iter() {
-            let mut inc_f = VTData::default();
-            inc_f.oid = "fake_oid".to_string();
-            inc_f.filename = element
-                .strip_prefix(&dir_path)
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
-            verify_signature_and_send(&sender, &sumsfile, inc_f, signature_check);
+            let inc_f = VTData {
+                oid: "fake_oid".to_string(),
+                filename: element
+                    .strip_prefix(&dir_path)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+                ..Default::default()
+            };
+            let _ = verify_signature_and_send(&sender, &sumsfile, inc_f, signature_check);
         }
 
         let file = std::fs::File::open(&path).map_err(|_| not_found())?;
         let reader = BufReader::new(file);
         for element in json_stream::iter_json_array::<VTData, _>(reader).filter_map(|x| x.ok()) {
-            verify_signature_and_send(&sender, &sumsfile, element, signature_check);
+            let _ = verify_signature_and_send(&sender, &sumsfile, element, signature_check);
         }
 
         Ok(())

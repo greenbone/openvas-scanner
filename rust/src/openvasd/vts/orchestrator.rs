@@ -284,14 +284,13 @@ where
             nasl_handle = Some(tokio::task::spawn(async move {
                 worker1.update_feed(FeedType::NASL, calc_nasl).await
             }));
-            
+
             let calc_advisories = calc_advisories.clone();
             advisory_handle = Some(tokio::task::spawn(async move {
                 worker2
                     .update_feed(FeedType::Advisories, calc_advisories)
                     .await
             }));
-            
         } else {
             //Ask for allowance if the storage is sqlite
             if sync_nasl {

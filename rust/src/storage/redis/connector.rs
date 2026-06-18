@@ -548,7 +548,6 @@ pub trait RedisAddNvt: RedisWrapper {
         mtime: String,
         hashsum: String,
     ) -> RedisStorageResult<()> {
-        tracing::info!("ADding the vt! {}", &nvt.filename);
         let filename = nvt.filename;
         if !hashsum.is_empty() {
             let key_name = format!("sha256sums:{filename}");

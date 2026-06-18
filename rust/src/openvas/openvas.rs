@@ -161,9 +161,8 @@ impl Default for Scanner {
 impl ScannerType for Scanner {
     fn scanner_type(&self) -> String {
         String::from("openvas")
-    }    
+    }
 }
-
 
 #[async_trait]
 impl ScanStarter for Scanner {

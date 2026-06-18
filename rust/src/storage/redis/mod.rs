@@ -382,8 +382,7 @@ mod tests {
                             assert_eq!(Ok("0.0.0.0.0.0.0.0.0.1".to_owned()), oid);
                             let _mtime = vals.pop().unwrap();
                         }
-                        "signaturecheck:test.nasl" => {
-                        }
+                        "signaturecheck:test.nasl" => {}
                         _ => panic!("{key} should not occur"),
                     }
                 }

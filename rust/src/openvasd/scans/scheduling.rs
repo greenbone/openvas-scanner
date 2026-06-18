@@ -1,6 +1,6 @@
+use fslock::LockFile;
 use std::path::PathBuf;
 use std::sync::Arc;
-use fslock::LockFile;
 use tokio::sync::RwLock;
 
 use greenbone_scanner_framework::models::{self, Scan};
@@ -182,18 +182,26 @@ impl<T, C> ScanScheduler<T, C> {
 
 fn is_file_locked(path: String) -> bool {
     let mut file = LockFile::open(&path).expect("Valid path to lock file");
-    
+
     if file.try_lock().expect("already locked") {
         file.unlock().expect("unlocking not locked file");
         false
-    } else { //locked by another process
+    } else {
+        //locked by another process
         true
     }
 }
 
 impl<Scanner, C> ScanScheduler<Scanner, C>
 where
-    Scanner: ScannerType + ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    Scanner: ScannerType
+        + ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + Send
+        + Sync
+        + 'static,
     C: Crypt + Send + Sync + 'static,
 {
     async fn scan_start(&self, id: i64, scan: Scan) {
@@ -361,7 +369,7 @@ where
         };
         Ok(())
     }
-    
+
     async fn on_feed_action(
         &self,
         message: &orchestrator::FeedStatusChange,
@@ -379,10 +387,7 @@ where
                     lockfile.push(LOCK_FILE);
                     is_file_locked(lockfile.to_string_lossy().to_string())
                 };
-                if (self.scan_type() == "openvas") && !filelocked {
-                    Some(self.feed_sync_in_progress.write().await.approve())
-                }
-                else if count_running == 0 {
+                if ((self.scan_type() == "openvas") && !filelocked) || count_running == 0 {
                     Some(self.feed_sync_in_progress.write().await.approve())
                 } else {
                     None
@@ -446,7 +451,14 @@ async fn run_scheduler<S, E>(
     feed: orchestrator::Communicator,
 ) -> R<mpsc::Sender<Message>>
 where
-    S: ScannerType + ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    S: ScannerType
+        + ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + Send
+        + Sync
+        + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     // happens when openvasd was killed when scans did still run
@@ -520,7 +532,14 @@ pub(super) async fn init_with_scanner<E, S>(
     feed: orchestrator::Communicator,
 ) -> R<Sender<Message>>
 where
-    S: ScannerType + ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    S: ScannerType
+        + ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + Send
+        + Sync
+        + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     let change_scan_status = ScanStateController::init(pool.clone()).await?;
@@ -531,7 +550,13 @@ where
         scanner: Arc::new(scanner),
         feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
         scan_state: change_scan_status,
-        lock_file_dir: config.feed.lock_file_dir.clone().unwrap_or(PathBuf::from("/var/lib/openvas")).to_string_lossy().to_string(),
+        lock_file_dir: config
+            .feed
+            .lock_file_dir
+            .clone()
+            .unwrap_or(PathBuf::from("/var/lib/openvas"))
+            .to_string_lossy()
+            .to_string(),
     };
 
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await

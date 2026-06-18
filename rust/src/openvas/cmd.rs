@@ -43,11 +43,7 @@ pub fn get_redis_socket() -> String {
 /// Get the plugin folder from openvas configuration
 pub fn get_plugins_folder() -> String {
     if let Ok(config) = read_openvas_config() {
-        return if let Some(setting) = config.get("default", "plugins_folder") {
-            setting
-        } else {
-            String::new()
-        };
+        return config.get("default", "plugins_folder").unwrap_or_default();
     }
     String::new()
 }
