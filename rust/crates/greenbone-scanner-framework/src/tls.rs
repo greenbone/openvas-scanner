@@ -221,13 +221,14 @@ fn load_pinned_client_cert_paths(path: &Path) -> io::Result<Vec<PathBuf>> {
 
     let paths = std::fs::read_dir(path)?
         .filter_map(|x| match x {
-            Ok(entry) => match entry.file_type() {
-                Ok(file_type) if file_type.is_file() || file_type.is_symlink() => {
-                    Some(Ok(entry.path()))
+            Ok(entry) => {
+                let path = entry.path();
+                match std::fs::metadata(&path) {
+                    Ok(metadata) if metadata.is_file() => Some(Ok(path)),
+                    Ok(_) => None,
+                    Err(e) => Some(Err(e)),
                 }
-                Ok(_) => None,
-                Err(e) => Some(Err(e)),
-            },
+            }
             Err(e) => Some(Err(e)),
         })
         .collect::<io::Result<Vec<_>>>()?;
@@ -628,6 +629,31 @@ mod tests {
         );
 
         fs::remove_dir(pinned_client_certs_dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn config_to_tls_paths_ignores_pinned_client_certs_symlinked_dirs() {
+        let pinned_client_certs_dir = temp_test_dir("pinned-client-certs-symlink-dir");
+        let pinned_cert_path = pinned_client_certs_dir.join("pinned-client.pem");
+        let linked_dir_target = pinned_client_certs_dir.join("linked-dir-target");
+        let linked_dir = pinned_client_certs_dir.join("linked-dir");
+
+        fs::write(
+            &pinned_cert_path,
+            include_bytes!("test-data/pinned-client.pem"),
+        )
+        .unwrap();
+        fs::create_dir(&linked_dir_target).unwrap();
+        std::os::unix::fs::symlink(&linked_dir_target, &linked_dir).unwrap();
+
+        let config = tls_config_with_client_certs(None, Some(pinned_client_certs_dir.clone()));
+        let (_, _, _, pinned_client_certs) = config_to_tls_paths(&config).unwrap();
+
+        assert_eq!(pinned_client_certs, vec![pinned_cert_path]);
+
+        fs::remove_file(linked_dir).unwrap();
+        fs::remove_dir_all(pinned_client_certs_dir).unwrap();
     }
 
     #[test]
