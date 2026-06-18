@@ -629,10 +629,7 @@ mod tests {
         );
 
         let err = config_to_tls_paths(&config).unwrap_err();
-        assert!(
-            err.to_string().contains("tls.pinned_client_certs"),
-            "{err}"
-        );
+        assert!(err.to_string().contains("tls.pinned_client_certs"), "{err}");
     }
 
     #[test]
@@ -641,10 +638,7 @@ mod tests {
         let config = tls_config_with_client_certs(None, Some(pinned_client_certs_dir.clone()));
 
         let err = config_to_tls_paths(&config).unwrap_err();
-        assert!(
-            err.to_string().contains("tls.pinned_client_certs"),
-            "{err}"
-        );
+        assert!(err.to_string().contains("tls.pinned_client_certs"), "{err}");
         assert!(
             err.to_string()
                 .contains("No client authentication certificate files found"),
@@ -700,7 +694,10 @@ mod tests {
 
         assert!(err.contains("tls.pinned_client_certs"), "{err}");
         assert!(err.contains("failed to read metadata"), "{err}");
-        assert!(err.contains(&broken_link.to_string_lossy().to_string()), "{err}");
+        assert!(
+            err.contains(&broken_link.to_string_lossy().to_string()),
+            "{err}"
+        );
 
         fs::remove_file(broken_link).unwrap();
         fs::remove_dir_all(pinned_client_certs_dir).unwrap();
