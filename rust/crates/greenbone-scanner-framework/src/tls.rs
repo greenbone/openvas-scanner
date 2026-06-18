@@ -225,22 +225,17 @@ fn load_pinned_client_cert_paths(path: &Path) -> io::Result<Vec<PathBuf>> {
                 "failed to read client authentication certificate directory {path:?}: {e}"
             ))
         })?
-        .filter_map(|x| match x {
-            Ok(entry) => {
-                let entry_path = entry.path();
-                match std::fs::metadata(&entry_path) {
-                    Ok(metadata) if metadata.is_file() => Some(Ok(entry_path)),
-                    Ok(_) => None,
-                    Err(e) => Some(Err(error(format!(
-                        "failed to read metadata for client authentication certificate path {entry_path:?}: {e}"
-                    )))),
-                }
+        .filter_map(|x| {
+            let entry = x.ok()?;
+            let entry_path = entry.path();
+            let metadata = std::fs::metadata(&entry_path).ok()?;
+            if metadata.is_file() {
+                Some(entry_path)
+            } else {
+                None
             }
-            Err(e) => Some(Err(error(format!(
-                "failed to read entry from client authentication certificate directory {path:?}: {e}"
-            )))),
         })
-        .collect::<io::Result<Vec<_>>>()?;
+        .collect::<Vec<_>>();
 
     if paths.is_empty() {
         return Err(error(format!(
@@ -680,6 +675,7 @@ mod tests {
         let pinned_cert_path = pinned_client_certs_dir.join("pinned-client.pem");
         let linked_dir_target = pinned_client_certs_dir.join("linked-dir-target");
         let linked_dir = pinned_client_certs_dir.join("linked-dir");
+        let broken_link = pinned_client_certs_dir.join("broken-link.pem");
 
         fs::write(
             &pinned_cert_path,
@@ -688,6 +684,8 @@ mod tests {
         .unwrap();
         fs::create_dir(&linked_dir_target).unwrap();
         std::os::unix::fs::symlink(&linked_dir_target, &linked_dir).unwrap();
+        std::os::unix::fs::symlink(pinned_client_certs_dir.join("missing.pem"), &broken_link)
+            .unwrap();
 
         let config = tls_config_with_client_certs(None, Some(pinned_client_certs_dir.clone()));
         let (_, _, _, pinned_client_certs) = config_to_tls_paths(&config).unwrap();
@@ -695,35 +693,6 @@ mod tests {
         assert_eq!(pinned_client_certs, vec![pinned_cert_path]);
 
         fs::remove_file(linked_dir).unwrap();
-        fs::remove_dir_all(pinned_client_certs_dir).unwrap();
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn config_to_tls_paths_labels_pinned_client_certs_metadata_errors() {
-        let pinned_client_certs_dir = temp_test_dir("pinned-client-certs-broken-symlink");
-        let pinned_cert_path = pinned_client_certs_dir.join("pinned-client.pem");
-        let broken_link = pinned_client_certs_dir.join("broken-link.pem");
-
-        fs::write(
-            &pinned_cert_path,
-            include_bytes!("test-data/pinned-client.pem"),
-        )
-        .unwrap();
-        std::os::unix::fs::symlink(pinned_client_certs_dir.join("missing.pem"), &broken_link)
-            .unwrap();
-
-        let config = tls_config_with_client_certs(None, Some(pinned_client_certs_dir.clone()));
-        let err = config_to_tls_paths(&config).unwrap_err();
-        let err = err.to_string();
-
-        assert!(err.contains("tls.pinned_client_certs"), "{err}");
-        assert!(err.contains("failed to read metadata"), "{err}");
-        assert!(
-            err.contains(&broken_link.to_string_lossy().to_string()),
-            "{err}"
-        );
-
         fs::remove_file(broken_link).unwrap();
         fs::remove_dir_all(pinned_client_certs_dir).unwrap();
     }
