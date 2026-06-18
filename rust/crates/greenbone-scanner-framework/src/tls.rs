@@ -336,6 +336,16 @@ fn validate_pinned_client_cert(
         ));
     }
 
+    if cert
+        .key_usage()
+        .map_err(|_| RustlsError::InvalidCertificate(rustls::CertificateError::BadEncoding))?
+        .is_some_and(|extension| !extension.value.digital_signature())
+    {
+        return Err(RustlsError::InvalidCertificate(
+            rustls::CertificateError::InvalidPurpose,
+        ));
+    }
+
     if !cert
         .extended_key_usage()
         .map_err(|_| RustlsError::InvalidCertificate(rustls::CertificateError::BadEncoding))?
@@ -523,6 +533,10 @@ mod tests {
 
     fn no_client_auth_cert() -> CertificateDer<'static> {
         cert(include_bytes!("test-data/no-client-auth-client.pem"))
+    }
+
+    fn no_digital_signature_cert() -> CertificateDer<'static> {
+        cert(include_bytes!("test-data/no-digital-signature-client.pem"))
     }
 
     fn untrusted_other_client_cert() -> CertificateDer<'static> {
@@ -749,6 +763,19 @@ mod tests {
             .unwrap();
 
         assert!(verify_client_cert(verifier.as_ref(), &no_client_auth_cert()).is_err());
+    }
+
+    #[test]
+    fn pinned_client_verifier_rejects_pinned_leaf_without_digital_signature_usage() {
+        ensure_crypto_provider();
+        let verifier = build_client_cert_verifier(vec![], vec![no_digital_signature_cert()])
+            .unwrap()
+            .unwrap();
+
+        assert!(
+            verify_client_cert_at(verifier.as_ref(), &no_digital_signature_cert(), 1782000000)
+                .is_err()
+        );
     }
 
     #[test]
