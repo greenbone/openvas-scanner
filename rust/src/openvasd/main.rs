@@ -79,6 +79,8 @@ async fn _main() -> Result<i32> {
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
         .feed_version(feed_snapshot.clone());
+    let client_auth_configured =
+        config.tls.client_certs.is_some() || config.tls.pinned_client_certs.is_some();
     let server_tls_configured = match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {
             rb = rb.server_tls_cer(ServerCertificate::new(key, certificate));
@@ -88,7 +90,16 @@ async fn _main() -> Result<i32> {
             // ok no TLS
             false
         }
+        _ if client_auth_configured => {
+            return Err(std::io::Error::other(
+                "Client certificate configuration requires server TLS. Please provide both tls.certs and tls.key.",
+            )
+            .into());
+        }
         _ => {
+            // Preserve the current HTTP fallback for incomplete server TLS when
+            // client authentication is not configured. Revisit this default and
+            // fail closed once changing the startup behavior is acceptable.
             tracing::warn!(
                 "Invalid TLS configuration. Please provide a certificate path and a key path. Falling back to http."
             );
@@ -107,10 +118,11 @@ async fn _main() -> Result<i32> {
         if let Some(pinned_client_certs) = config.tls.pinned_client_certs.clone() {
             rb = rb.path_pinned_client_certs(pinned_client_certs);
         }
-    } else if config.tls.client_certs.is_some() || config.tls.pinned_client_certs.is_some() {
-        tracing::warn!(
-            "Client certificate configuration requires server TLS. Ignoring client certificate paths while running without TLS."
-        );
+    } else if client_auth_configured {
+        return Err(std::io::Error::other(
+            "Client certificate configuration requires server TLS. Please provide both tls.certs and tls.key.",
+        )
+        .into());
     }
 
     let (cis_scans, cis_vts) = container_image_scanner::init(
