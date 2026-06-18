@@ -190,8 +190,8 @@ fn load_client_cert_paths(path: &Path) -> Vec<PathBuf> {
         Ok(entries) => entries
             .filter_map(|x| {
                 let entry = x.ok()?;
-                let file_type = entry.file_type().ok()?;
-                if file_type.is_file() || file_type.is_symlink() && !file_type.is_dir() {
+                let metadata = entry.metadata().ok()?;
+                if metadata.is_file() {
                     Some(entry.path())
                 } else {
                     None
@@ -617,6 +617,31 @@ mod tests {
         assert!(pinned_client_certs.is_empty());
 
         fs::remove_dir(client_certs_dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn config_to_tls_paths_ignores_client_certs_symlinked_dirs() {
+        let client_certs_dir = temp_test_dir("client-certs-symlink-dir");
+        let ca_cert_path = client_certs_dir.join("ca.pem");
+        let linked_dir_target = client_certs_dir.join("linked-dir-target");
+        let linked_dir = client_certs_dir.join("linked-dir");
+        let broken_link = client_certs_dir.join("broken-link.pem");
+
+        fs::write(&ca_cert_path, include_bytes!("test-data/ca.pem")).unwrap();
+        fs::create_dir(&linked_dir_target).unwrap();
+        std::os::unix::fs::symlink(&linked_dir_target, &linked_dir).unwrap();
+        std::os::unix::fs::symlink(client_certs_dir.join("missing.pem"), &broken_link).unwrap();
+
+        let config = tls_config_with_client_certs(Some(client_certs_dir.clone()), None);
+        let (_, _, client_certs, pinned_client_certs) = config_to_tls_paths(&config).unwrap();
+
+        assert_eq!(client_certs, vec![ca_cert_path]);
+        assert!(pinned_client_certs.is_empty());
+
+        fs::remove_file(linked_dir).unwrap();
+        fs::remove_file(broken_link).unwrap();
+        fs::remove_dir_all(client_certs_dir).unwrap();
     }
 
     #[test]
