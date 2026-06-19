@@ -321,7 +321,7 @@ impl PluginStorer for RedisPluginHandler {
                                 // if the verification was successful, we calculate now the mtime
                                 // otherwise we avoid to store it
                                 let hashsum: String = plugin.hashsum().into();
-                                let mtime = if hashsum.is_empty() {
+                                let mtime = if !hashsum.is_empty() {
                                     let mut file = feed_path;
                                     file.push(vt.filename.clone());
                                     fs::metadata(&file)
@@ -408,9 +408,5 @@ impl orchestrator::Worker for FeedSynchronizer {
 
     fn advisory_feed(&self) -> PathBuf {
         self.advisory_feed.clone()
-    }
-
-    fn storage_kind(&self) -> String {
-        String::from("redis")
     }
 }

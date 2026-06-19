@@ -183,7 +183,7 @@ impl<T, C> ScanScheduler<T, C> {
 fn is_file_locked(path: String) -> bool {
     let mut file = LockFile::open(&path).expect("Valid path to lock file");
 
-    if file.try_lock().expect("already locked") {
+    if file.try_lock().expect("already locked by this process") {
         file.unlock().expect("unlocking not locked file");
         false
     } else {
@@ -387,10 +387,12 @@ where
                     lockfile.push(LOCK_FILE);
                     is_file_locked(lockfile.to_string_lossy().to_string())
                 };
-                if ((self.scan_type() == "openvas") && !filelocked) || count_running == 0 {
+                if self.scan_type() == "openvas" && !filelocked {
                     Some(self.feed_sync_in_progress.write().await.approve())
-                } else {
+                } else if (self.scan_type() == "openvas" && filelocked) || count_running > 0 {
                     None
+                } else {
+                    Some(self.feed_sync_in_progress.write().await.approve())
                 }
             }
             FeedStatusChange::Synced(ft) => {
@@ -430,7 +432,12 @@ where
     async fn on_schedule(&self) -> R<Vec<orchestrator::Allow>> {
         if self.contains_need().await {
             let count_running = self.get_running_count().await;
-            if count_running == 0 {
+            let filelocked = {
+                let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
+                lockfile.push(LOCK_FILE);
+                is_file_locked(lockfile.to_string_lossy().to_string())
+            };
+            if count_running == 0 || (self.scan_type() == "openvas" && !filelocked) {
                 return Ok(self.need_to_allow().await);
             }
         }
@@ -475,7 +482,7 @@ where
     tokio::spawn(async move {
         let send_allow = async |msgs: Vec<orchestrator::Allow>| {
             for msg in msgs {
-                tracing::info!(feed_type=?msg, "Sending feed sync allow.");
+                tracing::debug!(feed_type=?msg, "Sending feed sync allow.");
                 if let Err(error) = feed.approve(msg).await {
                     tracing::warn!(%error, "Unable to send allow message to orchestrator");
                 }
@@ -485,7 +492,7 @@ where
             tokio::select! {
                 Some(msg) = feed.receive_state_changes() => {
                     match scheduler.on_feed_action(&msg).await {
-                       Ok(Some(msg)) => {
+                        Ok(Some(msg)) => {
                             send_allow(msg).await;
                         }
                         Ok(None) => {},
