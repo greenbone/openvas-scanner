@@ -557,9 +557,9 @@ impl Display for StartScan {
 
 impl From<models::Credential> for Credential {
     fn from(value: models::Credential) -> Self {
-        let service = value.service.as_ref().to_string();
+        let service = value.service.to_string();
         let port = value.port.map(|x| x.to_string());
-        let kind = value.credential_type.as_ref().to_string();
+        let kind = value.credential_type.to_string();
         let mut credentials = Vec::new();
         match value.credential_type {
             models::CredentialType::KRB5 {

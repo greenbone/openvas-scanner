@@ -58,8 +58,8 @@ pub enum Service {
     Generic,
 }
 
-impl AsRef<str> for Service {
-    fn as_ref(&self) -> &str {
+impl Service {
+    pub fn to_str(&self) -> &str {
         match self {
             Service::SSH => "ssh",
             Service::SMB => "smb",
@@ -68,6 +68,12 @@ impl AsRef<str> for Service {
             Service::KRB5 => "krb5",
             Service::Generic => "generic",
         }
+    }
+}
+
+impl std::fmt::Display for Service {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_str())
     }
 }
 
@@ -141,14 +147,20 @@ pub enum CredentialType {
     },
 }
 
-impl AsRef<str> for CredentialType {
-    fn as_ref(&self) -> &str {
+impl CredentialType {
+    pub fn to_str(&self) -> &str {
         match self {
             CredentialType::UP { .. } => "up",
             CredentialType::USK { .. } => "usk",
             CredentialType::SNMP { .. } => "snmp",
             CredentialType::KRB5 { .. } => "krb5",
         }
+    }
+}
+
+impl std::fmt::Display for CredentialType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_str())
     }
 }
 
