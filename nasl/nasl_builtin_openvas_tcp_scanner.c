@@ -286,12 +286,14 @@ banner_grab (const struct in6_addr *pia, const char *portrange,
 
               if (po1 > 65535)
                 {
-                  g_message ("%s: Wrong port '%d'. It will be skipped.", __func__, po1);
+                  g_message ("%s: Wrong port '%d'. It will be skipped.",
+                             __func__, po1);
                   continue;
                 }
               if (po2 > 65535)
                 {
-                  g_message ("%s: Wrong port '%d'. It will be skipped.", __func__, po2);
+                  g_message ("%s: Wrong port '%d'. It will be skipped.",
+                             __func__, po2);
                   continue;
                 }
             }

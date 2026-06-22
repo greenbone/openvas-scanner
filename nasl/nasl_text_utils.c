@@ -12,14 +12,13 @@
 #include <stddef.h>
 #define _GNU_SOURCE
 
-#include "nasl_text_utils.h"
-
 #include "../misc/strutils.h" /* for str_match */
 #include "exec.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
 #include "nasl_lex_ctxt.h"
+#include "nasl_text_utils.h"
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
@@ -286,7 +285,7 @@ nasl_strcat (lex_ctxt *lexic)
       if (__builtin_saddl_overflow (retc->size, sz, &newlen))
         {
           nasl_perror (lexic, "Error. Buffer overflow\n");
-          deref_cell(retc);
+          deref_cell (retc);
           return NULL;
         }
 

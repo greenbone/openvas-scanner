@@ -46,7 +46,7 @@ check_host_still_alive (kb_t kb, const char *hostname)
       if (!(alive_test_str
             && atoi (alive_test_str) >= ALIVE_TEST_TCP_ACK_SERVICE
             && atoi (alive_test_str) < 32 // max value for alive test combi.
-            && !((atoi (alive_test_str)) & ALIVE_TEST_CONSIDER_ALIVE)))
+            && !((atoi (alive_test_str)) &ALIVE_TEST_CONSIDER_ALIVE)))
         return -1;
     }
   else

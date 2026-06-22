@@ -247,7 +247,8 @@ nasl_get_sign (lex_ctxt *lexic)
   uint8_t *buf = (uint8_t *) get_str_var_by_name (lexic, "buf");
   long int buflen = get_int_var_by_name (lexic, "buflen", -1);
   int seq_num = get_int_var_by_name (lexic, "seq_number", -1);
-  if (mac_key == NULL || buf == NULL || buf[0] == '\0' || buflen == -1 || seq_num <= -1)
+  if (mac_key == NULL || buf == NULL || buf[0] == '\0' || buflen == -1
+      || seq_num <= -1)
     {
       nasl_perror (lexic, "Syntax : get_signature(key:<k>, buf:<b>, "
                           "buflen:<bl>, seq_number:<s>)\n");
@@ -802,9 +803,9 @@ nasl_ntv2_owf_gen (lex_ctxt *lexic)
       return NULL;
     }
 
-  if(owf_in_len != 16)
+  if (owf_in_len != 16)
     nasl_perror (lexic, "owf_in must have a length of 16\n");
-  
+
   user_byte_len = sizeof (smb_ucs2_t) * (strlen (user_in) + 1);
   user = g_malloc0 (user_byte_len);
   dst_user = user;
@@ -891,9 +892,9 @@ nasl_ntlmv2_hash (lex_ctxt *lexic)
   for (i = 0; i < client_chal_length; i++)
     ntlmv2_client_data[i] = rand () % 256;
 
-  if(hash_len != 16)
+  if (hash_len != 16)
     nasl_perror (lexic, "owf_in must have a length of 16\n");
-    
+
   /* Given that data, and the challenge from the server, generate a response */
   SMBOWFencrypt_ntv2_ntlmssp (ntlm_v2_hash, server_chal, 8, ntlmv2_client_data,
                               client_chal_length, ntlmv2_response);

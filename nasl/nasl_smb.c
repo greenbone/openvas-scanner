@@ -826,7 +826,7 @@ nasl_psrp_cli (lex_ctxt *lexic)
           g_string_free (string, TRUE);
           close (sout);
           g_main_loop_run (context.loop);
-           g_main_loop_unref (context.loop);
+          g_main_loop_unref (context.loop);
 
           return array_from_psrp_error (2, err_aux);
         }

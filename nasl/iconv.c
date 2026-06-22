@@ -130,7 +130,7 @@ smb_iconv_open_ntlmssp (const char *tocode, const char *fromcode)
   if (to)
     ret->push = to->push;
 
-    /* check if we can use iconv for this conversion */
+  /* check if we can use iconv for this conversion */
 #ifdef HAVE_NATIVE_ICONV
   if (!ret->pull)
     {
