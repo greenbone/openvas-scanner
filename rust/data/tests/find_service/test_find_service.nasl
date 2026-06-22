@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: 2023 Greenbone AG
+# Some text descriptions might be excerpted from (a) referenced
+# source(s), and are Copyright (C) by the respective right holder(s).
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Function to test specific service detection
 function test_service_detection(port, expected_service) {
     service_key = "Services/" + expected_service;
