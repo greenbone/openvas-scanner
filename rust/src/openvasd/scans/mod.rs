@@ -265,7 +265,7 @@ pub mod tests {
         },
         prelude::PostScansId,
     };
-    use scannerlib::{models::Phase, scanner};
+    use scannerlib::{models::Phase, scanner, utils::scanner_types::ScannerType};
     use sqlx::{SqlitePool, query_scalar};
 
     use crate::{
@@ -514,7 +514,7 @@ pub mod tests {
             address: None,
         };
         let scanner = crate::config::Scanner {
-            scanner_type: crate::config::ScannerType::Openvasd,
+            scanner_type: ScannerType::Openvasd,
             ..Default::default()
         };
         let scheduler = crate::config::Scheduler {

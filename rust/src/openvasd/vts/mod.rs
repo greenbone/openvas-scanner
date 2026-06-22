@@ -15,10 +15,11 @@ use scannerlib::notus::advisory_loader;
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
     notus::advisories::VulnerabilityData,
+    utils::scanner_types::ScannerType,
 };
 use walkdir::WalkDir;
 
-use crate::config::{Config, ScannerType};
+use crate::config::Config;
 pub mod orchestrator;
 pub mod redis;
 pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
@@ -141,6 +142,7 @@ pub async fn init(
             let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
             _init(config, fetcher, worker, snapshot).await
         }
+        ScannerType::Lambda => panic!("Invalid Scanner type"),
     }
 }
 
@@ -315,6 +317,7 @@ where
         // inc files in the feed, are not listed in the vt-metadata json.
         // Therefore, we create a list of inc files and perform the integrity
         // check iterating on this list.
+        // TODO: improve the signature check for the whole feed.
         let target_ext = OsStr::new("inc");
         let inc_files = WalkDir::new(&dir_path)
             .into_iter()

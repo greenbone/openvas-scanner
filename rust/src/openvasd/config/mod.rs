@@ -17,6 +17,7 @@ use logging::SerLevel;
 use scannerlib::{
     models::PreferenceValue,
     scanner::preferences::preference::{PREFERENCES, ScanPrefValue},
+    utils::scanner_types::ScannerType,
 };
 use serde::{Deserialize, Serialize};
 mod logging;
@@ -77,42 +78,6 @@ pub struct Scanner {
     pub scanner_type: ScannerType,
     pub ospd: OspdWrapper,
     pub preferences: HashMap<String, ScanPrefValue>,
-}
-
-#[derive(Default, Deserialize, Serialize, Debug, Clone)]
-pub enum ScannerType {
-    #[serde(rename = "ospd")]
-    #[default]
-    Ospd,
-    #[serde(rename = "openvas")]
-    Openvas,
-    #[serde(rename = "openvasd")]
-    Openvasd,
-}
-
-impl TypedValueParser for ScannerType {
-    type Value = ScannerType;
-
-    fn parse_ref(
-        &self,
-        cmd: &clap::Command,
-        _: Option<&clap::Arg>,
-        value: &std::ffi::OsStr,
-    ) -> Result<Self::Value, clap::Error> {
-        Ok(match value.to_str().unwrap_or_default() {
-            "ospd" => ScannerType::Ospd,
-            "openvas" => ScannerType::Openvas,
-            "openvasd" => ScannerType::Openvasd,
-            x => {
-                let mut cmd = cmd.clone();
-                let err = cmd.error(
-                    clap::error::ErrorKind::InvalidValue,
-                    format!("`{x}` is not a scanner type."),
-                );
-                return Err(err);
-            }
-        })
-    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

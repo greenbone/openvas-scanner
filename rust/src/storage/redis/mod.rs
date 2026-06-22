@@ -375,7 +375,6 @@ mod tests {
                             );
                         }
                         "filename:test.nasl" => {
-                            dbg!(&values);
                             assert_eq!(values.len(), 2);
                             let mut vals = values.clone();
                             let oid = String::from_utf8(vals.pop().unwrap());

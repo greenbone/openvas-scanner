@@ -7,8 +7,11 @@
 //!The scanner is used in openvasd to control scans.
 use std::{path::PathBuf, time::Duration};
 
-use crate::scanner::{
-    Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, ScannerType,
+use crate::{
+    scanner::{
+        Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, TypeOfScanner,
+    },
+    utils::scanner_types,
 };
 use async_trait::async_trait;
 use greenbone_scanner_framework::models::Scan;
@@ -53,9 +56,9 @@ impl Scanner {
 }
 
 #[async_trait]
-impl ScannerType for Scanner {
-    fn scanner_type(&self) -> String {
-        String::from("ospd")
+impl TypeOfScanner for Scanner {
+    fn scanner_type(&self) -> scanner_types::ScannerType {
+        scanner_types::ScannerType::Ospd
     }
 }
 

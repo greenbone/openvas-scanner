@@ -44,6 +44,7 @@ use crate::nasl::utils::scan_ctx::NotusCtx;
 use crate::scheduling::SchedulerStorage;
 use crate::storage::Remover;
 use crate::storage::ScanID;
+use crate::utils::scanner_types;
 use greenbone_scanner_framework::models;
 use running_scan::{RunningScan, RunningScanHandle};
 
@@ -83,12 +84,12 @@ where
 }
 
 #[async_trait]
-impl<S> ScannerType for OpenvasdScanner<S>
+impl<S> TypeOfScanner for OpenvasdScanner<S>
 where
     S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
 {
-    fn scanner_type(&self) -> String {
-        String::from("openvasd")
+    fn scanner_type(&self) -> scanner_types::ScannerType {
+        scanner_types::ScannerType::Openvasd
     }
 }
 

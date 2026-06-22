@@ -13,6 +13,7 @@ use super::{
 use greenbone_scanner_framework::models::{self, HostInfo, Phase, Scan, Status};
 
 use crate::storage::redis::{NameSpaceSelector, RedisCtx};
+use crate::utils::scanner_types::ScannerType;
 use async_trait::async_trait;
 use std::{
     collections::HashMap,
@@ -33,7 +34,7 @@ pub struct Scanner {
 }
 use crate::scanner::{
     Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanResults, ScanStarter,
-    ScanStopper, ScannerType,
+    ScanStopper, TypeOfScanner,
 };
 
 impl From<OpenvasError> for ScanError {
@@ -158,9 +159,9 @@ impl Default for Scanner {
 }
 
 #[async_trait]
-impl ScannerType for Scanner {
-    fn scanner_type(&self) -> String {
-        String::from("openvas")
+impl TypeOfScanner for Scanner {
+    fn scanner_type(&self) -> ScannerType {
+        ScannerType::Openvas
     }
 }
 

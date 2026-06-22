@@ -11,8 +11,9 @@ use scannerlib::{
     osp,
     scanner::{
         OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
-        ScannerType, preferences,
+        TypeOfScanner, preferences,
     },
+    utils::scanner_types::{self, ScannerType},
 };
 
 use crate::database::sqlite::scan_storage::ScanStorage;
@@ -181,7 +182,7 @@ impl<T, C> ScanScheduler<T, C> {
 }
 
 fn is_file_locked(path: String) -> bool {
-    let mut file = LockFile::open(&path).expect("Valid path to lock file");
+    let mut file = LockFile::open(&path).expect("Invalid path to lock file");
 
     if file.try_lock().expect("already locked by this process") {
         file.unlock().expect("unlocking not locked file");
@@ -194,7 +195,7 @@ fn is_file_locked(path: String) -> bool {
 
 impl<Scanner, C> ScanScheduler<Scanner, C>
 where
-    Scanner: ScannerType
+    Scanner: TypeOfScanner
         + ScanStarter
         + ScanStopper
         + ScanDeleter
@@ -382,14 +383,16 @@ where
         let result = match message {
             FeedStatusChange::Need(_) => {
                 let count_running: i64 = self.get_running_count().await;
-                let filelocked = {
+                let is_file_locked = {
                     let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
                     lockfile.push(LOCK_FILE);
                     is_file_locked(lockfile.to_string_lossy().to_string())
                 };
-                if self.scan_type() == "openvas" && !filelocked {
+                if self.scan_type() == ScannerType::Openvas && !is_file_locked {
                     Some(self.feed_sync_in_progress.write().await.approve())
-                } else if (self.scan_type() == "openvas" && filelocked) || count_running > 0 {
+                } else if (self.scan_type() == ScannerType::Openvas && is_file_locked)
+                    || count_running > 0
+                {
                     None
                 } else {
                     Some(self.feed_sync_in_progress.write().await.approve())
@@ -437,7 +440,7 @@ where
                 lockfile.push(LOCK_FILE);
                 is_file_locked(lockfile.to_string_lossy().to_string())
             };
-            if count_running == 0 || (self.scan_type() == "openvas" && !filelocked) {
+            if count_running == 0 || (self.scan_type() == ScannerType::Openvas && !filelocked) {
                 return Ok(self.need_to_allow().await);
             }
         }
@@ -447,7 +450,7 @@ where
         Ok(vec![])
     }
 
-    fn scan_type(&self) -> String {
+    fn scan_type(&self) -> ScannerType {
         self.scanner.scanner_type()
     }
 }
@@ -458,7 +461,7 @@ async fn run_scheduler<S, E>(
     feed: orchestrator::Communicator,
 ) -> R<mpsc::Sender<Message>>
 where
-    S: ScannerType
+    S: TypeOfScanner
         + ScanStarter
         + ScanStopper
         + ScanDeleter
@@ -539,7 +542,7 @@ pub(super) async fn init_with_scanner<E, S>(
     feed: orchestrator::Communicator,
 ) -> R<Sender<Message>>
 where
-    S: ScannerType
+    S: TypeOfScanner
         + ScanStarter
         + ScanStopper
         + ScanDeleter
@@ -579,7 +582,7 @@ where
     E: Crypt + Send + Sync + 'static,
 {
     match config.scanner.scanner_type {
-        crate::config::ScannerType::Ospd => {
+        scanner_types::ScannerType::Ospd => {
             //TODO: when in notus don't start scheduler at all
             if !config.scanner.ospd.socket.exists()
                 && config.mode != crate::config::Mode::ServiceNotus
@@ -595,7 +598,7 @@ where
             );
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
-        crate::config::ScannerType::Openvas => {
+        scanner_types::ScannerType::Openvas => {
             let redis_url = cmd::get_redis_socket();
 
             let scanner = openvas::Scanner::new(
@@ -608,7 +611,7 @@ where
 
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
-        crate::config::ScannerType::Openvasd => {
+        scanner_types::ScannerType::Openvasd => {
             let loader = Loader::from_feed_path(&config.feed.path);
             let executor = nasl_std_functions();
             let notus = config
@@ -619,6 +622,7 @@ where
             let scanner = OpenvasdScanner::new(storage, loader, executor, notus);
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
+        _ => panic!("Invalid Scanner type"),
     }
 }
 
