@@ -13,9 +13,7 @@ jobs:
         run: |
           sh .github/install-openvas-dependencies.sh
       - name: unit-tests
-        run: |
-          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
-          CTEST_OUTPUT_ON_FAILURE=1 cmake --build build -- tests test
+        run: ./check.sh --verbose test-c
   Rust:
     runs-on: ubuntu-latest
     defaults:
@@ -24,10 +22,5 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
-      - name: Prepare nasl-c-lib archives
-        run: make
-      - run: cd crates/rpmdb-rs && sh prepare-test-data.sh
       - name: unit-tests
-        run: cargo test --lib --tests --workspace
-      - name: experimental unit-tests
-        run: cargo test --lib --tests --workspace --features native-rust-ssh
+        run: ../check.sh --verbose test-rust

@@ -19,9 +19,7 @@ jobs:
         run: |
           sh .github/install-openvas-dependencies.sh
       - name: build 
-        run: |
-          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-19/libexec/ccc-analyzer
-          cmake --build build
+        run: ./check.sh --verbose ci-build-c
   rs-amd64:
     uses: ./.github/workflows/build-rs.yaml
     with:
