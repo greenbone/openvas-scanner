@@ -26,7 +26,7 @@ jobs:
           - debian_stable
           - debian_bookworm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/copy-docker-binaries
         with:
           arch: amd64 
@@ -36,7 +36,7 @@ jobs:
   smokey:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         # TODO: make version robust
       - run: curl -L https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb -o hurl.deb
       - run: sudo apt-get install -y ./hurl.deb
@@ -59,7 +59,7 @@ jobs:
       image: ${{ inputs.image }}
       options: --privileged
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: prepare setup
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \

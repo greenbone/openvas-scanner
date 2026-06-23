@@ -61,7 +61,7 @@ jobs:
       binary_version: ${{ steps.version.outputs.binary_version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: "set IS_VERSION_TAG"

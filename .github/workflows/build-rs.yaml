@@ -28,7 +28,7 @@ jobs:
       ASSETS_SUBDIR: assets/linux/${{ inputs.arch }}
       BIN_VERSION: ${{ inputs.binary_version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: build ${{ inputs.arch }}
         shell: bash
         run: |
