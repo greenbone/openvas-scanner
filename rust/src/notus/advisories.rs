@@ -144,6 +144,10 @@ impl From<VulnerabilityData> for Vulnerability {
         }
         refs.insert("URL".to_string(), url);
 
+        if !data.adv.cves.is_empty() {
+            refs.insert("cve".to_string(), data.adv.cves.clone());
+        }
+
         Self {
             vt_params: Vec::new(),
             creation_date: data.adv.creation_date,
