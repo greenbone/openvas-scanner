@@ -7,9 +7,9 @@
 
 #include "nasl_debug.h"
 
-#include <gvm/util/gpgmeutils.h>
 #include <glib.h>  /* for g_free */
 #include <gpgme.h> /* for gpgme_* */
+#include <gvm/util/gpgmeutils.h>
 #include <locale.h> /* for LC_CTYPE  */
 #include <stdio.h>
 #include <stdlib.h>

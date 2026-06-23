@@ -11,7 +11,7 @@
 
 #include <glib.h> /* for g_free */
 #include <regex.h>
-#include <stdio.h> /* for printf, puts */
+#include <stdio.h>  /* for printf, puts */
 #include <stdlib.h> /* for abort */
 #include <string.h> /* for memcpy */
 
@@ -398,13 +398,13 @@ nasl_is_leaf (const tree_cell *pc)
     default:
       return 0;
     }
- /*NOTREACHED*/}
+/*NOTREACHED*/ }
 
- int
- cell_type (const tree_cell *c)
- {
-   if (c == NULL || c == FAKE_CELL)
-     return 0;
-   else
-     return c->type;
- }
+int
+cell_type (const tree_cell *c)
+{
+  if (c == NULL || c == FAKE_CELL)
+    return 0;
+  else
+    return c->type;
+}

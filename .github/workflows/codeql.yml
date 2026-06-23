@@ -31,9 +31,7 @@ jobs:
         languages: 'c'
       # build between init and analyze ...
     - name: Configure and Compile openvas-scanner
-      run: |
-        mkdir build && cd build/ && cmake \
-        -DCMAKE_BUILD_TYPE=Release .. && make install
+      run: ./check.sh --verbose ci-codeql-build-c
       working-directory: ${{ github.WORKSPACE }}
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4

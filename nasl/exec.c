@@ -1741,7 +1741,6 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
       if ((pf = get_func_ref_by_name (lexic, "on_exit")) != NULL)
         nasl_func_call (lexic, pf, NULL);
-
     }
 
   if (g_chdir (old_dir) != 0)

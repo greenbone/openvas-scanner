@@ -28,8 +28,8 @@
 #include <ctype.h>     /* for isprint */
 #include <pcap.h>      /* for PCAP_ERRBUF_SIZE */
 #include <stddef.h>
-#include <stdlib.h>    /* for rand */
-#include <string.h>    /* for bcopy */
+#include <stdlib.h> /* for rand */
+#include <string.h> /* for bcopy */
 #include <sys/param.h>
 #include <sys/time.h> /* for gettimeofday */
 #include <unistd.h>   /* for close */
@@ -725,7 +725,7 @@ get_tcp_options (char *options, struct tcp_options *tcp_all_options)
         case TCPOPT_WINDOW:
           tcp_all_options->wscale.kind = *opt_kind;
           tcp_all_options->wscale.len = *(opt_kind + 1);
-          tcp_all_options->wscale.wscale = (uint8_t) * (opt_kind + 2);
+          tcp_all_options->wscale.wscale = (uint8_t) *(opt_kind + 2);
           opt_kind = opt_kind + *(opt_kind + 1);
           break;
         case TCPOPT_SACK_PERMITTED:

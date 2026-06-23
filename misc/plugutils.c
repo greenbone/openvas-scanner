@@ -689,7 +689,7 @@ is_utf8_encoded (const char *filename)
   if (g_strstr_len (file_encoding, strlen (file_encoding), "utf-8"))
     ret = 1;
 
- magic_ret:
+magic_ret:
   magic_close (magic_cookie);
   return ret;
 }
@@ -750,7 +750,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   if (!data)
     {
       g_warning ("%s: Error converting to UTF-8: %s\nOriginal string: %s",
-                 __func__, err ? err->message: "", buffer);
+                 __func__, err ? err->message : "", buffer);
       g_free (buffer);
       g_string_free (action_str, TRUE);
       return;

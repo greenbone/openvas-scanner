@@ -1135,7 +1135,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                   if (!endptr || *endptr)
                     {
                       g_message (
-                                 "Failed to determine Destination from /proc/net/route");
+                        "Failed to determine Destination from /proc/net/route");
                       continue;
                     }
                   for (i = 0; i < 5; i++)
@@ -1155,7 +1155,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                   myroutes[numroutes].metric = strtol (p, &endptr, 10);
                   if (!endptr || *endptr)
                     {
-                      g_message ("Failed to determine metric from /proc/net/route");
+                      g_message (
+                        "Failed to determine metric from /proc/net/route");
                       continue;
                     }
                   p = strtok (NULL, " \t\n");
@@ -1168,9 +1169,10 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                       continue;
                     }
 
-                  g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX",
-                           numroutes, iface, myroutes[numroutes].dest,
-                           myroutes[numroutes].mask);
+                  g_debug (
+                    "#%d: for dev %s, The dest is %lX and the mask is %lX",
+                    numroutes, iface, myroutes[numroutes].dest,
+                    myroutes[numroutes].mask);
                   for (i = 0; i < numinterfaces; i++)
                     if (!strcmp (iface, mydevs[i].name))
                       {
@@ -1178,8 +1180,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                         break;
                       }
                   if (i == numinterfaces)
-                    g_message (
-                               "Failed to find interface %s mentioned in /proc/net/route",
+                    g_message ("Failed to find interface %s mentioned in "
+                               "/proc/net/route",
                                iface);
                   numroutes++;
                   if (numroutes >= MAXROUTES)

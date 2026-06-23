@@ -13,9 +13,7 @@ jobs:
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v6
-      - name: Collect Markdown files
-        run: git ls-files '*.md' ':!.*' > .lychee-markdown-files.txt
       - name: Install lychee
         run: sudo snap install lychee
       - name: Check Markdown links
-        run: lychee --files-from .lychee-markdown-files.txt --offline --include-fragments --no-progress
+        run: ./check.sh --verbose lychee

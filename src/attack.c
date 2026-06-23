@@ -1197,7 +1197,7 @@ attack_network (struct scan_globals *globals)
       error = -1;
       return error;
     }
-  /* Init and check Target List */
+    /* Init and check Target List */
 #ifdef FEATURE_HOST_DISCOVERY_IPV6
   alive_test_t alive_test;
   const char *target_aux = prefs_get ("TARGET");
@@ -1210,7 +1210,7 @@ attack_network (struct scan_globals *globals)
       run_cli_for_ipv6_network (target_aux, &host_found, print_results);
       hostlist = host_found;
       // Consider alive the found hosts, to avoid double check later
-      prefs_set("ALIVE_TEST", "8");
+      prefs_set ("ALIVE_TEST", "8");
     }
   else
 #endif /* FEATURE_HOST_DISCOVERY_IPV6 */

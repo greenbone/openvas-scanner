@@ -8,8 +8,13 @@ jobs:
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v6
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-19
+          sudo ln -sf /usr/bin/clang-format-19 /usr/local/bin/clang-format
       - name: Formatting
-        run: sh .github/check-c-formatting.sh ${{ github.base_ref }}
+        run: ./check.sh --verbose lint-c
   Rust:
     runs-on: ubuntu-latest
     defaults:
@@ -18,12 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
-      - name: Prepare nasl-c-lib archives
-        run: make
-      - run: cargo fmt --check
-      - run: cargo clippy -V
-      - run: cargo clippy --all-targets -- -D warnings --no-deps
-      - run: cargo clippy --all-targets --features native-rust-ssh -- -D warnings --no-deps
+      - run: ../check.sh --verbose lint-rust
   Rust-Typos:
     runs-on: ubuntu-latest
     defaults:
@@ -33,11 +33,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
       - run: cargo install typos-cli || true
-      - run: typos
+      - run: ../check.sh --verbose typos
   License-Headers:
     runs-on: ubuntu-latest
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v6
       - name: Check license headers
-        run: bash ./check_license_headers.bash
+        run: ./check.sh --verbose license-headers
