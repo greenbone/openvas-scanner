@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install clang-format
         run: |
           sudo apt-get update
@@ -21,7 +21,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-rust
       - run: ../check.sh --verbose lint-rust
   Rust-Typos:
@@ -30,7 +30,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-rust
       - run: cargo install typos-cli || true
       - run: ../check.sh --verbose typos
@@ -38,6 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Check license headers
         run: ./check.sh --verbose license-headers
