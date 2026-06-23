@@ -17,6 +17,7 @@ use logging::SerLevel;
 use scannerlib::{
     models::PreferenceValue,
     scanner::preferences::preference::{PREFERENCES, ScanPrefValue},
+    utils::scanner_types::ScannerType,
 };
 use serde::{Deserialize, Serialize};
 mod logging;
@@ -33,6 +34,8 @@ pub struct Feed {
     // TODO: rename to feed_integrity_check and tell serde to accept:
     // signature_check as weel as feed_integrity_check.
     pub signature_check: bool,
+    #[serde(default)]
+    pub lock_file_dir: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -77,42 +80,6 @@ pub struct Scanner {
     pub preferences: HashMap<String, ScanPrefValue>,
 }
 
-#[derive(Default, Deserialize, Serialize, Debug, Clone)]
-pub enum ScannerType {
-    #[serde(rename = "ospd")]
-    #[default]
-    Ospd,
-    #[serde(rename = "openvas")]
-    Openvas,
-    #[serde(rename = "openvasd")]
-    Openvasd,
-}
-
-impl TypedValueParser for ScannerType {
-    type Value = ScannerType;
-
-    fn parse_ref(
-        &self,
-        cmd: &clap::Command,
-        _: Option<&clap::Arg>,
-        value: &std::ffi::OsStr,
-    ) -> Result<Self::Value, clap::Error> {
-        Ok(match value.to_str().unwrap_or_default() {
-            "ospd" => ScannerType::Ospd,
-            "openvas" => ScannerType::Openvas,
-            "openvasd" => ScannerType::Openvasd,
-            x => {
-                let mut cmd = cmd.clone();
-                let err = cmd.error(
-                    clap::error::ErrorKind::InvalidValue,
-                    format!("`{x}` is not a scanner type."),
-                );
-                return Err(err);
-            }
-        })
-    }
-}
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OspdWrapper {
     pub socket: PathBuf,
@@ -134,6 +101,7 @@ impl Default for Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
             check_interval: Duration::from_secs(3600),
             signature_check: true,
+            lock_file_dir: Some(PathBuf::from("/var/lib/openvas")),
         }
     }
 }
@@ -426,6 +394,15 @@ impl Config {
                     .help("path to openvas feed"),
             )
             .arg(
+                clap::Arg::new("lock-file-dir")
+                    .env("LOCK_FILE_DIR")
+                    .long("lock-file-dir")
+                    .value_parser(clap::builder::PathBufValueParser::new())
+                    .action(ArgAction::Set)
+                    .help("path to the lock file directory"),
+            )
+
+            .arg(
                 clap::Arg::new("feed-signature-check")
                     .long("feed-signature-check")
                     .short('x')
@@ -682,6 +659,12 @@ impl Config {
 
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
             config.feed.path.clone_from(path);
+        }
+        if let Some(path) = cmds.get_one::<PathBuf>("lock-file-dir") {
+            config
+                .feed
+                .lock_file_dir
+                .clone_from(&Some(path.to_path_buf()));
         }
         if let Some(path) = cmds.get_one::<PathBuf>("notus-products") {
             config.notus.products_path.clone_from(path);

@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::utils::scanner_types::ScannerType;
 use async_trait::async_trait;
 use greenbone_scanner_framework::models::{self, Scan, Status};
 use thiserror::Error;
+
 /// ScanResults can differ in kind.
 ///
 /// For an example OSPD scanner includes all information of the status therefore we need to
@@ -26,6 +28,13 @@ pub struct ScanResults {
     pub id: String,
     pub status: Status,
     pub results: Vec<models::Result>,
+}
+
+#[async_trait]
+pub trait TypeOfScanner {
+    fn scanner_type(&self) -> ScannerType {
+        ScannerType::Openvasd
+    }
 }
 
 /// Starts a scan
@@ -136,6 +145,12 @@ impl LambdaBuilder {
 
     pub fn build(self) -> Lambda {
         self.lambda
+    }
+}
+
+impl TypeOfScanner for Lambda {
+    fn scanner_type(&self) -> ScannerType {
+        ScannerType::Lambda
     }
 }
 

@@ -268,15 +268,16 @@ where
                 .await;
             return Ok(());
         }
+
+        let mut nasl_handle = None;
+        let mut advisory_handle = None;
+
         if sync_nasl {
             send_need(FeedType::NASL).await?;
         }
         if sync_advisories {
             send_need(FeedType::Advisories).await?;
         }
-
-        let mut nasl_handle = None;
-        let mut advisory_handle = None;
 
         loop {
             // we wait for messages from the scheduler to continue.
@@ -331,13 +332,15 @@ where
                 (true, true, true, true)
                 | (false, false, true, true)
                 | (true, true, false, false) => break,
-                (sync_nasl, nasl_handle, sync_advisories, advisories_handle) => tracing::debug!(
-                    sync_nasl,
-                    nasl_handle,
-                    sync_advisories,
-                    advisories_handle,
-                    "Continue waiting for Allow message"
-                ),
+                (sync_nasl, nasl_handle, sync_advisories, advisories_handle) => {
+                    tracing::info!(
+                        sync_nasl,
+                        nasl_handle,
+                        sync_advisories,
+                        advisories_handle,
+                        "Continue waiting for Allow message"
+                    )
+                }
             }
         }
 

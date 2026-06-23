@@ -40,6 +40,14 @@ pub fn get_redis_socket() -> String {
     String::new()
 }
 
+/// Get the plugin folder from openvas configuration
+pub fn get_plugins_folder() -> String {
+    if let Ok(config) = read_openvas_config() {
+        return config.get("default", "plugins_folder").unwrap_or_default();
+    }
+    String::new()
+}
+
 /// Start a new scan with the openvas executable with the given string. Before a scan can be
 /// started all data needed for the scan must be put into redis before.
 pub fn start(id: &str, sudo: bool, nice: Option<i8>) -> Result<Child> {

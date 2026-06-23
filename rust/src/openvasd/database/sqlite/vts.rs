@@ -76,7 +76,7 @@ impl PluginFetcher for SqlPluginStorage {
         Box::pin(result)
     }
 }
-
+// TODO: verify before loading the plugin
 impl PluginStorer for SqlPluginStorage {
     fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
     where

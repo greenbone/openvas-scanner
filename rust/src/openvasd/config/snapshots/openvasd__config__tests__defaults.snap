@@ -8,6 +8,7 @@ mode = 'service'
 path = '/var/lib/openvas/plugins'
 check_interval = '3600s'
 signature_check = true
+lock_file_dir = '/var/lib/openvas'
 
 [notus]
 products_path = '/var/lib/notus/products'

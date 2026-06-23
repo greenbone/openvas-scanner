@@ -1,3 +1,5 @@
+use fslock::LockFile;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -9,8 +11,9 @@ use scannerlib::{
     osp,
     scanner::{
         OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
-        preferences,
+        TypeOfScanner, preferences,
     },
+    utils::scanner_types::{self, ScannerType},
 };
 
 use crate::database::sqlite::scan_storage::ScanStorage;
@@ -28,6 +31,8 @@ use crate::{
     },
     vts::orchestrator::{self, FeedStatusChange},
 };
+
+const LOCK_FILE: &str = "feed-update.lock";
 
 #[derive(Default, Debug)]
 struct IsInProgress {
@@ -111,6 +116,7 @@ struct ScanScheduler<Scanner, Cryptor> {
     // otherwise we would need to store two separate lists.
     feed_sync_in_progress: Arc<RwLock<IsInProgress>>,
     scan_state: ScanStateController,
+    lock_file_dir: String,
 }
 
 #[derive(Debug)]
@@ -175,9 +181,28 @@ impl<T, C> ScanScheduler<T, C> {
     }
 }
 
+fn is_file_locked(path: String) -> bool {
+    let mut file = LockFile::open(&path).expect("Invalid path to lock file");
+
+    if file.try_lock().expect("already locked by this process") {
+        file.unlock().expect("unlocking not locked file");
+        false
+    } else {
+        //locked by another process
+        true
+    }
+}
+
 impl<Scanner, C> ScanScheduler<Scanner, C>
 where
-    Scanner: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    Scanner: TypeOfScanner
+        + ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + Send
+        + Sync
+        + 'static,
     C: Crypt + Send + Sync + 'static,
 {
     async fn scan_start(&self, id: i64, scan: Scan) {
@@ -358,10 +383,19 @@ where
         let result = match message {
             FeedStatusChange::Need(_) => {
                 let count_running: i64 = self.get_running_count().await;
-                if count_running == 0 {
+                let is_file_locked = {
+                    let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
+                    lockfile.push(LOCK_FILE);
+                    is_file_locked(lockfile.to_string_lossy().to_string())
+                };
+                if self.scan_type() == ScannerType::Openvas && !is_file_locked {
                     Some(self.feed_sync_in_progress.write().await.approve())
-                } else {
+                } else if (self.scan_type() == ScannerType::Openvas && is_file_locked)
+                    || count_running > 0
+                {
                     None
+                } else {
+                    Some(self.feed_sync_in_progress.write().await.approve())
                 }
             }
             FeedStatusChange::Synced(ft) => {
@@ -401,7 +435,12 @@ where
     async fn on_schedule(&self) -> R<Vec<orchestrator::Allow>> {
         if self.contains_need().await {
             let count_running = self.get_running_count().await;
-            if count_running == 0 {
+            let filelocked = {
+                let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
+                lockfile.push(LOCK_FILE);
+                is_file_locked(lockfile.to_string_lossy().to_string())
+            };
+            if count_running == 0 || (self.scan_type() == ScannerType::Openvas && !filelocked) {
                 return Ok(self.need_to_allow().await);
             }
         }
@@ -409,6 +448,10 @@ where
         self.import_results().await?;
 
         Ok(vec![])
+    }
+
+    fn scan_type(&self) -> ScannerType {
+        self.scanner.scanner_type()
     }
 }
 
@@ -418,7 +461,14 @@ async fn run_scheduler<S, E>(
     feed: orchestrator::Communicator,
 ) -> R<mpsc::Sender<Message>>
 where
-    S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    S: TypeOfScanner
+        + ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + Send
+        + Sync
+        + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     // happens when openvasd was killed when scans did still run
@@ -435,7 +485,7 @@ where
     tokio::spawn(async move {
         let send_allow = async |msgs: Vec<orchestrator::Allow>| {
             for msg in msgs {
-                tracing::info!(feed_type=?msg, "Sending feed sync allow.");
+                tracing::debug!(feed_type=?msg, "Sending feed sync allow.");
                 if let Err(error) = feed.approve(msg).await {
                     tracing::warn!(%error, "Unable to send allow message to orchestrator");
                 }
@@ -445,7 +495,7 @@ where
             tokio::select! {
                 Some(msg) = feed.receive_state_changes() => {
                     match scheduler.on_feed_action(&msg).await {
-                       Ok(Some(msg)) => {
+                        Ok(Some(msg)) => {
                             send_allow(msg).await;
                         }
                         Ok(None) => {},
@@ -492,7 +542,14 @@ pub(super) async fn init_with_scanner<E, S>(
     feed: orchestrator::Communicator,
 ) -> R<Sender<Message>>
 where
-    S: ScanStarter + ScanStopper + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
+    S: TypeOfScanner
+        + ScanStarter
+        + ScanStopper
+        + ScanDeleter
+        + ScanResultFetcher
+        + Send
+        + Sync
+        + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     let change_scan_status = ScanStateController::init(pool.clone()).await?;
@@ -503,6 +560,13 @@ where
         scanner: Arc::new(scanner),
         feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
         scan_state: change_scan_status,
+        lock_file_dir: config
+            .feed
+            .lock_file_dir
+            .clone()
+            .unwrap_or(PathBuf::from("/var/lib/openvas"))
+            .to_string_lossy()
+            .to_string(),
     };
 
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await
@@ -518,7 +582,7 @@ where
     E: Crypt + Send + Sync + 'static,
 {
     match config.scanner.scanner_type {
-        crate::config::ScannerType::Ospd => {
+        scanner_types::ScannerType::Ospd => {
             //TODO: when in notus don't start scheduler at all
             if !config.scanner.ospd.socket.exists()
                 && config.mode != crate::config::Mode::ServiceNotus
@@ -534,7 +598,7 @@ where
             );
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
-        crate::config::ScannerType::Openvas => {
+        scanner_types::ScannerType::Openvas => {
             let redis_url = cmd::get_redis_socket();
 
             let scanner = openvas::Scanner::new(
@@ -547,7 +611,7 @@ where
 
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
-        crate::config::ScannerType::Openvasd => {
+        scanner_types::ScannerType::Openvasd => {
             let loader = Loader::from_feed_path(&config.feed.path);
             let executor = nasl_std_functions();
             let notus = config
@@ -558,6 +622,7 @@ where
             let scanner = OpenvasdScanner::new(storage, loader, executor, notus);
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
+        _ => panic!("Invalid Scanner type"),
     }
 }
 
@@ -605,6 +670,7 @@ pub(crate) mod tests {
             max_concurrent_scan: 4,
             feed_sync_in_progress: Arc::new(RwLock::new(feed_changes)),
             scan_state: change_scan_status,
+            lock_file_dir: String::new(),
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
         Ok((under_test, known_scans))
