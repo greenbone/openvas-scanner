@@ -176,7 +176,7 @@ impl NaslSocket {
         &None
     }
 
-    pub fn set_session_id(&mut self, sid: Arc<Mutex<Vec<String>>>) {
+    pub fn set_session_id(&mut self, sid: Arc<Mutex<Option<String>>>) {
         if let NaslSocket::Tcp(tcp_connection) = self {
             tcp_connection.set_session_id(sid);
         };
@@ -588,7 +588,7 @@ async fn make_tls_client_connection(
     context: &ScanCtx<'_>,
     transport: &OpenvasEncaps,
     vhost: &str,
-    shared_storage: &Arc<Mutex<Vec<String>>>,
+    shared_storage: &Arc<Mutex<Option<String>>>,
 ) -> Option<ClientConnection> {
     get_tls_conf(context).await.ok().and_then(|conf| {
         create_tls_client(
@@ -619,7 +619,7 @@ pub async fn open_sock_tcp_vhost(
         transport
     };
     let mut set_transport = false;
-    let shared_storage = Arc::new(Mutex::new(Vec::new()));
+    let shared_storage = Arc::new(Mutex::new(None));
 
     let tls = match OpenvasEncaps::from_i64(transport) {
         // Auto Detection
@@ -753,7 +753,7 @@ async fn socket_negotiate_ssl(
     transport: Option<i64>,
 ) -> Result<NaslValue, FnError> {
     let transport = transport.unwrap_or(OpenvasEncaps::TlsCustom.into());
-    let session_id = Arc::new(Mutex::new(Vec::new()));
+    let session_id = Arc::new(Mutex::new(None));
     let client = get_tls_conf(context).await.and_then(|conf| {
         prepare_tls_client(
             &conf.cert_path,

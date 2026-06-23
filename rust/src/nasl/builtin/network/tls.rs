@@ -52,43 +52,19 @@ impl Display for TLSError {
 
 #[derive(Debug)]
 pub struct MemoryKeyLogger {
-    // Usamos Arc<Mutex<>> para que sea seguro modificarlo entre hilos
-    pub storage: Arc<Mutex<Vec<String>>>,
+    pub storage: Arc<Mutex<Option<String>>>,
 }
 
 impl KeyLog for MemoryKeyLogger {
     fn log(&self, label: &str, client_random: &[u8], _secret: &[u8]) {
         if label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET" {
             let session_hex: String = client_random.iter().map(|b| format!("{:02x}", b)).collect();
-
-            // Bloqueamos el Mutex temporalmente para añadir el ID a la lista
             if let Ok(mut lock) = self.storage.lock() {
-                lock.push(session_hex);
+                *lock = Some(session_hex);
             }
         }
     }
 }
-
-//#[derive(Debug)]
-//pub struct SessionIdLogger{
-//  pub storage: Arc<Mutex<Vec<String>>>,
-//}
-//
-//impl KeyLog for SessionIdLogger {
-//    fn log(&self, label: &str, client_random: &[u8], _secret: &[u8]) {
-//        // Only log on the first handshake secret message to avoid duplicate log noise
-//        if label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET" || label == "CLIENT_RANDOM" {
-//            // Format bytes as a hex string for easy readability in your log aggregator
-//            let session_hex: String = client_random
-//                .iter()
-//                .map(|b| format!("{:02x}", b))
-//                .collect();
-//            if let Ok(mut lock) = self.storage.lock() {
-//                lock.push(session_hex);
-//            }
-//        }
-//    }
-//}
 
 fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, TLSError> {
     let keyfile = fs::File::open(filename)?;
@@ -114,7 +90,7 @@ pub fn prepare_tls_client(
     password: &str,
     cafile_path: &str,
     transport: &OpenvasEncaps,
-    shared_storage: &Arc<Mutex<Vec<String>>>,
+    shared_storage: &Arc<Mutex<Option<String>>>,
 ) -> Result<ClientConfig, TLSError> {
     let config = match transport {
         OpenvasEncaps::Tls12 => ClientConfig::builder_with_protocol_versions(&[&TLS12]),
@@ -176,7 +152,7 @@ pub fn create_tls_client(
     password: &str,
     cafile_path: &str,
     transport: &OpenvasEncaps,
-    shared_storage: &Arc<Mutex<Vec<String>>>,
+    shared_storage: &Arc<Mutex<Option<String>>>,
 ) -> Result<ClientConnection, TLSError> {
     let server = ServerName::try_from(hostname.to_owned()).unwrap();
     let config = prepare_tls_client(
