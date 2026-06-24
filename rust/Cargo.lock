@@ -1514,6 +1514,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "dos-date-time"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6bf3a6a5a5068b83e2bc1251735e040c3c0d54bc0bb829bec86d76eb1197689"
+dependencies = [
+ "chrono",
+ "jiff",
+ "time",
+]
+
+[[package]]
 name = "dotenvy"
 version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3189,7 +3200,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "static_assertions",
- "windows 0.61.3",
+ "windows 0.62.2",
 ]
 
 [[package]]
@@ -3292,13 +3303,14 @@ dependencies = [
 
 [[package]]
 name = "nt-time"
-version = "0.12.1"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ad6fee094ffe35b67a67b9057d93492f8a2318edd22e1a731c545b8dbecb64e"
+checksum = "293dcb75775acfac821c0be754ea8489cc606689f1a23faa11425c0154e5a85c"
 dependencies = [
  "chrono",
+ "dos-date-time",
  "jiff",
- "rand 0.9.4",
+ "rand 0.10.1",
  "time",
 ]
 
@@ -5070,7 +5082,7 @@ dependencies = [
  "sequoia-openpgp",
  "socket2",
  "tempfile",
- "thiserror 2.0.18",
+ "thiserror 1.0.69",
  "tokio",
  "tokio-util",
  "winapi",
@@ -5099,7 +5111,7 @@ dependencies = [
  "regex",
  "regex-syntax",
  "sha1collisiondetection",
- "thiserror 2.0.18",
+ "thiserror 1.0.69",
  "xxhash-rust",
 ]
 
