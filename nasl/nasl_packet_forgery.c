@@ -709,6 +709,15 @@ get_tcp_element (lex_ctxt *lexic)
     {
       retc = alloc_typed_cell (CONST_DATA);
       retc->size = UNFIX (ip->ip_len) - (tcp->th_off + ip->ip_hl) * 4;
+      if (retc->size < 0
+          || (size_t) retc->size > ipsz - (ip->ip_hl + tcp->th_off) * 4)
+        {
+          nasl_perror (lexic,
+                       "get_tcp_element: Erroneous tcp header offset %d\n",
+                       retc->size);
+          deref_cell (retc);
+          return NULL;
+        }
       retc->x.str_val = g_malloc0 (retc->size);
       bcopy ((char *) tcp + tcp->th_off * 4, retc->x.str_val, retc->size);
       return retc;
