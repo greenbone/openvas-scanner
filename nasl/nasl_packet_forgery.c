@@ -731,55 +731,111 @@ get_tcp_element (lex_ctxt *lexic)
  * @param[out] tcp_all_options Container for the options to return.
  */
 static void
-get_tcp_options (char *options, struct tcp_options *tcp_all_options)
+get_tcp_options (char *options, struct tcp_options *tcp_all_options,
+                 uint8_t option_len)
 {
-  uint8_t *opt_kind;
+  uint8_t *opt_kind, *opt_end, len;
   if (options == NULL)
     return;
 
   opt_kind = (uint8_t *) options;
+  opt_end = (uint8_t *) options + option_len;
 
-  while (*opt_kind != 0)
+  while (opt_kind < opt_end && *opt_kind != 0)
     {
       switch (*opt_kind)
         {
-        case TCPOPT_MAXSEG:
+        case TCPOPT_NOP:
+          opt_kind++;
+          break;
+        case TCPOPT_MAXSEG: // requires 4 bytes
+          if (opt_kind + 1 >= opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
+          len = *(opt_kind + 1);
+          if (len < 4 || opt_kind + len > opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
           tcp_all_options->mss.kind = *opt_kind;
           tcp_all_options->mss.len = *(opt_kind + 1);
           tcp_all_options->mss.mss = *((uint16_t *) (opt_kind + 2));
-          opt_kind = opt_kind + *(opt_kind + 1);
+          opt_kind += len;
           break;
-        case TCPOPT_WINDOW:
+        case TCPOPT_WINDOW: // requires 3 bytes
+          if (opt_kind + 1 >= opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
+          len = *(opt_kind + 1);
+          if (len < 3 || opt_kind + len > opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
+
           tcp_all_options->wscale.kind = *opt_kind;
           tcp_all_options->wscale.len = *(opt_kind + 1);
           tcp_all_options->wscale.wscale = (uint8_t) *(opt_kind + 2);
-          opt_kind = opt_kind + *(opt_kind + 1);
+          opt_kind += len;
           break;
-        case TCPOPT_SACK_PERMITTED:
+        case TCPOPT_SACK_PERMITTED: // requires 2 bytes
+          if (opt_kind + 1 >= opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
+          len = *(opt_kind + 1);
+          if (len < 2 || opt_kind + len > opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
           tcp_all_options->sack_perm.kind = *opt_kind;
           tcp_all_options->sack_perm.len = *(opt_kind + 1);
-          opt_kind = opt_kind + *(opt_kind + 1);
+          opt_kind += len;
           break;
-        case TCPOPT_TIMESTAMP:
+        case TCPOPT_TIMESTAMP: // requires 10 bytes
+          if (opt_kind + 1 >= opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
+          len = *(opt_kind + 1);
+          if (len < 10 || opt_kind + len > opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
           tcp_all_options->tstamp.kind = *opt_kind;
           tcp_all_options->tstamp.len = *(opt_kind + 1);
           tcp_all_options->tstamp.tstamp = *((uint32_t *) (opt_kind + 2));
           tcp_all_options->tstamp.e_tstamp = *((uint32_t *) (opt_kind + 6));
-          opt_kind = opt_kind + *(opt_kind + 1);
-          break;
-        case TCPOPT_EOL:
-        case TCPOPT_NOP:
-          opt_kind++;
+          opt_kind += len;
           break;
         case TCPOPT_SACK: // Not supported
-          opt_kind = opt_kind + *(opt_kind + 1);
+          if (opt_kind + 1 >= opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
+          len = *(opt_kind + 1);
+          if (opt_kind + len > opt_end)
+            {
+              g_debug ("%s: buffer over read", __func__);
+              return;
+            }
+          opt_kind += len;
           break;
         default:
           g_debug ("%s: Unsupported %u TCP option. "
                    "Not all options are returned.",
                    __func__, *opt_kind);
-          *opt_kind = 0;
-          break;
+          return;
         }
     }
 }
@@ -833,6 +889,7 @@ get_tcp_option (lex_ctxt *lexic)
   ip = (struct ip *) packet;
 
   ipsz = get_var_size_by_name (lexic, "tcp");
+  // ip header length is given in 32 bits words = 4 bytes.
   if (ip->ip_hl * 4 > ipsz)
     return NULL; /* Invalid packet */
 
@@ -841,25 +898,24 @@ get_tcp_option (lex_ctxt *lexic)
 
   tcp = (struct tcphdr *) (packet + ip->ip_hl * 4);
 
+  // 5 (words) is the minimum data offset given in 32-bit words
+  // (4 bytes * 5 words = 20 bytes).
   if (tcp->th_off <= 5)
+    return NULL; // no options
+
+  uint8_t options_len = 4 * (tcp->th_off - 5); // bytes
+
+  // check that options len calculated from tcp->th_off is not wrong
+  if (ip->ip_hl * 4 + 20 + options_len > ipsz)
     return NULL;
 
   // Get options from the segment
-  options = (char *) g_malloc0 (sizeof (uint8_t) * 4 * (tcp->th_off - 5));
-  memcpy (options, (char *) tcp + 20, (tcp->th_off - 5) * 4);
+  options = (char *) g_malloc0 (sizeof (uint8_t) * options_len);
+  memcpy (options, (char *) tcp + 20, options_len);
 
   tcp_all_options = g_malloc0 (sizeof (struct tcp_options));
-  get_tcp_options (options, tcp_all_options);
-  if (tcp_all_options == NULL)
-    {
-      nasl_perror (lexic, "%s: No TCP options found in passed TCP packet.\n",
-                   __func__);
 
-      g_free (options);
-      return NULL;
-    }
-
-  opt = get_int_var_by_name (lexic, "option", -1);
+  get_tcp_options (options, tcp_all_options, options_len);
   retc = NULL;
   switch (opt)
     {
@@ -1376,13 +1432,12 @@ dump_tcp_packet (lex_ctxt *lexic)
         {
           char *options;
           struct tcp_options *tcp_all_options;
-
-          options =
-            (char *) g_malloc0 (sizeof (uint8_t) * 4 * (tcp->th_off - 5));
-          memcpy (options, (char *) tcp + 20, (tcp->th_off - 5) * 4);
+          uint8_t options_len = 4 * (tcp->th_off - 5);
+          options = (char *) g_malloc0 (sizeof (uint8_t) * options_len);
+          memcpy (options, (char *) tcp + 20, options_len);
 
           tcp_all_options = g_malloc0 (sizeof (struct tcp_options));
-          get_tcp_options (options, tcp_all_options);
+          get_tcp_options (options, tcp_all_options, options_len);
           if (tcp_all_options != NULL)
             {
               printf ("\tTCP Options:\n");
