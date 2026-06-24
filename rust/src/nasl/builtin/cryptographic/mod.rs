@@ -38,7 +38,7 @@ pub enum CryptographicError {
     #[error("Error in AesGmac: {0}.")]
     AesGmacError(String),
     #[error("Invalid length of key in AesCmac {0}.")]
-    AesCmacInvalidLength(digest::InvalidLength),
+    AesCmacInvalidLength(cmac::digest::InvalidLength),
     #[error("Error in RSA: {0}.")]
     Rsa(String),
     #[error("Error in RC4: {0}.")]

@@ -2,13 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use digest::{
-    HashMarker, InvalidLength,
-    block_buffer::Eager,
-    core_api::{BufferKindUser, CoreProxy, FixedOutputCore, UpdateCore},
-    crypto_common::BlockSizeUser,
-    typenum::{IsLess, Le, NonZero, U256},
-};
+use digest::{InvalidLength, KeyInit};
+use hmac::digest::block_api::EagerHash;
 use hmac::{Hmac, Mac};
 use md2::Md2;
 use md5::Md5;
@@ -20,15 +15,7 @@ use crate::nasl::{prelude::*, utils::function::StringOrData};
 
 pub fn hmac<D>(key: &[u8], data: &[u8]) -> Result<Vec<u8>, FnError>
 where
-    D: CoreProxy,
-    D::Core: HashMarker
-        + UpdateCore
-        + FixedOutputCore
-        + BufferKindUser<BufferKind = Eager>
-        + Default
-        + Clone,
-    <D::Core as BlockSizeUser>::BlockSize: IsLess<U256>,
-    Le<<D::Core as BlockSizeUser>::BlockSize, U256>: NonZero,
+    D: EagerHash,
 {
     let mut hmac = match Hmac::<D>::new_from_slice(key) {
         Ok(x) => x,

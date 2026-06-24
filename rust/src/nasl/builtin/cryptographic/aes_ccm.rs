@@ -6,10 +6,10 @@ use aes::cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser};
 use aes::{Aes128, Aes192, Aes256};
 use ccm::{
     Ccm, KeyInit, NonceSize, TagSize,
+    aead::generic_array::ArrayLength,
     aead::{Aead, Error as aError, Payload},
     consts::{U4, U6, U7, U8, U9, U10, U11, U12, U13, U14, U16},
 };
-use digest::generic_array::ArrayLength;
 
 use crate::nasl::prelude::*;
 use crate::nasl::utils::function::StringOrData;

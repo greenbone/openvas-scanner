@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use digest::typenum;
+use digest::{KeyInit as _, typenum};
 use md5::Digest;
 use rand::{Rng, RngExt};
 
@@ -33,7 +33,7 @@ fn key7_to_key8(key7: &[u8]) -> Vec<u8> {
 /// Encrypts data using DES with a 7-byte key, expanding it to an 8-byte key.
 fn smb_des_encrypt(data: &[u8], key: &[u8]) -> Vec<u8> {
     use des::Des;
-    use digest::KeyInit;
+    use des::cipher::KeyInit;
     use ecb::cipher::BlockEncrypt;
     use ecb::cipher::generic_array::GenericArray;
     // Expand 7-byte key to 8-byte DES key

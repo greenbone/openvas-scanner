@@ -13,15 +13,11 @@ use sha2::{Sha256, Sha512};
 use crate::nasl::prelude::*;
 use crate::nasl::utils::function::StringOrData;
 
-fn nasl_hash<D: Digest>(data: Option<StringOrData>) -> Result<NaslValue, FnError>
-where
-    D::OutputSize: std::ops::Add,
-    <D::OutputSize as std::ops::Add>::Output: digest::generic_array::ArrayLength<u8>,
-{
+fn nasl_hash<D: Digest>(data: Option<StringOrData>) -> Result<NaslValue, FnError> {
     if let Some(data) = data {
         let mut hash = D::new();
         hash.update(data.data());
-        Ok(NaslValue::Data(hash.finalize().as_slice().to_vec()))
+        Ok(NaslValue::Data(hash.finalize().to_vec()))
     } else {
         Ok(NaslValue::Null)
     }
