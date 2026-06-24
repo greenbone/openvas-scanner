@@ -100,7 +100,7 @@ sha1 = "0.10.6"
 snmp2 = { version = "0.4.14", features = ["full"] }
 socket2 = { version = "0.6.4", features = ["all"] }
 sqlx = { version = "0", features = ["sqlite", "runtime-tokio-rustls"] }
-sysinfo = "0.37.2"
+sysinfo = "0.39.5"
 tempfile = "3.27.0"
 toml = "1.1.2"
 urlencoding = "2.1.3"
