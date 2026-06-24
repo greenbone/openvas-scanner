@@ -189,3 +189,6 @@ harness = false
 [[bench]]
 name = "interpreter"
 harness = false
+
+[workspace.metadata.cargo-shear]
+ignored-paths = ["crates/nasl-c-lib/build_support.rs"]
