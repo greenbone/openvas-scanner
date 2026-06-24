@@ -15,22 +15,6 @@
     - [feed](#feed)
       - [update](#update)
       - [transform](#transform)
-      - [transpile](#transpile)
-        - [NVT](#nvt)
-          - [oid](#oid)
-          - [name](#name)
-          - [filename](#filename)
-          - [tag](#tag)
-          - [dependencies](#dependencies)
-          - [required\_keys](#required_keys)
-          - [mandatory\_keys](#mandatory_keys)
-          - [excluded\_keys](#excluded_keys)
-          - [required\_ports](#required_ports)
-          - [required\_udp\_ports](#required_udp_ports)
-          - [references](#references)
-          - [preferences](#preferences)
-          - [category](#category)
-          - [family](#family)
 
 # scannerctl
 
@@ -236,26 +220,6 @@ Options:
 On `feed transform` it will create a list of `nasl` files within the feed directory, without verification. Each mentioned `*.nasl` script within that dir will be executed  with `description = 1`.
 
 It will produce a json array in stdout in the format described within [json-storage](#nvt)
-
-#### transpile
-
-Tool for feed manipulation. Transforms each nasl script and inc file based on the given rules.
-Currently it is able to rename, remove, add, push parameter or functions within a feed.
-
-Usage `scannerctl feed transpile [OPTIONS] --rules <FILE>`
-
-Options:
-- `-p`, `--path <FILE>`: Path to the feed.
-- `-r`, `--rules <FILE>`: Path to transpiler rules.
-- `-h`, `--help`: Print help
-
-An example can be found in [examples](../../examples/scannerctl/transpile.toml) folder. This example demonstrates how to
-- rename service `www` to `word-wide-web` in register_product
-- `register_host_detail` to `add_host_detail`
-
-to execute it call:
-
-`scannerctl -v feed transpile -p /tmp/feed -r examples/scannerctl/transpile.toml`
 
 ##### NVT
 
