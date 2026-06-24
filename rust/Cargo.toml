@@ -77,7 +77,7 @@ pnet = { version = "0.35.0" }
 pnet_base = { version = "0.35.0" }
 pnet_macros = { version = "0.35.0" }
 pnet_macros_support = { version = "0.35.0" }
-quick-xml = { version = "0.38.4", features = [
+quick-xml = { version = "0.40.1", features = [
     "serde", 
     "serde-types", 
     "serialize",
