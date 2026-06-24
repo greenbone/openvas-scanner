@@ -103,22 +103,25 @@ lychee_check() {
 
 license_headers() {
     cd "$ROOT"
-    local ext f header
+    local ext f header failed=0
     for ext in c h nasl cmake; do
         while IFS= read -r -d '' f; do
             header="$(head -n 3 "$f")"
             if [[ ! "$header" =~ SPDX ]]; then
                 echo "File does not contain license header: $f"
+                failed=1
             fi
         done < <(
             find . \
                 -not -path "./.docker/*" \
+                -not -path "./build/*" \
                 -not -path "./rust/target/*" \
                 -not -path "./rust/crates/nasl-c-lib/*" \
                 -regex ".*\.\($ext\)" \
                 -print0
         )
     done
+    return "$failed"
 }
 
 lint_all() {
