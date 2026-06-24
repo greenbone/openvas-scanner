@@ -182,7 +182,7 @@ impl NaslSocket {
         };
     }
 
-    pub fn session_id(&mut self) -> Option<String> {
+    pub fn session_id(&self) -> Option<String> {
         if let NaslSocket::Tcp(tcp_connection) = self {
             return tcp_connection.session_id();
         };
@@ -855,10 +855,10 @@ async fn socket_get_ssl_version(
 
 #[nasl_function(named(socket))]
 async fn socket_get_ssl_ciphersuite(
-    nasl_sockets: &mut NaslSockets,
+    nasl_sockets: &NaslSockets,
     socket: usize,
 ) -> Result<NaslValue, FnError> {
-    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    let soc = nasl_sockets.get_open_socket(socket)?;
     if let Some(v) = soc.ssl_ciphersuite() {
         return Ok(NaslValue::String(v.to_string()));
     }
@@ -867,10 +867,10 @@ async fn socket_get_ssl_ciphersuite(
 
 #[nasl_function(named(socket))]
 async fn socket_get_ssl_session_id(
-    nasl_sockets: &mut NaslSockets,
+    nasl_sockets: &NaslSockets,
     socket: usize,
 ) -> Result<NaslValue, FnError> {
-    let soc = nasl_sockets.get_open_socket_mut(socket)?;
+    let soc = nasl_sockets.get_open_socket(socket)?;
     if let Some(sid) = soc.session_id() {
         return Ok(NaslValue::String(sid));
     }
