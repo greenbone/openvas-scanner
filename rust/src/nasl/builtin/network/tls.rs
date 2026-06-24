@@ -56,10 +56,11 @@ pub struct MemoryKeyLogger {
 }
 
 impl KeyLog for MemoryKeyLogger {
-    fn log(&self, label: &str, client_random: &[u8], _secret: &[u8]) {
-        if label == "CLIENT_HANDSHAKE_TRAFFIC_SECRET" {
-            let session_hex: String = client_random.iter().map(|b| format!("{:02x}", b)).collect();
-            if let Ok(mut lock) = self.storage.lock() {
+    fn log(&self, _label: &str, client_random: &[u8], _secret: &[u8]) {
+        if let Ok(mut lock) = self.storage.lock() {
+            if lock.is_none() {
+                let session_hex: String =
+                    client_random.iter().map(|b| format!("{:02x}", b)).collect();
                 *lock = Some(session_hex);
             }
         }
