@@ -84,7 +84,7 @@ quick-xml = { version = "0.40.1", features = [
 ] }
 rand = "0.10.1"
 rc4 = "0.1.0"
-redis = "0.32.7"
+redis = "1.2.4"
 regex = "1.12.4"
 reqwest = { version = "0.13", features = ["json", "blocking"] }
 ripemd = "0.1.3"

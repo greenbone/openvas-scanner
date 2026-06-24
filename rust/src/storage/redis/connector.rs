@@ -85,8 +85,8 @@ struct RedisValueHandler {
 }
 
 impl FromRedisValue for RedisValueHandler {
-    fn from_redis_value(v: &Value) -> redis::RedisResult<RedisValueHandler> {
-        match v {
+    fn from_redis_value(v: Value) -> Result<RedisValueHandler, ParsingError> {
+        match &v {
             Value::Nil => Ok(RedisValueHandler { v: String::new() }),
             _ => {
                 let new_var: String = from_redis_value(v).unwrap_or_default();

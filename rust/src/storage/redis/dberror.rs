@@ -40,24 +40,27 @@ pub enum DbError {
 impl From<RedisError> for DbError {
     fn from(err: RedisError) -> DbError {
         match err.kind() {
-            ErrorKind::ResponseError
+            ErrorKind::Server(ServerErrorKind::ResponseError)
             | ErrorKind::AuthenticationFailed
-            | ErrorKind::NoScriptError
-            | ErrorKind::ReadOnly
+            | ErrorKind::Server(ServerErrorKind::NoScript)
+            | ErrorKind::Server(ServerErrorKind::ReadOnly)
             | ErrorKind::InvalidClientConfig
-            | ErrorKind::Moved
-            | ErrorKind::Ask => DbError::ConfigurationError(err.to_string()),
-            ErrorKind::IoError => DbError::IoError(err.to_string()),
-            ErrorKind::TypeError
-            | ErrorKind::ClientError
-            | ErrorKind::CrossSlot
-            | ErrorKind::ExtensionError => DbError::LibraryError(err.to_string()),
-            ErrorKind::ClusterDown | ErrorKind::MasterDown => {
+            | ErrorKind::Server(ServerErrorKind::Moved)
+            | ErrorKind::Server(ServerErrorKind::Ask) => {
+                DbError::ConfigurationError(err.to_string())
+            }
+            ErrorKind::Io => DbError::IoError(err.to_string()),
+            ErrorKind::UnexpectedReturnType
+            | ErrorKind::Client
+            | ErrorKind::Server(ServerErrorKind::CrossSlot)
+            | ErrorKind::Extension => DbError::LibraryError(err.to_string()),
+            ErrorKind::Server(ServerErrorKind::ClusterDown)
+            | ErrorKind::Server(ServerErrorKind::MasterDown) => {
                 DbError::ConnectionLost(err.to_string())
             }
-            ErrorKind::ExecAbortError | ErrorKind::BusyLoadingError | ErrorKind::TryAgain => {
-                DbError::Retry(err.to_string())
-            }
+            ErrorKind::Server(ServerErrorKind::ExecAbort)
+            | ErrorKind::Server(ServerErrorKind::BusyLoading)
+            | ErrorKind::Server(ServerErrorKind::TryAgain) => DbError::Retry(err.to_string()),
             _ => DbError::Unknown(err.to_string()),
         }
     }
