@@ -314,32 +314,36 @@ where
                 sumsfile.insert(item.file_name.clone(), item);
             }
         }
-        // inc files in the feed, are not listed in the vt-metadata json.
-        // Therefore, we create a list of inc files and perform the integrity
-        // check iterating on this list.
+        // .inc files are feed *includes* (NASL libraries), not VTs: they are
+        // not listed in the vt-metadata json and carry no OID. We still want to
+        // integrity-check them, but they must NOT be sent to the VT storage.
+        // Previously each .inc was stored as a VTData with a shared placeholder
+        // oid ("fake_oid"); with more than one .inc file that collides on the
+        // unique `oid` key and aborts the whole NASL feed synchronization with
+        // `UNIQUE constraint failed: plugins.oid`, leaving openvasd with no
+        // runnable VTs. Verify the integrity of each .inc file in place instead.
+        // The check only applies when signature verification is enabled (there
+        // is nothing in the sums file to verify against otherwise).
         // TODO: improve the signature check for the whole feed.
-        let target_ext = OsStr::new("inc");
-        let inc_files = WalkDir::new(&dir_path)
-            .into_iter()
-            .filter_map(Result::ok)
-            .filter(|entry| entry.file_type().is_file())
-            .map(|entry| entry.into_path())
-            .filter(|path| path.extension() == Some(target_ext))
-            .collect::<Vec<_>>();
-        for element in inc_files.iter() {
-            let inc_f = VTData {
-                oid: "fake_oid".to_string(),
-                filename: element
+        if signature_check {
+            let target_ext = OsStr::new("inc");
+            let inc_files = WalkDir::new(&dir_path)
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|entry| entry.file_type().is_file())
+                .map(|entry| entry.into_path())
+                .filter(|path| path.extension() == Some(target_ext))
+                .collect::<Vec<_>>();
+            for element in inc_files.iter() {
+                let filename = element
                     .strip_prefix(&dir_path)
                     .unwrap()
                     .to_str()
                     .unwrap()
-                    .to_string(),
-                ..Default::default()
-            };
-
-            if let Err(e) = verify_signature_and_send(&sender, &sumsfile, inc_f, signature_check) {
-                tracing::warn!(e);
+                    .to_string();
+                if let Err(e) = verify_signature(&sumsfile, &filename) {
+                    tracing::warn!(e);
+                }
             }
         }
 
@@ -360,6 +364,23 @@ where
 }
 
 // Sends a VTdatamessage struct to be loaded
+/// Verify a feed file's hashsum against the (already signature-verified)
+/// sha256sums file, returning its hashsum on success. Used both to integrity-
+/// check feed includes (.inc files, which are not stored as VTs) and as the
+/// verification step before sending a VT to storage.
+fn verify_signature(
+    sumsfile: &HashMap<String, HashSumFileItem<'_>>,
+    filename: &str,
+) -> Result<String, String> {
+    let Some(checker) = sumsfile.get(filename) else {
+        return Err(format!("File not present in sumsfile: {filename:?}"));
+    };
+    checker
+        .verify()
+        .map_err(|e| format!("Wrong hashsum for file: {e:?}"))?;
+    Ok(checker.get_hashsum())
+}
+
 fn verify_signature_and_send(
     sender: &std::sync::mpsc::Sender<VTDataMessage>,
     sumsfile: &HashMap<String, HashSumFileItem<'_>>,
@@ -367,16 +388,7 @@ fn verify_signature_and_send(
     signature_check: bool,
 ) -> Result<(), String> {
     let hashsum = if signature_check {
-        let Some(checker) = sumsfile.get(&item.filename) else {
-            return Err(format!(
-                "File not present in sumsfile: {:?}",
-                &item.filename
-            ));
-        };
-        checker
-            .verify()
-            .map_err(|e| format!("Wrong hashsum for file: {e:?}"))?;
-        checker.get_hashsum()
+        verify_signature(sumsfile, &item.filename)?
     } else {
         "".into()
     };
