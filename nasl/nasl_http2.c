@@ -347,7 +347,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
     }
   if (ua)
     {
-      curl_easy_setopt (handle, CURLOPT_USERAGENT, g_strdup (url->str));
+      curl_easy_setopt (handle, CURLOPT_USERAGENT, g_strdup (ua));
       g_free (ua);
     }
 
