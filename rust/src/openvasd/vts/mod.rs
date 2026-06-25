@@ -135,9 +135,14 @@ pub async fn init(
             let worker = redis::FeedSynchronizer::from(config);
             _init(config, fetcher, worker, snapshot).await
         }
+        ScannerType::Ospd => {
+            let fetcher = redis::RedisPluginHandler::from(config);
+            let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
+            _init(config, fetcher, worker, snapshot).await
+        }
         // For OSPD we actually don't need a communicator at all, however as we are facing out OSPD
         // altogether the effort of getting rid of that seems not worth it.
-        ScannerType::Openvasd | ScannerType::Ospd => {
+        ScannerType::Openvasd => {
             let fetcher = crate::database::sqlite::vts::SqlPluginStorage::from(pool.clone());
             let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
             _init(config, fetcher, worker, snapshot).await
@@ -327,14 +332,15 @@ where
             .filter(|path| path.extension() == Some(target_ext))
             .collect::<Vec<_>>();
         for element in inc_files.iter() {
+            let element_aux = element
+                .strip_prefix(&dir_path)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
             let inc_f = VTData {
-                oid: "fake_oid".to_string(),
-                filename: element
-                    .strip_prefix(&dir_path)
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string(),
+                oid: element_aux.clone(),
+                filename: element_aux,
                 ..Default::default()
             };
 
