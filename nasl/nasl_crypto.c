@@ -675,6 +675,8 @@ nasl_ntlmv1_hash (lex_ctxt *lexic)
 
   if (pass_len < 16)
     pass_len = 16;
+  if (pass_len > 21)
+    pass_len = 21;
 
   bzero (p21, sizeof (p21));
   memcpy (p21, password, pass_len);
