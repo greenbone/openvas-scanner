@@ -52,7 +52,7 @@ pub enum Service {
     /// SNMP, supports [SNMP](CredentialType::SNMP)
     SNMP,
     #[serde(rename = "krb5")]
-    /// SNMP, supports [SNMP](CredentialType::SNMP)
+    /// KRB5, supports [KRB5](CredentialType::KRB5)
     KRB5,
     #[serde(rename = "generic")]
     Generic,
@@ -139,6 +139,8 @@ pub enum CredentialType {
         /// The SNMP privacy algorithm.
         privacy_algorithm: String,
     },
+    #[serde(rename = "krb5")]
+    /// KRB5 credentials.
     KRB5 {
         username: String,
         password: String,
