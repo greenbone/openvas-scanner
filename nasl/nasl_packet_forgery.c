@@ -571,8 +571,9 @@ forge_tcp_packet (lex_ctxt *lexic)
     }
 
   ipsz = get_var_size_by_name (lexic, "ip");
-  if (ipsz > ip->ip_hl * 4)
-    ipsz = ip->ip_hl * 4;
+  const size_t ip_hlen = (size_t) ip->ip_hl * 4;
+  if (ipsz > ip_hlen)
+    ipsz = ip_hlen;
 
   data = get_str_var_by_name (lexic, "data");
   len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
@@ -583,7 +584,7 @@ forge_tcp_packet (lex_ctxt *lexic)
 
   bcopy (ip, tcp_packet, ipsz);
   /* recompute the ip checksum, because the ip length changed */
-  if (UNFIX (tcp_packet->ip_len) <= tcp_packet->ip_hl * 4)
+  if (UNFIX (tcp_packet->ip_len) <= (int) tcp_packet->ip_hl * 4)
     {
       if (get_int_var_by_name (lexic, "update_ip_len", 1))
         {
@@ -670,10 +671,10 @@ get_tcp_element (lex_ctxt *lexic)
 
   ip = (struct ip *) packet;
 
-  if (ip->ip_hl * 4 > ipsz)
+  if ((size_t) ip->ip_hl * 4 > ipsz)
     return NULL; /* Invalid packet */
 
-  if (UNFIX (ip->ip_len) > ipsz)
+  if ((size_t) UNFIX (ip->ip_len) > ipsz)
     return NULL; /* Invalid packet */
 
   tcp = (struct tcphdr *) (packet + ip->ip_hl * 4);
@@ -945,14 +946,14 @@ set_tcp_elements (lex_ctxt *lexic)
       return NULL;
     }
 
-  if (ip->ip_hl * 4 > pktsz)
+  if ((size_t) ip->ip_hl * 4 > pktsz)
     tcp =
       (struct tcphdr *) (pkt
                          + 20); /* ip->ip_hl is bogus, we work around that */
   else
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
-  if (pktsz < UNFIX (ip->ip_len))
+  if (pktsz < (size_t) UNFIX (ip->ip_len))
     return NULL;
 
   if (data_len == 0)
@@ -1217,13 +1218,13 @@ insert_tcp_options (lex_ctxt *lexic)
   // Add EOL
   memcpy (ptr_opts_pos, &eol, 1);
 
-  if (ip->ip_hl * 4 > pktsz)
+  if ((size_t) ip->ip_hl * 4 > pktsz)
     // ip->ip_hl is bogus, we work around that
     tcp = (struct tcphdr *) (pkt + 20);
   else
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
-  if (pktsz < UNFIX (ip->ip_len))
+  if (pktsz < (size_t) UNFIX (ip->ip_len))
     {
       g_free (opts);
       return NULL;
@@ -1404,7 +1405,8 @@ dump_tcp_packet (lex_ctxt *lexic)
       printf ("\n\tData     : ");
       c = (char *) ((char *) tcp + sizeof (struct tcphdr)
                     + sizeof (uint8_t) * 4 * (tcp->th_off - 5));
-      if (UNFIX (ip->ip_len) > (sizeof (struct ip) + sizeof (struct tcphdr)))
+      if (UNFIX (ip->ip_len)
+          > (int) (sizeof (struct ip) + sizeof (struct tcphdr)))
         for (j = 0; j < UNFIX (ip->ip_len) - sizeof (struct ip)
                           - sizeof (struct tcphdr)
                           - sizeof (uint8_t) * 4 * (tcp->th_off - 5)
@@ -1507,7 +1509,7 @@ forge_udp_packet (lex_ctxt *lexic)
           g_free (udpsumdata);
         }
 
-      if (UNFIX (udp_packet->ip_len) <= udp_packet->ip_hl * 4)
+      if (UNFIX (udp_packet->ip_len) <= (int) udp_packet->ip_hl * 4)
         {
           int v = get_int_var_by_name (lexic, "update_ip_len", 1);
           if (v != 0)
@@ -1799,14 +1801,14 @@ forge_icmp_packet (lex_ctxt *lexic)
       if (t == 13 || t == 14)
         len += 3 * sizeof (time_t);
 
-      if (ip->ip_hl * 4 > ip_sz)
+      if ((size_t) ip->ip_hl * 4 > ip_sz)
         return NULL;
 
       pkt = g_malloc0 (sizeof (struct icmp) + ip_sz + len);
       ip_icmp = (struct ip *) pkt;
 
       bcopy (ip, ip_icmp, ip_sz);
-      if (UNFIX (ip_icmp->ip_len) <= (ip_icmp->ip_hl * 4))
+      if (UNFIX (ip_icmp->ip_len) <= (int) ip_icmp->ip_hl * 4)
         {
           if (get_int_var_by_name (lexic, "update_ip_len", 1) != 0)
             {
@@ -1990,7 +1992,7 @@ forge_igmp_packet (lex_ctxt *lexic)
 
       bcopy (ip, ip_igmp, ipsz);
 
-      if (UNFIX (ip_igmp->ip_len) <= ip_igmp->ip_hl * 4)
+      if (UNFIX (ip_igmp->ip_len) <= (int) ip_igmp->ip_hl * 4)
         {
           int v = get_int_var_by_name (lexic, "update_ip_len", 1);
           if (v != 0)
