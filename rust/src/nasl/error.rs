@@ -69,7 +69,7 @@ pub fn emit_errors<T: IntoDiagnostic>(file: &SourceFile, errs: impl Iterator<Ite
     let config = codespan_reporting::term::Config::default();
     for err in errs {
         let diagnostic = err.into_diagnostic();
-        term::emit(&mut writer.lock(), &config, file, &diagnostic).unwrap();
+        term::emit_to_write_style(&mut writer.lock(), &config, file, &diagnostic).unwrap();
     }
 }
 
@@ -81,7 +81,7 @@ pub fn emit_errors_str<T: IntoDiagnostic>(
     let config = codespan_reporting::term::Config::default();
     for err in errs {
         let diagnostic = err.into_diagnostic();
-        term::emit(&mut writer, &config, file, &diagnostic).unwrap();
+        term::emit_to_write_style(&mut writer, &config, file, &diagnostic).unwrap();
     }
     String::from_utf8(writer.into_inner()).unwrap()
 }

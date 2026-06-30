@@ -7,9 +7,9 @@ use crate::function_set;
 use crate::nasl::prelude::*;
 use crate::nasl::utils::function::StringOrData;
 use ccm::aead::OsRng;
+use digest::Digest;
 use nasl_function_proc_macro::nasl_function;
 use rsa::pkcs8::DecodePrivateKey;
-use rsa::signature::digest::Digest;
 use rsa::{BigUint, Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
 use sha1::Sha1;
 

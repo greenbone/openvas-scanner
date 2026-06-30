@@ -14,7 +14,7 @@ use time::{OffsetDateTime, format_description};
 
 // the function panics because the support formats are hardcoded and therefore the user cannot change anything
 fn parse_or_panic(input: &str) -> Vec<time::format_description::FormatItem<'_>> {
-    match format_description::parse(input) {
+    match format_description::parse_borrowed::<1>(input) {
         Ok(x) => x,
         Err(e) => panic!("expected {input} to be parsable: {e:?}"),
     }

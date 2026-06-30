@@ -2,12 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use aes::cipher::BlockSizeUser;
-use ccm::consts::U256;
-use digest::HashMarker;
-use digest::block_buffer::Eager;
-use digest::core_api::{BufferKindUser, CoreProxy, FixedOutputCore, UpdateCore};
-use digest::typenum::{IsLess, Le, NonZero};
+use hmac::digest::block_api::EagerHash;
 use sha2::{Sha256, Sha384};
 
 use crate::nasl::builtin::cryptographic::hmac::hmac;
@@ -21,15 +16,7 @@ fn prf<D>(
     outlen: usize,
 ) -> Result<Vec<u8>, FnError>
 where
-    D: CoreProxy,
-    D::Core: HashMarker
-        + UpdateCore
-        + FixedOutputCore
-        + BufferKindUser<BufferKind = Eager>
-        + Default
-        + Clone,
-    <D::Core as BlockSizeUser>::BlockSize: IsLess<U256>,
-    Le<<D::Core as BlockSizeUser>::BlockSize, U256>: NonZero,
+    D: EagerHash,
 {
     let secret = secret.data();
     let label_seed = [label.data(), seed.data()].concat();

@@ -8,13 +8,11 @@ use std::fmt::Display;
 
 use async_trait::async_trait;
 use chacha20::ChaCha20;
-use chacha20::cipher::{KeyIvInit, StreamCipher};
+use chacha20::cipher::{KeyIvInit, StreamCipher, generic_array::GenericArray};
 use generic_array::typenum::U32;
 use pbkdf2::pbkdf2_hmac;
 use rand::{self, Rng};
 use sha2::Sha256;
-
-use sha2::digest::generic_array::GenericArray;
 
 #[derive(Clone, Debug)]
 pub struct Key(GenericArray<u8, U32>);
