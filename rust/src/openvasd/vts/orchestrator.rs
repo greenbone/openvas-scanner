@@ -140,6 +140,8 @@ pub enum WorkerError {
     Serialization(#[from] serde_json::Error),
     #[error("Unable to send message. Receiver dropped.")]
     Send,
+    #[error("Unable to receive message. Sender dropped.")]
+    Receive,
 }
 
 pub trait Worker {
@@ -320,7 +322,7 @@ where
                         )
                     }
                 },
-                None => tracing::warn!("Sender dropped."),
+                None => return Err(WorkerError::Receive),
             }
 
             match (

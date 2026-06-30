@@ -486,17 +486,19 @@ where
         let send_allow = async |msgs: Vec<orchestrator::Allow>| {
             for msg in msgs {
                 tracing::debug!(feed_type=?msg, "Sending feed sync allow.");
-                if let Err(error) = feed.approve(msg).await {
-                    tracing::warn!(%error, "Unable to send allow message to orchestrator");
-                }
+                feed.approve(msg).await?;
             }
+            Ok::<(), orchestrator::CommunicationIssues>(())
         };
         loop {
             tokio::select! {
                 Some(msg) = feed.receive_state_changes() => {
                     match scheduler.on_feed_action(&msg).await {
                         Ok(Some(msg)) => {
-                            send_allow(msg).await;
+                            if let Err(error) = send_allow(msg).await {
+                                tracing::warn!(%error, "Unable to send allow message to orchestrator");
+                                break;
+                            }
                         }
                         Ok(None) => {},
                         Err(error) =>  tracing::warn!(?msg, %error, "Unable to react on feed message"),
@@ -516,7 +518,10 @@ where
                     match scheduler.on_schedule().await {
                         Err(error) => tracing::warn!(%error, "Unable to schedule"),
                         Ok(msgs) => {
-                                send_allow(msgs).await;
+                            if let Err(error) = send_allow(msgs).await {
+                                tracing::warn!(%error, "Unable to send allow message to orchestrator");
+                                break;
+                            }
                         }
 
                     }
