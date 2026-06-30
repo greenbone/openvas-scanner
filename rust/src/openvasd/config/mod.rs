@@ -6,7 +6,7 @@ use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
     net::SocketAddr,
-    path::PathBuf,
+    path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
 };
@@ -101,8 +101,23 @@ impl Default for Feed {
             path: PathBuf::from("/var/lib/openvas/plugins"),
             check_interval: Duration::from_secs(3600),
             signature_check: true,
-            lock_file_dir: Some(PathBuf::from("/var/lib/openvas")),
+            lock_file_dir: None,
         }
+    }
+}
+
+impl Feed {
+    fn default_lock_file_dir(feed_path: &Path) -> PathBuf {
+        feed_path
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| PathBuf::from("."))
+    }
+
+    pub(crate) fn lock_file_dir(&self) -> PathBuf {
+        self.lock_file_dir
+            .clone()
+            .unwrap_or_else(|| Self::default_lock_file_dir(&self.path))
     }
 }
 
@@ -657,10 +672,14 @@ impl Config {
             config.scanner.ospd.read_timeout = Some(Duration::from_secs(*interval));
         }
 
+        let lock_file_dir_arg = cmds.get_one::<PathBuf>("lock-file-dir");
         if let Some(path) = cmds.get_one::<PathBuf>("feed-path") {
             config.feed.path.clone_from(path);
+            if lock_file_dir_arg.is_none() {
+                config.feed.lock_file_dir = None;
+            }
         }
-        if let Some(path) = cmds.get_one::<PathBuf>("lock-file-dir") {
+        if let Some(path) = lock_file_dir_arg {
             config
                 .feed
                 .lock_file_dir

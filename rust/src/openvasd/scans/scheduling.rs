@@ -129,6 +129,25 @@ pub enum Message {
 // maybe we should just use AnyHow
 type R<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+#[derive(Debug, thiserror::Error)]
+enum LockFileError {
+    #[error("Unable to open feed update lock file {path}: {source}")]
+    Open {
+        path: String,
+        source: std::io::Error,
+    },
+    #[error("Unable to check feed update lock file {path}: {source}")]
+    TryLock {
+        path: String,
+        source: std::io::Error,
+    },
+    #[error("Unable to unlock feed update lock file {path}: {source}")]
+    Unlock {
+        path: String,
+        source: std::io::Error,
+    },
+}
+
 impl<T, C> ScanScheduler<T, C> {
     /// Should be called on restart if the application crashed while there were running scans.
     ///
@@ -181,15 +200,22 @@ impl<T, C> ScanScheduler<T, C> {
     }
 }
 
-fn is_file_locked(path: String) -> bool {
-    let mut file = LockFile::open(&path).expect("Invalid path to lock file");
+fn is_file_locked(path: String) -> R<bool> {
+    let mut file = LockFile::open(&path).map_err(|source| LockFileError::Open {
+        path: path.clone(),
+        source,
+    })?;
 
-    if file.try_lock().expect("already locked by this process") {
-        file.unlock().expect("unlocking not locked file");
-        false
+    if file.try_lock().map_err(|source| LockFileError::TryLock {
+        path: path.clone(),
+        source,
+    })? {
+        file.unlock()
+            .map_err(|source| LockFileError::Unlock { path, source })?;
+        Ok(false)
     } else {
-        //locked by another process
-        true
+        // locked by another process
+        Ok(true)
     }
 }
 
@@ -386,7 +412,7 @@ where
                 let is_file_locked = {
                     let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
                     lockfile.push(LOCK_FILE);
-                    is_file_locked(lockfile.to_string_lossy().to_string())
+                    is_file_locked(lockfile.to_string_lossy().to_string())?
                 };
                 if self.scan_type() == ScannerType::Openvas && !is_file_locked {
                     Some(self.feed_sync_in_progress.write().await.approve())
@@ -438,7 +464,7 @@ where
             let filelocked = {
                 let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
                 lockfile.push(LOCK_FILE);
-                is_file_locked(lockfile.to_string_lossy().to_string())
+                is_file_locked(lockfile.to_string_lossy().to_string())?
             };
             if count_running == 0 || (self.scan_type() == ScannerType::Openvas && !filelocked) {
                 return Ok(self.need_to_allow().await);
@@ -486,17 +512,19 @@ where
         let send_allow = async |msgs: Vec<orchestrator::Allow>| {
             for msg in msgs {
                 tracing::debug!(feed_type=?msg, "Sending feed sync allow.");
-                if let Err(error) = feed.approve(msg).await {
-                    tracing::warn!(%error, "Unable to send allow message to orchestrator");
-                }
+                feed.approve(msg).await?;
             }
+            Ok::<(), orchestrator::CommunicationIssues>(())
         };
         loop {
             tokio::select! {
                 Some(msg) = feed.receive_state_changes() => {
                     match scheduler.on_feed_action(&msg).await {
                         Ok(Some(msg)) => {
-                            send_allow(msg).await;
+                            if let Err(error) = send_allow(msg).await {
+                                tracing::warn!(%error, "Unable to send allow message to orchestrator");
+                                break;
+                            }
                         }
                         Ok(None) => {},
                         Err(error) =>  tracing::warn!(?msg, %error, "Unable to react on feed message"),
@@ -516,7 +544,10 @@ where
                     match scheduler.on_schedule().await {
                         Err(error) => tracing::warn!(%error, "Unable to schedule"),
                         Ok(msgs) => {
-                                send_allow(msgs).await;
+                            if let Err(error) = send_allow(msgs).await {
+                                tracing::warn!(%error, "Unable to send allow message to orchestrator");
+                                break;
+                            }
                         }
 
                     }
@@ -560,13 +591,7 @@ where
         scanner: Arc::new(scanner),
         feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
         scan_state: change_scan_status,
-        lock_file_dir: config
-            .feed
-            .lock_file_dir
-            .clone()
-            .unwrap_or(PathBuf::from("/var/lib/openvas"))
-            .to_string_lossy()
-            .to_string(),
+        lock_file_dir: config.feed.lock_file_dir().to_string_lossy().to_string(),
     };
 
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await
