@@ -257,6 +257,12 @@ nasl_get_sign (lex_ctxt *lexic)
   uint8_t calc_md5_mac[16];
   simple_packet_signature_ntlmssp ((uint8_t *) mac_key, buf, seq_num,
                                    calc_md5_mac);
+  if (buflen != get_var_size_by_name (lexic, "buf") || buflen < 26)
+    {
+      nasl_perror (lexic, "OOB read/write\n");
+      return NULL;
+    }
+
   memcpy (buf + 18, calc_md5_mac, 8);
   char *ret = g_malloc0 (buflen);
   memcpy (ret, buf, buflen);
@@ -675,6 +681,8 @@ nasl_ntlmv1_hash (lex_ctxt *lexic)
 
   if (pass_len < 16)
     pass_len = 16;
+  if (pass_len > 21)
+    pass_len = 21;
 
   bzero (p21, sizeof (p21));
   memcpy (p21, password, pass_len);
