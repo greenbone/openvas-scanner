@@ -64,7 +64,17 @@ where
 {
     match fs::read_to_string(path) {
         Ok(x) => Ok(x),
-        Err(_) => read_non_utf8_path(path),
+        Err(err) => {
+            // `InvalidData` means the file could be read but is not valid UTF-8
+            // (some VTs are still stored as latin-1).
+            if err.kind() == io::ErrorKind::InvalidData {
+                tracing::warn!(
+                    file = %path.as_ref().display(),
+                    "File is not valid UTF-8; falling back to latin-1 decoding."
+                );
+            }
+            read_non_utf8_path(path)
+        }
     }
 }
 
@@ -248,5 +258,54 @@ where
 impl Clone for Box<dyn NaslLoader> {
     fn clone(&self) -> Box<dyn NaslLoader> {
         (*self).clone_box()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    use super::*;
+
+    #[test]
+    fn reads_utf8_file_as_is() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write_all("script_name(\"Hütte\");".as_bytes())
+            .unwrap();
+
+        let content = read_utf8_or_non_utf8_path(file.path()).unwrap();
+
+        assert_eq!(content, "script_name(\"Hütte\");");
+    }
+
+    #[test]
+    fn reads_latin1_file_by_falling_back() {
+        // 0xE9 is 'é' in latin-1 (ISO-8859-1) but not a valid UTF-8 byte on its
+        // own, so `fs::read_to_string` fails and the latin-1 fallback is used.
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write_all(&[b'c', b'a', b'f', 0xE9]).unwrap();
+
+        let content = read_utf8_or_non_utf8_path(file.path()).unwrap();
+
+        // Every byte is mapped to its code point, so 0xE9 becomes 'é' and the
+        // resulting string is valid UTF-8.
+        assert_eq!(content, "café");
+    }
+
+    #[test]
+    fn read_non_utf8_path_maps_every_byte_to_a_char() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write_all(&[0x41, 0xE9, 0xFF]).unwrap();
+
+        let content = read_non_utf8_path(file.path()).unwrap();
+
+        assert_eq!(content, "A\u{00E9}\u{00FF}");
+    }
+
+    #[test]
+    fn read_utf8_or_non_utf8_path_reports_missing_file() {
+        let result = read_utf8_or_non_utf8_path("does/not/exist.nasl");
+
+        assert!(result.is_err());
     }
 }
