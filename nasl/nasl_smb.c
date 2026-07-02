@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #define KERBEROS_AUTH_TYPE "Kerberos"
@@ -525,30 +526,6 @@ array_from_psrp_error (int ret, char *err)
   return retc;
 }
 
-typedef struct
-{
-  GMainLoop *loop;
-  gint exit_code;
-} ProcessContext;
-
-static void
-on_child_exited (GPid pid, gint wait_status, gpointer user_data)
-{
-  GError *error = NULL;
-  ProcessContext *context = (ProcessContext *) user_data;
-  if (g_spawn_check_wait_status (wait_status, &error))
-    {
-      context->exit_code = 0;
-    }
-  else
-    {
-      context->exit_code = error->code;
-      g_error_free (error);
-    }
-
-  g_spawn_close_pid (pid);
-  g_main_loop_quit (context->loop);
-}
 
 /**
  * @brief Execute the PowerShell command in windows
@@ -785,9 +762,6 @@ nasl_psrp_cli (lex_ctxt *lexic)
 
   GPid child_pid;
   int err_code = 0;
-  // shared structure to get process exit code
-  ProcessContext context = {.loop = g_main_loop_new (NULL, FALSE),
-                            .exit_code = -1};
 
   ret = g_spawn_async_with_pipes (
     NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD, NULL,
@@ -798,15 +772,12 @@ nasl_psrp_cli (lex_ctxt *lexic)
 
   if (ret == FALSE)
     {
-      g_main_loop_unref (context.loop);
       char *err_aux = err ? g_strdup (err->message) : g_strdup ("Error");
       g_debug ("%s: %s", __func__, err_aux);
       if (err)
         g_error_free (err);
       return array_from_psrp_error (2, err_aux);
     }
-
-  g_child_watch_add (child_pid, on_child_exited, &context);
 
   string = g_string_new ("");
   while (1)
@@ -825,17 +796,31 @@ nasl_psrp_cli (lex_ctxt *lexic)
           g_debug ("%s: %s", __func__, err_aux);
           g_string_free (string, TRUE);
           close (sout);
-          g_main_loop_run (context.loop);
-          g_main_loop_unref (context.loop);
+          waitpid (child_pid, NULL, 0);
+          g_spawn_close_pid (child_pid);
 
           return array_from_psrp_error (2, err_aux);
         }
     }
   close (sout);
 
-  g_main_loop_run (context.loop);
-  err_code = context.exit_code;
-  g_main_loop_unref (context.loop);
+  /* waitpid(-1) in sighand_chld may have already reaped this child before
+   * we get here, which is why g_child_watch_add() fails with ECHILD.
+   * Use waitpid() directly and treat ECHILD as a successful reap with
+   * an unknown (assumed zero) exit code. */
+  int wait_status = 0;
+  if (waitpid (child_pid, &wait_status, 0) == -1)
+    {
+      if (errno == ECHILD)
+        err_code = 0; /* already reaped by SIGCHLD handler */
+      else
+        err_code = -1;
+    }
+  else
+    {
+      err_code = WIFEXITED (wait_status) ? WEXITSTATUS (wait_status) : -1;
+    }
+  g_spawn_close_pid (child_pid);
 
   if (g_str_has_prefix (string->str, "[-]") || err_code != 0)
     {
