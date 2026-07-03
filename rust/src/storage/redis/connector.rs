@@ -79,20 +79,25 @@ impl Debug for RedisCtx {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-struct RedisValueHandler {
-    v: String,
-}
-
-impl FromRedisValue for RedisValueHandler {
-    fn from_redis_value(v: Value) -> Result<RedisValueHandler, ParsingError> {
-        match &v {
-            Value::Nil => Ok(RedisValueHandler { v: String::new() }),
-            _ => {
-                let new_var: String = from_redis_value(v).unwrap_or_default();
-                Ok(RedisValueHandler { v: new_var })
+/// Converts a redis [`Value`] into a `String`.
+///
+/// Some VTs are still stored using latin-1 (ISO-8859-1) instead of UTF-8. To
+/// avoid aborting a whole read when a single value contains invalid UTF-8, such
+/// values are converted lossily.
+fn redis_value_to_string(key: &str, value: Value) -> String {
+    match value {
+        Value::Nil => String::new(),
+        Value::BulkString(bytes) => match String::from_utf8(bytes) {
+            Ok(string) => string,
+            Err(err) => {
+                tracing::warn!(
+                    redis_key = key,
+                    "Non UTF-8 value stored in redis; converting lossily."
+                );
+                String::from_utf8_lossy(&err.into_bytes()).into_owned()
             }
-        }
+        },
+        other => from_redis_value(other).unwrap_or_default(),
     }
 }
 
@@ -207,26 +212,29 @@ impl RedisWrapper for RedisCtx {
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn lindex(&mut self, key: &str, index: isize) -> RedisStorageResult<String> {
-        let ret: RedisValueHandler = redis::Commands::lindex(
+        let value: Value = redis::Commands::lindex(
             self.kb.as_mut().expect("Valid redis connection"),
             key,
             index,
         )
         .map_err(DbError::from)?;
-        Ok(ret.v)
+        Ok(redis_value_to_string(key, value))
     }
 
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     fn lrange(&mut self, key: &str, start: isize, end: isize) -> RedisStorageResult<Vec<String>> {
-        let ret = redis::Commands::lrange(
+        let values: Vec<Value> = redis::Commands::lrange(
             self.kb.as_mut().expect("Valid redis connection"),
             key,
             start,
             end,
         )
         .map_err(DbError::from)?;
-        Ok(ret)
+        Ok(values
+            .into_iter()
+            .map(|value| redis_value_to_string(key, value))
+            .collect())
     }
 
     ///Wrapper function to avoid accessing kb member directly.
@@ -812,5 +820,26 @@ mod tests {
         let vt = redis.redis_get_vt("1.3.6.1.4.3").unwrap().unwrap();
         assert_eq!(vt.name, "Notus Advisory");
         assert_eq!(vt.family, "Notus");
+    }
+
+    #[test]
+    fn redis_value_to_string_reads_valid_utf8() {
+        let value = Value::BulkString("Hütte".as_bytes().to_vec());
+
+        assert_eq!(redis_value_to_string("nvt:1.2.3", value), "Hütte");
+    }
+
+    #[test]
+    fn redis_value_to_string_nil_is_empty() {
+        assert_eq!(redis_value_to_string("nvt:1.2.3", Value::Nil), "");
+    }
+
+    #[test]
+    fn redis_value_to_string_converts_invalid_utf8_lossily() {
+        // 0xE9 is 'é' in latin-1 but an invalid UTF-8 byte on its own. Instead
+        // of aborting the whole read, the value is converted lossily.
+        let value = Value::BulkString(vec![b'a', b'b', 0xE9]);
+
+        assert_eq!(redis_value_to_string("nvt:1.2.3", value), "ab\u{FFFD}");
     }
 }
