@@ -526,7 +526,6 @@ array_from_psrp_error (int ret, char *err)
   return retc;
 }
 
-
 /**
  * @brief Execute the PowerShell command in windows
  *
