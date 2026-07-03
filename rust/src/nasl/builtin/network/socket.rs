@@ -163,7 +163,7 @@ impl NaslSocket {
         &None
     }
 
-    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
         if let NaslSocket::Tcp(tcp_connection) = self {
             tcp_connection.set_transport(transport);
         };
@@ -174,6 +174,19 @@ impl NaslSocket {
             return tcp_connection.transport();
         }
         &None
+    }
+
+    pub fn set_session_id(&mut self, sid: Arc<Mutex<Option<String>>>) {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            tcp_connection.set_session_id(sid);
+        };
+    }
+
+    pub fn session_id(&self) -> Option<String> {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.session_id();
+        };
+        None
     }
 
     pub fn set_last_err(&mut self, nasl_err: i64) {
@@ -199,6 +212,13 @@ impl NaslSocket {
     pub fn ssl_version(&self) -> Option<i64> {
         if let NaslSocket::Tcp(tcp_connection) = self {
             return tcp_connection.ssl_version();
+        }
+        None
+    }
+
+    pub fn ssl_ciphersuite(&self) -> Option<&str> {
+        if let NaslSocket::Tcp(tcp_connection) = self {
+            return tcp_connection.ssl_ciphersuite();
         }
         None
     }
@@ -567,6 +587,7 @@ async fn make_tls_client_connection(
     context: &ScanCtx<'_>,
     transport: &OpenvasEncaps,
     vhost: &str,
+    shared_storage: &Arc<Mutex<Option<String>>>,
 ) -> Option<ClientConnection> {
     get_tls_conf(context).await.ok().and_then(|conf| {
         create_tls_client(
@@ -576,6 +597,7 @@ async fn make_tls_client_connection(
             &conf.password,
             &conf.cafile_path,
             transport,
+            shared_storage,
         )
         .ok()
     })
@@ -596,12 +618,16 @@ pub async fn open_sock_tcp_vhost(
         transport
     };
     let mut set_transport = false;
+    let shared_storage = Arc::new(Mutex::new(None));
+
     let tls = match OpenvasEncaps::from_i64(transport) {
         // Auto Detection
         Some(OpenvasEncaps::Auto) => {
             set_transport = true;
             // Try SSL/TLS first
-            let tls = make_tls_client_connection(context, &OpenvasEncaps::Auto, vhost).await;
+            let tls =
+                make_tls_client_connection(context, &OpenvasEncaps::Auto, vhost, &shared_storage)
+                    .await;
             if tls.is_some() {
                 transport = OpenvasEncaps::TlsCustom as i64;
             } else {
@@ -619,7 +645,7 @@ pub async fn open_sock_tcp_vhost(
         // TLS/SSL
         Some(tls_version) => match tls_version {
             OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                make_tls_client_connection(context, &tls_version, vhost).await
+                make_tls_client_connection(context, &tls_version, vhost, &shared_storage).await
             }
             _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport).into()),
         },
@@ -628,6 +654,7 @@ pub async fn open_sock_tcp_vhost(
     let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(context).await)
         .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
         .ok();
+
     if set_transport {
         context.set_port_transport(port, transport as usize).await?;
     }
@@ -725,14 +752,16 @@ async fn socket_negotiate_ssl(
     transport: Option<i64>,
 ) -> Result<NaslValue, FnError> {
     let transport = transport.unwrap_or(OpenvasEncaps::TlsCustom.into());
+    let session_id = Arc::new(Mutex::new(None));
     let client = get_tls_conf(context).await.and_then(|conf| {
         prepare_tls_client(
             &conf.cert_path,
             &conf.key_path,
             &conf.password,
             &conf.cafile_path,
-            // safe to unwrap() because knowon from above
+            // safe to unwrap() because known from above
             &OpenvasEncaps::from_i64(transport).unwrap(),
+            &session_id,
         )
         .map_err(|e| SocketError::FailedTlsNegotiation(e.to_string()).into())
     });
@@ -748,7 +777,9 @@ async fn socket_negotiate_ssl(
             return Ok(NaslValue::Null);
         }
     };
+
     soc.set_tls(client);
+    soc.set_session_id(session_id);
 
     //TODO: transport is set in the kb, but is not specified in the TLS Session
     context
@@ -818,6 +849,30 @@ async fn socket_get_ssl_version(
     let soc = nasl_sockets.get_open_socket_mut(socket)?;
     if let Some(v) = soc.ssl_version() {
         return Ok(NaslValue::Number(v));
+    }
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function(named(socket))]
+async fn socket_get_ssl_ciphersuite(
+    nasl_sockets: &NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket(socket)?;
+    if let Some(v) = soc.ssl_ciphersuite() {
+        return Ok(NaslValue::String(v.to_string()));
+    }
+    Ok(NaslValue::Null)
+}
+
+#[nasl_function(named(socket))]
+async fn socket_get_ssl_session_id(
+    nasl_sockets: &NaslSockets,
+    socket: usize,
+) -> Result<NaslValue, FnError> {
+    let soc = nasl_sockets.get_open_socket(socket)?;
+    if let Some(sid) = soc.session_id() {
+        return Ok(NaslValue::String(sid));
     }
     Ok(NaslValue::Null)
 }
@@ -1366,6 +1421,8 @@ function_set! {
         socket_negotiate_ssl,
         socket_get_cert,
         socket_get_ssl_version,
+        socket_get_ssl_ciphersuite ,
+        socket_get_ssl_session_id,
         socket_get_error,
         socket_cert_verify,
         get_sock_info,

@@ -32,7 +32,7 @@ fn mtu(target_ip: IpAddr) -> usize {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum OpenvasEncaps {
     Auto = 0, /* Request auto detection.  */
     Ip,

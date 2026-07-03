@@ -5,6 +5,7 @@
 use std::{
     io::{self, BufRead, BufReader, Read, Write},
     net::{IpAddr, SocketAddr},
+    sync::{Arc, Mutex},
     time::Duration,
 };
 
@@ -20,6 +21,7 @@ pub struct TcpDataStream {
     sock: Socket,
     tls: Option<ClientConnection>,
     transport: Option<OpenvasEncaps>,
+    session_id: Arc<Mutex<Option<String>>>,
     last_err: i64,
 }
 
@@ -44,12 +46,20 @@ impl TcpDataStream {
         &self.tls
     }
 
-    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
-        self.transport = Some(transport);
+    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
+        self.transport = transport;
     }
 
     pub fn transport(&self) -> &Option<OpenvasEncaps> {
         &self.transport
+    }
+
+    pub fn set_session_id(&mut self, sid: Arc<Mutex<Option<String>>>) {
+        self.session_id = sid
+    }
+
+    pub fn session_id(&self) -> Option<String> {
+        self.session_id.lock().unwrap().clone()
     }
 
     pub fn set_last_err(&mut self, nasl_err: i64) {
@@ -138,7 +148,7 @@ impl TcpConnection {
         stream.tls()
     }
 
-    pub fn set_transport(&mut self, transport: OpenvasEncaps) {
+    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
         let stream = self.stream.get_mut();
         stream.set_transport(transport);
     }
@@ -146,6 +156,16 @@ impl TcpConnection {
     pub fn transport(&self) -> &Option<OpenvasEncaps> {
         let stream = self.stream.get_ref();
         stream.transport()
+    }
+
+    pub fn set_session_id(&mut self, sid: Arc<Mutex<Option<String>>>) {
+        let stream = self.stream.get_mut();
+        stream.set_session_id(sid);
+    }
+
+    pub fn session_id(&self) -> Option<String> {
+        let stream = self.stream.get_ref();
+        stream.session_id()
     }
 
     pub fn set_last_err(&mut self, nasl_err: i64) {
@@ -173,17 +193,30 @@ impl TcpConnection {
     }
 
     pub fn ssl_version(&self) -> Option<i64> {
+        let ret;
         if let Some(tls_conn) = &self.stream.get_ref().tls {
-            match tls_conn.protocol_version() {
-                Some(ProtocolVersion::SSLv3) => Some(OpenvasEncaps::Ssl3),
-                Some(ProtocolVersion::TLSv1_0) => Some(OpenvasEncaps::Tls1),
-                Some(ProtocolVersion::TLSv1_1) => Some(OpenvasEncaps::Tls11),
-                Some(ProtocolVersion::TLSv1_2) => Some(OpenvasEncaps::Tls12),
-                Some(ProtocolVersion::TLSv1_3) => Some(OpenvasEncaps::Tls13),
+            ret = match tls_conn.protocol_version() {
+                Some(ProtocolVersion::SSLv3) => Some(i64::from(OpenvasEncaps::Ssl3)),
+                Some(ProtocolVersion::TLSv1_0) => Some(i64::from(OpenvasEncaps::Tls1)),
+                Some(ProtocolVersion::TLSv1_1) => Some(i64::from(OpenvasEncaps::Tls11)),
+                Some(ProtocolVersion::TLSv1_2) => Some(i64::from(OpenvasEncaps::Tls12)),
+                Some(ProtocolVersion::TLSv1_3) => Some(i64::from(OpenvasEncaps::Tls13)),
                 _ => None,
             };
+        } else {
+            ret = None;
         }
-        None
+        ret
+    }
+
+    pub fn ssl_ciphersuite(&self) -> Option<&str> {
+        let ret;
+        if let Some(tls_conn) = &self.stream.get_ref().tls {
+            ret = tls_conn.negotiated_cipher_suite().unwrap().suite().as_str();
+        } else {
+            ret = None;
+        }
+        ret
     }
 
     /// Create a new TCP connection.
@@ -230,6 +263,7 @@ impl TcpConnection {
                 tls,
                 transport: None,
                 last_err: NASL_ERR_NOERR,
+                session_id: Arc::new(Mutex::new(None)),
             },
             bufsz,
         ))
@@ -270,6 +304,7 @@ impl TcpConnection {
                 tls: None,
                 transport: None,
                 last_err: err,
+                session_id: Arc::new(Mutex::new(None)),
             },
             None,
         ))
