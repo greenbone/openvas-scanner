@@ -131,7 +131,7 @@ impl From<PostScansError> for BodyKind {
         match val {
             PostScansError::DuplicateId(id) => {
                 let br = format!("ID ({id}) is already in use.");
-                BodyKind::json_content(StatusCode::NOT_ACCEPTABLE, &br)
+                BodyKind::json_content(StatusCode::CONFLICT, &br)
             }
             PostScansError::External(e) => internal_server_error!(e),
         }
@@ -220,7 +220,7 @@ mod tests {
             .body(json_bytes(&scans))
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NOT_ACCEPTABLE);
+        assert_eq!(resp.status(), StatusCode::CONFLICT);
     }
 
     #[tokio::test]
