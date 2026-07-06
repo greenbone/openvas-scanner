@@ -59,35 +59,18 @@ where
             .expect("expect ID, this is a toolkit error");
         let query = uri.query().map(|x| x.to_owned());
         Box::pin(async move {
-            let (from, to) = match query {
-                Some(x) => x
-                    .split('&')
-                    .filter_map(|pair| {
-                        let mut kv = pair.splitn(2, '=');
-                        match kv.next() {
-                            Some("range") => kv.next(),
-                            Some(_) | None => None,
-                        }
-                    })
-                    .map(|range| {
-                        let mut rs = range.splitn(2, '-');
-                        (rs.next(), rs.next())
-                    })
-                    .map(|(from, to)| {
-                        let from = match from {
-                            Some(x) => x.parse().ok(),
-                            None => None,
-                        };
-
-                        let to = match to {
-                            Some(x) => x.parse().ok(),
-                            None => None,
-                        };
-                        (from, to)
-                    })
-                    .next()
-                    .unwrap_or_default(),
-                None => (None, None),
+            let (from, to) = match parse_results_range(query.as_deref()) {
+                Ok(range) => range,
+                Err(message) => {
+                    return BodyKind::json_content(
+                        StatusCode::BAD_REQUEST,
+                        &entry::response::BadRequest {
+                            line: 0,
+                            column: 0,
+                            message,
+                        },
+                    );
+                }
             };
             enforce_client_id_and_scan_id(&client_id, id, gsp.as_ref(), async |id| {
                 let input = gsp.get_scans_id_results(id, from, to);
@@ -119,6 +102,45 @@ where
 }
 
 pub type GetScansIDResultsError = GetScansError;
+
+/// Parses the optional `range` query parameter of the results endpoint.
+///
+/// Returns `Ok((None, None))` when no `range` parameter is present. A present
+/// `range` must be either a single number (`N`) or a `from-to` range of
+/// valid, non-negative integers. Any other value is reported as an error.
+fn parse_results_range(query: Option<&str>) -> Result<(Option<usize>, Option<usize>), String> {
+    let range = query.and_then(|q| {
+        q.split('&')
+            .filter_map(|pair| {
+                let mut kv = pair.splitn(2, '=');
+                match kv.next() {
+                    Some("range") => kv.next(),
+                    _ => None,
+                }
+            })
+            .next()
+    });
+
+    let range = match range {
+        Some(range) => range,
+        None => return Ok((None, None)),
+    };
+
+    let invalid =
+        || format!("invalid range '{range}': expected a number or a 'from-to' range of numbers");
+
+    let mut parts = range.splitn(2, '-');
+    let from = parts
+        .next()
+        .and_then(|x| x.parse::<usize>().ok())
+        .ok_or_else(invalid)?;
+    let to = match parts.next() {
+        Some(x) => Some(x.parse::<usize>().map_err(|_| invalid())?),
+        None => None,
+    };
+
+    Ok((Some(from), to))
+}
 
 #[cfg(test)]
 mod tests {
@@ -270,22 +292,30 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn ignores_invalid_query() {
+    async fn invalid_range_returns_bad_request() {
         let entry_point = test_utilities::entry_point(
             Authentication::MTLS,
             create_single_handler!(GetScansIdResultsHandler::from(Test {})),
             Some(ClientHash::from("ok")),
         );
 
-        let req = Request::builder()
-            .uri("/scans/id/results?range=zero-ten&from=1&to=10")
-            .method(Method::GET)
-            .body(Empty::<Bytes>::new())
-            .unwrap();
-        let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        let bytes = resp.into_body().collect().await.unwrap().to_bytes();
-        let resp: Vec<models::Result> = serde_json::from_slice(bytes.as_ref()).unwrap();
-        assert_eq!(resp.len(), 0);
+        for uri in [
+            "/scans/id/results?range=zero-ten&from=1&to=10",
+            "/scans/id/results?range=1-2-3",
+            "/scans/id/results?range=1-ten",
+            "/scans/id/results?range=",
+        ] {
+            let req = Request::builder()
+                .uri(uri)
+                .method(Method::GET)
+                .body(Empty::<Bytes>::new())
+                .unwrap();
+            let resp = entry_point.call(req).await.unwrap();
+            assert_eq!(
+                resp.status(),
+                StatusCode::BAD_REQUEST,
+                "expected bad request for {uri}"
+            );
+        }
     }
 }

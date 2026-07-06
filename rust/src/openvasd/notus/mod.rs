@@ -113,9 +113,12 @@ impl RequestHandler for PostOSIcnomingRequest {
             {
                 Ok(x) => BodyKind::json_content(StatusCode::OK, &x),
                 Err(NotusError::UnknownProduct(_)) => BodyKind::no_content(StatusCode::NOT_FOUND),
+                Err(NotusError::PackageParseError(e)) => {
+                    BodyKind::json_content(StatusCode::BAD_REQUEST, &e)
+                }
                 Err(error) => {
                     tracing::warn!(%error, "Unable to get available products.");
-                    BodyKind::no_content(StatusCode::INTERNAL_SERVER_ERROR)
+                    BodyKind::json_content(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string())
                 }
             }
         })
