@@ -389,6 +389,11 @@ nasl_no_signature_check
 :   Enable/disable the Feed signacture check. Pay attention to the
     negative logic of this setting.
 
+http2_peer_verify
+
+:   Enable/disable the host and peer verification for the HTTP2
+    service scan against a target. Default: disabled.
+    
 The other options in this file can usually be redefined by the client.
 
 ## NETWORK USAGE
