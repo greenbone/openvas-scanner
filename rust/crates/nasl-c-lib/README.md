@@ -40,8 +40,6 @@ crates/nasl-c-lib/build-cache/archives
 
 The resulting bundle layout is the one expected by the Rust build scripts from `doc/build.md`, including archives such as:
 
-- `libgcrypt.a`
-- `libgpg-error.a`
 - `libpcap.a`
 - `libgssapi_krb5.a`
 - `libkrb5.a`
@@ -64,7 +62,7 @@ make clean
 2. Configure `build.rs`
    1. Add `.file("c/your/code.c")` to the `cc` builder.
    2. Add `println!("cargo:rerun-if-changed=c/your/header.h");`.
-   3. Add additional required external libraries with `println!("cargo:rustc-link-lib=static=your_lib");`. The library must be built before with a `libyourlib-sys` crate. See `libcrypt-sys` for reference.
+   3. Add additional required external libraries with `println!("cargo:rustc-link-lib=static=your_lib");`. The library must be built before with a `libyourlib-sys` crate. See `libopenvas-krb5-sys` for reference.
 3. Write a wrapper
    1. Create a Rust file in the `src` directory. Please use or create an appropriate sub-directory.
    2. Write the binding within `extern "C"`.

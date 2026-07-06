@@ -30,8 +30,6 @@ Expected bundle layout:
 
 ```text
 archives/
-├── libgcrypt.a
-├── libgpg-error.a
 ├── libpcap.a
 ├── libgssapi_krb5.a
 ├── libkrb5.a
@@ -39,8 +37,6 @@ archives/
 ├── libcom_err.a
 ├── libkrb5support.a
 └── include/
-    ├── gcrypt.h
-    ├── gpg-error.h
     ├── pcap.h
     ├── krb5.h
     ├── com_err.h
@@ -51,20 +47,16 @@ archives/
 
 ### Direct configuration without a bundle directory
 
-Instead of `OPENVAS_ARCHIVES`, the build scripts also accept dedicated variables for the two custom static dependencies.
+Instead of `OPENVAS_ARCHIVES`, the build scripts also accept dedicated variables for the custom static dependency.
 
 Variables:
 
-- `OPENVAS_GCRYPT_ARCHIVES`
-- `OPENVAS_GCRYPT_INCLUDE_DIR`
 - `OPENVAS_KRB5_ARCHIVES`
 - `OPENVAS_KRB5_INCLUDE_DIR`
 - `LIBPCAP_LIBDIR`
 
 Meaning:
 
-- `OPENVAS_GCRYPT_ARCHIVES` is a path list containing `libgcrypt.a` and `libgpg-error.a`.
-- `OPENVAS_GCRYPT_INCLUDE_DIR` points to the directory containing `gcrypt.h` and `gpg-error.h`.
 - `OPENVAS_KRB5_ARCHIVES` is a path list containing:
   - `libgssapi_krb5.a`
   - `libkrb5.a`
@@ -81,7 +73,7 @@ The build scripts emit the required native linker search paths automatically fro
 
 Note:
 
-- `OPENVAS_GCRYPT_ARCHIVES` and `OPENVAS_KRB5_ARCHIVES` are path lists.
+- `OPENVAS_KRB5_ARCHIVES` is a path list.
 - Use your platform's normal path separator.
 - On Linux, that means `:`.
 
@@ -158,8 +150,6 @@ If you do not want to use `OPENVAS_ARCHIVES`, set the archive and include variab
 This example assumes:
 
 - `libpcap.a` is in `$HOME/openvas-static/libpcap`
-- gcrypt archives are in `$HOME/openvas-static/gcrypt/lib`
-- gcrypt headers are in `$HOME/openvas-static/gcrypt/include`
 - krb5 archives are in `$HOME/openvas-static/krb5/lib`
 - krb5 headers are in `$HOME/openvas-static/krb5/include`
 
@@ -167,9 +157,6 @@ Example:
 
 ```sh
 cd rust
-
-export OPENVAS_GCRYPT_ARCHIVES="$HOME/openvas-static/gcrypt/lib/libgcrypt.a:$HOME/openvas-static/gcrypt/lib/libgpg-error.a"
-export OPENVAS_GCRYPT_INCLUDE_DIR="$HOME/openvas-static/gcrypt/include"
 
 export OPENVAS_KRB5_ARCHIVES="$HOME/openvas-static/krb5/lib/libgssapi_krb5.a:$HOME/openvas-static/krb5/lib/libkrb5.a:$HOME/openvas-static/krb5/lib/libk5crypto.a:$HOME/openvas-static/krb5/lib/libcom_err.a:$HOME/openvas-static/krb5/lib/libkrb5support.a"
 export OPENVAS_KRB5_INCLUDE_DIR="$HOME/openvas-static/krb5/include"
@@ -182,7 +169,6 @@ cargo build --release
 In this setup:
 
 - `OPENVAS_ARCHIVES` is not used
-- the gcrypt build script gets explicit archive and include paths
 - the krb5 build script gets explicit archive and include paths
 - `libpcap` is found through `LIBPCAP_LIBDIR`
 - the build scripts emit all required linker search paths from the resolved archive locations

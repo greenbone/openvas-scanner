@@ -74,26 +74,16 @@ RUN ./configure --prefix=/opt/libpcap-static \
 
 FROM ${RUST_IMAGE} AS build-archives
 
-RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
-    libgcrypt20-dev \
-    libgpg-error-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --from=krb5-build /opt/krb5-static /opt/krb5-static
 COPY --from=pcap-build /opt/libpcap-static /opt/libpcap-static
 
-RUN DEB_HOST_MULTIARCH="$(gcc -print-multiarch)" \
-    && mkdir -p /archives/include/gssapi /archives/include/krb5 \
-    && install -m 644 "/usr/lib/${DEB_HOST_MULTIARCH}/libgcrypt.a" /archives/libgcrypt.a \
-    && install -m 644 "/usr/lib/${DEB_HOST_MULTIARCH}/libgpg-error.a" /archives/libgpg-error.a \
+RUN mkdir -p /archives/include/gssapi /archives/include/krb5 \
     && install -m 644 /opt/libpcap-static/lib/libpcap.a /archives/libpcap.a \
     && install -m 644 /opt/krb5-static/lib/libgssapi_krb5.a /archives/libgssapi_krb5.a \
     && install -m 644 /opt/krb5-static/lib/libkrb5.a /archives/libkrb5.a \
     && install -m 644 /opt/krb5-static/lib/libk5crypto.a /archives/libk5crypto.a \
     && install -m 644 /opt/krb5-static/lib/libcom_err.a /archives/libcom_err.a \
     && install -m 644 /opt/krb5-static/lib/libkrb5support.a /archives/libkrb5support.a \
-    && install -m 644 /usr/include/gcrypt.h /archives/include/gcrypt.h \
-    && install -m 644 "/usr/include/${DEB_HOST_MULTIARCH}/gpg-error.h" /archives/include/gpg-error.h \
     && install -m 644 /opt/libpcap-static/include/pcap.h /archives/include/pcap.h \
     && install -m 644 /opt/krb5-static/include/krb5.h /archives/include/krb5.h \
     && install -m 644 /opt/krb5-static/include/com_err.h /archives/include/com_err.h \

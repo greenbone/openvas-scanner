@@ -2894,13 +2894,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
-name = "libcrypt-sys"
-version = "0.1.0"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "libflate"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3217,7 +3210,6 @@ dependencies = [
 name = "nasl-c-lib"
 version = "0.1.0"
 dependencies = [
- "libcrypt-sys",
  "libopenvas-krb5-sys",
 ]
 
