@@ -29,6 +29,7 @@
 #include "smb_signing.h"
 
 #include <assert.h>
+#include <cstdint>
 #include <ctype.h>
 #include <gcrypt.h>
 #include <glib.h>
@@ -540,6 +541,19 @@ nasl_ntlmv2_response (lex_ctxt *lexic)
       nasl_perror (
         lexic, "Syntax : ntlmv2_response(cryptkey:<c>, user:<u>, domain:<d>, "
                "ntlmv2_hash:<n>, address_list:<a>, address_list_len:<len>)\n");
+      return NULL;
+    }
+
+  if (address_list_len <= get_var_size_by_name (lexic, "address_list"))
+    {
+      nasl_perror (lexic, "ntlmv2_response: address_list and address_list_len "
+                          "have different sized\n");
+      return NULL;
+    }
+  if (address_list_len > UINT16_MAX)
+    {
+      nasl_perror (lexic,
+                   "ntlmv2_response: address_list_len exceed Max lenght\n");
       return NULL;
     }
   uint8_t lm_response[24];
