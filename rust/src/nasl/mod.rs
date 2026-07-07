@@ -46,7 +46,7 @@ pub mod prelude {
 
 pub use prelude::*;
 
-pub use builtin::nasl_std_functions;
+pub use builtin::nasl_std_executor;
 
 #[cfg(test)]
 mod test_prelude {

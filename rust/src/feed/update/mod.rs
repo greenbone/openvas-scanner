@@ -12,7 +12,7 @@ use tracing::trace;
 
 use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
-use crate::nasl::nasl_std_functions;
+use crate::nasl::nasl_std_executor;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
@@ -56,10 +56,10 @@ pub async fn feed_version(
     let target = Target::localhost();
     let ports = Default::default();
     let filename = "";
-    let executor = nasl_std_functions();
+    let executor = nasl_std_executor();
     let scan_params = ScanPrefs::new();
     let alive_test_methods = Vec::default();
-    let cb = ScanCtxBuilder {
+    let ctx = ScanCtxBuilder {
         storage: dispatcher,
         loader,
         executor: &executor,
@@ -71,11 +71,11 @@ pub async fn feed_version(
         alive_test_methods,
         notus: None,
     };
-    let context = cb.build();
+    let ctx = ctx.build();
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
-        &context,
+        &ctx,
     );
     interpreter.execute_all().await?;
 
@@ -124,7 +124,7 @@ where
             storage,
             verifier,
             feed_version_set: false,
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
         }
     }
 
@@ -161,7 +161,7 @@ where
         let alive_test_methods = Vec::default();
         let target = Target::localhost();
         let ports = Default::default();
-        let context = ScanCtxBuilder {
+        let ctx = ScanCtxBuilder {
             scan_id: ScanID(key.0.clone()),
             target,
             ports,
@@ -173,13 +173,13 @@ where
             alive_test_methods,
             notus: None,
         };
-        let context = context.build();
+        let ctx = ctx.build();
         let file = code.source_file();
         let ast = code
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
+        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
         while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {

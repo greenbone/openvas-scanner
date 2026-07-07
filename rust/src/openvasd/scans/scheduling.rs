@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use greenbone_scanner_framework::models::{self, Scan};
 use scannerlib::{
     models::FeedType,
-    nasl::{builtin::nasl_std_functions, syntax::Loader},
+    nasl::{builtin::nasl_std_executor, syntax::Loader},
     openvas::{self, cmd},
     osp,
     scanner::{OpenvasdScanner, ScanResultKind, Scanner, preferences},
@@ -614,7 +614,7 @@ where
         }
         scanner_types::ScannerType::Openvasd => {
             let loader = Loader::from_feed_path(&config.feed.path);
-            let executor = nasl_std_functions();
+            let executor = nasl_std_executor();
             let notus = config
                 .notus
                 .address

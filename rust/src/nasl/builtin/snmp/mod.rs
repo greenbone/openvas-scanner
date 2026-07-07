@@ -97,7 +97,7 @@ fn get_oid(
 
 #[allow(clippy::too_many_arguments)]
 fn snmpv1v2c_get_shared(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -111,7 +111,7 @@ fn snmpv1v2c_get_shared(
     }
     let oid = get_oid(script_ctx, oid, is_next)?;
 
-    let peername = format!("{}:{}", config.target().ip_addr(), port);
+    let peername = format!("{}:{}", ctx.target().ip_addr(), port);
 
     let mut sess = match snmp_ver {
         Version::V1 => SyncSession::new_v1(peername, community.as_bytes(), Some(SNMPTIMEOUT), 0)
@@ -143,7 +143,7 @@ fn snmpv1v2c_get_shared(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv1_get(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -151,7 +151,7 @@ fn snmpv1_get(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        config,
+        ctx,
         script_ctx,
         oid,
         port,
@@ -164,7 +164,7 @@ fn snmpv1_get(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv1_getnext(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -172,7 +172,7 @@ fn snmpv1_getnext(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        config,
+        ctx,
         script_ctx,
         oid,
         port,
@@ -185,7 +185,7 @@ fn snmpv1_getnext(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv2c_get(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -193,7 +193,7 @@ fn snmpv2c_get(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        config,
+        ctx,
         script_ctx,
         oid,
         port,
@@ -206,7 +206,7 @@ fn snmpv2c_get(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv2c_getnext(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -214,7 +214,7 @@ fn snmpv2c_getnext(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        config,
+        ctx,
         script_ctx,
         oid,
         port,
@@ -227,7 +227,7 @@ fn snmpv2c_getnext(
 
 #[allow(clippy::too_many_arguments)]
 fn snmpv3_get_shared(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -244,7 +244,7 @@ fn snmpv3_get_shared(
     }
 
     let oid = get_oid(script_ctx, oid, is_next)?;
-    let peername = format!("{}:{}", config.target().ip_addr(), port);
+    let peername = format!("{}:{}", ctx.target().ip_addr(), port);
     let auth_protocol = match authproto.as_str() {
         "sha1" => v3::AuthProtocol::Sha1,
         "md5" => v3::AuthProtocol::Md5,
@@ -307,7 +307,7 @@ fn snmpv3_get_shared(
     oid, port, protocol, username, authpass, authproto, privpass, privproto
 ))]
 fn snmpv3_get(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -319,8 +319,8 @@ fn snmpv3_get(
     privproto: String,
 ) -> Result<NaslValue, FnError> {
     snmpv3_get_shared(
-        config, script_ctx, oid, port, protocol, username, authpass, authproto, privpass,
-        privproto, false,
+        ctx, script_ctx, oid, port, protocol, username, authpass, authproto, privpass, privproto,
+        false,
     )
 }
 
@@ -328,7 +328,7 @@ fn snmpv3_get(
     oid, port, protocol, username, authpass, authproto, privpass, privproto
 ))]
 fn snmpv3_getnext(
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -340,8 +340,8 @@ fn snmpv3_getnext(
     privproto: String,
 ) -> Result<NaslValue, FnError> {
     snmpv3_get_shared(
-        config, script_ctx, oid, port, protocol, username, authpass, authproto, privpass,
-        privproto, true,
+        ctx, script_ctx, oid, port, protocol, username, authpass, authproto, privpass, privproto,
+        true,
     )
 }
 

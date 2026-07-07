@@ -88,7 +88,7 @@ impl<'a> ArgsStruct<'a> {
                     }
                     ArgKind::ScanCtx => {
                         quote! {
-                            _scan_context
+                            _scan_ctx
                         }
                     },
                     ArgKind::Register => {
@@ -99,12 +99,12 @@ impl<'a> ArgsStruct<'a> {
                     ArgKind::NaslSockets(arg) => {
                         if arg.mutable {
                             quote! {
-                                &mut *_scan_context.write_sockets().await
+                                &mut *_scan_ctx.write_sockets().await
                             }
                         }
                         else {
                             quote! {
-                                &*_scan_context.read_sockets().await
+                                &*_scan_ctx.read_sockets().await
                             }
                         }
                     },
@@ -254,7 +254,7 @@ impl<'a> ArgsStruct<'a> {
         let inputs = quote! {
             #self_arg
             _register: &crate::nasl::Register,
-            _scan_context: &crate::nasl::ScanCtx<'_>,
+            _scan_ctx: &crate::nasl::ScanCtx<'_>,
             _script_ctx: &mut crate::nasl::ScriptCtx,
         };
         let output_ty = match output {

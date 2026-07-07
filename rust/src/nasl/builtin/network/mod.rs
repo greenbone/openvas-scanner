@@ -116,8 +116,8 @@ impl Display for OpenvasEncaps {
     }
 }
 
-async fn get_retry(context: &ScanCtx<'_>) -> u8 {
-    if let Ok(val) = context.get_single_kb_item(&KbKey::TimeoutRetry).await {
+async fn get_retry(ctx: &ScanCtx<'_>) -> u8 {
+    if let Ok(val) = ctx.get_single_kb_item(&KbKey::TimeoutRetry).await {
         match val {
             NaslValue::String(val) => val.parse::<u8>().unwrap_or(2),
             NaslValue::Number(val) => {

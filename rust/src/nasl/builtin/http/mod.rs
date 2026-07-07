@@ -34,17 +34,14 @@ use super::{
     },
 };
 
-async fn get_user_agent(context: &ScanCtx<'_>) -> Result<String, FnError> {
-    match context
+async fn get_user_agent(ctx: &ScanCtx<'_>) -> Result<String, FnError> {
+    match ctx
         .get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent))
         .await
     {
         Ok(ua) => Ok(ua),
         _ => {
-            let ua = match context
-                .scan_preferences
-                .get_preference_string("vendor_version")
-            {
+            let ua = match ctx.scan_preferences.get_preference_string("vendor_version") {
                 Some(vendor) => format!("Mozilla/5.0 [en] (X11, U; {vendor})"),
                 _ => format!(
                     "Mozilla/5.0 [en] (X11, U; {}_{})",
@@ -52,13 +49,12 @@ async fn get_user_agent(context: &ScanCtx<'_>) -> Result<String, FnError> {
                     env!("CARGO_PKG_VERSION")
                 ),
             };
-            context
-                .set_single_kb_item(
-                    KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
-                    ua.clone(),
-                )
-                .await
-                .map_err(|e| StorageError::NotFound(e.to_string()))?;
+            ctx.set_single_kb_item(
+                KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
+                ua.clone(),
+            )
+            .await
+            .map_err(|e| StorageError::NotFound(e.to_string()))?;
             Ok(ua)
         }
     }
@@ -480,7 +476,7 @@ async fn close_socket(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(),
 
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_socket(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -488,7 +484,7 @@ async fn open_socket(
     bufsz: Option<i64>,
 ) -> Result<NaslValue, FnError> {
     open_sock_tcp_shared(
-        context,
+        ctx,
         sockets,
         port,
         timeout,
@@ -503,7 +499,7 @@ fn build_encode_url(keyword: Method, item: String, httpver: &str) -> String {
 }
 
 async fn http_req_shared(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     keyword: Method,
     port: Port,
     item: String,
@@ -511,15 +507,12 @@ async fn http_req_shared(
 ) -> Result<NaslValue, FnError> {
     let p: u16 = port.into();
     let tmp_key = format!("http/{p}");
-    let mut request = match context
-        .get_single_kb_item::<i32>(&KbKey::from(tmp_key))
-        .await?
-    {
+    let mut request = match ctx.get_single_kb_item::<i32>(&KbKey::from(tmp_key)).await? {
         x if (x == 11 || x <= 0) => {
             //TODO: use plug_get_host_fqdn and do it for all vhosts.
-            let hostname = context.target().ip_addr().to_string();
+            let hostname = ctx.target().ip_addr().to_string();
 
-            let user_agent = get_user_agent(context).await?;
+            let user_agent = get_user_agent(ctx).await?;
             let hostreader = match p {
                 80 | 443 => hostname,
                 _ => format!("{hostname}/{p}"),
@@ -542,7 +535,7 @@ async fn http_req_shared(
     };
 
     let tmp_key = format!("/tmp/http/auth/{p}");
-    match context.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
+    match ctx.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
         Some(KbItem::String(a)) => request.push_str(a),
         _ => request.push_str("http/auth"),
     };
@@ -559,54 +552,53 @@ async fn http_req_shared(
 }
 
 #[nasl_function(named(port, item))]
-async fn get(context: &ScanCtx<'_>, port: Port, item: String) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::GET, port, item, None).await
+async fn get(ctx: &ScanCtx<'_>, port: Port, item: String) -> Result<NaslValue, FnError> {
+    http_req_shared(ctx, Method::GET, port, item, None).await
 }
 
 #[nasl_function]
 async fn head(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::HEAD, port, item, data).await
+    http_req_shared(ctx, Method::HEAD, port, item, data).await
 }
 
 #[nasl_function]
 async fn post(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::POST, port, item, data).await
+    http_req_shared(ctx, Method::POST, port, item, data).await
 }
 
 #[nasl_function]
 async fn delete(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::DELETE, port, item, data).await
+    http_req_shared(ctx, Method::DELETE, port, item, data).await
 }
 
 #[nasl_function]
 async fn put(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(context, Method::PUT, port, item, data).await
+    http_req_shared(ctx, Method::PUT, port, item, data).await
 }
 
 #[nasl_function]
-fn cgi_bin(context: &ScanCtx) -> String {
-    context
-        .scan_params()
+fn cgi_bin(ctx: &ScanCtx) -> String {
+    ctx.scan_params()
         .find(|x| x.id == "cgi-path")
         .map_or("/cgi-bin:/scripts".to_string(), |x| x.value.clone())
 }
