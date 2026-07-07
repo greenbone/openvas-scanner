@@ -22,7 +22,7 @@ mod tests;
 
 pub use response::ResultType as OspResultType;
 pub use response::ScanResult as OspScanResult;
-pub use scanner::Scanner;
+pub use scanner::OspScanner;
 
 #[cfg(test)]
 use response::Response as OspResponse;

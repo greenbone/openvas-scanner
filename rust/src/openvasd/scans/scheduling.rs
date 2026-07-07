@@ -617,7 +617,7 @@ where
                     config.scanner.ospd.socket.display()
                 );
             }
-            let scanner = osp::Scanner::new(
+            let scanner = osp::OspScanner::new(
                 config.scanner.ospd.socket.clone(),
                 config.scanner.ospd.read_timeout,
             );
