@@ -39,23 +39,16 @@ pub trait TypeOfScanner {
 
 #[async_trait]
 pub trait ScanStarter {
-    /// Starts a scan
     async fn start_scan(&self, scan: Scan) -> Result<(), Error>;
 
-    /// Returns true when the Scanner can start a scan.
     async fn can_start_scan(&self) -> bool {
         true
     }
 
-    /// Stops a scan
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;
-}
 
-/// Deletes a scan
-#[async_trait]
-pub trait ScanDeleter {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;
@@ -165,10 +158,7 @@ impl ScanStarter for Lambda {
     {
         (self.stop)(id.as_ref())
     }
-}
 
-#[async_trait]
-impl ScanDeleter for Lambda {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,

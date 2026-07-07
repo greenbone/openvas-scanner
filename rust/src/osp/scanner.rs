@@ -8,7 +8,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use crate::{
-    scanner::{Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, TypeOfScanner},
+    scanner::{Error, ScanResultFetcher, ScanResults, ScanStarter, TypeOfScanner},
     utils::scanner_types,
 };
 use async_trait::async_trait;
@@ -84,10 +84,7 @@ impl ScanStarter for OspScanner {
         })
         .await
     }
-}
 
-#[async_trait]
-impl ScanDeleter for OspScanner {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,

@@ -33,8 +33,7 @@ pub struct OpenvasScanner {
     default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
 }
 use crate::scanner::{
-    Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanResults, ScanStarter,
-    TypeOfScanner,
+    Error as ScanError, ScanResultFetcher, ScanResultKind, ScanResults, ScanStarter, TypeOfScanner,
 };
 
 impl From<OpenvasError> for ScanError {
@@ -226,11 +225,7 @@ impl ScanStarter for OpenvasScanner {
 
         Ok(())
     }
-}
 
-/// Deletes a scan
-#[async_trait]
-impl ScanDeleter for OpenvasScanner {
     async fn delete_scan<I>(&self, id: I) -> Result<(), ScanError>
     where
         I: AsRef<str> + Send + 'static,

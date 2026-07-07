@@ -117,13 +117,7 @@ where
         handle.stop();
         Ok(())
     }
-}
 
-#[async_trait]
-impl<S> ScanDeleter for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
