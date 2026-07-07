@@ -81,10 +81,10 @@ where
         &self,
         state: &'b State,
         register: &'b Register,
-        context: &'b ScanCtx,
+        ctx: &'b ScanCtx,
         script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context, script_ctx))
+        Box::pin((*self)(state, register, ctx, script_ctx))
     }
 }
 
@@ -100,7 +100,7 @@ pub trait StatefulMutCallable<State> {
         &self,
         state: &'b mut State,
         register: &'b Register,
-        context: &'b ScanCtx,
+        ctx: &'b ScanCtx,
         script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
@@ -119,10 +119,10 @@ where
         &self,
         state: &'b mut State,
         register: &'b Register,
-        context: &'b ScanCtx,
+        ctx: &'b ScanCtx,
         script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(state, register, context, script_ctx))
+        Box::pin((*self)(state, register, ctx, script_ctx))
     }
 }
 
@@ -136,7 +136,7 @@ pub trait StatelessCallable {
     fn call_stateless<'b>(
         &self,
         register: &'b Register,
-        context: &'b ScanCtx,
+        ctx: &'b ScanCtx,
         script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>>;
 }
@@ -153,10 +153,10 @@ where
     fn call_stateless<'b>(
         &self,
         register: &'b Register,
-        context: &'b ScanCtx,
+        ctx: &'b ScanCtx,
         script_ctx: &'b mut ScriptCtx,
     ) -> Pin<Box<dyn Future<Output = NaslResult> + Send + 'b>> {
-        Box::pin((*self)(register, context, script_ctx))
+        Box::pin((*self)(register, ctx, script_ctx))
     }
 }
 

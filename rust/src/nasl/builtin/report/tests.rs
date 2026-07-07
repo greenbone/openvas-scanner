@@ -18,12 +18,11 @@ async fn verify(function: &str, result_type: ResultType) {
     ));
     t.check_no_errors();
     {
-        let (results, context) = t.results_and_context();
+        let (results, ctx) = t.results_and_ctx();
 
         let get_result = async |index| {
-            context
-                .storage()
-                .retrieve(&(context.scan().clone(), index as usize))
+            ctx.storage()
+                .retrieve(&(ctx.scan().clone(), index as usize))
                 .await
                 .unwrap()
                 .unwrap()
@@ -37,9 +36,9 @@ async fn verify(function: &str, result_type: ResultType) {
         let create_expected = |id, port, protocol| models::Result {
             id,
             r_type: result_type.clone(),
-            ip_address: Some(context.target().ip_addr().to_string()),
+            ip_address: Some(ctx.target().ip_addr().to_string()),
             hostname: Some("".into()),
-            oid: Some(context.scan().0.clone()),
+            oid: Some(ctx.scan().0.clone()),
             port,
             protocol: Some(protocol),
             message: Some(format!("test{id}")),
@@ -89,20 +88,17 @@ async fn security_notus() {
     );
     t.check_no_errors();
     {
-        let (results, context) = t.results_and_context();
+        let (results, ctx) = t.results_and_ctx();
         assert_eq!(results.len(), 3);
-        let result = context
+        let result = ctx
             .storage()
-            .retrieve(&(context.scan().clone(), 0))
+            .retrieve(&(ctx.scan().clone(), 0))
             .await
             .unwrap()
             .unwrap();
         assert_eq!(result.id, 0);
         assert_eq!(result.r_type, ResultType::Alarm);
-        assert_eq!(
-            result.ip_address,
-            Some(context.target().ip_addr().to_string())
-        );
+        assert_eq!(result.ip_address, Some(ctx.target().ip_addr().to_string()));
         assert_eq!(result.hostname, None);
         assert_eq!(result.oid, Some("1.2.3.4.5".to_string()));
         assert_eq!(result.port, None);

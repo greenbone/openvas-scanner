@@ -17,7 +17,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
         b.iter(|| {
             futures::executor::block_on(async {
                 let register = Register::from_global_variables(&variables);
-                let cb = ScanCtxBuilder {
+                let ctx = ScanCtxBuilder {
                     scan_id: ScanID("test.nasl".to_string()),
                     filename: "",
                     target: Target::localhost(),
@@ -29,12 +29,12 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     alive_test_methods: Vec::new(),
                     notus: None,
                 };
-                let context = cb.build();
+                let ctx = ctx.build();
                 let code = Code::from_string(code)
                     .parse_description_block()
                     .emit_errors()
                     .unwrap();
-                let parser = ForkingInterpreter::new(code, register, &context);
+                let parser = ForkingInterpreter::new(code, register, &ctx);
                 let _: Vec<_> = black_box(parser.stream().collect().await);
             });
         })

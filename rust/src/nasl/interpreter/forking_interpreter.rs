@@ -16,9 +16,9 @@ pub struct ForkingInterpreter<'ctx> {
 }
 
 impl<'ctx> ForkingInterpreter<'ctx> {
-    pub fn new(ast: Ast, mut register: Register, context: &'ctx ScanCtx<'ctx>) -> Self {
-        context.add_fn_global_vars(&mut register);
-        let interpreters = vec![Interpreter::new(register, context)];
+    pub fn new(ast: Ast, mut register: Register, ctx: &'ctx ScanCtx<'ctx>) -> Self {
+        ctx.add_fn_global_vars(&mut register);
+        let interpreters = vec![Interpreter::new(register, ctx)];
         Self {
             interpreters,
             interpreter_index: 0,

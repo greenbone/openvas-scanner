@@ -56,14 +56,14 @@ async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> 
     }
 }
 
-async fn run_with_context(context: ScanCtx<'_>, script: &Path) -> Result<(), CliErrorKind> {
+async fn run_with_context(ctx: ScanCtx<'_>, script: &Path) -> Result<(), CliErrorKind> {
     let register = Register::default();
-    let code = Code::from_string_filename(&load(&context, script).await?, script);
+    let code = Code::from_string_filename(&load(&ctx, script).await?, script);
     let (ast, file) = code
         .parse()
         .emit_errors_get_ast_and_file()
         .map_err(CliErrorKind::SyntaxError)?;
-    let mut results = ForkingInterpreter::new(ast, register, &context).stream();
+    let mut results = ForkingInterpreter::new(ast, register, &ctx).stream();
     while let Some(result) = results.next().await {
         let r = match result {
             Ok(x) => x,
@@ -156,7 +156,7 @@ async fn run_on_storage<S: ContextStorage>(
         }
     }
 
-    let cb = ScanCtxBuilder {
+    let ctx = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
         executor: &nasl_std_executor(),
@@ -168,7 +168,7 @@ async fn run_on_storage<S: ContextStorage>(
         alive_test_methods: Vec::new(),
         notus,
     };
-    run_with_context(cb.build(), script).await
+    run_with_context(ctx.build(), script).await
 }
 
 #[allow(clippy::too_many_arguments)]

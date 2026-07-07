@@ -62,13 +62,13 @@ impl Executor {
     pub async fn exec(
         &self,
         k: &str,
-        context: &ScanCtx<'_>,
+        ctx: &ScanCtx<'_>,
         register: &Register,
         script_ctx: &mut ScriptCtx,
     ) -> Option<NaslResult> {
         for set in self.sets.iter() {
             if set.contains(k) {
-                return Some(set.exec(k, register, context, script_ctx).await);
+                return Some(set.exec(k, register, ctx, script_ctx).await);
             }
         }
         None
@@ -148,7 +148,7 @@ trait FunctionSet {
         &'a self,
         k: &'a str,
         register: &'a Register,
-        context: &'a ScanCtx<'_>,
+        ctx: &'a ScanCtx<'_>,
         script_ctx: &'a mut ScriptCtx,
     ) -> NaslResult;
 
@@ -163,32 +163,29 @@ impl<State: Sync + Send> FunctionSet for StoredFunctionSet<State> {
         &'a self,
         k: &'a str,
         register: &'a Register,
-        context: &'a ScanCtx<'_>,
+        ctx: &'a ScanCtx<'_>,
         script_ctx: &'a mut ScriptCtx,
     ) -> NaslResult {
         let f = &self.fns[k];
         match f {
             NaslFunction::AsyncStateful(f) => {
                 let state = self.state.read().await;
-                f.call_stateful(&state, register, context, script_ctx).await
+                f.call_stateful(&state, register, ctx, script_ctx).await
             }
             NaslFunction::SyncStateful(f) => {
                 let state = self.state.read().await;
-                f(&state, register, context, script_ctx)
+                f(&state, register, ctx, script_ctx)
             }
             NaslFunction::AsyncStatefulMut(f) => {
                 let mut state = self.state.write().await;
-                f.call_stateful(&mut state, register, context, script_ctx)
-                    .await
+                f.call_stateful(&mut state, register, ctx, script_ctx).await
             }
             NaslFunction::SyncStatefulMut(f) => {
                 let mut state = self.state.write().await;
-                f(&mut state, register, context, script_ctx)
+                f(&mut state, register, ctx, script_ctx)
             }
-            NaslFunction::AsyncStateless(f) => {
-                f.call_stateless(register, context, script_ctx).await
-            }
-            NaslFunction::SyncStateless(f) => f(register, context, script_ctx),
+            NaslFunction::AsyncStateless(f) => f.call_stateless(register, ctx, script_ctx).await,
+            NaslFunction::SyncStateless(f) => f(register, ctx, script_ctx),
         }
     }
 

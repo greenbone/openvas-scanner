@@ -238,7 +238,7 @@ async fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
     let scan_id = ScanID(filename.to_string());
     let scan_preferences = ScanPrefs::new();
     let alive_test_methods = Vec::default();
-    let cb = ScanCtxBuilder {
+    let ctx = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
         executor: &executor,
@@ -250,18 +250,18 @@ async fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
         alive_test_methods,
         notus: None,
     };
-    let context = cb.build();
+    let ctx = ctx.build();
     let ast = Code::from_string(code)
         .parse_description_block()
         .emit_errors()
         .unwrap();
-    let interpreter = ForkingInterpreter::new(ast, register, &context);
+    let interpreter = ForkingInterpreter::new(ast, register, &ctx);
     for stmt in interpreter.iter_blocking() {
         if let NaslValue::Exit(_) = stmt.expect("stmt success") {
             break;
         }
     }
-    drop(context);
+    drop(ctx);
     storage
         .retrieve(&FileName(filename.to_string()))
         .await
