@@ -40,7 +40,7 @@ use super::utils::Executor;
 pub use network::socket::NaslSockets;
 
 /// Creates a new Executor and adds all the functions to it.
-pub fn nasl_std_functions() -> Executor {
+pub fn nasl_std_executor() -> Executor {
     let mut executor = Executor::default();
     executor
         .add_set(array::Array)

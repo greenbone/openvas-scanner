@@ -21,7 +21,7 @@ use scannerlib::{
         Code, Register, ScanCtx, ScanCtxBuilder,
         error::emit_errors,
         interpreter::ForkingInterpreter,
-        nasl_std_functions,
+        nasl_std_executor,
         utils::{
             error::ReturnBehavior,
             scan_ctx::{Ports, Target},
@@ -159,7 +159,7 @@ async fn run_on_storage<S: ContextStorage>(
     let cb = ScanCtxBuilder {
         storage: &storage,
         loader: &loader,
-        executor: &nasl_std_functions(),
+        executor: &nasl_std_executor(),
         target,
         ports,
         scan_id,

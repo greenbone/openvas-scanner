@@ -20,7 +20,7 @@ use futures::{Stream, StreamExt};
 
 use super::{
     interpreter::{ForkingInterpreter, InterpreterError, InterpreterErrorKind},
-    nasl_std_functions,
+    nasl_std_executor,
     syntax::Loader,
     utils::{
         Executor, ScanCtx,
@@ -150,7 +150,7 @@ impl Default for TestBuilder<InMemoryStorage> {
             should_verify: true,
             loader: Loader::test_empty(),
             storage: InMemoryStorage::default(),
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -176,7 +176,7 @@ where
             should_verify: true,
             loader: Loader::test_empty(),
             storage,
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -199,7 +199,7 @@ impl TestBuilder<InMemoryStorage> {
             should_verify: true,
             loader,
             storage: InMemoryStorage::default(),
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -230,7 +230,7 @@ impl TestBuilder<InMemoryStorage> {
             should_verify: true,
             loader: Loader::test_empty(),
             storage: InMemoryStorage::default(),
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: Some(notus),
         }

@@ -4,7 +4,7 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use futures::StreamExt;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::scan_ctx::Target;
-use scannerlib::nasl::{Code, nasl_std_functions};
+use scannerlib::nasl::{Code, nasl_std_executor};
 use scannerlib::nasl::{Register, ScanCtxBuilder, interpreter::ForkingInterpreter};
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::storage::ScanID;
@@ -23,7 +23,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     target: Target::localhost(),
                     ports: Default::default(),
                     storage: &InMemoryStorage::default(),
-                    executor: &nasl_std_functions(),
+                    executor: &nasl_std_executor(),
                     loader: &Loader::test_empty(),
                     scan_preferences: ScanPrefs::new(),
                     alive_test_methods: Vec::new(),

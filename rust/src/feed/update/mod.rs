@@ -12,7 +12,7 @@ use tracing::trace;
 
 use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
-use crate::nasl::nasl_std_functions;
+use crate::nasl::nasl_std_executor;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
@@ -56,7 +56,7 @@ pub async fn feed_version(
     let target = Target::localhost();
     let ports = Default::default();
     let filename = "";
-    let executor = nasl_std_functions();
+    let executor = nasl_std_executor();
     let scan_params = ScanPrefs::new();
     let alive_test_methods = Vec::default();
     let cb = ScanCtxBuilder {
@@ -124,7 +124,7 @@ where
             storage,
             verifier,
             feed_version_set: false,
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
         }
     }
 

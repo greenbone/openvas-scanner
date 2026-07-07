@@ -8,7 +8,7 @@ use clap::Parser;
 use scannerlib::models::{Scan, VT};
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::syntax::grammar::{Ast, Atom, Expr, FnCall, Statement};
-use scannerlib::nasl::{Code, nasl_std_functions};
+use scannerlib::nasl::{Code, nasl_std_executor};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::io::{self};
@@ -226,7 +226,7 @@ impl BuiltinFunctions {
         let mut implemented = HashMap::new();
         let mut unimplemented = HashMap::new();
 
-        let exec = nasl_std_functions();
+        let exec = nasl_std_executor();
         let mut implemented_funcs = exec.iter().map(|f| f.to_string()).collect::<HashSet<_>>();
 
         for entry in fs::read_dir(doc_path).unwrap() {

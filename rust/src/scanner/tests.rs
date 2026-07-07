@@ -4,7 +4,7 @@ use crate::nasl::Code;
 use crate::nasl::ScanCtxBuilder;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::interpreter::Register;
-use crate::nasl::nasl_std_functions;
+use crate::nasl::nasl_std_executor;
 use crate::nasl::prelude::NaslValue;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
@@ -62,7 +62,7 @@ async fn setup(scripts: &[(String, VTData)]) -> (TestStack, Loader, Executor, Sc
         alive_test_methods: Vec::new(),
         alive_test_ports: Vec::new(),
     };
-    let executor = nasl_std_functions();
+    let executor = nasl_std_executor();
     (Arc::new(storage), loader().await, executor, scan)
 }
 
@@ -233,7 +233,7 @@ async fn parse_meta_data(filename: &str, code: &str) -> Option<VTData> {
     let register = Register::from_global_variables(&initial);
     let target = Target::localhost();
     let ports = Default::default();
-    let executor = nasl_std_functions();
+    let executor = nasl_std_executor();
     let loader = Loader::test_empty();
     let scan_id = ScanID(filename.to_string());
     let scan_preferences = ScanPrefs::new();
@@ -305,7 +305,7 @@ async fn run(
         alive_test_ports: Vec::new(),
     };
 
-    let executor = nasl_std_functions();
+    let executor = nasl_std_executor();
 
     let scheduler = Scheduler::new(storage.clone());
     let schedule = scheduler.execution_plan(&scan.vts).await?;
