@@ -21,7 +21,7 @@ mod notus;
 mod preferences;
 pub mod raw_ip;
 mod regex;
-mod report_functions;
+mod report;
 mod snmp;
 mod ssh;
 mod string;
@@ -44,7 +44,7 @@ pub fn nasl_std_executor() -> Executor {
     let mut executor = Executor::default();
     executor
         .add_set(array::Array)
-        .add_set(report_functions::Reporting::default())
+        .add_set(report::Reporting::default())
         .add_set(knowledge_base::KnowledgeBase)
         .add_set(misc::Misc)
         .add_set(string::NaslString)
