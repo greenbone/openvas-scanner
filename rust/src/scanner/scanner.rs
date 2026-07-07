@@ -31,7 +31,7 @@ pub struct ScanResults {
 }
 
 #[async_trait]
-pub trait ScanStarter {
+pub trait Scanner {
     fn scanner_type(&self) -> ScannerType;
 
     async fn start_scan(&self, scan: Scan) -> Result<(), Error>;
@@ -129,7 +129,7 @@ impl LambdaBuilder {
 }
 
 #[async_trait]
-impl ScanStarter for Lambda {
+impl Scanner for Lambda {
     fn scanner_type(&self) -> ScannerType {
         ScannerType::Lambda
     }

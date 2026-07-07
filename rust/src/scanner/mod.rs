@@ -84,7 +84,7 @@ where
 }
 
 #[async_trait]
-impl<S> ScanStarter for OpenvasdScanner<S>
+impl<S> Scanner for OpenvasdScanner<S>
 where
     S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
 {

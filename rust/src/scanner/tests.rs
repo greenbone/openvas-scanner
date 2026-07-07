@@ -11,7 +11,7 @@ use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::Target;
 use crate::scanner::OpenvasdScanner;
 use crate::scanner::ScanResults;
-use crate::scanner::ScanStarter;
+use crate::scanner::Scanner;
 use crate::scanner::{
     error::{ExecuteError, ScriptResult},
     scan_runner::ScanRunner,

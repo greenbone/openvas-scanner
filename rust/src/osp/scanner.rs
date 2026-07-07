@@ -8,7 +8,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use crate::{
-    scanner::{Error, ScanResults, ScanStarter},
+    scanner::{Error, ScanResults, Scanner},
     utils::scanner_types,
 };
 use async_trait::async_trait;
@@ -54,7 +54,7 @@ impl OspScanner {
 }
 
 #[async_trait]
-impl ScanStarter for OspScanner {
+impl Scanner for OspScanner {
     fn scanner_type(&self) -> scanner_types::ScannerType {
         scanner_types::ScannerType::Ospd
     }

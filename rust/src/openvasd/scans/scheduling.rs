@@ -9,7 +9,7 @@ use scannerlib::{
     nasl::{builtin::nasl_std_functions, syntax::Loader},
     openvas::{self, cmd},
     osp,
-    scanner::{OpenvasdScanner, ScanResultKind, ScanStarter, preferences},
+    scanner::{OpenvasdScanner, ScanResultKind, Scanner, preferences},
     utils::scanner_types::{self, ScannerType},
 };
 
@@ -216,9 +216,9 @@ fn is_file_locked(path: String) -> R<bool> {
     }
 }
 
-impl<Scanner, C> ScanScheduler<Scanner, C>
+impl<SC, C> ScanScheduler<SC, C>
 where
-    Scanner: ScanStarter + Send + Sync + 'static,
+    SC: Scanner + Send + Sync + 'static,
     C: Crypt + Send + Sync + 'static,
 {
     async fn scan_start(&self, id: i64, scan: Scan) {
@@ -477,7 +477,7 @@ async fn run_scheduler<S, E>(
     feed: orchestrator::Communicator,
 ) -> R<mpsc::Sender<Message>>
 where
-    S: ScanStarter + Send + Sync + 'static,
+    S: Scanner + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     // happens when openvasd was killed when scans did still run
@@ -556,7 +556,7 @@ pub(super) async fn init_with_scanner<E, S>(
     feed: orchestrator::Communicator,
 ) -> R<Sender<Message>>
 where
-    S: ScanStarter + Send + Sync + 'static,
+    S: Scanner + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     let change_scan_status = ScanStateController::init(pool.clone()).await?;

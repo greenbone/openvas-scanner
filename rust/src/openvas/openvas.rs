@@ -32,7 +32,7 @@ pub struct OpenvasScanner {
     resource_checker: Option<Checker>,
     default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
 }
-use crate::scanner::{Error as ScanError, ScanResultKind, ScanResults, ScanStarter};
+use crate::scanner::{Error as ScanError, ScanResultKind, ScanResults, Scanner};
 
 impl From<OpenvasError> for ScanError {
     fn from(value: OpenvasError) -> Self {
@@ -156,7 +156,7 @@ impl Default for OpenvasScanner {
 }
 
 #[async_trait]
-impl ScanStarter for OpenvasScanner {
+impl Scanner for OpenvasScanner {
     fn scanner_type(&self) -> ScannerType {
         ScannerType::Openvas
     }
