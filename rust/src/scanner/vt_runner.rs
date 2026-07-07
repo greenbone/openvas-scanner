@@ -198,7 +198,7 @@ where
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
-        let context = ScanCtxBuilder {
+        let ctx = ScanCtxBuilder {
             scan_id: crate::storage::ScanID(self.scan_id.clone()),
             target: self.target.clone(),
             ports: self.ports.clone(),
@@ -211,13 +211,13 @@ where
             notus: self.notus.clone(),
         }
         .build();
-        context.set_nvt(self.vt.clone());
+        ctx.set_nvt(self.vt.clone());
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));
         }
         let ast = ast.unwrap();
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &context).stream());
+        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),

@@ -29,7 +29,7 @@ impl Reporting {
         &self,
         typus: ResultType,
         register: &Register,
-        context: &ScanCtx<'_>,
+        ctx: &ScanCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         let data = register
             .local_nasl_value("data")
@@ -51,7 +51,7 @@ impl Reporting {
             Some("udp") => Protocol::UDP,
             _ => Protocol::TCP,
         };
-        let target = context.target();
+        let target = ctx.target();
         let hostname = target.hostname();
         let ip_address = target.ip_addr();
         //TODO: rename models::Result to allow direct import
@@ -60,15 +60,14 @@ impl Reporting {
             r_type: typus,
             ip_address: Some(ip_address.to_string()),
             hostname,
-            oid: Some(context.scan().0.clone()),
+            oid: Some(ctx.scan().0.clone()),
             port,
             protocol: Some(protocol),
             message: data,
             detail: None,
         };
-        context
-            .storage()
-            .retry_dispatch(context.scan().clone(), result, 5)
+        ctx.storage()
+            .retry_dispatch(ctx.scan().clone(), result, 5)
             .await?;
         Ok(NaslValue::Null)
     }
@@ -84,9 +83,9 @@ impl Reporting {
     async fn log_message(
         &self,
         register: &Register,
-        context: &ScanCtx<'_>,
+        ctx: &ScanCtx<'_>,
     ) -> Result<NaslValue, FnError> {
-        self.store_result(ResultType::Log, register, context).await
+        self.store_result(ResultType::Log, register, ctx).await
     }
 
     /// *void* **security_message**(data: *string*, port:*int* , proto: *string*, uri: *string*);
@@ -100,10 +99,9 @@ impl Reporting {
     async fn security_message(
         &self,
         register: &Register,
-        context: &ScanCtx<'_>,
+        ctx: &ScanCtx<'_>,
     ) -> Result<NaslValue, FnError> {
-        self.store_result(ResultType::Alarm, register, context)
-            .await
+        self.store_result(ResultType::Alarm, register, ctx).await
     }
 
     /// *void* **error_message**(data: *string*, port:*int* , proto: *string*, uri: *string*);
@@ -117,18 +115,13 @@ impl Reporting {
     async fn error_message(
         &self,
         register: &Register,
-        context: &ScanCtx<'_>,
+        ctx: &ScanCtx<'_>,
     ) -> Result<NaslValue, FnError> {
-        self.store_result(ResultType::Error, register, context)
-            .await
+        self.store_result(ResultType::Error, register, ctx).await
     }
 
     #[nasl_function(named(result))]
-    async fn security_notus(
-        &self,
-        context: &ScanCtx<'_>,
-        result: NaslValue,
-    ) -> Result<(), FnError> {
+    async fn security_notus(&self, ctx: &ScanCtx<'_>, result: NaslValue) -> Result<(), FnError> {
         match result {
             NaslValue::Dict(dict) => {
                 if let (Some(NaslValue::String(oid)), Some(NaslValue::String(message))) =
@@ -137,7 +130,7 @@ impl Reporting {
                     let result = models::Result {
                         id: self.id(),
                         r_type: ResultType::Alarm,
-                        ip_address: Some(context.target().ip_addr().to_string()),
+                        ip_address: Some(ctx.target().ip_addr().to_string()),
                         hostname: None,
                         oid: Some(oid.to_owned()),
                         port: None,
@@ -145,9 +138,8 @@ impl Reporting {
                         message: Some(message.to_owned()),
                         detail: None,
                     };
-                    context
-                        .storage()
-                        .retry_dispatch(context.scan().clone(), result, 5)
+                    ctx.storage()
+                        .retry_dispatch(ctx.scan().clone(), result, 5)
                         .await?;
                 } else {
                     return Err(ArgumentError::wrong_argument(

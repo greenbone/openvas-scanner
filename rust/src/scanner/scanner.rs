@@ -31,43 +31,23 @@ pub struct ScanResults {
 }
 
 #[async_trait]
-pub trait TypeOfScanner {
-    fn scanner_type(&self) -> ScannerType {
-        ScannerType::Openvasd
-    }
-}
+pub trait Scanner {
+    fn scanner_type(&self) -> ScannerType;
 
-/// Starts a scan
-#[async_trait]
-pub trait ScanStarter {
-    /// Starts a scan
     async fn start_scan(&self, scan: Scan) -> Result<(), Error>;
 
-    /// Returns true when the Scanner can start a scan.
     async fn can_start_scan(&self) -> bool {
         true
     }
-}
 
-/// Stops a scan
-#[async_trait]
-pub trait ScanStopper {
-    /// Stops a scan
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;
-}
 
-/// Deletes a scan
-#[async_trait]
-pub trait ScanDeleter {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;
-}
 
-#[async_trait]
-pub trait ScanResultFetcher {
     /// Fetches the results of a scan and combines the results with response
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
@@ -78,12 +58,14 @@ pub trait ScanResultFetcher {
     }
 }
 
-/// Is a scanner implementation primarily for testing purposes.
+/// This is a scanner implementation for testing purposes.
+/// It holds a callback for every operation to make it easy
+/// to insert custom behavior.
 ///
-/// It is holding call back functions so that it is easier to implement a scanner for testing
-/// without having to copy and paste the async traits.
+/// This is not gated behind #[cfg(test)] because it is used
+/// in some tests in the binary crate `openvasd`.
 #[allow(clippy::complexity)]
-pub struct Lambda {
+pub struct TestScanner {
     start: Box<dyn Fn(Scan) -> Result<(), Error> + Sync + Send + 'static>,
     stop: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
     delete: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
@@ -91,7 +73,7 @@ pub struct Lambda {
     can_start: Box<dyn Fn() -> bool + Sync + Send + 'static>,
 }
 
-impl Default for Lambda {
+impl Default for TestScanner {
     fn default() -> Self {
         Self {
             start: Box::new(|_| Ok(())),
@@ -103,21 +85,20 @@ impl Default for Lambda {
     }
 }
 
-/// Builds a Lambda scanner implementation.
-pub struct LambdaBuilder {
-    lambda: Lambda,
+pub struct TestScannerBuilder {
+    lambda: TestScanner,
 }
 
-impl Default for LambdaBuilder {
+impl Default for TestScannerBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl LambdaBuilder {
+impl TestScannerBuilder {
     pub fn new() -> Self {
         Self {
-            lambda: Lambda::default(),
+            lambda: TestScanner::default(),
         }
     }
     pub fn with_start<F>(mut self, f: F) -> Self
@@ -143,19 +124,17 @@ impl LambdaBuilder {
         self
     }
 
-    pub fn build(self) -> Lambda {
+    pub fn build(self) -> TestScanner {
         self.lambda
     }
 }
 
-impl TypeOfScanner for Lambda {
+#[async_trait]
+impl Scanner for TestScanner {
     fn scanner_type(&self) -> ScannerType {
         ScannerType::Lambda
     }
-}
 
-#[async_trait]
-impl ScanStarter for Lambda {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         (self.start)(scan)
     }
@@ -163,30 +142,21 @@ impl ScanStarter for Lambda {
     async fn can_start_scan(&self) -> bool {
         (self.can_start)()
     }
-}
 
-#[async_trait]
-impl ScanStopper for Lambda {
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
     {
         (self.stop)(id.as_ref())
     }
-}
 
-#[async_trait]
-impl ScanDeleter for Lambda {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
     {
         (self.delete)(id.as_ref())
     }
-}
 
-#[async_trait]
-impl ScanResultFetcher for Lambda {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,

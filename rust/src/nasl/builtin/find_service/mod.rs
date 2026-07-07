@@ -246,7 +246,7 @@ impl ServiceDetector {
 
     async fn handle_detected_service(
         &self,
-        context: &ScanCtx<'_>,
+        ctx: &ScanCtx<'_>,
         service: DetectedService,
         port: u16,
     ) -> Result<(), FnError> {
@@ -263,7 +263,7 @@ impl ServiceDetector {
             .find(|s| s.name == service.id)
             .unwrap();
 
-        add_kb_entries(context, service, port, banner).await?;
+        add_kb_entries(ctx, service, port, banner).await?;
 
         if service.generate_result.enabled {
             if service.generate_result.is_vulnerability {
@@ -286,7 +286,7 @@ impl ServiceDetector {
 }
 
 async fn add_kb_entries(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     service: &Service,
     port: u16,
     banner: Vec<u8>,
@@ -295,26 +295,22 @@ async fn add_kb_entries(
         let key = key_template.replace("{port}", &port.to_string());
         let value = value_template.replace("{port}", &port.to_string());
 
-        context
-            .set_kb_item(KbKey::Custom(key), KbItem::String(value))
+        ctx.set_kb_item(KbKey::Custom(key), KbItem::String(value))
             .await?;
     }
 
-    context
-        .set_kb_item(
-            KbKey::Service(kb::Service::Custom(service.key())),
-            KbItem::String(format!("{port}/tcp")),
-        )
-        .await?;
+    ctx.set_kb_item(
+        KbKey::Service(kb::Service::Custom(service.key())),
+        KbItem::String(format!("{port}/tcp")),
+    )
+    .await?;
 
-    context
-        .set_kb_item(KbKey::KnownTcp(port), KbItem::String(service.key()))
+    ctx.set_kb_item(KbKey::KnownTcp(port), KbItem::String(service.key()))
         .await?;
 
     if service.save_banner {
         let banner_key = format!("Banner/{port}");
-        context
-            .set_kb_item(KbKey::Custom(banner_key), KbItem::Data(banner))
+        ctx.set_kb_item(KbKey::Custom(banner_key), KbItem::Data(banner))
             .await?;
     }
 
@@ -322,7 +318,7 @@ async fn add_kb_entries(
 }
 
 async fn read_from_tcp_at_port(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     target: IpAddr,
     port: u16,
     test_tls: bool,
@@ -330,9 +326,9 @@ async fn read_from_tcp_at_port(
     let mut socket = if test_tls {
         make_tcp_socket(target, port, 0)?
     } else {
-        let vhost = get_host_name_shared(context).unwrap().to_string();
+        let vhost = get_host_name_shared(ctx).unwrap().to_string();
         match open_sock_tcp_vhost(
-            context,
+            ctx,
             target,
             Duration::from_millis(TIMEOUT_MILLIS),
             None,
@@ -388,7 +384,7 @@ fn try_http_request(target: IpAddr, port: u16) -> Result<Vec<u8>, FindServiceErr
 }
 
 async fn scan_port(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     detector: &ServiceDetector,
     target: IpAddr,
     port: u16,
@@ -405,7 +401,7 @@ async fn scan_port(
     let banner = if needs_http_request && let Ok(http_response) = try_http_request(target, port) {
         http_response
     } else {
-        match read_from_tcp_at_port(context, target, port, false).await {
+        match read_from_tcp_at_port(ctx, target, port, false).await {
             Ok(ReadResult::Data(data)) => data,
             Ok(ReadResult::Timeout) => return Ok(ScanPortResult::Timeout),
             Err(e) => {
@@ -413,7 +409,7 @@ async fn scan_port(
                     "Error connecting to IP Socket. Trying with a TLS socket {}",
                     e.to_string()
                 );
-                match read_from_tcp_at_port(context, target, port, true).await? {
+                match read_from_tcp_at_port(ctx, target, port, true).await? {
                     ReadResult::Data(data) => data,
                     ReadResult::Timeout => return Ok(ScanPortResult::Timeout),
                 }
@@ -433,47 +429,42 @@ const KEY_FILE: usize = 7;
 const PEM_PASS: usize = 8;
 const CA_FILE: usize = 9;
 
-async fn find_service_ssl_set_prefs(
-    context: &ScanCtx<'_>,
-    register: &Register,
-) -> Result<(), FnError> {
-    let cert = get_plugin_preference_fname(register, context, None, Some(CERT_FILE)).ok();
-    let key = get_plugin_preference_fname(register, context, None, Some(KEY_FILE)).ok();
+async fn find_service_ssl_set_prefs(ctx: &ScanCtx<'_>, register: &Register) -> Result<(), FnError> {
+    let cert = get_plugin_preference_fname(register, ctx, None, Some(CERT_FILE)).ok();
+    let key = get_plugin_preference_fname(register, ctx, None, Some(KEY_FILE)).ok();
 
     if key.is_some() || cert.is_some() {
-        plug_set_ssl_cert(context, cert.clone().unwrap_or(key.clone().unwrap())).await?;
-        plug_set_ssl_key(context, key.unwrap_or(cert.unwrap())).await?;
+        plug_set_ssl_cert(ctx, cert.clone().unwrap_or(key.clone().unwrap())).await?;
+        plug_set_ssl_key(ctx, key.unwrap_or(cert.unwrap())).await?;
     };
 
-    if let Ok(pem_pass) = get_plugin_preference_fname(register, context, None, Some(PEM_PASS)) {
-        plug_set_ssl_password(context, pem_pass).await?;
+    if let Ok(pem_pass) = get_plugin_preference_fname(register, ctx, None, Some(PEM_PASS)) {
+        plug_set_ssl_password(ctx, pem_pass).await?;
     };
 
-    if let Ok(ca) = get_plugin_preference_fname(register, context, None, Some(CA_FILE)) {
-        plug_set_ssl_ca_file(context, ca).await?;
+    if let Ok(ca) = get_plugin_preference_fname(register, ctx, None, Some(CA_FILE)) {
+        plug_set_ssl_ca_file(ctx, ca).await?;
     };
 
     Ok(())
 }
 
 #[nasl_function]
-async fn plugin_run_find_service(context: &ScanCtx<'_>, register: &Register) -> NaslResult {
+async fn plugin_run_find_service(ctx: &ScanCtx<'_>, register: &Register) -> NaslResult {
     if let NaslValue::String(val) = register
         .script_param(TEST_SSL_PREF)
         .unwrap_or(NaslValue::String("All".to_string()))
         && val.as_str() == "All"
     {
-        find_service_ssl_set_prefs(context, register).await?;
+        find_service_ssl_set_prefs(ctx, register).await?;
     }
 
     let detector = ServiceDetector::new()?;
-    let open_ports = context.get_open_tcp_ports().await?;
+    let open_ports = ctx.get_open_tcp_ports().await?;
     for port in open_ports {
-        match scan_port(context, &detector, context.target().ip_addr(), port).await {
+        match scan_port(ctx, &detector, ctx.target().ip_addr(), port).await {
             Ok(ScanPortResult::Service(service)) => {
-                detector
-                    .handle_detected_service(context, service, port)
-                    .await?;
+                detector.handle_detected_service(ctx, service, port).await?;
             }
             Ok(ScanPortResult::Timeout) => {
                 tracing::debug!("Timeout reading from port {}", port);

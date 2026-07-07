@@ -14,7 +14,7 @@ use tempfile::NamedTempFile;
 
 fn script_get_preference_shared(
     register: &Register,
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<NaslValue> {
@@ -23,7 +23,7 @@ fn script_get_preference_shared(
         match register.script_param(id) {
             Some(v) => return Some(v),
             None => {
-                if let Some(pref) = config.nvt().clone().and_then(|nvt| {
+                if let Some(pref) = ctx.nvt().clone().and_then(|nvt| {
                     nvt.preferences
                         .into_iter()
                         .find(|p| p.id == Some(id as i32))
@@ -37,7 +37,7 @@ fn script_get_preference_shared(
     // A parameter name is given. Search for the param in NVT metadata to get the ID.
     // Then, search with the ID in the scan config, otherwise return the default value from the NVT metadata.
     if let Some(pref_name) = name
-        && let Some(pref) = config
+        && let Some(pref) = ctx
             .nvt()
             .clone()
             .and_then(|nvt| nvt.preferences.into_iter().find(|p| p.name == pref_name))
@@ -51,11 +51,11 @@ fn script_get_preference_shared(
 
 fn script_get_preference_file_content_shared(
     register: &Register,
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<Vec<u8>> {
-    let content = script_get_preference_shared(register, config, name, id)?;
+    let content = script_get_preference_shared(register, ctx, name, id)?;
     let content = content.as_string().unwrap();
     base64::engine::general_purpose::STANDARD
         .decode(content)
@@ -68,7 +68,7 @@ fn script_get_preference_file_content_shared(
 // store the TLS stuff in temporary files, which are later use to create a tls socket.
 pub fn get_plugin_preference_fname(
     register: &Register,
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Result<String, FnError> {
@@ -76,8 +76,7 @@ pub fn get_plugin_preference_fname(
         Ok(f) => f,
         Err(e) => return Err(BuiltinError::Preference(e.to_string()).into()),
     };
-    if let Some(file_content) =
-        script_get_preference_file_content_shared(register, config, name, id)
+    if let Some(file_content) = script_get_preference_file_content_shared(register, ctx, name, id)
         && tmp.write_all(&file_content).is_ok()
     {
         return Ok(tmp.path().to_string_lossy().into_owned());
@@ -89,47 +88,46 @@ pub fn get_plugin_preference_fname(
     .into())
 }
 
-pub async fn plug_set_ssl_cert(config: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    config.set_single_kb_item(KbKey::Ssl(Ssl::Cert), path).await
+pub async fn plug_set_ssl_cert(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
+    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Cert), path).await
 }
 
-pub async fn plug_set_ssl_key(config: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    config.set_single_kb_item(KbKey::Ssl(Ssl::Key), path).await
+pub async fn plug_set_ssl_key(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
+    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Key), path).await
 }
 
-pub async fn plug_set_ssl_password(config: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    config
-        .set_single_kb_item(KbKey::Ssl(Ssl::Password), path)
+pub async fn plug_set_ssl_password(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
+    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Password), path)
         .await
 }
 
-pub async fn plug_set_ssl_ca_file(config: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    config.set_single_kb_item(KbKey::Ssl(Ssl::Ca), path).await
+pub async fn plug_set_ssl_ca_file(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
+    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Ca), path).await
 }
 
 #[nasl_function(named(id))]
 fn script_get_preference_file_content(
     register: &Register,
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<Vec<u8>> {
-    script_get_preference_file_content_shared(register, config, name, id)
+    script_get_preference_file_content_shared(register, ctx, name, id)
 }
 
 #[nasl_function(named(id))]
 fn script_get_preference(
     register: &Register,
-    config: &ScanCtx,
+    ctx: &ScanCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<NaslValue> {
-    script_get_preference_shared(register, config, name, id)
+    script_get_preference_shared(register, ctx, name, id)
 }
 
 #[nasl_function]
-fn get_preference(config: &ScanCtx, name: String) -> Option<NaslValue> {
-    let val = if let Some(pref) = config.scan_params().find(|p| p.id == name) {
+fn get_preference(ctx: &ScanCtx, name: String) -> Option<NaslValue> {
+    let val = if let Some(pref) = ctx.scan_params().find(|p| p.id == name) {
         pref.value.clone()
     } else {
         return None;

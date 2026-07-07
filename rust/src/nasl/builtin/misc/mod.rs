@@ -278,11 +278,8 @@ fn dump_ctxt(register: &Register) {
 /// Is a debug function to print the keys available within the called context. It does not take any
 /// nor returns any arguments.
 #[nasl_function]
-fn vendor_version(context: &ScanCtx<'_>) -> Result<NaslValue, MiscError> {
-    match context
-        .scan_preferences
-        .get_preference_string("vendor_version")
-    {
+fn vendor_version(ctx: &ScanCtx<'_>) -> Result<NaslValue, MiscError> {
+    match ctx.scan_preferences.get_preference_string("vendor_version") {
         Some(v) => Ok(NaslValue::String(v)),
         None => Ok(NaslValue::Null),
     }
@@ -290,16 +287,15 @@ fn vendor_version(context: &ScanCtx<'_>) -> Result<NaslValue, MiscError> {
 
 /// Are safe checks enabled ?
 #[nasl_function]
-fn safe_checks(context: &ScanCtx<'_>) -> bool {
-    context
-        .scan_preferences
+fn safe_checks(ctx: &ScanCtx<'_>) -> bool {
+    ctx.scan_preferences
         .get_preference_bool("safe_checks")
         .unwrap_or(false)
 }
 
 #[nasl_function]
-fn get_script_oid(context: &ScanCtx<'_>) -> Option<Vec<u8>> {
-    context.nvt().clone().map(|nvt| nvt.oid.into_bytes())
+fn get_script_oid(ctx: &ScanCtx<'_>) -> Option<Vec<u8>> {
+    ctx.nvt().clone().map(|nvt| nvt.oid.into_bytes())
 }
 
 // This function is only for backward compatibility.

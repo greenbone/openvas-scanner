@@ -20,7 +20,7 @@ use futures::{Stream, StreamExt};
 
 use super::{
     interpreter::{ForkingInterpreter, InterpreterError, InterpreterErrorKind},
-    nasl_std_functions,
+    nasl_std_executor,
     syntax::Loader,
     utils::{
         Executor, ScanCtx,
@@ -150,7 +150,7 @@ impl Default for TestBuilder<InMemoryStorage> {
             should_verify: true,
             loader: Loader::test_empty(),
             storage: InMemoryStorage::default(),
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -176,7 +176,7 @@ where
             should_verify: true,
             loader: Loader::test_empty(),
             storage,
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -199,7 +199,7 @@ impl TestBuilder<InMemoryStorage> {
             should_verify: true,
             loader,
             storage: InMemoryStorage::default(),
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -230,7 +230,7 @@ impl TestBuilder<InMemoryStorage> {
             should_verify: true,
             loader: Loader::test_empty(),
             storage: InMemoryStorage::default(),
-            executor: nasl_std_functions(),
+            executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: Some(notus),
         }
@@ -301,18 +301,15 @@ where
 
     /// Runs the given lines of code and returns the list of results.
     pub fn results(&self) -> Vec<NaslResult> {
-        self.results_and_context().0
+        self.results_and_ctx().0
     }
 
     /// Runs the given lines of code and returns the list of results
     /// along with the `ScanCtx` used for evaluating them.
-    pub fn results_and_context(&self) -> (Vec<NaslResult>, ScanCtx<'_>) {
+    pub fn results_and_ctx(&self) -> (Vec<NaslResult>, ScanCtx<'_>) {
         futures::executor::block_on(async {
-            let context = self.context();
-            (
-                self.results_stream(&self.code(), &context).collect().await,
-                context,
-            )
+            let ctx = self.ctx();
+            (self.results_stream(&self.code(), &ctx).collect().await, ctx)
         })
     }
 
@@ -320,7 +317,7 @@ where
     /// code, panics on any occurring error.
     pub fn values(&self) -> Vec<NaslValue> {
         futures::executor::block_on(async {
-            self.results_stream(&self.code(), &self.context())
+            self.results_stream(&self.code(), &self.ctx())
                 .map(|x| x.unwrap())
                 .collect()
                 .await
@@ -331,7 +328,7 @@ where
         self.lines.join("\n")
     }
 
-    fn interpreter<'ctx>(&self, code: &str, context: &'ctx ScanCtx) -> ForkingInterpreter<'ctx> {
+    fn interpreter<'ctx>(&self, code: &str, ctx: &'ctx ScanCtx) -> ForkingInterpreter<'ctx> {
         let variables: Vec<_> = self
             .variables
             .iter()
@@ -339,22 +336,22 @@ where
             .collect();
         let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();
-        ForkingInterpreter::new(ast, register, context).with_version(self.version)
+        ForkingInterpreter::new(ast, register, ctx).with_version(self.version)
     }
 
     pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
         let code = self.code();
-        let context = self.context();
-        let interpreter = self.interpreter(&code, &context);
+        let ctx = self.ctx();
+        let interpreter = self.interpreter(&code, &ctx);
         futures::executor::block_on(async { interpreter.stream().collect().await })
     }
 
     fn results_stream<'a>(
         &'a self,
         code: &'a str,
-        context: &'a ScanCtx,
+        ctx: &'a ScanCtx,
     ) -> impl Stream<Item = NaslResult> + 'a {
-        let interpreter = self.interpreter(code, context);
+        let interpreter = self.interpreter(code, ctx);
         interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpreterErrorKind::FunctionCallError(f) => f.kind,
@@ -363,7 +360,7 @@ where
         })
     }
 
-    fn context(&self) -> ScanCtx<'_> {
+    fn ctx(&self) -> ScanCtx<'_> {
         let target = Target::do_not_resolve_hostname(&self.target);
         ScanCtxBuilder {
             storage: &self.storage,
@@ -397,8 +394,8 @@ where
         if self.should_verify {
             let mut references_iter = self.results.iter().enumerate();
             let code = self.code();
-            let context = self.context();
-            let mut results = self.results_stream(&code, &context);
+            let ctx = self.ctx();
+            let mut results = self.results_stream(&code, &ctx);
             while let Some(result) = results.next().await {
                 let (line_count, reference) = references_iter.next().unwrap();
                 self.check_result(&result, reference, line_count)?;

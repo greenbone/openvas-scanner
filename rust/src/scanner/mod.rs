@@ -84,31 +84,19 @@ where
 }
 
 #[async_trait]
-impl<S> TypeOfScanner for OpenvasdScanner<S>
+impl<S> Scanner for OpenvasdScanner<S>
 where
     S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
 {
     fn scanner_type(&self) -> scanner_types::ScannerType {
         scanner_types::ScannerType::Openvasd
     }
-}
 
-#[async_trait]
-impl<S> ScanStarter for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
         self.start_scan_internal(Scan::from_resolvable_hosts(scan))
             .await
     }
-}
 
-#[async_trait]
-impl<S> ScanStopper for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -123,13 +111,7 @@ where
         handle.stop();
         Ok(())
     }
-}
 
-#[async_trait]
-impl<S> ScanDeleter for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -142,13 +124,7 @@ where
             .map_err(|_| Error::ScanNotFound(scan_id.0))?;
         Ok(())
     }
-}
 
-#[async_trait]
-impl<S> ScanResultFetcher for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,

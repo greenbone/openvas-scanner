@@ -13,7 +13,7 @@ use crate::nasl::{
 };
 
 #[nasl_function]
-fn foo1(_context: &ScanCtx, x: usize) -> usize {
+fn foo1(_ctx: &ScanCtx, x: usize) -> usize {
     x
 }
 

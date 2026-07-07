@@ -8,9 +8,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use crate::{
-    scanner::{
-        Error, ScanDeleter, ScanResultFetcher, ScanResults, ScanStarter, ScanStopper, TypeOfScanner,
-    },
+    scanner::{Error, ScanResults, Scanner},
     utils::scanner_types,
 };
 use async_trait::async_trait;
@@ -20,14 +18,14 @@ use super::connection::{delete_scan, get_delete_scan_results, start_scan, stop_s
 
 #[derive(Debug, Clone)]
 /// OSPD wrapper, is used to utilize ospd
-pub struct Scanner {
+pub struct OspScanner {
     /// Path to the socket
     socket: PathBuf,
     /// Read timeout in seconds
     r_timeout: Option<Duration>,
 }
 
-impl Scanner {
+impl OspScanner {
     /// Creates a new instance of OSPDWrapper
     pub fn new(socket: PathBuf, r_timeout: Option<Duration>) -> Self {
         Self { socket, r_timeout }
@@ -56,14 +54,11 @@ impl Scanner {
 }
 
 #[async_trait]
-impl TypeOfScanner for Scanner {
+impl Scanner for OspScanner {
     fn scanner_type(&self) -> scanner_types::ScannerType {
         scanner_types::ScannerType::Ospd
     }
-}
 
-#[async_trait]
-impl ScanStarter for Scanner {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
@@ -73,10 +68,7 @@ impl ScanStarter for Scanner {
         })
         .await
     }
-}
 
-#[async_trait]
-impl ScanStopper for Scanner {
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -89,10 +81,7 @@ impl ScanStopper for Scanner {
         })
         .await
     }
-}
 
-#[async_trait]
-impl ScanDeleter for Scanner {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,
@@ -105,10 +94,7 @@ impl ScanDeleter for Scanner {
         })
         .await
     }
-}
 
-#[async_trait]
-impl ScanResultFetcher for Scanner {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,

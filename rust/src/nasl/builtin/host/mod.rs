@@ -38,8 +38,8 @@ impl<'a> FromNaslValue<'a> for Hostname {
 
 /// Get a list of found hostnames or a IP of the current target in case no hostnames were found yet.
 #[nasl_function]
-fn get_host_names(context: &ScanCtx) -> Result<NaslValue, FnError> {
-    let hns = context.target().vhosts();
+fn get_host_names(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
+    let hns = ctx.target().vhosts();
     if !hns.is_empty() {
         let hns = hns
             .iter()
@@ -48,7 +48,7 @@ fn get_host_names(context: &ScanCtx) -> Result<NaslValue, FnError> {
         return Ok(NaslValue::Array(hns));
     };
     Ok(NaslValue::Array(vec![NaslValue::String(
-        context.target().ip_addr().to_string(),
+        ctx.target().ip_addr().to_string(),
     )]))
 }
 
@@ -57,17 +57,17 @@ fn get_host_names(context: &ScanCtx) -> Result<NaslValue, FnError> {
 ///Additionally a source, how the hostname was detected can be added with the named argument source as a string. If it is not given, the value NASL is set as default.
 #[nasl_function(named(hostname, source))]
 fn add_host_name(
-    context: &ScanCtx,
+    ctx: &ScanCtx,
     hostname: Hostname,
     source: Option<&str>,
 ) -> Result<NaslValue, FnError> {
     let source = source.filter(|x| !x.is_empty()).unwrap_or("NASL");
-    context.add_hostname(hostname.0, source.into());
+    ctx.add_hostname(hostname.0, source.into());
     Ok(NaslValue::Null)
 }
 
-pub fn get_host_name_shared(context: &ScanCtx) -> Result<NaslValue, FnError> {
-    let vh = context.target().vhosts();
+pub fn get_host_name_shared(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
+    let vh = ctx.target().vhosts();
     let v = if !vh.is_empty() {
         vh.iter()
             .map(|vhost| NaslValue::String(vhost.hostname().to_string()))
@@ -83,23 +83,23 @@ pub fn get_host_name_shared(context: &ScanCtx) -> Result<NaslValue, FnError> {
         return Ok(Fork::new(v.into_iter()).with_kind(ForkKind::Host).into());
     }
 
-    let host = match context.target().kind() {
+    let host = match ctx.target().kind() {
         TargetKind::IpAddr => {
-            let ip_addr = context.target().ip_addr();
+            let ip_addr = ctx.target().ip_addr();
             match lookup_addr(&ip_addr) {
                 Ok(host) => host,
                 Err(_) => ip_addr.to_string(),
             }
         }
-        TargetKind::Hostname => context.target().original_target_str().to_string(),
+        TargetKind::Hostname => ctx.target().original_target_str().to_string(),
     };
     Ok(NaslValue::String(host))
 }
 
 /// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
 #[nasl_function]
-fn get_host_name(context: &ScanCtx) -> Result<NaslValue, FnError> {
-    get_host_name_shared(context)
+fn get_host_name(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
+    get_host_name_shared(ctx)
 }
 
 /// This function returns the source of detection of a given hostname.
@@ -107,20 +107,20 @@ fn get_host_name(context: &ScanCtx) -> Result<NaslValue, FnError> {
 /// When no hostname is given, the current scanned host is taken.
 /// If no virtual hosts are found yet this function always returns IP-address.
 #[nasl_function(named(hostname))]
-fn get_host_name_source(context: &ScanCtx, hostname: Hostname) -> String {
-    let vh = context.target().vhosts();
+fn get_host_name_source(ctx: &ScanCtx, hostname: Hostname) -> String {
+    let vh = ctx.target().vhosts();
     if !vh.is_empty()
         && let Some(vhost) = vh.iter().find(|vhost| vhost.hostname() == hostname.0)
     {
         return vhost.source().to_string();
     }
-    context.target().original_target_str().to_string()
+    ctx.target().original_target_str().to_string()
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
 #[nasl_function]
-fn nasl_get_host_ip(context: &ScanCtx) -> Result<NaslValue, FnError> {
-    let ip = context.target().ip_addr();
+fn nasl_get_host_ip(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
+    let ip = ctx.target().ip_addr();
     Ok(NaslValue::String(ip.to_string()))
 }
 
@@ -146,8 +146,8 @@ fn resolve_hostname_to_multiple_ips(hostname: Hostname) -> Result<NaslValue, FnE
 /// Check if the currently scanned target is an IPv6 address.
 /// Return TRUE if the current target is an IPv6 address, else FALSE.
 #[nasl_function]
-fn target_is_ipv6(context: &ScanCtx) -> bool {
-    context.target().ip_addr().is_ipv6()
+fn target_is_ipv6(ctx: &ScanCtx) -> bool {
+    ctx.target().ip_addr().is_ipv6()
 }
 
 /// Compare if two hosts are the same.
@@ -176,17 +176,14 @@ fn same_host(h1: &str, h2: &str, cmp_hostname: Option<bool>) -> Result<bool, FnE
 
 /// Return the hostname of the given ip or the target if given or localhost as default
 #[nasl_function]
-fn host_reverse_lookup(
-    context: &ScanCtx,
-    ip_str: Option<String>,
-) -> Result<Option<String>, FnError> {
+fn host_reverse_lookup(ctx: &ScanCtx, ip_str: Option<String>) -> Result<Option<String>, FnError> {
     let target = if let Some(t) = ip_str {
         match IpAddr::from_str(&t) {
             Ok(a) => Some(a),
             Err(e) => return Err(HostError::InvalidHost(e.to_string()).into()),
         }
     } else {
-        Some(context.target().ip_addr())
+        Some(ctx.target().ip_addr())
     };
     //safe to unwrap the target, since it always defaults to localhost
     Ok(lookup_addr(&target.unwrap()).ok())

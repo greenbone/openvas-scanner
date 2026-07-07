@@ -56,7 +56,7 @@ macro_rules! make_storage_function {
         #[nasl_function]
         pub fn $name(
             registrat: &Register,
-            ctxconfigs: &ScanCtx,
+            ctx: &ScanCtx,
         ) -> Result<NaslValue, FnError> {
             let mut variables = vec![];
             $(
@@ -85,7 +85,7 @@ macro_rules! make_storage_function {
             )?
             let db_args = $transform(&variables)?;
             for db_arg in db_args {
-              ctxconfigs.set_nvt_field(db_arg);
+              ctx.set_nvt_field(db_arg);
             }
             Ok(NaslValue::Null)
         }

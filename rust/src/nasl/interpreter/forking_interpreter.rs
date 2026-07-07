@@ -16,9 +16,9 @@ pub struct ForkingInterpreter<'ctx> {
 }
 
 impl<'ctx> ForkingInterpreter<'ctx> {
-    pub fn new(ast: Ast, mut register: Register, context: &'ctx ScanCtx<'ctx>) -> Self {
-        context.add_fn_global_vars(&mut register);
-        let interpreters = vec![Interpreter::new(register, context)];
+    pub fn new(ast: Ast, mut register: Register, ctx: &'ctx ScanCtx<'ctx>) -> Self {
+        ctx.add_fn_global_vars(&mut register);
+        let interpreters = vec![Interpreter::new(register, ctx)];
         Self {
             interpreters,
             interpreter_index: 0,
@@ -128,7 +128,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
 mod tests {
     use crate::nasl::{
         interpreter::{Fork, ForkKind, InterpreterError, InterpreterErrorKind},
-        nasl_std_functions,
+        nasl_std_executor,
         test_prelude::*,
     };
 
@@ -361,7 +361,7 @@ mod tests {
 
     #[test]
     fn forked_interpreter_with_nondeterministic_behavior() {
-        let mut exec = nasl_std_functions();
+        let mut exec = nasl_std_executor();
         exec.add_set(MySet(0));
         let mut t = TestBuilder::default().with_executor(exec);
         t.run_all(
@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn multiple_forks_same_kind() {
-        let mut exec = nasl_std_functions();
+        let mut exec = nasl_std_executor();
         exec.add_set(MySet(0));
         let mut t = TestBuilder::default().with_executor(exec);
         t.run_all(

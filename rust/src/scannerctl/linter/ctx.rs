@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use scannerlib::nasl::{
-    nasl_std_functions,
+    nasl_std_executor,
     syntax::{
         Visitor,
         grammar::{Ast, FnDecl},
@@ -34,7 +34,7 @@ pub(crate) struct Cache {
 
 impl Default for Cache {
     fn default() -> Self {
-        let builtin_fns = nasl_std_functions()
+        let builtin_fns = nasl_std_executor()
             .iter()
             .map(|name| (name.to_owned(), BuiltinFn))
             .collect();

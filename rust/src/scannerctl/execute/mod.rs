@@ -11,7 +11,7 @@ use clap::Subcommand;
 use futures::StreamExt;
 use scannerlib::feed::{HashSumNameLoader, Update};
 use scannerlib::models;
-use scannerlib::nasl::nasl_std_functions;
+use scannerlib::nasl::nasl_std_executor;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::scan_ctx::NotusCtx;
 use scannerlib::notus::{Notus, ProductLoader};
@@ -128,7 +128,7 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
             );
         }
     } else {
-        let executor = nasl_std_functions();
+        let executor = nasl_std_executor();
         let scan = Scan::default_to_localhost(scan);
         let notus = args.notus.map(|x| match x {
             NotusArgs::Address(addr) => NotusCtx::Address(addr),
