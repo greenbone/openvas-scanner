@@ -631,7 +631,7 @@ where
 pub(crate) mod tests {
     use scannerlib::{
         models::Status,
-        scanner::{self, LambdaBuilder, ScanResults},
+        scanner::{self, ScanResults, TestScannerBuilder},
     };
     use sqlx::query_scalar;
 
@@ -645,20 +645,20 @@ pub(crate) mod tests {
     };
     type TR = R<()>;
 
-    async fn setup_test_env() -> R<(ScanScheduler<scanner::Lambda, ChaCha20Crypt>, Vec<i64>)> {
-        setup_test_env_with_scanner(LambdaBuilder::default()).await
+    async fn setup_test_env() -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
+        setup_test_env_with_scanner(TestScannerBuilder::default()).await
     }
 
     async fn setup_test_env_with_scanner(
-        builder: LambdaBuilder,
-    ) -> R<(ScanScheduler<scanner::Lambda, ChaCha20Crypt>, Vec<i64>)> {
+        builder: TestScannerBuilder,
+    ) -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
         setup_test_env_with_scanner_and_feed_messages(builder, Default::default()).await
     }
 
     async fn setup_test_env_with_scanner_and_feed_messages(
-        builder: LambdaBuilder,
+        builder: TestScannerBuilder,
         feed_changes: IsInProgress,
-    ) -> R<(ScanScheduler<scanner::Lambda, ChaCha20Crypt>, Vec<i64>)> {
+    ) -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
         let (config, pool) = create_pool().await?;
         let scanner = Arc::new(builder.build());
         let cryptor = Arc::new(scans::config_to_crypt(&config));
@@ -728,8 +728,8 @@ pub(crate) mod tests {
         Ok(())
     }
 
-    pub(crate) fn scanner_succeeded() -> LambdaBuilder {
-        LambdaBuilder::new().with_fetch(|id| {
+    pub(crate) fn scanner_succeeded() -> TestScannerBuilder {
+        TestScannerBuilder::new().with_fetch(|id| {
             let results = vec![
                 models::Result {
                     id: 0,
@@ -813,7 +813,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn run_scans_failure() -> TR {
         let (under_test, known_scans) = setup_test_env_with_scanner(
-            LambdaBuilder::new()
+            TestScannerBuilder::new()
                 .with_start(|_| Err(scanner::Error::Connection("nada".to_string()))),
         )
         .await?;
@@ -848,7 +848,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn do_not_start_when_scanner_cannot_start_scan() -> TR {
         let (under_test, known_scans) =
-            setup_test_env_with_scanner(LambdaBuilder::new().with_can_start(|| false)).await?;
+            setup_test_env_with_scanner(TestScannerBuilder::new().with_can_start(|| false)).await?;
 
         for id in known_scans.iter() {
             under_test
@@ -874,7 +874,7 @@ pub(crate) mod tests {
             ..Default::default()
         };
         let (under_test, known_scans) =
-            setup_test_env_with_scanner_and_feed_messages(LambdaBuilder::new(), iip).await?;
+            setup_test_env_with_scanner_and_feed_messages(TestScannerBuilder::new(), iip).await?;
 
         for id in known_scans.iter() {
             under_test

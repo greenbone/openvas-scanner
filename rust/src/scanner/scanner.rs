@@ -58,12 +58,14 @@ pub trait Scanner {
     }
 }
 
-/// Is a scanner implementation primarily for testing purposes.
+/// This is a scanner implementation for testing purposes.
+/// It holds a callback for every operation to make it easy
+/// to insert custom behavior.
 ///
-/// It is holding call back functions so that it is easier to implement a scanner for testing
-/// without having to copy and paste the async traits.
+/// This is not gated behind #[cfg(test)] because it is used
+/// in some tests in the binary crate `openvasd`.
 #[allow(clippy::complexity)]
-pub struct Lambda {
+pub struct TestScanner {
     start: Box<dyn Fn(Scan) -> Result<(), Error> + Sync + Send + 'static>,
     stop: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
     delete: Box<dyn Fn(&str) -> Result<(), Error> + Sync + Send + 'static>,
@@ -71,7 +73,7 @@ pub struct Lambda {
     can_start: Box<dyn Fn() -> bool + Sync + Send + 'static>,
 }
 
-impl Default for Lambda {
+impl Default for TestScanner {
     fn default() -> Self {
         Self {
             start: Box::new(|_| Ok(())),
@@ -83,21 +85,20 @@ impl Default for Lambda {
     }
 }
 
-/// Builds a Lambda scanner implementation.
-pub struct LambdaBuilder {
-    lambda: Lambda,
+pub struct TestScannerBuilder {
+    lambda: TestScanner,
 }
 
-impl Default for LambdaBuilder {
+impl Default for TestScannerBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl LambdaBuilder {
+impl TestScannerBuilder {
     pub fn new() -> Self {
         Self {
-            lambda: Lambda::default(),
+            lambda: TestScanner::default(),
         }
     }
     pub fn with_start<F>(mut self, f: F) -> Self
@@ -123,13 +124,13 @@ impl LambdaBuilder {
         self
     }
 
-    pub fn build(self) -> Lambda {
+    pub fn build(self) -> TestScanner {
         self.lambda
     }
 }
 
 #[async_trait]
-impl Scanner for Lambda {
+impl Scanner for TestScanner {
     fn scanner_type(&self) -> ScannerType {
         ScannerType::Lambda
     }
