@@ -334,8 +334,16 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   g_string_free (url, TRUE);
 
   // Accept an insecure connection. Don't verify the server certificate
-  curl_easy_setopt (handle, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt (handle, CURLOPT_SSL_VERIFYHOST, 0L);
+  if (prefs_get_bool ("http2_peer_verify"))
+    {
+      curl_easy_setopt (handle, CURLOPT_SSL_VERIFYPEER, 1L);
+      curl_easy_setopt (handle, CURLOPT_SSL_VERIFYHOST, 2L);
+    }
+  else
+    {
+      curl_easy_setopt (handle, CURLOPT_SSL_VERIFYPEER, 0L);
+      curl_easy_setopt (handle, CURLOPT_SSL_VERIFYHOST, 0L);
+    }
 
   // Set User Agent
   char *ua = NULL;
