@@ -31,14 +31,9 @@ pub struct ScanResults {
 }
 
 #[async_trait]
-pub trait TypeOfScanner {
-    fn scanner_type(&self) -> ScannerType {
-        ScannerType::Openvasd
-    }
-}
-
-#[async_trait]
 pub trait ScanStarter {
+    fn scanner_type(&self) -> ScannerType;
+
     async fn start_scan(&self, scan: Scan) -> Result<(), Error>;
 
     async fn can_start_scan(&self) -> bool {
@@ -133,14 +128,12 @@ impl LambdaBuilder {
     }
 }
 
-impl TypeOfScanner for Lambda {
+#[async_trait]
+impl ScanStarter for Lambda {
     fn scanner_type(&self) -> ScannerType {
         ScannerType::Lambda
     }
-}
 
-#[async_trait]
-impl ScanStarter for Lambda {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         (self.start)(scan)
     }

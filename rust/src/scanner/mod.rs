@@ -84,20 +84,14 @@ where
 }
 
 #[async_trait]
-impl<S> TypeOfScanner for OpenvasdScanner<S>
+impl<S> ScanStarter for OpenvasdScanner<S>
 where
     S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
 {
     fn scanner_type(&self) -> scanner_types::ScannerType {
         scanner_types::ScannerType::Openvasd
     }
-}
 
-#[async_trait]
-impl<S> ScanStarter for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
         self.start_scan_internal(Scan::from_resolvable_hosts(scan))
             .await

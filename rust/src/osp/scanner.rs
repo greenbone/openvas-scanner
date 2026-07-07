@@ -8,7 +8,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use crate::{
-    scanner::{Error, ScanResults, ScanStarter, TypeOfScanner},
+    scanner::{Error, ScanResults, ScanStarter},
     utils::scanner_types,
 };
 use async_trait::async_trait;
@@ -54,14 +54,11 @@ impl OspScanner {
 }
 
 #[async_trait]
-impl TypeOfScanner for OspScanner {
+impl ScanStarter for OspScanner {
     fn scanner_type(&self) -> scanner_types::ScannerType {
         scanner_types::ScannerType::Ospd
     }
-}
 
-#[async_trait]
-impl ScanStarter for OspScanner {
     async fn start_scan(&self, scan: Scan) -> Result<(), Error> {
         let rtimeout = self.r_timeout;
         self.spawn_blocking(move |socket| {
