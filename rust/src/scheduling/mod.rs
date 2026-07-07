@@ -10,9 +10,9 @@ use std::{collections::HashMap, fmt::Display, io::Write, sync::Arc};
 use crate::storage::{
     Retriever,
     error::StorageError,
-    infisto::json::JsonStorage,
     inmemory::InMemoryStorage,
     items::nvt::{ACT, FileName, Oid},
+    json::JsonStorage,
     redis::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper},
 };
 
