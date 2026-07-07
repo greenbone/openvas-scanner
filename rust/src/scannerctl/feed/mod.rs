@@ -12,7 +12,7 @@ use scannerlib::{
     nasl::syntax::LoadError,
     storage::{
         error::StorageError,
-        infisto::json::{ArrayWrapper, JsonStorage},
+        json::{ArrayWrapper, JsonStorage},
         redis::{
             FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, NameSpaceSelector, RedisCtx, RedisStorage,
         },

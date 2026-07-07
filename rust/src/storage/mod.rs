@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 pub mod error;
-pub mod infisto;
 pub mod inmemory;
 pub mod items;
+pub mod json;
 pub mod redis;
 
 use std::{fmt::Display, sync::Arc};
