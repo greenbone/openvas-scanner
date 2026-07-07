@@ -18,14 +18,14 @@ use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
 #[nasl_function]
-fn get_host_ip(context: &ScanCtx) -> String {
-    context.target().ip_addr().to_string()
+fn get_host_ip(ctx: &ScanCtx) -> String {
+    ctx.target().ip_addr().to_string()
 }
 
 /// Get the IP address of the current (attacking) machine depending on which network device is used
 #[nasl_function]
-fn this_host(context: &ScanCtx) -> Result<String, SocketError> {
-    let dst = context.target().ip_addr();
+fn this_host(ctx: &ScanCtx) -> Result<String, SocketError> {
+    let dst = ctx.target().ip_addr();
 
     let port: u16 = DEFAULT_PORT;
 
@@ -46,21 +46,21 @@ fn this_host_name() -> String {
 
 /// get the maximum transition unit for the scanned host
 #[nasl_function]
-fn get_mtu(context: &ScanCtx) -> Result<i64, SocketError> {
-    Ok(mtu(context.target().ip_addr()) as i64)
+fn get_mtu(ctx: &ScanCtx) -> Result<i64, SocketError> {
+    Ok(mtu(ctx.target().ip_addr()) as i64)
 }
 
 /// check if the currently scanned host is the localhost
 #[nasl_function]
-fn nasl_islocalhost(context: &ScanCtx) -> Result<bool, SocketError> {
-    let host_ip = context.target().ip_addr();
+fn nasl_islocalhost(ctx: &ScanCtx) -> Result<bool, SocketError> {
+    let host_ip = ctx.target().ip_addr();
     Ok(islocalhost(host_ip))
 }
 
 /// Check if the target host is on the same network as the attacking host
 #[nasl_function]
-fn islocalnet(context: &ScanCtx) -> Result<bool, SocketError> {
-    let dst = context.target().ip_addr();
+fn islocalnet(ctx: &ScanCtx) -> Result<bool, SocketError> {
+    let dst = ctx.target().ip_addr();
     let src = get_source_ip(dst, DEFAULT_PORT)?;
     let netmask = match get_netmask_by_local_ip(src)? {
         Some(netmask) => netmask,
@@ -134,7 +134,7 @@ fn islocalnet(context: &ScanCtx) -> Result<bool, SocketError> {
 
 /// Declares an open port on the target host
 pub async fn scanner_add_port_shared(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     port: Port,
     proto: Option<&str>,
 ) -> Result<(), FnError> {
@@ -143,9 +143,7 @@ pub async fn scanner_add_port_shared(
         _ => KbKey::Port(kb::Port::Tcp(port.0.to_string())),
     };
 
-    context
-        .set_single_kb_item(kb_key, KbItem::Number(1))
-        .await?;
+    ctx.set_single_kb_item(kb_key, KbItem::Number(1)).await?;
 
     Ok(())
 }
@@ -153,16 +151,16 @@ pub async fn scanner_add_port_shared(
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
 async fn scanner_add_port(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     port: Port,
     proto: Option<&str>,
 ) -> Result<(), FnError> {
-    scanner_add_port_shared(context, port, proto).await
+    scanner_add_port_shared(ctx, port, proto).await
 }
 
 #[nasl_function]
-fn scanner_get_port(context: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
-    let ports = context.target().ports_tcp().iter().collect::<Vec<&u16>>();
+fn scanner_get_port(ctx: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
+    let ports = ctx.target().ports_tcp().iter().collect::<Vec<&u16>>();
     if (idx as usize) < ports.len() {
         return Ok(NaslValue::Number(*ports[idx as usize] as i64));
     }
@@ -171,17 +169,17 @@ fn scanner_get_port(context: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
 }
 
 #[nasl_function]
-async fn get_host_open_port(context: &ScanCtx<'_>) -> i64 {
-    context.get_random_open_tcp_port().await.unwrap_or_default() as i64
+async fn get_host_open_port(ctx: &ScanCtx<'_>) -> i64 {
+    ctx.get_random_open_tcp_port().await.unwrap_or_default() as i64
 }
 
 #[nasl_function(named(asstring))]
 async fn get_port_transport(
-    context: &ScanCtx<'_>,
+    ctx: &ScanCtx<'_>,
     port: u16,
     asstring: bool,
 ) -> Result<NaslValue, FnError> {
-    let transport = context.get_port_transport(port).await.unwrap_or(1);
+    let transport = ctx.get_port_transport(port).await.unwrap_or(1);
     let ret = if asstring {
         let transport_str = match transport {
             0 => "auto".to_string(),
@@ -205,13 +203,13 @@ async fn get_port_transport(
 }
 
 #[nasl_function]
-async fn get_port_state(context: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
-    context.get_port_state(port, Protocol::TCP).await
+async fn get_port_state(ctx: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
+    ctx.get_port_state(port, Protocol::TCP).await
 }
 
 #[nasl_function]
-async fn get_udp_port_state(context: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
-    context.get_port_state(port, Protocol::UDP).await
+async fn get_udp_port_state(ctx: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
+    ctx.get_port_state(port, Protocol::UDP).await
 }
 
 pub struct Network;

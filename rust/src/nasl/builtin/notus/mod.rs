@@ -141,11 +141,11 @@ impl NaslNotus {
     #[nasl_function(named(pkg_list, product))]
     async fn notus(
         &mut self,
-        context: &ScanCtx<'_>,
+        ctx: &ScanCtx<'_>,
         pkg_list: NaslValue,
         product: &str,
     ) -> Result<NaslValue, FnError> {
-        let notus = if let Some(notus) = &context.notus {
+        let notus = if let Some(notus) = &ctx.notus {
             notus
         } else {
             self.last_error = Some("Configuration Error: Notus context not found".to_string());
