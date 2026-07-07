@@ -29,7 +29,6 @@
 #include "smb_signing.h"
 
 #include <assert.h>
-#include <cstdint>
 #include <ctype.h>
 #include <gcrypt.h>
 #include <glib.h>
@@ -263,8 +262,7 @@ nasl_get_sign (lex_ctxt *lexic)
 
   uint8_t calc_md5_mac[16];
   if (simple_packet_signature_ntlmssp ((uint8_t *) mac_key, buf,
-                                       (size_t) buflen, seq_num,
-                                       calc_md5_mac)
+                                       (size_t) buflen, seq_num, calc_md5_mac)
       != 0)
     {
       nasl_perror (lexic, "get_signature: OOB read\n");
@@ -916,17 +914,30 @@ nasl_ntlmv2_hash (lex_ctxt *lexic)
 
   /* NTLMv2 */
 
-  /* We also get to specify some random data */
+  /* We also get to specify some random data.
+     To avoid DoS we set an uper limit for client chal length.
+     At the moment of fixing this, the max lenght used in a nasl script is 64.
+  */
+  if (client_chal_length > 4096)
+    {
+      nasl_perror (lexic, "Length to big. Max is 4096\n");
+      return NULL;
+    }
+
   ntlmv2_client_data = g_malloc0 (client_chal_length);
   for (i = 0; i < client_chal_length; i++)
     ntlmv2_client_data[i] = rand () % 256;
 
   if (hash_len != 16)
-    nasl_perror (lexic, "owf_in must have a length of 16\n");
+    {
+      nasl_perror (lexic, "owf_in must have a length of 16\n");
+      return NULL;
+    }
 
   /* Given that data, and the challenge from the server, generate a response */
-  SMBOWFencrypt_ntv2_ntlmssp (ntlm_v2_hash, server_chal, 8, ntlmv2_client_data,
-                              client_chal_length, ntlmv2_response);
+  SMBOWFencrypt_ntv2_ntlmssp (
+    ntlm_v2_hash, server_chal, get_var_size_by_name (lexic, "cryptkey"),
+    ntlmv2_client_data, client_chal_length, ntlmv2_response);
 
   /* put it into nt_response, for the code below to put into the packet */
   final_response = g_malloc0 (client_chal_length + sizeof (ntlmv2_response));
