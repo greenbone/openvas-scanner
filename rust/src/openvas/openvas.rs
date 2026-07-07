@@ -32,9 +32,7 @@ pub struct OpenvasScanner {
     resource_checker: Option<Checker>,
     default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
 }
-use crate::scanner::{
-    Error as ScanError, ScanResultFetcher, ScanResultKind, ScanResults, ScanStarter, TypeOfScanner,
-};
+use crate::scanner::{Error as ScanError, ScanResultKind, ScanResults, ScanStarter, TypeOfScanner};
 
 impl From<OpenvasError> for ScanError {
     fn from(value: OpenvasError) -> Self {
@@ -270,10 +268,7 @@ impl ScanStarter for OpenvasScanner {
             },
         }
     }
-}
 
-#[async_trait]
-impl ScanResultFetcher for OpenvasScanner {
     /// Fetches the results of a scan and combines the results with response
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, ScanError>
     where

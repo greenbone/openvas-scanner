@@ -130,13 +130,7 @@ where
             .map_err(|_| Error::ScanNotFound(scan_id.0))?;
         Ok(())
     }
-}
 
-#[async_trait]
-impl<S> ScanResultFetcher for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,

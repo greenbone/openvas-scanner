@@ -52,10 +52,7 @@ pub trait ScanStarter {
     async fn delete_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;
-}
 
-#[async_trait]
-pub trait ScanResultFetcher {
     /// Fetches the results of a scan and combines the results with response
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
@@ -165,10 +162,7 @@ impl ScanStarter for Lambda {
     {
         (self.delete)(id.as_ref())
     }
-}
 
-#[async_trait]
-impl ScanResultFetcher for Lambda {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,

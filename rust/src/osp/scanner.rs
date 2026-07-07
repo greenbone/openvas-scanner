@@ -8,7 +8,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use crate::{
-    scanner::{Error, ScanResultFetcher, ScanResults, ScanStarter, TypeOfScanner},
+    scanner::{Error, ScanResults, ScanStarter, TypeOfScanner},
     utils::scanner_types,
 };
 use async_trait::async_trait;
@@ -97,10 +97,7 @@ impl ScanStarter for OspScanner {
         })
         .await
     }
-}
 
-#[async_trait]
-impl ScanResultFetcher for OspScanner {
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, Error>
     where
         I: AsRef<str> + Send + 'static,

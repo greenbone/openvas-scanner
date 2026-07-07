@@ -10,7 +10,8 @@ use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::Target;
 use crate::scanner::OpenvasdScanner;
-use crate::scanner::{ScanResultFetcher, ScanResults};
+use crate::scanner::ScanResults;
+use crate::scanner::ScanStarter;
 use crate::scanner::{
     error::{ExecuteError, ScriptResult},
     scan_runner::ScanRunner,
