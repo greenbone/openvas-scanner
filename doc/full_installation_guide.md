@@ -182,7 +182,7 @@ sudo apt install -y \
   libgpgme-dev \
   libgnutls28-dev \
   uuid-dev \
-  libssh-gcrypt-dev \
+  libssh-dev \
   libhiredis-dev \
   libxml2-dev \
   libpcap-dev \

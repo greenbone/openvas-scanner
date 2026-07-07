@@ -6,6 +6,7 @@ mod aes_ccm;
 mod aes_cmac;
 mod aes_ctr;
 mod aes_gcm;
+mod aes_gmac;
 mod cbc;
 mod des;
 mod dh;
