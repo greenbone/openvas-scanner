@@ -626,7 +626,7 @@ where
         scanner_types::ScannerType::Openvas => {
             let redis_url = cmd::get_redis_socket();
 
-            let scanner = openvas::Scanner::new(
+            let scanner = openvas::OpenvasScanner::new(
                 config.scheduler.min_free_mem,
                 None, // cpu_option are not available currently
                 cmd::check_sudo(),

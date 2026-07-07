@@ -37,7 +37,6 @@ pub trait TypeOfScanner {
     }
 }
 
-/// Starts a scan
 #[async_trait]
 pub trait ScanStarter {
     /// Starts a scan

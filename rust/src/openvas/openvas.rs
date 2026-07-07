@@ -25,7 +25,7 @@ use std::{
 };
 
 #[derive(Debug)]
-pub struct Scanner {
+pub struct OpenvasScanner {
     running: Mutex<HashMap<String, (Child, u32)>>,
     sudo: bool,
     redis_socket: String,
@@ -91,7 +91,7 @@ impl From<OpenvasPhase> for Phase {
     }
 }
 
-impl Scanner {
+impl OpenvasScanner {
     pub fn new(
         memory: Option<u64>,
         cpu: Option<f32>,
@@ -146,7 +146,7 @@ impl Scanner {
     }
 }
 
-impl Default for Scanner {
+impl Default for OpenvasScanner {
     fn default() -> Self {
         Self {
             running: Default::default(),
@@ -159,14 +159,14 @@ impl Default for Scanner {
 }
 
 #[async_trait]
-impl TypeOfScanner for Scanner {
+impl TypeOfScanner for OpenvasScanner {
     fn scanner_type(&self) -> ScannerType {
         ScannerType::Openvas
     }
 }
 
 #[async_trait]
-impl ScanStarter for Scanner {
+impl ScanStarter for OpenvasScanner {
     async fn start_scan(&self, scan: Scan) -> Result<(), ScanError> {
         // Prepare the connections to redis for communication with openvas.
         let mut redis_help = self.create_redis_connector(None)?;
@@ -202,7 +202,7 @@ impl ScanStarter for Scanner {
 
 /// Stops a scan
 #[async_trait]
-impl ScanStopper for Scanner {
+impl ScanStopper for OpenvasScanner {
     /// Stops a scan
     async fn stop_scan<I>(&self, id: I) -> Result<(), ScanError>
     where
@@ -234,7 +234,7 @@ impl ScanStopper for Scanner {
 
 /// Deletes a scan
 #[async_trait]
-impl ScanDeleter for Scanner {
+impl ScanDeleter for OpenvasScanner {
     async fn delete_scan<I>(&self, id: I) -> Result<(), ScanError>
     where
         I: AsRef<str> + Send + 'static,
@@ -282,7 +282,7 @@ impl ScanDeleter for Scanner {
 }
 
 #[async_trait]
-impl ScanResultFetcher for Scanner {
+impl ScanResultFetcher for OpenvasScanner {
     /// Fetches the results of a scan and combines the results with response
     async fn fetch_results<I>(&self, id: I) -> Result<ScanResults, ScanError>
     where
