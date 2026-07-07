@@ -34,7 +34,7 @@ pub struct OpenvasScanner {
 }
 use crate::scanner::{
     Error as ScanError, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanResults, ScanStarter,
-    ScanStopper, TypeOfScanner,
+    TypeOfScanner,
 };
 
 impl From<OpenvasError> for ScanError {
@@ -198,11 +198,7 @@ impl ScanStarter for OpenvasScanner {
             .map(|v| v.in_boundaries())
             .unwrap_or(true)
     }
-}
 
-/// Stops a scan
-#[async_trait]
-impl ScanStopper for OpenvasScanner {
     /// Stops a scan
     async fn stop_scan<I>(&self, id: I) -> Result<(), ScanError>
     where

@@ -46,11 +46,7 @@ pub trait ScanStarter {
     async fn can_start_scan(&self) -> bool {
         true
     }
-}
 
-/// Stops a scan
-#[async_trait]
-pub trait ScanStopper {
     /// Stops a scan
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
@@ -162,10 +158,7 @@ impl ScanStarter for Lambda {
     async fn can_start_scan(&self) -> bool {
         (self.can_start)()
     }
-}
 
-#[async_trait]
-impl ScanStopper for Lambda {
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,

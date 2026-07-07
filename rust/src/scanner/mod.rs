@@ -102,13 +102,7 @@ where
         self.start_scan_internal(Scan::from_resolvable_hosts(scan))
             .await
     }
-}
 
-#[async_trait]
-impl<S> ScanStopper for OpenvasdScanner<S>
-where
-    S: ContextStorage + SchedulerStorage + Sync + Send + Clone + 'static,
-{
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static,

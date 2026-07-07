@@ -10,7 +10,7 @@ use scannerlib::{
     openvas::{self, cmd},
     osp,
     scanner::{
-        OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter, ScanStopper,
+        OpenvasdScanner, ScanDeleter, ScanResultFetcher, ScanResultKind, ScanStarter,
         TypeOfScanner, preferences,
     },
     utils::scanner_types::{self, ScannerType},
@@ -221,14 +221,7 @@ fn is_file_locked(path: String) -> R<bool> {
 
 impl<Scanner, C> ScanScheduler<Scanner, C>
 where
-    Scanner: TypeOfScanner
-        + ScanStarter
-        + ScanStopper
-        + ScanDeleter
-        + ScanResultFetcher
-        + Send
-        + Sync
-        + 'static,
+    Scanner: TypeOfScanner + ScanStarter + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     C: Crypt + Send + Sync + 'static,
 {
     async fn scan_start(&self, id: i64, scan: Scan) {
@@ -487,14 +480,7 @@ async fn run_scheduler<S, E>(
     feed: orchestrator::Communicator,
 ) -> R<mpsc::Sender<Message>>
 where
-    S: TypeOfScanner
-        + ScanStarter
-        + ScanStopper
-        + ScanDeleter
-        + ScanResultFetcher
-        + Send
-        + Sync
-        + 'static,
+    S: TypeOfScanner + ScanStarter + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     // happens when openvasd was killed when scans did still run
@@ -573,14 +559,7 @@ pub(super) async fn init_with_scanner<E, S>(
     feed: orchestrator::Communicator,
 ) -> R<Sender<Message>>
 where
-    S: TypeOfScanner
-        + ScanStarter
-        + ScanStopper
-        + ScanDeleter
-        + ScanResultFetcher
-        + Send
-        + Sync
-        + 'static,
+    S: TypeOfScanner + ScanStarter + ScanDeleter + ScanResultFetcher + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
 {
     let change_scan_status = ScanStateController::init(pool.clone()).await?;
