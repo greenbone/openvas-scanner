@@ -4,69 +4,27 @@ Target:
   type: "object"
   properties:
     hosts:
-      description: "A list of hosts."
+      description: "A list of hosts and corresponding credentials."
       type: "array"
       items:
-        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or
-          hostname.
-
-          Examples:
-
-          IPv4: 192.168.178.42
-
-          IPv6: 2001:0db8:85a3:0000:0000:8a2e:1370:7334
-
-          IPv4 range: 192.167.178.1-93 or 192.167.178.1-192.167.178.93
-
-          IPv6 range:
-          2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
-
-          IPv4 CIDR: 192.168.178.0/24
-
-          IPv6 CIDR: 2001:0db8:85a3::/64
-
-          Hostname: localhost"
-        type: "string"
+        type: "object"
+        properties:
+          ip:
+            $ref: "#/IP"
+          credential:
+            $ref: "#/Credential"
+        required:
+        - ip
     excluded_hosts:
       description: "A list of excluded hosts."
       type: "array"
       items:
-        description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or
-          hostname.
-
-          Examples:
-
-          IPv4: 192.168.178.42
-
-          IPv6: 2001:0db8:85a3:0000:0000:8a2e:1370:7334
-
-          IPv4 range: 192.167.178.1-93 or 192.167.178.1-192.167.178.93
-
-          IPv6 range:
-          2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
-
-          IPv4 CIDR: 192.168.178.0/24
-
-          IPv6 CIDR: 2001:0db8:85a3::/64
-
-          Hostname: localhost"
-        type: "string"
+        $ref: "#/IP"
     ports:
       description: "A list of ports."
       type: "array"
       items:
         $ref: "#/PortRange"
-    credentials:
-      description: "A list of credentials used for further access to a target system."
-      type: "array"
-      items:
-        $ref: "#/Credential"
-    multiple_credentials:
-      description: "If true, multiple credentials per host are allowed. WARNING: this can massively slow
-        down the scan for many credentials and hosts, as each authentication attempt takes some
-        time. If false, only one credential per host is allowed and a error is thrown otherwise. The
-        default is false."
-      type: "boolean"
     alive_test_ports:
       description: "Dedicated port list for alive detection. Used for TCP-SYN and TCP-ACK ping when Boreas
         is enabled."
@@ -85,6 +43,12 @@ Target:
       type: "boolean"
     reverse_lookup_only:
       description: "Only scan IP addresses that can be resolved into a DNS name."
+      type: "boolean"
+    multiple_credentials:
+      description: "If true, multiple credentials per host are allowed. WARNING: this can massively slow
+        down the scan for many credentials and hosts, as each authentication attempt takes some
+        time. If false, only one credential per host is allowed and a error is thrown otherwise. The
+        default is false."
       type: "boolean"
   required:
   - hosts
@@ -125,17 +89,31 @@ PortRange:
   required:
   - range
 
+IP:
+  description: "Contains either an IPv4, IPv6, IPv4 range, IPv6 range, IPv4 CIDR, IPv6 CIDR or
+    hostname.
+
+    Examples:
+
+    IPv4: 192.168.178.42
+
+    IPv6: 2001:0db8:85a3:0000:0000:8a2e:1370:7334
+
+    IPv4 range: 192.167.178.1-93 or 192.167.178.1-192.167.178.93
+
+    IPv6 range: 2001:0db8:85a3:0000:0000:8a2e:1370:7334-2001:0db8:85a3:0000:0000:8a2e:1370:7339
+
+    IPv4 CIDR: 192.168.178.0/24
+
+    IPv6 CIDR: 2001:0db8:85a3::/64
+
+    Hostname: localhost"
+  type: "string"
+
 Credential:
   description: "Data for authentication for a target system."
   type: "object"
   properties:
-    hosts:
-      description: "A list of hosts for which the credential is valid. The format is the same as for the
-        hosts in the target. This field is optional, if not set the credential is the default
-        credential for all hosts of the target."
-      type: "array"
-      items:
-        type: "string"
     service:
       description: "The service used for authentication."
       type: "string"
