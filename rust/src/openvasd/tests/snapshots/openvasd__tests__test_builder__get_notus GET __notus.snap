@@ -1,0 +1,15 @@
+---
+source: src/openvasd/tests/test_builder.rs
+expression: self.snapshot
+---
+{
+  "status_code": 200,
+  "headers": {
+    "api-version": "1",
+    "authentication": "disabled",
+    "content-length": "41",
+    "content-type": "application/json",
+    "feed-version": "9e649bb7d1d03ab282cf7b8249c45e59ed07e120a2f2a6489aa59ff2a936e62ff3a6efc1c993e7042ca54f70f3fbe17c1fe99f1dc254aad0124ab2708eb17c80",
+  },
+  "body": "[\"test\",\"windows_11_home\",\"ubuntu_14.04\"]",
+}

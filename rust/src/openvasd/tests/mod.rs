@@ -50,3 +50,15 @@ async fn get_scans_preferences() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn get_notus() -> anyhow::Result<()> {
+    let t = TestBuilder::new("get_notus")
+        .config("notus")
+        .build()
+        .await?;
+
+    t.request(Method::GET, "/notus").await.snapshot();
+
+    Ok(())
+}
