@@ -11,6 +11,7 @@
 #include "nasl_snmp.h"
 
 #include "../misc/plugutils.h"
+#include "glib.h"
 #include "nasl_lex_ctxt.h"
 
 #include <assert.h>
@@ -683,13 +684,19 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   // is stored.
   if (result->oid_str != NULL && g_strstr_len (result->oid_str, 3, "iso"))
     {
-      next_oid_str = result->oid_str + 2;
-      next_oid_str[0] = '1';
-      result->oid_str = g_strdup (next_oid_str);
+      char *orig = result->oid_str;
+      char *tmp = result->oid_str + 2;
+      tmp[0] = '1';
+      result->oid_str = g_strdup (tmp);
+      g_free (orig);
+      g_free (next_oid_str);
+      next_oid_str = g_strdup (result->oid_str);
     }
   else if (result->oid_str != NULL)
-    next_oid_str = result->oid_str;
-
+    {
+      g_free (next_oid_str);
+      next_oid_str = g_strdup (result->oid_str);
+    }
   /* Free request only, since members are pointers to the nasl lexic context
      which will be free()'d later */
   g_free (request);
