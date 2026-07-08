@@ -8,8 +8,12 @@ mod test_builder;
 
 #[tokio::test]
 async fn openvasd_starts() -> anyhow::Result<()> {
-    let t = TestBuilder::new().config("openvasd_starts").build().await?;
+    let t = TestBuilder::new("openvasd_starts")
+        .config("openvasd_starts")
+        .build()
+        .await?;
 
+    t.health_alive().await.snapshot();
     t.health_ready().await.snapshot();
 
     Ok(())
