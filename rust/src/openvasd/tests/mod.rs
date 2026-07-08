@@ -1,0 +1,16 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
+use crate::tests::test_builder::TestBuilder;
+
+mod test_builder;
+
+#[tokio::test]
+async fn openvasd_starts() -> anyhow::Result<()> {
+    let t = TestBuilder::new().config("openvasd_starts").build().await?;
+
+    t.health_ready().await.snapshot();
+
+    Ok(())
+}

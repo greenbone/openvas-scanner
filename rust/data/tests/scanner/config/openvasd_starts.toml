@@ -1,0 +1,18 @@
+[feed]
+path = 'data/tests/scanner/openvasd_starts/feed'
+check_interval = '3600s'
+signature_check = false
+lock_file_dir = 'data/tests/scanner/openvasd_starts'
+
+[listener]
+address = '127.0.0.1:0'
+
+[notus]
+products_path = 'data/tests/scanner/openvasd_starts/feed'
+advisories_path = 'data/tests/scanner/openvasd_starts/feed'
+
+[scheduler]
+check_interval = '10ms'
+
+[scanner]
+type = 'openvasd'
