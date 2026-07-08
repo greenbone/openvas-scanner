@@ -1,0 +1,6 @@
+---
+source: src/openvasd/tests/test_builder.rs
+expression: "format!(\"status: {status_code}\\nbody: {body}\")"
+---
+status: 200 OK
+body:

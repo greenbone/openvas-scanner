@@ -5,7 +5,6 @@
 use std::{
     error::Error,
     net::{Ipv4Addr, SocketAddr, TcpListener},
-    ops::Deref,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -29,15 +28,27 @@ impl Response {
     }
 }
 
-pub struct HealthReady(Response);
+pub struct HealthReady {
+    response: Response,
+    test_name: String,
+}
+
+pub struct HealthAlive {
+    response: Response,
+    test_name: String,
+}
 
 pub struct TestBuilder {
+    name: String,
     config: Option<PathBuf>,
 }
 
 impl TestBuilder {
-    pub fn new() -> Self {
-        Self { config: None }
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            config: None,
+        }
     }
 
     pub fn config(mut self, name: &str) -> Self {
@@ -78,25 +89,43 @@ impl TestBuilder {
             }
         }
 
-        Ok(OpenvasdInstance { address, task })
+        Ok(OpenvasdInstance {
+            address,
+            test_name: self.name,
+            task,
+        })
     }
 }
 
 pub struct OpenvasdInstance {
     pub address: SocketAddr,
+    test_name: String,
     task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
 }
 
 impl OpenvasdInstance {
+    pub async fn health_alive(&self) -> HealthAlive {
+        HealthAlive {
+            response: Response::from_reqwest(
+                reqwest::get(format!("http://{}/health/alive", self.address))
+                    .await
+                    .unwrap(),
+            )
+            .await,
+            test_name: self.test_name.clone(),
+        }
+    }
+
     pub async fn health_ready(&self) -> HealthReady {
-        HealthReady(
-            Response::from_reqwest(
+        HealthReady {
+            response: Response::from_reqwest(
                 reqwest::get(format!("http://{}/health/ready", self.address))
                     .await
                     .unwrap(),
             )
             .await,
-        )
+            test_name: self.test_name.clone(),
+        }
     }
 }
 
@@ -124,19 +153,27 @@ async fn wait_for_listener(address: SocketAddr) -> anyhow::Result<()> {
     }
 }
 
-impl Deref for HealthReady {
-    type Target = Response;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl Response {
+    fn snapshot(&self, name: &str) -> &Self {
+        let status_code = self.status_code;
+        let body = &self.body;
+        insta::assert_snapshot!(name, format!("status: {status_code}\nbody: {body}"));
+        self
     }
 }
 
-impl Response {
+impl HealthAlive {
     pub fn snapshot(&self) -> &Self {
-        let status_code = self.status_code;
-        let body = &self.body;
-        insta::assert_snapshot!(format!("status: {status_code}\nbody: {body}"));
+        self.response
+            .snapshot(&format!("{}_health_alive", self.test_name));
+        self
+    }
+}
+
+impl HealthReady {
+    pub fn snapshot(&self) -> &Self {
+        self.response
+            .snapshot(&format!("{}_health_ready", self.test_name));
         self
     }
 }
