@@ -60,7 +60,6 @@ Install prerequisites on Debian GNU/Linux 'Bullseye' 11:
     libglib2.0-dev libjson-glib-dev libpcap-dev libgpgme-dev bison libksba-dev \
     libsnmp-dev libgcrypt20-dev redis-server libbsd-dev libcurl4-gnutls-dev \
     krb5-multidev libmagic-dev
- 
 
 
 Compiling openvas
