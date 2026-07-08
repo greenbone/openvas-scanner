@@ -155,22 +155,6 @@ impl OpenvasdInstance {
         )
         .await
     }
-
-    pub async fn head_scans(&self) -> Response {
-        self.request(Method::HEAD, "/scans").await
-    }
-
-    pub async fn health_alive(&self) -> Response {
-        self.request(Method::HEAD, "/health/alive").await
-    }
-
-    pub async fn health_ready(&self) -> Response {
-        self.request(Method::HEAD, "/health/ready").await
-    }
-
-    pub async fn get_scan_preferences(&self) -> Response {
-        self.request(Method::GET, "/scans/preferences").await
-    }
 }
 
 impl Drop for OpenvasdInstance {

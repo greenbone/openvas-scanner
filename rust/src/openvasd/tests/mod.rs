@@ -4,11 +4,15 @@
 
 use std::collections::BTreeMap;
 
+use http::Method;
 use serde_json::Value;
 
 use crate::tests::test_builder::TestBuilder;
 
 mod test_builder;
+
+const GET: Method = Method::GET;
+const HEAD: Method = Method::HEAD;
 
 #[tokio::test]
 async fn openvasd_starts() -> anyhow::Result<()> {
@@ -17,9 +21,10 @@ async fn openvasd_starts() -> anyhow::Result<()> {
         .build()
         .await?;
 
-    t.health_alive().await.snapshot();
-    t.health_ready().await.snapshot();
-    t.head_scans().await.snapshot();
+    t.request(HEAD, "/health/alive").await.snapshot();
+    t.request(HEAD, "/health/ready").await.snapshot();
+    t.request(HEAD, "/scans").await.snapshot();
+    t.request(HEAD, "/notus").await.snapshot();
 
     Ok(())
 }
@@ -33,7 +38,7 @@ async fn get_scans_preferences() -> anyhow::Result<()> {
 
     // The full response body looks ugly, so we extract
     // it as a map to make the snapshot more readable
-    t.get_scan_preferences()
+    t.request(GET, "/scans/preferences")
         .await
         .custom_snapshot("body", |response| {
             let mut map =
