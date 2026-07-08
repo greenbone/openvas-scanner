@@ -77,14 +77,6 @@ HostInfo:
                 description: "The number of checks that were already executed for the host."
                 type: "integer"
                 format: "int32"
-          total_vts:
-            description: "The total number of VTs that are run for the host."
-            type: "integer"
-            format: "int32"
-          finished_vts:
-            description: "The number of VTs that are finished for the host."
-            type: "integer"
-            format: "int32"
   required:
   - all
   - excluded
