@@ -78,7 +78,11 @@ Preferences:
         type: "string"
       default:
         description: "Default value for scans"
-        type: "string"
+        type:
+        - "boolean"
+        - "integer"
+        - "number"
+        - "string"
       values:
         description: "Allowed values"
         type: "string"

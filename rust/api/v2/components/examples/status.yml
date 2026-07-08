@@ -16,7 +16,12 @@ scan_status_running:
           "alive": 6,
           "queued": 1,
           "finished": 1,
-          "scanning": [ { "127.0.0.1": 80 }, { "10.0.5.1": 55 }, { "10.0.5.3": 40 } ]
+          "scanning":
+            [
+              { "host": "127.0.0.1", "checks": { "total": 100, "executed": 80 }, "total_vts": 100, "finished_vts": 80 },
+              { "host": "10.0.5.1", "checks": { "total": 100, "executed": 55 }, "total_vts": 100, "finished_vts": 55 },
+              { "host": "10.0.5.3", "checks": { "total": 100, "executed": 40 }, "total_vts": 100, "finished_vts": 40 }
+            ]
         }
     }
 

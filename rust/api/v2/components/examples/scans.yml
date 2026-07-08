@@ -79,34 +79,31 @@ scan_full_req:
           "reverse_lookup_only": false
         },
       "scan_preferences":
-        [
-          { "id": "auto_enable_dependencies", "value": "true" },
-          { "id": "cgi_path", "value": "/cgi-bin:/scripts" },
-          { "id": "checks_read_timeout", "value": "5" },
-          { "id": "non_simult_ports", "value": "139, 445, 3389, Services/irc" },
-          { "id": "open_sock_max_attempts", "value": "5" },
-          { "id": "timeout_retry", "value": "5" },
-          { "id": "optimize_test", "value": "true" },
-          { "id": "plugins_timeout", "value": "320" },
-          { "id": "report_host_details", "value": "true" },
-          { "id": "safe_checks", "value": "true" },
-          { "id": "scanner_plugins_timeout", "value": "36000" },
-          { "id": "time_between_request", "value": "0" },
-          { "id": "unscanned_closed", "value": "true" },
-          { "id": "unscanned_closed_udp", "value": "true" },
-          { "id": "expand_vhosts", "value": "true" },
-          { "id": "test_empty_vhost", "value": "false" },
-          {
-              "id": "alive_test_ports",
-              "value": "21-23,25,53,80,110-111,135,139,143,443,445,993,995,1723,3306,3389,5900,8080"
-            },
-          { "id": "test_alive_hosts_only", "value": "true" },
-          { "id": "test_alive_wait_timeout", "value": "1" },
-          { "id": "table_driven_lsc", "value": "true" },
-          { "id": "dry_run", "value": "false" },
-          { "id": "results_per_host", "value": "10" },
-          { "id": "max_mem_kb", "value": "0" }
-        ],
+        {
+          "auto_enable_dependencies": "true",
+          "cgi_path": "/cgi-bin:/scripts",
+          "checks_read_timeout": "5",
+          "non_simult_ports": "139, 445, 3389, Services/irc",
+          "open_sock_max_attempts": "5",
+          "timeout_retry": "5",
+          "optimize_test": "true",
+          "plugins_timeout": "320",
+          "report_host_details": "true",
+          "safe_checks": "true",
+          "scanner_plugins_timeout": "36000",
+          "time_between_request": "0",
+          "unscanned_closed": "true",
+          "unscanned_closed_udp": "true",
+          "expand_vhosts": "true",
+          "test_empty_vhost": "false",
+          "alive_test_ports": "21-23,25,53,80,110-111,135,139,143,443,445,993,995,1723,3306,3389,5900,8080",
+          "test_alive_hosts_only": "true",
+          "test_alive_wait_timeout": "1",
+          "table_driven_lsc": "true",
+          "dry_run": "false",
+          "results_per_host": "10",
+          "max_mem_kb": "0"
+        },
       "vts":
         [
           {
@@ -186,34 +183,31 @@ scan_full_resp:
           "reverse_lookup_only": false
         },
       "scan_preferences":
-        [
-          { "id": "auto_enable_dependencies", "value": "true" },
-          { "id": "cgi_path", "value": "/cgi-bin:/scripts" },
-          { "id": "checks_read_timeout", "value": "5" },
-          { "id": "non_simult_ports", "value": "139, 445, 3389, Services/irc" },
-          { "id": "open_sock_max_attempts", "value": "5" },
-          { "id": "timeout_retry", "value": "5" },
-          { "id": "optimize_test", "value": "true" },
-          { "id": "plugins_timeout", "value": "320" },
-          { "id": "report_host_details", "value": "true" },
-          { "id": "safe_checks", "value": "true" },
-          { "id": "scanner_plugins_timeout", "value": "36000" },
-          { "id": "time_between_request", "value": "0" },
-          { "id": "unscanned_closed", "value": "true" },
-          { "id": "unscanned_closed_udp", "value": "true" },
-          { "id": "expand_vhosts", "value": "true" },
-          { "id": "test_empty_vhost", "value": "false" },
-          {
-              "id": "alive_test_ports",
-              "value": "21-23,25,53,80,110-111,135,139,143,443,445,993,995,1723,3306,3389,5900,8080"
-            },
-          { "id": "test_alive_hosts_only", "value": "true" },
-          { "id": "test_alive_wait_timeout", "value": "1" },
-          { "id": "table_driven_lsc", "value": "true" },
-          { "id": "dry_run", "value": "false" },
-          { "id": "results_per_host", "value": "10" },
-          { "id": "max_mem_kb", "value": "0" }
-        ],
+        {
+          "auto_enable_dependencies": "true",
+          "cgi_path": "/cgi-bin:/scripts",
+          "checks_read_timeout": "5",
+          "non_simult_ports": "139, 445, 3389, Services/irc",
+          "open_sock_max_attempts": "5",
+          "timeout_retry": "5",
+          "optimize_test": "true",
+          "plugins_timeout": "320",
+          "report_host_details": "true",
+          "safe_checks": "true",
+          "scanner_plugins_timeout": "36000",
+          "time_between_request": "0",
+          "unscanned_closed": "true",
+          "unscanned_closed_udp": "true",
+          "expand_vhosts": "true",
+          "test_empty_vhost": "false",
+          "alive_test_ports": "21-23,25,53,80,110-111,135,139,143,443,445,993,995,1723,3306,3389,5900,8080",
+          "test_alive_hosts_only": "true",
+          "test_alive_wait_timeout": "1",
+          "table_driven_lsc": "true",
+          "dry_run": "false",
+          "results_per_host": "10",
+          "max_mem_kb": "0"
+        },
       "vts":
         [
           {
