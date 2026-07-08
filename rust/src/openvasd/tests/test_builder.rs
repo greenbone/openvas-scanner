@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
+    collections::BTreeMap,
     error::Error,
     net::{Ipv4Addr, SocketAddr, TcpListener},
     path::{Path, PathBuf},
@@ -10,32 +11,63 @@ use std::{
 };
 
 use anyhow::bail;
-use http::StatusCode;
+use reqwest::Method;
+use serde::{Serialize, ser::SerializeMap};
 
 use crate::{build_runtime, config::Config};
 
-pub struct Response {
-    status_code: StatusCode,
-    body: String,
+pub struct ResponseSnapshot {
+    pub status_code: u16,
+    pub headers: BTreeMap<String, String>,
+    pub body: String,
 }
 
-impl Response {
-    async fn from_reqwest(value: reqwest::Response) -> Self {
-        Self {
-            status_code: value.status(),
-            body: value.text().await.unwrap(),
-        }
+impl Serialize for ResponseSnapshot {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // This is a little ugly, but we serialize this manually
+        // to improve the formatting of the snapshots slightly
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("status_code", &self.status_code)?;
+        map.serialize_entry("headers", &self.headers)?;
+        map.serialize_entry("body", &self.body)?;
+        map.end()
     }
 }
 
-pub struct HealthReady {
-    response: Response,
-    test_name: String,
+pub struct Response {
+    snapshot: ResponseSnapshot,
+    name: String,
 }
 
-pub struct HealthAlive {
-    response: Response,
-    test_name: String,
+impl Response {
+    async fn from_reqwest(name: String, value: reqwest::Response) -> Self {
+        let headers: BTreeMap<String, String> = value
+            .headers()
+            .iter()
+            .filter(|(k, _)| !header_should_be_redacted(k.as_str()))
+            .map(|(k, v)| (k.to_string(), v.to_str().unwrap().into()))
+            .collect();
+        Self {
+            snapshot: ResponseSnapshot {
+                status_code: value.status().as_u16(),
+                headers,
+                body: value.text().await.unwrap(),
+            },
+            name,
+        }
+    }
+
+    pub fn snapshot(&self) -> &Self {
+        insta::assert_ron_snapshot!(self.name.clone(), self.snapshot);
+        self
+    }
+}
+
+fn header_should_be_redacted(k: &str) -> bool {
+    k == "date"
 }
 
 pub struct TestBuilder {
@@ -104,28 +136,28 @@ pub struct OpenvasdInstance {
 }
 
 impl OpenvasdInstance {
-    pub async fn health_alive(&self) -> HealthAlive {
-        HealthAlive {
-            response: Response::from_reqwest(
-                reqwest::get(format!("http://{}/health/alive", self.address))
-                    .await
-                    .unwrap(),
-            )
-            .await,
-            test_name: self.test_name.clone(),
-        }
+    pub async fn request(&self, method: Method, path: &str) -> Response {
+        Response::from_reqwest(
+            format!("{} {} {}", self.test_name, method, path),
+            reqwest::Client::new()
+                .request(method, format!("http://{}{}", self.address, path))
+                .send()
+                .await
+                .unwrap(),
+        )
+        .await
     }
 
-    pub async fn health_ready(&self) -> HealthReady {
-        HealthReady {
-            response: Response::from_reqwest(
-                reqwest::get(format!("http://{}/health/ready", self.address))
-                    .await
-                    .unwrap(),
-            )
-            .await,
-            test_name: self.test_name.clone(),
-        }
+    pub async fn head_scans(&self) -> Response {
+        self.request(Method::HEAD, "/scans").await
+    }
+
+    pub async fn health_alive(&self) -> Response {
+        self.request(Method::HEAD, "/health/alive").await
+    }
+
+    pub async fn health_ready(&self) -> Response {
+        self.request(Method::HEAD, "/health/ready").await
     }
 }
 
@@ -150,30 +182,5 @@ async fn wait_for_listener(address: SocketAddr) -> anyhow::Result<()> {
             }
             Err(_) => tokio::time::sleep(Duration::from_millis(20)).await,
         }
-    }
-}
-
-impl Response {
-    fn snapshot(&self, name: &str) -> &Self {
-        let status_code = self.status_code;
-        let body = &self.body;
-        insta::assert_snapshot!(name, format!("status: {status_code}\nbody: {body}"));
-        self
-    }
-}
-
-impl HealthAlive {
-    pub fn snapshot(&self) -> &Self {
-        self.response
-            .snapshot(&format!("{}_health_alive", self.test_name));
-        self
-    }
-}
-
-impl HealthReady {
-    pub fn snapshot(&self) -> &Self {
-        self.response
-            .snapshot(&format!("{}_health_ready", self.test_name));
-        self
     }
 }

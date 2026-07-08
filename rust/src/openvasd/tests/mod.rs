@@ -15,6 +15,7 @@ async fn openvasd_starts() -> anyhow::Result<()> {
 
     t.health_alive().await.snapshot();
     t.health_ready().await.snapshot();
+    t.head_scans().await.snapshot();
 
     Ok(())
 }
