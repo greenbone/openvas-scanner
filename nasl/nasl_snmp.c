@@ -419,19 +419,19 @@ check_spwan_output (int fd, snmp_result_t result, int fd_flag)
   while (1)
     {
       char buf[4096];
-      size_t bytes;
+      ssize_t bytes;
 
       bytes = read (fd, buf, sizeof (buf));
-      if (!bytes)
-        break;
-      else if (bytes > 0)
-        g_string_append_len (string, buf, bytes);
-      else
+      if (bytes < 0)
         {
           g_warning ("snmpget: %s", strerror (errno));
           g_string_free (string, TRUE);
           return -1;
         }
+      if (!bytes)
+        break;
+      else if (bytes > 0)
+        g_string_append_len (string, buf, bytes);
     }
 
   // Split the result and store the oid and name
