@@ -15,26 +15,24 @@ const GET: Method = Method::GET;
 const HEAD: Method = Method::HEAD;
 
 #[tokio::test]
-async fn openvasd_starts() -> anyhow::Result<()> {
+async fn openvasd_starts() {
     let t = TestBuilder::new("openvasd_starts")
         .config("openvasd_starts")
         .build()
-        .await?;
+        .await;
 
     t.request(HEAD, "/health/alive").await.snapshot();
     t.request(HEAD, "/health/ready").await.snapshot();
     t.request(HEAD, "/scans").await.snapshot();
     t.request(HEAD, "/notus").await.snapshot();
-
-    Ok(())
 }
 
 #[tokio::test]
-async fn get_scans_preferences() -> anyhow::Result<()> {
+async fn get_scans_preferences() {
     let t = TestBuilder::new("get_scans_preferences")
         .config("openvasd_starts")
         .build()
-        .await?;
+        .await;
 
     // The full response body looks ugly, so we extract
     // it as a map to make the snapshot more readable
@@ -47,18 +45,11 @@ async fn get_scans_preferences() -> anyhow::Result<()> {
             map.sort_by_key(|entry| entry["id"].to_string());
             map
         });
-
-    Ok(())
 }
 
 #[tokio::test]
-async fn get_notus() -> anyhow::Result<()> {
-    let t = TestBuilder::new("get_notus")
-        .config("notus")
-        .build()
-        .await?;
+async fn get_notus() {
+    let t = TestBuilder::new("get_notus").config("notus").build().await;
 
     t.request(Method::GET, "/notus").await.snapshot();
-
-    Ok(())
 }
