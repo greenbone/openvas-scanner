@@ -15,9 +15,9 @@ const GET: Method = Method::GET;
 const HEAD: Method = Method::HEAD;
 
 #[tokio::test]
-async fn openvasd_starts() {
-    let t = TestBuilder::new("openvasd_starts")
-        .config("openvasd_starts")
+async fn head_endpoints() {
+    let t = TestBuilder::new("head_endpoints")
+        .config("basic")
         .build()
         .await;
 
@@ -30,7 +30,7 @@ async fn openvasd_starts() {
 #[tokio::test]
 async fn get_scans_preferences() {
     let t = TestBuilder::new("get_scans_preferences")
-        .config("openvasd_starts")
+        .config("basic")
         .build()
         .await;
 
