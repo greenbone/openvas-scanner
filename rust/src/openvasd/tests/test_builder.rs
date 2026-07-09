@@ -64,6 +64,14 @@ impl Response {
         insta::assert_ron_snapshot!(self.name.clone(), self.snapshot);
         self
     }
+
+    pub fn custom_snapshot<S>(&self, name: &str, f: impl Fn(&ResponseSnapshot) -> S) -> &Self
+    where
+        S: Serialize,
+    {
+        insta::assert_ron_snapshot!(name, f(&self.snapshot));
+        self
+    }
 }
 
 fn header_should_be_redacted(k: &str) -> bool {
@@ -158,6 +166,10 @@ impl OpenvasdInstance {
 
     pub async fn health_ready(&self) -> Response {
         self.request(Method::HEAD, "/health/ready").await
+    }
+
+    pub async fn get_scan_preferences(&self) -> Response {
+        self.request(Method::GET, "/scans/preferences").await
     }
 }
 

@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::collections::BTreeMap;
+
+use serde_json::Value;
+
 use crate::tests::test_builder::TestBuilder;
 
 mod test_builder;
@@ -16,6 +20,28 @@ async fn openvasd_starts() -> anyhow::Result<()> {
     t.health_alive().await.snapshot();
     t.health_ready().await.snapshot();
     t.head_scans().await.snapshot();
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn get_scans_preferences() -> anyhow::Result<()> {
+    let t = TestBuilder::new("get_scans_preferences")
+        .config("openvasd_starts")
+        .build()
+        .await?;
+
+    // The full response body looks ugly, so we extract
+    // it as a map to make the snapshot more readable
+    t.get_scan_preferences()
+        .await
+        .custom_snapshot("body", |response| {
+            let mut map =
+                serde_json::from_str::<Vec<BTreeMap<String, Value>>>(&response.body.clone())
+                    .unwrap();
+            map.sort_by_key(|entry| entry["id"].to_string());
+            map
+        });
 
     Ok(())
 }
