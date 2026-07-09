@@ -370,9 +370,9 @@ insert_ip_options (lex_ctxt *lexic)
   int pad_len;
   char zero = '0';
   int i;
-  int hl;
+  size_t hl;
 
-  if (ip == NULL)
+  if (ip == NULL || value == NULL)
     {
       nasl_perror (lexic, "Usage : insert_ip_options(ip:<ip>, code:<code>, "
                           "length:<len>, value:<value>\n");
@@ -384,7 +384,11 @@ insert_ip_options (lex_ctxt *lexic)
     pad_len = 0;
 
   hl = ip->ip_hl * 4 < UNFIX (ip->ip_len) ? ip->ip_hl * 4 : UNFIX (ip->ip_len);
+  if (hl > size)
+    return NULL; // malformed.
+
   new_packet = g_malloc0 (size + 4 + value_size + pad_len);
+
   bcopy (ip, new_packet, hl);
 
   uc_code = (u_char) code;
@@ -898,6 +902,13 @@ get_tcp_option (lex_ctxt *lexic)
   ip = (struct ip *) packet;
 
   ipsz = get_var_size_by_name (lexic, "tcp");
+  if (ipsz < (int) sizeof (struct ip))
+    return NULL;
+
+  // check that ip + tcp is bigger that the original packet
+  if (ip->ip_hl * 4 + 20 > ipsz)
+    return NULL;
+
   // ip header length is given in 32 bits words = 4 bytes.
   if (ip->ip_hl * 4 > ipsz)
     return NULL; /* Invalid packet */
