@@ -423,9 +423,16 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
   else
     {
       delimiter = strchr (kdc, ',');
+      int kdc_len = delimiter - kdc;
+      if (delimiter && (kdc_len > INET6_ADDRSTRLEN - 1))
+        {
+          g_warning ("kdc hostname value too long (max 45 chars)");
+          return NULL;
+        }
+
       if (delimiter != NULL)
         {
-          strncpy (first_kdc, kdc, delimiter - kdc);
+          strncpy (first_kdc, kdc, kdc_len);
         }
       else
         {
