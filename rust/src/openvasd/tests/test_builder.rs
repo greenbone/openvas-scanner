@@ -108,7 +108,7 @@ impl TestBuilder {
         Config::from_file(self.config_path())
     }
 
-    pub async fn build(self) -> anyhow::Result<OpenvasdInstance> {
+    async fn build_internal(self) -> anyhow::Result<OpenvasdInstance> {
         let address = unused_local_address().expect("allocate openvasd test listener");
 
         let mut config = self.read_config();
@@ -134,6 +134,10 @@ impl TestBuilder {
             test_name: self.name,
             task,
         })
+    }
+
+    pub async fn build(self) -> OpenvasdInstance {
+        self.build_internal().await.unwrap()
     }
 }
 
