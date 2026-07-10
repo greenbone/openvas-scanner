@@ -1024,7 +1024,7 @@ nasl_insstr (lex_ctxt *lexic)
 
   i1 = get_int_var_by_num (lexic, 2, -1);
   i2 = get_int_var_by_num (lexic, 3, -1);
-  if (i2 > sz1 || i2 == -1)
+  if (i2 >= sz1 || i2 == -1)
     i2 = sz1 - 1;
 
   if (s1 == NULL || s2 == NULL || i1 < 0 || i2 < 0)
@@ -1045,9 +1045,10 @@ nasl_insstr (lex_ctxt *lexic)
   if (i1 > i2)
     {
       nasl_perror (lexic,
-                   " insstr: warning! 1st index %d greater than 2nd index %d\n",
+                   " insstr: warning! 1st index %ld greater than 2nd index "
+                   "%ld\n",
                    i1, i2);
-      sz3 = sz2;
+      sz3 = i1 + sz2 + (i2 < sz1 - 1 ? sz1 - 1 - i2 : 0);
     }
   else
     sz3 = sz1 + i1 - i2 - 1 + sz2;
