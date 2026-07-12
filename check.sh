@@ -22,6 +22,7 @@ Targets:
   license-headers
               Run license header checks.
   lint        Run all lint checks.
+  audit-rust  Run cargo-audit to check for known vulnerabilities in Rust dependencies.
   ci-build-c  Build C scanner targets in the CI environment.
   ci-codeql-build-c
               Build C scanner targets for CodeQL.
@@ -129,6 +130,16 @@ lint_all() {
     lint_c
     typos_check
     license_headers
+}
+
+audit_rust() {
+    cd "$ROOT/rust"
+    version_command cargo --version
+    if ! command -v cargo-audit &>/dev/null; then
+        echo "cargo-audit not found. Install with: cargo install cargo-audit"
+        return 1
+    fi
+    run cargo audit
 }
 
 ci_build_c() {
@@ -264,6 +275,9 @@ case "$target" in
         ;;
     lint)
         lint_all
+        ;;
+    audit-rust)
+        audit_rust
         ;;
     ci-build-c)
         ci_build_c

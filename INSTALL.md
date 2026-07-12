@@ -54,7 +54,7 @@ Recommended for port scanning and service detection based on nmap.
 Recommended for port scanning based on pnscan.
 * pnscan
 
-Install prerequisites on Debian GNU/Linux 'Bullseye' 11:
+Install prerequisites on Debian GNU/Linux 'Bookworm' 12:
 
     apt-get install gcc pkg-config libssh-gcrypt-dev libgnutls28-dev \
     libglib2.0-dev libjson-glib-dev libpcap-dev libgpgme-dev bison libksba-dev \
@@ -129,7 +129,7 @@ all compiler warnings, it may lead the build process to abort on your system.
 
 Should you notice error messages causing your build process to abort, do not
 hesitate to contact the developers by creating a
-[new issue report](https://github.com/greenbone/openvas/issues/new).
+[new issue report](https://github.com/greenbone/openvas-scanner/issues/new).
 Don't forget to include the name and version of your compiler and distribution in your
 message.
 
@@ -222,7 +222,7 @@ When `LOCALSTATEDIR` was set via the `cmake` call the scanner writes logs to the
 It may contain useful information.The exact location of this file may differ
 depending on your distribution and installation method. Please have this file
 ready when contacting the GVM developers via the Greenbone Community Portal
-or submitting bug reports at <https://github.com/greenbone/openvas/issues> as
+or submitting bug reports at <https://github.com/greenbone/openvas-scanner/issues> as
 they may help to pinpoint the source of your issue.
 
 Logging is configured via the file at default location

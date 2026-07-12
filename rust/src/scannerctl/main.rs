@@ -102,7 +102,10 @@ async fn main() {
         Err(e) => match e.kind {
             CliErrorKind::StorageError(StorageError::UnexpectedData(x)) => match &x as &str {
                 "BrokenPipe" => {}
-                _ => panic!("Unexpected data within dispatcher: {x}"),
+                _ => {
+                    eprintln!("Unexpected data within dispatcher: {x}");
+                    std::process::exit(1);
+                }
             },
             CliErrorKind::InterpretError(_)
             | CliErrorKind::SyntaxError(_)
@@ -113,7 +116,10 @@ async fn main() {
                 tracing::warn!("Command line option error, {e}");
                 std::process::exit(1);
             }
-            _ => panic!("{e}"),
+            _ => {
+                eprintln!("Error: {e}");
+                std::process::exit(1);
+            }
         },
     }
 }

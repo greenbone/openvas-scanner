@@ -127,7 +127,8 @@ async fn main() {
     let rc = match _main().await {
         Ok(x) => x,
         Err(error) => {
-            panic!("{error}")
+            eprintln!("Fatal error: {error}");
+            1
         }
     };
     // we call process exit, on return ExitCode it kept lingering.

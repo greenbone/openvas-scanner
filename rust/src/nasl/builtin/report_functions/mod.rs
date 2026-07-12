@@ -19,7 +19,7 @@ pub struct Reporting {
 
 impl Reporting {
     fn id(&self) -> usize {
-        let mut id = self.id.as_ref().write().expect("expected write lock");
+        let mut id = self.id.as_ref().write().unwrap_or_else(|e| e.into_inner());
         let result = *id;
         *id += 1;
         result

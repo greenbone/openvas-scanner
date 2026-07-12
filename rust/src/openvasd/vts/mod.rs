@@ -147,7 +147,11 @@ pub async fn init(
             let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
             _init(config, fetcher, worker, snapshot).await
         }
-        ScannerType::Lambda => panic!("Invalid Scanner type"),
+        ScannerType::Lambda => {
+            return Err(WorkerError::Sync(GetVTsError::External(Box::new(
+                std::io::Error::other("Invalid Scanner type: Lambda"),
+            ))));
+        }
     }
 }
 
@@ -186,11 +190,11 @@ where
 
     serde_handler
         .await
-        .expect("tokio::task::spawn_blocking to be executed to run")
+        .map_err(|e| WorkerError::Sync(GetVTsError::External(Box::new(e))))?
         .map_err(error_vts_error)?;
     forwarder
         .await
-        .expect("tokio::task::spawn_blocking to be executed to run");
+        .map_err(|e| WorkerError::Sync(GetVTsError::External(Box::new(e))))?;
 
     Ok(())
 }
@@ -332,12 +336,25 @@ where
             .filter(|path| path.extension() == Some(target_ext))
             .collect::<Vec<_>>();
         for element in inc_files.iter() {
-            let element_aux = element
-                .strip_prefix(&dir_path)
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
+            let element_aux = match element.strip_prefix(&dir_path) {
+                Ok(stripped) => match stripped.to_str() {
+                    Some(s) => s.to_string(),
+                    None => {
+                        tracing::warn!(
+                            file = %element.display(),
+                            "Skipping non-UTF-8 path"
+                        );
+                        continue;
+                    }
+                },
+                Err(_) => {
+                    tracing::warn!(
+                        file = %element.display(),
+                        "Failed to strip prefix from path"
+                    );
+                    continue;
+                }
+            };
             let inc_f = VTData {
                 oid: element_aux.clone(),
                 filename: element_aux,

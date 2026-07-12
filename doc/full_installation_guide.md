@@ -627,7 +627,39 @@ Add the following at the bottom of the file:
 
 ### Setting up Certificates for openvasd
 
+openvasd supports TLS for securing the HTTP API. To enable TLS, you need to provide
+a server certificate and a private key.
 
+**Generate a self-signed certificate** (for testing only):
+
+```shell
+openssl req -x509 -newkey rsa:4096 -keyout /etc/openvasd/tls.key \
+  -out /etc/openvasd/tls.crt -days 365 -nodes \
+  -subj "/CN=openvasd"
+```
+
+**Configure openvasd** to use the certificates by adding to your `openvasd.toml`:
+
+```toml
+[tls]
+certs = "/etc/openvasd/tls.crt"
+key = "/etc/openvasd/tls.key"
+```
+
+Or via command-line arguments:
+
+```shell
+openvasd --tls-certs /etc/openvasd/tls.crt --tls-key /etc/openvasd/tls.key
+```
+
+For mutual TLS (mTLS), also provide a CA certificate bundle:
+
+```toml
+[tls]
+certs = "/etc/openvasd/tls.crt"
+key = "/etc/openvasd/tls.key"
+client_certs = "/etc/openvasd/ca.crt"
+```
 
 ### Setting up Services for Systemd
 

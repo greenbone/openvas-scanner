@@ -341,8 +341,10 @@ impl Config {
     where
         P: AsRef<std::path::Path> + std::fmt::Display + std::fmt::Debug,
     {
-        std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("Failed to read openvasd config from file: {path:?}. {e}"))
+        std::fs::read_to_string(&path).unwrap_or_else(|e| {
+            eprintln!("Failed to read openvasd config from file: {path:?}. {e}");
+            std::process::exit(1);
+        })
     }
 
     fn load_etc() -> Option<Self> {
@@ -351,7 +353,10 @@ impl Config {
             return None;
         }
         let config = Self::read_to_string(path);
-        toml::from_str(&config).unwrap()
+        toml::from_str(&config).unwrap_or_else(|e| {
+            eprintln!("Failed to parse {path}: {e}");
+            Self::default()
+        })
     }
 
     fn load_user() -> Option<Self> {
@@ -362,7 +367,10 @@ impl Config {
                     return None;
                 }
                 let config = Self::read_to_string(path);
-                toml::from_str(&config).unwrap()
+                toml::from_str(&config).unwrap_or_else(|e| {
+                    eprintln!("Failed to parse user config: {e}");
+                    Self::default()
+                })
             }
             Err(_) => None,
         }
@@ -372,9 +380,15 @@ impl Config {
     where
         P: AsRef<std::path::Path> + std::fmt::Display + std::fmt::Debug,
     {
-        let config = std::fs::read_to_string(path).unwrap();
+        let config = std::fs::read_to_string(path).unwrap_or_else(|e| {
+            eprintln!("Failed to read config file: {e}");
+            std::process::exit(1);
+        });
 
-        toml::from_str(&config).unwrap()
+        toml::from_str(&config).unwrap_or_else(|e| {
+            eprintln!("Failed to parse config file: {e}");
+            std::process::exit(1);
+        })
     }
 
     fn ret_pref_value_or_panic_with_wrong_type(

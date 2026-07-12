@@ -244,7 +244,14 @@ impl Krb5 {
         service: Option<&str>,
     ) -> Result<Krb5Credentials, Krb5Error> {
         let config_path = if let Some(path) = config_path {
-            unsafe { std::env::set_var("KRB5_CONFIG", path) };
+            // SAFETY: This is called from a single-threaded NASL execution context.
+            // The environment variable is set before any child threads are spawned.
+            // Note: In Rust 2024 edition, set_var is unsafe because it's not thread-safe.
+            // This is acceptable here as the NASL interpreter runs each script sequentially.
+            #[allow(unsafe_code)]
+            unsafe {
+                std::env::set_var("KRB5_CONFIG", path)
+            };
             path.to_string()
         } else if let Ok(env_path) = std::env::var("KRB5_CONFIG") {
             env_path
@@ -257,7 +264,10 @@ impl Krb5 {
                     .to_string()
                     .replace(['.', ':'], "_")
             );
-            unsafe { std::env::set_var("KRB5_CONFIG", &path) };
+            #[allow(unsafe_code)]
+            unsafe {
+                std::env::set_var("KRB5_CONFIG", &path)
+            };
             path
         };
 
@@ -270,7 +280,10 @@ impl Krb5 {
                     .to_string()
                     .replace(['.', ':'], "_")
             );
-            unsafe { std::env::set_var("KRB5CCNAME", &ccache_path) };
+            #[allow(unsafe_code)]
+            unsafe {
+                std::env::set_var("KRB5CCNAME", &ccache_path)
+            };
             self.ccache_path = Some(ccache_path);
         }
 

@@ -161,7 +161,7 @@ where
                 &KbContextKey(key.clone(), kbk),
                 || Some(ScriptResultKind::MissingPort(pt, port.to_string())),
                 |mut v| {
-                    if !v.is_empty() && v.pop().unwrap().into() {
+                    if !v.is_empty() && v.pop().unwrap_or_default().into() {
                         None
                     } else {
                         Some(ScriptResultKind::MissingPort(pt, port.to_string()))

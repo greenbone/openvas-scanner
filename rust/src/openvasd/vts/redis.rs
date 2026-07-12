@@ -116,7 +116,7 @@ where
             f(rctx, feed_path, kind)
         })
         .await
-        .unwrap()
+        .map_err(|e| WorkerError::Sync(GetVTsError::External(Box::new(e))))?
     })
 }
 
@@ -324,16 +324,22 @@ impl PluginStorer for RedisPluginHandler {
                                 let mtime = if !hashsum.is_empty() {
                                     let mut file = feed_path;
                                     file.push(vt.filename.clone());
-                                    fs::metadata(&file)
-                                        .unwrap_or_else(|_| {
-                                            panic!("File Metadata {:?}", file.to_string_lossy())
-                                        })
-                                        .modified()
-                                        .expect("File mtime not supported")
-                                        .duration_since(UNIX_EPOCH)
-                                        .expect("invalid duration for mtime")
-                                        .as_secs()
-                                        .to_string()
+                                    match fs::metadata(&file) {
+                                        Ok(meta) => meta
+                                            .modified()
+                                            .ok()
+                                            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                                            .map(|d| d.as_secs().to_string())
+                                            .unwrap_or_default(),
+                                        Err(e) => {
+                                            tracing::warn!(
+                                                error = %e,
+                                                file = %file.display(),
+                                                "Failed to read file metadata"
+                                            );
+                                            String::new()
+                                        }
+                                    }
                                 } else {
                                     String::new()
                                 };

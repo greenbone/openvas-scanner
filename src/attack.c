@@ -239,7 +239,7 @@ report_kb_failure (int errcode)
   gchar *msg;
 
   errcode = abs (errcode);
-  msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
+  msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s",
                          prefs_get ("db_address"), strerror (errcode));
   g_warning ("%s", msg);
   g_free (msg);
@@ -1256,7 +1256,7 @@ attack_network (struct scan_globals *globals)
 
   if (plugins_init_error > 0)
     {
-      sprintf (buf,
+      snprintf (buf, sizeof (buf),
                "%d errors were found during the plugin scheduling. "
                "Some plugins have not been launched.",
                plugins_init_error);
@@ -1314,14 +1314,14 @@ attack_network (struct scan_globals *globals)
 
   /* Send the excluded hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
-  sprintf (buf, "%d", exc + already_excluded);
+  snprintf (buf, sizeof (buf), "%d", exc + already_excluded);
   connect_main_kb (&main_kb);
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_EXCLUDED");
   kb_lnk_reset (main_kb);
 
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
-  sprintf (buf, "%d", gvm_hosts_count (hosts));
+  snprintf (buf, sizeof (buf), "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);

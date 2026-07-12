@@ -255,8 +255,7 @@ impl RedisWrapper for RedisCtx {
             .cmd("DEL")
             .arg(key)
             .ignore()
-            .query(&mut self.kb.as_mut().unwrap())
-            .unwrap();
+            .query(self.kb.as_mut().ok_or(DbError::NoAvailDbErr)?)?;
         // Since items are lpushed, the returned vector must be reversed to keep the order.
         let mut status = ret.0;
         status.reverse();

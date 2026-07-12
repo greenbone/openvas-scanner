@@ -9,7 +9,6 @@ use std::{
     collections::HashMap,
     fs::File,
     io::{self, Read, Write},
-    thread,
     time::{self, Duration, UNIX_EPOCH},
 };
 
@@ -72,14 +71,14 @@ fn dec2str(num: i64) -> String {
 
 /// takes an integer and sleeps the amount of seconds
 #[nasl_function]
-fn sleep(secs: u64) {
-    thread::sleep(Duration::from_secs(secs))
+async fn sleep(secs: u64) {
+    tokio::time::sleep(Duration::from_secs(secs)).await
 }
 
 /// takes an integer and sleeps the amount of microseconds
 #[nasl_function]
-fn usleep(micros: u64) {
-    thread::sleep(Duration::from_micros(micros))
+async fn usleep(micros: u64) {
+    tokio::time::sleep(Duration::from_micros(micros)).await
 }
 
 /// Returns the type of given unnamed argument.
