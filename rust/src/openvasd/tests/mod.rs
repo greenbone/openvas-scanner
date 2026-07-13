@@ -66,3 +66,45 @@ async fn notus() {
         .assert_status(StatusCode::NOT_FOUND)
         .snapshot();
 }
+
+#[cfg(feature = "requires-compose")]
+mod requires_compose {
+    use http::StatusCode;
+
+    use super::*;
+
+    // Runs against the full notus advisories in the
+    // compose setup.
+    #[tokio::test]
+    async fn notus() {
+        let t = TestBuilder::new("notus_compose")
+            .config("notus_compose")
+            .build()
+            .await;
+
+        // A full snapshot would be way overkill and not interesting, so we just
+        // assert on the status code.
+        t.request(Method::GET, "/notus")
+            .await
+            .assert_status(StatusCode::OK);
+
+        // Maybe the snapshot of the response here is overkill. Figure out
+        // whether this changes a lot. It might be nice to capture some
+        // implicit information returned along with the request, so I want to
+        // keep it for now, but remove this immediately (or redact) if it becomes
+        // flaky or unstable.
+        t.request_json(POST, "/notus/debian_10", &["libzmq3-dev-4.3.0-4+deb10u1"])
+            .await
+            .assert_status(StatusCode::OK)
+            .snapshot();
+
+        t.request_json(
+            POST,
+            "/notus/not_a_system",
+            &["libzmq3-dev-4.3.0-4+deb10u1"],
+        )
+        .await
+        .assert_status(StatusCode::NOT_FOUND)
+        .snapshot();
+    }
+}
