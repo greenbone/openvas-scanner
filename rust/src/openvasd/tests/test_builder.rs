@@ -12,9 +12,10 @@ use std::{
     time::Duration,
 };
 
-use anyhow::bail;
+use anyhow::{Context, bail};
 use http::StatusCode;
 use reqwest::Method;
+use scannerlib::models::{self, Phase};
 use serde::{Serialize, de::DeserializeOwned, ser::SerializeMap};
 use tokio::time::Instant;
 
@@ -124,6 +125,12 @@ impl Response {
             name_prefix: self.name.clone(),
         }
     }
+
+    pub fn body_str(&self) -> String {
+        serde_json::from_str::<String>(&self.snapshot.body)
+            .unwrap()
+            .clone()
+    }
 }
 
 fn header_should_be_redacted(k: &str) -> bool {
@@ -210,22 +217,60 @@ pub struct OpenvasdInstance {
     task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
 }
 
-pub struct WaitForStatus {
-    /// The status code we want to wait for
-    status: StatusCode,
-    /// The status code we expect to receive while we are waiting for `status`.
-    intermediate_status: Option<StatusCode>,
+pub enum Condition {
+    StatusCode(StatusCode),
+    ScanPhase(models::Phase),
+}
+
+impl Condition {
+    fn check(&self, response: &Response) -> anyhow::Result<()> {
+        match self {
+            Self::StatusCode(code) => {
+                if response.status() == *code {
+                    Ok(())
+                } else {
+                    bail!("Expected status {}, found {}.", code, response.status())
+                }
+            }
+            Self::ScanPhase(expected) => {
+                let phase = &response.body::<models::Status>().status;
+                if phase == expected {
+                    Ok(())
+                } else {
+                    bail!("Expected phase {}, found {}.", expected, phase)
+                }
+            }
+        }
+    }
+}
+
+pub struct WaitFor {
+    /// The condition we want to wait for
+    condition: Condition,
+    /// The condition we expect to receive while we are waiting for `condition`.
+    intermediate_condition: Option<Condition>,
     /// The timeout after which we will return an error
     timeout: Duration,
     /// The sleep time to wait between subsequent requests.
     interval: Duration,
 }
 
-impl From<StatusCode> for WaitForStatus {
+impl From<StatusCode> for WaitFor {
     fn from(code: StatusCode) -> Self {
         Self {
-            status: code,
-            intermediate_status: None,
+            condition: Condition::StatusCode(code),
+            intermediate_condition: None,
+            timeout: DEFAULT_TIMEOUT,
+            interval: DEFAULT_SLEEP_INTERVAL,
+        }
+    }
+}
+
+impl From<Phase> for WaitFor {
+    fn from(phase: Phase) -> Self {
+        Self {
+            condition: Condition::ScanPhase(phase),
+            intermediate_condition: None,
             timeout: DEFAULT_TIMEOUT,
             interval: DEFAULT_SLEEP_INTERVAL,
         }
@@ -233,41 +278,40 @@ impl From<StatusCode> for WaitForStatus {
 }
 
 pub trait WaitForStatusExt {
-    fn with_timeout(self, timeout: Duration) -> WaitForStatus;
-    fn with_intermediate_status(self, status: StatusCode) -> WaitForStatus;
+    fn with_timeout(self, timeout: Duration) -> WaitFor;
+    fn with_intermediate_status(self, status: StatusCode) -> WaitFor;
 }
 
 impl<T> WaitForStatusExt for T
 where
-    T: Into<WaitForStatus>,
+    T: Into<WaitFor>,
 {
-    fn with_timeout(self, timeout: Duration) -> WaitForStatus {
+    fn with_timeout(self, timeout: Duration) -> WaitFor {
         let mut wait = self.into();
         wait.timeout = timeout;
         wait
     }
 
-    fn with_intermediate_status(self, status: StatusCode) -> WaitForStatus {
+    fn with_intermediate_status(self, status: StatusCode) -> WaitFor {
         let mut wait = self.into();
-        wait.intermediate_status = Some(status);
+        wait.intermediate_condition = Some(Condition::StatusCode(status));
         wait
     }
 }
 
 pub struct Request<S> {
     method: Method,
-    path: &'static str,
+    path: String,
     address: SocketAddr,
     test_name: String,
     json: Option<S>,
     /// Controls the behavior of this request. If unset, we simplify perform the
     /// request and return the Response.
     ///
-    /// If set, we wait for the request to reach the desired status and then
-    /// return the final response (the one that had the correct status code). If
-    /// we never reach the correct status, we panic, since we consider this case
-    /// a test failure.
-    wait_for_status: Option<WaitForStatus>,
+    /// If set, we wait for the request to reach the desired condition and then
+    /// return the final response (the one that fulfilled the condition). If
+    /// we never reach the correct condition before the timeout, we panic.
+    wait_for: Option<WaitFor>,
 }
 
 impl Request<()> {
@@ -282,14 +326,14 @@ impl Request<()> {
             address: self.address,
             test_name: self.test_name,
             json: Some(json),
-            wait_for_status: None,
+            wait_for: None,
         }
     }
 }
 
 impl<S: Serialize> Request<S> {
-    pub fn wait_for_status(mut self, wait_for_status: impl Into<WaitForStatus>) -> Self {
-        self.wait_for_status = Some(wait_for_status.into());
+    pub fn wait_for(mut self, wait_for: impl Into<WaitFor>) -> Self {
+        self.wait_for = Some(wait_for.into());
         self
     }
 
@@ -311,34 +355,30 @@ impl<S: Serialize> Request<S> {
     }
 
     async fn run(self) -> Response {
-        if let Some(ref wait) = self.wait_for_status {
+        if let Some(ref wait) = self.wait_for {
             let started = Instant::now();
             loop {
                 let response = self.get_response().await;
-                if response.status() == wait.status {
-                    return response;
-                } else if let Some(ref intermediate_status) = wait.intermediate_status
-                    && response.status() != *intermediate_status
+                match wait
+                    .condition
+                    .check(&response)
+                    .context(format!("At path {} {}", self.method, self.path))
                 {
-                    panic!(
-                        "While waiting for {} at {}, to return {}, we found the intermediate status {}, but expected {}",
-                        self.method,
-                        self.path,
-                        wait.status,
-                        response.status(),
-                        intermediate_status
-                    );
-                }
-
-                if started.elapsed() >= wait.timeout {
-                    panic!(
-                        "Reached {}s timeout waiting for {} at {} to return status {}. Found status {} instead.",
-                        wait.timeout.as_secs(),
-                        self.method,
-                        self.path,
-                        wait.status,
-                        response.status()
-                    )
+                    Ok(_) => {
+                        return response;
+                    }
+                    Err(e) => {
+                        if started.elapsed() >= wait.timeout {
+                            panic!("Reached {}s timeout. {e}", wait.timeout.as_secs());
+                        } else if let Some(ref intermediate) = wait.intermediate_condition
+                            && let Err(e) = intermediate.check(&response)
+                        {
+                            panic!(
+                                "Wrong intermediate condition at path {} {}: {e}",
+                                self.method, self.path
+                            );
+                        }
+                    }
                 }
 
                 tokio::time::sleep(wait.interval).await;
@@ -362,14 +402,15 @@ impl<S: Serialize + Send + Sync + 'static> IntoFuture for Request<S> {
 impl OpenvasdInstance {
     // The generic is completely unnecessary here, since we never call serialize
     // on a request without json,
-    pub fn request(&self, method: Method, path: &'static str) -> Request<()> {
+    pub fn request(&self, method: Method, path: impl Into<String>) -> Request<()> {
+        let path = path.into();
         Request {
             method,
             path,
             test_name: self.test_name.clone(),
             address: self.address,
             json: None,
-            wait_for_status: None,
+            wait_for: None,
         }
     }
 }
