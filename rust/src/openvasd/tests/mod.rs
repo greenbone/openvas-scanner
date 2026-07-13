@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use http::Method;
+use http::{Method, StatusCode};
 use serde_json::Value;
 
 use crate::tests::test_builder::TestBuilder;
@@ -13,6 +13,7 @@ mod test_builder;
 
 const GET: Method = Method::GET;
 const HEAD: Method = Method::HEAD;
+const POST: Method = Method::POST;
 
 #[tokio::test]
 async fn head_endpoints() {
@@ -47,9 +48,21 @@ async fn get_scans_preferences() {
         });
 }
 
+// Runs against the local notus advisories in
+// examples/feed/notus/...
 #[tokio::test]
-async fn get_notus() {
-    let t = TestBuilder::new("get_notus").config("notus").build().await;
+async fn notus() {
+    let t = TestBuilder::new("notus").config("notus").build().await;
 
     t.request(Method::GET, "/notus").await.snapshot();
+
+    t.request_json(POST, "/notus/test", &["man-db-1.1.1"])
+        .await
+        .assert_status(StatusCode::OK)
+        .snapshot();
+
+    t.request_json(POST, "/notus/not_a_system", &["man-db-1.1.1"])
+        .await
+        .assert_status(StatusCode::NOT_FOUND)
+        .snapshot();
 }
