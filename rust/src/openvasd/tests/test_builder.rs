@@ -159,54 +159,59 @@ pub struct OpenvasdInstance {
     task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
 }
 
-pub struct Request {
+pub struct Request<S> {
     method: Method,
     path: &'static str,
     address: SocketAddr,
     test_name: String,
+    json: Option<S>,
 }
 
-impl IntoFuture for Request {
+impl Request<()> {
+    // The `Serialize` bound is not required here but results in type errors earlier than deferring
+    // to the `IntoFuture` impl below, so it will hopefully be clearer to the user.
+    pub fn json<S: Serialize>(self, json: S) -> Request<S> {
+        // Have to be explicit about each field here instead of assigning to self.json, since the
+        // types are different
+        Request {
+            method: self.method,
+            path: self.path,
+            address: self.address,
+            test_name: self.test_name,
+            json: Some(json),
+        }
+    }
+}
+
+impl<S: Serialize + Send + 'static> IntoFuture for Request<S> {
     type Output = Response;
 
     type IntoFuture = Pin<Box<dyn Future<Output = Response> + Send>>;
 
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
-            Response::from_reqwest(
-                format!("{} {} {}", self.test_name, self.method, self.path),
-                reqwest::Client::new()
-                    .request(self.method, format!("http://{}{}", self.address, self.path))
-                    .send()
-                    .await
-                    .unwrap(),
-            )
-            .await
+            let test_name = format!("{} {} {}", self.test_name, self.method, self.path);
+            let mut request = reqwest::Client::new()
+                .request(self.method, format!("http://{}{}", self.address, self.path));
+            if let Some(json) = self.json {
+                request = request.json(&json);
+            }
+            Response::from_reqwest(test_name, request.send().await.unwrap()).await
         })
     }
 }
 
 impl OpenvasdInstance {
-    pub fn request(&self, method: Method, path: &'static str) -> Request {
+    // The generic is completely unnecessary here, since we never call serialize
+    // on a request without json,
+    pub fn request(&self, method: Method, path: &'static str) -> Request<()> {
         Request {
             method,
             path,
             test_name: self.test_name.clone(),
             address: self.address,
+            json: None,
         }
-    }
-
-    pub async fn request_json(&self, method: Method, path: &str, s: impl Serialize) -> Response {
-        Response::from_reqwest(
-            format!("{} {} {}", self.test_name, method, path),
-            reqwest::Client::new()
-                .request(method, format!("http://{}{}", self.address, path))
-                .json(&s)
-                .send()
-                .await
-                .unwrap(),
-        )
-        .await
     }
 }
 
