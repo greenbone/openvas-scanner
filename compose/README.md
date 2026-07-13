@@ -5,7 +5,8 @@ This directory contains compose files and helper targets for running
 
 ## Files
 
-- `base.yaml`: base service definition with HTTP enabled
+- `base.yaml`: feed, Notus, GPG, Redis, `openvas`, and Volume services
+- `openvasd.yaml`: adds the `openvasd` service
 - `tls.yaml`: adds TLS
 - `mtls.yaml`: adds mutual TLS
 - `local-registry.yaml`: local registry services used by the compose test setup
@@ -37,22 +38,22 @@ This creates:
 
 ## Running The Stack
 
-Start the base HTTP setup:
+Start the HTTP openvasd setup:
 
 ```bash
-podman-compose -f base.yaml up
+podman-compose -f base.yaml -f openvasd.yaml up
 ```
 
 Start with TLS:
 
 ```bash
-podman-compose -f base.yaml -f tls.yaml up
+podman-compose -f base.yaml -f openvasd.yaml -f tls.yaml up
 ```
 
 Start with mTLS:
 
 ```bash
-podman-compose -f base.yaml -f mtls.yaml up
+podman-compose -f base.yaml -f openvasd.yaml -f mtls.yaml up
 ```
 
 When mTLS is enabled, client requests must include the client key and certificate:
