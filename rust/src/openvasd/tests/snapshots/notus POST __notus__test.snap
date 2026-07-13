@@ -1,6 +1,6 @@
 ---
 source: src/openvasd/tests/test_builder.rs
-expression: self.snapshot
+expression: inner
 ---
 {
   "status_code": 200,
@@ -9,6 +9,7 @@ expression: self.snapshot
     "authentication": "disabled",
     "content-length": "150",
     "content-type": "application/json",
+    "date": "[redacted]",
     "feed-version": "unavailable",
   },
   "body": "{\"1.3.6.1.4.1.25623.1.1.1.2.2024.3731\":[{\"name\":\"man-db\",\"installed_version\":\"1.1.1\",\"fixed_version\":{\"version\":\"2.8.5-2+deb10u1\",\"specifier\":\">=\"}}]}",

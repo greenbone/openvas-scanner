@@ -1,6 +1,6 @@
 ---
 source: src/openvasd/tests/test_builder.rs
-expression: self.snapshot
+expression: inner
 ---
 {
   "status_code": 200,
@@ -9,6 +9,7 @@ expression: self.snapshot
     "authentication": "disabled",
     "content-length": "41",
     "content-type": "application/json",
+    "date": "[redacted]",
     "feed-version": "unavailable",
   },
   "body": "[\"test\",\"ubuntu_14.04\",\"windows_11_home\"]",

@@ -25,7 +25,7 @@ use crate::{build_runtime, config::Config};
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_SLEEP_INTERVAL: Duration = Duration::from_millis(100);
 
-pub trait Snapshottable: Serialize + DeserializeOwned {
+pub trait Snapshottable: Serialize {
     fn redactions() -> Vec<String> {
         vec![]
     }
@@ -41,17 +41,17 @@ impl Snapshottable for Vec<String> {}
 
 impl Snapshottable for Vec<BTreeMap<String, Value>> {}
 
-/// This is just a wrapper type to make it convenient to
+/// This is a wrapper type to make it convenient to
 /// 1. Parse the body of a response in a given format via the
 ///    serialize impl of a type (S)
 /// 2. Call `.snapshot()` on this type to write a snapshot with
-///    an appropriate name
-pub struct BodySnapshot<S> {
+///    an appropriate name and appropriate reductions
+pub struct Snapshot<S> {
     inner: S,
     name_prefix: String,
 }
 
-impl<S: Snapshottable> BodySnapshot<S> {
+impl<S: Snapshottable> Snapshot<S> {
     pub fn snapshot(self, name: &str) {
         let Self { inner, name_prefix } = self;
         let mut settings = insta::Settings::clone_current();
@@ -59,13 +59,18 @@ impl<S: Snapshottable> BodySnapshot<S> {
         for redaction in S::redactions() {
             settings.add_redaction(&redaction, "[redacted]");
         }
+        let name = if name.is_empty() {
+            name_prefix
+        } else {
+            format!("{name_prefix}_{name}")
+        };
         settings.bind(|| {
-            insta::assert_ron_snapshot!(format!("{name_prefix}_{name}"), inner);
+            insta::assert_ron_snapshot!(name, inner);
         });
     }
 }
 
-impl<S> Deref for BodySnapshot<S> {
+impl<S> Deref for Snapshot<S> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
@@ -73,7 +78,7 @@ impl<S> Deref for BodySnapshot<S> {
     }
 }
 
-impl<S> DerefMut for BodySnapshot<S> {
+impl<S> DerefMut for Snapshot<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -81,6 +86,7 @@ impl<S> DerefMut for BodySnapshot<S> {
 
 /// This is a wrapper type to represent the relevant
 /// and "snapshottable" parts of a `Response`.
+#[derive(Clone)]
 pub struct ResponseSnapshot {
     pub status_code: u16,
     pub headers: BTreeMap<String, String>,
@@ -102,6 +108,12 @@ impl Serialize for ResponseSnapshot {
     }
 }
 
+impl Snapshottable for ResponseSnapshot {
+    fn redactions() -> Vec<String> {
+        vec![".headers.date".into()]
+    }
+}
+
 pub struct Response {
     snapshot: ResponseSnapshot,
     name: String,
@@ -112,7 +124,6 @@ impl Response {
         let headers: BTreeMap<String, String> = value
             .headers()
             .iter()
-            .filter(|(k, _)| !header_should_be_redacted(k.as_str()))
             .map(|(k, v)| (k.to_string(), v.to_str().unwrap().into()))
             .collect();
         Self {
@@ -126,9 +137,11 @@ impl Response {
     }
 
     pub fn snapshot(&self) -> &Self {
-        insta::with_settings!({ prepend_module_to_snapshot => false }, {
-            insta::assert_ron_snapshot!(self.name.clone(), self.snapshot);
-        });
+        Snapshot {
+            inner: self.snapshot.clone(),
+            name_prefix: self.name.clone(),
+        }
+        .snapshot("");
         self
     }
 
@@ -142,8 +155,8 @@ impl Response {
         StatusCode::from_u16(self.snapshot.status_code).unwrap()
     }
 
-    pub fn body<S: DeserializeOwned>(&self) -> BodySnapshot<S> {
-        BodySnapshot {
+    pub fn body<S: DeserializeOwned>(&self) -> Snapshot<S> {
+        Snapshot {
             inner: serde_json::from_str(&self.snapshot.body).unwrap(),
             name_prefix: self.name.clone(),
         }
@@ -154,10 +167,6 @@ impl Response {
             .unwrap()
             .clone()
     }
-}
-
-fn header_should_be_redacted(k: &str) -> bool {
-    k == "date"
 }
 
 pub struct Test {
