@@ -7,6 +7,7 @@ use std::{
     error::Error,
     net::{Ipv4Addr, SocketAddr, TcpListener},
     path::{Path, PathBuf},
+    pin::Pin,
     time::Duration,
 };
 
@@ -158,17 +159,41 @@ pub struct OpenvasdInstance {
     task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
 }
 
+pub struct Request {
+    method: Method,
+    path: &'static str,
+    address: SocketAddr,
+    test_name: String,
+}
+
+impl IntoFuture for Request {
+    type Output = Response;
+
+    type IntoFuture = Pin<Box<dyn Future<Output = Response> + Send>>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        Box::pin(async move {
+            Response::from_reqwest(
+                format!("{} {} {}", self.test_name, self.method, self.path),
+                reqwest::Client::new()
+                    .request(self.method, format!("http://{}{}", self.address, self.path))
+                    .send()
+                    .await
+                    .unwrap(),
+            )
+            .await
+        })
+    }
+}
+
 impl OpenvasdInstance {
-    pub async fn request(&self, method: Method, path: &str) -> Response {
-        Response::from_reqwest(
-            format!("{} {} {}", self.test_name, method, path),
-            reqwest::Client::new()
-                .request(method, format!("http://{}{}", self.address, path))
-                .send()
-                .await
-                .unwrap(),
-        )
-        .await
+    pub fn request(&self, method: Method, path: &'static str) -> Request {
+        Request {
+            method,
+            path,
+            test_name: self.test_name.clone(),
+            address: self.address,
+        }
     }
 
     pub async fn request_json(&self, method: Method, path: &str, s: impl Serialize) -> Response {
