@@ -1,0 +1,15 @@
+---
+source: src/openvasd/tests/test_builder.rs
+expression: self.snapshot
+---
+{
+  "status_code": 200,
+  "headers": {
+    "api-version": "1",
+    "authentication": "disabled",
+    "content-length": "329",
+    "content-type": "application/json",
+    "feed-version": "unavailable",
+  },
+  "body": "{\"1.3.6.1.4.1.25623.1.1.1.1.2019.4477\":[{\"name\":\"libzmq3-dev\",\"installed_version\":\"4.3.0-4+deb10u1\",\"fixed_version\":{\"version\":\"4.3.1-4+deb10u1\",\"specifier\":\">=\"}}],\"1.3.6.1.4.1.25623.1.1.1.1.2020.4761\":[{\"name\":\"libzmq3-dev\",\"installed_version\":\"4.3.0-4+deb10u1\",\"fixed_version\":{\"version\":\"4.3.1-4+deb10u2\",\"specifier\":\">=\"}}]}",
+}

@@ -11,6 +11,7 @@ This directory contains compose files and helper targets for running
 - `mtls.yaml`: adds mutual TLS
 - `local-registry.yaml`: local registry services used by the compose test setup
 - `tests/victim.yaml`: extra services used by the compose test setup
+- `tests/rust-tests.yaml`: runs rust integration tests that require a compose setup
 - `Makefile`: helper targets for certificates, local startup, and smoketests
 
 ## Requirements
@@ -74,6 +75,7 @@ The main helper targets are:
 - `make local-test-environment-up`: build the local image and start the compose test environment
 - `make local-test-environment-running`: build the local image, start it, and wait for services
 - `make test-environment-down`: stop the compose test environment and remove volumes
+- `make rust-test`: run Rust tests that require the compose test environment
 - `make smoketest`: build the local image, wait for services, and run the Hurl smoketest suite
 - `make smoketests`: alias for `make smoketest`
 

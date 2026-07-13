@@ -11,7 +11,10 @@ else
 	CMD := podman-compose
 endif
 
-TEST_ENVIRONMENTS := -f base.yaml -f mtls.yaml -f tests/victim.yaml -f local-registry.yaml
+TEST_ENVIRONMENTS := -f base.yaml -f openvasd.yaml -f mtls.yaml -f tests/victim.yaml -f local-registry.yaml
+RUST_TEST_ENVIRONMENTS := -f base.yaml -f tests/victim.yaml -f tests/rust-tests.yaml
+RUST_TEST_ARGS ?= --features requires-compose --bin openvasd requires_compose::
+RUST_TEST_RUN_ARGS ?=
 
 ifndef OPENVAS_IMAGE
 	OPENVAS_IMAGE := ghcr.io/greenbone/openvas-scanner:stable
@@ -35,9 +38,17 @@ certs/clients/client1.pem:
 test-environment-down:
 	${CMD} ${TEST_ENVIRONMENTS} down -v
 
+.PHONY: rust-test-environment-down
+rust-test-environment-down:
+	${CMD} ${RUST_TEST_ENVIRONMENTS} down -v
+
 .PHONY: test-environment-logs
 test-environment-logs:
 	${CMD} ${TEST_ENVIRONMENTS} logs
+
+.PHONY: rust-test-environment-logs
+rust-test-environment-logs:
+	${CMD} ${RUST_TEST_ENVIRONMENTS} logs
 
 .PHONY: test-environment-up
 test-environment-up: certs/server.key certs/clients/client1.pem
@@ -73,6 +84,10 @@ test-environment-running: test-environment-up wait-for-services
 
 .PHONY: local-test-environment-up
 local-test-environment-running: local-test-environment-up wait-for-services
+
+.PHONY: rust-test
+rust-test:
+	${CMD} ${RUST_TEST_ENVIRONMENTS} run --rm --build ${RUST_TEST_RUN_ARGS} rust-tests cargo test ${RUST_TEST_ARGS}
 
 .PHONY: smoketest smoketests
 smoketest: local-test-environment-running

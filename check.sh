@@ -35,6 +35,10 @@ Targets:
   ci-nasl-lint
               Run openvas-nasl-lint smoketest.
   test-rust   Run Rust unit tests.
+  test-rust-compose
+              Run Rust tests that require the compose test environment.
+              Set INSTA_FROM_COMPOSE=1 to collect pending snapshots from
+              compose and review them from the host.
   test-c      Run C unit tests.
   test        Run all tests.
   local       Run locally useful checks, fastest first.
@@ -152,6 +156,23 @@ test_rust() {
     run sh -c 'cd crates/rpmdb-rs && sh prepare-test-data.sh'
     run cargo test --lib --tests --workspace
     run cargo test --lib --tests --workspace --features native-rust-ssh
+}
+
+test_rust_compose() {
+    if [[ "${INSTA_FROM_COMPOSE:-0}" == "1" ]]; then
+        local pending_dir="$ROOT/.insta-pending"
+        mkdir -p "$pending_dir"
+
+        cd "$ROOT/compose"
+        run make rust-test \
+            "RUST_TEST_RUN_ARGS=-e INSTA_UPDATE=new -e INSTA_FORCE_PASS=1 -e INSTA_PENDING_DIR=/insta-pending -v $pending_dir:/insta-pending"
+
+        cd "$ROOT/rust"
+        run env "INSTA_PENDING_DIR=$pending_dir" cargo insta review
+    else
+        cd "$ROOT/compose"
+        run make rust-test
+    fi
 }
 
 test_c() {
@@ -288,6 +309,9 @@ case "$target" in
         ;;
     test-rust)
         test_rust
+        ;;
+    test-rust-compose)
+        test_rust_compose
         ;;
     test-c)
         test_c

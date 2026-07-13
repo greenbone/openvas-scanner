@@ -159,6 +159,7 @@ vergen-git2 = "10.0.0"
 default = ["enforce-no-trailing-arguments"]
 native-rust-ssh = []
 enforce-no-trailing-arguments = []
+requires-compose = []
 
 [workspace.package]
 version = "0.1.0"
