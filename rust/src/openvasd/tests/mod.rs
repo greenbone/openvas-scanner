@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, time::Duration};
 use http::{Method, StatusCode};
 use serde_json::Value;
 
-use crate::tests::test_builder::{TestBuilder, WaitForStatusExt};
+use crate::tests::test_builder::{Test, WaitForStatusExt};
 
 mod test_builder;
 
@@ -17,7 +17,7 @@ const POST: Method = Method::POST;
 
 #[tokio::test]
 async fn head_endpoints() {
-    let t = TestBuilder::new("head_endpoints").config("basic").await;
+    let t = Test::new("head_endpoints").config("basic").await;
 
     for endpoint in [
         "/health/alive",
@@ -35,9 +35,7 @@ async fn head_endpoints() {
 
 #[tokio::test]
 async fn get_scans_preferences() {
-    let t = TestBuilder::new("get_scans_preferences")
-        .config("basic")
-        .await;
+    let t = Test::new("get_scans_preferences").config("basic").await;
 
     // The full response body looks ugly, so we extract
     // it as a map to make the snapshot more readable
@@ -56,7 +54,7 @@ async fn get_scans_preferences() {
 // examples/feed/notus/...
 #[tokio::test]
 async fn notus() {
-    let t = TestBuilder::new("notus").config("notus").await;
+    let t = Test::new("notus").config("notus").await;
 
     t.request(Method::GET, "/notus").await.snapshot();
 
@@ -77,9 +75,7 @@ async fn notus() {
 async fn up_and_running() {
     // In compose, the feed/notus paths are the defaults,
     // so we can just use basic.toml
-    let t = TestBuilder::new("up_and_running")
-        .config("basic_feed")
-        .await;
+    let t = Test::new("up_and_running").config("basic_feed").await;
 
     t.request(GET, "/vts")
         .wait_for_status(
@@ -117,9 +113,7 @@ mod requires_compose {
     async fn up_and_running() {
         // In compose, the feed/notus paths are the defaults,
         // so we can just use basic.toml
-        let t = TestBuilder::new("up_and_running_compose")
-            .config("basic")
-            .await;
+        let t = Test::new("up_and_running_compose").config("basic").await;
 
         let vts = t
             .request(GET, "/vts")
@@ -152,9 +146,7 @@ mod requires_compose {
     // compose setup.
     #[tokio::test]
     async fn notus() {
-        let t = TestBuilder::new("notus_compose")
-            .config("notus_compose")
-            .await;
+        let t = Test::new("notus_compose").config("notus_compose").await;
 
         // A full snapshot would be way overkill and not interesting, so we just
         // assert on the status code.

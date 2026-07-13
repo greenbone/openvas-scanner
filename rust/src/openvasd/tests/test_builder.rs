@@ -121,12 +121,12 @@ fn header_should_be_redacted(k: &str) -> bool {
     k == "date"
 }
 
-pub struct TestBuilder {
+pub struct Test {
     name: String,
     config: Option<PathBuf>,
 }
 
-impl TestBuilder {
+impl Test {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -179,13 +179,13 @@ impl TestBuilder {
         })
     }
 
-    pub async fn build(self) -> OpenvasdInstance {
+    async fn build(self) -> OpenvasdInstance {
         self.build_internal().await.unwrap()
     }
 }
 
 // This is just convenience to avoid having to call `.build()` explicitly
-impl IntoFuture for TestBuilder {
+impl IntoFuture for Test {
     type Output = OpenvasdInstance;
 
     type IntoFuture = Pin<Box<dyn Future<Output = Self::Output>>>;
