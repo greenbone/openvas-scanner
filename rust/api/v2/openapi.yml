@@ -13,7 +13,8 @@ info:
     The authentication modes are set within a configuration file or via the argument list, when
     starting the server.
 
-    The authentication is required for each request except for a HEAD request.
+    The /health endpoints never require authentication.
+
 
     ## API Key
 
@@ -21,16 +22,11 @@ info:
     access. The `X-API-KEY` must be in the header.
 
 
-    <!--More details about this method follows with its implementation.-->
-
-
     ## Certificates
 
     This option uses [X.509](https://en.wikipedia.org/wiki/X.509), based on CA to verify derived
-    certificates to allow access.
+    certificates to allow access."
 
-
-    <!--More details about this method follows with its implementation.--> "
   contact:
     name: "Greenbone AG"
     url: "https://www.greenbone.net/"
@@ -39,7 +35,7 @@ info:
     url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
   version: "2.0"
 servers:
-- url: /
+- url: /v2
 tags:
 - name: general
   description: General requests
