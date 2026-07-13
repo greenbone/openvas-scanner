@@ -64,12 +64,14 @@ async fn notus() {
 
     t.request(Method::GET, "/notus").await.snapshot();
 
-    t.request_json(POST, "/notus/test", &["man-db-1.1.1"])
+    t.request(POST, "/notus/test")
+        .json(&["man-db-1.1.1"])
         .await
         .assert_status(StatusCode::OK)
         .snapshot();
 
-    t.request_json(POST, "/notus/not_a_system", &["man-db-1.1.1"])
+    t.request(POST, "/notus/not_a_system")
+        .json(&["man-db-1.1.1"])
         .await
         .assert_status(StatusCode::NOT_FOUND)
         .snapshot();
@@ -101,18 +103,16 @@ mod requires_compose {
         // implicit information returned along with the request, so I want to
         // keep it for now, but remove this immediately (or redact) if it becomes
         // flaky or unstable.
-        t.request_json(POST, "/notus/debian_10", &["libzmq3-dev-4.3.0-4+deb10u1"])
+        t.request(POST, "/notus/debian_10")
+            .json(&["libzmq3-dev-4.3.0-4+deb10u1"])
             .await
             .assert_status(StatusCode::OK)
             .snapshot();
 
-        t.request_json(
-            POST,
-            "/notus/not_a_system",
-            &["libzmq3-dev-4.3.0-4+deb10u1"],
-        )
-        .await
-        .assert_status(StatusCode::NOT_FOUND)
-        .snapshot();
+        t.request(POST, "/notus/not_a_system")
+            .json(&["libzmq3-dev-4.3.0-4+deb10u1"])
+            .await
+            .assert_status(StatusCode::NOT_FOUND)
+            .snapshot();
     }
 }
