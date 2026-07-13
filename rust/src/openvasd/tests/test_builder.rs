@@ -17,6 +17,7 @@ use http::StatusCode;
 use reqwest::Method;
 use scannerlib::models::{self, Phase};
 use serde::{Serialize, de::DeserializeOwned, ser::SerializeMap};
+use serde_json::Value;
 use tokio::time::Instant;
 
 use crate::{build_runtime, config::Config};
@@ -24,25 +25,47 @@ use crate::{build_runtime, config::Config};
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_SLEEP_INTERVAL: Duration = Duration::from_millis(100);
 
+pub trait Snapshottable: Serialize + DeserializeOwned {
+    fn redactions() -> Vec<String> {
+        vec![]
+    }
+}
+
+impl Snapshottable for models::Status {
+    fn redactions() -> Vec<String> {
+        vec![".start_time".into(), ".end_time".into()]
+    }
+}
+
+impl Snapshottable for Vec<String> {}
+
+impl Snapshottable for Vec<BTreeMap<String, Value>> {}
+
 /// This is just a wrapper type to make it convenient to
 /// 1. Parse the body of a response in a given format via the
 ///    serialize impl of a type (S)
 /// 2. Call `.snapshot()` on this type to write a snapshot with
 ///    an appropriate name
-pub struct BodySnapshot<S: Serialize + DeserializeOwned> {
+pub struct BodySnapshot<S> {
     inner: S,
     name_prefix: String,
 }
 
-impl<S: Serialize + DeserializeOwned> BodySnapshot<S> {
+impl<S: Snapshottable> BodySnapshot<S> {
     pub fn snapshot(self, name: &str) {
-        insta::with_settings!({ prepend_module_to_snapshot => false }, {
-            insta::assert_ron_snapshot!(format!("{}_{}", self.name_prefix, name), self.inner);
+        let Self { inner, name_prefix } = self;
+        let mut settings = insta::Settings::clone_current();
+        settings.set_prepend_module_to_snapshot(false);
+        for redaction in S::redactions() {
+            settings.add_redaction(&redaction, "[redacted]");
+        }
+        settings.bind(|| {
+            insta::assert_ron_snapshot!(format!("{name_prefix}_{name}"), inner);
         });
     }
 }
 
-impl<S: Serialize + DeserializeOwned> Deref for BodySnapshot<S> {
+impl<S> Deref for BodySnapshot<S> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
@@ -50,7 +73,7 @@ impl<S: Serialize + DeserializeOwned> Deref for BodySnapshot<S> {
     }
 }
 
-impl<S: Serialize + DeserializeOwned> DerefMut for BodySnapshot<S> {
+impl<S> DerefMut for BodySnapshot<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -119,7 +142,7 @@ impl Response {
         StatusCode::from_u16(self.snapshot.status_code).unwrap()
     }
 
-    pub fn body<S: DeserializeOwned + Serialize>(&self) -> BodySnapshot<S> {
+    pub fn body<S: DeserializeOwned>(&self) -> BodySnapshot<S> {
         BodySnapshot {
             inner: serde_json::from_str(&self.snapshot.body).unwrap(),
             name_prefix: self.name.clone(),

@@ -51,96 +51,6 @@ async fn get_scans_preferences() {
     body.snapshot("body");
 }
 
-#[tokio::test]
-async fn scan_lifecycle() {
-    let t = Test::new("scan_lifecycle").config("basic_feed").await;
-    let scan = Scan {
-        scan_id: "scan-lifecycle".to_string(),
-        target: Target {
-            hosts: vec!["127.0.0.1".to_string()],
-            alive_test_methods: vec![models::AliveTestMethods::ConsiderAlive],
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-
-    // We create the scan
-    let scan_id = t
-        .request(POST, "/scans")
-        .json(scan.clone())
-        .await
-        .assert_status(StatusCode::CREATED)
-        .body_str();
-
-    // Check that after creation, the scan returned
-    // from the API is what we'd expect
-    let scan_path = format!("/scans/{scan_id}");
-    let stored_scan = t
-        .request(GET, &scan_path)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Scan>();
-    assert_eq!(*stored_scan.scan_id, scan.scan_id);
-
-    // Start the scan
-    t.request(POST, &scan_path)
-        .json(models::ScanAction::from(models::Action::Start))
-        .await
-        .assert_status(StatusCode::NO_CONTENT);
-
-    // Check the status of the scan
-    let status_path = format!("{scan_path}/status");
-    t.request(GET, &status_path)
-        .await
-        .assert_status(StatusCode::OK);
-
-    let status = t
-        .request(GET, &status_path)
-        .wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(30)))
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Status>();
-    assert!(status.start_time.is_some());
-    assert!(status.end_time.is_some());
-
-    let host_info = status
-        .host_info
-        .clone()
-        .expect("succeeded scan includes host info");
-    assert!(host_info.all > 0);
-    assert_eq!(host_info.excluded, 0);
-    assert_eq!(host_info.dead, 0);
-    assert!(host_info.alive <= host_info.all);
-    assert!(host_info.queued <= host_info.all);
-    assert!(host_info.finished <= host_info.all);
-
-    let results_path = format!("{scan_path}/results");
-    let results = t
-        .request(GET, &results_path)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Vec<models::Result>>();
-    assert!(results.is_empty());
-
-    t.request(GET, format!("{results_path}/0"))
-        .await
-        .assert_status(StatusCode::NOT_FOUND);
-
-    let empty_range = t
-        .request(GET, format!("{results_path}?range=0-0"))
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Vec<models::Result>>();
-    assert_eq!(empty_range.len(), 0);
-
-    t.request(DELETE, &scan_path)
-        .await
-        .assert_status(StatusCode::NO_CONTENT);
-    t.request(GET, &scan_path)
-        .await
-        .assert_status(StatusCode::NOT_FOUND);
-}
-
 // Runs against the local notus advisories in
 // examples/feed/notus/...
 #[tokio::test]
@@ -188,6 +98,83 @@ async fn up_and_running() {
     t.request(HEAD, "/health/started")
         .await
         .assert_status(StatusCode::OK);
+}
+
+#[tokio::test]
+async fn scan_lifecycle() {
+    let t = Test::new("scan_lifecycle").config("basic_feed").await;
+    let scan = Scan {
+        scan_id: "scan-lifecycle".to_string(),
+        target: Target {
+            hosts: vec!["127.0.0.1".to_string()],
+            alive_test_methods: vec![models::AliveTestMethods::ConsiderAlive],
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    // We create the scan
+    let scan_id = t
+        .request(POST, "/scans")
+        .json(scan.clone())
+        .await
+        .assert_status(StatusCode::CREATED)
+        .body_str();
+
+    // Check that after creation, the scan returned
+    // from the API is what we'd expect
+    let scan_path = format!("/scans/{scan_id}");
+    let stored_scan = t
+        .request(GET, &scan_path)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Scan>();
+    assert_eq!(*stored_scan.scan_id, scan.scan_id);
+
+    // Start the scan
+    t.request(POST, &scan_path)
+        .json(models::ScanAction::from(models::Action::Start))
+        .await
+        .assert_status(StatusCode::NO_CONTENT);
+
+    // Check the status of the scan
+    let status_path = format!("{scan_path}/status");
+    t.request(GET, &status_path)
+        .await
+        .assert_status(StatusCode::OK);
+
+    t.request(GET, &status_path)
+        .wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(5)))
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Status>()
+        .snapshot("status");
+
+    let results_path = format!("{scan_path}/results");
+    let results = t
+        .request(GET, &results_path)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert!(results.is_empty());
+
+    t.request(GET, format!("{results_path}/0"))
+        .await
+        .assert_status(StatusCode::NOT_FOUND);
+
+    let empty_range = t
+        .request(GET, format!("{results_path}?range=0-0"))
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert_eq!(empty_range.len(), 0);
+
+    t.request(DELETE, &scan_path)
+        .await
+        .assert_status(StatusCode::NO_CONTENT);
+    t.request(GET, &scan_path)
+        .await
+        .assert_status(StatusCode::NOT_FOUND);
 }
 
 #[cfg(feature = "requires-compose")]
