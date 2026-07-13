@@ -1,12 +1,13 @@
 ---
 source: src/openvasd/tests/test_builder.rs
-expression: self.snapshot
+expression: inner
 ---
 {
   "status_code": 200,
   "headers": {
     "api-version": "1",
     "authentication": "disabled",
+    "date": "[redacted]",
     "feed-version": "unavailable",
   },
   "body": "",

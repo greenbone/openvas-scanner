@@ -1,6 +1,6 @@
 ---
 source: src/openvasd/tests/test_builder.rs
-expression: self.snapshot
+expression: inner
 ---
 {
   "status_code": 404,
@@ -8,6 +8,7 @@ expression: self.snapshot
     "api-version": "1",
     "authentication": "disabled",
     "content-length": "0",
+    "date": "[redacted]",
     "feed-version": "unavailable",
   },
   "body": "",
