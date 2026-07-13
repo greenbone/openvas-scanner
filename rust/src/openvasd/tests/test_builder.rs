@@ -23,27 +23,6 @@ use crate::{build_runtime, config::Config};
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_SLEEP_INTERVAL: Duration = Duration::from_millis(100);
 
-pub struct ResponseSnapshot {
-    pub status_code: u16,
-    pub headers: BTreeMap<String, String>,
-    pub body: String,
-}
-
-impl Serialize for ResponseSnapshot {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        // This is a little ugly, but we serialize this manually
-        // to improve the formatting of the snapshots slightly
-        let mut map = serializer.serialize_map(Some(3))?;
-        map.serialize_entry("status_code", &self.status_code)?;
-        map.serialize_entry("headers", &self.headers)?;
-        map.serialize_entry("body", &self.body)?;
-        map.end()
-    }
-}
-
 /// This is just a wrapper type to make it convenient to
 /// 1. Parse the body of a response in a given format via the
 ///    serialize impl of a type (S)
@@ -73,6 +52,29 @@ impl<S: Serialize + DeserializeOwned> Deref for BodySnapshot<S> {
 impl<S: Serialize + DeserializeOwned> DerefMut for BodySnapshot<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+/// This is a wrapper type to represent the relevant
+/// and "snapshottable" parts of a `Response`.
+pub struct ResponseSnapshot {
+    pub status_code: u16,
+    pub headers: BTreeMap<String, String>,
+    pub body: String,
+}
+
+impl Serialize for ResponseSnapshot {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // This is a little ugly, but we serialize this manually
+        // to improve the formatting of the snapshots slightly
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("status_code", &self.status_code)?;
+        map.serialize_entry("headers", &self.headers)?;
+        map.serialize_entry("body", &self.body)?;
+        map.end()
     }
 }
 
