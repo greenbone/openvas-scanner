@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use http::{Method, StatusCode};
 use serde_json::Value;
 
-use crate::tests::test_builder::TestBuilder;
+use crate::tests::test_builder::{TestBuilder, WaitForStatusExt};
 
 mod test_builder;
 
@@ -77,11 +77,82 @@ async fn notus() {
         .snapshot();
 }
 
+#[tokio::test]
+async fn up_and_running() {
+    // In compose, the feed/notus paths are the defaults,
+    // so we can just use basic.toml
+    let t = TestBuilder::new("up_and_running")
+        .config("basic_feed")
+        .build()
+        .await;
+
+    t.request(GET, "/vts")
+        .wait_for_status(
+            StatusCode::OK
+                .with_timeout(Duration::from_millis(100))
+                .with_intermediate_status(StatusCode::SERVICE_UNAVAILABLE),
+        )
+        .await
+        .assert_status(StatusCode::OK) // DUH
+        .body::<Vec<String>>()
+        .snapshot("body");
+
+    t.request(HEAD, "/health/ready")
+        .await
+        .assert_status(StatusCode::OK);
+    t.request(HEAD, "/health/alive")
+        .await
+        .assert_status(StatusCode::OK);
+    t.request(HEAD, "/health/started")
+        .await
+        .assert_status(StatusCode::OK);
+}
+
 #[cfg(feature = "requires-compose")]
 mod requires_compose {
+    use std::time::Duration;
+
     use http::StatusCode;
 
+    use crate::tests::test_builder::WaitForStatusExt;
+
     use super::*;
+
+    #[tokio::test]
+    async fn up_and_running() {
+        // In compose, the feed/notus paths are the defaults,
+        // so we can just use basic.toml
+        let t = TestBuilder::new("up_and_running_compose")
+            .config("basic")
+            .build()
+            .await;
+
+        let vts = t
+            .request(GET, "/vts")
+            .wait_for_status(
+                StatusCode::OK
+                    .with_timeout(Duration::from_secs(1800))
+                    .with_intermediate_status(StatusCode::SERVICE_UNAVAILABLE),
+            )
+            .await
+            .assert_status(StatusCode::OK) // DUH
+            .body::<Vec<String>>();
+        assert!(
+            vts.len() > 100_000,
+            "expected more than 100000 VTs, got {}",
+            vts.len()
+        );
+
+        t.request(HEAD, "/health/ready")
+            .await
+            .assert_status(StatusCode::OK);
+        t.request(HEAD, "/health/alive")
+            .await
+            .assert_status(StatusCode::OK);
+        t.request(HEAD, "/health/started")
+            .await
+            .assert_status(StatusCode::OK);
+    }
 
     // Runs against the full notus advisories in the
     // compose setup.
