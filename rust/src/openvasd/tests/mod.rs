@@ -9,7 +9,7 @@ use http::{Method, StatusCode};
 use scannerlib::models::{Phase, Scan, Status, Target};
 use serde_json::Value;
 
-use crate::tests::test_builder::{Test, WaitForStatusExt};
+use crate::tests::test_builder::{Snapshottable, Test, WaitForStatusExt};
 
 mod test_builder;
 
@@ -35,6 +35,8 @@ async fn head_endpoints() {
             .snapshot();
     }
 }
+
+impl Snapshottable for Vec<BTreeMap<String, Value>> {}
 
 #[tokio::test]
 async fn get_scans_preferences() {
@@ -72,6 +74,8 @@ async fn notus() {
         .snapshot();
 }
 
+impl Snapshottable for Vec<String> {}
+
 #[tokio::test]
 async fn up_and_running() {
     // In compose, the feed/notus paths are the defaults,
@@ -98,6 +102,12 @@ async fn up_and_running() {
     t.request(HEAD, "/health/started")
         .await
         .assert_status(StatusCode::OK);
+}
+
+impl Snapshottable for models::Status {
+    fn redactions() -> Vec<String> {
+        vec![".start_time".into(), ".end_time".into()]
+    }
 }
 
 #[tokio::test]

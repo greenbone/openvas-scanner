@@ -17,7 +17,6 @@ use http::StatusCode;
 use reqwest::Method;
 use scannerlib::models::{self, Phase};
 use serde::{Serialize, de::DeserializeOwned, ser::SerializeMap};
-use serde_json::Value;
 use tokio::time::Instant;
 
 use crate::{build_runtime, config::Config};
@@ -30,16 +29,6 @@ pub trait Snapshottable: Serialize {
         vec![]
     }
 }
-
-impl Snapshottable for models::Status {
-    fn redactions() -> Vec<String> {
-        vec![".start_time".into(), ".end_time".into()]
-    }
-}
-
-impl Snapshottable for Vec<String> {}
-
-impl Snapshottable for Vec<BTreeMap<String, Value>> {}
 
 /// This is a wrapper type to make it convenient to
 /// 1. Parse the body of a response in a given format via the
