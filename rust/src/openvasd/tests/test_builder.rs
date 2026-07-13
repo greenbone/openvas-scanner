@@ -184,6 +184,17 @@ impl TestBuilder {
     }
 }
 
+// This is just convenience to avoid having to call `.build()` explicitly
+impl IntoFuture for TestBuilder {
+    type Output = OpenvasdInstance;
+
+    type IntoFuture = Pin<Box<dyn Future<Output = Self::Output>>>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        Box::pin(async move { self.build().await })
+    }
+}
+
 pub struct OpenvasdInstance {
     pub address: SocketAddr,
     test_name: String,
