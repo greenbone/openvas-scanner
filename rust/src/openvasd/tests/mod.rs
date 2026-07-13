@@ -39,15 +39,13 @@ async fn get_scans_preferences() {
 
     // The full response body looks ugly, so we extract
     // it as a map to make the snapshot more readable
-    t.request(GET, "/scans/preferences")
+    let mut body = t
+        .request(GET, "/scans/preferences")
         .await
-        .custom_snapshot("body", |response| {
-            let mut map =
-                serde_json::from_str::<Vec<BTreeMap<String, Value>>>(&response.body.clone())
-                    .unwrap();
-            map.sort_by_key(|entry| entry["id"].to_string());
-            map
-        });
+        .body::<Vec<BTreeMap<String, Value>>>();
+    // Then we sort by id to have some sort of order
+    body.sort_by_key(|entry| entry["id"].to_string());
+    body.snapshot("body");
 }
 
 // Runs against the local notus advisories in
