@@ -62,7 +62,9 @@ impl Response {
     }
 
     pub fn snapshot(&self) -> &Self {
-        insta::assert_ron_snapshot!(self.name.clone(), self.snapshot);
+        insta::with_settings!({ prepend_module_to_snapshot => false }, {
+            insta::assert_ron_snapshot!(self.name.clone(), self.snapshot);
+        });
         self
     }
 
@@ -70,7 +72,9 @@ impl Response {
     where
         S: Serialize,
     {
-        insta::assert_ron_snapshot!(name, f(&self.snapshot));
+        insta::with_settings!({ prepend_module_to_snapshot => false }, {
+            insta::assert_ron_snapshot!(format!("{}_{}", self.name, name), f(&self.snapshot));
+        });
         self
     }
 
