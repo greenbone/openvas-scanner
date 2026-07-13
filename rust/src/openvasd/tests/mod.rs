@@ -22,10 +22,18 @@ async fn head_endpoints() {
         .build()
         .await;
 
-    t.request(HEAD, "/health/alive").await.snapshot();
-    t.request(HEAD, "/health/ready").await.snapshot();
-    t.request(HEAD, "/scans").await.snapshot();
-    t.request(HEAD, "/notus").await.snapshot();
+    for endpoint in [
+        "/health/alive",
+        "/health/ready",
+        "/health/started",
+        "/scans",
+        "/notus",
+    ] {
+        t.request(HEAD, endpoint)
+            .await
+            .assert_status(StatusCode::OK)
+            .snapshot();
+    }
 }
 
 #[tokio::test]
