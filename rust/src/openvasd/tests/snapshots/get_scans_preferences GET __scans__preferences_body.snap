@@ -1,6 +1,6 @@
 ---
 source: src/openvasd/tests/test_builder.rs
-expression: f(&self.snapshot)
+expression: self.inner
 ---
 [
   {

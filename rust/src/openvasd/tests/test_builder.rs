@@ -6,6 +6,7 @@ use std::{
     collections::BTreeMap,
     error::Error,
     net::{Ipv4Addr, SocketAddr, TcpListener},
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     pin::Pin,
     time::Duration,
@@ -50,13 +51,28 @@ impl Serialize for ResponseSnapshot {
 ///    an appropriate name
 pub struct BodySnapshot<S: Serialize + DeserializeOwned> {
     inner: S,
+    name_prefix: String,
 }
 
 impl<S: Serialize + DeserializeOwned> BodySnapshot<S> {
     pub fn snapshot(self, name: &str) {
         insta::with_settings!({ prepend_module_to_snapshot => false }, {
-            insta::assert_ron_snapshot!(name, self.inner);
+            insta::assert_ron_snapshot!(format!("{}_{}", self.name_prefix, name), self.inner);
         });
+    }
+}
+
+impl<S: Serialize + DeserializeOwned> Deref for BodySnapshot<S> {
+    type Target = S;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<S: Serialize + DeserializeOwned> DerefMut for BodySnapshot<S> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 
@@ -90,16 +106,6 @@ impl Response {
         self
     }
 
-    pub fn custom_snapshot<S>(&self, name: &str, f: impl Fn(&ResponseSnapshot) -> S) -> &Self
-    where
-        S: Serialize,
-    {
-        insta::with_settings!({ prepend_module_to_snapshot => false }, {
-            insta::assert_ron_snapshot!(format!("{}_{}", self.name, name), f(&self.snapshot));
-        });
-        self
-    }
-
     #[track_caller]
     pub fn assert_status(&self, status_code: StatusCode) -> &Self {
         assert_eq!(status_code, self.snapshot.status_code);
@@ -113,6 +119,7 @@ impl Response {
     pub fn body<S: DeserializeOwned + Serialize>(&self) -> BodySnapshot<S> {
         BodySnapshot {
             inner: serde_json::from_str(&self.snapshot.body).unwrap(),
+            name_prefix: self.name.clone(),
         }
     }
 }
