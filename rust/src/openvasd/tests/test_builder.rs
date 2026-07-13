@@ -11,6 +11,7 @@ use std::{
 };
 
 use anyhow::bail;
+use http::StatusCode;
 use reqwest::Method;
 use serde::{Serialize, ser::SerializeMap};
 
@@ -70,6 +71,12 @@ impl Response {
         S: Serialize,
     {
         insta::assert_ron_snapshot!(name, f(&self.snapshot));
+        self
+    }
+
+    #[track_caller]
+    pub fn assert_status(&self, status_code: StatusCode) -> &Self {
+        assert_eq!(status_code, self.snapshot.status_code);
         self
     }
 }
@@ -153,6 +160,19 @@ impl OpenvasdInstance {
             format!("{} {} {}", self.test_name, method, path),
             reqwest::Client::new()
                 .request(method, format!("http://{}{}", self.address, path))
+                .send()
+                .await
+                .unwrap(),
+        )
+        .await
+    }
+
+    pub async fn request_json(&self, method: Method, path: &str, s: impl Serialize) -> Response {
+        Response::from_reqwest(
+            format!("{} {} {}", self.test_name, method, path),
+            reqwest::Client::new()
+                .request(method, format!("http://{}{}", self.address, path))
+                .json(&s)
                 .send()
                 .await
                 .unwrap(),
