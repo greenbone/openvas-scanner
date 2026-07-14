@@ -409,7 +409,7 @@ insert_ip_v6_options (lex_ctxt *lexic)
   int i;
   size_t pl;
 
-  if (ip6 == NULL && value == NULL)
+  if (ip6 == NULL || value == NULL)
     {
       nasl_perror (lexic,
                    "Usage : %s(ip6:<ip6>, code:<code>, "
@@ -865,19 +865,18 @@ get_tcp_v6_option (lex_ctxt *lexic)
 
   ip6 = (struct ip6_hdr *) packet;
 
-  /* valid ipv6 header check */
+  /* valid ipv6 header check
+     ipv6 header has a fixed length of 40 bytes and tcp a minimum header size of
+     20 bytes.
+  */
   ipsz = get_var_size_by_name (lexic, "tcp");
-  if (ipsz < (int) sizeof (struct ip6_hdr))
-    return NULL; // mal formed.
-
-  if (40 + 20 > ipsz)
-    return NULL;
+  if (ipsz < sizeof (struct ip6_hdr) + 20)
+    return NULL; /* Invalid packet */
 
   if (UNFIX (ip6->ip6_plen) > ipsz)
     return NULL; /* Invalid packet */
 
   tcp = (struct tcphdr *) (packet + 40);
-
   if (tcp->th_off <= 5)
     return NULL;
 

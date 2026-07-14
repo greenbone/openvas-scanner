@@ -906,11 +906,8 @@ get_tcp_option (lex_ctxt *lexic)
     return NULL;
 
   // check that ip + tcp is bigger that the original packet
-  if (ip->ip_hl * 4 + 20 > ipsz)
-    return NULL;
-
   // ip header length is given in 32 bits words = 4 bytes.
-  if (ip->ip_hl * 4 > ipsz)
+  if (ip->ip_hl * 4 + 20 > ipsz)
     return NULL; /* Invalid packet */
 
   if (UNFIX (ip->ip_len) > ipsz)

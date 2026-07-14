@@ -35,6 +35,7 @@
 #include <gvm/base/logging.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifndef uchar
 #define uchar unsigned char
@@ -244,19 +245,32 @@ tree_cell *
 nasl_get_sign (lex_ctxt *lexic)
 {
   char *mac_key = (char *) get_str_var_by_name (lexic, "key");
+  long int keylen = get_var_size_by_name (lexic, "key");
   uint8_t *buf = (uint8_t *) get_str_var_by_name (lexic, "buf");
-  long int buflen = get_int_var_by_name (lexic, "buflen", -1);
+  long int buflen = get_var_size_by_name (lexic, "buf");
   int seq_num = get_int_var_by_name (lexic, "seq_number", -1);
-  if (mac_key == NULL || buf == NULL || buf[0] == '\0' || buflen == -1
-      || seq_num <= -1)
+  if (mac_key == NULL || buf == NULL || buf[0] == '\0' || seq_num <= -1)
     {
+      // deprecate the buf_len argument and use the real buf length
       nasl_perror (lexic, "Syntax : get_signature(key:<k>, buf:<b>, "
-                          "buflen:<bl>, seq_number:<s>)\n");
+                          "seq_number:<s>)\n");
       return NULL;
     }
-  if (buflen != get_var_size_by_name (lexic, "buf") || buflen < 26)
+
+  if (buflen < 26)
     {
-      nasl_perror (lexic, "OOB read/write\n");
+      nasl_perror (lexic,
+                   "OOB read/write. Buffer length must be at least 26. Current "
+                   "length: %ld\n",
+                   buflen);
+      return NULL;
+    }
+
+  if (keylen < 16)
+    {
+      nasl_perror (
+        lexic, "OOB read: key must be at least 16 bytes. Current length: %ld\n",
+        keylen);
       return NULL;
     }
 
@@ -531,27 +545,23 @@ nasl_ntlmv2_response (lex_ctxt *lexic)
   unsigned char *ntlmv2_hash =
     (unsigned char *) get_str_var_by_name (lexic, "ntlmv2_hash");
   char *address_list = get_str_var_by_name (lexic, "address_list");
-  int address_list_len = get_int_var_by_name (lexic, "address_list_len", -1);
+  long int address_list_len = get_var_size_by_name (lexic, "address_list");
 
   if (cryptkey == NULL || user == NULL || domain == NULL || ntlmv2_hash == NULL
-      || address_list == NULL || address_list_len < 0)
+      || address_list == NULL || address_list[0] == '\0')
     {
+      // address_list_len argument is deprecated and ignored. Use the real size
+      // of address_list
       nasl_perror (
         lexic, "Syntax : ntlmv2_response(cryptkey:<c>, user:<u>, domain:<d>, "
                "ntlmv2_hash:<n>, address_list:<a>, address_list_len:<len>)\n");
       return NULL;
     }
 
-  if (address_list_len <= get_var_size_by_name (lexic, "address_list"))
-    {
-      nasl_perror (lexic, "ntlmv2_response: address_list and address_list_len "
-                          "have different sized\n");
-      return NULL;
-    }
   if (address_list_len > UINT16_MAX)
     {
       nasl_perror (lexic,
-                   "ntlmv2_response: address_list_len exceed Max lenght\n");
+                   "ntlmv2_response: address_list_len exceed Max length\n");
       return NULL;
     }
   uint8_t lm_response[24];
@@ -698,11 +708,7 @@ nasl_ntlmv1_hash (lex_ctxt *lexic)
       return NULL;
     }
 
-  if (pass_len < 16)
-    pass_len = 16;
-  if (pass_len > 21)
-    pass_len = 21;
-
+  pass_len = pass_len < 16 ? pass_len : 16;
   bzero (p21, sizeof (p21));
   memcpy (p21, password, pass_len);
 
@@ -920,7 +926,18 @@ nasl_ntlmv2_hash (lex_ctxt *lexic)
   */
   if (client_chal_length > 4096)
     {
-      nasl_perror (lexic, "Length to big. Max is 4096\n");
+      nasl_perror (lexic, "Length too big. Max is 4096\n");
+      return NULL;
+    }
+
+  if (hash_len != 16)
+    {
+      nasl_perror (lexic, "owf_in must have a length of 16\n");
+      return NULL;
+    }
+  if (get_var_size_by_name (lexic, "cryptkey") != 8)
+    {
+      nasl_perror (lexic, "cryptkey/server_chal must have a length of 8\n");
       return NULL;
     }
 
@@ -928,16 +945,9 @@ nasl_ntlmv2_hash (lex_ctxt *lexic)
   for (i = 0; i < client_chal_length; i++)
     ntlmv2_client_data[i] = rand () % 256;
 
-  if (hash_len != 16)
-    {
-      nasl_perror (lexic, "owf_in must have a length of 16\n");
-      return NULL;
-    }
-
   /* Given that data, and the challenge from the server, generate a response */
-  SMBOWFencrypt_ntv2_ntlmssp (
-    ntlm_v2_hash, server_chal, get_var_size_by_name (lexic, "cryptkey"),
-    ntlmv2_client_data, client_chal_length, ntlmv2_response);
+  SMBOWFencrypt_ntv2_ntlmssp (ntlm_v2_hash, server_chal, 8, ntlmv2_client_data,
+                              client_chal_length, ntlmv2_response);
 
   /* put it into nt_response, for the code below to put into the packet */
   final_response = g_malloc0 (client_chal_length + sizeof (ntlmv2_response));
