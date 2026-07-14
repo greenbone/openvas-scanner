@@ -3,7 +3,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use docker_registry::v2::manifest::Manifest;
+use docker_registry::v2::manifest::{Manifest, ManifestObj};
 use futures::{Stream, StreamExt, TryStreamExt};
 use tokio::sync::mpsc::Receiver;
 
@@ -226,42 +226,47 @@ impl Client {
         }
     }
 
+    fn is_supported_manifest_descriptor(manifest: &ManifestObj) -> bool {
+        let platform = &manifest.platform;
+        let architecture = platform.architecture.as_str();
+        let os = platform.os.as_str();
+        !architecture.is_empty() && !os.is_empty() && architecture != "unknown" && os != "unknown"
+    }
+
     pub async fn resolve_manifests(
         &self,
         name: &str,
         reference: &str,
     ) -> Vec<Result<(Manifest, String, Option<Digest>), RegistryError>> {
         let og = self.get_manifest(name, reference).await;
-        match og {
-            Ok((Manifest::ML(ml), _)) => {
-                let mut results = Vec::with_capacity(ml.manifests.len());
-                for m in ml.manifests.into_iter() {
-                    match self.get_manifest(name, &m.digest).await {
-                        Ok((m, digest)) => {
-                            results.push(self.manifest_to_architecture(digest, m));
-                        }
-                        Err(error) => results.push(Err(error)),
-                    }
-                }
-                results
-            }
-            Ok((Manifest::OciIndex(oi), _)) => {
-                let mut results = Vec::with_capacity(oi.manifests.len());
-                for m in oi.manifests.into_iter() {
-                    match self.get_manifest(name, &m.digest).await {
-                        Ok((m, digest)) => {
-                            results.push(self.manifest_to_architecture(digest, m));
-                        }
-                        Err(error) => results.push(Err(error)),
-                    }
-                }
-                results
-            }
+        let manifests = match og {
+            Ok((Manifest::ML(ml), _)) => ml.manifests,
+            Ok((Manifest::OciIndex(oi), _)) => oi.manifests,
             Ok((m, digest)) => {
-                vec![self.manifest_to_architecture(digest, m)]
+                return vec![self.manifest_to_architecture(digest, m)];
             }
-            Err(err) => vec![Err(err)],
+            Err(err) => return vec![Err(err)],
+        };
+
+        let mut results = Vec::with_capacity(manifests.len());
+        for m in manifests.into_iter() {
+            if !Self::is_supported_manifest_descriptor(&m) {
+                tracing::debug!(
+                    digest = %m.digest,
+                    architecture = %m.platform.architecture,
+                    os = %m.platform.os,
+                    "Skipping unsupported manifest descriptor"
+                );
+                continue;
+            }
+            match self.get_manifest(name, &m.digest).await {
+                Ok((m, digest)) => {
+                    results.push(self.manifest_to_architecture(digest, m));
+                }
+                Err(error) => results.push(Err(error)),
+            }
         }
+        results
     }
 
     pub async fn get_blob(&self, name: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
@@ -721,6 +726,9 @@ pub mod fake {
         }
 
         pub fn list_json(&self) -> String {
+            // Docker Hub images include manifests with unknown/unknown mimetypes.
+            // Those are SBOM files (SPDX, in-toto, ...) and we need to skip them
+            // while extracting. We put one in here intentionally to simulate this.
             let manifests = format!(
                 r#"
             [
@@ -732,11 +740,21 @@ pub mod fake {
                   "architecture": "ppc64le",
                   "os": "linux"
                 }}
+            }},
+            {{
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "digest": "{}",
+                "size": 31337,
+                "platform": {{
+                  "architecture": "unknown",
+                  "os": "unknown"
+                }}
             }}
             ]
             "#,
                 self.blobconfig.digest,
-                self.blobconfig.size()
+                self.blobconfig.size(),
+                digest(format!("{}-attestation", self.blobconfig.digest).as_bytes())
             );
 
             format!(
