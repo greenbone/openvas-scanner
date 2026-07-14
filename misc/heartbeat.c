@@ -19,7 +19,7 @@
 /**
  * @brief GLib log domain.
  */
-#define G_LOG_DOMAIN "sd   main"
+#define G_LOG_DOMAIN "lib  misc"
 
 /**
  * @brief Check if the hosts is still alive and set it as dead if not.
