@@ -9,7 +9,7 @@ use http::{Method, StatusCode};
 use scannerlib::models::{Phase, Scan, Status, Target};
 use serde_json::Value;
 
-use crate::tests::test_builder::{Snapshottable, Test, WaitForStatusExt};
+use crate::tests::test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 
 mod test_builder;
 
@@ -18,10 +18,7 @@ const HEAD: Method = Method::HEAD;
 const POST: Method = Method::POST;
 const DELETE: Method = Method::DELETE;
 
-#[tokio::test]
-async fn head_endpoints() {
-    let t = Test::new("head_endpoints").config("basic").await;
-
+async fn check_head_endpoints(t: &OpenvasdInstance, write_snapshots: bool) {
     for endpoint in [
         "/health/alive",
         "/health/ready",
@@ -29,11 +26,18 @@ async fn head_endpoints() {
         "/scans",
         "/notus",
     ] {
-        t.request(HEAD, endpoint)
-            .await
-            .assert_status(StatusCode::OK)
-            .snapshot();
+        let response = t.request(HEAD, endpoint).await;
+        response.assert_status(StatusCode::OK);
+        if write_snapshots {
+            response.snapshot();
+        }
     }
+}
+
+#[tokio::test]
+async fn head_endpoints() {
+    let t = Test::new("head_endpoints").config("basic").await;
+    check_head_endpoints(&t, true).await
 }
 
 impl Snapshottable for Vec<BTreeMap<String, Value>> {}
@@ -72,6 +76,8 @@ async fn notus() {
         .await
         .assert_status(StatusCode::NOT_FOUND)
         .snapshot();
+
+    check_head_endpoints(&t, false).await
 }
 
 impl Snapshottable for Vec<String> {}
@@ -93,15 +99,7 @@ async fn up_and_running() {
         .body::<Vec<String>>()
         .snapshot("body");
 
-    t.request(HEAD, "/health/ready")
-        .await
-        .assert_status(StatusCode::OK);
-    t.request(HEAD, "/health/alive")
-        .await
-        .assert_status(StatusCode::OK);
-    t.request(HEAD, "/health/started")
-        .await
-        .assert_status(StatusCode::OK);
+    check_head_endpoints(&t, false).await
 }
 
 impl Snapshottable for models::Status {
@@ -219,15 +217,7 @@ mod requires_compose {
             vts.len()
         );
 
-        t.request(HEAD, "/health/ready")
-            .await
-            .assert_status(StatusCode::OK);
-        t.request(HEAD, "/health/alive")
-            .await
-            .assert_status(StatusCode::OK);
-        t.request(HEAD, "/health/started")
-            .await
-            .assert_status(StatusCode::OK);
+        check_head_endpoints(&t, false);
     }
 
     // Runs against the full notus advisories in the
