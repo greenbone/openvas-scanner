@@ -11,11 +11,11 @@ use serde_json::Value;
 use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 
 mod test_builder;
+mod test_scan;
 
 const GET: Method = Method::GET;
 const HEAD: Method = Method::HEAD;
 const POST: Method = Method::POST;
-const DELETE: Method = Method::DELETE;
 
 async fn check_head_endpoints(t: &OpenvasdInstance, write_snapshots: bool) {
     for endpoint in [
@@ -118,7 +118,7 @@ async fn up_and_running_test(
         .body::<Vec<String>>()
         .snapshot_if(write_snapshots, "body");
 
-    check_head_endpoints(&t, false).await;
+    check_head_endpoints(t, false).await;
     body
 }
 
@@ -167,66 +167,28 @@ async fn scan_lifecycle() {
         ..Default::default()
     };
 
-    // We create the scan
-    let scan_id = t
-        .request(POST, "/scans")
-        .json(scan.clone())
+    let scan = t.create_scan(scan).await;
+    scan.start().await;
+    scan.status().await;
+    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(5)))
         .await
-        .assert_status(StatusCode::CREATED)
-        .body_str();
-
-    // Check that after creation, the scan returned
-    // from the API is what we'd expect
-    let scan_path = format!("/scans/{scan_id}");
-    let stored_scan = t
-        .request(GET, &scan_path)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Scan>();
-    assert_eq!(*stored_scan.scan_id, scan.scan_id);
-
-    // Start the scan
-    t.request(POST, &scan_path)
-        .json(models::ScanAction::from(models::Action::Start))
-        .await
-        .assert_status(StatusCode::NO_CONTENT);
-
-    // Check the status of the scan
-    let status_path = format!("{scan_path}/status");
-    t.request(GET, &status_path)
-        .await
-        .assert_status(StatusCode::OK);
-
-    t.request(GET, &status_path)
-        .wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(5)))
-        .await
-        .assert_status(StatusCode::OK)
         .body::<Status>()
         .snapshot("status");
 
-    let results_path = format!("{scan_path}/results");
-    let results = t
-        .request(GET, &results_path)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Vec<models::Result>>();
+    let results = scan.get_results().await.body::<Vec<models::Result>>();
     assert!(results.is_empty());
 
-    t.request(GET, format!("{results_path}/0"))
+    scan.get_result(0)
         .await
         .assert_status(StatusCode::NOT_FOUND);
 
-    let empty_range = t
-        .request(GET, format!("{results_path}?range=0-0"))
+    let empty_range = scan
+        .get_result(0..0)
         .await
         .assert_status(StatusCode::OK)
         .body::<Vec<models::Result>>();
     assert_eq!(empty_range.len(), 0);
 
-    t.request(DELETE, &scan_path)
-        .await
-        .assert_status(StatusCode::NO_CONTENT);
-    t.request(GET, &scan_path)
-        .await
-        .assert_status(StatusCode::NOT_FOUND);
+    scan.delete().await;
+    scan.get().await.assert_status(StatusCode::NOT_FOUND);
 }
