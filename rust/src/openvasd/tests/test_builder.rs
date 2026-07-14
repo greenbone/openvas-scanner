@@ -134,6 +134,13 @@ impl Response {
         self
     }
 
+    pub(crate) fn snapshot_if(&self, write_snapshots: bool) -> &Self {
+        if write_snapshots {
+            self.snapshot();
+        }
+        self
+    }
+
     #[track_caller]
     pub fn assert_status(&self, status_code: StatusCode) -> &Self {
         assert_eq!(status_code, self.snapshot.status_code);
@@ -338,7 +345,7 @@ pub struct Request<S> {
 impl Request<()> {
     // The bounds are not required here but results in type errors earlier than deferring
     // to the `IntoFuture` impl below, so it will hopefully be clearer to the user.
-    pub fn json<S: Serialize + Send + Sync + 'static>(self, json: S) -> Request<S> {
+    pub fn json<S: Serialize + Send + Sync>(self, json: S) -> Request<S> {
         // Have to be explicit about each field here instead of assigning to self.json, since the
         // types are different
         Request {

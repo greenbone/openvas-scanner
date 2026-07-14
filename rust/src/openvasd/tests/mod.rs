@@ -26,11 +26,10 @@ async fn check_head_endpoints(t: &OpenvasdInstance, write_snapshots: bool) {
         "/scans",
         "/notus",
     ] {
-        let response = t.request(HEAD, endpoint).await;
-        response.assert_status(StatusCode::OK);
-        if write_snapshots {
-            response.snapshot();
-        }
+        t.request(HEAD, endpoint)
+            .await
+            .assert_status(StatusCode::OK)
+            .snapshot_if(write_snapshots);
     }
 }
 
@@ -57,27 +56,48 @@ async fn get_scans_preferences() {
     body.snapshot("body");
 }
 
-// Runs against the local notus advisories in
-// examples/feed/notus/...
-#[tokio::test]
-async fn notus() {
-    let t = Test::new("notus").config("notus").await;
+async fn notus_test(
+    t: &OpenvasdInstance,
+    package_name: &str,
+    system_name: &str,
+    write_get_snapshot: bool,
+) {
+    t.request(Method::GET, "/notus")
+        .await
+        .snapshot_if(write_get_snapshot);
 
-    t.request(Method::GET, "/notus").await.snapshot();
-
-    t.request(POST, "/notus/test")
-        .json(&["man-db-1.1.1"])
+    t.request(POST, format!("/notus/{}", system_name))
+        .json(vec![package_name.to_string()])
         .await
         .assert_status(StatusCode::OK)
         .snapshot();
 
     t.request(POST, "/notus/not_a_system")
-        .json(&["man-db-1.1.1"])
+        .json(vec![package_name.to_string()])
         .await
         .assert_status(StatusCode::NOT_FOUND)
         .snapshot();
 
-    check_head_endpoints(&t, false).await
+    check_head_endpoints(t, false).await
+}
+
+// Runs against the local notus advisories in
+// examples/feed/notus/...
+#[tokio::test]
+async fn notus() {
+    let t = Test::new("notus").config("notus").await;
+    notus_test(&t, "man-db-1.1.1", "test", true).await
+}
+
+// Runs against the full notus advisories in the
+// compose setup.
+#[tokio::test]
+#[cfg(feature = "requires-compose")]
+async fn compose_notus() {
+    let t = Test::new("notus_compose").config("notus_compose").await;
+    // A full snapshot would be way overkill and not interesting, so we just
+    // assert on the status code.
+    notus_test(&t, "libzmq3-dev-4.3.0-4+deb10u1", "debian_10", false).await;
 }
 
 impl Snapshottable for Vec<String> {}
@@ -217,36 +237,6 @@ mod requires_compose {
             vts.len()
         );
 
-        check_head_endpoints(&t, false);
-    }
-
-    // Runs against the full notus advisories in the
-    // compose setup.
-    #[tokio::test]
-    async fn notus() {
-        let t = Test::new("notus_compose").config("notus_compose").await;
-
-        // A full snapshot would be way overkill and not interesting, so we just
-        // assert on the status code.
-        t.request(Method::GET, "/notus")
-            .await
-            .assert_status(StatusCode::OK);
-
-        // Maybe the snapshot of the response here is overkill. Figure out
-        // whether this changes a lot. It might be nice to capture some
-        // implicit information returned along with the request, so I want to
-        // keep it for now, but remove this immediately (or redact) if it becomes
-        // flaky or unstable.
-        t.request(POST, "/notus/debian_10")
-            .json(&["libzmq3-dev-4.3.0-4+deb10u1"])
-            .await
-            .assert_status(StatusCode::OK)
-            .snapshot();
-
-        t.request(POST, "/notus/not_a_system")
-            .json(&["libzmq3-dev-4.3.0-4+deb10u1"])
-            .await
-            .assert_status(StatusCode::NOT_FOUND)
-            .snapshot();
+        check_head_endpoints(&t, false).await;
     }
 }
