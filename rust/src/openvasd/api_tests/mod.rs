@@ -192,3 +192,28 @@ async fn scan_lifecycle() {
     scan.delete().await;
     scan.get().await.assert_status(StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+#[ignore = "extremely slow"]
+async fn container_image_scan_docker_hub_ubuntu_24_04() {
+    const IMAGE: &str = "oci://registry-1.docker.io/library/ubuntu:24.04";
+
+    let t = Test::new("container_image_scan_docker_hub_ubuntu_24_04")
+        .config("basic")
+        .await;
+    let scan = Scan {
+        scan_id: "container-image-ubuntu-24-04".to_string(),
+        target: Target {
+            hosts: vec![IMAGE.to_string()],
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    let scan = t.create_container_image_scan(scan).await;
+    scan.start().await;
+    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(600)))
+        .await
+        .body::<Status>();
+    scan.delete().await;
+}

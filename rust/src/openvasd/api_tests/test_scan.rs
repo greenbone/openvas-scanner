@@ -11,7 +11,6 @@ impl OpenvasdInstance {
         self.create_scan_at("/scans", scan).await
     }
 
-    #[allow(unused)]
     pub async fn create_container_image_scan(&self, scan: Scan) -> TestScan<'_> {
         self.create_scan_at("/container-image-scanner/scans", scan)
             .await
