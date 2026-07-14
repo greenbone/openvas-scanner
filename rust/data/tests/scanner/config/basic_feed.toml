@@ -5,6 +5,7 @@ type = 'openvasd'
 path = "examples/feed/nasl"
 check_interval = "3600s"
 signature_check = false
+lock_file_dir = "/tmp/"
 
 [notus]
 products_path = 'examples/feed/notus/products'

@@ -8,8 +8,7 @@ use greenbone_scanner_framework::models;
 use http::{Method, StatusCode};
 use scannerlib::models::{Phase, Scan, Status, Target};
 use serde_json::Value;
-
-use crate::tests::test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
+use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 
 mod test_builder;
 
@@ -102,24 +101,51 @@ async fn compose_notus() {
 
 impl Snapshottable for Vec<String> {}
 
-#[tokio::test]
-async fn up_and_running() {
-    // In compose, the feed/notus paths are the defaults,
-    // so we can just use basic.toml
-    let t = Test::new("up_and_running").config("basic_feed").await;
-
-    t.request(GET, "/vts")
+async fn up_and_running_test(
+    t: &OpenvasdInstance,
+    timeout: Duration,
+    write_snapshots: bool,
+) -> Vec<String> {
+    let body = t
+        .request(GET, "/vts")
         .wait_for(
             StatusCode::OK
-                .with_timeout(Duration::from_millis(100))
+                .with_timeout(timeout)
                 .with_intermediate_status(StatusCode::SERVICE_UNAVAILABLE),
         )
         .await
         .assert_status(StatusCode::OK) // DUH
         .body::<Vec<String>>()
-        .snapshot("body");
+        .snapshot_if(write_snapshots, "body");
 
-    check_head_endpoints(&t, false).await
+    check_head_endpoints(&t, false).await;
+    body
+}
+
+// TODO: This test is currently broken and
+// we see the plugin_feed_info.inc in the snapshot.
+// Fix this.
+#[tokio::test]
+#[tracing_test::traced_test]
+async fn up_and_running() {
+    let t = Test::new("up_and_running").config("basic_feed").await;
+    up_and_running_test(&t, Duration::from_millis(100), true).await;
+}
+
+#[tokio::test]
+#[cfg(feature = "requires-compose")]
+async fn compose_up_and_running() {
+    // In compose, the feed/notus paths are the defaults,
+    // so we can just use basic.toml
+    let t = Test::new("up_and_running_compose").config("basic").await;
+
+    let vts = up_and_running_test(&t, Duration::from_secs(1800), false).await;
+
+    assert!(
+        vts.len() > 100_000,
+        "expected more than 100000 VTs, got {}",
+        vts.len()
+    );
 }
 
 impl Snapshottable for models::Status {
@@ -203,40 +229,4 @@ async fn scan_lifecycle() {
     t.request(GET, &scan_path)
         .await
         .assert_status(StatusCode::NOT_FOUND);
-}
-
-#[cfg(feature = "requires-compose")]
-mod requires_compose {
-    use std::time::Duration;
-
-    use http::StatusCode;
-
-    use crate::tests::test_builder::WaitForStatusExt;
-
-    use super::*;
-
-    #[tokio::test]
-    async fn up_and_running() {
-        // In compose, the feed/notus paths are the defaults,
-        // so we can just use basic.toml
-        let t = Test::new("up_and_running_compose").config("basic").await;
-
-        let vts = t
-            .request(GET, "/vts")
-            .wait_for(
-                StatusCode::OK
-                    .with_timeout(Duration::from_secs(1800))
-                    .with_intermediate_status(StatusCode::SERVICE_UNAVAILABLE),
-            )
-            .await
-            .assert_status(StatusCode::OK) // DUH
-            .body::<Vec<String>>();
-        assert!(
-            vts.len() > 100_000,
-            "expected more than 100000 VTs, got {}",
-            vts.len()
-        );
-
-        check_head_endpoints(&t, false).await;
-    }
 }
