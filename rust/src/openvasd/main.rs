@@ -6,6 +6,8 @@
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
 
+#[cfg(test)]
+mod api_tests;
 mod config;
 mod container_image_scanner;
 mod crypt;
@@ -13,8 +15,6 @@ mod database;
 mod json_stream;
 mod notus;
 mod scans;
-#[cfg(test)]
-mod tests;
 mod vts;
 
 use sqlx::migrate::Migrator;

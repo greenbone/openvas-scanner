@@ -41,8 +41,11 @@ pub struct Snapshot<S> {
 }
 
 impl<S: Snapshottable> Snapshot<S> {
-    pub fn snapshot(self, name: &str) {
-        let Self { inner, name_prefix } = self;
+    pub fn snapshot(self, name: &str) -> S {
+        let Self {
+            ref inner,
+            name_prefix,
+        } = self;
         let mut settings = insta::Settings::clone_current();
         settings.set_prepend_module_to_snapshot(false);
         for redaction in S::redactions() {
@@ -56,6 +59,15 @@ impl<S: Snapshottable> Snapshot<S> {
         settings.bind(|| {
             insta::assert_ron_snapshot!(name, inner);
         });
+        self.inner
+    }
+
+    pub fn snapshot_if(self, write_snapshots: bool, name: &str) -> S {
+        if write_snapshots {
+            self.snapshot(name)
+        } else {
+            self.inner
+        }
     }
 }
 
