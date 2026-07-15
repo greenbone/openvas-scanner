@@ -1,0 +1,12 @@
+---
+source: src/openvasd/api_tests/mod.rs
+expression: host_info
+---
+HostInfo(
+  all: 4,
+  excluded: 0,
+  dead: 0,
+  alive: 4,
+  queued: 0,
+  finished: 4,
+)
