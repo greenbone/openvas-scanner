@@ -167,7 +167,6 @@ impl Response {
     }
 
     #[track_caller]
-    #[cfg(feature = "requires-compose")]
     pub fn assert_header(&self, name: &str, value: &str) -> &Self {
         assert_eq!(
             Some(value),
