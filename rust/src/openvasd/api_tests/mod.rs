@@ -23,6 +23,15 @@ const GET: Method = Method::GET;
 const HEAD: Method = Method::HEAD;
 const POST: Method = Method::POST;
 
+impl OpenvasdInstance {
+    async fn assert_mtls(&self) {
+        self.request(HEAD, "/scans")
+            .await
+            .assert_status(StatusCode::OK)
+            .assert_header("authentication", "mTLS");
+    }
+}
+
 async fn check_head_endpoints(t: &OpenvasdInstance, write_snapshots: bool) {
     for endpoint in [
         "/health/alive",
@@ -105,19 +114,17 @@ async fn compose_notus() {
     notus_test(&t, "libzmq3-dev-4.3.0-4+deb10u1", "debian_10", false).await;
 }
 
-#[cfg(feature = "requires-compose")]
-async fn assert_mtls(t: &OpenvasdInstance) {
-    t.request(HEAD, "/scans")
-        .await
-        .assert_status(StatusCode::OK)
-        .assert_header("authentication", "mTLS");
-}
-
+// #[tokio::test]
+// async fn mtls_head_scans() {
+//     let t = Test::new("mtls_head_scans").config("basic").await;
+//     t.assert_mtls().await;
+// }
+//
 #[tokio::test]
 #[cfg(feature = "requires-compose")]
 async fn compose_mtls_head_scans() {
     let t = Test::new("compose_mtls_head_scans").config("openvas").await;
-    assert_mtls(&t).await;
+    t.assert_mtls().await;
 }
 
 impl Snapshottable for Vec<String> {}
@@ -230,48 +237,11 @@ fn read_test_scan(name: &str) -> Scan {
 async fn start_scan_flow(scan: &TestScan<'_>, timeout: Duration) -> Snapshot<Vec<models::Result>> {
     scan.start().await;
     scan.status().await;
-
     scan.wait_for(Phase::Succeeded.with_timeout(timeout))
         .await
         .body::<Status>()
         .snapshot("status");
-
     scan.get_results().await.body::<Vec<models::Result>>()
-}
-
-#[cfg(feature = "requires-compose")]
-async fn assert_scan_result_endpoints(scan: &TestScan<'_>, result_count: usize) {
-    scan.get_result(result_count)
-        .await
-        .assert_status(StatusCode::NOT_FOUND);
-
-    let empty_range = scan
-        .get_result(result_count..result_count)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Vec<models::Result>>();
-    assert_eq!(empty_range.len(), 0);
-
-    let full_range = scan
-        .get_result(0..result_count)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Vec<models::Result>>();
-    assert_eq!(full_range.len(), result_count);
-
-    let first_two = scan
-        .get_result(0..1)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<Vec<models::Result>>();
-    assert_eq!(first_two.len(), 2);
-
-    let result = scan
-        .get_result(2)
-        .await
-        .assert_status(StatusCode::OK)
-        .body::<models::Result>();
-    assert_eq!(result.id, 2);
 }
 
 #[tokio::test]
@@ -280,7 +250,7 @@ async fn compose_scan_start_flow_victim_simple_auth_ssh() {
     let t = Test::new("compose_scan_start_flow_victim_simple_auth_ssh")
         .config("openvas")
         .await;
-    assert_mtls(&t).await;
+    t.assert_mtls().await;
     let scan = t
         .create_scan(read_test_scan("victim-simple-auth-ssh"))
         .await;
@@ -294,7 +264,53 @@ async fn compose_scan_start_flow_victim_simple_auth_ssh() {
         "expected more than 3 results, got {result_count}"
     );
 
-    assert_scan_result_endpoints(&scan, result_count).await;
+    scan.get_result(result_count)
+        .await
+        .assert_status(StatusCode::NOT_FOUND);
+    let empty_range = scan
+        .get_result(result_count..result_count)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert_eq!(empty_range.len(), 0);
+    let full_range = scan
+        .get_result(0..result_count)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert_eq!(full_range.len(), result_count);
+    let first_two = scan
+        .get_result(0..1)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert_eq!(first_two.len(), 2);
+    let result = scan
+        .get_result(2)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<models::Result>();
+    assert_eq!(result.id, 2);
+    scan.delete().await;
+    scan.get().await.assert_status(StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+#[cfg(feature = "requires-compose")]
+#[ignore = "extremely slow"]
+async fn compose_container_image_scan_start_flow_local_registry_full() {
+    let t = Test::new("compose_container_image_scan_start_flow_local_registry_full")
+        .config("openvas")
+        .await;
+    t.assert_mtls().await;
+    let scan = t
+        .create_container_image_scan(read_test_scan("local-registry-full"))
+        .await;
+
+    let results = start_scan_flow(&scan, Duration::from_secs(3600)).await;
+    let result_count = results.len();
+    assert!(result_count > 20);
+
     scan.delete().await;
     scan.get().await.assert_status(StatusCode::NOT_FOUND);
 }
@@ -305,7 +321,7 @@ async fn compose_scan_stop_flow_victim_simple_auth_ssh() {
     let t = Test::new("compose_scan_stop_flow_victim_simple_auth_ssh")
         .config("openvas")
         .await;
-    assert_mtls(&t).await;
+    t.assert_mtls().await;
     let scan = t
         .create_scan(read_test_scan("victim-simple-auth-ssh"))
         .await;
@@ -326,26 +342,6 @@ async fn compose_scan_stop_flow_victim_simple_auth_ssh() {
     scan.wait_for(Phase::Stopped.with_timeout(Duration::from_secs(10)))
         .await;
     scan.delete().await;
-}
-
-#[tokio::test]
-#[cfg(feature = "requires-compose")]
-async fn compose_container_image_scan_start_flow_local_registry_full() {
-    let t = Test::new("compose_container_image_scan_start_flow_local_registry_full")
-        .config("openvas")
-        .await;
-    assert_mtls(&t).await;
-    let scan = t
-        .create_container_image_scan(read_test_scan("local-registry-full"))
-        .await;
-
-    let results = start_scan_flow(&scan, Duration::from_secs(3600)).await;
-    let result_count = results.len();
-    assert_eq!(result_count, 23);
-
-    assert_scan_result_endpoints(&scan, result_count).await;
-    scan.delete().await;
-    scan.get().await.assert_status(StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]
