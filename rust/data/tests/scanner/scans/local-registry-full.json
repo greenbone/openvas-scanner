@@ -1,0 +1,23 @@
+{
+  "scan_id": "local-registry-full",
+  "target": {
+    "hosts": [
+      "oci://registry:5000"
+    ],
+   "credentials": [
+      {
+        "service": "generic",
+        "up": {
+          "username": "holla",
+          "password": "diewaldfee"
+        }
+      }
+    ]
+  },
+  "scan_preferences": [
+    {
+      "id": "accept_invalid_certs",
+      "value": "true"
+    }
+  ]
+}

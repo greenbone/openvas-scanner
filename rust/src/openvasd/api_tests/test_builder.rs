@@ -9,6 +9,7 @@ use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     pin::Pin,
+    sync::{Arc, OnceLock},
     time::Duration,
 };
 
@@ -16,13 +17,16 @@ use anyhow::{Context, bail};
 use http::StatusCode;
 use reqwest::Method;
 use scannerlib::models::{self, Phase};
+use scannerlib::utils::scanner_types::ScannerType;
 use serde::{Serialize, de::DeserializeOwned, ser::SerializeMap};
+use tokio::sync::{Mutex, OwnedMutexGuard};
 use tokio::time::Instant;
 
 use crate::{build_runtime, config::Config};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_SLEEP_INTERVAL: Duration = Duration::from_millis(100);
+static OPENVAS_TEST_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
 
 pub trait Snapshottable: Serialize {
     fn redactions() -> Vec<String> {
@@ -208,9 +212,23 @@ impl Test {
     }
 
     async fn build_internal(self) -> anyhow::Result<OpenvasdInstance> {
-        let address = unused_local_address().expect("allocate openvasd test listener");
-
         let mut config = self.read_config();
+        let openvas_guard = if config.scanner.scanner_type == ScannerType::Openvas {
+            Some(
+                OPENVAS_TEST_LOCK
+                    .get_or_init(|| Arc::new(Mutex::new(())))
+                    .clone()
+                    .lock_owned()
+                    .await,
+            )
+        } else {
+            None
+        };
+        let address = if config.scanner.scanner_type == ScannerType::Openvas {
+            SocketAddr::from((Ipv4Addr::UNSPECIFIED, 3000))
+        } else {
+            unused_local_address().expect("allocate openvasd test listener")
+        };
         config.listener.address = address;
         let runtime = build_runtime(config)
             .await
@@ -232,6 +250,7 @@ impl Test {
             address,
             test_name: self.name,
             task,
+            _openvas_guard: openvas_guard,
         })
     }
 
@@ -255,6 +274,7 @@ pub struct OpenvasdInstance {
     pub address: SocketAddr,
     test_name: String,
     task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
+    _openvas_guard: Option<OwnedMutexGuard<()>>,
 }
 
 pub enum Condition {

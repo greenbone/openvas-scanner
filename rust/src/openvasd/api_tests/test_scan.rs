@@ -78,6 +78,17 @@ impl<'a> TestScan<'a> {
         response
     }
 
+    #[cfg(feature = "requires-compose")]
+    pub async fn stop(&self) -> Response {
+        let response = self
+            .instance
+            .request(Method::POST, self.scan_path())
+            .json(models::ScanAction::from(models::Action::Stop))
+            .await;
+        response.assert_status(StatusCode::NO_CONTENT);
+        response
+    }
+
     pub async fn status(&self) -> Response {
         let response = self.instance.request(Method::GET, self.status_path()).await;
         response.assert_status(StatusCode::OK);

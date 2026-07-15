@@ -2,13 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+#[cfg(feature = "requires-compose")]
+use std::path::PathBuf;
 use std::{collections::BTreeMap, time::Duration};
 
 use greenbone_scanner_framework::models;
 use http::{Method, StatusCode};
 use scannerlib::models::{Phase, Scan, Status, Target};
 use serde_json::Value;
-use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
+use test_builder::{OpenvasdInstance, Snapshot, Snapshottable, Test, WaitForStatusExt};
+#[cfg(feature = "requires-compose")]
+use test_scan::TestScan;
 
 mod test_builder;
 mod test_scan;
@@ -154,6 +158,8 @@ impl Snapshottable for models::Status {
     }
 }
 
+impl Snapshottable for Vec<models::Result> {}
+
 #[tokio::test]
 async fn scan_lifecycle() {
     let t = Test::new("scan_lifecycle").config("basic_feed").await;
@@ -189,6 +195,135 @@ async fn scan_lifecycle() {
         .body::<Vec<models::Result>>();
     assert_eq!(empty_range.len(), 0);
 
+    scan.delete().await;
+    scan.get().await.assert_status(StatusCode::NOT_FOUND);
+}
+
+#[cfg(feature = "requires-compose")]
+fn read_test_scan(name: &str) -> Scan {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("data/tests/scanner/scans")
+        .join(format!("{name}.json"));
+
+    let contents = std::fs::read_to_string(&path).unwrap();
+    serde_json::from_str(&contents).unwrap()
+}
+
+#[cfg(feature = "requires-compose")]
+async fn start_scan_flow(scan: &TestScan<'_>, timeout: Duration) -> Snapshot<Vec<models::Result>> {
+    scan.start().await;
+    scan.status().await;
+
+    scan.wait_for(Phase::Succeeded.with_timeout(timeout))
+        .await
+        .body::<Status>()
+        .snapshot("status");
+
+    scan.get_results().await.body::<Vec<models::Result>>()
+}
+
+#[cfg(feature = "requires-compose")]
+async fn assert_scan_result_endpoints(scan: &TestScan<'_>, result_count: usize) {
+    scan.get_result(result_count)
+        .await
+        .assert_status(StatusCode::NOT_FOUND);
+
+    let empty_range = scan
+        .get_result(result_count..result_count)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert_eq!(empty_range.len(), 0);
+
+    let full_range = scan
+        .get_result(0..result_count)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert_eq!(full_range.len(), result_count);
+
+    let first_two = scan
+        .get_result(0..1)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::Result>>();
+    assert_eq!(first_two.len(), 2);
+
+    let result = scan
+        .get_result(2)
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<models::Result>();
+    assert_eq!(result.id, 2);
+}
+
+#[tokio::test]
+#[cfg(feature = "requires-compose")]
+async fn compose_scan_start_flow_victim_simple_auth_ssh() {
+    let t = Test::new("compose_scan_start_flow_victim_simple_auth_ssh")
+        .config("openvas")
+        .await;
+    let scan = t
+        .create_scan(read_test_scan("victim-simple-auth-ssh"))
+        .await;
+
+    let results = start_scan_flow(&scan, Duration::from_secs(3600))
+        .await
+        .snapshot("results");
+    let result_count = results.len();
+    assert!(
+        result_count > 3,
+        "expected more than 3 results, got {result_count}"
+    );
+
+    assert_scan_result_endpoints(&scan, result_count).await;
+    scan.delete().await;
+    scan.get().await.assert_status(StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+#[cfg(feature = "requires-compose")]
+async fn compose_scan_stop_flow_victim_simple_auth_ssh() {
+    let t = Test::new("compose_scan_stop_flow_victim_simple_auth_ssh")
+        .config("openvas")
+        .await;
+    let scan = t
+        .create_scan(read_test_scan("victim-simple-auth-ssh"))
+        .await;
+
+    scan.start().await;
+    scan.wait_for(Phase::Running.with_timeout(Duration::from_secs(240)))
+        .await;
+
+    scan.stop().await;
+    scan.wait_for(Phase::Stopped.with_timeout(Duration::from_secs(10)))
+        .await;
+
+    scan.start().await;
+    scan.wait_for(Phase::Running.with_timeout(Duration::from_secs(60)))
+        .await;
+
+    scan.stop().await;
+    scan.wait_for(Phase::Stopped.with_timeout(Duration::from_secs(10)))
+        .await;
+    scan.delete().await;
+}
+
+#[tokio::test]
+#[cfg(feature = "requires-compose")]
+async fn compose_container_image_scan_start_flow_local_registry_full() {
+    let t = Test::new("compose_container_image_scan_start_flow_local_registry_full")
+        .config("openvas")
+        .await;
+    let scan = t
+        .create_container_image_scan(read_test_scan("local-registry-full"))
+        .await;
+
+    let results = start_scan_flow(&scan, Duration::from_secs(3600)).await;
+    let result_count = results.len();
+    assert_eq!(result_count, 23);
+
+    assert_scan_result_endpoints(&scan, result_count).await;
     scan.delete().await;
     scan.get().await.assert_status(StatusCode::NOT_FOUND);
 }

@@ -1,0 +1,18 @@
+---
+source: src/openvasd/api_tests/test_builder.rs
+expression: inner
+---
+Status(
+  start_time: "[redacted]",
+  end_time: "[redacted]",
+  status: succeeded,
+  host_info: Some(HostInfo(
+    all: 1,
+    excluded: 0,
+    dead: 0,
+    alive: 1,
+    queued: 0,
+    finished: 1,
+    scanning: Some({}),
+  )),
+)
