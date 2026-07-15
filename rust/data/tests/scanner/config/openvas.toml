@@ -1,2 +1,7 @@
 [scanner]
 type = 'openvas'
+
+[tls]
+certs = '../compose/certs/server.pem'
+key = '../compose/certs/server.key'
+client_certs = '../compose/certs/clients'
