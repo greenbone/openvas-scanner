@@ -13,7 +13,7 @@ endif
 
 TEST_ENVIRONMENTS := -f base.yaml -f openvasd.yaml -f mtls.yaml -f tests/victim.yaml -f local-registry.yaml
 RUST_TEST_ENVIRONMENTS := -f base.yaml -f tests/victim.yaml -f tests/rust-tests.yaml -f tests/rust-tests-mtls.yaml
-RUST_TEST_ARGS ?= --features requires-compose --bin openvasd api_tests::
+RUST_TEST_ARGS ?= --features requires-compose --bin openvasd api_tests::requires_compose::
 RUST_TEST_RUN_ARGS ?=
 
 ifndef OPENVAS_IMAGE
