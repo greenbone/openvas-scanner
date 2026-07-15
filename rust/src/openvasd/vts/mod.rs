@@ -12,6 +12,7 @@ use scannerlib::Promise;
 use scannerlib::feed::{HashSumFileItem, HashSumNameLoader, check_signature};
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::advisory_loader;
+use scannerlib::openvas::cmd::{get_plugins_folder, get_redis_socket};
 use scannerlib::{
     models::{FeedState, FeedType, VTData},
     notus::advisories::VulnerabilityData,
@@ -131,12 +132,16 @@ pub async fn init(
 ) -> (orchestrator::Communicator, Endpoints) {
     match config.scanner.scanner_type {
         ScannerType::Openvas => {
-            let fetcher = redis::RedisPluginHandler::from(config);
-            let worker = redis::FeedSynchronizer::from(config);
+            let socket = get_redis_socket().await;
+            let plugin_folder = get_plugins_folder().await;
+            let fetcher = redis::RedisPluginHandler::new(socket.clone(), plugin_folder);
+            let worker = redis::FeedSynchronizer::new(config, socket);
             _init(config, fetcher, worker, snapshot).await
         }
         ScannerType::Ospd => {
-            let fetcher = redis::RedisPluginHandler::from(config);
+            let socket = get_redis_socket().await;
+            let plugins_folder = get_plugins_folder().await;
+            let fetcher = redis::RedisPluginHandler::new(socket, plugins_folder);
             let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
             _init(config, fetcher, worker, snapshot).await
         }
