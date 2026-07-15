@@ -10,7 +10,9 @@ use greenbone_scanner_framework::models;
 use http::{Method, StatusCode};
 use scannerlib::models::{Phase, Scan, Status, Target};
 use serde_json::Value;
-use test_builder::{OpenvasdInstance, Snapshot, Snapshottable, Test, WaitForStatusExt};
+#[cfg(feature = "requires-compose")]
+use test_builder::Snapshot;
+use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 #[cfg(feature = "requires-compose")]
 use test_scan::TestScan;
 
@@ -101,6 +103,21 @@ async fn compose_notus() {
     // A full snapshot would be way overkill and not interesting, so we just
     // assert on the status code.
     notus_test(&t, "libzmq3-dev-4.3.0-4+deb10u1", "debian_10", false).await;
+}
+
+#[cfg(feature = "requires-compose")]
+async fn assert_mtls(t: &OpenvasdInstance) {
+    t.request(HEAD, "/scans")
+        .await
+        .assert_status(StatusCode::OK)
+        .assert_header("authentication", "mTLS");
+}
+
+#[tokio::test]
+#[cfg(feature = "requires-compose")]
+async fn compose_mtls_head_scans() {
+    let t = Test::new("compose_mtls_head_scans").config("openvas").await;
+    assert_mtls(&t).await;
 }
 
 impl Snapshottable for Vec<String> {}
@@ -263,6 +280,7 @@ async fn compose_scan_start_flow_victim_simple_auth_ssh() {
     let t = Test::new("compose_scan_start_flow_victim_simple_auth_ssh")
         .config("openvas")
         .await;
+    assert_mtls(&t).await;
     let scan = t
         .create_scan(read_test_scan("victim-simple-auth-ssh"))
         .await;
@@ -287,6 +305,7 @@ async fn compose_scan_stop_flow_victim_simple_auth_ssh() {
     let t = Test::new("compose_scan_stop_flow_victim_simple_auth_ssh")
         .config("openvas")
         .await;
+    assert_mtls(&t).await;
     let scan = t
         .create_scan(read_test_scan("victim-simple-auth-ssh"))
         .await;
@@ -315,6 +334,7 @@ async fn compose_container_image_scan_start_flow_local_registry_full() {
     let t = Test::new("compose_container_image_scan_start_flow_local_registry_full")
         .config("openvas")
         .await;
+    assert_mtls(&t).await;
     let scan = t
         .create_container_image_scan(read_test_scan("local-registry-full"))
         .await;

@@ -1,0 +1,11 @@
+services:
+  configure-openvas:
+    environment:
+      OPENVASD_PROTOCOL: https
+      OPENVASD_PORT: 3000
+
+  rust-tests:
+    networks:
+      default:
+        aliases:
+          - openvasd

@@ -5,6 +5,7 @@
 use std::{
     collections::BTreeMap,
     error::Error,
+    fs,
     net::{Ipv4Addr, SocketAddr, TcpListener},
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
@@ -26,6 +27,8 @@ use crate::{build_runtime, config::Config};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_SLEEP_INTERVAL: Duration = Duration::from_millis(100);
+const DEFAULT_CLIENT_CERT: &str = "client1.pem";
+const DEFAULT_CLIENT_KEY: &str = "client1.key";
 static OPENVAS_TEST_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
 
 pub trait Snapshottable: Serialize {
@@ -163,6 +166,16 @@ impl Response {
         self
     }
 
+    #[track_caller]
+    #[cfg(feature = "requires-compose")]
+    pub fn assert_header(&self, name: &str, value: &str) -> &Self {
+        assert_eq!(
+            Some(value),
+            self.snapshot.headers.get(name).map(String::as_str)
+        );
+        self
+    }
+
     fn status(&self) -> StatusCode {
         StatusCode::from_u16(self.snapshot.status_code).unwrap()
     }
@@ -213,6 +226,7 @@ impl Test {
 
     async fn build_internal(self) -> anyhow::Result<OpenvasdInstance> {
         let mut config = self.read_config();
+        let request_client = RequestClient::from_config(&config)?;
         let openvas_guard = if config.scanner.scanner_type == ScannerType::Openvas {
             Some(
                 OPENVAS_TEST_LOCK
@@ -249,6 +263,7 @@ impl Test {
         Ok(OpenvasdInstance {
             address,
             test_name: self.name,
+            request_client,
             task,
             _openvas_guard: openvas_guard,
         })
@@ -273,6 +288,7 @@ impl IntoFuture for Test {
 pub struct OpenvasdInstance {
     pub address: SocketAddr,
     test_name: String,
+    request_client: RequestClient,
     task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
     _openvas_guard: Option<OwnedMutexGuard<()>>,
 }
@@ -364,6 +380,8 @@ pub struct Request<S> {
     path: String,
     address: SocketAddr,
     test_name: String,
+    client: reqwest::Client,
+    scheme: &'static str,
     json: Option<S>,
     /// Controls the behavior of this request. If unset, we simplify perform the
     /// request and return the Response.
@@ -385,6 +403,8 @@ impl Request<()> {
             path: self.path,
             address: self.address,
             test_name: self.test_name,
+            client: self.client,
+            scheme: self.scheme,
             json: Some(json),
             wait_for: None,
         }
@@ -398,9 +418,9 @@ impl<S: Serialize> Request<S> {
     }
 
     fn build_reqwest_request(&self) -> reqwest::RequestBuilder {
-        let mut request = reqwest::Client::new().request(
+        let mut request = self.client.request(
             self.method.clone(),
-            format!("http://{}{}", self.address, self.path),
+            format!("{}://{}{}", self.scheme, self.address, self.path),
         );
         if let Some(ref json) = self.json {
             request = request.json(json);
@@ -469,10 +489,58 @@ impl OpenvasdInstance {
             path,
             test_name: self.test_name.clone(),
             address: self.address,
+            client: self.request_client.client.clone(),
+            scheme: self.request_client.scheme,
             json: None,
             wait_for: None,
         }
     }
+}
+
+#[derive(Clone)]
+struct RequestClient {
+    client: reqwest::Client,
+    scheme: &'static str,
+}
+
+impl RequestClient {
+    fn from_config(config: &Config) -> anyhow::Result<Self> {
+        let mut builder = reqwest::Client::builder();
+        let scheme = match (&config.tls.certs, &config.tls.key) {
+            (Some(_), Some(_)) => {
+                builder = builder.danger_accept_invalid_certs(true);
+
+                if let Some(client_certs) = &config.tls.client_certs {
+                    builder = builder.identity(client_identity(client_certs)?);
+                }
+
+                "https"
+            }
+            _ => "http",
+        };
+
+        Ok(Self {
+            client: builder
+                .build()
+                .context("build openvasd API test HTTP client")?,
+            scheme,
+        })
+    }
+}
+
+fn client_identity(client_certs: &Path) -> anyhow::Result<reqwest::Identity> {
+    let cert = std::env::var_os("CLIENT_CERT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| client_certs.join(DEFAULT_CLIENT_CERT));
+    let key = std::env::var_os("CLIENT_KEY")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| client_certs.join(DEFAULT_CLIENT_KEY));
+
+    let mut pem = fs::read(&cert)
+        .with_context(|| format!("read mTLS client certificate {}", cert.display()))?;
+    pem.extend(fs::read(&key).with_context(|| format!("read mTLS client key {}", key.display()))?);
+
+    reqwest::Identity::from_pem(&pem).context("build mTLS client identity")
 }
 
 impl Drop for OpenvasdInstance {
