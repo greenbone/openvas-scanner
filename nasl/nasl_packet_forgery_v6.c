@@ -407,9 +407,9 @@ insert_ip_v6_options (lex_ctxt *lexic)
   int pad_len;
   char zero = '0';
   int i;
-  int pl;
+  size_t pl;
 
-  if (ip6 == NULL)
+  if (ip6 == NULL || value == NULL)
     {
       nasl_perror (lexic,
                    "Usage : %s(ip6:<ip6>, code:<code>, "
@@ -423,6 +423,10 @@ insert_ip_v6_options (lex_ctxt *lexic)
     pad_len = 0;
 
   pl = 40 < UNFIX (ip6->ip6_plen) ? 40 : UNFIX (ip6->ip6_plen);
+
+  if (pl > size)
+    return NULL; // malformed packet.
+
   new_packet = g_malloc0 (size + 4 + value_size + pad_len);
   bcopy (ip6, new_packet, pl);
 
@@ -861,13 +865,18 @@ get_tcp_v6_option (lex_ctxt *lexic)
 
   ip6 = (struct ip6_hdr *) packet;
 
-  /* valid ipv6 header check */
+  /* valid ipv6 header check
+     ipv6 header has a fixed length of 40 bytes and tcp a minimum header size of
+     20 bytes.
+  */
   ipsz = get_var_size_by_name (lexic, "tcp");
+  if (ipsz < sizeof (struct ip6_hdr) + 20)
+    return NULL; /* Invalid packet */
+
   if (UNFIX (ip6->ip6_plen) > ipsz)
     return NULL; /* Invalid packet */
 
   tcp = (struct tcphdr *) (packet + 40);
-
   if (tcp->th_off <= 5)
     return NULL;
 
