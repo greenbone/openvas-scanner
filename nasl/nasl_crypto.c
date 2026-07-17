@@ -708,7 +708,13 @@ nasl_ntlmv1_hash (lex_ctxt *lexic)
       return NULL;
     }
 
-  pass_len = pass_len < 16 ? pass_len : 16;
+  if (pass_len != 16)
+    {
+      nasl_perror (lexic, "passhash must be exact 16 bytes long, please use "
+                          "`nt_owf_gen` or `lm_owf_gen` to generate it");
+      return NULL;
+    }
+
   bzero (p21, sizeof (p21));
   memcpy (p21, password, pass_len);
 
