@@ -1,4 +1,4 @@
-![Greenbone Logo](https://www.greenbone.net/wp-content/uploads/greenbone-logo-2025.png)
+![Greenbone Logo](https://www.greenbone.net/wp-content/uploads/greenbone-logo-2025-300x77.png)
 
 # OpenVAS Scanner
 
