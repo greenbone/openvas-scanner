@@ -1546,6 +1546,7 @@ get_udp_v6_element (lex_ctxt *lexic)
   size_t ipsz;
   struct udphdr *udphdr;
   int ret;
+  size_t ip_hdr_offset = 40; // fixed value for ipv6
 
   udp = get_str_var_by_name (lexic, "udp");
   ipsz = get_var_size_by_name (lexic, "udp");
@@ -1559,10 +1560,10 @@ get_udp_v6_element (lex_ctxt *lexic)
       return NULL;
     }
 
-  if (40 + sizeof (struct udphdr) > ipsz)
+  if (ipsz < ip_hdr_offset + sizeof (struct udphdr))
     return NULL;
 
-  udphdr = (struct udphdr *) (udp + 40);
+  udphdr = (struct udphdr *) (udp + ip_hdr_offset);
   if (!strcmp (element, "uh_sport"))
     ret = ntohs (udphdr->uh_sport);
   else if (!strcmp (element, "uh_dport"))
@@ -1573,16 +1574,25 @@ get_udp_v6_element (lex_ctxt *lexic)
     ret = ntohs (udphdr->uh_sum);
   else if (!strcmp (element, "data"))
     {
-      int sz;
+      size_t sz;
+      size_t udp_len = (size_t) ntohs (udphdr->uh_ulen);
+      if (udp_len < sizeof (struct udphdr))
+        {
+          nasl_perror (lexic,
+                       "get_udp_element: uh_ulen < 8. Buffer underflow\n");
+          return NULL;
+        }
+
+      sz = udp_len - sizeof (struct udphdr);
+      if (sz > ipsz - ip_hdr_offset - sizeof (struct udphdr))
+        {
+          nasl_perror (lexic, "get_udp_element: over read of data field\n");
+          return NULL;
+        }
       retc = alloc_typed_cell (CONST_DATA);
-      sz = ntohs (udphdr->uh_ulen) - sizeof (struct udphdr);
-
-      if (ntohs (udphdr->uh_ulen) - 40 - sizeof (struct udphdr) > ipsz)
-        sz = ipsz - 40 - sizeof (struct udphdr);
-
       retc->x.str_val = g_malloc0 (sz);
       retc->size = sz;
-      bcopy (udp + 40 + sizeof (struct udphdr), retc->x.str_val, sz);
+      bcopy (udp + ip_hdr_offset + sizeof (struct udphdr), retc->x.str_val, sz);
       return retc;
     }
   else
