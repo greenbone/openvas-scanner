@@ -600,7 +600,7 @@ where
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
         scanner_types::ScannerType::Openvas => {
-            let redis_url = cmd::get_redis_socket();
+            let redis_url = cmd::get_redis_socket().await;
 
             let scanner = openvas::OpenvasScanner::new(
                 config.scheduler.min_free_mem,

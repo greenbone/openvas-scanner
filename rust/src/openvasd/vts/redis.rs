@@ -1,10 +1,9 @@
-use std::{fs, path::PathBuf, str::FromStr, task::Poll, time::UNIX_EPOCH};
+use std::{fs, path::PathBuf, task::Poll, time::UNIX_EPOCH};
 
 use futures::Stream;
 use greenbone_scanner_framework::GetVTsError;
 use scannerlib::{
     models::{FeedType, VTData},
-    openvas::cmd,
     storage::redis::{
         CACHE_KEY, DbError, NOTUS_KEY, RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt,
         RedisWrapper,
@@ -28,8 +27,7 @@ pub struct FeedSynchronizer {
 }
 
 impl FeedSynchronizer {
-    pub fn new(config: &Config) -> Self {
-        let address = cmd::get_redis_socket();
+    pub fn new(config: &Config, address: String) -> Self {
         let plugin_feed = config.feed.path.clone();
         let advisory_feed = config.notus.advisories_path.clone();
         let signature_check = config.feed.signature_check;
@@ -44,12 +42,6 @@ impl FeedSynchronizer {
             address,
             plugin_storer,
         }
-    }
-}
-
-impl From<&Config> for FeedSynchronizer {
-    fn from(value: &Config) -> Self {
-        Self::new(value)
     }
 }
 
@@ -70,12 +62,9 @@ pub struct RedisPluginHandler {
     feed_path: PathBuf,
 }
 
-impl From<&Config> for RedisPluginHandler {
-    fn from(_: &Config) -> Self {
-        Self {
-            address: cmd::get_redis_socket(),
-            feed_path: PathBuf::from_str(cmd::get_plugins_folder().as_str()).unwrap(),
-        }
+impl RedisPluginHandler {
+    pub fn new(address: String, feed_path: PathBuf) -> Self {
+        Self { address, feed_path }
     }
 }
 
