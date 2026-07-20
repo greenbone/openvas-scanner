@@ -1,0 +1,88 @@
+ScanIDString:
+  description: "A scan ID to identify a scan."
+  type: "string"
+
+ScanReq:
+  description: "Model representing a scan request."
+  type: "object"
+  properties:
+    target:
+      $ref: "./target.yml#/Target"
+    scan_preferences:
+      $ref: "#/ScanPreferences"
+    vts:
+      type: "array"
+      description: "A collection of VTs, which are run for the given target."
+      items:
+        $ref: "./target.yml#/VT"
+  required:
+  - target
+  - vts
+
+ScanResp:
+  description: "Model representing a scan response."
+  type: "object"
+  properties:
+    scan_id:
+      $ref: "#/ScanIDString"
+    target:
+      $ref: "./target.yml#/Target"
+    scan_preferences:
+      $ref: "#/ScanPreferences"
+    vts:
+      type: "array"
+      description: "A collection of VTs, which are run for the given target."
+      items:
+        $ref: "./target.yml#/VT"
+  required:
+  - target
+  - vts
+
+ScanPreferences:
+  description: "Overwrite the default settings of the Scanner. The given preferences are key value
+    pairs. The key is always a string, the value can either be a string, number or boolean. The
+    given value is automatically converted to the correct type, if possible. To get a list of
+    available preferences, use the GET /scans/preferences endpoint."
+  type: "object"
+
+ScanActionBody:
+  description: "An action to perform on a scan"
+  type: "object"
+  properties:
+    action:
+      description: "The action to perform"
+      type: "string"
+      enum:
+      - start
+      - stop
+  required:
+  - "action"
+
+Preferences:
+  description: "List of preferences available"
+  type: "array"
+  items:
+    type: "object"
+    properties:
+      id:
+        description: "ID of the preference"
+        type: "string"
+      type:
+        description: "Type of the preference"
+        type: "string"
+      name:
+        description: "Display name for the preference"
+        type: "string"
+      description:
+        description: "Description of the preference"
+        type: "string"
+      default:
+        description: "Default value for scans"
+        type:
+        - "boolean"
+        - "integer"
+        - "number"
+        - "string"
+      values:
+        description: "Allowed values"
+        type: "string"

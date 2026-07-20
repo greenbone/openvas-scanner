@@ -1,0 +1,638 @@
+openapi: "3.1.1"
+info:
+  title: "Scanner v1"
+  description: " # Authentication
+
+    The API supports two kinds of authentication methods:
+
+    - API Key
+
+    - Certificates
+
+
+    The authentication modes are set within a configuration file or via the argument list, when
+    starting the server.
+
+    The authentication is required for each request except for a HEAD request.
+
+    ## API Key
+
+    An API key is a token that the client provides when doing API requests and are used to authorize
+    access. The `X-API-KEY` must be in the header.
+
+
+    <!--More details about this method follows with its implementation.-->
+
+
+    ## Certificates
+
+    This option uses [X.509](https://en.wikipedia.org/wiki/X.509), based on CA to verify derived
+    certificates to allow access.
+
+
+    <!--More details about this method follows with its implementation.--> "
+  contact:
+    name: "Greenbone AG"
+    url: "https://www.greenbone.net/"
+  license:
+    name: "GPL-2.0-or-later"
+    url: "https://spdx.org/licenses/GPL-2.0-or-later.html"
+  version: "1.0"
+servers:
+- url: /
+tags:
+- name: general
+  description: General requests
+- name: health
+  description: Health checks
+- name: scan
+  description: Scan resource
+- name: feed
+  description: Feed related
+- name: notus
+  description: Notus vulnerability scanner
+paths:
+  /health:
+    head:
+      description: "Get the response header. It contains the API version, feed version and available
+        authentication methods."
+      operationId: "head_health"
+      tags:
+      - "general"
+      responses:
+        "200":
+          headers:
+            api-version:
+              $ref: "#/components/headers/ApiVersion"
+            feed-version:
+              $ref: "#/components/headers/FeedVersion"
+            authentication:
+              $ref: "#/components/headers/Authentication"
+          description: "Authenticated and authorized"
+  /health/alive:
+    get:
+      description: "Get application's health information"
+      operationId: "get_health_alive"
+      tags:
+      - "health"
+      responses:
+        "200":
+          description: "Ok"
+
+  /health/ready:
+    get:
+      description: "Get application's health information"
+      operationId: "get_health_ready"
+      tags:
+      - "health"
+      responses:
+        "200":
+          description: "Ok"
+        "503":
+          description: "Service Unavailable"
+  /health/started:
+    get:
+      description: "Get application's health information"
+      operationId: "get_health_started"
+      tags:
+      - "health"
+      responses:
+        "200":
+          description: "Ok"
+
+  /notus:
+    head:
+      description: "Get the response header. It contains the API version, feed version and available
+        authentication methods."
+      operationId: "head_notus"
+      tags:
+      - "general"
+      responses:
+        "200":
+          headers:
+            api-version:
+              $ref: "#/components/headers/ApiVersion"
+            feed-version:
+              $ref: "#/components/headers/FeedVersion"
+            authentication:
+              $ref: "#/components/headers/Authentication"
+          description: "Authenticated and authorized"
+    get:
+      description: "Get a list of all available OS products available for the [POST
+        /notus/{os}](#/notus/notus_run) endpoint."
+      operationId: "get_notus"
+      tags:
+      - "notus"
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "string"
+              examples:
+                get notus products:
+                  $ref: "./components/examples/notus.yml#/notus_products"
+
+  /notus/{os}:
+    post:
+      description: "Runs Notus with the given package list for the given OS. The OS is contained within
+        the path. To get a list with all supported OS products, use [GET /notus](#/notus/get_notus).
+        The request body contains the list of packages to check. The response contains the list of
+        vulnerable packages with their fixed versions. The scan is performed synchronously, so the
+        response is only returned when the scan is finished."
+      operationId: "notus_run"
+      tags:
+      - "notus"
+      parameters:
+      - $ref: "#/components/parameters/NotusOS"
+      requestBody:
+        description: "Run Notus."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotusPkgList"
+            examples:
+              schema:
+                description: "Schema of package list"
+              create simple scan:
+                $ref: "./components/examples/notus.yml#/notus_simple"
+      responses:
+        "200":
+          description: "A list of all found vulnerable packages with their fixed versions."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotusResult"
+              examples:
+                get results:
+                  $ref: "./components/examples/notus.yml#/notus_results"
+        "400":
+          description: "Bad request body"
+        "404":
+          description: "Scan not found"
+        "406":
+          description: "Unable to perform action because of the current scan status"
+        "501":
+          description: "Action not supported"
+
+  /scans:
+    head:
+      description: "Get the response header. It contains the API version, feed version and available
+        authentication methods."
+      operationId: "get_info_auth"
+      tags:
+      - "general"
+      responses:
+        "204":
+          headers:
+            api-version:
+              $ref: "#/components/headers/ApiVersion"
+            feed-version:
+              $ref: "#/components/headers/FeedVersion"
+            authentication:
+              $ref: "#/components/headers/Authentication"
+          description: "Authenticated and authorized"
+        "401":
+          headers:
+            api-version:
+              $ref: "#/components/headers/ApiVersion"
+            feed-version:
+              $ref: "#/components/headers/FeedVersion"
+            authentication:
+              $ref: "#/components/headers/Authentication"
+          description: "Unauthorized. Required or invalid client certificates"
+    post:
+      description: "This endpoint is the entrypoint to run a scan. The request body contains a scan
+        configuration. The scan configuration includes all necessary information to run a scan. If a
+        scan was successfully created, the response contains the scan ID, which then can be used to
+        start it with [POST /scans/{id}](#/scan/scan_action). For more information about the scan
+        configuration, see the schema of the request body. For additional information about the scan
+        preferences, see [GET /scans/preferences](#/scan/get_preferences). To get information about
+        the scan after it was created, use [GET /scans/{id}](#/scan/get_scan). To get the results of
+        the scan, use [GET /scans/{id}/results](#/scan/get_results). To get the status of the scan,
+        use [GET /scans/{id}/status](#/scan/get_scan_status). To delete the scan, use [DELETE
+        /scans/{id}](#/scan/delete_scan)."
+      operationId: "create_scan"
+      tags:
+      - "scan"
+      requestBody:
+        description: "Scan to add"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanReq"
+            examples:
+              schema:
+                description: "Schema of a Scan."
+              create simple scan:
+                $ref: "./components/examples/scans.yml#/scan_simple"
+              create complex scan:
+                $ref: "./components/examples/scans.yml#/scan_full_req"
+      responses:
+        "201":
+          description: "Scan created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanIDString"
+              examples:
+                created scan:
+                  $ref: "./components/examples/scans.yml#/scan_id"
+          links:
+            GetScan:
+              operationId: get_scan
+              parameters:
+                id: "$response.body#/"
+              description: "Get the scan by its ID (used when response body is the scan ID string)."
+            ScanAction:
+              operationId: scan_action
+              parameters:
+                id: "$response.body#/"
+              description: "Perform an action (start/stop) on the scan."
+            GetScanStatus:
+              operationId: get_scan_status
+              parameters:
+                id: "$response.body#/"
+              description: "Get the current status of the scan."
+            GetScanResults:
+              operationId: get_results
+              parameters:
+                id: "$response.body#/"
+              description: "Get the results of the scan."
+            DeleteScan:
+              operationId: delete_scan
+              parameters:
+                id: "$response.body#/"
+              description: "Delete the scan."
+        "400":
+          description: "Bad Request body"
+        "403":
+          description: "ScanID already in use"
+
+  /scans/preferences:
+    get:
+      description: "This endpoint provides a list of all available scan preferences, which can be set
+        within the scan configuration via the [POST /scans](#/scan/create_scan) endpoint. The
+        response contains the ID, name, type, description and default value of each preference. For
+        more information about the scan configuration, see the schema of the request body of the
+        [POST /scans](#/scan/create_scan) endpoint."
+      operationId: "get_preferences"
+      tags:
+      - "scan"
+      responses:
+        "200":
+          description: "Get Preferences"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+              examples:
+                preferences:
+                  $ref: "./components/examples/scans.yml#/preferences"
+
+  /scans/{id}:
+    get:
+      description: "This endpoint provides information about the scan configuration provided with [POST
+        /scans](#/scan/create_scan). It does not contain any information about the status or results
+        of the scan."
+      operationId: "get_scan"
+      tags:
+      - "scan"
+      parameters:
+      - $ref: "#/components/parameters/ScanID"
+      responses:
+        "200":
+          description: "Get Scan"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanResp"
+              examples:
+                scan:
+                  $ref: "./components/examples/scans.yml#/scan_full_resp"
+          links:
+            GetScan:
+              operationId: get_scan
+              parameters:
+                id: "$response.body#/"
+              description: "Get the scan by its ID (used when response body is the scan ID string)."
+            ScanAction:
+              operationId: scan_action
+              parameters:
+                id: "$response.body#/"
+              description: "Perform an action (start/stop) on the scan."
+            GetScanStatus:
+              operationId: get_scan_status
+              parameters:
+                id: "$response.body#/"
+              description: "Get the current status of the scan."
+            GetScanResults:
+              operationId: get_results
+              parameters:
+                id: "$response.body#/"
+              description: "Get the results of the scan."
+            DeleteScan:
+              operationId: delete_scan
+              parameters:
+                id: "$response.body#/"
+              description: "Delete the scan."
+
+        "404":
+          description: "Scan not found"
+    post:
+      description: "This endpoint is used to perform an action on the scan. The scan can be either started
+        or stopped. Notice, that only a stored scan can be started and only a running scan can be
+        stopped. To create a scan, use [POST /scans](#/scan/create_scan). After it is created, the
+        scan is in the status stored."
+      operationId: "scan_action"
+      tags:
+      - "scan"
+      parameters:
+      - $ref: "#/components/parameters/ScanID"
+      requestBody:
+        description: "Action to perform."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanActionBody"
+            examples:
+              start scan:
+                $ref: "./components/examples/scans.yml#/scan_action_start"
+              stop scan:
+                $ref: "./components/examples/scans.yml#/scan_action_stop"
+      responses:
+        "204":
+          description: "Action performed"
+        "400":
+          description: "Bad request body"
+        "404":
+          description: "Scan not found"
+        "406":
+          description: "Unable to perform action because of the current scan status"
+        "501":
+          description: "Action not supported"
+    delete:
+      description: "Delete a scan, that is not running. Running scans must be either stored, stopped or
+        finished before they can be deleted. To get the status of the scan, use [GET
+        /scans/{id}/status](#/scan/get_scan_status)."
+      operationId: "delete_scan"
+      tags:
+      - "scan"
+      parameters:
+      - $ref: "#/components/parameters/ScanID"
+      responses:
+        "204":
+          description: "Scan deleted"
+        "404":
+          description: "Scan not found"
+        "406":
+          description: "A running scan cannot be deleted"
+
+  /scans/{id}/results:
+    get:
+      description: "While a scan is running it will generate results. This endpoint is used to get a list
+        of all results that were generated by the scan. If you only need specific results, the query
+        `range` can be used. This will then only return the results within the given range. This is
+        helpful to only get new results. The IDs of the results are incremental. Alternative to only
+        receive single results the endpoint [GET /scans/{id}/results/{rid}](#/scan/get_result) can
+        be used."
+      operationId: "get_results"
+      tags:
+      - "scan"
+      parameters:
+      - $ref: "#/components/parameters/ScanID"
+      - name: range
+        in: query
+        description: "Get a range of results (e.g. `0-12`). In case only a single number is given (e.g.
+          `13`), all available results from this index on are returned. If the scan is still
+          running, new results will occur and must be collected with new request starting from the
+          last processed index. If no results are in the given range, an empty array is returned."
+        required: false
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "A list of results"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsResponse"
+              examples:
+                schema:
+                  description: "Schema of a list of results response"
+                get results 0-3:
+                  $ref: "./components/examples/results.yml#/scan_results"
+          links:
+            GetNextResults:
+              operationId: get_results
+              parameters:
+                id: "$request.path.id"
+              description: "Get the next batch of results by incrementing the range query parameter."
+            GetScan:
+              operationId: get_scan
+              parameters:
+                id: "$request.path.id"
+              description: "Get the scan that produced these results."
+        "400":
+          description: "Bad range format"
+        "404":
+          description: "Scan not found"
+        "406":
+          description: "A scan, that has not started, does not contain results"
+
+  /scans/{id}/results/{rid}:
+    get:
+      description: "Get a single result by its ID. To retrieve multiple results, use [GET
+        /scans/{id}/results](#/scan/get_results) with the range query parameter or without it to get
+        all results."
+      operationId: "get_result"
+      tags:
+      - "scan"
+      parameters:
+      - $ref: "#/components/parameters/ScanID"
+      - $ref: "#/components/parameters/ResultID"
+      responses:
+        "200":
+          description: "The requested result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Result"
+              examples:
+                schema:
+                  description: "Schema of a result"
+                get result 3:
+                  $ref: "./components/examples/results.yml#/scan_result"
+                host detail:
+                  $ref: "./components/examples/results.yml#/host_detail"
+        "404":
+          description: "Result or Scan not found"
+        "406":
+          description: "A scan that has not started, cannot contain results"
+
+  /scans/{id}/status:
+    get:
+      description: "This endpoint provides useful information about a scan. This includes the current scan
+        status (running, finished, etc.), the start and end time of the scan, as well as information
+        about the progress of the scan."
+      operationId: "get_scan_status"
+      tags:
+      - "scan"
+      parameters:
+      - $ref: "#/components/parameters/ScanID"
+      responses:
+        "200":
+          description: "The requested status"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+              examples:
+                schema:
+                  description: "Schema of a status response."
+                status of a stored scan:
+                  $ref: "./components/examples/status.yml#/scan_status_stored"
+                status of a running scan:
+                  $ref: "./components/examples/status.yml#/scan_status_running"
+                status of a succeeded scan:
+                  $ref: "./components/examples/status.yml#/scan_status_success"
+                status of a failed scan:
+                  $ref: "./components/examples/status.yml#/scan_status_fail"
+          links:
+            ScanAction:
+              operationId: scan_action
+              parameters:
+                id: "$request.path.id"
+              description: "Start or stop the scan. Available actions depend on the current status."
+            GetScan:
+              operationId: get_scan
+              parameters:
+                id: "$request.path.id"
+              description: "Get full scan details."
+            GetScanResults:
+              operationId: get_results
+              parameters:
+                id: "$request.path.id"
+              description: "Get the results of this scan."
+            DeleteScan:
+              operationId: delete_scan
+              parameters:
+                id: "$request.path.id"
+              description: "Delete this scan. Available when the scan is not running."
+        "404":
+          description: "Scan not found"
+
+  /vts:
+    head:
+      description: "Get the response header. It contains the API version, feed version and available
+        authentication methods."
+      operationId: "head_vts"
+      tags:
+      - "general"
+      responses:
+        "200":
+          headers:
+            api-version:
+              $ref: "#/components/headers/ApiVersion"
+            feed-version:
+              $ref: "#/components/headers/FeedVersion"
+            authentication:
+              $ref: "#/components/headers/Authentication"
+          description: "Authenticated and authorized"
+    get:
+      description: "Get a list of all available vulnerability tests (VTs) to the scanner. Note, that not
+        the tests itself, but a list of identifiers (OIDs) of the tests is returned."
+      operationId: "get_vts"
+      tags:
+      - "feed"
+      responses:
+        "200":
+          description: "A list of available VTs."
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "string"
+              examples:
+                list of OIDs:
+                  $ref: "./components/examples/vts.yml#/list_of_oids"
+        "503":
+          description: "The list of OIDs is currently updated. Please try again later."
+
+components:
+  headers:
+    ApiVersion:
+      $ref: "./components/headers.yml#/ApiVersion"
+    FeedVersion:
+      $ref: "./components/headers.yml#/FeedVersion"
+    Authentication:
+      $ref: "./components/headers.yml#/Authentication"
+
+  parameters:
+    ScanID:
+      $ref: "./components/parameters.yml#/ScanID"
+    ResultID:
+      $ref: "./components/parameters.yml#/ResultID"
+    NotusOS:
+      $ref: "./components/parameters.yml#/NotusOS"
+
+  schemas:
+    # Scan lifecycle
+    ScanIDString:
+      $ref: "./components/schemas/scan.yml#/ScanIDString"
+    ScanReq:
+      $ref: "./components/schemas/scan.yml#/ScanReq"
+    ScanResp:
+      $ref: "./components/schemas/scan.yml#/ScanResp"
+    ScanActionBody:
+      $ref: "./components/schemas/scan.yml#/ScanActionBody"
+    ScannerPreference:
+      $ref: "./components/schemas/scan.yml#/ScannerPreference"
+    Preferences:
+      $ref: "./components/schemas/scan.yml#/Preferences"
+    # Target & VTs
+    Target:
+      $ref: "./components/schemas/target.yml#/Target"
+    AliveTestMethod:
+      $ref: "./components/schemas/target.yml#/AliveTestMethod"
+    PortRange:
+      $ref: "./components/schemas/target.yml#/PortRange"
+    Credential:
+      $ref: "./components/schemas/target.yml#/Credential"
+    UP:
+      $ref: "./components/schemas/target.yml#/UP"
+    USK:
+      $ref: "./components/schemas/target.yml#/USK"
+    KRB5:
+      $ref: "./components/schemas/target.yml#/KRB5"
+    SNMP:
+      $ref: "./components/schemas/target.yml#/SNMP"
+    VT:
+      $ref: "./components/schemas/target.yml#/VT"
+    Parameter:
+      $ref: "./components/schemas/target.yml#/Parameter"
+    # Results
+    Result:
+      $ref: "./components/schemas/result.yml#/Result"
+    ResultsResponse:
+      $ref: "./components/schemas/result.yml#/ResultsResponse"
+    # Scan status
+    Status:
+      $ref: "./components/schemas/status.yml#/Status"
+    HostInfo:
+      $ref: "./components/schemas/status.yml#/HostInfo"
+    # Notus
+    NotusPkgList:
+      $ref: "./components/schemas/notus.yml#/NotusPkgList"
+    NotusResult:
+      $ref: "./components/schemas/notus.yml#/NotusResult"
+    NotusVulnPkgs:
+      $ref: "./components/schemas/notus.yml#/NotusVulnPkgs"
+    FixedPackage:
+      $ref: "./components/schemas/notus.yml#/FixedPackage"
+    FixedRange:
+      $ref: "./components/schemas/notus.yml#/FixedRange"

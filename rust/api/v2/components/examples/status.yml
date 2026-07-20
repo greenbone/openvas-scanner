@@ -1,9 +1,6 @@
 scan_status_stored:
   description: "Status of a queued Scan"
-  value:
-    {
-      "status": "stored",
-    }
+  value: { "status": "stored" }
 
 scan_status_running:
   description: "Status of a running Scan"
@@ -19,12 +16,13 @@ scan_status_running:
           "alive": 6,
           "queued": 1,
           "finished": 1,
-          "scanning": [
-            "127.0.0.1": 80,
-            "10.0.5.1": 55,
-            "10.0.5.3": 40
-          ]
-        },
+          "scanning":
+            [
+              { "host": "127.0.0.1", "checks": { "total": 100, "executed": 80 } },
+              { "host": "10.0.5.1", "checks": { "total": 100, "executed": 55 } },
+              { "host": "10.0.5.3", "checks": { "total": 100, "executed": 40 } }
+            ]
+        }
     }
 
 scan_status_success:
@@ -34,15 +32,7 @@ scan_status_success:
       "start_time": 1679649183,
       "end_time": 1679656139,
       "status": "succeeded",
-      "host_info":
-        {
-          "all": 14,
-          "excluded": 0,
-          "dead": 4,
-          "alive": 10,
-          "queued": 0,
-          "finished": 10,
-        },
+      "host_info": { "all": 14, "excluded": 0, "dead": 4, "alive": 10, "queued": 0, "finished": 10 }
     }
 
 scan_status_fail:
@@ -52,13 +42,5 @@ scan_status_fail:
       "start_time": 1679649183,
       "end_time": 1679656139,
       "status": "failed",
-      "host_info":
-        {
-          "all": 14,
-          "excluded": 0,
-          "dead": 4,
-          "alive": 10,
-          "queued": 1,
-          "finished": 8,
-        },
+      "host_info": { "all": 14, "excluded": 0, "dead": 4, "alive": 10, "queued": 1, "finished": 8 }
     }
