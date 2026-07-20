@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, time::Duration};
 use greenbone_scanner_framework::models;
 use http::{Method, StatusCode};
 use scannerlib::models::{Phase, Scan, Status, Target};
-use serde_json::{Value, json};
+use serde_json::Value;
 use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 
 mod test_builder;
@@ -104,15 +104,9 @@ async fn notus() {
     notus_test(&t, "man-db-1.1.1", "test", true).await
 }
 
-// #[tokio::test]
-// async fn mtls_head_scans() {
-//     let t = Test::new("mtls_head_scans").config("basic").await;
-//     t.assert_mtls().await;
-// }
-
 impl Snapshottable for Vec<String> {}
 
-async fn up_and_running_test(
+async fn get_vts_test(
     t: &OpenvasdInstance,
     timeout: Duration,
     write_snapshots: bool,
@@ -138,9 +132,9 @@ async fn up_and_running_test(
 // Fix this.
 #[tokio::test]
 #[tracing_test::traced_test]
-async fn up_and_running() {
-    let t = Test::new("up_and_running").config("basic_feed").await;
-    up_and_running_test(&t, Duration::from_millis(100), true).await;
+async fn get_vts() {
+    let t = Test::new("get_vts").config("basic_feed").await;
+    get_vts_test(&t, Duration::from_millis(100), true).await;
 }
 
 impl Snapshottable for models::Status {
@@ -334,10 +328,10 @@ mod requires_compose {
     // we see the plugin_feed_info.inc in the snapshot.
     // Fix this.
     #[tokio::test]
-    async fn compose_up_and_running() {
-        let t = Test::new("up_and_running_compose").config("openvas").await;
+    async fn get_vts() {
+        let t = Test::new("compose_get_vts").config("openvas").await;
 
-        let vts = up_and_running_test(&t, Duration::from_secs(1800), false).await;
+        let vts = get_vts_test(&t, Duration::from_secs(1800), false).await;
 
         assert!(
             vts.len() > 100_000,
