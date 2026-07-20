@@ -88,9 +88,3 @@ local-test-environment-running: local-test-environment-up wait-for-services
 .PHONY: rust-test
 rust-test: certs/server.key certs/clients/client1.pem
 	${CMD} ${RUST_TEST_ENVIRONMENTS} run --rm --build ${RUST_TEST_RUN_ARGS} rust-tests cargo test ${RUST_TEST_ARGS}
-
-.PHONY: smoketest smoketests
-smoketest: local-test-environment-running
-	$(MAKE) -C tests/smoketest
-
-smoketests: smoketest

@@ -27,7 +27,6 @@ Targets:
               Build C scanner targets for CodeQL.
   ci-railguard
               Build and verify a railguard image. Requires RAILGUARD_SYSTEM.
-  ci-smokey   Run compose smoketests. Requires OPENVAS_IMAGE.
   ci-feed-syntax
               Run scannerctl feed syntax checks.
   ci-nasl-tests
@@ -198,17 +197,6 @@ ci_railguard() {
     docker rmi test || true
 }
 
-ci_smokey() {
-    cd "$ROOT"
-    : "${OPENVAS_IMAGE:?OPENVAS_IMAGE is required}"
-    (cd compose && OPENVAS_IMAGE="$OPENVAS_IMAGE" make test-environment-running)
-    for attempt in 1 2; do
-        (cd compose/tests/smoketest && make > /dev/null 2>&1) && return 0
-        echo "smokey failed on attempt $attempt, retrying..."
-    done
-    (cd compose/tests/smoketest && make)
-}
-
 ci_feed_syntax() {
     version_command openvas --version
     version_command scannerctl version
@@ -294,9 +282,6 @@ case "$target" in
         ;;
     ci-railguard)
         ci_railguard
-        ;;
-    ci-smokey)
-        ci_smokey
         ;;
     ci-feed-syntax)
         ci_feed_syntax

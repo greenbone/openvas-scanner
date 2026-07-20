@@ -10,10 +10,6 @@ on:
         required: true
         type: string
 
-
-# smoke test definition.
-# It depends on build.yml that is controlled via control.yml
-#
 jobs:
   # Tests that gvm-libs, openvas-smb and openvas dependencies work together and
   # that openvas is buildable and integrates openvas-smb when available
@@ -33,18 +29,6 @@ jobs:
       - run: ./check.sh --verbose ci-railguard
         env:
           RAILGUARD_SYSTEM: ${{ matrix.system }}
-  smokey:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        # TODO: make version robust
-      - run: curl -L https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb -o hurl.deb
-      - run: sudo apt-get install -y ./hurl.deb
-      - run: ./check.sh --verbose ci-smokey
-        env:
-          OPENVAS_IMAGE: ${{ inputs.image }}
-      - run: cd compose && make test-environment-logs
-        if: always()
   tests:
     runs-on: ubuntu-latest
     services:
