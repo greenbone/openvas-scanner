@@ -118,7 +118,7 @@ impl Serialize for ResponseSnapshot {
 
 impl Snapshottable for ResponseSnapshot {
     fn redactions() -> Vec<String> {
-        vec![".headers.date".into()]
+        vec![".headers.date".into(), ".headers[\"feed-version\"]".into()]
     }
 }
 
@@ -166,11 +166,22 @@ impl Response {
         self
     }
 
+    #[cfg(feature = "requires-compose")]
     #[track_caller]
     pub fn assert_header(&self, name: &str, value: &str) -> &Self {
         assert_eq!(
             Some(value),
             self.snapshot.headers.get(name).map(String::as_str)
+        );
+        self
+    }
+
+    #[cfg(feature = "requires-compose")]
+    #[track_caller]
+    pub fn assert_header_exists(&self, name: &str) -> &Self {
+        assert!(
+            self.snapshot.headers.contains_key(name),
+            "expected response header {name}"
         );
         self
     }

@@ -1,5 +1,4 @@
 {
-  "scan_id": "local-registry-full",
   "target": {
     "hosts": [
       "oci://registry:5000"

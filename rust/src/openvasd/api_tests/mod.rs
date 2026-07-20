@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, time::Duration};
 use greenbone_scanner_framework::models;
 use http::{Method, StatusCode};
 use scannerlib::models::{Phase, Scan, Status, Target};
-use serde_json::Value;
+use serde_json::{Value, json};
 use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 
 mod test_builder;
@@ -18,11 +18,15 @@ const HEAD: Method = Method::HEAD;
 const POST: Method = Method::POST;
 
 impl OpenvasdInstance {
+    #[cfg(feature = "requires-compose")]
     async fn assert_mtls(&self) {
         self.request(HEAD, "/scans")
             .await
             .assert_status(StatusCode::OK)
-            .assert_header("authentication", "mTLS");
+            .assert_header("authentication", "mTLS")
+            .assert_header("api-version", "1")
+            .assert_header_exists("feed-version")
+            .assert_header_exists("date");
     }
 }
 
@@ -53,12 +57,14 @@ impl Snapshottable for Vec<BTreeMap<String, Value>> {}
 async fn get_scans_preferences() {
     let t = Test::new("get_scans_preferences").config("basic").await;
 
-    // The full response body looks ugly, so we extract
-    // it as a map to make the snapshot more readable
     let mut body = t
         .request(GET, "/scans/preferences")
         .await
+        .assert_status(StatusCode::OK)
         .body::<Vec<BTreeMap<String, Value>>>();
+
+    // The full response body looks ugly, so we extract
+    // it as a map to make the snapshot more readable
     // Then we sort by id to have some sort of order
     body.sort_by_key(|entry| entry["id"].to_string());
     body.snapshot("body");
@@ -72,6 +78,7 @@ async fn notus_test(
 ) {
     t.request(Method::GET, "/notus")
         .await
+        .assert_status(StatusCode::OK)
         .snapshot_if(write_get_snapshot);
 
     t.request(POST, format!("/notus/{}", system_name))
@@ -221,64 +228,46 @@ mod requires_compose {
             .join(format!("{name}.json"));
 
         let contents = std::fs::read_to_string(&path).unwrap();
-        serde_json::from_str(&contents).unwrap()
+        let mut scan: Scan = serde_json::from_str(&contents).unwrap();
+        scan.scan_id = name.to_string();
+        scan
     }
 
     async fn start_scan_flow(
         scan: &TestScan<'_>,
         timeout: Duration,
+        write_status_snapshot: bool,
     ) -> Snapshot<Vec<models::Result>> {
         scan.start().await;
         scan.status().await;
-        scan.wait_for(Phase::Succeeded.with_timeout(timeout))
+        let status = scan
+            .wait_for(Phase::Succeeded.with_timeout(timeout))
             .await
             .body::<Status>()
-            .snapshot("status");
+            .snapshot_if(write_status_snapshot, "status");
+        assert_finished_host_info(&status);
         scan.get_results().await.body::<Vec<models::Result>>()
     }
 
-    // Runs against the full notus advisories in the
-    // compose setup.
-    #[tokio::test]
-    async fn compose_notus() {
-        let t = Test::new("notus_compose").config("notus_compose").await;
-        // A full snapshot would be way overkill and not interesting, so we just
-        // assert on the status code.
-        notus_test(&t, "libzmq3-dev-4.3.0-4+deb10u1", "debian_10", false).await;
+    fn assert_finished_host_info(status: &Status) {
+        let host_info = status
+            .host_info
+            .as_ref()
+            .expect("succeeded scan status should include host_info");
+        assert!(status.start_time.is_some(), "start_time should be set");
+        assert!(status.end_time.is_some(), "end_time should be set");
+        assert!(host_info.all > 0, "host_info.all should be greater than 0");
+        assert_eq!(host_info.excluded, 0);
+        assert_eq!(host_info.dead, 0);
+        assert_eq!(host_info.alive, host_info.all);
+        assert_eq!(host_info.queued, 0);
+        assert_eq!(host_info.finished, host_info.all);
     }
 
-    #[tokio::test]
-    async fn compose_mtls_head_scans() {
-        let t = Test::new("compose_mtls_head_scans").config("openvas").await;
-        t.assert_mtls().await;
-    }
-
-    #[tokio::test]
-    async fn compose_up_and_running() {
-        // In compose, the feed/notus paths are the defaults,
-        // so we can just use basic.toml
-        let t = Test::new("up_and_running_compose").config("basic").await;
-
-        let vts = up_and_running_test(&t, Duration::from_secs(1800), false).await;
-
-        assert!(
-            vts.len() > 100_000,
-            "expected more than 100000 VTs, got {}",
-            vts.len()
-        );
-    }
-
-    #[tokio::test]
-    async fn compose_scan_start_flow_victim_simple_auth_ssh() {
-        let t = Test::new("compose_scan_start_flow_victim_simple_auth_ssh")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t
-            .create_scan(read_test_scan("victim-simple-auth-ssh"))
-            .await;
-
-        let results = start_scan_flow(&scan, Duration::from_secs(3600)).await;
+    async fn assert_hurl_result_checks(
+        scan: &TestScan<'_>,
+        results: Snapshot<Vec<models::Result>>,
+    ) {
         let result_count = results.len();
         assert!(
             result_count > 3,
@@ -312,12 +301,87 @@ mod requires_compose {
             .assert_status(StatusCode::OK)
             .body::<models::Result>();
         assert_eq!(result.id, 2);
+    }
+
+    async fn assert_hurl_start_scan_flow(
+        scan: &TestScan<'_>,
+        timeout: Duration,
+        write_status_snapshot: bool,
+    ) {
+        let results = start_scan_flow(scan, timeout, write_status_snapshot).await;
+        assert_hurl_result_checks(scan, results).await;
         scan.delete().await;
         scan.get().await.assert_status(StatusCode::NOT_FOUND);
     }
 
+    // Runs against the full notus advisories in the
+    // compose setup.
+    #[tokio::test]
+    async fn compose_notus() {
+        let t = Test::new("notus_compose").config("openvas").await;
+        // A full snapshot would be way overkill and not interesting, so we just
+        // assert on the status code.
+        notus_test(&t, "libzmq3-dev-4.3.0-4+deb10u1", "debian_10", false).await;
+    }
+
+    #[tokio::test]
+    async fn compose_mtls_head_scans() {
+        let t = Test::new("compose_mtls_head_scans").config("openvas").await;
+        t.assert_mtls().await;
+    }
+
+    // TODO: This test is currently broken and
+    // we see the plugin_feed_info.inc in the snapshot.
+    // Fix this.
+    #[tokio::test]
+    async fn compose_up_and_running() {
+        let t = Test::new("up_and_running_compose").config("openvas").await;
+
+        let vts = up_and_running_test(&t, Duration::from_secs(1800), false).await;
+
+        assert!(
+            vts.len() > 100_000,
+            "expected more than 100000 VTs, got {}",
+            vts.len()
+        );
+    }
+
+    #[tokio::test]
+    async fn compose_scan_start_flow_victim_simple_auth_ssh() {
+        let t = Test::new("compose_scan_start_flow_victim_simple_auth_ssh")
+            .config("openvas")
+            .await;
+        t.assert_mtls().await;
+        let scan = t
+            .create_scan(read_test_scan("victim-simple-auth-ssh"))
+            .await;
+
+        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), true).await;
+    }
+
     #[tokio::test]
     #[ignore = "extremely slow"]
+    async fn compose_scan_start_flow_victim_discovery() {
+        let t = Test::new("compose_scan_start_flow_victim_discovery")
+            .config("openvas")
+            .await;
+        t.assert_mtls().await;
+        let scan = t.create_scan(read_test_scan("victim-discovery")).await;
+        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
+    }
+
+    #[tokio::test]
+    #[ignore = "extremely slow"]
+    async fn compose_scan_start_flow_victim_full_and_fast() {
+        let t = Test::new("compose_scan_start_flow_victim_full_and_fast")
+            .config("openvas")
+            .await;
+        t.assert_mtls().await;
+        let scan = t.create_scan(read_test_scan("victim-full-and-fast")).await;
+        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
+    }
+
+    #[tokio::test]
     async fn compose_container_image_scan_start_flow_local_registry_full() {
         let t = Test::new("compose_container_image_scan_start_flow_local_registry_full")
             .config("openvas")
@@ -327,12 +391,35 @@ mod requires_compose {
             .create_container_image_scan(read_test_scan("local-registry-full"))
             .await;
 
-        let results = start_scan_flow(&scan, Duration::from_secs(3600)).await;
-        let result_count = results.len();
-        assert!(result_count > 20);
+        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), true).await;
+    }
 
-        scan.delete().await;
-        scan.get().await.assert_status(StatusCode::NOT_FOUND);
+    #[tokio::test]
+    #[ignore = "extremely slow"]
+    async fn compose_container_image_scan_start_flow_local_registry_openeuler() {
+        let t = Test::new("compose_container_image_scan_start_flow_local_registry_openeuler")
+            .config("openvas")
+            .await;
+        t.assert_mtls().await;
+        let scan = t
+            .create_container_image_scan(read_test_scan("local-registry-openeuler"))
+            .await;
+
+        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
+    }
+
+    #[tokio::test]
+    #[ignore = "extremely slow"]
+    async fn compose_container_image_scan_start_flow_local_registry_victim() {
+        let t = Test::new("compose_container_image_scan_start_flow_local_registry_victim")
+            .config("openvas")
+            .await;
+        t.assert_mtls().await;
+        let scan = t
+            .create_container_image_scan(read_test_scan("local-registry-victim"))
+            .await;
+
+        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
     }
 
     #[tokio::test]

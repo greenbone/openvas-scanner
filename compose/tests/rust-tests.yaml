@@ -46,6 +46,8 @@ services:
         condition: service_completed_successfully
       redis-server:
         condition: service_started
+      registry_seed:
+        condition: service_completed_successfully
       victim:
         condition: service_started
       vulnerability-tests:
