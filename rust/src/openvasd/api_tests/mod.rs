@@ -227,7 +227,7 @@ mod requires_compose {
         scan
     }
 
-    async fn start_scan_flow(
+    async fn scan_flow(
         scan: &TestScan<'_>,
         timeout: Duration,
         write_status_snapshot: bool,
@@ -239,11 +239,15 @@ mod requires_compose {
             .await
             .body::<Status>()
             .snapshot_if(write_status_snapshot, "status");
-        assert_finished_host_info(&status);
+        check_host_info(&status);
         scan.get_results().await.body::<Vec<models::Result>>()
     }
 
-    fn assert_finished_host_info(status: &Status) {
+    // I am leaving this in here for feature parity with the
+    // hurl smoketests for now but if this ever becomes flaky
+    // or annoying to maintain we should replace it with better
+    // assertions
+    fn check_host_info(status: &Status) {
         let host_info = status
             .host_info
             .as_ref()
@@ -258,10 +262,11 @@ mod requires_compose {
         assert_eq!(host_info.finished, host_info.all);
     }
 
-    async fn assert_hurl_result_checks(
-        scan: &TestScan<'_>,
-        results: Snapshot<Vec<models::Result>>,
-    ) {
+    // I am leaving this in here for feature parity with the
+    // hurl smoketests for now but if this ever becomes flaky
+    // or annoying to maintain we should replace it with better
+    // assertions
+    async fn check_scan_results(scan: &TestScan<'_>, results: Snapshot<Vec<models::Result>>) {
         let result_count = results.len();
         assert!(
             result_count > 3,
@@ -297,21 +302,40 @@ mod requires_compose {
         assert_eq!(result.id, 2);
     }
 
-    async fn assert_hurl_start_scan_flow(
-        scan: &TestScan<'_>,
-        timeout: Duration,
-        write_status_snapshot: bool,
-    ) {
-        let results = start_scan_flow(scan, timeout, write_status_snapshot).await;
-        assert_hurl_result_checks(scan, results).await;
+    async fn check_scan_flow(scan: &TestScan<'_>, timeout: Duration, write_status_snapshot: bool) {
+        let results = scan_flow(scan, timeout, write_status_snapshot).await;
+        check_scan_results(scan, results).await;
         scan.delete().await;
         scan.get().await.assert_status(StatusCode::NOT_FOUND);
+    }
+
+    #[derive(Clone, Copy)]
+    enum ScanEndpoint {
+        Default,
+        ContainerImage,
+    }
+
+    async fn run_full_scan_test(
+        test_name: &str,
+        scan_name: &str,
+        endpoint: ScanEndpoint,
+        write_status_snapshot: bool,
+    ) {
+        let t = Test::new(test_name).config("openvas").await;
+        t.assert_mtls().await;
+        let scan = read_test_scan(scan_name);
+        let scan = match endpoint {
+            ScanEndpoint::Default => t.create_scan(scan).await,
+            ScanEndpoint::ContainerImage => t.create_container_image_scan(scan).await,
+        };
+
+        check_scan_flow(&scan, Duration::from_secs(3600), write_status_snapshot).await;
     }
 
     // Runs against the full notus advisories in the
     // compose setup.
     #[tokio::test]
-    async fn compose_notus() {
+    async fn notus() {
         let t = Test::new("notus_compose").config("openvas").await;
         // A full snapshot would be way overkill and not interesting, so we just
         // assert on the status code.
@@ -319,7 +343,7 @@ mod requires_compose {
     }
 
     #[tokio::test]
-    async fn compose_mtls_head_scans() {
+    async fn mtls_head_scans() {
         let t = Test::new("compose_mtls_head_scans").config("openvas").await;
         t.assert_mtls().await;
     }
@@ -341,84 +365,78 @@ mod requires_compose {
     }
 
     #[tokio::test]
-    async fn compose_scan_start_flow_victim_simple_auth_ssh() {
-        let t = Test::new("compose_scan_start_flow_victim_simple_auth_ssh")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t
-            .create_scan(read_test_scan("victim-simple-auth-ssh"))
-            .await;
-
-        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), true).await;
+    async fn scan_victim_simple_auth_ssh() {
+        run_full_scan_test(
+            "scan_victim_simple_auth_ssh",
+            "victim-simple-auth-ssh",
+            ScanEndpoint::Default,
+            true,
+        )
+        .await;
     }
 
     #[tokio::test]
     #[ignore = "extremely slow"]
-    async fn compose_scan_start_flow_victim_discovery() {
-        let t = Test::new("compose_scan_start_flow_victim_discovery")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t.create_scan(read_test_scan("victim-discovery")).await;
-        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
+    async fn scan_victim_discovery() {
+        run_full_scan_test(
+            "scan_victim_discovery",
+            "victim-discovery",
+            ScanEndpoint::Default,
+            false,
+        )
+        .await;
     }
 
     #[tokio::test]
     #[ignore = "extremely slow"]
-    async fn compose_scan_start_flow_victim_full_and_fast() {
-        let t = Test::new("compose_scan_start_flow_victim_full_and_fast")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t.create_scan(read_test_scan("victim-full-and-fast")).await;
-        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
+    async fn scan_victim_full_and_fast() {
+        run_full_scan_test(
+            "scan_victim_full_and_fast",
+            "victim-full-and-fast",
+            ScanEndpoint::Default,
+            false,
+        )
+        .await;
     }
 
     #[tokio::test]
-    async fn compose_container_image_scan_start_flow_local_registry_full() {
-        let t = Test::new("compose_container_image_scan_start_flow_local_registry_full")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t
-            .create_container_image_scan(read_test_scan("local-registry-full"))
-            .await;
-
-        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), true).await;
-    }
-
-    #[tokio::test]
-    #[ignore = "extremely slow"]
-    async fn compose_container_image_scan_start_flow_local_registry_openeuler() {
-        let t = Test::new("compose_container_image_scan_start_flow_local_registry_openeuler")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t
-            .create_container_image_scan(read_test_scan("local-registry-openeuler"))
-            .await;
-
-        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
+    async fn container_image_scan_local_registry_full() {
+        run_full_scan_test(
+            "container_image_scan_local_registry_full",
+            "local-registry-full",
+            ScanEndpoint::ContainerImage,
+            true,
+        )
+        .await;
     }
 
     #[tokio::test]
     #[ignore = "extremely slow"]
-    async fn compose_container_image_scan_start_flow_local_registry_victim() {
-        let t = Test::new("compose_container_image_scan_start_flow_local_registry_victim")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t
-            .create_container_image_scan(read_test_scan("local-registry-victim"))
-            .await;
-
-        assert_hurl_start_scan_flow(&scan, Duration::from_secs(3600), false).await;
+    async fn container_image_scan_local_registry_openeuler() {
+        run_full_scan_test(
+            "container_image_scan_local_registry_openeuler",
+            "local-registry-openeuler",
+            ScanEndpoint::ContainerImage,
+            false,
+        )
+        .await;
     }
 
     #[tokio::test]
-    async fn compose_scan_stop_flow_victim_simple_auth_ssh() {
-        let t = Test::new("compose_scan_stop_flow_victim_simple_auth_ssh")
+    #[ignore = "extremely slow"]
+    async fn container_scan_local_registry_victim() {
+        run_full_scan_test(
+            "container_scan_local_registry_victim",
+            "local-registry-victim",
+            ScanEndpoint::ContainerImage,
+            false,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn stop_scan_victim_simple_auth_ssh() {
+        let t = Test::new("stop_scan_victim_simple_auth_ssh")
             .config("openvas")
             .await;
         t.assert_mtls().await;
