@@ -2089,7 +2089,7 @@ get_icmp_v6_element (lex_ctxt *lexic)
           if (retc->size > 0)
             {
               retc->x.str_val = g_malloc0 (retc->size + 1);
-              memcpy (retc->x.str_val, &(p[40 + 8]), retc->size + 1);
+              memcpy (retc->x.str_val, &(p[40 + 8]), retc->size);
             }
           else
             {
