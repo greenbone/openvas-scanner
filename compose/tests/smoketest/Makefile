@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 MAKEFILE_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+SCAN_CONFIG_PATH := $(abspath ${MAKEFILE_PATH}/../../../rust/data/tests/scanner/scans)
 
 ifndef OPENVASD_SERVER
 	OPENVASD_SERVER := https://localhost:3000
@@ -24,13 +25,11 @@ ifndef HURL_BASE
 							 --variable server=${OPENVASD_SERVER} 
 endif
 
-# creates target for each scan definitions within scans-user-flows
-SCANS_USER_FLOW := ${MAKEFILE_PATH}/scans-user-flows
-SCANS_USER_FLOW := $(basename $(notdir $(wildcard $(SCANS_USER_FLOW)/*.json)))
+# creates target for each scan definition in the shared Rust test data
+SCANS_USER_FLOW := $(basename $(notdir $(wildcard $(SCAN_CONFIG_PATH)/victim-*.json)))
 SCANS_USER_FLOW := $(addprefix scans-user-flow-,$(SCANS_USER_FLOW))
 
-CONTAINER_IMAGE_SCANNER_USER_FLOW := ${MAKEFILE_PATH}/container-image-scanner-user-flows
-CONTAINER_IMAGE_SCANNER_USER_FLOW := $(basename $(notdir $(wildcard $(CONTAINER_IMAGE_SCANNER_USER_FLOW)/*.json)))
+CONTAINER_IMAGE_SCANNER_USER_FLOW := $(basename $(notdir $(wildcard $(SCAN_CONFIG_PATH)/local-registry-*.json)))
 CONTAINER_IMAGE_SCANNER_USER_FLOW := $(addprefix container-image-scanner-user-flow-,$(CONTAINER_IMAGE_SCANNER_USER_FLOW))
 
 
@@ -52,11 +51,9 @@ scans:
 .PHONY: $(SCANS_USER_FLOW)
 $(SCANS_USER_FLOW):
 	$(eval SCAN_CONFIG := $(patsubst scans-user-flow-%,%,$@))
-	${HURL_BASE} --variable scan_config=${SCAN_CONFIG}.json ${MAKEFILE_PATH}/scans-user-flows/*.hurl
+	${HURL_BASE} --variable scan_config=${SCAN_CONFIG_PATH}/${SCAN_CONFIG}.json ${MAKEFILE_PATH}/scans-user-flows/*.hurl
 
 .PHONY: $(CONTAINER_IMAGE_SCANNER_USER_FLOW)
 $(CONTAINER_IMAGE_SCANNER_USER_FLOW):
 	$(eval SCAN_CONFIG := $(patsubst container-image-scanner-user-flow-%,%,$@))
-	${HURL_BASE} --variable scan_config=${SCAN_CONFIG}.json ${MAKEFILE_PATH}/container-image-scanner-user-flows/*.hurl
-
-
+	${HURL_BASE} --variable scan_config=${SCAN_CONFIG_PATH}/${SCAN_CONFIG}.json ${MAKEFILE_PATH}/container-image-scanner-user-flows/*.hurl

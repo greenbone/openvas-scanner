@@ -35,6 +35,7 @@ This runs:
 make up-and-running
 make notus
 make scans-user-flow-victim-simple-auth-ssh
+make container-image-scanner-user-flow-local-registry-full
 ```
 
 ### Available Targets
@@ -45,10 +46,12 @@ make scans-user-flow-victim-simple-auth-ssh
 make up-and-running
 make notus
 make scans
-# User flow targets are derived from JSON files in scans-user-flows/.
+# User flow targets are derived from JSON files in rust/data/tests/scanner/scans/.
 make scans-user-flow-victim-simple-auth-ssh
 # those take longer
 make scans-user-flow-victim-discovery
 make scans-user-flow-victim-full-and-fast
+make container-image-scanner-user-flow-local-registry-full
+make container-image-scanner-user-flow-local-registry-openeuler
+make container-image-scanner-user-flow-local-registry-victim
 ```
-

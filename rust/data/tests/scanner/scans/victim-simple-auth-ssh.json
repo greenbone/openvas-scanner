@@ -1,5 +1,4 @@
 {
-  "scan_id": "victim-simple-auth-ssh",
   "target": {
     "hosts": [
       "victim"

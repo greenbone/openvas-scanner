@@ -9,7 +9,7 @@ expression: inner
     "authentication": "disabled",
     "content-length": "0",
     "date": "[redacted]",
-    "feed-version": "unavailable",
+    "feed-version": "[redacted]",
   },
   "body": "",
 }

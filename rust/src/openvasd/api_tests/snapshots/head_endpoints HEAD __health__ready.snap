@@ -8,7 +8,7 @@ expression: inner
     "api-version": "1",
     "authentication": "disabled",
     "date": "[redacted]",
-    "feed-version": "unavailable",
+    "feed-version": "[redacted]",
   },
   "body": "",
 }

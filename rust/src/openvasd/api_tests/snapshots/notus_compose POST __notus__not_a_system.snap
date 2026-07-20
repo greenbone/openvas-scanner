@@ -1,15 +1,14 @@
 ---
-source: src/openvasd/tests/test_builder.rs
+source: src/openvasd/api_tests/test_builder.rs
 expression: inner
 ---
 {
   "status_code": 404,
   "headers": {
     "api-version": "1",
-    "authentication": "disabled",
-    "content-length": "0",
+    "authentication": "mTLS",
     "date": "[redacted]",
-    "feed-version": "unavailable",
+    "feed-version": "[redacted]",
   },
   "body": "",
 }
