@@ -264,6 +264,11 @@ impl PluginFetcher for RedisPluginHandler {
 }
 
 impl PluginStorer for RedisPluginHandler {
+    fn prepare_feed(&self, hash: &super::FeedHash) -> scannerlib::Promise<Result<(), WorkerError>> {
+        let pending = super::pending_hash(hash);
+        self.store_hash(&pending)
+    }
+
     fn store_hash(&self, hash: &super::FeedHash) -> scannerlib::Promise<Result<(), WorkerError>> {
         redis_with_hash(
             self.address.clone(),

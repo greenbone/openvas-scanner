@@ -78,6 +78,11 @@ impl PluginFetcher for SqlPluginStorage {
 }
 // TODO: verify before loading the plugin
 impl PluginStorer for SqlPluginStorage {
+    fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
+        let pending = crate::vts::pending_hash(hash);
+        self.store_hash(&pending)
+    }
+
     fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
     where
         T: Plugin + Send + Sync + 'static,
@@ -104,13 +109,16 @@ impl PluginStorer for SqlPluginStorage {
         let ht = hash.typus;
         let hash = hash.hash.clone();
         Box::pin(async move {
-            query("INSERT OR REPLACE INTO feed (hash, path, type) VALUES (?, ?, ?)")
-                .bind(hash)
-                .bind(path)
-                .bind(ht.as_ref())
-                .execute(&pool)
-                .await
-                .map_err(error_vts_error)?;
+            query(
+                "INSERT INTO feed (hash, path, type) VALUES (?, ?, ?)
+                 ON CONFLICT(type) DO UPDATE SET hash = excluded.hash, path = excluded.path",
+            )
+            .bind(hash)
+            .bind(path)
+            .bind(ht.as_ref())
+            .execute(&pool)
+            .await
+            .map_err(error_vts_error)?;
             Ok(())
         })
     }

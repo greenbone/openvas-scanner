@@ -157,10 +157,17 @@ pub async fn init(
 }
 
 pub trait PluginStorer {
+    fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
     fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
     fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
     where
         T: Plugin + Send + Sync + 'static;
+}
+
+pub(crate) fn pending_hash(hash: &FeedHash) -> FeedHash {
+    let mut pending = hash.clone();
+    pending.hash.clear();
+    pending
 }
 
 async fn synchronize_json<F, T, PS>(ps: &PS, hash: &FeedHash, f: F) -> Result<(), WorkerError>
@@ -211,12 +218,18 @@ where
     match feed_hash.typus {
         FeedType::Products => tracing::debug!(?feed_hash.typus, "Not supported, ignoring."),
         FeedType::Advisories => {
+            let path = feed_hash.path.clone();
+            let hash = feed_hash.hash.clone();
+            ps.prepare_feed(&feed_hash).await?;
+            synchronize_advisories(ps, path, hash, signature_check).await?;
             ps.store_hash(&feed_hash).await?;
-            synchronize_advisories(ps, feed_hash.path, feed_hash.hash, signature_check).await?
         }
         FeedType::NASL => {
+            let path = feed_hash.path.clone();
+            let hash = feed_hash.hash.clone();
+            ps.prepare_feed(&feed_hash).await?;
+            synchronize_plugins(ps, path, hash, signature_check).await?;
             ps.store_hash(&feed_hash).await?;
-            synchronize_plugins(ps, feed_hash.path, feed_hash.hash, signature_check).await?
         }
     };
     Ok(())
