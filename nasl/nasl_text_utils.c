@@ -912,26 +912,29 @@ nasl_eregmatch (lex_ctxt *lexic)
       int index = 0;
       char *current_pos;
       current_pos = string;
-      while (1)
+      while (*current_pos)
         {
+          unsigned int offset = 0, i = 0;
+          size_t cur_len;
+          char *current_pos_cp;
+
           if (regexec (&re, current_pos, (size_t) NS, subs, 0) != 0)
             {
-              regfree (&re);
               break;
             }
 
-          unsigned int offset = 0, i = 0;
+          cur_len = strlen (current_pos);
+          current_pos_cp = g_malloc (cur_len + 1);
+
           for (i = 0; i < NS; i++)
             {
-              char current_pos_cp[strlen (current_pos) + 1];
-
               if (subs[i].rm_so == -1)
                 break;
 
               if (i == 0)
                 offset = subs[i].rm_eo;
 
-              strcpy (current_pos_cp, current_pos);
+              memcpy (current_pos_cp, current_pos, cur_len + 1);
               current_pos_cp[subs[i].rm_eo] = 0;
               v.var_type = VAR2_DATA;
               v.v.v_str.s_siz = subs[i].rm_eo - subs[i].rm_so;
@@ -940,6 +943,11 @@ nasl_eregmatch (lex_ctxt *lexic)
               (void) add_var_to_list (a, index, &v);
               index++;
             }
+
+          g_free (current_pos_cp);
+
+          if (offset == 0)
+            offset = 1;
           current_pos += offset;
         }
     }
