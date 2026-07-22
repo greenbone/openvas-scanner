@@ -7,8 +7,8 @@ Some scanner preferences are found in the scanner code but are not documented in
 - TARGET: Is the host list to be attacked. Internally used and set by the client.
 - exclude_hosts: excluded host from the TARGET list. Internally used and set by the client.
 - hosts_ordering: intended to be used by the client. If Boreas is active, this option is ignored, since the host order changes in the mean the host are detected as alive
-- mqtt_enabled: internally used for selection of python implementation of Notus
-- openvasd_lsc_enabled: internally used for selection of rust implementation of Notus
+- mqtt_enabled: internally used for selection of MQTT implementation of Notus (LSC)
+- http_lsc_enabled: internally used for selection of HTTP endpoint is used for Notus (LSC)
 - ov_maindbid: internally used.
 - plugin_set: List of plugin OIDs to be run against the target. This is set by the client and used to initialize the plugin scheduler.
 - reverse_lookup_only: Only scan IP addresses that can be resolved into a DNS name. To be set by the client.
