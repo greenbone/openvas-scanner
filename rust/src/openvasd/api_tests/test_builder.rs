@@ -238,13 +238,13 @@ impl Test {
         let mut config = self.read_config();
         let request_client = RequestClient::from_config(&config)?;
         let openvas_guard = if config.scanner.scanner_type == ScannerType::Openvas {
-            Some(
-                OPENVAS_TEST_LOCK
-                    .get_or_init(|| Arc::new(Mutex::new(())))
-                    .clone()
-                    .lock_owned()
-                    .await,
-            )
+            let guard = OPENVAS_TEST_LOCK
+                .get_or_init(|| Arc::new(Mutex::new(())))
+                .clone()
+                .lock_owned()
+                .await;
+            clear_openvas_redis_cache().await?;
+            Some(guard)
         } else {
             None
         };
@@ -557,6 +557,22 @@ impl Drop for OpenvasdInstance {
     fn drop(&mut self) {
         self.task.abort();
     }
+}
+
+async fn clear_openvas_redis_cache() -> anyhow::Result<()> {
+    let redis_url = scannerlib::openvas::cmd::get_redis_socket().await;
+    tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
+        let client = redis::Client::open(redis_url).context("open OpenVAS Redis client")?;
+        let mut connection = client
+            .get_connection()
+            .context("connect to OpenVAS Redis")?;
+        redis::cmd("FLUSHALL")
+            .query::<()>(&mut connection)
+            .context("flush OpenVAS Redis cache")?;
+        Ok(())
+    })
+    .await
+    .context("flush OpenVAS Redis cache task")?
 }
 
 fn unused_local_address() -> std::io::Result<SocketAddr> {
