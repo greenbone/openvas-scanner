@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 
 use super::port::Protocol;
 use crate::models::Specifier;
@@ -124,7 +124,7 @@ impl Display for ResultType {
 }
 
 /// Notus Results are a Map from OIDs to vulnerable Packages
-pub type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
+pub type NotusResults = BTreeMap<String, Vec<VulnerablePackage>>;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct VulnerablePackage {
