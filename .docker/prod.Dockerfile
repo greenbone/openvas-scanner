@@ -159,7 +159,6 @@ RUN apt-get update \
         krb5-user \
         libkrb5-dev \
         python3 \
-        python3-cryptography \
         python3-dev \
         python3-gssapi \
         python3-pip \
@@ -188,10 +187,21 @@ RUN test -f "/tmp/openvas-packages/${FINAL_PACKAGE_SET}.txt" \
     && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends --no-install-suggests -y \
         krb5-user \
         python3 \
-        python3-cryptography \
+        python3-pip \
         python3-gssapi \
         python3-requests \
     && rm -rf /var/lib/apt/lists/*
+
+# produces the bug ` ‘/usr/share/doc/python3-impacket/examples/wmiexec.py’: [Errno 2] No such file or directory`
+# cryptography produces a dependency conflict with the cryptography installed by impacket (later via pip)
+RUN apt-get remove -y python3-impacket python3-cryptography || true
+RUN apt-get autoremove -y
+
+# install impacket via pip and not apt-get to get the latest version
+RUN python3 -m pip install --break-system-packages --ignore-installed impacket
+# openvas is expecting impacket-wmiexec to be in the path although it got renamed
+# until openvas is fixed we create a symlink
+RUN ln -s /usr/local/bin/wmiexec.py /usr/local/bin/impacket-wmiexec
 
 # must be pre built within the rust dir and moved to the bin dir
 # usually this image is created within in a ci ensuring that the
