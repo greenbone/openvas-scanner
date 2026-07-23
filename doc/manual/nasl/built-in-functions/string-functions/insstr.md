@@ -57,5 +57,5 @@ a = insstr('aaaa', 'b', 2, 1);
 # Prints insstr: warning! 1st index 2 greater than 2nd index 1
 
 display(a);
-# Displays a
+# Displays aabaa
 ```
