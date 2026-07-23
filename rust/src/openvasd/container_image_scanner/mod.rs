@@ -5,7 +5,7 @@ use std::sync::{Arc, RwLock};
 pub use config::Config;
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
-use image::{DockerRegistryV2, extractor::filtered_image, packages::AllTypes};
+use image::{DockerRegistryV2, packages::AllTypes};
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
 mod detection;
@@ -14,7 +14,7 @@ mod image;
 mod messages;
 mod notus;
 mod scheduling;
-pub(crate) use scannerlib::{ExternalError, Promise, PromiseRef, Streamer};
+pub(crate) use scannerlib::{ExternalError, PromiseRef, Streamer};
 
 /// combines slices on compile time
 #[macro_export]
@@ -97,11 +97,7 @@ pub async fn init(
         .await?;
     MIGRATOR.run(&pool).await?;
 
-    let scheduler = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
-        config.into(),
-        pool.clone(),
-        products,
-    );
+    let scheduler = Scheduler::<DockerRegistryV2>::init(config.into(), pool.clone(), products);
     tokio::spawn(async move {
         scheduler.run::<AllTypes>().await;
     });

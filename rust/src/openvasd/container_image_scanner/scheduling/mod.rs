@@ -63,21 +63,19 @@ pub struct ProcessingImage {
 /// It retrieves commands usually by the endpoint handler to either start or stop a scan.
 /// It then sets the status of that scan to queued and regularly verifies if a scan can be started
 /// when the scan is finished it also sets the status to either succeed or failed.
-pub struct Scheduler<Registry, Extractor> {
+pub struct Scheduler<Registry> {
     pool: DataBase,
     config: Arc<Config>,
     registry: PhantomData<Registry>,
-    extractor: PhantomData<Extractor>,
     products: Arc<RwLock<Notus>>,
 }
 
-impl<Registry, Extractor> Scheduler<Registry, Extractor> {
+impl<Registry> Scheduler<Registry> {
     fn new(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Self {
         Scheduler {
             pool,
             config,
             registry: PhantomData,
-            extractor: PhantomData,
             products,
         }
     }
@@ -86,7 +84,7 @@ impl<Registry, Extractor> Scheduler<Registry, Extractor> {
         config: Arc<Config>,
         pool: DataBase,
         products: Arc<RwLock<Notus>>,
-    ) -> Scheduler<Registry, Extractor> {
+    ) -> Scheduler<Registry> {
         Self::new(config, pool, products)
     }
 }
@@ -99,10 +97,9 @@ struct InitializedRegistry<'a, Registry> {
 
 use crate::container_image_scanner::image::RegistryError;
 
-impl<R, E> Scheduler<R, E>
+impl<R> Scheduler<R>
 where
     R: container_image_scanner::image::Registry + Send + Sync,
-    E: container_image_scanner::image::extractor::Extractor + Send + Sync,
 {
     #[cfg(test)]
     pub fn pool(&self) -> DataBase {
@@ -225,13 +222,8 @@ where
             Ok(registry) => {
                 let registry = InitializedRegistry { id, registry };
 
-                match scanner::scan_image::<E, R, T>(
-                    config.clone(),
-                    pool.clone(),
-                    products,
-                    &registry,
-                )
-                .await
+                match scanner::scan_image::<R, T>(config.clone(), pool.clone(), products, &registry)
+                    .await
                 {
                     Ok(_) => {
                         image_success(&pool, id).await;
