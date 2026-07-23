@@ -38,7 +38,7 @@ impl Notus {
 
         Product::try_from(product).map_err(|e| {
             if let Error::VulnerabilityTestParseError(_, pkg) = e {
-                Error::VulnerabilityTestParseError(os.to_string(), pkg)
+                Error::VulnerabilityTestParseError(format!("{os}.notus"), pkg)
             } else {
                 e
             }
