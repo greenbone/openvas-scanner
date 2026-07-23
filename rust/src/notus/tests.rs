@@ -96,7 +96,26 @@ fn test_err_product_parse_error() {
     let packages = vec![];
 
     let os = "debian_10_product_parse_err";
+    let err = notus.scan(os, &packages).expect_err("Should fail");
+
+    assert!(matches!(
+        &err,
+        Error::VulnerabilityTestParseError(
+            product,
+            FixedPackage::ByRange {
+                name,
+                range,
+                module,
+            },
+        ) if product == "debian_10_product_parse_err.notus"
+            && name == "gitlab-ce"
+            && range.start == "?"
+            && range.end == "="
+            && module.is_none()
+    ));
     assert!(
-        matches!(notus.scan(os, &packages).expect_err("Should fail"), Error::VulnerabilityTestParseError(p, FixedPackage::ByRange { name, range, module }) if p == os && name == "gitlab-ce" && range.start == "?" && range.end == "=" && module.is_none())
+        err.to_string().contains(
+            "malformed entry in vulnerability data file debian_10_product_parse_err.notus"
+        )
     );
 }
