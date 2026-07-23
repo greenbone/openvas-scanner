@@ -217,7 +217,7 @@ pub mod scans_utils {
     use crate::container_image_scanner::{
         Config, MIGRATOR,
         config::DBLocation,
-        image::{DockerRegistryV2Mock, RegistrySetting},
+        image::{DockerRegistryV2Mock, RegistryPreference},
         scheduling::{Scheduler, db::DataBase},
     };
     use scannerlib::notus::products_loader;
@@ -398,7 +398,7 @@ pub mod scans_utils {
                     hosts: hosts.into_iter().map(Into::into).collect(),
                     ..Default::default()
                 },
-                scan_preferences: vec![(RegistrySetting::Insecure.preference_key(), "true").into()],
+                scan_preferences: vec![(RegistryPreference::Insecure.key(), "true").into()],
                 ..Default::default()
             }
         }
@@ -419,8 +419,7 @@ pub mod scans_utils {
                 credentials,
                 ..Default::default()
             };
-            let scan_preferences =
-                vec![(RegistrySetting::Insecure.preference_key(), "true").into()];
+            let scan_preferences = vec![(RegistryPreference::Insecure.key(), "true").into()];
 
             models::Scan {
                 scan_id: uuid::Uuid::new_v4().to_string(),

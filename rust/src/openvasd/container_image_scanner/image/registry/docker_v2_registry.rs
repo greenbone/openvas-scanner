@@ -7,7 +7,7 @@ use docker_registry::v2::manifest::{Manifest, ManifestObj};
 use futures::{Stream, StreamExt, TryStreamExt};
 use tokio::sync::mpsc::Receiver;
 
-use super::{PackedLayer, Setting};
+use super::{PackedLayer, RegistryPreference};
 use crate::container_image_scanner::{
     Streamer,
     benchy::{self, Measured},
@@ -455,12 +455,14 @@ impl DockerV2Registry {
 impl DockerV2Registry {
     pub fn initialize(
         credential: Option<super::Credential>,
-        settings: Vec<Setting>,
+        settings: Vec<RegistryPreference>,
     ) -> Result<DockerV2Registry, RegistryError> {
-        let insecure = settings.iter().any(|x| matches!(x, Setting::Insecure));
+        let insecure = settings
+            .iter()
+            .any(|x| matches!(x, RegistryPreference::Insecure));
         let accept_invalid_certs = settings
             .iter()
-            .any(|x| matches!(x, Setting::AcceptInvalidCerts));
+            .any(|x| matches!(x, RegistryPreference::AcceptInvalidCerts));
 
         Ok(Self {
             username: credential.clone().map(|x| x.username),
@@ -1042,7 +1044,7 @@ mod tests {
 
     use super::fake::RegistryMock;
     use crate::container_image_scanner::image::{
-        Credential, DockerV2Registry, Image, RegistrySetting,
+        Credential, DockerV2Registry, Image, RegistryPreference,
     };
 
     #[tokio::test]
@@ -1091,8 +1093,9 @@ mod tests {
             password: "password".to_owned(),
         };
 
-        let aha = DockerV2Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
-            .expect("Registry cannot fail to initialize");
+        let aha =
+            DockerV2Registry::initialize(Some(credential), vec![RegistryPreference::Insecure])
+                .expect("Registry cannot fail to initialize");
         let image = Image {
             registry: addr.clone(),
             image: None,
@@ -1121,8 +1124,9 @@ mod tests {
             password: "password".to_owned(),
         };
 
-        let aha = DockerV2Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
-            .expect("Registry cannot fail to initialize");
+        let aha =
+            DockerV2Registry::initialize(Some(credential), vec![RegistryPreference::Insecure])
+                .expect("Registry cannot fail to initialize");
         let mut layer = aha.pull_image(image);
         let mut count = 0;
         while let Some(r) = layer.next().await {

@@ -3,7 +3,7 @@ use std::{convert::Infallible, fmt::Display, str::FromStr, time::Duration};
 mod registry;
 
 pub use registry::docker_v2_registry::DockerV2Registry;
-pub use registry::{Credential, RegistryError, Setting as RegistrySetting};
+pub use registry::{Credential, RegistryError, RegistryPreference};
 pub mod extractor;
 #[cfg(test)]
 pub use registry::docker_v2_registry::fake::RegistryMock as DockerRegistryV2Mock;

@@ -12,25 +12,25 @@ pub struct Credential {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Setting {
+pub enum RegistryPreference {
     /// Allows the usage of insecure connections
     Insecure,
     /// Allows the usage of invalid certificates
     AcceptInvalidCerts,
 }
 
-impl Setting {
+impl RegistryPreference {
     #[cfg(test)]
-    pub fn preference_key(&self) -> &str {
+    pub fn key(&self) -> &str {
         match self {
-            Setting::Insecure => "registry_allow_insecure",
-            Setting::AcceptInvalidCerts => "accept_invalid_certs",
+            RegistryPreference::Insecure => "registry_allow_insecure",
+            RegistryPreference::AcceptInvalidCerts => "accept_invalid_certs",
         }
     }
 }
 
-impl Setting {
-    pub(crate) fn parse_preference_entry(key: &str, value: &str) -> Option<Setting> {
+impl RegistryPreference {
+    pub(crate) fn parse_preference_entry(key: &str, value: &str) -> Option<RegistryPreference> {
         match key {
             "registry_allow_insecure" if value.parse().unwrap_or_default() => Some(Self::Insecure),
             "accept_invalid_certs" if value.parse().unwrap_or_default() => {
@@ -42,7 +42,7 @@ impl Setting {
 
     pub async fn parse_preferences(
         preferences: impl Stream<Item = (String, String)>,
-    ) -> Vec<Setting> {
+    ) -> Vec<RegistryPreference> {
         preferences
             .filter_map(
                 |(k, v)| async move { Self::parse_preference_entry(k.as_ref(), v.as_ref()) },

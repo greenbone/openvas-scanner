@@ -115,7 +115,7 @@ impl Scheduler {
         let result = DBPreferences::new(pool, id.to_owned())
             .stream_fetch()
             .filter_map(|x| async move { x.ok() });
-        let prefs = image::RegistrySetting::parse_preferences(result).await;
+        let prefs = image::RegistryPreference::parse_preferences(result).await;
         DockerV2Registry::initialize(credentials, prefs)
     }
 
