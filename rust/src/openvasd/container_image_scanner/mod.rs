@@ -5,7 +5,6 @@ use std::sync::{Arc, RwLock};
 pub use config::Config;
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
-use image::packages::AllTypes;
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
 mod detection;
@@ -98,9 +97,7 @@ pub async fn init(
     MIGRATOR.run(&pool).await?;
 
     let scheduler = Scheduler::init(config.into(), pool.clone(), products);
-    tokio::spawn(async move {
-        scheduler.run::<AllTypes>().await;
-    });
+    tokio::spawn(scheduler.run());
 
     let scan = Scans { pool };
     let vts = VTEndpoints::new(

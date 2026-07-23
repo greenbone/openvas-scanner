@@ -4,7 +4,7 @@ use container_image_scanner::{
     ExternalError, ParsePreferences,
     config::Config,
     image,
-    image::{Credential, Image, ImageID, packages::ToNotus},
+    image::{Credential, Image, ImageID},
 };
 use futures::StreamExt;
 use greenbone_scanner_framework::models;
@@ -168,13 +168,11 @@ impl Scheduler {
         DBScan::new(&pool, (id, &images as &[_])).retry_exec().await
     }
 
-    pub(crate) async fn start_scans<T>(
+    pub(crate) async fn start_scans(
         config: Arc<Config>,
         conn: Arc<Mutex<DataBase>>,
         products: Arc<RwLock<Notus>>,
-    ) where
-        T: ToNotus,
-    {
+    ) {
         tracing::trace!("checking for requested and scanning");
         let pool = conn.lock().await;
         let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
@@ -192,7 +190,7 @@ impl Scheduler {
         }
 
         let scan_pool = pool.clone();
-        Self::scan_images::<T>(config, scan_pool, products).await;
+        Self::scan_images(config, scan_pool, products).await;
 
         if let Err(error) = DBScan::new(&pool, models::Phase::Succeeded).exec().await {
             tracing::warn!(%error, "Unable to set scans to finished");
@@ -200,22 +198,18 @@ impl Scheduler {
     }
 
     #[instrument(skip_all, fields(id=id.id(), image=id.image()))]
-    async fn scan_image<T>(
+    async fn scan_image(
         config: Arc<Config>,
         pool: DataBase,
         products: Arc<RwLock<Notus>>,
         id: &ImageID,
         credentials: Option<Credential>,
-    ) where
-        T: ToNotus,
-    {
+    ) {
         match Self::registry(&pool, id.id(), credentials).await {
             Ok(registry) => {
                 let registry = InitializedRegistry { id, registry };
 
-                match scanner::scan_image::<T>(config.clone(), pool.clone(), products, &registry)
-                    .await
-                {
+                match scanner::scan_image(config.clone(), pool.clone(), products, &registry).await {
                     Ok(_) => {
                         image_success(&pool, id).await;
                     }
@@ -265,10 +259,7 @@ impl Scheduler {
         }
     }
 
-    async fn scan_images<T>(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>)
-    where
-        T: ToNotus,
-    {
+    async fn scan_images(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) {
         let scans = match DBImages::new(
             &pool,
             (config.image_max_scanning(), config.image_batch_size()),
@@ -289,16 +280,13 @@ impl Scheduler {
             let config = config.clone();
             let products = products.clone();
             js.spawn(async move {
-                Self::scan_image::<T>(config, pool.clone(), products, &id, credentials).await;
+                Self::scan_image(config, pool.clone(), products, &id, credentials).await;
             });
         }
         js.join_all().await;
     }
 
-    pub async fn run<T>(self)
-    where
-        T: ToNotus,
-    {
+    pub async fn run(self) {
         // we use the batch_size as the check_interval this allows customers to express:
         // 10:2 for a 1000mb/s
         // 25:2 for a 2500mb/s
@@ -319,18 +307,12 @@ impl Scheduler {
         let conn = Arc::new(Mutex::new(conn));
         loop {
             tokio::select! {
-
-
                 _ = interval.tick() => {
-                let products = self.products.clone();
-                let config = config.clone();
-                let conn = conn.clone();
-
-                tokio::spawn(async move {
-                    Self::start_scans::<T>(config, conn, products).await
-                });
+                    let products = self.products.clone();
+                    let config = config.clone();
+                    let conn = conn.clone();
+                    tokio::spawn(Self::start_scans(config, conn, products));
                 }
-
                 else => {
                     debug!("Channel closed, good bye");
                     break;

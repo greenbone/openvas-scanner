@@ -12,7 +12,7 @@ use crate::{
         image::{
             Digest, Image, ImageParseError, ImageState, RegistryError,
             extractor::{self, Extractor, Locator},
-            packages::ToNotus,
+            packages::AllTypes,
         },
         messages::{self, CustomerMessage, DetailPair},
         notus,
@@ -156,7 +156,7 @@ impl Measured<ImageResults> {
     }
 }
 
-async fn scan_arch_image<L, T>(
+async fn scan_arch_image<L>(
     products: Arc<RwLock<Notus>>,
     locator: &L,
     image: String,
@@ -164,12 +164,11 @@ async fn scan_arch_image<L, T>(
 ) -> Result<ImageResults, ScannerArchImageError>
 where
     L: Locator + Send + Sync,
-    T: ToNotus,
 {
     use detection::OperatingSystemDetectionError as OSDE;
     match detection::operating_system(locator).await {
         Ok(os) => {
-            let packages = T::packages(locator).await;
+            let packages = AllTypes::packages(locator).await;
 
             let results = if packages.is_empty() {
                 // This can also happen if a container image does not have a package DB anymore (e.g. the
@@ -285,15 +284,12 @@ async fn retry_download_and_extract_image<'a>(
     }
 }
 
-pub async fn scan_image<'a, T>(
+pub async fn scan_image<'a>(
     config: Arc<Config>,
     pool: DataBase,
     products: Arc<RwLock<Notus>>,
     registry: &'a super::InitializedRegistry<'a>,
-) -> Result<(), Vec<ScannerError>>
-where
-    T: ToNotus,
-{
+) -> Result<(), Vec<ScannerError>> {
     let image: Image = registry
         .id
         .image()
@@ -308,7 +304,7 @@ where
 
     let mut errors = Vec::with_capacity(locator_per_arch.len());
     for locator in locator_per_arch.iter() {
-        let measured = benchy::measure_result(scan_arch_image::<_, T>(
+        let measured = benchy::measure_result(scan_arch_image(
             products.clone(),
             locator,
             registry.id.image.to_owned(),

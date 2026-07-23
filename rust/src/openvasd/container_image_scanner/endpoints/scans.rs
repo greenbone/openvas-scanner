@@ -217,7 +217,7 @@ pub mod scans_utils {
     use crate::container_image_scanner::{
         Config, MIGRATOR,
         config::DBLocation,
-        image::{DockerRegistryV2Mock, RegistrySetting, packages::AllTypes},
+        image::{DockerRegistryV2Mock, RegistrySetting},
         scheduling::{Scheduler, db::DataBase},
     };
     use scannerlib::notus::products_loader;
@@ -333,7 +333,7 @@ pub mod scans_utils {
         pub async fn run_scheduler_rounds(&self, rounds: usize) {
             let conn = Arc::new(Mutex::new(self.scheduler.pool()));
             for _ in 0..rounds {
-                Scheduler::start_scans::<AllTypes>(
+                Scheduler::start_scans(
                     self.scheduler.config(),
                     conn.clone(),
                     self.scheduler.products(),
