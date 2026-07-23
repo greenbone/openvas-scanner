@@ -1,8 +1,9 @@
 pub(crate) mod docker_v2_registry;
 use std::fmt::Display;
 
+use futures::{Stream, StreamExt};
+
 pub(crate) use super::PackedLayer;
-use crate::container_image_scanner::ParsePreferences;
 
 #[derive(Clone, Debug)]
 pub struct Credential {
@@ -28,8 +29,8 @@ impl Setting {
     }
 }
 
-impl ParsePreferences<Setting> for Setting {
-    fn parse_preference_entry(key: &str, value: &str) -> Option<Setting> {
+impl Setting {
+    pub(crate) fn parse_preference_entry(key: &str, value: &str) -> Option<Setting> {
         match key {
             "registry_allow_insecure" if value.parse().unwrap_or_default() => Some(Self::Insecure),
             "accept_invalid_certs" if value.parse().unwrap_or_default() => {
@@ -37,6 +38,17 @@ impl ParsePreferences<Setting> for Setting {
             }
             _ => None,
         }
+    }
+
+    pub async fn parse_preferences(
+        preferences: impl Stream<Item = (String, String)>,
+    ) -> Vec<Setting> {
+        preferences
+            .filter_map(
+                |(k, v)| async move { Self::parse_preference_entry(k.as_ref(), v.as_ref()) },
+            )
+            .collect()
+            .await
     }
 }
 

@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use container_image_scanner::{
-    ExternalError, ParsePreferences,
+    ExternalError,
     config::Config,
     image,
     image::{Credential, Image, ImageID},

@@ -3,7 +3,6 @@ pub mod config;
 use std::sync::{Arc, RwLock};
 
 pub use config::Config;
-use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
@@ -50,26 +49,6 @@ macro_rules! concat_slices {
         const LEN: usize = total_len(FILES);
         &flatten::<LEN>(FILES)
     }};
-}
-
-/// Parses preferences from (str, str) to an actual preferences.
-///
-/// Usually the preferences are coming from user input, are stored within preferences table and
-/// then fetched and parsed for the actual system. See image::registry as an example.
-trait ParsePreferences<T> {
-    fn parse_preference_entry(key: &str, value: &str) -> Option<T>;
-
-    async fn parse_preferences<Iter>(preferences: Iter) -> Vec<T>
-    where
-        Iter: Stream<Item = (String, String)>,
-    {
-        preferences
-            .filter_map(
-                |(k, v)| async move { Self::parse_preference_entry(k.as_ref(), v.as_ref()) },
-            )
-            .collect()
-            .await
-    }
 }
 
 static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scanner/migrations");
