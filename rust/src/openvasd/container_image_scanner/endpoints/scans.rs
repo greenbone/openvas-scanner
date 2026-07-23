@@ -217,7 +217,7 @@ pub mod scans_utils {
     use crate::container_image_scanner::{
         Config, MIGRATOR,
         config::DBLocation,
-        image::{DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, packages::AllTypes},
+        image::{DockerRegistryV2Mock, RegistrySetting, packages::AllTypes},
         scheduling::{Scheduler, db::DataBase},
     };
     use scannerlib::notus::products_loader;
@@ -230,9 +230,9 @@ pub mod scans_utils {
         ClientHash::from("second").to_string()
     }
 
-    async fn in_memory_scheduler_and_scan<R>(
+    async fn in_memory_scheduler_and_scan(
         config: crate::container_image_scanner::Config,
-    ) -> (Scheduler<R>, Scans) {
+    ) -> (Scheduler, Scans) {
         let pool = DataBase::connect(&DBLocation::InMemory.sqlite_address("test"))
             .await
             .expect("inmemory database must be available");
@@ -244,7 +244,7 @@ pub mod scans_utils {
         let products_path: &str =
             concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
-        let scheduler = Scheduler::<R>::init(
+        let scheduler = Scheduler::init(
             config.into(),
             pool.clone(),
             products_loader(products_path, false),
@@ -256,7 +256,7 @@ pub mod scans_utils {
     pub struct Fakes {
         registry: DockerRegistryV2Mock,
         pub entry: super::Scans,
-        pub scheduler: Scheduler<DockerRegistryV2>,
+        pub scheduler: Scheduler,
     }
 
     impl Fakes {
@@ -333,7 +333,7 @@ pub mod scans_utils {
         pub async fn run_scheduler_rounds(&self, rounds: usize) {
             let conn = Arc::new(Mutex::new(self.scheduler.pool()));
             for _ in 0..rounds {
-                Scheduler::<DockerRegistryV2>::start_scans::<AllTypes>(
+                Scheduler::start_scans::<AllTypes>(
                     self.scheduler.config(),
                     conn.clone(),
                     self.scheduler.products(),

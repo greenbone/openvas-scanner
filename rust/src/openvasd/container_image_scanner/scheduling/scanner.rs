@@ -10,7 +10,7 @@ use crate::{
         benchy::{self, BenchType, Benched, Measured},
         detection::{self, OperatingSystem},
         image::{
-            Digest, Image, ImageParseError, ImageState, Registry, RegistryError,
+            Digest, Image, ImageParseError, ImageState, RegistryError,
             extractor::{self, Extractor, Locator},
             packages::ToNotus,
         },
@@ -210,15 +210,12 @@ async fn is_digest_excluded(
         false
     }
 }
-async fn download_and_extract_image<'a, R>(
+async fn download_and_extract_image<'a>(
     config: Arc<Config>,
     pool: &DataBase,
-    registry: &'a super::InitializedRegistry<'a, R>,
+    registry: &'a super::InitializedRegistry<'a>,
     image: Image,
-) -> Result<(Digest, Extractor, Vec<Benched>), ScannerError>
-where
-    R: Registry + Send + Sync,
-{
+) -> Result<(Digest, Extractor, Vec<Benched>), ScannerError> {
     let mut extractor = Extractor::initialize(config.clone(), registry.id.clone()).await?;
     let mut results = Vec::new();
     let mut digest = None;
@@ -262,15 +259,12 @@ where
     Ok((digest.unwrap_or_default(), extractor, results))
 }
 
-async fn retry_download_and_extract_image<'a, R>(
+async fn retry_download_and_extract_image<'a>(
     config: Arc<Config>,
     pool: &DataBase,
-    registry: &'a super::InitializedRegistry<'a, R>,
+    registry: &'a super::InitializedRegistry<'a>,
     image: &Image,
-) -> Result<(Image, Extractor), ScannerError>
-where
-    R: Registry + Send + Sync,
-{
+) -> Result<(Image, Extractor), ScannerError> {
     // alternatively set back to pending and store retry amount alongside the image
     let mut retries = config.image.scanning_retries;
     loop {
@@ -291,14 +285,13 @@ where
     }
 }
 
-pub async fn scan_image<'a, R, T>(
+pub async fn scan_image<'a, T>(
     config: Arc<Config>,
     pool: DataBase,
     products: Arc<RwLock<Notus>>,
-    registry: &'a super::InitializedRegistry<'a, R>,
+    registry: &'a super::InitializedRegistry<'a>,
 ) -> Result<(), Vec<ScannerError>>
 where
-    R: Registry + Send + Sync,
     T: ToNotus,
 {
     let image: Image = registry

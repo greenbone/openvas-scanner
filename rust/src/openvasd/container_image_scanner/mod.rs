@@ -5,7 +5,7 @@ use std::sync::{Arc, RwLock};
 pub use config::Config;
 use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
-use image::{DockerRegistryV2, packages::AllTypes};
+use image::packages::AllTypes;
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
 mod detection;
@@ -97,7 +97,7 @@ pub async fn init(
         .await?;
     MIGRATOR.run(&pool).await?;
 
-    let scheduler = Scheduler::<DockerRegistryV2>::init(config.into(), pool.clone(), products);
+    let scheduler = Scheduler::init(config.into(), pool.clone(), products);
     tokio::spawn(async move {
         scheduler.run::<AllTypes>().await;
     });

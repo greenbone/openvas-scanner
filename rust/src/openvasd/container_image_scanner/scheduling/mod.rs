@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use container_image_scanner::{
     ExternalError, ParsePreferences,
@@ -18,7 +18,7 @@ use tracing::{debug, instrument, warn};
 use crate::{
     container_image_scanner::{
         self,
-        image::{ImageParseError, ImageState},
+        image::{DockerV2Registry, ImageParseError, ImageState},
         messages::CustomerMessage,
         scheduling::{
             db::{DataBase, images::DBImages, preferences::DBPreferences, scan::DBScan},
@@ -63,44 +63,35 @@ pub struct ProcessingImage {
 /// It retrieves commands usually by the endpoint handler to either start or stop a scan.
 /// It then sets the status of that scan to queued and regularly verifies if a scan can be started
 /// when the scan is finished it also sets the status to either succeed or failed.
-pub struct Scheduler<Registry> {
+pub struct Scheduler {
     pool: DataBase,
     config: Arc<Config>,
-    registry: PhantomData<Registry>,
     products: Arc<RwLock<Notus>>,
 }
 
-impl<Registry> Scheduler<Registry> {
+impl Scheduler {
     fn new(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Self {
         Scheduler {
             pool,
             config,
-            registry: PhantomData,
             products,
         }
     }
 
-    pub fn init(
-        config: Arc<Config>,
-        pool: DataBase,
-        products: Arc<RwLock<Notus>>,
-    ) -> Scheduler<Registry> {
+    pub fn init(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Scheduler {
         Self::new(config, pool, products)
     }
 }
 
 //TODO delete
-struct InitializedRegistry<'a, Registry> {
+struct InitializedRegistry<'a> {
     id: &'a ImageID,
-    registry: Registry,
+    registry: DockerV2Registry,
 }
 
 use crate::container_image_scanner::image::RegistryError;
 
-impl<R> Scheduler<R>
-where
-    R: container_image_scanner::image::Registry + Send + Sync,
-{
+impl Scheduler {
     #[cfg(test)]
     pub fn pool(&self) -> DataBase {
         self.pool.clone()
@@ -120,12 +111,12 @@ where
         pool: &DataBase,
         id: &str,
         credentials: Option<Credential>,
-    ) -> Result<R, RegistryError> {
+    ) -> Result<DockerV2Registry, RegistryError> {
         let result = DBPreferences::new(pool, id.to_owned())
             .stream_fetch()
             .filter_map(|x| async move { x.ok() });
         let prefs = image::RegistrySetting::parse_preferences(result).await;
-        R::initialize(credentials, prefs)
+        DockerV2Registry::initialize(credentials, prefs)
     }
 
     #[instrument(skip_all, fields(id = pimage.id))]
@@ -222,7 +213,7 @@ where
             Ok(registry) => {
                 let registry = InitializedRegistry { id, registry };
 
-                match scanner::scan_image::<R, T>(config.clone(), pool.clone(), products, &registry)
+                match scanner::scan_image::<T>(config.clone(), pool.clone(), products, &registry)
                     .await
                 {
                     Ok(_) => {

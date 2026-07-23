@@ -33,7 +33,7 @@ impl Stream for BlobStream {
 type ArchitectureLayer = (Option<Digest>, String, Digest);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Registry {
+pub struct DockerV2Registry {
     username: Option<String>,
     password: Option<String>,
     insecure: bool,
@@ -277,7 +277,7 @@ impl Client {
     }
 }
 
-impl Registry {
+impl DockerV2Registry {
     async fn catalog_client(&self, registry: &str) -> Result<Client, RegistryError> {
         let scope = "registry:catalog:*";
         Client::authenticated(
@@ -452,11 +452,11 @@ impl Registry {
     }
 }
 
-impl super::Registry for Registry {
-    fn initialize(
+impl DockerV2Registry {
+    pub fn initialize(
         credential: Option<super::Credential>,
         settings: Vec<Setting>,
-    ) -> Result<Registry, RegistryError> {
+    ) -> Result<DockerV2Registry, RegistryError> {
         let insecure = settings.iter().any(|x| matches!(x, Setting::Insecure));
         let accept_invalid_certs = settings
             .iter()
@@ -470,28 +470,23 @@ impl super::Registry for Registry {
         })
     }
 
-    fn resolve_image(
-        &self,
-        image: super::Image,
-    ) -> Pin<Box<dyn Future<Output = Vec<Result<super::Image, RegistryError>>> + Send + '_>> {
-        Box::pin(async move {
-            match image {
-                Image {
-                    registry,
-                    image: None,
-                    tag: _,
-                } => self.resolve_catalog(&registry, None).await,
-                Image {
-                    registry,
-                    image: Some(image),
-                    tag: None,
-                } => self.resolve_or_search_repository(&registry, &image).await,
-                image => vec![Ok(image)],
-            }
-        })
+    pub async fn resolve_image(&self, image: Image) -> Vec<Result<Image, RegistryError>> {
+        match image {
+            Image {
+                registry,
+                image: None,
+                tag: _,
+            } => self.resolve_catalog(&registry, None).await,
+            Image {
+                registry,
+                image: Some(image),
+                tag: None,
+            } => self.resolve_or_search_repository(&registry, &image).await,
+            image => vec![Ok(image)],
+        }
     }
 
-    fn pull_image(&self, image: super::Image) -> Streamer<Result<PackedLayer, RegistryError>> {
+    pub fn pull_image(&self, image: Image) -> Streamer<Result<PackedLayer, RegistryError>> {
         let (sender, receiver) = tokio::sync::mpsc::channel(3);
         let result = BlobStream { receiver };
         let that = self.clone();
@@ -1046,7 +1041,9 @@ mod tests {
     use futures::StreamExt;
 
     use super::fake::RegistryMock;
-    use crate::container_image_scanner::image::{Credential, Image, Registry, RegistrySetting};
+    use crate::container_image_scanner::image::{
+        Credential, DockerV2Registry, Image, RegistrySetting,
+    };
 
     #[tokio::test]
     async fn resolve_images() {
@@ -1094,7 +1091,7 @@ mod tests {
             password: "password".to_owned(),
         };
 
-        let aha = super::Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
+        let aha = DockerV2Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
             .expect("Registry cannot fail to initialize");
         let image = Image {
             registry: addr.clone(),
@@ -1124,7 +1121,7 @@ mod tests {
             password: "password".to_owned(),
         };
 
-        let aha = super::Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
+        let aha = DockerV2Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
             .expect("Registry cannot fail to initialize");
         let mut layer = aha.pull_image(image);
         let mut count = 0;

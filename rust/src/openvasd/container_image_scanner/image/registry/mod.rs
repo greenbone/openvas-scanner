@@ -1,11 +1,8 @@
-pub(crate) mod docker_v2;
+pub(crate) mod docker_v2_registry;
 use std::fmt::Display;
 
-pub use docker_v2::Registry as DockerV2;
-
-use super::Image;
 pub(crate) use super::PackedLayer;
-use crate::container_image_scanner::{ParsePreferences, PromiseRef, Streamer};
+use crate::container_image_scanner::ParsePreferences;
 
 #[derive(Clone, Debug)]
 pub struct Credential {
@@ -141,22 +138,4 @@ impl Display for RegistryError {
             todo!()
         }
     }
-}
-
-pub trait Registry {
-    fn initialize(
-        credential: Option<Credential>,
-        settings: Vec<Setting>,
-    ) -> Result<Self, RegistryError>
-    where
-        Self: Sized + Send + Sync;
-
-    /// Resolves all images if the given image is not complete.
-    ///
-    /// This means that if only the registry is set then it tries to get all images of that
-    /// registry. If the tag is missing it tries to get all tag variations. If everything is set it
-    /// will just return the given image.
-    fn resolve_image(&self, image: Image) -> PromiseRef<'_, Vec<Result<Image, RegistryError>>>;
-
-    fn pull_image(&self, image: Image) -> Streamer<Result<PackedLayer, RegistryError>>;
 }
