@@ -1,0 +1,594 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
+use std::{
+    collections::BTreeMap,
+    error::Error,
+    fs,
+    net::{Ipv4Addr, SocketAddr, TcpListener},
+    ops::{Deref, DerefMut},
+    path::{Path, PathBuf},
+    pin::Pin,
+    sync::{Arc, OnceLock},
+    time::Duration,
+};
+
+use anyhow::{Context, bail};
+use http::StatusCode;
+use reqwest::Method;
+use scannerlib::models::{self, Phase};
+use scannerlib::utils::scanner_types::ScannerType;
+use serde::{Serialize, de::DeserializeOwned, ser::SerializeMap};
+use tokio::sync::{Mutex, OwnedMutexGuard};
+use tokio::time::Instant;
+
+use crate::{build_runtime, config::Config};
+
+const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
+const DEFAULT_SLEEP_INTERVAL: Duration = Duration::from_millis(100);
+const DEFAULT_CLIENT_CERT: &str = "client1.pem";
+const DEFAULT_CLIENT_KEY: &str = "client1.key";
+static OPENVAS_TEST_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
+
+pub trait Snapshottable: Serialize {
+    fn redactions() -> Vec<String> {
+        vec![]
+    }
+}
+
+/// This is a wrapper type to make it convenient to
+/// 1. Parse the body of a response in a given format via the
+///    serialize impl of a type (S)
+/// 2. Call `.snapshot()` on this type to write a snapshot with
+///    an appropriate name and appropriate reductions
+pub struct Snapshot<S> {
+    inner: S,
+    name_prefix: String,
+}
+
+impl<S: Snapshottable> Snapshot<S> {
+    pub fn snapshot(self, name: &str) -> S {
+        let Self {
+            ref inner,
+            name_prefix,
+        } = self;
+        let mut settings = insta::Settings::clone_current();
+        settings.set_prepend_module_to_snapshot(false);
+        for redaction in S::redactions() {
+            settings.add_redaction(&redaction, "[redacted]");
+        }
+        let name = if name.is_empty() {
+            name_prefix
+        } else {
+            format!("{name_prefix}_{name}")
+        };
+        settings.bind(|| {
+            insta::assert_ron_snapshot!(name, inner);
+        });
+        self.inner
+    }
+
+    pub fn snapshot_if(self, write_snapshots: bool, name: &str) -> S {
+        if write_snapshots {
+            self.snapshot(name)
+        } else {
+            self.inner
+        }
+    }
+}
+
+impl<S> Deref for Snapshot<S> {
+    type Target = S;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<S> DerefMut for Snapshot<S> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+/// This is a wrapper type to represent the relevant
+/// and "snapshottable" parts of a `Response`.
+#[derive(Clone)]
+pub struct ResponseSnapshot {
+    pub status_code: u16,
+    pub headers: BTreeMap<String, String>,
+    pub body: String,
+}
+
+impl Serialize for ResponseSnapshot {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // This is a little ugly, but we serialize this manually
+        // to improve the formatting of the snapshots slightly
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("status_code", &self.status_code)?;
+        map.serialize_entry("headers", &self.headers)?;
+        map.serialize_entry("body", &self.body)?;
+        map.end()
+    }
+}
+
+impl Snapshottable for ResponseSnapshot {
+    fn redactions() -> Vec<String> {
+        vec![".headers.date".into(), ".headers[\"feed-version\"]".into()]
+    }
+}
+
+pub struct Response {
+    snapshot: ResponseSnapshot,
+    name: String,
+}
+
+impl Response {
+    async fn from_reqwest(name: &str, value: reqwest::Response) -> Self {
+        let headers: BTreeMap<String, String> = value
+            .headers()
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_str().unwrap().into()))
+            .collect();
+        Self {
+            snapshot: ResponseSnapshot {
+                status_code: value.status().as_u16(),
+                headers,
+                body: value.text().await.unwrap(),
+            },
+            name: name.to_string(),
+        }
+    }
+
+    pub fn snapshot(&self) -> &Self {
+        Snapshot {
+            inner: self.snapshot.clone(),
+            name_prefix: self.name.clone(),
+        }
+        .snapshot("");
+        self
+    }
+
+    pub(crate) fn snapshot_if(&self, write_snapshots: bool) -> &Self {
+        if write_snapshots {
+            self.snapshot();
+        }
+        self
+    }
+
+    #[track_caller]
+    pub fn assert_status(&self, status_code: StatusCode) -> &Self {
+        assert_eq!(status_code, self.snapshot.status_code);
+        self
+    }
+
+    #[cfg(feature = "requires-compose")]
+    #[track_caller]
+    pub fn assert_header(&self, name: &str, value: &str) -> &Self {
+        assert_eq!(
+            Some(value),
+            self.snapshot.headers.get(name).map(String::as_str)
+        );
+        self
+    }
+
+    #[cfg(feature = "requires-compose")]
+    #[track_caller]
+    pub fn assert_header_exists(&self, name: &str) -> &Self {
+        assert!(
+            self.snapshot.headers.contains_key(name),
+            "expected response header {name}"
+        );
+        self
+    }
+
+    fn status(&self) -> StatusCode {
+        StatusCode::from_u16(self.snapshot.status_code).unwrap()
+    }
+
+    pub fn body<S: DeserializeOwned>(&self) -> Snapshot<S> {
+        Snapshot {
+            inner: serde_json::from_str(&self.snapshot.body).unwrap(),
+            name_prefix: self.name.clone(),
+        }
+    }
+
+    pub fn body_str(&self) -> String {
+        serde_json::from_str::<String>(&self.snapshot.body)
+            .unwrap()
+            .clone()
+    }
+}
+
+pub struct Test {
+    name: String,
+    config: Option<PathBuf>,
+}
+
+impl Test {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            config: None,
+        }
+    }
+
+    pub fn config(mut self, name: &str) -> Self {
+        self.config = Some(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("data/tests/scanner/config")
+                .join(format!("{name}.toml")),
+        );
+        self
+    }
+
+    fn config_path(&self) -> PathBuf {
+        self.config.clone().unwrap()
+    }
+
+    fn read_config(&self) -> Config {
+        Config::from_file(self.config_path())
+    }
+
+    async fn build_internal(self) -> anyhow::Result<OpenvasdInstance> {
+        let mut config = self.read_config();
+        let request_client = RequestClient::from_config(&config)?;
+        let openvas_guard = if config.scanner.scanner_type == ScannerType::Openvas {
+            let guard = OPENVAS_TEST_LOCK
+                .get_or_init(|| Arc::new(Mutex::new(())))
+                .clone()
+                .lock_owned()
+                .await;
+            clear_openvas_redis_cache().await?;
+            Some(guard)
+        } else {
+            None
+        };
+        let address = if config.scanner.scanner_type == ScannerType::Openvas {
+            SocketAddr::from((Ipv4Addr::UNSPECIFIED, 3000))
+        } else {
+            unused_local_address().expect("allocate openvasd test listener")
+        };
+        config.listener.address = address;
+        let runtime = build_runtime(config)
+            .await
+            .map_err(|error| anyhow::anyhow!("{error}"))?;
+
+        let mut task = tokio::spawn(async move { runtime.run_blocking().await });
+        tokio::select! {
+            result = wait_for_listener(address) => result?,
+            result = &mut task => {
+                match result {
+                    Ok(Ok(code)) => bail!("openvasd exited before accepting connections with code {code}"),
+                    Ok(Err(error)) => bail!("openvasd failed before accepting connections: {error}"),
+                    Err(error) => bail!("openvasd task failed before accepting connections: {error}"),
+                }
+            }
+        }
+
+        Ok(OpenvasdInstance {
+            address,
+            test_name: self.name,
+            request_client,
+            task,
+            _openvas_guard: openvas_guard,
+        })
+    }
+
+    async fn build(self) -> OpenvasdInstance {
+        self.build_internal().await.unwrap()
+    }
+}
+
+// This is just convenience to avoid having to call `.build()` explicitly
+impl IntoFuture for Test {
+    type Output = OpenvasdInstance;
+
+    type IntoFuture = Pin<Box<dyn Future<Output = Self::Output>>>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        Box::pin(async move { self.build().await })
+    }
+}
+
+pub struct OpenvasdInstance {
+    pub address: SocketAddr,
+    test_name: String,
+    request_client: RequestClient,
+    task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
+    _openvas_guard: Option<OwnedMutexGuard<()>>,
+}
+
+pub enum Condition {
+    StatusCode(StatusCode),
+    ScanPhase(models::Phase),
+}
+
+impl Condition {
+    fn check(&self, response: &Response) -> anyhow::Result<()> {
+        match self {
+            Self::StatusCode(code) => {
+                if response.status() == *code {
+                    Ok(())
+                } else {
+                    bail!("Expected status {}, found {}.", code, response.status())
+                }
+            }
+            Self::ScanPhase(expected) => {
+                let phase = &response.body::<models::Status>().status;
+                if phase == expected {
+                    Ok(())
+                } else {
+                    bail!("Expected phase {}, found {}.", expected, phase)
+                }
+            }
+        }
+    }
+}
+
+pub struct WaitFor {
+    /// The condition we want to wait for
+    condition: Condition,
+    /// The condition we expect to receive while we are waiting for `condition`.
+    intermediate_condition: Option<Condition>,
+    /// The timeout after which we will return an error
+    timeout: Duration,
+    /// The sleep time to wait between subsequent requests.
+    interval: Duration,
+}
+
+impl From<StatusCode> for WaitFor {
+    fn from(code: StatusCode) -> Self {
+        Self {
+            condition: Condition::StatusCode(code),
+            intermediate_condition: None,
+            timeout: DEFAULT_TIMEOUT,
+            interval: DEFAULT_SLEEP_INTERVAL,
+        }
+    }
+}
+
+impl From<Phase> for WaitFor {
+    fn from(phase: Phase) -> Self {
+        Self {
+            condition: Condition::ScanPhase(phase),
+            intermediate_condition: None,
+            timeout: DEFAULT_TIMEOUT,
+            interval: DEFAULT_SLEEP_INTERVAL,
+        }
+    }
+}
+
+pub trait WaitForStatusExt {
+    fn with_timeout(self, timeout: Duration) -> WaitFor;
+    fn with_intermediate_status(self, status: StatusCode) -> WaitFor;
+}
+
+impl<T> WaitForStatusExt for T
+where
+    T: Into<WaitFor>,
+{
+    fn with_timeout(self, timeout: Duration) -> WaitFor {
+        let mut wait = self.into();
+        wait.timeout = timeout;
+        wait
+    }
+
+    fn with_intermediate_status(self, status: StatusCode) -> WaitFor {
+        let mut wait = self.into();
+        wait.intermediate_condition = Some(Condition::StatusCode(status));
+        wait
+    }
+}
+
+pub struct Request<S> {
+    method: Method,
+    path: String,
+    address: SocketAddr,
+    test_name: String,
+    client: reqwest::Client,
+    scheme: &'static str,
+    json: Option<S>,
+    /// Controls the behavior of this request. If unset, we simplify perform the
+    /// request and return the Response.
+    ///
+    /// If set, we wait for the request to reach the desired condition and then
+    /// return the final response (the one that fulfilled the condition). If
+    /// we never reach the correct condition before the timeout, we panic.
+    wait_for: Option<WaitFor>,
+}
+
+impl Request<()> {
+    // The bounds are not required here but results in type errors earlier than deferring
+    // to the `IntoFuture` impl below, so it will hopefully be clearer to the user.
+    pub fn json<S: Serialize + Send + Sync>(self, json: S) -> Request<S> {
+        // Have to be explicit about each field here instead of assigning to self.json, since the
+        // types are different
+        Request {
+            method: self.method,
+            path: self.path,
+            address: self.address,
+            test_name: self.test_name,
+            client: self.client,
+            scheme: self.scheme,
+            json: Some(json),
+            wait_for: None,
+        }
+    }
+}
+
+impl<S: Serialize> Request<S> {
+    pub fn wait_for(mut self, wait_for: impl Into<WaitFor>) -> Self {
+        self.wait_for = Some(wait_for.into());
+        self
+    }
+
+    fn build_reqwest_request(&self) -> reqwest::RequestBuilder {
+        let mut request = self.client.request(
+            self.method.clone(),
+            format!("{}://{}{}", self.scheme, self.address, self.path),
+        );
+        if let Some(ref json) = self.json {
+            request = request.json(json);
+        }
+        request
+    }
+
+    async fn get_response(&self) -> Response {
+        let reqwest = self.build_reqwest_request();
+        let test_name = format!("{} {} {}", self.test_name, self.method, self.path);
+        Response::from_reqwest(&test_name, reqwest.send().await.unwrap()).await
+    }
+
+    async fn run(self) -> Response {
+        if let Some(ref wait) = self.wait_for {
+            let started = Instant::now();
+            loop {
+                let response = self.get_response().await;
+                match wait
+                    .condition
+                    .check(&response)
+                    .context(format!("At path {} {}", self.method, self.path))
+                {
+                    Ok(_) => {
+                        return response;
+                    }
+                    Err(e) => {
+                        if started.elapsed() >= wait.timeout {
+                            panic!("Reached {}s timeout. {e}", wait.timeout.as_secs());
+                        } else if let Some(ref intermediate) = wait.intermediate_condition
+                            && let Err(e) = intermediate.check(&response)
+                        {
+                            panic!(
+                                "Wrong intermediate condition at path {} {}: {e}",
+                                self.method, self.path
+                            );
+                        }
+                    }
+                }
+
+                tokio::time::sleep(wait.interval).await;
+            }
+        } else {
+            self.get_response().await
+        }
+    }
+}
+
+impl<S: Serialize + Send + Sync + 'static> IntoFuture for Request<S> {
+    type Output = Response;
+
+    type IntoFuture = Pin<Box<dyn Future<Output = Response> + Send>>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        Box::pin(async move { self.run().await })
+    }
+}
+
+impl OpenvasdInstance {
+    // The generic is completely unnecessary here, since we never call serialize
+    // on a request without json,
+    pub fn request(&self, method: Method, path: impl Into<String>) -> Request<()> {
+        let path = path.into();
+        Request {
+            method,
+            path,
+            test_name: self.test_name.clone(),
+            address: self.address,
+            client: self.request_client.client.clone(),
+            scheme: self.request_client.scheme,
+            json: None,
+            wait_for: None,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct RequestClient {
+    client: reqwest::Client,
+    scheme: &'static str,
+}
+
+impl RequestClient {
+    fn from_config(config: &Config) -> anyhow::Result<Self> {
+        let mut builder = reqwest::Client::builder();
+        let scheme = match (&config.tls.certs, &config.tls.key) {
+            (Some(_), Some(_)) => {
+                builder = builder.danger_accept_invalid_certs(true);
+
+                if let Some(client_certs) = &config.tls.client_certs {
+                    builder = builder.identity(client_identity(client_certs)?);
+                }
+
+                "https"
+            }
+            _ => "http",
+        };
+
+        Ok(Self {
+            client: builder
+                .build()
+                .context("build openvasd API test HTTP client")?,
+            scheme,
+        })
+    }
+}
+
+fn client_identity(client_certs: &Path) -> anyhow::Result<reqwest::Identity> {
+    let cert = std::env::var_os("CLIENT_CERT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| client_certs.join(DEFAULT_CLIENT_CERT));
+    let key = std::env::var_os("CLIENT_KEY")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| client_certs.join(DEFAULT_CLIENT_KEY));
+
+    let mut pem = fs::read(&cert)
+        .with_context(|| format!("read mTLS client certificate {}", cert.display()))?;
+    pem.extend(fs::read(&key).with_context(|| format!("read mTLS client key {}", key.display()))?);
+
+    reqwest::Identity::from_pem(&pem).context("build mTLS client identity")
+}
+
+impl Drop for OpenvasdInstance {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+async fn clear_openvas_redis_cache() -> anyhow::Result<()> {
+    let redis_url = scannerlib::openvas::cmd::get_redis_socket().await;
+    tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
+        let client = redis::Client::open(redis_url).context("open OpenVAS Redis client")?;
+        let mut connection = client
+            .get_connection()
+            .context("connect to OpenVAS Redis")?;
+        redis::cmd("FLUSHALL")
+            .query::<()>(&mut connection)
+            .context("flush OpenVAS Redis cache")?;
+        Ok(())
+    })
+    .await
+    .context("flush OpenVAS Redis cache task")?
+}
+
+fn unused_local_address() -> std::io::Result<SocketAddr> {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
+    listener.local_addr()
+}
+
+async fn wait_for_listener(address: SocketAddr) -> anyhow::Result<()> {
+    let started = Instant::now();
+    loop {
+        match tokio::net::TcpStream::connect(address).await {
+            Ok(_) => return Ok(()),
+            Err(error) if started.elapsed() >= Duration::from_secs(5) => {
+                bail!("wait for openvasd to accept connections on {address}. {error}")
+            }
+            Err(_) => tokio::time::sleep(Duration::from_millis(20)).await,
+        }
+    }
+}

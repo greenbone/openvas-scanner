@@ -24,3 +24,12 @@ jobs:
       - uses: ./.github/actions/setup-rust
       - name: unit-tests
         run: ../check.sh --verbose test-rust
+      - name: compose-tests
+        id: compose_tests
+        run: ../check.sh --verbose test-rust-compose
+      - name: compose-test-logs
+        if: failure() && steps.compose_tests.outcome == 'failure'
+        run: cd ../compose && make rust-test-environment-logs
+      - name: compose-test-cleanup
+        if: always() && steps.compose_tests.outcome != 'skipped'
+        run: cd ../compose && make rust-test-environment-down

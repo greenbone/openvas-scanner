@@ -368,9 +368,9 @@ impl Config {
         }
     }
 
-    fn from_file<P>(path: P) -> Self
+    pub fn from_file<P>(path: P) -> Self
     where
-        P: AsRef<std::path::Path> + std::fmt::Display + std::fmt::Debug,
+        P: AsRef<std::path::Path>,
     {
         let config = std::fs::read_to_string(path).unwrap();
 

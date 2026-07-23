@@ -1,0 +1,6 @@
+[notus]
+products_path = 'examples/feed/notus/products'
+advisories_path = 'examples/feed/notus/advisories'
+
+[scanner]
+type = 'openvasd'

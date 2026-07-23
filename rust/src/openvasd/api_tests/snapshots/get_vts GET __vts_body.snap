@@ -1,0 +1,10 @@
+---
+source: src/openvasd/tests/test_builder.rs
+expression: self.inner
+---
+[
+  "1.3.6.1.4.1.25623.1.1.1.1.2024.1000",
+  "1.3.6.1.4.1.25623.1.1.1.1.2024.1001",
+  "1.3.6.1.4.1.25623.1.1.1.2.2024.3731",
+  "plugin_feed_info.inc",
+]

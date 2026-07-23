@@ -27,7 +27,6 @@ Targets:
               Build C scanner targets for CodeQL.
   ci-railguard
               Build and verify a railguard image. Requires RAILGUARD_SYSTEM.
-  ci-smokey   Run compose smoketests. Requires OPENVAS_IMAGE.
   ci-feed-syntax
               Run scannerctl feed syntax checks.
   ci-nasl-tests
@@ -35,6 +34,10 @@ Targets:
   ci-nasl-lint
               Run openvas-nasl-lint smoketest.
   test-rust   Run Rust unit tests.
+  test-rust-compose
+              Run Rust tests that require the compose test environment.
+              Set INSTA_FROM_COMPOSE=1 to collect pending snapshots from
+              compose and review them from the host.
   test-c      Run C unit tests.
   test        Run all tests.
   local       Run locally useful checks, fastest first.
@@ -154,6 +157,23 @@ test_rust() {
     run cargo test --lib --tests --workspace --features native-rust-ssh
 }
 
+test_rust_compose() {
+    if [[ "${INSTA_FROM_COMPOSE:-0}" == "1" ]]; then
+        local pending_dir="$ROOT/.insta-pending"
+        mkdir -p "$pending_dir"
+
+        cd "$ROOT/compose"
+        run make rust-test \
+            "RUST_TEST_RUN_ARGS=-e INSTA_UPDATE=new -e INSTA_FORCE_PASS=1 -e INSTA_PENDING_DIR=/insta-pending -v $pending_dir:/insta-pending"
+
+        cd "$ROOT/rust"
+        run env "INSTA_PENDING_DIR=$pending_dir" cargo insta review
+    else
+        cd "$ROOT/compose"
+        run make rust-test
+    fi
+}
+
 test_c() {
     cd "$ROOT"
     version_command cmake --version
@@ -175,17 +195,6 @@ ci_railguard() {
     run docker run --rm test /usr/local/bin/openvasd -h
     run docker run --rm test /usr/local/bin/scannerctl -h
     docker rmi test || true
-}
-
-ci_smokey() {
-    cd "$ROOT"
-    : "${OPENVAS_IMAGE:?OPENVAS_IMAGE is required}"
-    (cd compose && OPENVAS_IMAGE="$OPENVAS_IMAGE" make test-environment-running)
-    for attempt in 1 2; do
-        (cd compose/tests/smoketest && make > /dev/null 2>&1) && return 0
-        echo "smokey failed on attempt $attempt, retrying..."
-    done
-    (cd compose/tests/smoketest && make)
 }
 
 ci_feed_syntax() {
@@ -274,9 +283,6 @@ case "$target" in
     ci-railguard)
         ci_railguard
         ;;
-    ci-smokey)
-        ci_smokey
-        ;;
     ci-feed-syntax)
         ci_feed_syntax
         ;;
@@ -288,6 +294,9 @@ case "$target" in
         ;;
     test-rust)
         test_rust
+        ;;
+    test-rust-compose)
+        test_rust_compose
         ;;
     test-c)
         test_c

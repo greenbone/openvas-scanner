@@ -6,6 +6,8 @@
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
 
+#[cfg(test)]
+mod api_tests;
 mod config;
 mod container_image_scanner;
 mod crypt;
@@ -23,7 +25,7 @@ use std::{
 
 use config::{Config, StorageType};
 use container_image_scanner::config::{DBLocation, SqliteConfiguration};
-use greenbone_scanner_framework::{RuntimeBuilder, ServerCertificate};
+use greenbone_scanner_framework::{End, RuntimeBuilder, ServerCertificate};
 use notus::config_to_products;
 use scannerlib::models::FeedState;
 use scannerlib::utils::version::show_version;
@@ -60,15 +62,7 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     Ok(result)
 }
 
-async fn _main() -> Result<i32> {
-    let config = Config::load();
-    let _guard = config.logging.init();
-
-    show_version("openvasd");
-    if config.version {
-        return Ok(0);
-    }
-
+async fn build_runtime(config: Config) -> Result<RuntimeBuilder<End>> {
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
     let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
@@ -112,14 +106,25 @@ async fn _main() -> Result<i32> {
     )
     .await?;
 
-    rb.insert_scans(Arc::new(scan))
+    Ok(rb
+        .insert_scans(Arc::new(scan))
         .insert_get_vts(vts.clone())
         .max_concurrent_connections(config.storage.max_http_connections())
         .add_request_handler(get_notus)
         .add_request_handler(post_notus)
-        .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts))
-        .run_blocking()
-        .await
+        .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts)))
+}
+
+async fn _main() -> Result<i32> {
+    let config = Config::load();
+    let _guard = config.logging.init();
+
+    show_version("openvasd");
+    if config.version {
+        return Ok(0);
+    }
+
+    build_runtime(config).await?.run_blocking().await
 }
 
 #[tokio::main]
