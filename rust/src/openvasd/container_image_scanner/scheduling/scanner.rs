@@ -10,9 +10,9 @@ use crate::{
         benchy::{self, BenchType, Benched, Measured},
         detection::{self, OperatingSystem},
         image::{
-            Digest, Image, ImageParseError, ImageState, Registry, RegistryError,
+            Digest, Image, ImageParseError, ImageState, RegistryError,
             extractor::{self, Extractor, Locator},
-            packages::ToNotus,
+            packages::AllTypes,
         },
         messages::{self, CustomerMessage, DetailPair},
         notus,
@@ -156,7 +156,7 @@ impl Measured<ImageResults> {
     }
 }
 
-async fn scan_arch_image<L, T>(
+async fn scan_arch_image<L>(
     products: Arc<RwLock<Notus>>,
     locator: &L,
     image: String,
@@ -164,12 +164,11 @@ async fn scan_arch_image<L, T>(
 ) -> Result<ImageResults, ScannerArchImageError>
 where
     L: Locator + Send + Sync,
-    T: ToNotus,
 {
     use detection::OperatingSystemDetectionError as OSDE;
     match detection::operating_system(locator).await {
         Ok(os) => {
-            let packages = T::packages(locator).await;
+            let packages = AllTypes::packages(locator).await;
 
             let results = if packages.is_empty() {
                 // This can also happen if a container image does not have a package DB anymore (e.g. the
@@ -210,17 +209,13 @@ async fn is_digest_excluded(
         false
     }
 }
-async fn download_and_extract_image<'a, E, R>(
+async fn download_and_extract_image<'a>(
     config: Arc<Config>,
     pool: &DataBase,
-    registry: &'a super::InitializedRegistry<'a, R>,
+    registry: &'a super::InitializedRegistry<'a>,
     image: Image,
-) -> Result<(Digest, E, Vec<Benched>), ScannerError>
-where
-    E: Extractor + Send + Sync,
-    R: Registry + Send + Sync,
-{
-    let mut extractor = E::initialize(config.clone(), registry.id.clone()).await?;
+) -> Result<(Digest, Extractor, Vec<Benched>), ScannerError> {
+    let mut extractor = Extractor::initialize(config.clone(), registry.id.clone()).await?;
     let mut results = Vec::new();
     let mut digest = None;
 
@@ -263,16 +258,12 @@ where
     Ok((digest.unwrap_or_default(), extractor, results))
 }
 
-async fn retry_download_and_extract_image<'a, E, R>(
+async fn retry_download_and_extract_image<'a>(
     config: Arc<Config>,
     pool: &DataBase,
-    registry: &'a super::InitializedRegistry<'a, R>,
+    registry: &'a super::InitializedRegistry<'a>,
     image: &Image,
-) -> Result<(Image, E), ScannerError>
-where
-    E: Extractor + Send + Sync,
-    R: Registry + Send + Sync,
-{
+) -> Result<(Image, Extractor), ScannerError> {
     // alternatively set back to pending and store retry amount alongside the image
     let mut retries = config.image.scanning_retries;
     loop {
@@ -293,17 +284,12 @@ where
     }
 }
 
-pub async fn scan_image<'a, E, R, T>(
+pub async fn scan_image<'a>(
     config: Arc<Config>,
     pool: DataBase,
     products: Arc<RwLock<Notus>>,
-    registry: &'a super::InitializedRegistry<'a, R>,
-) -> Result<(), Vec<ScannerError>>
-where
-    E: Extractor + Send + Sync,
-    R: Registry + Send + Sync,
-    T: ToNotus,
-{
+    registry: &'a super::InitializedRegistry<'a>,
+) -> Result<(), Vec<ScannerError>> {
     let image: Image = registry
         .id
         .image()
@@ -311,14 +297,14 @@ where
         .map_err(|e| vec![ScannerError::from(e)])?;
 
     let (digest, locator_per_arch) =
-        retry_download_and_extract_image::<E, _>(config, &pool, registry, &image)
+        retry_download_and_extract_image(config, &pool, registry, &image)
             .await
             .map_err(|e| vec![e])?;
     let locator_per_arch = locator_per_arch.locator().await;
 
     let mut errors = Vec::with_capacity(locator_per_arch.len());
     for locator in locator_per_arch.iter() {
-        let measured = benchy::measure_result(scan_arch_image::<_, T>(
+        let measured = benchy::measure_result(scan_arch_image(
             products.clone(),
             locator,
             registry.id.image.to_owned(),

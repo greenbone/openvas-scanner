@@ -1,11 +1,9 @@
-pub(crate) mod docker_v2;
+pub(crate) mod docker_v2_registry;
 use std::fmt::Display;
 
-pub use docker_v2::Registry as DockerV2;
+use futures::{Stream, StreamExt};
 
-use super::Image;
 pub(crate) use super::PackedLayer;
-use crate::container_image_scanner::{ParsePreferences, PromiseRef, Streamer};
 
 #[derive(Clone, Debug)]
 pub struct Credential {
@@ -14,25 +12,25 @@ pub struct Credential {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Setting {
+pub enum RegistryPreference {
     /// Allows the usage of insecure connections
     Insecure,
     /// Allows the usage of invalid certificates
     AcceptInvalidCerts,
 }
 
-impl Setting {
+impl RegistryPreference {
     #[cfg(test)]
-    pub fn preference_key(&self) -> &str {
+    pub fn key(&self) -> &str {
         match self {
-            Setting::Insecure => "registry_allow_insecure",
-            Setting::AcceptInvalidCerts => "accept_invalid_certs",
+            RegistryPreference::Insecure => "registry_allow_insecure",
+            RegistryPreference::AcceptInvalidCerts => "accept_invalid_certs",
         }
     }
 }
 
-impl ParsePreferences<Setting> for Setting {
-    fn parse_preference_entry(key: &str, value: &str) -> Option<Setting> {
+impl RegistryPreference {
+    pub(crate) fn parse_preference_entry(key: &str, value: &str) -> Option<RegistryPreference> {
         match key {
             "registry_allow_insecure" if value.parse().unwrap_or_default() => Some(Self::Insecure),
             "accept_invalid_certs" if value.parse().unwrap_or_default() => {
@@ -40,6 +38,17 @@ impl ParsePreferences<Setting> for Setting {
             }
             _ => None,
         }
+    }
+
+    pub async fn parse_preferences(
+        preferences: impl Stream<Item = (String, String)>,
+    ) -> Vec<RegistryPreference> {
+        preferences
+            .filter_map(
+                |(k, v)| async move { Self::parse_preference_entry(k.as_ref(), v.as_ref()) },
+            )
+            .collect()
+            .await
     }
 }
 
@@ -141,22 +150,4 @@ impl Display for RegistryError {
             todo!()
         }
     }
-}
-
-pub trait Registry {
-    fn initialize(
-        credential: Option<Credential>,
-        settings: Vec<Setting>,
-    ) -> Result<Self, RegistryError>
-    where
-        Self: Sized + Send + Sync;
-
-    /// Resolves all images if the given image is not complete.
-    ///
-    /// This means that if only the registry is set then it tries to get all images of that
-    /// registry. If the tag is missing it tries to get all tag variations. If everything is set it
-    /// will just return the given image.
-    fn resolve_image(&self, image: Image) -> PromiseRef<'_, Vec<Result<Image, RegistryError>>>;
-
-    fn pull_image(&self, image: Image) -> Streamer<Result<PackedLayer, RegistryError>>;
 }
