@@ -198,6 +198,9 @@ capture_next_packet (int bpf, int timeout, int *sz)
       struct ip *ip;
 
       ip = (struct ip *) (packet + dl_len);
+      if (len <= dl_len)
+        return NULL;
+
 #ifdef BSD_BYTE_ORDERING
       ip->ip_len = ntohs (ip->ip_len);
       ip->ip_off = ntohs (ip->ip_off);
@@ -313,6 +316,8 @@ capture_next_v6_packet (int bpf, int timeout, int *sz)
     {
       struct ip6_hdr *ip6;
       ip6 = (struct ip6_hdr *) (packet + dl_len);
+      if (len <= dl_len)
+        return NULL;
 #ifdef BSD_BYTE_ORDERING
       ip6->ip6_plen = ntohs (ip6->ip6_plen);
 #endif
