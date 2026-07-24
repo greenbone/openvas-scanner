@@ -106,8 +106,12 @@ o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc)
 
   while (fgets (line, MAX_LINE_LENGTH, file))
     {
+      int l_len;
       line[strcspn (line, "\n")] = 0;
-      last_element = strlen (line) - 1;
+      l_len = strlen (line);
+      if (l_len == 0)
+        continue;
+      last_element = l_len - 1;
       SKIP_WS (line, last_element, 0, i);
       if (line[i] == '[' && line[last_element] == ']')
         {

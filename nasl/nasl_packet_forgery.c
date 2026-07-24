@@ -2106,7 +2106,7 @@ forge_igmp_packet (lex_ctxt *lexic)
       if (data != NULL)
         {
           char *ptmp = (char *) (pkt + ip->ip_hl * 4 + sizeof (struct igmp));
-          bcopy (ptmp, data, len);
+          bcopy (data, ptmp, len);
         }
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;
