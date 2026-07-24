@@ -201,7 +201,11 @@ if (ENABLE_COVERAGE)
   set (COVERAGE_FLAGS "--coverage")
 endif (ENABLE_COVERAGE)
 
-set (HARDENING_FLAGS            "-Wformat -Wformat-security -D_FORTIFY_SOURCE=2 -fstack-protector")
+set (HARDENING_FLAGS            "-Wformat -Wformat-security -fstack-protector")
+if (NOT CMAKE_C_FLAGS MATCHES "(^|[ ;])-D_FORTIFY_SOURCE="
+    AND NOT CMAKE_C_FLAGS_RELEASE MATCHES "(^|[ ;])-D_FORTIFY_SOURCE=")
+  set (HARDENING_FLAGS          "${HARDENING_FLAGS} -D_FORTIFY_SOURCE=2")
+endif ()
 set (LINKER_HARDENING_FLAGS     "-Wl,-z,relro -Wl,-z,now")
 # The "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1" is necessary for GPGME!
 set (GPGME_C_FLAGS              "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1")
