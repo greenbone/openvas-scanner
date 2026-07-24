@@ -214,6 +214,18 @@ where
         id: String,
     ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
         Box::pin(async move {
+            // Ensure the scan is not running.
+            let internal_id: i64 = id
+                .parse()
+                .map_err(|e| DeleteScansIDError::External(Box::new(e)))?;
+            let status: models::Status = ScanDB::new(&self.pool, internal_id)
+                .fetch()
+                .await
+                .map_err(|e| DeleteScansIDError::External(Box::new(e)))?;
+            if status.is_running() {
+                return Err(DeleteScansIDError::Running);
+            }
+
             // everything else should have ON DELETE CASCADE
             ScanDB::new(&self.pool, id)
                 .exec()
