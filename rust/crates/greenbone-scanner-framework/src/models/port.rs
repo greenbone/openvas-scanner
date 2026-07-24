@@ -95,18 +95,8 @@ impl AsRef<str> for Protocol {
 
 pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
     fn add_range_to_list(list: &mut String, start: usize, end: Option<usize>) {
-        // Add range
-        if let Some(end) = end {
-            for p in start..=end {
-                list.push_str(p.to_string().as_str());
-                list.push(',');
-            }
-
-        // Add single port
-        } else {
-            list.push_str(start.to_string().as_str());
-            list.push(',');
-        }
+        list.push_str(PortRange { start, end }.to_string().as_str());
+        list.push(',');
     }
     if ports.is_empty() {
         return None;
@@ -195,7 +185,23 @@ mod tests {
         ];
         assert_eq!(
             ports_to_openvas_port_list(ports),
-            Some("T:22,23,24,25,80,1000,U:30,31,32,33,34,35,36,37,38,39,40,5060,1000,".to_string())
+            Some("T:22-25,80,1000,U:30-40,5060,1000,".to_string())
+        );
+    }
+
+    #[test]
+    fn test_port_conversion_keeps_large_ranges_compact() {
+        let ports = vec![Port {
+            protocol: Some(Protocol::TCP),
+            range: vec![PortRange {
+                start: 1,
+                end: Some(65535),
+            }],
+        }];
+
+        assert_eq!(
+            ports_to_openvas_port_list(ports),
+            Some("T:1-65535,".to_string())
         );
     }
 }
