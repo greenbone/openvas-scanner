@@ -135,7 +135,7 @@ nasl_http2_close_handle (lex_ctxt *lexic)
 
   for (table_slot = 0; table_slot < MAX_HANDLES; table_slot++)
     {
-      if (handle_table[table_slot]->handle_id == handle_id)
+      if (handle_table[table_slot] != NULL && handle_table[table_slot]->handle_id == handle_id)
         {
           curl_easy_cleanup (handle_table[table_slot]->handle);
           handle_table[table_slot]->handle = NULL;
