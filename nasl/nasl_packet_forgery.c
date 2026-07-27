@@ -1866,7 +1866,7 @@ forge_icmp_packet (lex_ctxt *lexic)
   size_t ip_sz;
   struct icmp *icmp;
   char *data, *p;
-  size_t len;
+  size_t data_len, payload_len;
   u_char *pkt;
   int t;
 
@@ -1880,21 +1880,32 @@ forge_icmp_packet (lex_ctxt *lexic)
     }
 
   data = get_str_var_by_name (lexic, "data");
-  len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
+  data_len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
 
   t = get_int_var_by_name (lexic, "icmp_type", 0);
 
   // timestamp icmp types have a fixed lenght payload of 12 bytes
-  if ((t == 13 || t == 14) && (12 != len))
+  if (t == 13 || t == 14)
     {
-      nasl_perror (lexic, "forge_icmp_packet: malformed packet. type 13/14 "
-                          "have a fixed length of 12 bytes\n");
-      return NULL;
+      if (data != NULL && data_len != 12)
+        {
+          nasl_perror (
+                       lexic,
+                       "forge_icmp_packet: malformed packet: ICMP type 13/14 "
+                       "data must have a length of 12 bytes\n");
+          return NULL;
+        }
+      payload_len = 3 * sizeof (uint32_t); // 12 bytes =  4 bytes for each timestamp
     }
+  else
+    {
+      payload_len = data_len;
+    }
+    
   if (ip->ip_hl * 4 > ip_sz)
     return NULL;
 
-  pkt = g_malloc0 (sizeof (struct icmp) + ip_sz + len);
+  pkt = g_malloc0 (sizeof (struct icmp) + ip_sz + payload_len);
   ip_icmp = (struct ip *) pkt;
 
   bcopy (ip, ip_icmp, ip_sz);
@@ -1902,7 +1913,7 @@ forge_icmp_packet (lex_ctxt *lexic)
     {
       if (get_int_var_by_name (lexic, "update_ip_len", 1) != 0)
         {
-          ip_icmp->ip_len = FIX (ip->ip_hl * 4 + 8 + len);
+          ip_icmp->ip_len = FIX (ip->ip_hl * 4 + 8 + payload_len);
           ip_icmp->ip_sum = 0;
           ip_icmp->ip_sum = np_in_cksum ((u_short *) ip_icmp, ip->ip_hl * 4);
         }
@@ -1916,16 +1927,16 @@ forge_icmp_packet (lex_ctxt *lexic)
   icmp->icmp_id = htons (get_int_var_by_name (lexic, "icmp_id", 0));
 
   if (data != NULL)
-    bcopy (data, &(p[8]), len);
+    bcopy (data, &(p[8]), data_len);
 
   if (get_int_var_by_name (lexic, "icmp_cksum", -1) == -1)
-    icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len + 8);
+    icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, payload_len + 8);
   else
     icmp->icmp_cksum = htons (get_int_var_by_name (lexic, "icmp_cksum", 0));
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = (char *) pkt;
-  retc->size = ip_sz + len + 8;
+  retc->size = ip_sz + payload_len + 8;
 
   return retc;
 }
