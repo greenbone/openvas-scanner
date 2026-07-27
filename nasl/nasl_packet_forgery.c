@@ -1891,13 +1891,13 @@ forge_icmp_packet (lex_ctxt *lexic)
     {
       if (data != NULL && data_len != 12)
         {
-          nasl_perror (
-                       lexic,
+          nasl_perror (lexic,
                        "forge_icmp_packet: malformed packet: ICMP type 13/14 "
                        "data must have a length of 12 bytes\n");
           return NULL;
         }
-      payload_len = 3 * sizeof (uint32_t); // 12 bytes =  4 bytes for each timestamp
+      payload_len =
+        3 * sizeof (uint32_t); // 12 bytes =  4 bytes for each timestamp
     }
   else
     {
