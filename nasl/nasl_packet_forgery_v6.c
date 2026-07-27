@@ -1584,10 +1584,11 @@ get_udp_v6_element (lex_ctxt *lexic)
         }
 
       sz = udp_len - sizeof (struct udphdr);
+      // Truncate and avoid over read.
       if (sz > ipsz - ip_hdr_offset - sizeof (struct udphdr))
         {
           nasl_perror (lexic, "get_udp_element: over read of data field\n");
-          return NULL;
+          sz = ipsz - ip_hdr_offset - sizeof (struct udphdr);
         }
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = g_malloc0 (sz);

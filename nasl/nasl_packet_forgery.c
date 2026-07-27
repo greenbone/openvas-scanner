@@ -1662,11 +1662,13 @@ get_udp_element (lex_ctxt *lexic)
         }
 
       sz = udp_len - sizeof (struct udphdr);
+      // Avoid over read. Truncate the data instead.
       if (sz > ipsz - ip_hdr_offset - sizeof (struct udphdr))
         {
           nasl_perror (lexic, "get_udp_element: over read of data field\n");
-          return NULL;
+          sz = ipsz - ip_hdr_offset - sizeof (struct udphdr);
         }
+
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = g_malloc0 (sz);
       retc->size = sz;
@@ -1901,7 +1903,7 @@ forge_icmp_packet (lex_ctxt *lexic)
     {
       payload_len = data_len;
     }
-    
+
   if (ip->ip_hl * 4 > ip_sz)
     return NULL;
 
