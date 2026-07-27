@@ -31,6 +31,19 @@ use crate::{
 
 const LOCK_FILE: &str = "feed-update.lock";
 
+/// Phases a scan can be set to 'requested' from.
+///
+/// - 'stored': the scan was never started.
+/// - 'stopped': the scan was stopped by a client and is continued.
+/// - 'failed': the scan was interrupted; either the scan itself failed, or it was still running
+///   when openvasd went down (see `running_to_failed`), or starting it at the scanner failed. In
+///   each of those cases the scan is not running anywhere, so a client must be able to start it
+///   again.
+///
+/// 'requested' and 'running' are left out on purpose, a scan that is already on its way must not
+/// be restarted. 'succeeded' is left out as well, a finished scan is started as a new scan.
+const STARTABLE_PHASES: [&str; 3] = ["stored", "stopped", "failed"];
+
 #[derive(Default, Debug)]
 struct IsInProgress {
     need_approval_nasl: bool,
@@ -165,12 +178,28 @@ impl<T, C> ScanScheduler<T, C> {
     }
 
     async fn scan_to_requested(&self, id: i64) -> R<()> {
-        self.scan_state
-            .change_state(id, "stored", "requested")
-            .await?;
-        self.scan_state
-            .change_state(id, "stopped", "requested")
-            .await?;
+        let mut changed = false;
+        for phase in STARTABLE_PHASES {
+            changed |= self.scan_state.change_state(id, phase, "requested").await?;
+        }
+
+        if !changed {
+            // Nothing to do for the scheduler, therefore we tell why the start request had no
+            // effect. Without that a start of e.g. an already running scan is silently ignored.
+            let phase = match self.scan_state.scan_get_status(id).await {
+                Ok(status) => status.status.to_string(),
+                Err(error) => {
+                    tracing::warn!(id, %error, "Unable to get status of scan to be started.");
+                    return Ok(());
+                }
+            };
+            tracing::warn!(
+                id,
+                phase = %phase,
+                startable_phases = ?STARTABLE_PHASES,
+                "Ignoring start of scan because it is not in a phase it can be started from."
+            );
+        }
 
         Ok(())
     }
@@ -693,6 +722,44 @@ pub(crate) mod tests {
         assert_eq!(
             status.iter().filter(|s| s as &str == "requested").count(),
             status.len()
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn start_interrupted_scan() -> TR {
+        // Scans that were still running when openvasd went down are set to failed. They are not
+        // running anywhere anymore, so a client (e.g. gvmd resuming an interrupted task) must be
+        // able to start them again.
+        let (under_test, known_scans) = setup_test_env().await?;
+
+        for id in known_scans.iter() {
+            under_test
+                .on_user_action(&Message::Start(id.to_string()))
+                .await?;
+        }
+        under_test.on_schedule().await?;
+        under_test.running_to_failed().await?;
+        let failed: i64 = query_scalar("SELECT count(id) FROM scans WHERE status = 'failed'")
+            .fetch_one(&under_test.pool)
+            .await?;
+        assert_eq!(failed as usize, under_test.max_concurrent_scan);
+
+        for id in known_scans.iter() {
+            under_test
+                .on_user_action(&Message::Start(id.to_string()))
+                .await?;
+        }
+
+        let status: Vec<String> = query_scalar("SELECT status FROM scans")
+            .fetch_all(&under_test.pool)
+            .await?;
+        assert_eq!(status.len(), known_scans.len());
+        assert_eq!(
+            status.iter().filter(|s| s as &str == "requested").count(),
+            status.len(),
+            "interrupted scans must be requested again, got {status:?}"
         );
 
         Ok(())

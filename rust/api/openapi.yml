@@ -345,9 +345,11 @@ paths:
           description: "Scan not found"
     post:
       description: "This endpoint is used to perform an action on the scan. The scan can be either started
-        or stopped. Notice, that only a stored scan can be started and only a running scan can be
-        stopped. To create a scan, use [POST /scans](#/scan/create_scan). After it is created, the
-        scan is in the status stored."
+        or stopped. Notice, that only a scan in the status stored, stopped or failed can be started
+        and only a running scan can be stopped. Starting a stopped or failed scan continues it,
+        which is used to resume a scan that was stopped by a client or that was interrupted, e.g.
+        because the scanner went down while it was running. To create a scan, use
+        [POST /scans](#/scan/create_scan). After it is created, the scan is in the status stored."
       operationId: "scan_action"
       tags:
       - "scan"
