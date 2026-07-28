@@ -10,7 +10,7 @@ Prerequisites for openvas
 
 Prerequisites:
 * a C compiler (e.g. gcc)
-* cmake >= 3.0
+* cmake >= 3.10
 * libgvm_base, libgvm_util >= 22.4
 * glib-2.0 >= 2.42
 * gio-2.0
@@ -60,7 +60,6 @@ Install prerequisites on Debian GNU/Linux 'Bullseye' 11:
     libglib2.0-dev libjson-glib-dev libpcap-dev libgpgme-dev bison libksba-dev \
     libsnmp-dev libgcrypt20-dev redis-server libbsd-dev libcurl4-gnutls-dev \
     krb5-multidev libmagic-dev
- 
 
 
 Compiling openvas
