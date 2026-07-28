@@ -622,7 +622,8 @@ where
             let executor = nasl_std_executor();
             let notus = config
                 .notus
-                .address
+                .route
+                .clone()
                 .map(scannerlib::nasl::utils::scan_ctx::NotusCtx::Address);
             let storage = ScanStorage::new(pool.clone());
             let scanner = OpenvasdScanner::new(storage, loader, executor, notus);

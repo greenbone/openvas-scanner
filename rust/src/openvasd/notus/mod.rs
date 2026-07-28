@@ -164,7 +164,7 @@ mod tests {
         let notus = crate::config::Notus {
             advisories_path,
             products_path,
-            address: None,
+            route: None,
         };
 
         Config {

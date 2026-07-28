@@ -58,7 +58,7 @@ struct ScriptArgs {
     timeout: Option<u32>,
     #[clap(long = "vendor")]
     vendor_version: Option<String>,
-    /// Notus configuration. Use "<IP:PORT>" to connect to a running Notus
+    /// Notus configuration. Use "<URL>" to connect to a running Notus
     /// instance or "<PATH>" to product files to use the internal
     /// implementation. If not given Notus will be disabled.
     #[clap(short, long = "notus")]
@@ -77,7 +77,7 @@ struct ScanArgs {
     /// Target to scan.
     #[clap(short, long)]
     target: Option<String>,
-    /// Notus configuration. Use "<IP:PORT>" to connect to a running Notus
+    /// Notus configuration. Use "<URL>" to connect to a running Notus
     /// instance or "<PATH>" to product files to use the internal
     /// implementation. If not given Notus will be disabled.
     #[clap(short, long = "notus")]

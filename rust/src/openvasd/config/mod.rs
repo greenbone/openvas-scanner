@@ -42,7 +42,10 @@ pub struct Feed {
 pub struct Notus {
     pub products_path: PathBuf,
     pub advisories_path: PathBuf,
-    pub address: Option<SocketAddr>,
+    /// Full URL to reach notus on, including the endpoint path
+    /// (e.g. `http://127.0.0.1:3001/notus`). If not set, the internal notus
+    /// implementation is used.
+    pub route: Option<url::Url>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -126,7 +129,7 @@ impl Default for Notus {
         Notus {
             products_path: PathBuf::from("/var/lib/notus/products"),
             advisories_path: PathBuf::from("/var/lib/notus/advisories"),
-            address: None,
+            route: None,
         }
     }
 }
@@ -450,10 +453,10 @@ impl Config {
                 clap::Arg::new("notus-address")
                     .env("NOTUS_ADDRESS")
                     .long("notus-address")
-                    .value_name("IP:PORT")
-                    .value_parser(clap::value_parser!(SocketAddr))
+                    .value_name("URL")
+                    .value_parser(clap::value_parser!(url::Url))
                     .action(ArgAction::Set)
-                    .help("the address to reach notus on"))
+                    .help("the URL to reach notus on, including the endpoint path (e.g. http://127.0.0.1:3001/notus)"))
             .arg(
                 clap::Arg::new("redis-url")
                     .long("redis-url")
@@ -691,8 +694,8 @@ impl Config {
         if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
             config.notus.advisories_path.clone_from(path);
         }
-        if let Some(address) = cmds.get_one::<SocketAddr>("notus-address") {
-            config.notus.address = Some(*address);
+        if let Some(address) = cmds.get_one::<url::Url>("notus-address") {
+            config.notus.route = Some(address.clone());
         }
         if let Some(_path) = cmds.get_one::<String>("redis-url") {
             // is actually ignored as on scanner openvas the redis-url of openvas is used

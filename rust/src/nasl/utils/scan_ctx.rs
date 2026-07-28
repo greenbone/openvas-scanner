@@ -31,7 +31,7 @@ use super::error::ReturnBehavior;
 use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{FnError, Register};
-use std::net::{IpAddr, SocketAddr};
+use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -274,7 +274,9 @@ impl<T> ContextStorage for T where
 #[derive(Clone)]
 pub enum NotusCtx {
     Direct(Arc<Mutex<Notus>>),
-    Address(SocketAddr),
+    /// Full URL to reach notus on, including the endpoint path
+    /// (e.g. `http://127.0.0.1:3001/notus`).
+    Address(url::Url),
 }
 
 /// NASL execution context.
