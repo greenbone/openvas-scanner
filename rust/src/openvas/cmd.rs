@@ -5,8 +5,9 @@
 use configparser::ini::Ini;
 use std::{
     io::Result,
-    process::{Child, Command},
+    path::{Path, PathBuf},
 };
+use tokio::process::{Child, Command};
 
 /// Check if it is possible to start openvas with the sudo command. In most
 /// environments it is necessary to start openvas as sudo, as it is not possible
@@ -18,8 +19,8 @@ pub fn check_sudo() -> bool {
 }
 
 /// Read the openvas configuration.
-pub fn read_openvas_config() -> Result<Ini> {
-    let oconfig = Command::new("openvas").arg("-s").output()?;
+pub async fn read_openvas_config() -> Result<Ini> {
+    let oconfig = Command::new("openvas").arg("-s").output().await?;
 
     let mut config = Ini::new();
     let oconfig = oconfig.stdout.iter().map(|x| *x as char).collect();
@@ -30,8 +31,8 @@ pub fn read_openvas_config() -> Result<Ini> {
 }
 
 /// Get the path to the redis unix socket from openvas configuration
-pub fn get_redis_socket() -> String {
-    if let Ok(config) = read_openvas_config() {
+pub async fn get_redis_socket() -> String {
+    if let Ok(config) = read_openvas_config().await {
         return match config.get("default", "db_address") {
             Some(setting) => format!("unix://{setting}"),
             None => String::new(),
@@ -41,11 +42,12 @@ pub fn get_redis_socket() -> String {
 }
 
 /// Get the plugin folder from openvas configuration
-pub fn get_plugins_folder() -> String {
-    if let Ok(config) = read_openvas_config() {
-        return config.get("default", "plugins_folder").unwrap_or_default();
+pub async fn get_plugins_folder() -> PathBuf {
+    if let Ok(config) = read_openvas_config().await {
+        return Path::new(&config.get("default", "plugins_folder").unwrap_or_default()).into();
     }
-    String::new()
+    // TODO: Really? Is this path ever reached? Does this actually do something useful?
+    Path::new("").into()
 }
 
 /// Start a new scan with the openvas executable with the given string. Before a scan can be

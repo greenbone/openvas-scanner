@@ -217,10 +217,7 @@ pub mod scans_utils {
     use crate::container_image_scanner::{
         Config, MIGRATOR,
         config::DBLocation,
-        image::{
-            DockerRegistryV2, DockerRegistryV2Mock, RegistrySetting, extractor::filtered_image,
-            packages::AllTypes,
-        },
+        image::{DockerRegistryV2Mock, RegistryPreference},
         scheduling::{Scheduler, db::DataBase},
     };
     use scannerlib::notus::products_loader;
@@ -233,9 +230,9 @@ pub mod scans_utils {
         ClientHash::from("second").to_string()
     }
 
-    async fn in_memory_scheduler_and_scan<R, E>(
+    async fn in_memory_scheduler_and_scan(
         config: crate::container_image_scanner::Config,
-    ) -> (Scheduler<R, E>, Scans) {
+    ) -> (Scheduler, Scans) {
         let pool = DataBase::connect(&DBLocation::InMemory.sqlite_address("test"))
             .await
             .expect("inmemory database must be available");
@@ -247,7 +244,7 @@ pub mod scans_utils {
         let products_path: &str =
             concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
-        let scheduler = Scheduler::<R, E>::init(
+        let scheduler = Scheduler::init(
             config.into(),
             pool.clone(),
             products_loader(products_path, false),
@@ -259,7 +256,7 @@ pub mod scans_utils {
     pub struct Fakes {
         registry: DockerRegistryV2Mock,
         pub entry: super::Scans,
-        pub scheduler: Scheduler<DockerRegistryV2, filtered_image::Extractor>,
+        pub scheduler: Scheduler,
     }
 
     impl Fakes {
@@ -336,7 +333,7 @@ pub mod scans_utils {
         pub async fn run_scheduler_rounds(&self, rounds: usize) {
             let conn = Arc::new(Mutex::new(self.scheduler.pool()));
             for _ in 0..rounds {
-                Scheduler::<DockerRegistryV2, filtered_image::Extractor>::start_scans::<AllTypes>(
+                Scheduler::start_scans(
                     self.scheduler.config(),
                     conn.clone(),
                     self.scheduler.products(),
@@ -401,7 +398,7 @@ pub mod scans_utils {
                     hosts: hosts.into_iter().map(Into::into).collect(),
                     ..Default::default()
                 },
-                scan_preferences: vec![(RegistrySetting::Insecure.preference_key(), "true").into()],
+                scan_preferences: vec![(RegistryPreference::Insecure.key(), "true").into()],
                 ..Default::default()
             }
         }
@@ -422,8 +419,7 @@ pub mod scans_utils {
                 credentials,
                 ..Default::default()
             };
-            let scan_preferences =
-                vec![(RegistrySetting::Insecure.preference_key(), "true").into()];
+            let scan_preferences = vec![(RegistryPreference::Insecure.key(), "true").into()];
 
             models::Scan {
                 scan_id: uuid::Uuid::new_v4().to_string(),

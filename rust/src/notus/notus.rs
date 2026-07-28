@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use greenbone_scanner_framework::models::{NotusResults, VulnerablePackage};
 use tracing::debug;
@@ -38,7 +38,7 @@ impl Notus {
 
         Product::try_from(product).map_err(|e| {
             if let Error::VulnerabilityTestParseError(_, pkg) = e {
-                Error::VulnerabilityTestParseError(os.to_string(), pkg)
+                Error::VulnerabilityTestParseError(format!("{os}.notus"), pkg)
             } else {
                 e
             }
@@ -60,7 +60,7 @@ impl Notus {
     }
 
     fn compare<P: Package>(packages: &Vec<P>, vts: &VulnerabilityTests<P>) -> NotusResults {
-        let mut results: NotusResults = HashMap::new();
+        let mut results: NotusResults = BTreeMap::new();
         tracing::trace!(vts_keys = ?vts.keys().collect::<Vec<_>>(), packages=?packages.iter().map(|x|x.get_name()).collect::<Vec<_>>());
         for package in packages {
             let pname = package.get_name();

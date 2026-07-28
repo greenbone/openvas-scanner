@@ -73,7 +73,7 @@ jobs:
         run: ./check.sh --verbose ci-feed-syntax
       - name: verify nasl tests
         run: ./check.sh --verbose ci-nasl-tests
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: '>=1.16.0'
       - name: verify lint

@@ -51,7 +51,7 @@ pub enum Error {
     #[error("Unable to parse the given package {0}")]
     PackageParseError(String),
     /// Unable to parse a package in the notus product file
-    #[error("Unable to parse fixed package information {1:?} in the product {0}")]
+    #[error("malformed entry in vulnerability data file {0}: {1:?}")]
     VulnerabilityTestParseError(String, FixedPackage),
     /// Some issues caused by a HashsumLoader
     #[error("Hashsum verification failed: {0}")]

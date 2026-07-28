@@ -1,5 +1,0 @@
----
-source: src/config.rs
-expression: config
----
-db = 'in-memory'

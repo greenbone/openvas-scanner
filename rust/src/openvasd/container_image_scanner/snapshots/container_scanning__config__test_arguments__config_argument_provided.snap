@@ -1,6 +1,0 @@
----
-source: src/config.rs
-expression: config
----
-db = '/tmp/config_test.db'
-image_extraction_location = '/tmp/container-scanning'

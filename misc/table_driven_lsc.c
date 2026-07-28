@@ -240,7 +240,7 @@ cleanup:
  */
 struct notus_info
 {
-  char *server; // original openvasd server URL
+  char *route;  // original notus route
   char *schema; // schema is http or https
   char *host;   // server hostname
   char *alpn; // Application layer protocol negotiation: http/1.0, http/1.1, h2
@@ -264,7 +264,7 @@ init_notus_info (const char *server)
   notusdata = g_malloc0 (sizeof (struct notus_info));
   if (!notusdata)
     return NULL;
-  notusdata->server = g_strdup (server);
+  notusdata->route = g_strdup (server);
   return notusdata;
 }
 
@@ -277,7 +277,7 @@ free_notus_info (notus_info_t notusdata)
 {
   if (notusdata)
     {
-      g_free (notusdata->server);
+      g_free (notusdata->route);
       g_free (notusdata->schema);
       g_free (notusdata->host);
       g_free (notusdata->alpn);
@@ -366,9 +366,9 @@ parse_server (notus_info_t *notusdata)
   if (!notusdata)
     return -1;
 
-  if (curl_url_set (h, CURLUPART_URL, (*notusdata)->server, 0) > 0)
+  if (curl_url_set (h, CURLUPART_URL, (*notusdata)->route, 0) > 0)
     {
-      g_warning ("%s: Error parsing URL %s", __func__, (*notusdata)->server);
+      g_warning ("%s: Error parsing URL %s", __func__, (*notusdata)->route);
       return -1;
     }
 
@@ -380,7 +380,7 @@ parse_server (notus_info_t *notusdata)
     {
       g_warning ("%s: Invalid URL %s. It must be in format: "
                  "schema://host:port. E.g. http://localhost:8080",
-                 __func__, (*notusdata)->server);
+                 __func__, (*notusdata)->route);
       curl_url_cleanup (h);
       curl_free (schema);
       curl_free (host);
@@ -411,7 +411,7 @@ parse_server (notus_info_t *notusdata)
     }
   else
     {
-      g_warning ("%s: Invalid openvasd server schema", (*notusdata)->server);
+      g_warning ("%s: Invalid openvasd server schema", (*notusdata)->route);
       curl_url_cleanup (h);
       curl_free (schema);
       curl_free (host);
@@ -924,7 +924,7 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
               char **response)
 {
   CURL *curl;
-  GString *url = NULL;
+  GString *route = NULL;
   long http_code = -1;
   struct string resp;
   struct curl_slist *customheader = NULL;
@@ -937,10 +937,8 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
       return http_code;
     }
 
-  url = g_string_new (notusdata->server);
-  g_string_append (url, "/notus/");
+  route = g_string_new (notusdata->route);
 
-  //
   os_aux = help_tolower (g_strdup (os));
   for (size_t i = 0; i < strlen (os_aux); i++)
     {
@@ -948,18 +946,21 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
         os_aux[i] = '_';
     }
 
-  g_string_append (url, os_aux);
+  if (route->len == 0 || route->str[route->len - 1] != '/')
+    g_string_append_c (route, '/');
+
+  g_string_append (route, os_aux);
   g_free (os_aux);
 
-  g_debug ("%s: URL: %s", __func__, url->str);
+  g_debug ("%s: URL: %s", __func__, route->str);
   // Set URL
-  if (curl_easy_setopt (curl, CURLOPT_URL, g_strdup (url->str)) != CURLE_OK)
+  if (curl_easy_setopt (curl, CURLOPT_URL, g_strdup (route->str)) != CURLE_OK)
     {
       g_warning ("Not possible to set the URL");
       curl_easy_cleanup (curl);
       return http_code;
     }
-  g_string_free (url, TRUE);
+  // g_string_free (route, TRUE);
 
   // Accept an insecure connection. Don't verify the server certificate
   curl_easy_setopt (curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -989,7 +990,8 @@ send_request (notus_info_t notusdata, const char *os, const char *pkg_list,
   int ret = CURLE_OK;
   if ((ret = curl_easy_perform (curl)) != CURLE_OK)
     {
-      g_warning ("%s: Error sending request: %d", __func__, ret);
+      g_warning ("%s: Error sending request to %s: %d", __func__, route->str,
+                 ret);
       curl_easy_cleanup (curl);
       g_free (resp.ptr);
       return http_code;
@@ -1025,7 +1027,7 @@ lsc_get_response (const char *pkg_list, const char *os)
 
   // Parse the server and get the port, host, schema
   // and necessary information to build the message
-  server = prefs_get ("openvasd_server");
+  server = prefs_get ("notus_route");
   notusdata = init_notus_info (server);
 
   if (parse_server (&notusdata) < 0)
@@ -1178,9 +1180,9 @@ run_table_driven_lsc (const char *scan_id, const char *ip_str,
   if (!os_release || !package_list)
     return 0;
 
-  if (prefs_get ("openvasd_server"))
+  if (prefs_get ("http_lsc_enabled"))
     {
-      g_message ("Running Notus for %s via openvasd", ip_str);
+      g_message ("Running Notus for %s via HTTP", ip_str);
       err = call_rs_notus (ip_str, hostname, package_list, os_release);
 
       return err;

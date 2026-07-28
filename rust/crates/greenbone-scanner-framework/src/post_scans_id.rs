@@ -126,7 +126,7 @@ impl From<PostScansIDError> for BodyKind {
     fn from(e: PostScansIDError) -> Self {
         match e {
             PostScansIDError::External(e) => internal_server_error!(e),
-            PostScansIDError::Running => BodyKind::no_content(StatusCode::NOT_ACCEPTABLE),
+            PostScansIDError::Running => BodyKind::no_content(StatusCode::CONFLICT),
         }
     }
 }
@@ -240,7 +240,7 @@ mod tests {
             .body(json_bytes(&scans))
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NOT_ACCEPTABLE);
+        assert_eq!(resp.status(), StatusCode::CONFLICT);
     }
 
     #[tokio::test]

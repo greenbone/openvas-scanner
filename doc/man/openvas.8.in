@@ -226,7 +226,12 @@ Username for authenticated MQTT communication.
 Password for authenticated MQTT communication.
 
 .IP openvasd_server
-Openvasd server URI to Rust implementation of Notus. It has priority over MQTT settings.
+Openvasd server URI to Rust implementation of Notus. It has priority over mqtt_server_uri setting. It is deprecated
+and will be removed in the next major release. Use notus_route instead.
+
+.IP notus_route
+A route to a Notus endpoint. The value must conain a server uri, as well as the route to its notus endpoint.
+E.g. http://127.0.0.1:3000/notus
 
 .IP x-apikey
 API Key for authenticate against openvasd when Notus Rust implementation is enabled.

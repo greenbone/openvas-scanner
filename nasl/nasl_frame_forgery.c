@@ -35,7 +35,7 @@
 /**
  * @brief GLib logging domain.
  */
-#define G_LOG_DOMAIN "lib  misc"
+#define G_LOG_DOMAIN "lib  nasl"
 
 struct pseudo_eth_arp
 {

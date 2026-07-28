@@ -407,9 +407,9 @@ insert_ip_v6_options (lex_ctxt *lexic)
   int pad_len;
   char zero = '0';
   int i;
-  int pl;
+  size_t pl;
 
-  if (ip6 == NULL)
+  if (ip6 == NULL || value == NULL)
     {
       nasl_perror (lexic,
                    "Usage : %s(ip6:<ip6>, code:<code>, "
@@ -423,6 +423,10 @@ insert_ip_v6_options (lex_ctxt *lexic)
     pad_len = 0;
 
   pl = 40 < UNFIX (ip6->ip6_plen) ? 40 : UNFIX (ip6->ip6_plen);
+
+  if (pl > size)
+    return NULL; // malformed packet.
+
   new_packet = g_malloc0 (size + 4 + value_size + pad_len);
   bcopy (ip6, new_packet, pl);
 
@@ -861,13 +865,18 @@ get_tcp_v6_option (lex_ctxt *lexic)
 
   ip6 = (struct ip6_hdr *) packet;
 
-  /* valid ipv6 header check */
+  /* valid ipv6 header check
+     ipv6 header has a fixed length of 40 bytes and tcp a minimum header size of
+     20 bytes.
+  */
   ipsz = get_var_size_by_name (lexic, "tcp");
+  if (ipsz < sizeof (struct ip6_hdr) + 20)
+    return NULL; /* Invalid packet */
+
   if (UNFIX (ip6->ip6_plen) > ipsz)
     return NULL; /* Invalid packet */
 
   tcp = (struct tcphdr *) (packet + 40);
-
   if (tcp->th_off <= 5)
     return NULL;
 
@@ -1537,6 +1546,7 @@ get_udp_v6_element (lex_ctxt *lexic)
   size_t ipsz;
   struct udphdr *udphdr;
   int ret;
+  size_t ip_hdr_offset = 40; // fixed value for ipv6
 
   udp = get_str_var_by_name (lexic, "udp");
   ipsz = get_var_size_by_name (lexic, "udp");
@@ -1550,10 +1560,10 @@ get_udp_v6_element (lex_ctxt *lexic)
       return NULL;
     }
 
-  if (40 + sizeof (struct udphdr) > ipsz)
+  if (ipsz < ip_hdr_offset + sizeof (struct udphdr))
     return NULL;
 
-  udphdr = (struct udphdr *) (udp + 40);
+  udphdr = (struct udphdr *) (udp + ip_hdr_offset);
   if (!strcmp (element, "uh_sport"))
     ret = ntohs (udphdr->uh_sport);
   else if (!strcmp (element, "uh_dport"))
@@ -1564,16 +1574,26 @@ get_udp_v6_element (lex_ctxt *lexic)
     ret = ntohs (udphdr->uh_sum);
   else if (!strcmp (element, "data"))
     {
-      int sz;
+      size_t sz;
+      size_t udp_len = (size_t) ntohs (udphdr->uh_ulen);
+      if (udp_len < sizeof (struct udphdr))
+        {
+          nasl_perror (lexic,
+                       "get_udp_element: uh_ulen < 8. Buffer underflow\n");
+          return NULL;
+        }
+
+      sz = udp_len - sizeof (struct udphdr);
+      // Truncate and avoid over read.
+      if (sz > ipsz - ip_hdr_offset - sizeof (struct udphdr))
+        {
+          nasl_perror (lexic, "get_udp_element: over read of data field\n");
+          sz = ipsz - ip_hdr_offset - sizeof (struct udphdr);
+        }
       retc = alloc_typed_cell (CONST_DATA);
-      sz = ntohs (udphdr->uh_ulen) - sizeof (struct udphdr);
-
-      if (ntohs (udphdr->uh_ulen) - 40 - sizeof (struct udphdr) > ipsz)
-        sz = ipsz - 40 - sizeof (struct udphdr);
-
       retc->x.str_val = g_malloc0 (sz);
       retc->size = sz;
-      bcopy (udp + 40 + sizeof (struct udphdr), retc->x.str_val, sz);
+      bcopy (udp + ip_hdr_offset + sizeof (struct udphdr), retc->x.str_val, sz);
       return retc;
     }
   else
@@ -2070,7 +2090,7 @@ get_icmp_v6_element (lex_ctxt *lexic)
           if (retc->size > 0)
             {
               retc->x.str_val = g_malloc0 (retc->size + 1);
-              memcpy (retc->x.str_val, &(p[40 + 8]), retc->size + 1);
+              memcpy (retc->x.str_val, &(p[40 + 8]), retc->size);
             }
           else
             {
@@ -2203,7 +2223,7 @@ forge_igmp_v6_packet (lex_ctxt *lexic)
       if (data != NULL)
         {
           char *ptmp = (char *) (pkt + 40 + sizeof (struct igmp6_hdr));
-          bcopy (ptmp, data, len);
+          bcopy (data, ptmp, len);
         }
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;

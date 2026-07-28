@@ -176,12 +176,15 @@ update_running_processes (kb_t main_kb, kb_t kb)
                 }
               else
                 {
-                  struct timeval old_now = now;
+                  long duration_sec =
+                    (long) (now.tv_sec - processes[i].start.tv_sec);
+                  long duration_usec =
+                    (long) (now.tv_usec - processes[i].start.tv_usec);
                   int e;
-                  if (now.tv_usec < processes[i].start.tv_usec)
+                  if (duration_usec < 0)
                     {
-                      processes[i].start.tv_sec++;
-                      now.tv_usec += 1000000;
+                      duration_sec--;
+                      duration_usec += 1000000;
                     }
 
                   if (log_whole)
@@ -189,21 +192,18 @@ update_running_processes (kb_t main_kb, kb_t kb)
                       char *name = nvticache_get_filename (oid);
                       g_message (
                         "%s (%s) [%d] finished its job in %ld.%.3ld seconds",
-                        name, oid, processes[i].pid,
-                        (long) (now.tv_sec - processes[i].start.tv_sec),
-                        (long) ((now.tv_usec - processes[i].start.tv_usec)
-                                / 1000));
+                        name, oid, processes[i].pid, duration_sec,
+                        duration_usec / 1000);
                       g_free (name);
 
                       char msg[2048];
                       g_snprintf (msg, sizeof (msg), "%s/%ld/%ld", oid,
-                                  (long) ((now.tv_sec * 1000)
-                                          + (long) (now.tv_usec / 1000)),
                                   (long) (processes[i].start.tv_sec * 1000
-                                          + processes[i].start.tv_usec / 1000));
+                                          + processes[i].start.tv_usec / 1000),
+                                  (long) ((now.tv_sec * 1000)
+                                          + (long) (now.tv_usec / 1000)));
                       kb_item_push_str (kb, "general/script_stats", msg);
                     }
-                  now = old_now;
                   do
                     {
                       e = waitpid (processes[i].pid, NULL, 0);

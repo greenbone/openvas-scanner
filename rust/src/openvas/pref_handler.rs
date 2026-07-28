@@ -266,7 +266,7 @@ where
     async fn prepare_boreas_alive_test(&mut self) -> RedisStorageResult<()> {
         // Check "test_alive_hosts_only" configuration from openvas.conf
         // If set no, boreas is disabled and alive_host.nasl is used instead.
-        if let Ok(config) = cmd::read_openvas_config()
+        if let Ok(config) = cmd::read_openvas_config().await
             && let Some(setting) = config.get("default", "test_alive_hosts_only")
             && setting == "no"
         {

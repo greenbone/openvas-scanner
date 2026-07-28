@@ -1,13 +1,16 @@
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
 #![allow(clippy::result_large_err)]
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
-use greenbone_scanner_framework::models::{self, FixedVersion, VulnerablePackage};
+use greenbone_scanner_framework::models::{self, FixedVersion};
 use tokio::sync::RwLock;
 
 use crate::container_image_scanner::detection::OperatingSystem;
-use scannerlib::notus::{Notus, NotusError};
+use scannerlib::{
+    models::NotusResults,
+    notus::{Notus, NotusError},
+};
 
 /// Some products have unique requirements that we have to generate somehow.
 ///
@@ -45,8 +48,6 @@ fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
         (_, name) => format!("{}_{}", name, os.version_id),
     }
 }
-
-type NotusResults = HashMap<String, Vec<VulnerablePackage>>;
 
 fn to_result(image: String, digest: Option<String>, results: NotusResults) -> Vec<models::Result> {
     let hostname = Some(image);
@@ -106,10 +107,7 @@ pub async fn vulnerabilities(
     let result = tokio::task::spawn_blocking(move || p.scan(&os, &packages))
         .await
         .unwrap();
-    match result {
-        Ok(x) => Ok(to_result(image, digest, x)),
-        Err(error) => Err(error),
-    }
+    result.map(|result| to_result(image, digest, result))
 }
 
 #[cfg(test)]

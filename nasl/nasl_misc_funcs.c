@@ -660,8 +660,7 @@ nasl_gettimeofday (lex_ctxt *lexic)
   sprintf (str, "%u.%06u", (unsigned int) t.tv_sec, (unsigned int) t.tv_usec);
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (str);
-  retc->x.str_val = g_malloc0 (retc->size);
-  strcpy (retc->x.str_val, str);
+  retc->x.str_val = g_strdup (str);
   return retc;
 }
 

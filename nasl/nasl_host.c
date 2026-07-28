@@ -44,7 +44,7 @@
 /**
  * @brief GLib log domain.
  */
-#define G_LOG_DOMAIN "sd   nasl"
+#define G_LOG_DOMAIN "lib  nasl"
 tree_cell *
 get_hostnames (lex_ctxt *lexic)
 {

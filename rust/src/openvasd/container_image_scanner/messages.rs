@@ -157,7 +157,7 @@ where
 
     pub fn host_detail(image: T, digest: T, detail: DetailPair) -> Self {
         Self::new(
-            models::ResultType::HostDetail,
+            models::ResultType::Log,
             Some(image),
             Some(digest),
             "Host Detail".into(),
@@ -202,8 +202,11 @@ where
 mod test {
 
     use crate::container_image_scanner::{
-        detection::OperatingSystemDetector, messages::DetailPair,
+        detection::OperatingSystemDetector,
+        image::Image,
+        messages::{CustomerMessage, DetailPair},
     };
+    use scannerlib::models;
 
     #[tokio::test]
     async fn test_different_cpe() {
@@ -231,5 +234,29 @@ mod test {
             DetailPair::OSCpe(&os).value(),
             DetailPair::OSCpe(&os_2).value()
         )
+    }
+
+    #[test]
+    fn host_detail_is_reported_as_log_with_image_name() {
+        let image: Image = "registry.example/my/image:latest"
+            .parse()
+            .expect("valid image");
+        let image_name = image.to_string();
+        let digest = image.clone().replace_tag("sha256:abc123".to_string());
+
+        let result: models::Result =
+            CustomerMessage::host_detail(image.clone(), digest, DetailPair::HostName(&image))
+                .into();
+
+        assert_eq!(result.r_type, models::ResultType::Log);
+        assert_eq!(result.hostname.as_deref(), Some(image_name.as_str()));
+        assert_eq!(
+            result.detail.as_ref().map(|detail| detail.name.as_str()),
+            Some("hostname")
+        );
+        assert_eq!(
+            result.detail.as_ref().map(|detail| detail.value.as_str()),
+            Some(image_name.as_str())
+        );
     }
 }

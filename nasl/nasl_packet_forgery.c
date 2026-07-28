@@ -370,9 +370,9 @@ insert_ip_options (lex_ctxt *lexic)
   int pad_len;
   char zero = '0';
   int i;
-  int hl;
+  size_t hl;
 
-  if (ip == NULL)
+  if (ip == NULL || value == NULL)
     {
       nasl_perror (lexic, "Usage : insert_ip_options(ip:<ip>, code:<code>, "
                           "length:<len>, value:<value>\n");
@@ -384,7 +384,11 @@ insert_ip_options (lex_ctxt *lexic)
     pad_len = 0;
 
   hl = ip->ip_hl * 4 < UNFIX (ip->ip_len) ? ip->ip_hl * 4 : UNFIX (ip->ip_len);
+  if (hl > size)
+    return NULL; // malformed.
+
   new_packet = g_malloc0 (size + 4 + value_size + pad_len);
+
   bcopy (ip, new_packet, hl);
 
   uc_code = (u_char) code;
@@ -898,8 +902,12 @@ get_tcp_option (lex_ctxt *lexic)
   ip = (struct ip *) packet;
 
   ipsz = get_var_size_by_name (lexic, "tcp");
+  if (ipsz < (int) sizeof (struct ip))
+    return NULL;
+
+  // check that ip + tcp is bigger that the original packet
   // ip header length is given in 32 bits words = 4 bytes.
-  if (ip->ip_hl * 4 > ipsz)
+  if (ip->ip_hl * 4 + 20 > ipsz)
     return NULL; /* Invalid packet */
 
   if (UNFIX (ip->ip_len) > ipsz)
@@ -1615,6 +1623,7 @@ get_udp_element (lex_ctxt *lexic)
   unsigned int ipsz;
   struct udphdr *udphdr;
   int ret;
+  size_t ip_hdr_offset;
 
   udp = get_str_var_by_name (lexic, "udp");
   ipsz = get_var_size_by_name (lexic, "udp");
@@ -1627,11 +1636,12 @@ get_udp_element (lex_ctxt *lexic)
       return NULL;
     }
   ip = (struct ip *) udp;
+  ip_hdr_offset = ip->ip_hl * 4;
 
-  if (ip->ip_hl * 4 + sizeof (struct udphdr) > ipsz)
+  if (ip_hdr_offset + sizeof (struct udphdr) > ipsz)
     return NULL;
 
-  udphdr = (struct udphdr *) (udp + ip->ip_hl * 4);
+  udphdr = (struct udphdr *) (udp + ip_hdr_offset);
   if (!strcmp (element, "uh_sport"))
     ret = ntohs (udphdr->uh_sport);
   else if (!strcmp (element, "uh_dport"))
@@ -1642,17 +1652,27 @@ get_udp_element (lex_ctxt *lexic)
     ret = ntohs (udphdr->uh_sum);
   else if (!strcmp (element, "data"))
     {
-      int sz;
+      size_t sz;
+      size_t udp_len = (size_t) ntohs (udphdr->uh_ulen);
+      if (udp_len < sizeof (struct udphdr))
+        {
+          nasl_perror (lexic,
+                       "get_udp_element: uh_ulen < 8. Buffer underflow\n");
+          return NULL;
+        }
+
+      sz = udp_len - sizeof (struct udphdr);
+      // Avoid over read. Truncate the data instead.
+      if (sz > ipsz - ip_hdr_offset - sizeof (struct udphdr))
+        {
+          nasl_perror (lexic, "get_udp_element: over read of data field\n");
+          sz = ipsz - ip_hdr_offset - sizeof (struct udphdr);
+        }
+
       retc = alloc_typed_cell (CONST_DATA);
-      sz = ntohs (udphdr->uh_ulen) - sizeof (struct udphdr);
-
-      if (ntohs (udphdr->uh_ulen) - ip->ip_hl * 4 - sizeof (struct udphdr)
-          > ipsz)
-        sz = ipsz - ip->ip_hl * 4 - sizeof (struct udphdr);
-
       retc->x.str_val = g_malloc0 (sz);
       retc->size = sz;
-      bcopy (udp + ip->ip_hl * 4 + sizeof (struct udphdr), retc->x.str_val, sz);
+      bcopy (udp + ip_hdr_offset + sizeof (struct udphdr), retc->x.str_val, sz);
       return retc;
     }
   else
@@ -1848,60 +1868,77 @@ forge_icmp_packet (lex_ctxt *lexic)
   size_t ip_sz;
   struct icmp *icmp;
   char *data, *p;
-  size_t len;
+  size_t data_len, payload_len;
   u_char *pkt;
   int t;
 
   ip = (struct ip *) get_str_var_by_name (lexic, "ip");
   ip_sz = get_var_size_by_name (lexic, "ip");
-  if (ip != NULL)
+
+  if (ip == NULL)
     {
-      data = get_str_var_by_name (lexic, "data");
-      len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
+      nasl_perror (lexic, "forge_icmp_packet: missing 'ip' parameter\n");
+      return NULL;
+    }
 
-      t = get_int_var_by_name (lexic, "icmp_type", 0);
-      if (t == 13 || t == 14)
-        len += 3 * sizeof (time_t);
+  data = get_str_var_by_name (lexic, "data");
+  data_len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
 
-      if (ip->ip_hl * 4 > ip_sz)
-        return NULL;
+  t = get_int_var_by_name (lexic, "icmp_type", 0);
 
-      pkt = g_malloc0 (sizeof (struct icmp) + ip_sz + len);
-      ip_icmp = (struct ip *) pkt;
-
-      bcopy (ip, ip_icmp, ip_sz);
-      if (UNFIX (ip_icmp->ip_len) <= (ip_icmp->ip_hl * 4))
+  // timestamp icmp types have a fixed lenght payload of 12 bytes
+  if (t == 13 || t == 14)
+    {
+      if (data != NULL && data_len != 12)
         {
-          if (get_int_var_by_name (lexic, "update_ip_len", 1) != 0)
-            {
-              ip_icmp->ip_len = FIX (ip->ip_hl * 4 + 8 + len);
-              ip_icmp->ip_sum = 0;
-              ip_icmp->ip_sum =
-                np_in_cksum ((u_short *) ip_icmp, ip->ip_hl * 4);
-            }
+          nasl_perror (lexic,
+                       "forge_icmp_packet: malformed packet: ICMP type 13/14 "
+                       "data must have a length of 12 bytes\n");
+          return NULL;
         }
-      p = (char *) (pkt + (ip->ip_hl * 4));
-      icmp = (struct icmp *) p;
-
-      icmp->icmp_code = get_int_var_by_name (lexic, "icmp_code", 0);
-      icmp->icmp_type = t;
-      icmp->icmp_seq = htons (get_int_var_by_name (lexic, "icmp_seq", 0));
-      icmp->icmp_id = htons (get_int_var_by_name (lexic, "icmp_id", 0));
-
-      if (data != NULL)
-        bcopy (data, &(p[8]), len);
-
-      if (get_int_var_by_name (lexic, "icmp_cksum", -1) == -1)
-        icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len + 8);
-      else
-        icmp->icmp_cksum = htons (get_int_var_by_name (lexic, "icmp_cksum", 0));
-
-      retc = alloc_typed_cell (CONST_DATA);
-      retc->x.str_val = (char *) pkt;
-      retc->size = ip_sz + len + 8;
+      payload_len =
+        3 * sizeof (uint32_t); // 12 bytes =  4 bytes for each timestamp
     }
   else
-    nasl_perror (lexic, "forge_icmp_packet: missing 'ip' parameter\n");
+    {
+      payload_len = data_len;
+    }
+
+  if (ip->ip_hl * 4 > ip_sz)
+    return NULL;
+
+  pkt = g_malloc0 (sizeof (struct icmp) + ip_sz + payload_len);
+  ip_icmp = (struct ip *) pkt;
+
+  bcopy (ip, ip_icmp, ip_sz);
+  if (UNFIX (ip_icmp->ip_len) <= (ip_icmp->ip_hl * 4))
+    {
+      if (get_int_var_by_name (lexic, "update_ip_len", 1) != 0)
+        {
+          ip_icmp->ip_len = FIX (ip->ip_hl * 4 + 8 + payload_len);
+          ip_icmp->ip_sum = 0;
+          ip_icmp->ip_sum = np_in_cksum ((u_short *) ip_icmp, ip->ip_hl * 4);
+        }
+    }
+  p = (char *) (pkt + (ip->ip_hl * 4));
+  icmp = (struct icmp *) p;
+
+  icmp->icmp_code = get_int_var_by_name (lexic, "icmp_code", 0);
+  icmp->icmp_type = t;
+  icmp->icmp_seq = htons (get_int_var_by_name (lexic, "icmp_seq", 0));
+  icmp->icmp_id = htons (get_int_var_by_name (lexic, "icmp_id", 0));
+
+  if (data != NULL)
+    bcopy (data, &(p[8]), data_len);
+
+  if (get_int_var_by_name (lexic, "icmp_cksum", -1) == -1)
+    icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, payload_len + 8);
+  else
+    icmp->icmp_cksum = htons (get_int_var_by_name (lexic, "icmp_cksum", 0));
+
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = (char *) pkt;
+  retc->size = ip_sz + payload_len + 8;
 
   return retc;
 }
@@ -1955,7 +1992,7 @@ get_icmp_element (lex_ctxt *lexic)
           if (retc->size > 0)
             {
               retc->x.str_val = g_malloc0 (retc->size + 1);
-              memcpy (retc->x.str_val, &(p[ip->ip_hl * 4 + 8]), retc->size + 1);
+              memcpy (retc->x.str_val, &(p[ip->ip_hl * 4 + 8]), retc->size);
             }
           else
             {
@@ -2082,7 +2119,7 @@ forge_igmp_packet (lex_ctxt *lexic)
       if (data != NULL)
         {
           char *ptmp = (char *) (pkt + ip->ip_hl * 4 + sizeof (struct igmp));
-          bcopy (ptmp, data, len);
+          bcopy (data, ptmp, len);
         }
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;

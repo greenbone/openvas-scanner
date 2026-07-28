@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use super::extractor::{Locator, LocatorError};
 use crate::concat_slices;
 
@@ -23,57 +21,45 @@ trait ResolvePackages {
         T: Locator;
 }
 
-/// This transforms downloaded layer to Notus compatible packages
-pub trait ToNotus {
-    fn packages<'a, T>(locator: &'a T) -> Pin<Box<dyn Future<Output = Vec<String>> + Send + 'a>>
+/// This is required for the extractor
+///
+/// The extractor will use the relatives paths of those packages to determine if we need to extract
+/// that file or if we can discard it to avoid using unnecessarily large amounts of disk space.
+pub const PACKAGE_FILES: &[&str] = concat_slices!(&[
+    <debian::DPKGStatusFile>::wanted_files(),
+    <rpm::RPMDBSqliteFile>::wanted_files(),
+]);
+pub struct AllTypes;
+
+impl AllTypes {
+    pub async fn packages<T>(locator: &T) -> Vec<String>
     where
-        T: Locator + Sync + Send;
-}
-
-macro_rules! generate_all_types {
-    ( $($backend:ty),+ $(,)? ) => {
-
-        /// This is required for the extractor
-        ///
-        /// The extractor will use the relatives paths of those packages to determine if we need to
-        /// extract that file or if we can discard it. This filtering method is required for
-        /// to not use too much disk space when running.
-        pub const PACKAGE_FILES: &[&str] = concat_slices!(&[
-                    $(
-                    <$backend>::wanted_files(),
-                    )+
-        ]);
-
-
-        pub struct AllTypes;
-
-        impl ToNotus for AllTypes {
-            fn packages<'a, T>(locator: &'a T) -> Pin<Box<dyn Future<Output = Vec<String>> + Send + 'a>>
-            where
-                T: Locator + Sync + Send,
-            {
-                Box::pin(async move {
-                    $(
-                        let result = <$backend>::packages(locator).await;
-                        match result {
-                            Ok(packages) => return packages,
-                            Err(PackageError::NotFound(_)) => {},
-                            Err(e) => {
-                                tracing::warn!(error=%e, "Unable to parse packages with {}", stringify!($backend));
-                                return vec![];
-                            }
-                        }
-                    )+
-
-                    tracing::debug!("No packages found, might be because the package DB got deleted or unsupported OS.");
-                    vec![]
-                })
+        T: Locator + Sync + Send,
+    {
+        let result = <debian::DPKGStatusFile>::packages(locator).await;
+        match result {
+            Ok(packages) => return packages,
+            Err(PackageError::NotFound(_)) => {}
+            Err(e) => {
+                tracing::warn!(error = %e,"Unable to parse packages with {}",stringify!(debian::DPKGStatusFile));
+                return vec![];
             }
         }
-    };
+        let result = <rpm::RPMDBSqliteFile>::packages(locator).await;
+        match result {
+            Ok(packages) => return packages,
+            Err(PackageError::NotFound(_)) => {}
+            Err(e) => {
+                tracing::warn!(error = %e,"Unable to parse packages with {}",stringify!(rpm::RPMDBSqliteFile));
+                return vec![];
+            }
+        }
+        tracing::debug!(
+            "No packages found, might be because the package DB got deleted or unsupported OS."
+        );
+        vec![]
+    }
 }
-
-generate_all_types! {debian::DPKGStatusFile, rpm::RPMDBSqliteFile }
 
 #[cfg(test)]
 mod fakes {
@@ -111,7 +97,7 @@ mod fakes {
 
 #[cfg(test)]
 mod tests {
-    use crate::container_image_scanner::image::packages::{ToNotus, fakes::FakeLocator};
+    use crate::container_image_scanner::image::packages::fakes::FakeLocator;
 
     #[tokio::test]
     async fn find_packages() {

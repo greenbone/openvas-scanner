@@ -11,6 +11,7 @@
 #include "nasl_snmp.h"
 
 #include "../misc/plugutils.h"
+#include "glib.h"
 #include "nasl_lex_ctxt.h"
 
 #include <assert.h>
@@ -419,19 +420,19 @@ check_spwan_output (int fd, snmp_result_t result, int fd_flag)
   while (1)
     {
       char buf[4096];
-      size_t bytes;
+      ssize_t bytes;
 
       bytes = read (fd, buf, sizeof (buf));
-      if (!bytes)
-        break;
-      else if (bytes > 0)
-        g_string_append_len (string, buf, bytes);
-      else
+      if (bytes < 0)
         {
           g_warning ("snmpget: %s", strerror (errno));
           g_string_free (string, TRUE);
           return -1;
         }
+      if (!bytes)
+        break;
+      else if (bytes > 0)
+        g_string_append_len (string, buf, bytes);
     }
 
   // Split the result and store the oid and name
@@ -683,13 +684,19 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   // is stored.
   if (result->oid_str != NULL && g_strstr_len (result->oid_str, 3, "iso"))
     {
-      next_oid_str = result->oid_str + 2;
-      next_oid_str[0] = '1';
-      result->oid_str = g_strdup (next_oid_str);
+      char *orig = result->oid_str;
+      char *tmp = result->oid_str + 2;
+      tmp[0] = '1';
+      result->oid_str = g_strdup (tmp);
+      g_free (orig);
+      g_free (next_oid_str);
+      next_oid_str = g_strdup (result->oid_str);
     }
   else if (result->oid_str != NULL)
-    next_oid_str = result->oid_str;
-
+    {
+      g_free (next_oid_str);
+      next_oid_str = g_strdup (result->oid_str);
+    }
   /* Free request only, since members are pointers to the nasl lexic context
      which will be free()'d later */
   g_free (request);
@@ -812,12 +819,19 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   // is stored.
   if (result->oid_str != NULL && g_strstr_len (result->oid_str, 3, "iso"))
     {
-      next_oid_str = result->oid_str + 2;
-      next_oid_str[0] = '1';
-      result->oid_str = g_strdup (next_oid_str);
+      char *orig = result->oid_str;
+      char *tmp = result->oid_str + 2;
+      tmp[0] = '1';
+      result->oid_str = g_strdup (tmp);
+      g_free (orig);
+      g_free (next_oid_str);
+      next_oid_str = g_strdup (result->oid_str);
     }
   else if (result->oid_str != NULL)
-    next_oid_str = result->oid_str;
+    {
+      g_free (next_oid_str);
+      next_oid_str = g_strdup (result->oid_str);
+    }
 
   /* Free request only, since members are pointers to the nasl lexic context
      which will be free()'d later */

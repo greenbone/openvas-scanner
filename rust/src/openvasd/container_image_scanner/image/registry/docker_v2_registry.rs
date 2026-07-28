@@ -3,11 +3,11 @@ use std::{
     task::{Context, Poll},
 };
 
-use docker_registry::v2::manifest::Manifest;
+use docker_registry::v2::manifest::{Manifest, ManifestObj};
 use futures::{Stream, StreamExt, TryStreamExt};
 use tokio::sync::mpsc::Receiver;
 
-use super::{PackedLayer, Setting};
+use super::{PackedLayer, RegistryPreference};
 use crate::container_image_scanner::{
     Streamer,
     benchy::{self, Measured},
@@ -33,7 +33,7 @@ impl Stream for BlobStream {
 type ArchitectureLayer = (Option<Digest>, String, Digest);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Registry {
+pub struct DockerV2Registry {
     username: Option<String>,
     password: Option<String>,
     insecure: bool,
@@ -226,42 +226,47 @@ impl Client {
         }
     }
 
+    fn is_supported_manifest_descriptor(manifest: &ManifestObj) -> bool {
+        let platform = &manifest.platform;
+        let architecture = platform.architecture.as_str();
+        let os = platform.os.as_str();
+        !architecture.is_empty() && !os.is_empty() && architecture != "unknown" && os != "unknown"
+    }
+
     pub async fn resolve_manifests(
         &self,
         name: &str,
         reference: &str,
     ) -> Vec<Result<(Manifest, String, Option<Digest>), RegistryError>> {
         let og = self.get_manifest(name, reference).await;
-        match og {
-            Ok((Manifest::ML(ml), _)) => {
-                let mut results = Vec::with_capacity(ml.manifests.len());
-                for m in ml.manifests.into_iter() {
-                    match self.get_manifest(name, &m.digest).await {
-                        Ok((m, digest)) => {
-                            results.push(self.manifest_to_architecture(digest, m));
-                        }
-                        Err(error) => results.push(Err(error)),
-                    }
-                }
-                results
-            }
-            Ok((Manifest::OciIndex(oi), _)) => {
-                let mut results = Vec::with_capacity(oi.manifests.len());
-                for m in oi.manifests.into_iter() {
-                    match self.get_manifest(name, &m.digest).await {
-                        Ok((m, digest)) => {
-                            results.push(self.manifest_to_architecture(digest, m));
-                        }
-                        Err(error) => results.push(Err(error)),
-                    }
-                }
-                results
-            }
+        let manifests = match og {
+            Ok((Manifest::ML(ml), _)) => ml.manifests,
+            Ok((Manifest::OciIndex(oi), _)) => oi.manifests,
             Ok((m, digest)) => {
-                vec![self.manifest_to_architecture(digest, m)]
+                return vec![self.manifest_to_architecture(digest, m)];
             }
-            Err(err) => vec![Err(err)],
+            Err(err) => return vec![Err(err)],
+        };
+
+        let mut results = Vec::with_capacity(manifests.len());
+        for m in manifests.into_iter() {
+            if !Self::is_supported_manifest_descriptor(&m) {
+                tracing::debug!(
+                    digest = %m.digest,
+                    architecture = %m.platform.architecture,
+                    os = %m.platform.os,
+                    "Skipping unsupported manifest descriptor"
+                );
+                continue;
+            }
+            match self.get_manifest(name, &m.digest).await {
+                Ok((m, digest)) => {
+                    results.push(self.manifest_to_architecture(digest, m));
+                }
+                Err(error) => results.push(Err(error)),
+            }
         }
+        results
     }
 
     pub async fn get_blob(&self, name: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
@@ -272,7 +277,7 @@ impl Client {
     }
 }
 
-impl Registry {
+impl DockerV2Registry {
     async fn catalog_client(&self, registry: &str) -> Result<Client, RegistryError> {
         let scope = "registry:catalog:*";
         Client::authenticated(
@@ -447,15 +452,17 @@ impl Registry {
     }
 }
 
-impl super::Registry for Registry {
-    fn initialize(
+impl DockerV2Registry {
+    pub fn initialize(
         credential: Option<super::Credential>,
-        settings: Vec<Setting>,
-    ) -> Result<Registry, RegistryError> {
-        let insecure = settings.iter().any(|x| matches!(x, Setting::Insecure));
+        settings: Vec<RegistryPreference>,
+    ) -> Result<DockerV2Registry, RegistryError> {
+        let insecure = settings
+            .iter()
+            .any(|x| matches!(x, RegistryPreference::Insecure));
         let accept_invalid_certs = settings
             .iter()
-            .any(|x| matches!(x, Setting::AcceptInvalidCerts));
+            .any(|x| matches!(x, RegistryPreference::AcceptInvalidCerts));
 
         Ok(Self {
             username: credential.clone().map(|x| x.username),
@@ -465,28 +472,23 @@ impl super::Registry for Registry {
         })
     }
 
-    fn resolve_image(
-        &self,
-        image: super::Image,
-    ) -> Pin<Box<dyn Future<Output = Vec<Result<super::Image, RegistryError>>> + Send + '_>> {
-        Box::pin(async move {
-            match image {
-                Image {
-                    registry,
-                    image: None,
-                    tag: _,
-                } => self.resolve_catalog(&registry, None).await,
-                Image {
-                    registry,
-                    image: Some(image),
-                    tag: None,
-                } => self.resolve_or_search_repository(&registry, &image).await,
-                image => vec![Ok(image)],
-            }
-        })
+    pub async fn resolve_image(&self, image: Image) -> Vec<Result<Image, RegistryError>> {
+        match image {
+            Image {
+                registry,
+                image: None,
+                tag: _,
+            } => self.resolve_catalog(&registry, None).await,
+            Image {
+                registry,
+                image: Some(image),
+                tag: None,
+            } => self.resolve_or_search_repository(&registry, &image).await,
+            image => vec![Ok(image)],
+        }
     }
 
-    fn pull_image(&self, image: super::Image) -> Streamer<Result<PackedLayer, RegistryError>> {
+    pub fn pull_image(&self, image: Image) -> Streamer<Result<PackedLayer, RegistryError>> {
         let (sender, receiver) = tokio::sync::mpsc::channel(3);
         let result = BlobStream { receiver };
         let that = self.clone();
@@ -721,6 +723,9 @@ pub mod fake {
         }
 
         pub fn list_json(&self) -> String {
+            // Docker Hub images include manifests with unknown/unknown mimetypes.
+            // Those are SBOM files (SPDX, in-toto, ...) and we need to skip them
+            // while extracting. We put one in here intentionally to simulate this.
             let manifests = format!(
                 r#"
             [
@@ -732,11 +737,21 @@ pub mod fake {
                   "architecture": "ppc64le",
                   "os": "linux"
                 }}
+            }},
+            {{
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "digest": "{}",
+                "size": 31337,
+                "platform": {{
+                  "architecture": "unknown",
+                  "os": "unknown"
+                }}
             }}
             ]
             "#,
                 self.blobconfig.digest,
-                self.blobconfig.size()
+                self.blobconfig.size(),
+                digest(format!("{}-attestation", self.blobconfig.digest).as_bytes())
             );
 
             format!(
@@ -1028,7 +1043,9 @@ mod tests {
     use futures::StreamExt;
 
     use super::fake::RegistryMock;
-    use crate::container_image_scanner::image::{Credential, Image, Registry, RegistrySetting};
+    use crate::container_image_scanner::image::{
+        Credential, DockerV2Registry, Image, RegistryPreference,
+    };
 
     #[tokio::test]
     async fn resolve_images() {
@@ -1076,8 +1093,9 @@ mod tests {
             password: "password".to_owned(),
         };
 
-        let aha = super::Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
-            .expect("Registry cannot fail to initialize");
+        let aha =
+            DockerV2Registry::initialize(Some(credential), vec![RegistryPreference::Insecure])
+                .expect("Registry cannot fail to initialize");
         let image = Image {
             registry: addr.clone(),
             image: None,
@@ -1106,8 +1124,9 @@ mod tests {
             password: "password".to_owned(),
         };
 
-        let aha = super::Registry::initialize(Some(credential), vec![RegistrySetting::Insecure])
-            .expect("Registry cannot fail to initialize");
+        let aha =
+            DockerV2Registry::initialize(Some(credential), vec![RegistryPreference::Insecure])
+                .expect("Registry cannot fail to initialize");
         let mut layer = aha.pull_image(image);
         let mut count = 0;
         while let Some(r) = layer.next().await {

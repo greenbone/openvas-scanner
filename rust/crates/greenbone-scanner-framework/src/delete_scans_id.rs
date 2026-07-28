@@ -192,7 +192,7 @@ mod tests {
             .body(Empty::<Bytes>::new())
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::NOT_ACCEPTABLE);
+        assert_eq!(resp.status(), StatusCode::CONFLICT);
     }
 
     #[tokio::test]

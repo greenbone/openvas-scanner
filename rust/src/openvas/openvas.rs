@@ -11,6 +11,7 @@ use super::{
     result_collector::ResultHelper,
 };
 use greenbone_scanner_framework::models::{self, HostInfo, Phase, Scan, Status};
+use tokio::process::Child;
 
 use crate::storage::redis::{NameSpaceSelector, RedisCtx};
 use crate::utils::scanner_types::ScannerType;
@@ -18,7 +19,6 @@ use async_trait::async_trait;
 use std::{
     collections::HashMap,
     fmt::Display,
-    process::Child,
     str::FromStr,
     sync::{Arc, Mutex},
     time::SystemTime,
@@ -106,7 +106,7 @@ impl OpenvasScanner {
     }
 
     /// Removes a scan from init and add it to the list of running scans
-    fn add_running(&self, id: String, dbid: u32) -> Result<bool, OpenvasError> {
+    async fn add_running(&self, id: String, dbid: u32) -> Result<bool, OpenvasError> {
         let openvas = cmd::start(&id, self.sudo, None).map_err(OpenvasError::CmdError)?;
         self.running.lock().unwrap().insert(id, (openvas, dbid));
         Ok(true)
@@ -143,18 +143,6 @@ impl OpenvasScanner {
     }
 }
 
-impl Default for OpenvasScanner {
-    fn default() -> Self {
-        Self {
-            running: Default::default(),
-            sudo: cmd::check_sudo(),
-            redis_socket: cmd::get_redis_socket(),
-            resource_checker: None,
-            default_scanner_preferences: Vec::new(),
-        }
-    }
-}
-
 #[async_trait]
 impl Scanner for OpenvasScanner {
     fn scanner_type(&self) -> ScannerType {
@@ -181,7 +169,8 @@ impl Scanner for OpenvasScanner {
         self.add_running(
             scan.scan_id,
             redis_help.kb_id().expect("Valid Redis context"),
-        )?;
+        )
+        .await?;
 
         return Ok(());
     }
@@ -208,9 +197,10 @@ impl Scanner for OpenvasScanner {
         cmd::stop(scan_id, self.sudo)
             .map_err(OpenvasError::CmdError)?
             .wait()
+            .await
             .map_err(OpenvasError::CmdError)?;
 
-        scan.wait().map_err(OpenvasError::CmdError)?;
+        scan.wait().await.map_err(OpenvasError::CmdError)?;
 
         // Release the task kb
         let mut redis_help = self.create_redis_connector(Some(dbid))?;
@@ -361,7 +351,7 @@ impl Scanner for OpenvasScanner {
             };
 
             // Read openvas scanner exit code and if failed, reset the status to Failed.
-            let exit_status = scan.wait().map_err(OpenvasError::CmdError)?;
+            let exit_status = scan.wait().await.map_err(OpenvasError::CmdError)?;
             if let Some(code) = exit_status.code()
                 && code != 0
             {

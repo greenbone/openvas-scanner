@@ -377,7 +377,13 @@ mqtt_pass
 openvasd_server
 
 :   Openvasd server URI to Rust implementation of Notus. It has
-    priority over MQTT settings.
+    priority over MQTT settings. It is deprecated and will be removed
+    in the next major release. Use notus_route instead.
+
+IP notus_route
+:   A route to a Notus endpoint. The value must conain a server uri,
+    as well as the route to its notus endpoint.
+    E.g. http://127.0.0.1:3000/notus
 
 x-apikey
 

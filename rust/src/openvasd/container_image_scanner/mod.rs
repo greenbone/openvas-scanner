@@ -3,9 +3,7 @@ pub mod config;
 use std::sync::{Arc, RwLock};
 
 pub use config::Config;
-use futures::{Stream, StreamExt};
 use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
-use image::{DockerRegistryV2, extractor::filtered_image, packages::AllTypes};
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
 mod detection;
@@ -14,7 +12,7 @@ mod image;
 mod messages;
 mod notus;
 mod scheduling;
-pub(crate) use scannerlib::{ExternalError, Promise, PromiseRef, Streamer};
+pub(crate) use scannerlib::{ExternalError, PromiseRef, Streamer};
 
 /// combines slices on compile time
 #[macro_export]
@@ -53,26 +51,6 @@ macro_rules! concat_slices {
     }};
 }
 
-/// Parses preferences from (str, str) to an actual preferences.
-///
-/// Usually the preferences are coming from user input, are stored within preferences table and
-/// then fetched and parsed for the actual system. See image::registry as an example.
-trait ParsePreferences<T> {
-    fn parse_preference_entry(key: &str, value: &str) -> Option<T>;
-
-    async fn parse_preferences<Iter>(preferences: Iter) -> Vec<T>
-    where
-        Iter: Stream<Item = (String, String)>,
-    {
-        preferences
-            .filter_map(
-                |(k, v)| async move { Self::parse_preference_entry(k.as_ref(), v.as_ref()) },
-            )
-            .collect()
-            .await
-    }
-}
-
 static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scanner/migrations");
 
 use endpoints::scans::Scans;
@@ -97,14 +75,8 @@ pub async fn init(
         .await?;
     MIGRATOR.run(&pool).await?;
 
-    let scheduler = Scheduler::<DockerRegistryV2, filtered_image::Extractor>::init(
-        config.into(),
-        pool.clone(),
-        products,
-    );
-    tokio::spawn(async move {
-        scheduler.run::<AllTypes>().await;
-    });
+    let scheduler = Scheduler::init(config.into(), pool.clone(), products);
+    tokio::spawn(scheduler.run());
 
     let scan = Scans { pool };
     let vts = VTEndpoints::new(
