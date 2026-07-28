@@ -380,12 +380,12 @@ impl NaslHttp2 {
     }
 
     /// Close a handle for http requests previously initialized
-    /// nasl named param
-    ///   - handle The handle identifier for the handle to be closed
+    /// nasl positional param
+    ///   - The handle identifier for the handle to be closed
     ///
     /// The function returns an integer.
     /// O on success, -1 on error.
-    #[nasl_function(named(handle))]
+    #[nasl_function]
     async fn close_handle(&self, handle: i32) -> Result<NaslValue, FnError> {
         let mut handles = lock_handles(&self.handles).await?;
         match handles
