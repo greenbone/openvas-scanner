@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use crate::models::VTData;
 use crate::storage::redis::{DbError, RedisCtx, RedisStorageResult};
-use greenbone_scanner_framework::models::VTData;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug, Default)]
@@ -115,13 +115,13 @@ pub mod test {
     use std::collections::{BTreeMap, HashMap};
 
     use crate::{
+        models::{PreferenceType, VTData},
         openvas::openvas_redis::{KbAccess, VtHelper},
         storage::{
             items::nvt::{ACT, NvtPreference},
             redis::RedisStorageResult,
         },
     };
-    use greenbone_scanner_framework::models::{PreferenceType, VTData};
 
     pub struct FakeRedis {
         pub data: HashMap<String, Vec<Vec<u8>>>,

@@ -4,8 +4,8 @@
 
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
+use crate::models::{AliveTestMethods, Port, Protocol, ScanPreference};
 use async_trait::async_trait;
-use greenbone_scanner_framework::models::{AliveTestMethods, Port, Protocol, ScanPreference};
 use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
 
@@ -23,7 +23,7 @@ use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
 //TODO: rename
-use greenbone_scanner_framework::models::VTData;
+use crate::models::VTData;
 use std::collections::BTreeSet;
 use std::sync::{Arc, MutexGuard};
 

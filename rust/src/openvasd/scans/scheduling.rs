@@ -3,9 +3,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use greenbone_scanner_framework::models::{self, Scan};
 use scannerlib::{
-    models::FeedType,
+    models::{self, FeedType, Scan},
     nasl::{builtin::nasl_std_executor, syntax::Loader},
     openvas::{self, cmd},
     osp,

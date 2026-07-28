@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use greenbone_scanner_framework::models::Scan;
+use crate::models::Scan;
 
 type ScanID = String;
 

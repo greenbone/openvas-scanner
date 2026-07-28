@@ -13,6 +13,7 @@ use super::dberror::RedisStorageResult;
 use itertools::Itertools;
 use redis::*;
 
+use crate::models::VTData;
 use crate::notus::advisories::Vulnerability;
 use crate::notus::advisories::VulnerabilityData;
 use crate::storage::StorageError;
@@ -23,7 +24,6 @@ use crate::storage::items::nvt::NvtPreference;
 use crate::storage::items::nvt::NvtRef;
 use crate::storage::items::nvt::TagKey;
 use crate::storage::items::nvt::TagValue;
-use greenbone_scanner_framework::models::VTData;
 
 enum KbNvtPos {
     Filename,

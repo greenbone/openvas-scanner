@@ -14,6 +14,7 @@
 
 pub mod alive_test;
 pub mod feed;
+pub mod models;
 pub mod nasl;
 pub mod notus;
 pub mod openvas;
@@ -26,7 +27,6 @@ pub mod utils;
 use std::pin::Pin;
 
 use futures::Stream;
-pub use greenbone_scanner_framework::models;
 
 pub type Promise<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 pub type PromiseRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;

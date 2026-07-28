@@ -2116,32 +2116,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
-name = "greenbone-scanner-framework"
-version = "0.1.0"
-dependencies = [
- "futures",
- "futures-util",
- "http-body",
- "http-body-util",
- "hyper",
- "hyper-util",
- "insta",
- "once_cell",
- "rustls",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "signal-hook",
- "signal-hook-tokio",
- "thiserror 2.0.18",
- "time",
- "tokio",
- "tokio-rustls",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "group"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4919,14 +4893,17 @@ dependencies = [
  "flate2",
  "fslock",
  "futures",
+ "futures-util",
  "generic-array 1.4.3",
  "glob",
- "greenbone-scanner-framework",
  "h2",
  "hex",
  "hmac 0.13.0",
  "http",
+ "http-body",
+ "http-body-util",
  "hyper",
+ "hyper-util",
  "insta",
  "itertools 0.15.0",
  "lazy-regex",
@@ -4972,6 +4949,8 @@ dependencies = [
  "serde_json",
  "sha1 0.11.0",
  "sha2 0.11.0",
+ "signal-hook",
+ "signal-hook-tokio",
  "snmp2",
  "socket2",
  "sqlx",
@@ -4979,6 +4958,7 @@ dependencies = [
  "tar",
  "tempfile",
  "thiserror 2.0.18",
+ "time",
  "tokio",
  "tokio-rustls",
  "toml",

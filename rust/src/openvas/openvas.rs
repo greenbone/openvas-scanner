@@ -10,7 +10,7 @@ use super::{
     pref_handler::PreferenceHandler,
     result_collector::ResultHelper,
 };
-use greenbone_scanner_framework::models::{self, HostInfo, Phase, Scan, Status};
+use crate::models::{self, HostInfo, Phase, Scan, Status};
 use tokio::process::Child;
 
 use crate::storage::redis::{NameSpaceSelector, RedisCtx};

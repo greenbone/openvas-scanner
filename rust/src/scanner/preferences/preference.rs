@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use greenbone_scanner_framework::models::{
-    PreferenceValue, ScanPreference, ScanPreferenceInformation,
-};
+use crate::models::{PreferenceValue, ScanPreference, ScanPreferenceInformation};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 

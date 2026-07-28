@@ -40,7 +40,7 @@ use super::items::nvt::FeedVersion;
 use super::items::nvt::FileName;
 use super::items::nvt::Oid;
 //TODO: rename
-use greenbone_scanner_framework::models::VTData;
+use crate::models::VTData;
 
 use super::items::result::ResultContextKeySingle;
 use super::items::result::ResultItem;

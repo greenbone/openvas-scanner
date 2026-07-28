@@ -1,9 +1,8 @@
 use std::sync::{Arc, RwLock};
 
+use crate::greenbone_scanner_framework::{GetVTsError, GetVts, entry::Prefixed};
 use futures::StreamExt;
-use greenbone_scanner_framework::{
-    GetVTsError, GetVts, entry::Prefixed, models, models::FeedState,
-};
+use scannerlib::models::{self, FeedState};
 
 use crate::vts::PluginFetcher;
 
@@ -39,8 +38,10 @@ impl GetVts for VTEndpoints {
     fn get_oids(
         &self,
         _: String,
-    ) -> greenbone_scanner_framework::StreamResult<String, greenbone_scanner_framework::GetVTsError>
-    {
+    ) -> crate::greenbone_scanner_framework::StreamResult<
+        String,
+        crate::greenbone_scanner_framework::GetVTsError,
+    > {
         let feed_state = self.feed_state.read().expect("Poison error");
         match &*feed_state {
             FeedState::Unknown | FeedState::Syncing => Box::pin(futures::stream::iter(vec![Err(
@@ -60,9 +61,9 @@ impl GetVts for VTEndpoints {
     fn get_vts(
         &self,
         _: String,
-    ) -> greenbone_scanner_framework::StreamResult<
+    ) -> crate::greenbone_scanner_framework::StreamResult<
         models::VTData,
-        greenbone_scanner_framework::GetVTsError,
+        crate::greenbone_scanner_framework::GetVTsError,
     > {
         let feed_state = self.feed_state.read().expect("Poison error");
         match &*feed_state {

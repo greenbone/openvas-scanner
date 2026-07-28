@@ -4,7 +4,7 @@
 
 use std::{pin::Pin, sync::Arc};
 
-use greenbone_scanner_framework::{
+use crate::greenbone_scanner_framework::{
     ClientIdentifier, RequestHandler,
     entry::{Bytes, Method, Prefixed, Uri, response::BodyKind},
 };
@@ -138,10 +138,13 @@ pub fn init(notus: Arc<RwLock<Notus>>) -> (GetOSIcnomingRequest, PostOSIcnomingR
 
 #[cfg(test)]
 mod tests {
-    use greenbone_scanner_framework::{
-        Authentication, ClientHash, create_single_handler,
+    use crate::greenbone_scanner_framework::{
+        Authentication,
+        entry::ClientHash,
         entry::{Method, test_utilities},
     };
+
+    use crate::create_single_handler;
     use http::StatusCode;
     use hyper::service::Service;
 
@@ -179,7 +182,7 @@ mod tests {
         let config = config();
         let (undertest, _) = super::init(super::config_to_products(&config));
         let entry_point = test_utilities::entry_point(
-            Authentication::MTLS,
+            Authentication::Mtls,
             create_single_handler!(undertest),
             Some(ClientHash::default()),
         );
@@ -194,7 +197,7 @@ mod tests {
         let config = config();
         let (_, undertest) = super::init(super::config_to_products(&config));
         let entry_point = test_utilities::entry_point(
-            Authentication::MTLS,
+            Authentication::Mtls,
             create_single_handler!(undertest),
             Some(ClientHash::default()),
         );

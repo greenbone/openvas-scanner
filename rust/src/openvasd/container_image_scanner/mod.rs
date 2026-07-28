@@ -14,10 +14,11 @@ use std::sync::{Arc, RwLock};
 
 use crate::{
     container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
+    greenbone_scanner_framework::entry::Prefixed,
 };
 use endpoints::scans::Scans;
 use endpoints::vts::VTEndpoints;
-use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
+use scannerlib::models::FeedState;
 use scannerlib::notus::Notus;
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;

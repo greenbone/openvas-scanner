@@ -10,6 +10,7 @@ use std::{
     time::SystemTime,
 };
 
+use crate::models::{HostInfo, Phase, Status};
 use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx};
 use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
@@ -18,7 +19,6 @@ use crate::{
     scheduling::{Scheduler, SchedulerStorage, VTError},
 };
 use futures::StreamExt;
-use greenbone_scanner_framework::models::{HostInfo, Phase, Status};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 

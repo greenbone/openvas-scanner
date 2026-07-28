@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf, task::Poll, time::UNIX_EPOCH};
 
+use crate::greenbone_scanner_framework::{GetVTsError, StreamResult};
 use futures::Stream;
-use greenbone_scanner_framework::GetVTsError;
 use scannerlib::{
     models::{FeedType, VTData},
     storage::redis::{CACHE_KEY, DbError, NOTUS_KEY, RedisCtx},
@@ -249,13 +249,11 @@ impl Stream for RedisVTDataStream {
 }
 
 impl PluginFetcher for RedisPluginHandler {
-    fn get_oids(&self) -> greenbone_scanner_framework::StreamResult<String, WorkerError> {
+    fn get_oids(&self) -> StreamResult<String, WorkerError> {
         Box::pin(RedisOidStream::from(self.address.clone()))
     }
 
-    fn get_vts(
-        &self,
-    ) -> greenbone_scanner_framework::StreamResult<scannerlib::models::VTData, WorkerError> {
+    fn get_vts(&self) -> StreamResult<scannerlib::models::VTData, WorkerError> {
         Box::pin(RedisVTDataStream::from(self.address.clone()))
     }
 }

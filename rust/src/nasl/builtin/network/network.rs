@@ -11,9 +11,9 @@ use super::{
 };
 use super::{NaslValue, Port, mtu};
 use crate::function_set;
+use crate::models::Protocol;
 use crate::nasl::utils::{FnError, ScanCtx};
 use crate::storage::items::kb::{self, KbItem, KbKey};
-use greenbone_scanner_framework::models::Protocol;
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
