@@ -9,6 +9,7 @@
 #include "../misc/plugutils.h"  /* plug_get_host_fqdn */
 #include "../misc/user_agent.h" /* for user_agent_get */
 #include "exec.h"
+#include "glib.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -48,6 +49,7 @@ typedef enum KEYWORD_E
 struct handle_table_s
 {
   int handle_id;
+  char *ca_cert;
   CURL *handle;
   long http_code;
 };
@@ -76,6 +78,7 @@ next_handle_id (void)
  * @naslret Handle identifier. Null on error.
  *
  * @param[in] lexic Lexical context of NASL interpreter.
+ * @param[in] ca_cert Optional CA certificate for server verification.
  *
  * @return On success the function returns a tree-cell with the handle
  *         identifier. Null on error.
@@ -87,6 +90,7 @@ nasl_http2_handle (lex_ctxt *lexic)
   tree_cell *retc = NULL;
   CURL *handle = curl_easy_init ();
   unsigned int table_slot;
+  char *ca_cert;
 
   if (!handle)
     return NULL;
@@ -105,6 +109,10 @@ nasl_http2_handle (lex_ctxt *lexic)
   handle_table[table_slot] = g_malloc0 (sizeof (struct handle_table_s));
   handle_table[table_slot]->handle = handle;
   handle_table[table_slot]->handle_id = next_handle_id ();
+
+  ca_cert = get_str_var_by_name (lexic, "ca_cert");
+  if (ca_cert)
+    handle_table[table_slot]->ca_cert = g_strdup (ca_cert);
 
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = handle_table[table_slot]->handle_id;
@@ -135,17 +143,19 @@ nasl_http2_close_handle (lex_ctxt *lexic)
 
   for (table_slot = 0; table_slot < MAX_HANDLES; table_slot++)
     {
-      if (handle_table[table_slot] != NULL && handle_table[table_slot]->handle_id == handle_id)
+      if (handle_table[table_slot] != NULL
+          && handle_table[table_slot]->handle_id == handle_id)
         {
           curl_easy_cleanup (handle_table[table_slot]->handle);
           handle_table[table_slot]->handle = NULL;
           handle_table[table_slot]->handle_id = 0;
+          g_free (handle_table[table_slot]->ca_cert);
           handle_table[table_slot] = NULL;
           ret = 0;
           break;
         }
       else
-          ret = -1;
+        ret = -1;
     }
   if (ret == -1)
     g_message ("%s: Unknown handle identifier %d", __func__, handle_id);
@@ -335,11 +345,22 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
     }
   g_string_free (url, TRUE);
 
-  // Accept an insecure connection. Don't verify the server certificate
-  if (prefs_get_bool ("http2_peer_verify"))
+  char *ca_cert = handle_table[table_slot]->ca_cert;
+  if (ca_cert)
     {
+      CURLcode ret;
+      struct curl_blob ca_blob = {(void *) ca_cert, strlen (ca_cert),
+                                  CURL_BLOB_COPY};
       curl_easy_setopt (handle, CURLOPT_SSL_VERIFYPEER, 1L);
       curl_easy_setopt (handle, CURLOPT_SSL_VERIFYHOST, 2L);
+      if ((ret = curl_easy_setopt (handle, CURLOPT_CAINFO_BLOB, &ca_blob))
+          != CURLE_OK)
+        {
+          g_warning ("%s: Failed to set CA certificate: %s", __func__,
+                     curl_easy_strerror (ret));
+          curl_easy_cleanup (handle);
+          return NULL;
+        }
     }
   else
     {
