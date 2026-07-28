@@ -141,13 +141,15 @@ nasl_http2_close_handle (lex_ctxt *lexic)
           handle_table[table_slot]->handle = NULL;
           handle_table[table_slot]->handle_id = 0;
           handle_table[table_slot] = NULL;
+          ret = 0;
+          break;
         }
       else
-        {
-          g_message ("%s: Unknown handle identifier %d", __func__, handle_id);
           ret = -1;
-        }
     }
+  if (ret == -1)
+    g_message ("%s: Unknown handle identifier %d", __func__, handle_id);
+
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ret;
   return retc;
