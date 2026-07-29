@@ -185,6 +185,19 @@ pub struct FileSystemLocator {
     arch: String,
 }
 
+impl FileSystemLocator {
+    #[cfg(test)]
+    pub(crate) fn for_test(base: impl AsRef<Path>, arch: impl Into<String>) -> Self {
+        let base = base.as_ref().canonicalize().unwrap();
+        let root = base.parent().unwrap().to_path_buf();
+        Self {
+            root,
+            base,
+            arch: arch.into(),
+        }
+    }
+}
+
 impl Drop for FileSystemLocator {
     fn drop(&mut self) {
         let base = match self.base.canonicalize() {

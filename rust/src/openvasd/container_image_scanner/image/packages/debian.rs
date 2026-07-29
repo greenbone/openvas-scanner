@@ -236,12 +236,16 @@ impl FromStr for Status {
 #[cfg(test)]
 mod tests {
     use crate::container_image_scanner::image::packages::{
-        ResolvePackages, debian::DPKGStatusFile, fakes::FakeLocator,
+        ResolvePackages, debian::DPKGStatusFile, test_utils::locator_with_files,
     };
 
     #[tokio::test]
     async fn find_packages() {
-        let packages = DPKGStatusFile::packages(&FakeLocator {}).await.unwrap();
-        assert!(!packages.is_empty(), "expected some packages");
+        let locator = locator_with_files(&[(
+            "var/lib/dpkg/status",
+            "data/tests/images/victim/var/lib/dpkg/status",
+        )]);
+        let packages = DPKGStatusFile::packages(&locator).await.unwrap();
+        assert!(!packages.is_empty());
     }
 }

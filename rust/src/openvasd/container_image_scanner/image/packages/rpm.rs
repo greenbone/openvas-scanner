@@ -77,12 +77,16 @@ impl ResolvePackages for RPMDBSqliteFile {
 #[cfg(test)]
 mod tests {
     use crate::container_image_scanner::image::packages::{
-        ResolvePackages, fakes::FakeLocator, rpm::RPMDBSqliteFile,
+        ResolvePackages, rpm::RPMDBSqliteFile, test_utils::locator_with_files,
     };
 
     #[tokio::test]
     async fn find_packages() {
-        let packages = RPMDBSqliteFile::packages(&FakeLocator {}).await.unwrap();
-        assert!(!packages.is_empty(), "expected some packages");
+        let locator = locator_with_files(&[(
+            "var/lib/rpm/rpmdb.sqlite",
+            "crates/rpmdb-rs/testdata/rpmdb.sqlite",
+        )]);
+        let packages = RPMDBSqliteFile::packages(&locator).await.unwrap();
+        assert!(!packages.is_empty());
     }
 }

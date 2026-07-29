@@ -59,46 +59,38 @@ impl AllTypes {
 }
 
 #[cfg(test)]
-mod fakes {
-    use crate::container_image_scanner::{
-        PromiseRef,
-        image::extractor::{Location, Locator, LocatorError},
-    };
+mod test_utils {
+    use std::path::PathBuf;
 
-    pub struct FakeLocator;
+    use crate::container_image_scanner::image::extractor::FileSystemLocator;
 
-    impl Locator for FakeLocator {
-        fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>> {
-            let name = name.to_owned();
+    pub fn locator_with_files(files: &[(&str, &str)]) -> FileSystemLocator {
+        let temp_dir = tempfile::tempdir().unwrap();
 
-            Box::pin(async move {
-                let file = match &name as &str {
-                    "var/lib/dpkg/status" => "data/tests/images/victim/var/lib/dpkg/status",
-                    "var/lib/rpm/rpmdb.sqlite" => "crates/rpmdb-rs/testdata/rpmdb.sqlite",
-                    _ => {
-                        return Err(LocatorError::NotFound(
-                            "No such file or directory".to_owned(),
-                        ));
-                    }
-                };
-                let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(file);
-                Ok(path.into())
-            })
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        for (image_path, fixture_path) in files {
+            let destination = temp_dir.path().join(image_path);
+            std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+            std::fs::copy(manifest_dir.join(fixture_path), destination).unwrap();
         }
 
-        fn architecture(&self) -> &str {
-            "amd64"
-        }
+        // We keep the temp_dir alive because the `Drop` impl of
+        // `FileSystemLocator` cleans it up
+        FileSystemLocator::for_test(temp_dir.keep(), "amd64")
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::container_image_scanner::image::packages::fakes::FakeLocator;
+    use crate::container_image_scanner::image::packages::test_utils::locator_with_files;
 
     #[tokio::test]
     async fn find_packages() {
-        let packages = super::AllTypes::packages(&FakeLocator {}).await;
+        let locator = locator_with_files(&[(
+            "var/lib/dpkg/status",
+            "data/tests/images/victim/var/lib/dpkg/status",
+        )]);
+        let packages = super::AllTypes::packages(&locator).await;
         assert_eq!(packages.len(), 629);
     }
 }
