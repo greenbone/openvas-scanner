@@ -28,6 +28,10 @@ impl Status {
         !self.is_running() && self.status != Phase::Stored
     }
 
+    pub fn is_stopped(&self) -> bool {
+        self.status == Phase::Stopped
+    }
+
     pub fn update_with(&mut self, status: &Status) {
         if let Some(ref host_info) = status.host_info {
             self.host_info = Some(
