@@ -1,30 +1,28 @@
 mod benchy;
 pub mod config;
-use std::sync::{Arc, RwLock};
-
-pub use config::Config;
-use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
-use scheduling::Scheduler;
-use sqlx::migrate::Migrator;
 mod detection;
 pub mod endpoints;
 mod image;
 mod messages;
 mod notus;
 mod scheduling;
+
+pub use config::Config;
 pub(crate) use scannerlib::{ExternalError, PromiseRef, Streamer};
 
-static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scanner/migrations");
-
-use endpoints::scans::Scans;
-//TODO: move endpoints to openvasd?
-use endpoints::vts::VTEndpoints;
-
-use scannerlib::notus::Notus;
+use std::sync::{Arc, RwLock};
 
 use crate::{
     container_image_scanner::scheduling::db::DataBase, database::sqlite::vts::SqlPluginStorage,
 };
+use endpoints::scans::Scans;
+use endpoints::vts::VTEndpoints;
+use greenbone_scanner_framework::{entry::Prefixed, models::FeedState};
+use scannerlib::notus::Notus;
+use scheduling::Scheduler;
+use sqlx::migrate::Migrator;
+
+static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scanner/migrations");
 
 pub async fn init(
     vt_pool: DataBase,
