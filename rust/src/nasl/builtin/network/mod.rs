@@ -5,10 +5,7 @@
 use std::{fmt::Display, net::IpAddr};
 
 use crate::nasl::raw_ip_utils::raw_ip_utils;
-use crate::{
-    nasl::{prelude::*, utils::DefineGlobalVars},
-    storage::items::kb::KbKey,
-};
+use crate::{nasl::prelude::*, storage::items::kb::KbKey};
 
 #[allow(clippy::module_inception)]
 pub mod network;
@@ -156,13 +153,5 @@ impl FromNaslValue<'_> for Port {
         } else {
             Ok(Port(port as u16))
         }
-    }
-}
-
-pub struct Network;
-
-impl DefineGlobalVars for Network {
-    fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
-        socket::SocketFns::get_global_vars().into_iter().collect()
     }
 }

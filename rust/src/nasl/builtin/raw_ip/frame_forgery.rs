@@ -76,11 +76,6 @@ impl Frame {
     }
 }
 
-impl Default for Frame {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 impl From<Frame> for Vec<u8> {
     fn from(f: Frame) -> Vec<u8> {
         let mut raw_frame = vec![];
@@ -210,12 +205,6 @@ impl ArpFrame {
     pub(crate) fn set_dstip(&mut self, dstip: Ipv4Addr) -> &ArpFrame {
         self.dstip = dstip;
         self
-    }
-}
-
-impl Default for ArpFrame {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
