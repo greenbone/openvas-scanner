@@ -215,34 +215,27 @@ impl Scheduler {
                     }
                     Err(err) => {
                         // Notus error should not set a scan to failed
-                        if err
-                            .iter()
-                            .filter_map(|x| match x {
+                        let only_notus_errors = err.iter().all(|x| {
+                            matches!(
+                                x,
                                 ScannerError::Image(ScannerArchImageError::Notus(
                                     NotusError::UnknownProduct(_),
-                                )) => None,
-                                ScannerError::Image(_)
-                                | ScannerError::Extractor(_)
-                                | ScannerError::ImageParseError(_)
-                                | ScannerError::RegistryError(_) => Some(true),
-                            })
-                            .any(|x| x)
-                        {
-                            image_failed(&pool, id).await;
-                        } else {
+                                ))
+                            )
+                        });
+                        if only_notus_errors {
                             image_success(&pool, id).await;
+                        } else {
+                            image_failed(&pool, id).await;
                         }
                         for e in err {
                             if let ScannerError::Image(ScannerArchImageError::Notus(
                                 NotusError::UnknownProduct(product),
                             )) = &e
                             {
-                                tracing::info!(
-                                    product,
-                                    "Not found in notus products. This is not considered a scan failure reason."
-                                );
+                                tracing::info!(product, "Not found in notus products.");
                             } else {
-                                tracing::warn!(error=%e, "This is considered a scan failure reason.");
+                                tracing::error!(error=%e, "Scan failed due to error.");
                             }
                             CustomerMessage::error(Some(id.image.clone()), format!("{e}"), None)
                                 .store(&pool, id.id())
