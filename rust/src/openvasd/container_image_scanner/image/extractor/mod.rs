@@ -71,7 +71,7 @@ pub struct Extractor {
 impl From<tokio::task::JoinError> for ExtractorError {
     fn from(value: tokio::task::JoinError) -> Self {
         tracing::warn!(error=?value, "Tokio is unable to join the task.");
-        ExtractorError::Io(std::io::Error::other("Unable to joining task."))
+        ExtractorError::Io(std::io::Error::other("Unable to join task."))
     }
 }
 
