@@ -7,7 +7,6 @@ use tokio::sync::RwLock;
 use crate::{
     container_image_scanner::{
         Config, ExternalError,
-        benchy::{self, BenchType, Benched, Measured},
         detection::{self, OperatingSystem},
         image::{
             Digest, Image, ImageParseError, ImageState, RegistryError,
@@ -17,6 +16,7 @@ use crate::{
         messages::{self, CustomerMessage, DetailPair},
         notus,
         scheduling::db::{DataBase, images::DBImages},
+        timings::{Timed, Timing, TimingType},
     },
     database::dao::Fetch,
 };
@@ -86,7 +86,7 @@ impl ImageResults {
     }
 }
 
-impl Measured<ImageResults> {
+impl Timed<ImageResults> {
     async fn store_log_messages(
         self,
         pool: &DataBase,
@@ -94,7 +94,7 @@ impl Measured<ImageResults> {
         image: &Image,
         architecture: &str,
         digest: &Image,
-        layer_timings: &[Benched],
+        layer_timings: &[Timing],
     ) -> Result<(), ScannerArchImageError> {
         let (scan_duration, result) = self.unpack();
         tracing::debug!(
@@ -115,18 +115,18 @@ impl Measured<ImageResults> {
             layer_timings
                 .iter()
                 .fold((0, 0), |(ie, id), x| match x.kind() {
-                    BenchType::Download => (ie, id + x.micro_seconds()),
-                    BenchType::Extraction => (ie + x.micro_seconds(), id),
+                    TimingType::Download => (ie, id + x.micro_seconds()),
+                    TimingType::Extraction => (ie + x.micro_seconds(), id),
                     // Aggregate timings are constructed below, not collected per layer.
-                    BenchType::Scan | BenchType::All => (ie, id),
+                    TimingType::Scan | TimingType::All => (ie, id),
                 });
         let scan_timings = [
-            Benched::scan(&scan_duration),
-            Benched::new(None, BenchType::Extraction, image_extraction),
-            Benched::new(None, BenchType::Download, image_download),
-            Benched::new(
+            Timing::scan(&scan_duration),
+            Timing::new(None, TimingType::Extraction, image_extraction),
+            Timing::new(None, TimingType::Download, image_download),
+            Timing::new(
                 None,
-                BenchType::All,
+                TimingType::All,
                 image_download + image_extraction + scan_duration.as_micros(),
             ),
         ];
@@ -211,7 +211,7 @@ async fn download_and_extract_image<'a>(
     pool: &DataBase,
     registry: &'a super::InitializedRegistry<'a>,
     image: Image,
-) -> Result<(Digest, Extractor, Vec<Benched>), ScannerError> {
+) -> Result<(Digest, Extractor, Vec<Timing>), ScannerError> {
     let mut extractor = Extractor::initialize(config.clone(), registry.id.clone()).await?;
     let mut results = Vec::new();
     let mut digest = None;
@@ -229,7 +229,7 @@ async fn download_and_extract_image<'a>(
                 return Ok((digest.unwrap_or_default(), extractor, results));
             }
         }
-        results.push(Benched::download(lindex, &layer.download_time));
+        results.push(Timing::download(lindex, &layer.download_time));
 
         tracing::debug!(
             download_time_ms = layer.download_time.as_millis(),
@@ -239,7 +239,7 @@ async fn download_and_extract_image<'a>(
         );
 
         let duration = extractor.extract(layer).await?;
-        results.push(Benched::extraction(lindex, &duration));
+        results.push(Timing::extraction(lindex, &duration));
 
         tracing::debug!(
             extraction_ms = duration.as_millis(),
@@ -260,7 +260,7 @@ async fn retry_download_and_extract_image<'a>(
     pool: &DataBase,
     registry: &'a super::InitializedRegistry<'a>,
     image: &Image,
-) -> Result<(Image, Extractor, Vec<Benched>), ScannerError> {
+) -> Result<(Image, Extractor, Vec<Timing>), ScannerError> {
     // alternatively set back to pending and store retry amount alongside the image
     let mut retries = config.image.scanning_retries;
     loop {
@@ -298,7 +298,7 @@ pub async fn scan_image<'a>(
 
     let mut errors = Vec::with_capacity(locator_per_arch.len());
     for locator in locator_per_arch.iter() {
-        let measured = benchy::measure_result(scan_arch_image(
+        let measured = Timed::measure_result(scan_arch_image(
             products.clone(),
             locator,
             registry.id.image.to_owned(),

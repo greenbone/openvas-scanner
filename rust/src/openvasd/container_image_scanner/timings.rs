@@ -3,7 +3,7 @@ use std::time::Duration;
 use tokio::time::Instant;
 
 #[derive(Default, Debug, Copy, Clone)]
-pub enum BenchType {
+pub enum TimingType {
     #[default]
     Download,
     Extraction,
@@ -11,26 +11,26 @@ pub enum BenchType {
     All,
 }
 
-impl AsRef<str> for BenchType {
+impl AsRef<str> for TimingType {
     fn as_ref(&self) -> &str {
         match self {
-            BenchType::Download => "download",
-            BenchType::Extraction => "extraction",
-            BenchType::Scan => "scan",
-            BenchType::All => "download + extraction + scan",
+            TimingType::Download => "download",
+            TimingType::Extraction => "extraction",
+            TimingType::Scan => "scan",
+            TimingType::All => "download + extraction + scan",
         }
     }
 }
 
 #[derive(Debug, Default)]
-pub struct Benched {
-    kind: BenchType,
+pub struct Timing {
+    kind: TimingType,
     micro_seconds: u128,
     layer_index: Option<usize>,
 }
 
-impl Benched {
-    pub fn new(layer_index: Option<usize>, kind: BenchType, micro_seconds: u128) -> Self {
+impl Timing {
+    pub fn new(layer_index: Option<usize>, kind: TimingType, micro_seconds: u128) -> Self {
         Self {
             kind,
             micro_seconds,
@@ -39,22 +39,26 @@ impl Benched {
     }
 
     pub fn download(layer_index: usize, duration: &Duration) -> Self {
-        Self::new(Some(layer_index), BenchType::Download, duration.as_micros())
+        Self::new(
+            Some(layer_index),
+            TimingType::Download,
+            duration.as_micros(),
+        )
     }
 
     pub fn scan(duration: &Duration) -> Self {
-        Self::new(None, BenchType::Scan, duration.as_micros())
+        Self::new(None, TimingType::Scan, duration.as_micros())
     }
 
     pub fn extraction(layer_index: usize, duration: &Duration) -> Self {
         Self::new(
             Some(layer_index),
-            BenchType::Extraction,
+            TimingType::Extraction,
             duration.as_micros(),
         )
     }
 
-    pub fn kind(&self) -> BenchType {
+    pub fn kind(&self) -> TimingType {
         self.kind
     }
 
@@ -80,28 +84,28 @@ impl Benched {
     }
 }
 
-pub struct Measured<T>(Duration, T);
+pub struct Timed<T>(Duration, T);
 
-impl<T> Measured<T> {
+impl<T> Timed<T> {
     pub fn unpack(self) -> (Duration, T) {
         (self.0, self.1)
     }
-}
 
-pub async fn measure<F, Out>(f: F) -> Measured<Out>
-where
-    F: Future<Output = Out>,
-{
-    let start = Instant::now();
-    let result = f.await;
-    let elapsed = start.elapsed();
-    Measured(elapsed, result)
-}
+    pub async fn measure<F>(f: F) -> Timed<T>
+    where
+        F: Future<Output = T>,
+    {
+        let start = Instant::now();
+        let result = f.await;
+        let elapsed = start.elapsed();
+        Timed(elapsed, result)
+    }
 
-pub async fn measure_result<F, OK, ERR>(f: F) -> Result<Measured<OK>, ERR>
-where
-    F: Future<Output = Result<OK, ERR>>,
-{
-    let start = Instant::now();
-    f.await.map(|x| Measured(start.elapsed(), x))
+    pub async fn measure_result<F, ERR>(f: F) -> Result<Timed<T>, ERR>
+    where
+        F: Future<Output = Result<T, ERR>>,
+    {
+        let start = Instant::now();
+        f.await.map(|x| Timed(start.elapsed(), x))
+    }
 }

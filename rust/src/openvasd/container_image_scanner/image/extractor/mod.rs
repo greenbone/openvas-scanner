@@ -1,6 +1,7 @@
 use crate::container_image_scanner::PromiseRef;
+use crate::container_image_scanner::timings::Timed;
 use crate::container_image_scanner::{
-    self, benchy, detection,
+    self, detection,
     image::{ImageID, PackedLayer, packages},
 };
 
@@ -146,7 +147,7 @@ impl Extractor {
         }
         ensure_dir_exists(&base).await?;
 
-        let (duration, result) = benchy::measure(tokio::task::spawn_blocking(move || {
+        let (duration, result) = Timed::measure(tokio::task::spawn_blocking(move || {
             unpack_layer(&layer.data, &base, |p| {
                 let result = detection::OS_FILES
                     .iter()

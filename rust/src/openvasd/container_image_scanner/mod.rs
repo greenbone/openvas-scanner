@@ -1,4 +1,3 @@
-mod benchy;
 pub mod config;
 mod detection;
 pub mod endpoints;
@@ -6,6 +5,7 @@ mod image;
 mod messages;
 mod notus;
 mod scheduling;
+mod timings;
 
 pub use config::Config;
 pub(crate) use scannerlib::{ExternalError, PromiseRef, Streamer};
