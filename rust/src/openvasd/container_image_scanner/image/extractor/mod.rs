@@ -5,7 +5,6 @@ use crate::container_image_scanner::{
 };
 
 use bzip2::read::BzDecoder;
-use docker_registry::render;
 use flate2::read::{GzDecoder, ZlibDecoder};
 use sha2::{Digest as _, Sha256};
 use std::path::PathBuf;
@@ -67,20 +66,6 @@ pub struct Extractor {
     // is used for warnings when an layer was missing that it won't repeat the warning.
     offset: usize,
     last_index: usize,
-}
-
-impl From<docker_registry::render::RenderError> for ExtractorError {
-    fn from(value: docker_registry::render::RenderError) -> Self {
-        match value {
-            render::RenderError::WrongTargetPath(path_buf) => {
-                ExtractorError::Io(std::io::Error::other(format!(
-                    "Wrong target path {}: must be absolute path to existing directory.",
-                    path_buf.display()
-                )))
-            }
-            render::RenderError::Io(error) => ExtractorError::Io(error),
-        }
-    }
 }
 
 impl From<tokio::task::JoinError> for ExtractorError {
