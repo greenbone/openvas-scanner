@@ -199,18 +199,18 @@ struct HashOffPageEntry {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DBI, bdb::Bdb};
+    use crate::{BDB_TEST_FILE, DBI, bdb::Bdb};
 
     #[test]
     fn test_open() {
-        let bdb = Bdb::open("testdata/Packages".parse().unwrap()).unwrap();
+        let bdb = Bdb::open(BDB_TEST_FILE.parse().unwrap()).unwrap();
         println!("{:?}", bdb.hash_metadata);
     }
 
     #[test]
     fn test_read() {
-        let mut bdb = Bdb::open("testdata/Packages".parse().unwrap()).unwrap();
+        let mut bdb = Bdb::open(BDB_TEST_FILE.parse().unwrap()).unwrap();
         println!("{:?}", bdb.hash_metadata);
-        bdb.read().unwrap();
+        assert_eq!(bdb.read().unwrap().len(), 1);
     }
 }

@@ -80,10 +80,13 @@ mod tests {
     #[tokio::test]
     async fn find_packages() {
         let locator = locator_with_files(&[(
-            "var/lib/rpm/rpmdb.sqlite",
-            "crates/rpmdb-rs/testdata/rpmdb.sqlite",
+            "usr/lib/sysimage/rpm/rpmdb.sqlite",
+            "data/tests/rpmdb/rpmdb.sqlite",
         )]);
         let packages = RPMDBSqliteFile::packages(&locator).await.unwrap();
-        assert!(!packages.is_empty());
+        assert_eq!(
+            packages,
+            vec!["test-package-1.2.3-4.test.x86_64".to_owned()]
+        );
     }
 }

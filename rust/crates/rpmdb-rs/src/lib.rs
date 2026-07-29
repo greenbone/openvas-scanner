@@ -18,6 +18,22 @@ use ndb::Ndb;
 use package::Package;
 use sqlite3::SqliteDB;
 
+#[cfg(test)]
+const BDB_TEST_FILE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../data/tests/rpmdb/Packages"
+);
+#[cfg(test)]
+const NDB_TEST_FILE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../data/tests/rpmdb/Packages.db"
+);
+#[cfg(test)]
+const SQLITE_TEST_FILE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../data/tests/rpmdb/rpmdb.sqlite"
+);
+
 #[allow(clippy::upper_case_acronyms)]
 trait DBI {
     fn read(&mut self) -> Result<Vec<Vec<u8>>, RpmdbError>;
@@ -67,24 +83,26 @@ pub fn read_packages(path: PathBuf) -> Result<Vec<Package>, RpmdbError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{open, read_packages};
+    use crate::{BDB_TEST_FILE, NDB_TEST_FILE, SQLITE_TEST_FILE, open, read_packages};
 
     #[test]
     fn test_open() {
-        open("testdata/Packages".parse().unwrap()).unwrap();
-        open("testdata/rpmdb.sqlite".parse().unwrap()).unwrap();
-        open("testdata/Packages.db".parse().unwrap()).unwrap();
+        open(BDB_TEST_FILE.parse().unwrap()).unwrap();
+        open(SQLITE_TEST_FILE.parse().unwrap()).unwrap();
+        open(NDB_TEST_FILE.parse().unwrap()).unwrap();
     }
 
     #[test]
     fn test_read_packages() {
-        let pkgs1 = read_packages("testdata/Packages".parse().unwrap()).unwrap();
-        assert!(!pkgs1.is_empty());
+        for path in [BDB_TEST_FILE, NDB_TEST_FILE, SQLITE_TEST_FILE] {
+            let packages = read_packages(path.parse().unwrap()).unwrap();
+            assert_eq!(packages.len(), 1);
 
-        let pkgs2 = read_packages("testdata/rpmdb.sqlite".parse().unwrap()).unwrap();
-        assert!(!pkgs2.is_empty());
-
-        let pkgs3 = read_packages("testdata/Packages.db".parse().unwrap()).unwrap();
-        assert!(!pkgs3.is_empty());
+            let package = &packages[0];
+            assert_eq!(package.name, "test-package");
+            assert_eq!(package.version, "1.2.3");
+            assert_eq!(package.release, "4.test");
+            assert_eq!(package.arch, "x86_64");
+        }
     }
 }
