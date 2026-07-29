@@ -94,6 +94,7 @@ impl Measured<ImageResults> {
         image: &Image,
         architecture: &str,
         digest: &Image,
+        layer_timings: &[Benched],
     ) -> Result<(), ScannerArchImageError> {
         let (scan_duration, result) = self.unpack();
         tracing::debug!(
@@ -110,14 +111,13 @@ impl Measured<ImageResults> {
         );
         let message = |msg| CustomerMessage::log(Some(image), Some(digest), msg, None).into();
 
-        let layer_timings = Benched::retrieve(pool, id, &image.to_string()).await;
         let (image_extraction, image_download) =
             layer_timings
                 .iter()
                 .fold((0, 0), |(ie, id), x| match x.kind() {
                     BenchType::Download => (ie, id + x.micro_seconds()),
                     BenchType::Extraction => (ie + x.micro_seconds(), id),
-                    // usually not stored in the DB and if so ignored
+                    // Aggregate timings are constructed below, not collected per layer.
                     BenchType::Scan | BenchType::All => (ie, id),
                 });
         let scan_timings = [
@@ -260,16 +260,13 @@ async fn retry_download_and_extract_image<'a>(
     pool: &DataBase,
     registry: &'a super::InitializedRegistry<'a>,
     image: &Image,
-) -> Result<(Image, Extractor), ScannerError> {
+) -> Result<(Image, Extractor, Vec<Benched>), ScannerError> {
     // alternatively set back to pending and store retry amount alongside the image
     let mut retries = config.image.scanning_retries;
     loop {
         match download_and_extract_image(config.clone(), pool, registry, image.clone()).await {
             Ok((digest, ex, benched)) => {
-                for b in benched {
-                    b.store(pool, registry.id.id(), registry.id.image()).await;
-                }
-                return Ok((image.clone().replace_tag(digest.into()), ex));
+                return Ok((image.clone().replace_tag(digest.into()), ex, benched));
             }
             Err(error) if error.can_retry() && retries > 0 => {
                 retries -= 1;
@@ -293,7 +290,7 @@ pub async fn scan_image<'a>(
         .parse()
         .map_err(|e| vec![ScannerError::from(e)])?;
 
-    let (digest, locator_per_arch) =
+    let (digest, locator_per_arch, layer_timings) =
         retry_download_and_extract_image(config, &pool, registry, &image)
             .await
             .map_err(|e| vec![e])?;
@@ -316,6 +313,7 @@ pub async fn scan_image<'a>(
                     &image,
                     locator.architecture(),
                     &digest,
+                    &layer_timings,
                 )
             })
             .await

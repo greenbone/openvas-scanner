@@ -2,11 +2,6 @@ use std::time::Duration;
 
 use tokio::time::Instant;
 
-use crate::{
-    container_image_scanner::scheduling::db::{DataBase, timed_layer::DBTimedLayer},
-    database::dao::{Fetch, RetryExec},
-};
-
 #[derive(Default, Debug, Copy, Clone)]
 pub enum BenchType {
     #[default]
@@ -14,17 +9,6 @@ pub enum BenchType {
     Extraction,
     Scan,
     All,
-}
-
-impl From<&str> for BenchType {
-    fn from(value: &str) -> Self {
-        match value {
-            "download" => Self::Download,
-            "extraction" => Self::Extraction,
-            "all" => Self::All,
-            _ => Self::Scan,
-        }
-    }
 }
 
 impl AsRef<str> for BenchType {
@@ -40,9 +24,9 @@ impl AsRef<str> for BenchType {
 
 #[derive(Debug, Default)]
 pub struct Benched {
-    pub kind: BenchType,
-    pub micro_seconds: u128,
-    pub layer_index: Option<usize>,
+    kind: BenchType,
+    micro_seconds: u128,
+    layer_index: Option<usize>,
 }
 
 impl Benched {
@@ -93,23 +77,6 @@ impl Benched {
                 self.micro_seconds / 1000,
             )
         }
-    }
-
-    pub async fn store(&self, pool: &DataBase, scan_id: &str, image: &str) {
-        if let Err(error) = DBTimedLayer::new(pool, (scan_id, image, self))
-            .retry_exec()
-            .await
-        {
-            tracing::warn!(?self, %error, "Unable to store. Layer duration lost.")
-        }
-    }
-    pub async fn retrieve(pool: &DataBase, scan_id: &str, image: &str) -> Vec<Benched> {
-        let result = DBTimedLayer::new(pool, (scan_id, image)).fetch().await;
-
-        if let Err(error) = &result {
-            tracing::warn!(scan_id, image, %error, "Unable to retrieve. Layer duration lost.")
-        }
-        result.unwrap_or_default()
     }
 }
 
