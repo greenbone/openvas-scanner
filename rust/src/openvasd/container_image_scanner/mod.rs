@@ -14,43 +14,6 @@ mod notus;
 mod scheduling;
 pub(crate) use scannerlib::{ExternalError, PromiseRef, Streamer};
 
-/// combines slices on compile time
-#[macro_export]
-macro_rules! concat_slices {
-    ($slices:expr) => {{
-        const fn flatten<const N: usize>(input: &[&[&'static str]]) -> [&'static str; N] {
-            let mut out = [""; N];
-            let mut i = 0;
-            let mut idx = 0;
-            while i < input.len() {
-                let slice = input[i];
-                let mut j = 0;
-                while j < slice.len() {
-                    out[idx] = slice[j];
-                    j += 1;
-                    idx += 1;
-                }
-                i += 1;
-            }
-            out
-        }
-
-        const fn total_len(slices: &[&[&str]]) -> usize {
-            let mut total = 0;
-            let mut i = 0;
-            while i < slices.len() {
-                total += slices[i].len();
-                i += 1;
-            }
-            total
-        }
-
-        const FILES: &[&[&str]] = $slices;
-        const LEN: usize = total_len(FILES);
-        &flatten::<LEN>(FILES)
-    }};
-}
-
 static MIGRATOR: Migrator = sqlx::migrate!("./src/openvasd/container_image_scanner/migrations");
 
 use endpoints::scans::Scans;

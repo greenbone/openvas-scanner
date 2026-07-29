@@ -158,7 +158,7 @@ impl Extractor {
             unpack_layer(&layer.data, &base, |p| {
                 let result = detection::OS_FILES
                     .iter()
-                    .chain(packages::PACKAGE_FILES.iter())
+                    .chain(packages::package_files())
                     .filter(|x| !x.is_empty())
                     .any(|x| p.ends_with(x));
 

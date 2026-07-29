@@ -6,8 +6,6 @@ use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
 pub struct RPMDBSqliteFile;
 
 impl RPMDBSqliteFile {
-    /// As it is used by the extractor, and we don't know the target path at compile time it needs
-    /// to be relatively.
     pub(super) const fn wanted_files() -> &'static [&'static str] {
         &[
             "var/lib/rpm/rpmdb.sqlite",

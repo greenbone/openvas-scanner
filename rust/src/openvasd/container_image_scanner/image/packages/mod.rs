@@ -1,10 +1,15 @@
 use super::extractor::{Locator, LocatorError};
-use crate::concat_slices;
 
 mod debian;
 mod rpm;
 
 type PackageError = LocatorError;
+
+pub fn package_files() -> impl Iterator<Item = &'static &'static str> {
+    debian::DPKGStatusFile::wanted_files()
+        .iter()
+        .chain(<rpm::RPMDBSqliteFile>::wanted_files())
+}
 
 /// ResolvePackages resolves packages to a Notus compatible string
 ///
@@ -21,14 +26,6 @@ trait ResolvePackages {
         T: Locator;
 }
 
-/// This is required for the extractor
-///
-/// The extractor will use the relatives paths of those packages to determine if we need to extract
-/// that file or if we can discard it to avoid using unnecessarily large amounts of disk space.
-pub const PACKAGE_FILES: &[&str] = concat_slices!(&[
-    <debian::DPKGStatusFile>::wanted_files(),
-    <rpm::RPMDBSqliteFile>::wanted_files(),
-]);
 pub struct AllTypes;
 
 impl AllTypes {
