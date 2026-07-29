@@ -6,12 +6,12 @@
 
 ## SYNOPSIS
 
-*void* **http_handle**();
+*void* **http_handle**(ca_cert: *string*);
 
-**http_handle** takes no argument.
+**http_handle** takes one optional named argument.
 
 ## DESCRIPTION
-Initialize a handle for performing http requests.
+Initialize a handle for performing http requests. It optionally receives a CA certificate in PEM format for performing peer verification.
 
 ## RETURN VALUE
 It returns an integer or NULL on error.

@@ -17,9 +17,10 @@ use h2::client;
 use core::convert::AsRef;
 use http::{Method, Request, response::Parts};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
+use std::io::Cursor;
 use std::sync::Arc;
 
-use rustls::ClientConfig;
+use rustls::{ClientConfig, RootCertStore};
 use tokio::{
     net::TcpStream,
     sync::{Mutex, MutexGuard},
@@ -64,6 +65,7 @@ struct Handle {
     pub handle_id: i32,
     pub header_items: Vec<(String, String)>,
     pub http_code: u16,
+    pub ca_cert: Option<String>,
 }
 
 #[derive(Default)]
@@ -174,14 +176,25 @@ impl NaslHttp2 {
     ) -> Result<(Parts, String), HttpError> {
         // Establish TCP connection to the server.
 
-        let mut config = ClientConfig::builder()
-            .dangerous()
-            .with_custom_certificate_verifier(Arc::new(NoVerifier))
-            .with_no_client_auth();
+        let mut config = if let Some(pem) = handle.ca_cert.clone() {
+            let mut root_store = RootCertStore::empty();
+            let mut cert_reader = Cursor::new(pem);
+            root_store.add_parsable_certificates(
+                rustls::pki_types::pem::ReadIter::new(&mut cert_reader).map(|res| res.unwrap()),
+            );
+
+            ClientConfig::builder()
+                .with_root_certificates(root_store)
+                .with_no_client_auth()
+        } else {
+            ClientConfig::builder()
+                .dangerous()
+                .with_custom_certificate_verifier(Arc::new(NoVerifier))
+                .with_no_client_auth()
+        };
 
         // For HTTP/2. For older HTTP versions should not be set,
         config.alpn_protocols = vec![b"h2".to_vec()];
-
         let server_name = ip_str.to_owned().try_into().unwrap();
 
         let connector = TlsConnector::from(Arc::new(config));
@@ -351,14 +364,15 @@ impl NaslHttp2 {
     ///
     /// On success the function returns a and integer with the handle
     /// identifier. Null on error.
-    #[nasl_function]
-    async fn handle(&self) -> Result<NaslValue, FnError> {
+    #[nasl_function(named(ca_cert))]
+    async fn handle(&self, ca_cert: Option<String>) -> Result<NaslValue, FnError> {
         let mut handles = lock_handles(&self.handles).await?;
         let handle_id = next_handle_id(&handles);
         let h = Handle {
             handle_id,
             header_items: Vec::default(),
             http_code: 0,
+            ca_cert,
         };
         handles.push(h);
 
@@ -366,12 +380,12 @@ impl NaslHttp2 {
     }
 
     /// Close a handle for http requests previously initialized
-    /// nasl named param
-    ///   - handle The handle identifier for the handle to be closed
+    /// nasl positional param
+    ///   - The handle identifier for the handle to be closed
     ///
     /// The function returns an integer.
     /// O on success, -1 on error.
-    #[nasl_function(named(handle))]
+    #[nasl_function]
     async fn close_handle(&self, handle: i32) -> Result<NaslValue, FnError> {
         let mut handles = lock_handles(&self.handles).await?;
         match handles
