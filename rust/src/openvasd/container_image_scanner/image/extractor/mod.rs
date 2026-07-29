@@ -52,14 +52,6 @@ impl From<PathBuf> for Location {
     }
 }
 
-pub trait Locator {
-    fn architecture(&self) -> &str;
-    /// Locates the given name
-    ///
-    /// It MUST ensure that the returned Location is available and readable.
-    fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>>;
-}
-
 #[derive(Error, Debug)]
 pub enum LocatorError {
     #[error("Failed to read: `{0}`")]
@@ -243,8 +235,8 @@ fn get_path_hash(kind: &str, value: &str) -> String {
     format!("{kind}-{}", hex::encode(hasher.finalize()))
 }
 
-impl Locator for FileSystemLocator {
-    fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>> {
+impl FileSystemLocator {
+    pub fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>> {
         let base = self.base.clone();
         let name = name.to_owned();
 
@@ -260,7 +252,7 @@ impl Locator for FileSystemLocator {
         })
     }
 
-    fn architecture(&self) -> &str {
+    pub fn architecture(&self) -> &str {
         &self.arch
     }
 }

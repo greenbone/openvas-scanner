@@ -11,7 +11,7 @@ use crate::{
         detection::{self, OperatingSystem},
         image::{
             Digest, Image, ImageParseError, ImageState, RegistryError,
-            extractor::{self, Extractor, Locator},
+            extractor::{self, Extractor, FileSystemLocator},
             packages::AllTypes,
         },
         messages::{self, CustomerMessage, DetailPair},
@@ -156,15 +156,12 @@ impl Measured<ImageResults> {
     }
 }
 
-async fn scan_arch_image<L>(
+async fn scan_arch_image(
     products: Arc<RwLock<Notus>>,
-    locator: &L,
+    locator: &FileSystemLocator,
     image: String,
     digest: &Image,
-) -> Result<ImageResults, ScannerArchImageError>
-where
-    L: Locator + Send + Sync,
-{
+) -> Result<ImageResults, ScannerArchImageError> {
     use detection::OperatingSystemDetectionError as OSDE;
     match detection::operating_system(locator).await {
         Ok(os) => {

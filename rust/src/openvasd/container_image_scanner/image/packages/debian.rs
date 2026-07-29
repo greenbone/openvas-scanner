@@ -4,7 +4,7 @@ use tokio::io::{AsyncBufRead, AsyncBufReadExt};
 use tracing::debug;
 
 use super::{PackageError, ResolvePackages};
-use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
+use crate::container_image_scanner::image::extractor::{FileSystemLocator, LocatorError};
 
 pub struct DPKGStatusFile;
 
@@ -83,10 +83,7 @@ impl DPKGStatusFile {
 }
 
 impl ResolvePackages for DPKGStatusFile {
-    async fn packages<T>(locator: &T) -> Result<Vec<String>, super::PackageError>
-    where
-        T: Locator,
-    {
+    async fn packages(locator: &FileSystemLocator) -> Result<Vec<String>, super::PackageError> {
         let mut result = Vec::new();
 
         for path in Self::wanted_files() {

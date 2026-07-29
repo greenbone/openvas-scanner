@@ -1,4 +1,6 @@
-use super::extractor::{Locator, LocatorError};
+use crate::container_image_scanner::image::extractor::FileSystemLocator;
+
+use super::extractor::LocatorError;
 
 mod debian;
 mod rpm;
@@ -21,18 +23,13 @@ pub fn package_files() -> impl Iterator<Item = &'static &'static str> {
 /// aware of that and don't return an empty list and prints a warning but just tries the next
 /// implementation.
 trait ResolvePackages {
-    async fn packages<T>(locator: &T) -> Result<Vec<String>, PackageError>
-    where
-        T: Locator;
+    async fn packages(locator: &FileSystemLocator) -> Result<Vec<String>, PackageError>;
 }
 
 pub struct AllTypes;
 
 impl AllTypes {
-    pub async fn packages<T>(locator: &T) -> Vec<String>
-    where
-        T: Locator + Sync + Send,
-    {
+    pub async fn packages(locator: &FileSystemLocator) -> Vec<String> {
         let result = <debian::DPKGStatusFile>::packages(locator).await;
         match result {
             Ok(packages) => return packages,

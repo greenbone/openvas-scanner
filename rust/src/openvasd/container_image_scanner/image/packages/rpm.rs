@@ -1,7 +1,7 @@
 use std::{io, path::PathBuf};
 
 use super::{PackageError, ResolvePackages};
-use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
+use crate::container_image_scanner::image::extractor::{FileSystemLocator, LocatorError};
 
 pub struct RPMDBSqliteFile;
 
@@ -47,10 +47,7 @@ impl RPMDBSqliteFile {
 }
 
 impl ResolvePackages for RPMDBSqliteFile {
-    async fn packages<T>(locator: &T) -> Result<Vec<String>, super::PackageError>
-    where
-        T: Locator,
-    {
+    async fn packages(locator: &FileSystemLocator) -> Result<Vec<String>, super::PackageError> {
         let mut result = Vec::new();
 
         for path in Self::wanted_files() {
