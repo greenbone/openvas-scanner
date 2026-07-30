@@ -31,7 +31,20 @@ const DEFAULT_CLIENT_CERT: &str = "client1.pem";
 const DEFAULT_CLIENT_KEY: &str = "client1.key";
 static OPENVAS_TEST_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
 
+/// This trait is implemented by things that can
+/// be written to a insta snapshot. This is mainly
+/// used to create the `Snapshot` type below in a convenient
+/// way. The main advantage of this trait over simply
+/// using the `Serialize` impl of the type directly is that
+/// it allows us to specify redactions (i.e. fields that are
+/// removed/redacted from the written snapshot, mainly to remove
+/// fields that change depending on time or some other irrelevant
+/// state) for a given type. Having these redactions attached to
+/// the type itself means that call-sites become slightly simpler
+/// and easier to write.
 pub trait Snapshottable: Serialize {
+    /// The redactions (in insta format) to be performed
+    /// before writing the snapshot.
     fn redactions() -> Vec<String> {
         vec![]
     }
