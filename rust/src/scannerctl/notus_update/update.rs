@@ -16,7 +16,6 @@ use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::notus::advisory_loader;
 use scannerlib::storage::Dispatcher;
 use scannerlib::storage::items::notus_advisory::NotusCache;
-use scannerlib::storage::redis::RedisCtx;
 use scannerlib::storage::redis::RedisStorage;
 
 pub fn signature_error(e: impl std::fmt::Display) -> CliError {
@@ -25,7 +24,7 @@ pub fn signature_error(e: impl std::fmt::Display) -> CliError {
 }
 
 pub async fn run(
-    storage: RedisStorage<RedisCtx>,
+    storage: RedisStorage,
     path: PathBuf,
     signature_check: bool,
 ) -> Result<(), CliError> {

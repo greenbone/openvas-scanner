@@ -117,10 +117,7 @@ impl OpenvasScanner {
         self.running.lock().unwrap().remove(id)
     }
 
-    fn create_redis_connector(
-        &self,
-        dbid: Option<u32>,
-    ) -> Result<RedisHelper<RedisCtx>, ScanError> {
+    fn create_redis_connector(&self, dbid: Option<u32>) -> Result<RedisHelper, ScanError> {
         let namespace = match dbid {
             Some(id) => [NameSpaceSelector::Fix(id)],
             None => [NameSpaceSelector::Free],
@@ -139,7 +136,7 @@ impl OpenvasScanner {
                 Err(e) => return Err(ScanError::Connection(format!("nvticache: {e}"))),
             },
         ));
-        Ok(RedisHelper::<RedisCtx>::new(nvtcache, kbctx))
+        Ok(RedisHelper::new(nvtcache, kbctx))
     }
 }
 
