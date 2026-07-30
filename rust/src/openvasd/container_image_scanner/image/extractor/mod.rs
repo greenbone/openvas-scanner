@@ -5,9 +5,9 @@ use crate::container_image_scanner::{
 };
 
 use bzip2::read::BzDecoder;
-use docker_registry::render;
 use flate2::read::{GzDecoder, ZlibDecoder};
 use sha2::{Digest as _, Sha256};
+use std::io;
 use std::path::PathBuf;
 use std::{path::Path, sync::Arc, time::Duration};
 use thiserror::Error;
@@ -16,10 +16,18 @@ use zstd::stream::read::Decoder as ZstdDecoder;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExtractorError {
-    #[error("io error {0}")]
+    #[error("{0}")]
     Io(#[from] std::io::Error),
+    #[error("{0} {1}")]
+    IoWithContext(std::io::Error, String),
     #[error("Wrong target path {0}: must be absolute path to existing directory.")]
     WrongTargetDir(PathBuf),
+}
+
+impl ExtractorError {
+    fn io_with_context(error: io::Error, msg: String) -> Self {
+        Self::IoWithContext(error, msg)
+    }
 }
 
 pub struct Location(PathBuf);
@@ -69,25 +77,13 @@ pub struct Extractor {
     last_index: usize,
 }
 
-impl From<docker_registry::render::RenderError> for ExtractorError {
-    fn from(value: docker_registry::render::RenderError) -> Self {
-        match value {
-            render::RenderError::WrongTargetPath(path_buf) => {
-                ExtractorError::Io(std::io::Error::other(format!(
-                    "Wrong target path {}: must be absolute path to existing directory.",
-                    path_buf.display()
-                )))
-            }
-            render::RenderError::Io(error) => ExtractorError::Io(error),
-        }
+async fn ensure_dir_exists(path: &Path) -> Result<(), ExtractorError> {
+    if !path.exists() {
+        tokio::fs::create_dir_all(&path).await.map_err(|e| {
+            ExtractorError::io_with_context(e, format!("while creating dir at {:?}", path))
+        })?;
     }
-}
-
-impl From<tokio::task::JoinError> for ExtractorError {
-    fn from(value: tokio::task::JoinError) -> Self {
-        tracing::warn!(error=?value, "Tokio is unable to join the task.");
-        ExtractorError::Io(std::io::Error::other("Unable to joining task."))
-    }
+    Ok(())
 }
 
 impl Extractor {
@@ -96,10 +92,8 @@ impl Extractor {
         image: ImageID,
     ) -> Result<Self, ExtractorError> {
         let root = config.image_extraction_location().join("images");
-        if !root.exists() {
-            tokio::fs::create_dir_all(&root).await?;
-        }
-        let root = tokio::fs::canonicalize(root).await?;
+        ensure_dir_exists(&root).await?;
+        let root = tokio::fs::canonicalize(&root).await?;
         let base = root
             .join(get_path_hash("scan", image.id()))
             .join(get_path_hash("image", image.image()));
@@ -111,9 +105,7 @@ impl Extractor {
         // a subdirectory of `root`.
         assert!(base.starts_with(&root));
 
-        if !base.exists() {
-            tokio::fs::create_dir_all(&base).await?;
-        }
+        ensure_dir_exists(&base).await?;
 
         Ok(Self {
             root,
@@ -160,9 +152,7 @@ impl Extractor {
         if !self.architecture.contains(&layer.arch) {
             self.architecture.push(layer.arch);
         }
-        if !base.exists() {
-            tokio::fs::create_dir_all(&base).await?;
-        }
+        ensure_dir_exists(&base).await?;
 
         let (duration, result) = benchy::measure(tokio::task::spawn_blocking(move || {
             unpack_layer(&layer.data, &base, |p| {
@@ -184,7 +174,7 @@ impl Extractor {
         }))
         .await
         .unpack();
-        result??;
+        result.expect("Task has panicked")?;
         Ok(duration)
     }
 }
@@ -310,7 +300,8 @@ fn create_decoder<'a>(bytes: &'a [u8]) -> Result<Box<dyn std::io::Read + 'a>, Ex
         Box::new(BzDecoder::new(bytes))
     } else if bytes[0..4] == ZSTD_ID {
         tracing::trace!("ZSTD");
-        let dec = ZstdDecoder::new(bytes)?;
+        let dec = ZstdDecoder::new(bytes)
+            .map_err(|e| ExtractorError::io_with_context(e, "While reading bytes".into()))?;
         Box::new(dec)
     } else {
         tracing::trace!("Missing header information.");
