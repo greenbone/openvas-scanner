@@ -5,7 +5,6 @@ use crate::database::dao::DAOHandler;
 pub mod images;
 pub mod preferences;
 pub mod scan;
-pub mod timed_layer;
 pub use crate::database::sqlite::results::DBResults;
 
 pub type DataBase = SqlitePool;

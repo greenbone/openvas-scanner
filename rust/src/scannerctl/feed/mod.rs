@@ -13,9 +13,7 @@ use scannerlib::{
     storage::{
         error::StorageError,
         json::{ArrayWrapper, JsonStorage},
-        redis::{
-            FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, NameSpaceSelector, RedisCtx, RedisStorage,
-        },
+        redis::{FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, NameSpaceSelector, RedisStorage},
     },
 };
 use tracing::warn;
@@ -71,7 +69,7 @@ struct TransformArgs {
 fn make_redis_storage(
     redis: &str,
     selector: &[NameSpaceSelector],
-) -> Result<RedisStorage<RedisCtx>, CliErrorKind> {
+) -> Result<RedisStorage, CliErrorKind> {
     Ok(RedisStorage::init(redis, selector).map_err(StorageError::from)?)
 }
 

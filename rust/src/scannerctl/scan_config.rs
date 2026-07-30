@@ -5,13 +5,12 @@
 use std::fmt::{Display, Formatter};
 use std::{io::BufReader, path::PathBuf, sync::Arc};
 
-use greenbone_scanner_framework::models::VTData;
 use scannerlib::models::{Parameter, Port, Protocol, Scan, ScanPreference, VT};
 use scannerlib::nasl::WithErrorInfo;
 use scannerlib::storage::Retriever;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::inmemory::InMemoryStorage;
-use scannerlib::storage::items::nvt::{Feed, Oid};
+use scannerlib::storage::items::nvt::Feed;
 use serde::{Deserialize, Deserializer};
 
 use crate::{CliError, CliErrorKind, Filename, get_path_from_openvas, read_openvas_config};
@@ -287,17 +286,13 @@ struct ScanConfigPreferenceNvt {
     name: String,
 }
 
-trait OspStorage: Retriever<Oid, Item = VTData> + Retriever<Feed, Item = Vec<VTData>> {}
-
-impl OspStorage for InMemoryStorage {}
-
 #[derive(Clone)]
 struct VtsScanPrefs {
     pub vts_list: Vec<VT>,
     pub scan_preferences: Vec<ScanPreference>,
 }
 
-async fn parse_vts<R>(sc: R, retriever: &dyn OspStorage, vts: &[VT]) -> Result<VtsScanPrefs, Error>
+async fn parse_vts<R>(sc: R, retriever: &InMemoryStorage, vts: &[VT]) -> Result<VtsScanPrefs, Error>
 where
     R: BufRead,
 {
@@ -454,7 +449,10 @@ where
 #[cfg(test)]
 mod tests {
 
-    use scannerlib::storage::{Dispatcher, items::nvt::FileName};
+    use scannerlib::{
+        models::VTData,
+        storage::{Dispatcher, items::nvt::FileName},
+    };
 
     use super::*;
 

@@ -1,10 +1,17 @@
-use super::extractor::{Locator, LocatorError};
-use crate::concat_slices;
+use crate::container_image_scanner::image::extractor::FileSystemLocator;
+
+use super::extractor::LocatorError;
 
 mod debian;
 mod rpm;
 
 type PackageError = LocatorError;
+
+pub fn package_files() -> impl Iterator<Item = &'static &'static str> {
+    debian::DPKGStatusFile::wanted_files()
+        .iter()
+        .chain(<rpm::RPMDBSqliteFile>::wanted_files())
+}
 
 /// ResolvePackages resolves packages to a Notus compatible string
 ///
@@ -16,26 +23,13 @@ type PackageError = LocatorError;
 /// aware of that and don't return an empty list and prints a warning but just tries the next
 /// implementation.
 trait ResolvePackages {
-    async fn packages<T>(locator: &T) -> Result<Vec<String>, PackageError>
-    where
-        T: Locator;
+    async fn packages(locator: &FileSystemLocator) -> Result<Vec<String>, PackageError>;
 }
 
-/// This is required for the extractor
-///
-/// The extractor will use the relatives paths of those packages to determine if we need to extract
-/// that file or if we can discard it to avoid using unnecessarily large amounts of disk space.
-pub const PACKAGE_FILES: &[&str] = concat_slices!(&[
-    <debian::DPKGStatusFile>::wanted_files(),
-    <rpm::RPMDBSqliteFile>::wanted_files(),
-]);
 pub struct AllTypes;
 
 impl AllTypes {
-    pub async fn packages<T>(locator: &T) -> Vec<String>
-    where
-        T: Locator + Sync + Send,
-    {
+    pub async fn packages(locator: &FileSystemLocator) -> Vec<String> {
         let result = <debian::DPKGStatusFile>::packages(locator).await;
         match result {
             Ok(packages) => return packages,
@@ -62,46 +56,38 @@ impl AllTypes {
 }
 
 #[cfg(test)]
-mod fakes {
-    use crate::container_image_scanner::{
-        PromiseRef,
-        image::extractor::{Location, Locator, LocatorError},
-    };
+mod test_utils {
+    use std::path::PathBuf;
 
-    pub struct FakeLocator;
+    use crate::container_image_scanner::image::extractor::FileSystemLocator;
 
-    impl Locator for FakeLocator {
-        fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>> {
-            let name = name.to_owned();
+    pub fn locator_with_files(files: &[(&str, &str)]) -> FileSystemLocator {
+        let temp_dir = tempfile::tempdir().unwrap();
 
-            Box::pin(async move {
-                let file = match &name as &str {
-                    "var/lib/dpkg/status" => "data/tests/images/victim/var/lib/dpkg/status",
-                    "var/lib/rpm/rpmdb.sqlite" => "crates/rpmdb-rs/testdata/rpmdb.sqlite",
-                    _ => {
-                        return Err(LocatorError::NotFound(
-                            "No such file or directory".to_owned(),
-                        ));
-                    }
-                };
-                let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(file);
-                Ok(path.into())
-            })
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        for (image_path, fixture_path) in files {
+            let destination = temp_dir.path().join(image_path);
+            std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+            std::fs::copy(manifest_dir.join(fixture_path), destination).unwrap();
         }
 
-        fn architecture(&self) -> &str {
-            "amd64"
-        }
+        // We keep the temp_dir alive because the `Drop` impl of
+        // `FileSystemLocator` cleans it up
+        FileSystemLocator::for_test(temp_dir.keep(), "amd64")
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::container_image_scanner::image::packages::fakes::FakeLocator;
+    use crate::container_image_scanner::image::packages::test_utils::locator_with_files;
 
     #[tokio::test]
     async fn find_packages() {
-        let packages = super::AllTypes::packages(&FakeLocator {}).await;
+        let locator = locator_with_files(&[(
+            "var/lib/dpkg/status",
+            "data/tests/images/victim/var/lib/dpkg/status",
+        )]);
+        let packages = super::AllTypes::packages(&locator).await;
         assert_eq!(packages.len(), 629);
     }
 }

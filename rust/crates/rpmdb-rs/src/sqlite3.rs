@@ -53,19 +53,17 @@ impl DBI for SqliteDB {
 #[cfg(test)]
 mod tests {
     use super::SqliteDB;
-    use crate::DBI;
-
-    const SQLITE_FILE: &str = "testdata/rpmdb.sqlite";
+    use crate::{DBI, SQLITE_TEST_FILE};
 
     #[test]
     fn test_check_sqlite() {
-        SqliteDB::check_sqlite(SQLITE_FILE).unwrap();
+        SqliteDB::check_sqlite(SQLITE_TEST_FILE).unwrap();
     }
 
     #[test]
     fn test_read() {
-        let mut db = SqliteDB::open(SQLITE_FILE.parse().unwrap()).unwrap();
+        let mut db = SqliteDB::open(SQLITE_TEST_FILE.parse().unwrap()).unwrap();
         let blobs = db.read().unwrap();
-        assert!(!blobs.is_empty())
+        assert_eq!(blobs.len(), 1)
     }
 }

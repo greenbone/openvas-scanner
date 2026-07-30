@@ -4,13 +4,11 @@ use tokio::io::{AsyncBufRead, AsyncBufReadExt};
 use tracing::debug;
 
 use super::{PackageError, ResolvePackages};
-use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
+use crate::container_image_scanner::image::extractor::{FileSystemLocator, LocatorError};
 
 pub struct DPKGStatusFile;
 
 impl DPKGStatusFile {
-    /// As it is used by the extractor and we don't know the target path at compile time it needs
-    /// to be relatively.
     pub(super) const fn wanted_files() -> &'static [&'static str] {
         &["var/lib/dpkg/status"]
     }
@@ -85,10 +83,7 @@ impl DPKGStatusFile {
 }
 
 impl ResolvePackages for DPKGStatusFile {
-    async fn packages<T>(locator: &T) -> Result<Vec<String>, super::PackageError>
-    where
-        T: Locator,
-    {
+    async fn packages(locator: &FileSystemLocator) -> Result<Vec<String>, super::PackageError> {
         let mut result = Vec::new();
 
         for path in Self::wanted_files() {
@@ -238,12 +233,16 @@ impl FromStr for Status {
 #[cfg(test)]
 mod tests {
     use crate::container_image_scanner::image::packages::{
-        ResolvePackages, debian::DPKGStatusFile, fakes::FakeLocator,
+        ResolvePackages, debian::DPKGStatusFile, test_utils::locator_with_files,
     };
 
     #[tokio::test]
     async fn find_packages() {
-        let packages = DPKGStatusFile::packages(&FakeLocator {}).await.unwrap();
-        assert!(!packages.is_empty(), "expected some packages");
+        let locator = locator_with_files(&[(
+            "var/lib/dpkg/status",
+            "data/tests/images/victim/var/lib/dpkg/status",
+        )]);
+        let packages = DPKGStatusFile::packages(&locator).await.unwrap();
+        assert!(!packages.is_empty());
     }
 }

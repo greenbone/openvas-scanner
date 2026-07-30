@@ -143,11 +143,14 @@ impl TryFrom<Vec<IndexEntry>> for Package {
 #[cfg(test)]
 mod tests {
     use super::Package;
-    use crate::{DBI, bdb::Bdb, entry::Hdrblob, ndb::Ndb, sqlite3::SqliteDB};
+    use crate::{
+        BDB_TEST_FILE, DBI, NDB_TEST_FILE, SQLITE_TEST_FILE, bdb::Bdb, entry::Hdrblob, ndb::Ndb,
+        sqlite3::SqliteDB,
+    };
 
     #[test]
     fn test_bdb() {
-        let mut bdb = Bdb::open("testdata/Packages".parse().unwrap()).unwrap();
+        let mut bdb = Bdb::open(BDB_TEST_FILE.parse().unwrap()).unwrap();
         let values = bdb.read().unwrap();
         for value in values {
             let blob = Hdrblob::from_bytes(&value).unwrap();
@@ -160,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_sqlite3() {
-        let mut sqlite_db = SqliteDB::open("testdata/rpmdb.sqlite".parse().unwrap()).unwrap();
+        let mut sqlite_db = SqliteDB::open(SQLITE_TEST_FILE.parse().unwrap()).unwrap();
         let values = sqlite_db.read().unwrap();
         for value in values {
             let blob = Hdrblob::from_bytes(&value).unwrap();
@@ -173,7 +176,7 @@ mod tests {
 
     #[test]
     fn test_ndb() {
-        let mut ndb = Ndb::open("testdata/Packages.db".parse().unwrap()).unwrap();
+        let mut ndb = Ndb::open(NDB_TEST_FILE.parse().unwrap()).unwrap();
         let values = ndb.read().unwrap();
         for value in values {
             let blob = Hdrblob::from_bytes(&value).unwrap();

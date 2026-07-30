@@ -2,42 +2,33 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use crate::storage::redis::{DbError, RedisCtx, RedisGetNvt, RedisStorageResult, RedisWrapper};
+use crate::storage::redis::{DbError, RedisCtx, RedisStorageResult};
 use greenbone_scanner_framework::models::VTData;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug, Default)]
-pub struct RedisHelper<R>
-where
-    R: RedisWrapper,
-{
-    cache: Arc<Mutex<R>>,
-    task_kb: Arc<Mutex<R>>,
+pub struct RedisHelper {
+    cache: Arc<Mutex<RedisCtx>>,
+    task_kb: Arc<Mutex<RedisCtx>>,
 }
 
-impl<R> RedisHelper<R>
-where
-    R: RedisWrapper,
-{
+impl RedisHelper {
     /// Initialize a RedisHelper struct with the connection to access the NVT cache
     /// and a empty task knowledge base to store the scan configuration to be sent to openvas.
-    pub fn new(
-        nvti_cache: Arc<Mutex<RedisCtx>>,
-        kb_cache: Arc<Mutex<RedisCtx>>,
-    ) -> RedisHelper<RedisCtx> {
-        RedisHelper::<RedisCtx> {
+    pub fn new(nvti_cache: Arc<Mutex<RedisCtx>>, kb_cache: Arc<Mutex<RedisCtx>>) -> RedisHelper {
+        RedisHelper {
             cache: nvti_cache,
             task_kb: kb_cache,
         }
     }
 
-    fn lock_task_kb(&self) -> Result<MutexGuard<'_, R>, DbError> {
+    fn lock_task_kb(&self) -> Result<MutexGuard<'_, RedisCtx>, DbError> {
         self.task_kb
             .lock()
             .map_err(|e| DbError::PoisonedLock(format!("{e:?}")))
     }
 
-    fn lock_cache(&self) -> Result<MutexGuard<'_, R>, DbError> {
+    fn lock_cache(&self) -> Result<MutexGuard<'_, RedisCtx>, DbError> {
         self.cache
             .lock()
             .map_err(|e| DbError::PoisonedLock(format!("{e:?}")))
@@ -65,7 +56,7 @@ pub trait KbAccess {
     }
 }
 
-impl KbAccess for RedisHelper<RedisCtx> {
+impl KbAccess for RedisHelper {
     /// Provide access to the cache
     fn kb_id(&self) -> RedisStorageResult<u32> {
         // TODO: Should this really be self.lock_task_kb? This seems
@@ -109,7 +100,7 @@ pub trait VtHelper {
     }
 }
 
-impl VtHelper for RedisHelper<RedisCtx> {
+impl VtHelper for RedisHelper {
     fn get_vt(&self, oid: &str) -> RedisStorageResult<Option<VTData>> {
         self.lock_cache()?.redis_get_vt(oid)
     }

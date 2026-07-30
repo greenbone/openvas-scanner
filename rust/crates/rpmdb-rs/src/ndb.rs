@@ -123,14 +123,12 @@ impl DBI for Ndb {
 #[cfg(test)]
 mod tests {
     use super::Ndb;
-    use crate::DBI;
-
-    const NDB_FILE: &str = "testdata/Packages.db";
+    use crate::{DBI, NDB_TEST_FILE};
 
     #[test]
     fn test_read() {
-        let mut db = Ndb::open(NDB_FILE.parse().unwrap()).unwrap();
+        let mut db = Ndb::open(NDB_TEST_FILE.parse().unwrap()).unwrap();
         let blobs = db.read().unwrap();
-        assert!(!blobs.is_empty())
+        assert_eq!(blobs.len(), 1)
     }
 }

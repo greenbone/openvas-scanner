@@ -6,7 +6,7 @@ use tokio::{
     io::{AsyncBufRead, AsyncBufReadExt, BufReader},
 };
 
-use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
+use crate::container_image_scanner::image::extractor::{FileSystemLocator, LocatorError};
 
 #[derive(Debug, PartialEq, PartialOrd)]
 pub struct OperatingSystem {
@@ -46,12 +46,9 @@ impl From<LocatorError> for OperatingSystemDetectionError {
 
 pub const OS_FILES: &[&str] = &["etc/os-release", "usr/lib/os-release"];
 
-pub async fn operating_system<T>(
-    locator: &T,
-) -> Result<OperatingSystem, OperatingSystemDetectionError>
-where
-    T: Locator,
-{
+pub async fn operating_system(
+    locator: &FileSystemLocator,
+) -> Result<OperatingSystem, OperatingSystemDetectionError> {
     for path in OS_FILES {
         let path = match locator.locate(path).await {
             Ok(x) => x,

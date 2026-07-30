@@ -10,11 +10,11 @@ use tokio::sync::mpsc::Receiver;
 use super::{PackedLayer, RegistryPreference};
 use crate::container_image_scanner::{
     Streamer,
-    benchy::{self, Measured},
     image::{
         Digest, Image,
         registry::{RegistryError, RegistryErrorKind},
     },
+    timings::Timed,
 };
 
 struct BlobStream {
@@ -520,7 +520,7 @@ impl DockerV2Registry {
                             d.as_ref(),
                         );
 
-                        let result = benchy::measure(blob).await.into_packed_layer(
+                        let result = Timed::measure(blob).await.into_packed_layer(
                             image_digest.clone(),
                             arch.to_owned(),
                             i,
@@ -546,7 +546,7 @@ impl DockerV2Registry {
     }
 }
 
-impl Measured<Result<Vec<u8>, RegistryError>> {
+impl Timed<Result<Vec<u8>, RegistryError>> {
     fn into_packed_layer(
         self,
         digest: Option<Digest>,

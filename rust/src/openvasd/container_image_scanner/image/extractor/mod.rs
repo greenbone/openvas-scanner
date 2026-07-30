@@ -1,6 +1,7 @@
 use crate::container_image_scanner::PromiseRef;
+use crate::container_image_scanner::timings::Timed;
 use crate::container_image_scanner::{
-    self, benchy, detection,
+    self, detection,
     image::{ImageID, PackedLayer, packages},
 };
 
@@ -50,14 +51,6 @@ impl From<PathBuf> for Location {
     fn from(value: PathBuf) -> Self {
         Location(value)
     }
-}
-
-pub trait Locator {
-    fn architecture(&self) -> &str;
-    /// Locates the given name
-    ///
-    /// It MUST ensure that the returned Location is available and readable.
-    fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>>;
 }
 
 #[derive(Error, Debug)]
@@ -154,11 +147,11 @@ impl Extractor {
         }
         ensure_dir_exists(&base).await?;
 
-        let (duration, result) = benchy::measure(tokio::task::spawn_blocking(move || {
+        let (duration, result) = Timed::measure(tokio::task::spawn_blocking(move || {
             unpack_layer(&layer.data, &base, |p| {
                 let result = detection::OS_FILES
                     .iter()
-                    .chain(packages::PACKAGE_FILES.iter())
+                    .chain(packages::package_files())
                     .filter(|x| !x.is_empty())
                     .any(|x| p.ends_with(x));
 
@@ -183,6 +176,19 @@ pub struct FileSystemLocator {
     root: PathBuf,
     base: PathBuf,
     arch: String,
+}
+
+impl FileSystemLocator {
+    #[cfg(test)]
+    pub(crate) fn for_test(base: impl AsRef<Path>, arch: impl Into<String>) -> Self {
+        let base = base.as_ref().canonicalize().unwrap();
+        let root = base.parent().unwrap().to_path_buf();
+        Self {
+            root,
+            base,
+            arch: arch.into(),
+        }
+    }
 }
 
 impl Drop for FileSystemLocator {
@@ -230,8 +236,8 @@ fn get_path_hash(kind: &str, value: &str) -> String {
     format!("{kind}-{}", hex::encode(hasher.finalize()))
 }
 
-impl Locator for FileSystemLocator {
-    fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>> {
+impl FileSystemLocator {
+    pub fn locate(&self, name: &str) -> PromiseRef<'_, Result<Location, LocatorError>> {
         let base = self.base.clone();
         let name = name.to_owned();
 
@@ -247,7 +253,7 @@ impl Locator for FileSystemLocator {
         })
     }
 
-    fn architecture(&self) -> &str {
+    pub fn architecture(&self) -> &str {
         &self.arch
     }
 }

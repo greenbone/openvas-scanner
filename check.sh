@@ -152,7 +152,6 @@ test_rust() {
     cd "$ROOT/rust"
     version_command cargo --version
     run make
-    run sh -c 'cd crates/rpmdb-rs && sh prepare-test-data.sh'
     run cargo test --lib --tests --workspace
     run cargo test --lib --tests --workspace --features native-rust-ssh
 }

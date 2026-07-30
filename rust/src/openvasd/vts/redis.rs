@@ -4,10 +4,7 @@ use futures::Stream;
 use greenbone_scanner_framework::GetVTsError;
 use scannerlib::{
     models::{FeedType, VTData},
-    storage::redis::{
-        CACHE_KEY, DbError, NOTUS_KEY, RedisAddAdvisory, RedisAddNvt, RedisCtx, RedisGetNvt,
-        RedisWrapper,
-    },
+    storage::redis::{CACHE_KEY, DbError, NOTUS_KEY, RedisCtx},
 };
 
 use crate::{

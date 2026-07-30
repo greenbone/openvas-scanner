@@ -15,3 +15,5 @@ target/
 *.pem
 *.snap.new
 .insta-pending/
+!rust/data/tests/rpmdb/Packages.db
+!rust/data/tests/rpmdb/rpmdb.sqlite

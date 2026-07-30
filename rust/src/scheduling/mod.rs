@@ -13,7 +13,7 @@ use crate::storage::{
     inmemory::InMemoryStorage,
     items::nvt::{ACT, FileName, Oid},
     json::JsonStorage,
-    redis::{RedisAddAdvisory, RedisAddNvt, RedisGetNvt, RedisStorage, RedisWrapper},
+    redis::RedisStorage,
 };
 
 use greenbone_scanner_framework::models::VTData;
@@ -99,10 +99,7 @@ pub trait SchedulerStorage:
 
 impl SchedulerStorage for InMemoryStorage {}
 impl<T: Write + Send> SchedulerStorage for JsonStorage<T> {}
-impl<T> SchedulerStorage for RedisStorage<T> where
-    T: RedisWrapper + RedisAddNvt + RedisAddAdvisory + RedisGetNvt + Send
-{
-}
+impl SchedulerStorage for RedisStorage {}
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> where Arc<T>: Sync {}
 
 pub struct Scheduler<S> {

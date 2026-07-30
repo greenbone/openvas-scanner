@@ -11,7 +11,6 @@ runs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           rust/target/
-          rust/crates/rpmdb-rs/testdata/
         key: amd64-cargo
     - run: sudo apt update || true
       shell: bash

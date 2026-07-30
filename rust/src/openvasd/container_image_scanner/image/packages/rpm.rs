@@ -1,13 +1,11 @@
 use std::{io, path::PathBuf};
 
 use super::{PackageError, ResolvePackages};
-use crate::container_image_scanner::image::extractor::{Locator, LocatorError};
+use crate::container_image_scanner::image::extractor::{FileSystemLocator, LocatorError};
 
 pub struct RPMDBSqliteFile;
 
 impl RPMDBSqliteFile {
-    /// As it is used by the extractor, and we don't know the target path at compile time it needs
-    /// to be relatively.
     pub(super) const fn wanted_files() -> &'static [&'static str] {
         &[
             "var/lib/rpm/rpmdb.sqlite",
@@ -49,10 +47,7 @@ impl RPMDBSqliteFile {
 }
 
 impl ResolvePackages for RPMDBSqliteFile {
-    async fn packages<T>(locator: &T) -> Result<Vec<String>, super::PackageError>
-    where
-        T: Locator,
-    {
+    async fn packages(locator: &FileSystemLocator) -> Result<Vec<String>, super::PackageError> {
         let mut result = Vec::new();
 
         for path in Self::wanted_files() {
@@ -79,12 +74,19 @@ impl ResolvePackages for RPMDBSqliteFile {
 #[cfg(test)]
 mod tests {
     use crate::container_image_scanner::image::packages::{
-        ResolvePackages, fakes::FakeLocator, rpm::RPMDBSqliteFile,
+        ResolvePackages, rpm::RPMDBSqliteFile, test_utils::locator_with_files,
     };
 
     #[tokio::test]
     async fn find_packages() {
-        let packages = RPMDBSqliteFile::packages(&FakeLocator {}).await.unwrap();
-        assert!(!packages.is_empty(), "expected some packages");
+        let locator = locator_with_files(&[(
+            "usr/lib/sysimage/rpm/rpmdb.sqlite",
+            "data/tests/rpmdb/rpmdb.sqlite",
+        )]);
+        let packages = RPMDBSqliteFile::packages(&locator).await.unwrap();
+        assert_eq!(
+            packages,
+            vec!["test-package-1.2.3-4.test.x86_64".to_owned()]
+        );
     }
 }
