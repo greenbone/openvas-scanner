@@ -30,5 +30,3 @@ impl From<&str> for CliError {
         Self::Message(value.to_string())
     }
 }
-
-impl std::error::Error for CliError {}

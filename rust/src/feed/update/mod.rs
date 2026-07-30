@@ -19,8 +19,8 @@ use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
 use crate::nasl::utils::scan_ctx::Target;
 
+use crate::feed::verify::HashSumFileItem;
 use crate::feed::verify::check_signature;
-use crate::feed::verify::{HashSumFileItem, SignatureChecker};
 use crate::scanner::preferences::preference::ScanPrefs;
 use crate::storage::ScanID;
 use crate::storage::items::nvt::FeedVersion;
@@ -85,13 +85,6 @@ pub async fn feed_version(
         .map(|x| x.to_string())
         .unwrap_or_else(|_| "0".to_owned());
     Ok(feed_version)
-}
-
-impl<'a, S, V> SignatureChecker for Update<'a, S, V>
-where
-    S: Sync + Send + ContextStorage,
-    V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>>,
-{
 }
 
 impl<'a, S, V> Update<'a, S, V>

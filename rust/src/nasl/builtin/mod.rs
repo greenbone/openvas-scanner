@@ -71,6 +71,7 @@ pub fn nasl_std_executor() -> Executor {
     executor.add_set(raw_ip::RawIp);
     executor.add_global_vars(raw_ip::RawIp);
     executor.add_global_vars(network::socket::SocketFns);
+    executor.add_global_vars(misc::Misc);
 
     executor
 }
