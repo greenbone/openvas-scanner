@@ -243,7 +243,7 @@ mod requires_compose {
         scan.get_results().await.body::<Vec<models::Result>>()
     }
 
-    // I am leaving this in here for feature parity with the
+    // This is here for feature parity with the
     // hurl smoketests for now but if this ever becomes flaky
     // or annoying to maintain we should replace it with better
     // assertions
@@ -262,7 +262,7 @@ mod requires_compose {
         assert_eq!(host_info.finished, host_info.all);
     }
 
-    // I am leaving this in here for feature parity with the
+    // This is here for feature parity with the
     // hurl smoketests for now but if this ever becomes flaky
     // or annoying to maintain we should replace it with better
     // assertions
