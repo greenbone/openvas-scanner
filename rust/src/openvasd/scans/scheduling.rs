@@ -367,9 +367,14 @@ where
     async fn scan_stop(&self, id: i64) -> R<()> {
         let scan_id: String = ScanDB::new(&self.pool, id).fetch().await?;
 
+        let current_status = self.scan_state.scan_get_status(id).await?;
+        if current_status.is_stopped() {
+            tracing::debug!(id, "Scan already stopped");
+            return Ok(());
+        }
+
         self.scan_import_results(id, scan_id.clone()).await?;
         self.scanner.stop_scan(scan_id.clone()).await?;
-
         let changed = self
             .scan_state
             .change_state(id, "running", "stopped")
