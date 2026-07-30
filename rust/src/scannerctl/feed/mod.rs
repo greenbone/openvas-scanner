@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 pub mod update;
-use std::{io, path::PathBuf};
+use std::{io, path::PathBuf, sync::Arc};
 
 // re-export to work around name conflict
 
@@ -11,8 +11,10 @@ use clap::Subcommand;
 use scannerlib::{
     nasl::syntax::LoadError,
     storage::{
+        Retriever,
         error::StorageError,
-        json::{ArrayWrapper, JsonStorage},
+        inmemory::InMemoryStorage,
+        items::nvt::Feed,
         redis::{FEEDUPDATE_SELECTOR, NOTUSUPDATE_SELECTOR, NameSpaceSelector, RedisStorage},
     },
 };
@@ -150,12 +152,15 @@ async fn update(args: UpdateArgs) -> Result<(), CliError> {
 }
 
 async fn transform(args: TransformArgs) -> Result<(), CliError> {
-    let mut o = ArrayWrapper::new(io::stdout());
-    let dispatcher = JsonStorage::new(&mut o);
-    update::run_no_verifier(dispatcher, &args.path).await?;
-    o.end()
-        .map_err(StorageError::from)
-        .map_err(|e| CliErrorKind::from(e).into())
+    let storage = Arc::new(InMemoryStorage::default());
+    update::run_no_verifier(Arc::clone(&storage), &args.path).await?;
+    let vts = storage
+        .retrieve(&Feed)
+        .await
+        .map_err(CliErrorKind::from)?
+        .unwrap_or_default();
+    serde_json::to_writer(io::stdout().lock(), &vts)?;
+    Ok(())
 }
 
 pub async fn run(args: FeedArgs) -> Result<(), CliError> {
