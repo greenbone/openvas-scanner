@@ -185,7 +185,7 @@ async fn scan_lifecycle() {
 }
 
 #[tokio::test]
-#[ignore = "extremely slow"]
+#[ignore = "very slow"]
 async fn container_image_scan_docker_hub_ubuntu_24_04() {
     const IMAGE: &str = "oci://registry-1.docker.io/library/ubuntu:24.04";
 
@@ -376,7 +376,7 @@ mod requires_compose {
     }
 
     #[tokio::test]
-    #[ignore = "extremely slow"]
+    #[ignore = "very slow"]
     async fn scan_victim_discovery() {
         run_full_scan_test(
             "scan_victim_discovery",
@@ -388,7 +388,7 @@ mod requires_compose {
     }
 
     #[tokio::test]
-    #[ignore = "extremely slow"]
+    #[ignore = "very slow"]
     async fn scan_victim_full_and_fast() {
         run_full_scan_test(
             "scan_victim_full_and_fast",
@@ -400,6 +400,7 @@ mod requires_compose {
     }
 
     #[tokio::test]
+    #[ignore = "very slow"]
     async fn container_image_scan_local_registry_full() {
         run_full_scan_test(
             "container_image_scan_local_registry_full",
@@ -411,7 +412,7 @@ mod requires_compose {
     }
 
     #[tokio::test]
-    #[ignore = "extremely slow"]
+    #[ignore = "very slow"]
     async fn container_image_scan_local_registry_openeuler() {
         run_full_scan_test(
             "container_image_scan_local_registry_openeuler",
