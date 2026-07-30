@@ -1,7 +1,7 @@
-SCAN_DIR := smoketest/scans-user-flows/
+SCAN_DIR := ../../rust/data/tests/scanner/scans
 STARTED_SCAN_DIR := known-scans
 
-JSON_FILES := $(wildcard $(SCAN_DIR)/*.json)
+JSON_FILES := $(wildcard $(SCAN_DIR)/victim-*.json)
 
 BASE_NAMES := $(basename $(notdir $(JSON_FILES)))
 CREATE_TARGETS :=  $(addprefix create-,$(BASE_NAMES))

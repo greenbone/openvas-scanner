@@ -57,27 +57,16 @@ If the functional tests fail it will prevent further execution of `containerizat
   - **Container Oldstable**: Uses `push-container-oldstable.yml`.
 - **Dependencies**: Depends on `build`, `init`, and `functional`.
 
-If the `containerization` fails the smoketests cannot be executed. 
-
-### 7. Smoke Tests (`smoketests`)
-- **Purpose**: Conducts tests on helm chart based on the previously pushed docker image.
-- **Conditions**: Excluded during pull request events.
-- **Dependencies**: Relies on `container`, `build`, and `init`.
-- **Workflow File**: `smoketest.yaml`
-
-If the smoketests fail the helm chart will not be updated and releases be prevented.
-
-
-### 8. Helm Chart Deployment (`helm`)
+### 7. Helm Chart Deployment (`helm`)
 - **Purpose**: Deploys Helm chart, assuming `IMAGE_REGISTRY` is configured.
 - **Conditions**: Triggered if `IMAGE_REGISTRY` is set.
-- **Dependencies**: Depends on `smoketests`, `container`, `build`, and `init`.
+- **Dependencies**: Depends on `container` and `init`.
 - **Workflow File**: `push-helm-chart.yml`
 
-### 9. Release (`release`)
+### 8. Release (`release`)
 - **Purpose**: Handles the release process for different version types.
 - **Conditions**: Activated based on the release type set in `init`.
-- **Dependencies**: Requires `smoketests`, `container`, `build`, and `init`.
+- **Dependencies**: Requires `build` and `init`.
 - **Workflow File**: `release.yml`
 
 ## Secrets and Authentication

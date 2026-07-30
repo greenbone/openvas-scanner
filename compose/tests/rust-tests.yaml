@@ -1,0 +1,58 @@
+name: openvas-scanner-rust-tests
+
+services:
+  rust-tests:
+    build:
+      context: ..
+      dockerfile: compose/tests/rust-tests.Dockerfile
+      args:
+        OPENVAS_IMAGE: ${OPENVAS_IMAGE:-ghcr.io/greenbone/openvas-scanner:stable}
+    init: true
+    working_dir: /workspace/rust
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+      - NET_BIND_SERVICE
+    environment:
+      CARGO_HOME: /cargo
+      CARGO_TARGET_DIR: /target
+      CARGO_TERM_COLOR: always
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /workspace
+      GNUPGHOME: /etc/openvas/gnupg
+      INSTA_OUTPUT: summary
+      RUST_BACKTRACE: "1"
+      XDG_CACHE_HOME: /var/cache
+    volumes:
+      - ..:/workspace:ro
+      - cargo_home_vol:/cargo
+      - rust_target_vol:/target
+      - gpg_data_vol:/etc/openvas/gnupg:ro
+      - notus_data_vol:/var/lib/notus:ro
+      - openvas_data_vol:/etc/openvas
+      - openvas_log_data_vol:/var/log/openvas
+      - openvasd_cache_vol:/var/cache
+      - redis_socket_vol:/run/redis
+      - vt_data_vol:/var/lib/openvas/plugins:ro
+    depends_on:
+      configure-openvas-log:
+        condition: service_completed_successfully
+      configure-openvas:
+        condition: service_completed_successfully
+      gpg-data:
+        condition: service_completed_successfully
+      notus-data:
+        condition: service_completed_successfully
+      redis-server:
+        condition: service_started
+      registry_seed:
+        condition: service_completed_successfully
+      victim:
+        condition: service_started
+      vulnerability-tests:
+        condition: service_completed_successfully
+
+volumes:
+  cargo_home_vol:
+  rust_target_vol:

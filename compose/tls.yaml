@@ -14,7 +14,7 @@ services:
       - /bin/sh
       - -c
       - |
-        printf "table_driven_lsc = yes\nopenvasd_server = $OPENVASD_PROTOCOL://openvasd:$OPENVASD_PORT\n" > /mnt/openvas.conf
+        printf "table_driven_lsc = yes\nopenvasd_server = $$OPENVASD_PROTOCOL://openvasd:$$OPENVASD_PORT\n" > /mnt/openvas.conf
         chmod 644 /mnt/openvas.conf
 
   openvasd:

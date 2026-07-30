@@ -5,18 +5,21 @@ This directory contains compose files and helper targets for running
 
 ## Files
 
-- `base.yaml`: base service definition with HTTP enabled
+- `base.yaml`: feed, Notus, GPG, Redis, `openvas`, and Volume services
+- `openvasd.yaml`: adds the `openvasd` service
 - `tls.yaml`: adds TLS
 - `mtls.yaml`: adds mutual TLS
 - `local-registry.yaml`: local registry services used by the compose test setup
 - `tests/victim.yaml`: extra services used by the compose test setup
-- `Makefile`: helper targets for certificates, local startup, and smoketests
+- `tests/rust-tests.yaml`: runs rust integration tests that require a compose setup
+- `Makefile`: helper targets for certificates, local startup and the rust API tests
 
 ## Requirements
 
 - `docker compose`, `docker-compose`, or `podman-compose`
 - `make`
-- for mTLS and smoketests: `curl`, `jq`, `hurl`
+- for mTLS examples: `curl`
+- for manual API helpers: `curl`, `jq`
 
 ## Certificates
 
@@ -37,22 +40,22 @@ This creates:
 
 ## Running The Stack
 
-Start the base HTTP setup:
+Start the HTTP openvasd setup:
 
 ```bash
-podman-compose -f base.yaml up
+podman-compose -f base.yaml -f openvasd.yaml up
 ```
 
 Start with TLS:
 
 ```bash
-podman-compose -f base.yaml -f tls.yaml up
+podman-compose -f base.yaml -f openvasd.yaml -f tls.yaml up
 ```
 
 Start with mTLS:
 
 ```bash
-podman-compose -f base.yaml -f mtls.yaml up
+podman-compose -f base.yaml -f openvasd.yaml -f mtls.yaml up
 ```
 
 When mTLS is enabled, client requests must include the client key and certificate:
@@ -73,36 +76,11 @@ The main helper targets are:
 - `make local-test-environment-up`: build the local image and start the compose test environment
 - `make local-test-environment-running`: build the local image, start it, and wait for services
 - `make test-environment-down`: stop the compose test environment and remove volumes
-- `make smoketest`: build the local image, wait for services, and run the Hurl smoketest suite
-- `make smoketests`: alias for `make smoketest`
-
-## Smoketests
-
-Run the full local smoketest flow with:
-
-```bash
-make smoketest
-```
-
-That target:
-
-1. builds the local `openvas` image
-2. starts the compose test environment
-3. waits until `openvasd` is running and the registry seed job finished
-4. runs the Hurl tests from `tests/smoketest`
-
-If the environment is already running, you can run the Hurl suite directly with:
-
-```bash
-make -C tests/smoketest
-```
+- `make rust-test`: run Rust tests that require the compose test environment
 
 ## Tests Directory Layout
 
-- `tests/smoketest/`: automated Hurl-based smoketests
 - `tests/Makefile`: manual helper targets for creating, starting, stopping, querying, and removing scans via the API
-
-`tests/Makefile` is still useful if you want interactive scan lifecycle helpers while developing. If you no longer use those manual targets, deleting that file would be reasonable. I would keep the Hurl suite in `tests/smoketest/` rather than flattening it into `tests/`.
 
 ## Environment Variables
 
