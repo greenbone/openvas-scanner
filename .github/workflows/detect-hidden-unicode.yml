@@ -10,3 +10,4 @@ jobs:
       - uses: greenbone/actions/detect-hidden-unicode@v3
         with:
           github-token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+          filter: "^((?!Packages)(?!.sqlite).)*$"
