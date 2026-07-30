@@ -346,18 +346,23 @@ where
             }
         }
 
-        let handle_worker_result = async move |feed_type, result: Result<(), WorkerError>| {
-            if let Err(error) = result {
-                tracing::warn!(%error, %feed_type, "Unable to update feed.");
-            }
-            send_synced(feed_type).await
-        };
-
         if let Some(handle) = nasl_handle {
-            handle_worker_result(FeedType::NASL, handle.await.unwrap()).await?;
+            match handle.await.unwrap() {
+                Ok(()) => send_synced(FeedType::NASL).await?,
+                Err(error) => {
+                    tracing::warn!(%error, feed_type = %FeedType::NASL, "Unable to update feed.");
+                    return Err(error);
+                }
+            }
         }
         if let Some(handle) = advisory_handle {
-            handle_worker_result(FeedType::Advisories, handle.await.unwrap()).await?;
+            match handle.await.unwrap() {
+                Ok(()) => send_synced(FeedType::Advisories).await?,
+                Err(error) => {
+                    tracing::warn!(%error, feed_type = %FeedType::Advisories, "Unable to update feed.");
+                    return Err(error);
+                }
+            }
         }
         self.change_outer_state(FeedState::Synced(calc_nasl, calc_advisories))
             .await;
