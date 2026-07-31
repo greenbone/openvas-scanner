@@ -622,7 +622,7 @@ where
             let executor = nasl_std_executor();
             let notus = config
                 .notus
-                .route
+                .url
                 .clone()
                 .map(scannerlib::nasl::utils::scan_ctx::NotusCtx::Address);
             let storage = ScanStorage::new(pool.clone());

@@ -274,8 +274,8 @@ impl<T> ContextStorage for T where
 #[derive(Clone)]
 pub enum NotusCtx {
     Direct(Arc<Mutex<Notus>>),
-    /// Full URL to reach notus on, including the endpoint path
-    /// (e.g. `http://127.0.0.1:3001/notus`).
+    /// The URL to the Notus endpoint of a Skiron service
+    ///(e.g. `http://127.0.0.1:8085/skiron/v2/api/scanNotus`).
     Address(url::Url),
 }
 

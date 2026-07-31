@@ -42,10 +42,8 @@ pub struct Feed {
 pub struct Notus {
     pub products_path: PathBuf,
     pub advisories_path: PathBuf,
-    /// Full URL to reach notus on, including the endpoint path
-    /// (e.g. `http://127.0.0.1:3001/notus`). If not set, the internal notus
-    /// implementation is used.
-    pub route: Option<url::Url>,
+    /// The URL to the Notus endpoint of a Skiron service (e.g. http://127.0.0.1:8085/skiron/v2/api/scanNotus)
+    pub url: Option<url::Url>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -129,7 +127,7 @@ impl Default for Notus {
         Notus {
             products_path: PathBuf::from("/var/lib/notus/products"),
             advisories_path: PathBuf::from("/var/lib/notus/advisories"),
-            route: None,
+            url: None,
         }
     }
 }
@@ -450,13 +448,13 @@ impl Config {
                     .action(ArgAction::Set)
                     .help("Path containing the Notus products directory"))
             .arg(
-                clap::Arg::new("notus-address")
-                    .env("NOTUS_ADDRESS")
-                    .long("notus-address")
+                clap::Arg::new("notus-url")
+                    .env("NOTUS_URL")
+                    .long("notus-url")
                     .value_name("URL")
                     .value_parser(clap::value_parser!(url::Url))
                     .action(ArgAction::Set)
-                    .help("the URL to reach notus on, including the endpoint path (e.g. http://127.0.0.1:3001/notus)"))
+                    .help("The URL to the Notus endpoint of a Skiron service (e.g. http://127.0.0.1:8085/skiron/v2/api/scanNotus)"))
             .arg(
                 clap::Arg::new("redis-url")
                     .long("redis-url")
@@ -694,8 +692,8 @@ impl Config {
         if let Some(path) = cmds.get_one::<PathBuf>("notus-advisories") {
             config.notus.advisories_path.clone_from(path);
         }
-        if let Some(address) = cmds.get_one::<url::Url>("notus-address") {
-            config.notus.route = Some(address.clone());
+        if let Some(url) = cmds.get_one::<url::Url>("notus-url") {
+            config.notus.url = Some(url.clone());
         }
         if let Some(_path) = cmds.get_one::<String>("redis-url") {
             // is actually ignored as on scanner openvas the redis-url of openvas is used

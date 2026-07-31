@@ -58,11 +58,11 @@ struct ScriptArgs {
     timeout: Option<u32>,
     #[clap(long = "vendor")]
     vendor_version: Option<String>,
-    /// Notus configuration. Use "<URL>" to connect to a running Notus
+    /// Notus configuration. Use "<URL>" to connect to a running Skiron
     /// instance or "<PATH>" to product files to use the internal
     /// implementation. If not given Notus will be disabled.
-    #[clap(short, long = "notus")]
-    notus: Option<NotusArgs>,
+    #[clap(short, long = "notus-url")]
+    notus_url: Option<NotusArgs>,
 }
 
 #[derive(clap::Parser)]
@@ -77,10 +77,10 @@ struct ScanArgs {
     /// Target to scan.
     #[clap(short, long)]
     target: Option<String>,
-    /// Notus configuration. Use "<URL>" to connect to a running Notus
-    /// instance or "<PATH>" to product files to use the internal
-    /// implementation. If not given Notus will be disabled.
-    #[clap(short, long = "notus")]
+    /// Notus configuration. Use "<URL>" to connect to a Notus endpoint of a
+    /// running Skiron instance or "<PATH>" to product files to use the
+    /// internal implementation. If not given Notus will be disabled.
+    #[clap(short, long = "notus-url")]
     notus: Option<NotusArgs>,
 }
 
@@ -163,7 +163,7 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
 }
 
 async fn script(args: ScriptArgs) -> Result<(), CliError> {
-    let notus = args.notus.map(|x| match x {
+    let notus = args.notus_url.map(|x| match x {
         NotusArgs::Address(addr) => NotusCtx::Address(addr),
         NotusArgs::Internal(path) => NotusCtx::Direct(Arc::new(Mutex::new(Notus::new(
             // scannerctl doesn't require a proper feed
