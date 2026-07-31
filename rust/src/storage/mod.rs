@@ -5,7 +5,6 @@
 pub mod error;
 pub mod inmemory;
 pub mod items;
-pub mod json;
 pub mod redis;
 
 use std::{fmt::Display, sync::Arc};
