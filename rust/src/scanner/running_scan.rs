@@ -82,11 +82,16 @@ where
     }
 
     async fn run(self) -> Result<(), Error> {
-        let runner = self.make_runner().await?;
+        let runner = match self.make_runner().await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("{}", e);
+                return Err(e);
+            }
+        };
         self.update_status_at_beginning_of_run(runner.host_info())
             .await;
         let end_phase = self.run_to_completion(runner).await;
-
         self.update_status_at_end_of_run(end_phase).await;
         Ok(())
     }

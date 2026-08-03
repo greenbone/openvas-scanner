@@ -411,6 +411,7 @@ fn verify_signature_and_send(
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 struct VTDataMessage {
+    #[serde(flatten)]
     item: VTData,
     hashsum: String,
 }
