@@ -523,6 +523,7 @@ impl Config {
                     .env("MAX_QUEUED_SCANS")
                     .long("max-queued-scans")
                     .action(ArgAction::Set)
+                    .value_parser(clap::value_parser!(usize))
                     .help("Maximum number of queued scans")
             )
             .arg(
@@ -530,6 +531,7 @@ impl Config {
                     .env("MAX_RUNNING_SCANS")
                     .long("max-running-scans")
                     .action(ArgAction::Set)
+                    .value_parser(clap::value_parser!(usize))
                     .help("Maximum number of active running scans, omit for no limits")
 
             )
