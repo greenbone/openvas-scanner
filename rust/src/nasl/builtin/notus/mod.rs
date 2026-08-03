@@ -7,7 +7,6 @@ mod tests;
 
 use std::{collections::HashMap, net::SocketAddr};
 
-use greenbone_scanner_framework::models::FixedVersion;
 use http::StatusCode;
 use nasl_function_proc_macro::nasl_function;
 use serde::{Deserialize, Serialize};
@@ -15,6 +14,7 @@ use serde_json;
 
 use crate::{
     function_set,
+    models::FixedVersion,
     nasl::{
         ArgumentError, FnError, NaslValue, ScanCtx, builtin::http::HttpError,
         utils::scan_ctx::NotusCtx,

@@ -4,9 +4,8 @@
 
 use std::path::{Path, PathBuf};
 
-use greenbone_scanner_framework::models::{FixedPackage, FixedVersion, Specifier};
-
 use crate::{
+    models::{FixedPackage, FixedVersion, Specifier},
     nasl::Loader,
     notus::{ProductLoader, error::Error, notus::Notus},
 };

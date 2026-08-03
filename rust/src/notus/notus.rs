@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use greenbone_scanner_framework::models::{NotusResults, VulnerablePackage};
+use crate::models::{NotusResults, VulnerablePackage};
 use tracing::debug;
 
 use super::{

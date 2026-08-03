@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use greenbone_scanner_framework::{GetVTsError, StreamResult};
+use crate::greenbone_scanner_framework::{GetVTsError, StreamResult};
 use scannerlib::Promise;
 use scannerlib::feed::{HashSumFileItem, HashSumNameLoader, check_signature};
 use scannerlib::nasl::syntax::Loader;

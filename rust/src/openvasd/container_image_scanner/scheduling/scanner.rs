@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use futures::{StreamExt, TryFutureExt};
-use greenbone_scanner_framework::models;
 use tokio::sync::RwLock;
 
 use crate::{
@@ -20,7 +19,10 @@ use crate::{
     },
     database::dao::Fetch,
 };
-use scannerlib::notus::{Notus, NotusError};
+use scannerlib::{
+    models,
+    notus::{Notus, NotusError},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScannerArchImageError {

@@ -12,6 +12,7 @@ mod config;
 mod container_image_scanner;
 mod crypt;
 mod database;
+mod greenbone_scanner_framework;
 mod json_stream;
 mod notus;
 mod scans;

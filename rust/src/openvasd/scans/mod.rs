@@ -4,10 +4,10 @@ use crate::database::{
     dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
     sqlite::{DataBase, results::DBResults, scans::ScanDB},
 };
+use crate::greenbone_scanner_framework::InternalIdentifier;
+use crate::greenbone_scanner_framework::prelude::*;
 use futures::TryStreamExt;
-use greenbone_scanner_framework::InternalIdentifier;
-use greenbone_scanner_framework::prelude::*;
-use scannerlib::scanner;
+use scannerlib::{models, scanner};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -267,17 +267,17 @@ pub mod tests {
 
     use super::*;
 
-    use futures::StreamExt;
-    use greenbone_scanner_framework::{
+    use crate::greenbone_scanner_framework::{
         GetScans, GetScansId, GetScansIdResults, GetScansIdStatus, GetScansPreferences, MapScanID,
-        PostScans, PostScansError,
-        models::{
-            self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation,
-            ScanPreference, Service,
-        },
-        prelude::PostScansId,
+        PostScans, PostScansError, prelude::PostScansId,
     };
-    use scannerlib::{models::Phase, scanner, utils::scanner_types::ScannerType};
+
+    use futures::StreamExt;
+    use scannerlib::models::{
+        self, AliveTestMethods, Credential, CredentialType, Phase, PrivilegeInformation,
+        ScanPreference, Service,
+    };
+    use scannerlib::{scanner, utils::scanner_types::ScannerType};
     use sqlx::{SqlitePool, query_scalar};
 
     use crate::{

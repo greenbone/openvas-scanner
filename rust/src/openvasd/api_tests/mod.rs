@@ -4,9 +4,8 @@
 
 use std::{collections::BTreeMap, time::Duration};
 
-use greenbone_scanner_framework::models;
 use http::{Method, StatusCode};
-use scannerlib::models::{Phase, Scan, Status, Target};
+use scannerlib::models::{self, Phase, Scan, Status, Target};
 use serde_json::Value;
 use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 

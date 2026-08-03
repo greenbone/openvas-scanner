@@ -37,6 +37,7 @@ use async_trait::async_trait;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 
+use crate::models;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
@@ -45,7 +46,6 @@ use crate::scheduling::SchedulerStorage;
 use crate::storage::Remover;
 use crate::storage::ScanID;
 use crate::utils::scanner_types;
-use greenbone_scanner_framework::models;
 use running_scan::{RunningScan, RunningScanHandle};
 
 /// Allows starting, stopping and managing the results of new scans.

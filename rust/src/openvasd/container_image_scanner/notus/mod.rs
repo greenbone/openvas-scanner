@@ -3,12 +3,12 @@
 #![allow(clippy::result_large_err)]
 use std::sync::Arc;
 
-use greenbone_scanner_framework::models::{self, FixedVersion};
 use tokio::sync::RwLock;
 
 use crate::container_image_scanner::detection::OperatingSystem;
 use scannerlib::{
     models::NotusResults,
+    models::{self, FixedVersion},
     notus::{Notus, NotusError},
 };
 

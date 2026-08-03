@@ -7,7 +7,6 @@ use container_image_scanner::{
     image::{Credential, Image, ImageID},
 };
 use futures::StreamExt;
-use greenbone_scanner_framework::models;
 use tokio::{
     sync::{Mutex, RwLock},
     task::JoinSet,
@@ -27,7 +26,10 @@ use crate::{
     },
     database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
 };
-use scannerlib::notus::{Notus, NotusError};
+use scannerlib::{
+    models,
+    notus::{Notus, NotusError},
+};
 
 // TODO: refactor, this got a bit too messy
 pub mod db;

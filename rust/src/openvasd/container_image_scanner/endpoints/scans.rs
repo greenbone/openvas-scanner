@@ -1,12 +1,8 @@
 use std::pin::Pin;
 
+use crate::greenbone_scanner_framework::{MapScanID, StreamResult, entry::Prefixed, prelude::*};
 use futures::TryStreamExt;
-use greenbone_scanner_framework::{
-    MapScanID, StreamResult,
-    entry::Prefixed,
-    models::{PreferenceValue, ScanPreferenceInformation},
-    prelude::*,
-};
+use scannerlib::models::{self, PreferenceValue, Scan, ScanPreferenceInformation};
 use tracing::instrument;
 
 use crate::{
@@ -29,7 +25,7 @@ impl PostScans for Scans {
     fn post_scans(
         &self,
         client_id: String,
-        scan: models::Scan,
+        scan: Scan,
     ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
         Box::pin(async move {
             // maybe get rid of clone
@@ -55,7 +51,7 @@ impl MapScanID for Scans {
         scan_id: &'a str,
     ) -> Pin<
         Box<
-            dyn Future<Output = Option<greenbone_scanner_framework::InternalIdentifier>>
+            dyn Future<Output = Option<crate::greenbone_scanner_framework::InternalIdentifier>>
                 + Send
                 + 'a,
         >,
@@ -85,7 +81,7 @@ impl GetScans for Scans {
 impl GetScansPreferences for Scans {
     fn get_scans_preferences(
         &self,
-    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Vec<ScanPreferenceInformation>> + Send>> {
         Box::pin(async move {
             vec![
                 ScanPreferenceInformation {
@@ -110,7 +106,7 @@ impl GetScansId for Scans {
     fn get_scans_id<'a>(
         &'a self,
         id: String,
-    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Scan, GetScansIDError>> + Send + 'a>> {
         Box::pin(async move {
             DBScan::new(&self.pool, id)
                 .fetch()
@@ -210,7 +206,8 @@ pub mod scans_utils {
 
     use std::{sync::Arc, time::Duration};
 
-    use greenbone_scanner_framework::prelude::*;
+    use crate::greenbone_scanner_framework::entry::ClientHash;
+    use crate::greenbone_scanner_framework::prelude::*;
     use tokio::sync::Mutex;
 
     use super::Scans;
@@ -220,6 +217,7 @@ pub mod scans_utils {
         image::{DockerRegistryV2Mock, RegistryPreference},
         scheduling::{Scheduler, db::DataBase},
     };
+    use scannerlib::models;
     use scannerlib::notus::products_loader;
 
     pub fn client_id() -> String {
@@ -463,10 +461,10 @@ pub mod scans_utils {
 
 #[cfg(test)]
 mod test {
-
+    use crate::greenbone_scanner_framework::entry::ClientHash;
+    use crate::greenbone_scanner_framework::prelude::*;
     use futures::StreamExt;
-    use greenbone_scanner_framework::prelude::*;
-    use models::Phase;
+    use scannerlib::models::{self, Phase};
     use sqlx::query_scalar;
 
     use super::scans_utils::second_client_id;
