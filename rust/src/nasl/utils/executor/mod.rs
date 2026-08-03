@@ -42,6 +42,7 @@ pub struct Executor {
 
 impl Executor {
     /// Construct an executor for a single function set.
+    #[cfg(test)]
     pub fn single<S: IntoFunctionSet + 'static>(s: S) -> Self
     where
         <S as IntoFunctionSet>::State: Send + Sync,

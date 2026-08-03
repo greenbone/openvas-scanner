@@ -15,6 +15,7 @@ pub trait GetHealthAlive: Prefixed + Send + Sync {
 
 pub enum Alive {
     Alive,
+    #[allow(unused)]
     NotAlive,
 }
 

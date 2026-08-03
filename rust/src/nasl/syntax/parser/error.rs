@@ -4,7 +4,7 @@ use codespan_reporting::diagnostic::Diagnostic;
 
 use crate::nasl::{
     error::{IntoDiagnostic, Span, Spanned, basic_error_diagnostic},
-    syntax::{Keyword, TokenKind, TokenizerError, tokenizer::TokenizerErrorKind},
+    syntax::{TokenKind, TokenizerError, tokenizer::TokenizerErrorKind},
 };
 
 #[derive(Debug)]
@@ -25,8 +25,6 @@ pub enum ErrorKind {
     TokensExpected(Vec<TokenKind>),
     TokenExpected(TokenKind),
     ExpressionExpected,
-    EofExpected,
-    UnexpectedKeyword(Keyword),
     IdentExpected,
     LiteralExpected,
     StringExpected,
@@ -34,7 +32,6 @@ pub enum ErrorKind {
     ExpectedUnaryOperator,
     ExpectedBinaryOperator,
     NotAllowedInPlaceExpr,
-    InvalidDescriptionBlock(String),
     RecursionLimitExceeded,
 }
 
@@ -68,8 +65,6 @@ impl Display for ErrorKind {
                 write!(f, "Error during tokenization: {e}")
             }
             ErrorKind::ExpressionExpected => write!(f, "Expected expression"),
-            ErrorKind::EofExpected => write!(f, "Expected end of file"),
-            ErrorKind::UnexpectedKeyword(kw) => write!(f, "Unexpected keyword {kw:?}"),
             ErrorKind::IdentExpected => write!(f, "Expected identifier."),
             ErrorKind::LiteralExpected => write!(f, "Expected literal."),
             ErrorKind::StringExpected => {
@@ -96,9 +91,6 @@ impl Display for ErrorKind {
             }
             ErrorKind::NotAllowedInPlaceExpr => {
                 write!(f, "Not a valid assignment target.")
-            }
-            ErrorKind::InvalidDescriptionBlock(s) => {
-                write!(f, "Invalid description block. {s}")
             }
             ErrorKind::RecursionLimitExceeded => {
                 write!(f, "Recursion limit exceeded")

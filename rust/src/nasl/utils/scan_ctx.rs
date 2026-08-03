@@ -669,7 +669,6 @@ impl Drop for ScanCtx<'_> {
 pub struct JmpDesc {
     pub in_addr: Option<IpAddr>,
     pub count: usize,
-    pub socket: Option<socket2::Socket>,
 }
 
 #[derive(Default)]

@@ -149,7 +149,7 @@ pub mod scan_ctx;
 pub use super::interpreter::Register;
 pub use error::ArgumentError;
 pub use error::FnError;
-pub use scan_ctx::{ScanCtx, ScriptCtx};
+pub use scan_ctx::ScanCtx;
 
 pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 

@@ -134,14 +134,6 @@ impl Display for Nvt {
     }
 }
 
-impl Nvt {
-    /// Returns Err with the feed_version if it is a version Ok otherwise
-    /// // TODO: delete
-    pub fn set_from_field(&mut self, field: NvtField) {
-        field.move_to_data(&mut self.data);
-    }
-}
-
 impl From<VulnerabilityData> for Nvt {
     fn from(value: VulnerabilityData) -> Self {
         let oid = value.adv.oid.clone();
