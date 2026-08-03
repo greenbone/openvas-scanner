@@ -27,7 +27,7 @@ jobs:
           echo "release target_commitish: ${{ github.event.release.target_commitish }}"
 
       - name: Trigger development-packaging workflow
-        uses: greenbone/actions/trigger-workflow@v3
+        uses: greenbone/actions/trigger-workflow@v3.36.12
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           repository: "greenbone/gea-pipeline"

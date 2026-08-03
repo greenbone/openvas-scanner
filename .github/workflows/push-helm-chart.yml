@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: greenbone/actions/helm-build-push@v3
+      - uses: greenbone/actions/helm-build-push@v3.36.12
         with:
           chart-name: openvasd
           registry: ${{ inputs.registry }}
