@@ -131,7 +131,7 @@ libssh-rs = { version = "0.3.6", features = [
 
 nasl-function-proc-macro = { path = "crates/nasl-function-proc-macro" }
 greenbone-scanner-framework = { path = "crates/greenbone-scanner-framework" }
-nasl-c-lib = { path = "crates/nasl-c-lib" }
+openvas-krb5-sys = { path = "crates/krb5-sys" }
 rpmdb = { path = "crates/rpmdb-rs" }
 tar = "0"
 bzip2 = "0"
@@ -190,6 +190,3 @@ harness = false
 [[bench]]
 name = "interpreter"
 harness = false
-
-[workspace.metadata.cargo-shear]
-ignored-paths = ["crates/nasl-c-lib/build_support.rs"]

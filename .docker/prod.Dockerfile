@@ -7,47 +7,6 @@ ARG BUILD_IMAGE=${GVM_LIBS}:${VERSION}
 ARG FINAL_IMAGE=${GVM_LIBS}:${VERSION}
 ARG FINAL_PACKAGE_SET=${VERSION}
 
-FROM ${RUST_IMAGE} AS krb5-build
-ARG KRB5_VERSION=1.22.2
-
-RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
-    bison \
-    ca-certificates \
-    make \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY .docker/vendor/krb5-${KRB5_VERSION} /tmp/krb5-${KRB5_VERSION}
-# Build only the MIT krb5 subtrees that produce the static archives and
-# headers used by the Rust build; the full tree pulls in broken utility
-# targets we do not need here.
-WORKDIR "/tmp/krb5-${KRB5_VERSION}/src"
-RUN ./configure --prefix=/opt/krb5-static \
-        --enable-static \
-        --disable-shared \
-        --without-system-verto \
-        --without-libedit \
-        --disable-rpath \
-    && make -C util/support -j"$(nproc)" \
-    && make -C util/et -j"$(nproc)" \
-    && make -C util/profile -j"$(nproc)" \
-    && make -C include -j"$(nproc)" \
-    && make -C lib/crypto -j"$(nproc)" \
-    && make -C lib/krb5 -j"$(nproc)" \
-    && make -C lib/gssapi -j"$(nproc)" \
-    && make install-mkdirs \
-    && make -C util/support install \
-    && make -C util/et install \
-    && make -C util/profile install \
-    && make -C include install \
-    && make -C lib/crypto install \
-    && make -C lib/krb5 install \
-    && make -C lib/gssapi install \
-    && test -f /opt/krb5-static/lib/libgssapi_krb5.a \
-    && test -f /opt/krb5-static/lib/libkrb5.a \
-    && test -f /opt/krb5-static/lib/libk5crypto.a \
-    && test -f /opt/krb5-static/lib/libcom_err.a \
-    && test -f /opt/krb5-static/lib/libkrb5support.a
-
 FROM ${RUST_IMAGE} AS pcap-build
 ARG LIBPCAP_VERSION=1.10.6
 
@@ -74,27 +33,11 @@ RUN ./configure --prefix=/opt/libpcap-static \
 
 FROM ${RUST_IMAGE} AS build-archives
 
-COPY --from=krb5-build /opt/krb5-static /opt/krb5-static
 COPY --from=pcap-build /opt/libpcap-static /opt/libpcap-static
 
-RUN mkdir -p /archives/include/gssapi /archives/include/krb5 \
+RUN mkdir -p /archives/include \
     && install -m 644 /opt/libpcap-static/lib/libpcap.a /archives/libpcap.a \
-    && install -m 644 /opt/krb5-static/lib/libgssapi_krb5.a /archives/libgssapi_krb5.a \
-    && install -m 644 /opt/krb5-static/lib/libkrb5.a /archives/libkrb5.a \
-    && install -m 644 /opt/krb5-static/lib/libk5crypto.a /archives/libk5crypto.a \
-    && install -m 644 /opt/krb5-static/lib/libcom_err.a /archives/libcom_err.a \
-    && install -m 644 /opt/krb5-static/lib/libkrb5support.a /archives/libkrb5support.a \
-    && install -m 644 /opt/libpcap-static/include/pcap.h /archives/include/pcap.h \
-    && install -m 644 /opt/krb5-static/include/krb5.h /archives/include/krb5.h \
-    && install -m 644 /opt/krb5-static/include/com_err.h /archives/include/com_err.h \
-    && install -m 644 /opt/krb5-static/include/profile.h /archives/include/profile.h \
-    && install -m 644 /opt/krb5-static/include/gssapi/gssapi.h /archives/include/gssapi/gssapi.h \
-    && install -m 644 /opt/krb5-static/include/gssapi/gssapi_alloc.h /archives/include/gssapi/gssapi_alloc.h \
-    && install -m 644 /opt/krb5-static/include/gssapi/gssapi_ext.h /archives/include/gssapi/gssapi_ext.h \
-    && install -m 644 /opt/krb5-static/include/gssapi/gssapi_generic.h /archives/include/gssapi/gssapi_generic.h \
-    && install -m 644 /opt/krb5-static/include/gssapi/gssapi_krb5.h /archives/include/gssapi/gssapi_krb5.h \
-    && install -m 644 /opt/krb5-static/include/gssapi/mechglue.h /archives/include/gssapi/mechglue.h \
-    && install -m 644 /opt/krb5-static/include/krb5/krb5.h /archives/include/krb5/krb5.h
+    && install -m 644 /opt/libpcap-static/include/pcap.h /archives/include/pcap.h
 
 FROM ${RUST_IMAGE} AS rust
 ARG BIN_VERSION=
@@ -112,8 +55,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libclang-dev \
     libsnmp-dev \
     && rm -rf /var/lib/apt/lists/*
-ENV OPENVAS_ARCHIVES=/archives \
-    LIBPCAP_LIBDIR=/archives
+ENV LIBPCAP_LIBDIR=/archives
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \

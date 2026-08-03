@@ -1,0 +1,11 @@
+[package]
+name = "openvas-krb5-sys"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "Vendored MIT Kerberos and OpenVAS Kerberos C bindings"
+links = "openvas-krb5"
+
+[build-dependencies]
+bindgen = { workspace = true }
+cc = { workspace = true }

@@ -18,5 +18,6 @@ extend-exclude = [
     "data/osp/response_*.xml",
     "*.notus",
     "examples/pem_to.nasl",
+    "crates/krb5-sys/vendor/**",
     "src/nasl/builtin/cryptographic/tests/pem_to.rs",
 ]

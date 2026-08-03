@@ -64,7 +64,12 @@ fmt_rust() {
 fmt_c() {
     cd "$ROOT"
     version_command clang-format --version
-    mapfile -d '' files < <(git ls-files -z -- '*.c' '*.h' ':(exclude).docker/**')
+    mapfile -d '' files < <(
+        git ls-files -z -- \
+            '*.c' '*.h' \
+            ':(exclude).docker/**' \
+            ':(exclude)rust/crates/krb5-sys/vendor/**'
+    )
     if ((${#files[@]} == 0)); then
         return 0
     fi
@@ -119,7 +124,8 @@ license_headers() {
                 -not -path "./.docker/*" \
                 -not -path "./build/*" \
                 -not -path "./rust/target/*" \
-                -not -path "./rust/crates/nasl-c-lib/*" \
+                -not -path "./rust/crates/nasl-c-lib/build-cache/*" \
+                -not -path "./rust/crates/krb5-sys/vendor/*" \
                 -regex ".*\.\($ext\)" \
                 -print0
         )

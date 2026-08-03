@@ -2948,14 +2948,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
-name = "libopenvas-krb5-sys"
-version = "0.1.0"
-dependencies = [
- "bindgen",
- "cc",
-]
-
-[[package]]
 name = "libredox"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3206,13 +3198,6 @@ dependencies = [
  "libc",
  "static_assertions",
  "windows",
-]
-
-[[package]]
-name = "nasl-c-lib"
-version = "0.1.0"
-dependencies = [
- "libopenvas-krb5-sys",
 ]
 
 [[package]]
@@ -3519,6 +3504,14 @@ dependencies = [
  "openssl-src",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "openvas-krb5-sys"
+version = "0.1.0"
+dependencies = [
+ "bindgen",
+ "cc",
 ]
 
 [[package]]
@@ -4938,12 +4931,12 @@ dependencies = [
  "md4",
  "mockito",
  "mtu",
- "nasl-c-lib",
  "nasl-function-proc-macro",
  "nix",
  "nt-time",
  "num-bigint",
  "once_cell",
+ "openvas-krb5-sys",
  "pathdiff",
  "pbkdf2 0.13.0",
  "pcap",

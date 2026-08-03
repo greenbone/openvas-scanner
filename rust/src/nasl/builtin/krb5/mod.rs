@@ -6,7 +6,8 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use nasl_c_lib::krb5::{
+use nasl_function_proc_macro::nasl_function;
+use openvas_krb5_sys::{
     OKrb5Credential, OKrb5ErrorCode, OKrb5ErrorCode_O_KRB5_CONF_NOT_FOUND,
     OKrb5ErrorCode_O_KRB5_EXPECTED_NOT_NULL, OKrb5ErrorCode_O_KRB5_REALM_NOT_FOUND,
     OKrb5ErrorCode_O_KRB5_SUCCESS, OKrb5GSSContext, OKrb5Slice, OKrb5Target, OKrb5User,
@@ -14,7 +15,6 @@ use nasl_c_lib::krb5::{
     o_krb5_gss_update_context, okrb5_error_code_to_string, okrb5_gss_free_context,
     okrb5_gss_init_context,
 };
-use nasl_function_proc_macro::nasl_function;
 use std::os;
 use std::os::raw::c_char;
 use std::sync::Mutex;
