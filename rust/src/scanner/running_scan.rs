@@ -85,7 +85,7 @@ where
         let runner = match self.make_runner().await {
             Ok(r) => r,
             Err(e) => {
-                tracing::warn!("Something went wrong: {}", e.to_string());
+                tracing::error!("{}", e);
                 return Err(e);
             }
         };
