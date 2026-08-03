@@ -188,7 +188,7 @@ impl From<(Target, Ports)> for CtxTarget {
 }
 
 impl CtxTarget {
-    fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
+    pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
         self.vhosts.lock().unwrap().push(VHost { hostname, source });
         self
     }
@@ -220,6 +220,10 @@ impl CtxTarget {
 
     pub fn ports_tcp(&self) -> &BTreeSet<u16> {
         &self.ports_tcp
+    }
+
+    pub fn configured_tcp_ports(&self) -> Vec<u16> {
+        self.ports_tcp.iter().cloned().collect()
     }
 }
 
@@ -377,14 +381,6 @@ impl<'a> ScanCtx<'a> {
     /// Get the `CtxTarget`
     pub fn target(&self) -> &CtxTarget {
         &self.target
-    }
-
-    pub fn add_hostname(&self, hostname: String, source: String) {
-        self.target.add_hostname(hostname, source);
-    }
-
-    fn configured_tcp_ports(&self) -> Vec<u16> {
-        self.target.ports_tcp.iter().cloned().collect()
     }
 
     /// Get the storage
@@ -553,7 +549,7 @@ impl<'a> ScanCtx<'a> {
 
         // If no ports found in KB, fall back to the ports configured in the scan
         if port_numbers.is_empty() {
-            Ok(self.configured_tcp_ports())
+            Ok(self.target().configured_tcp_ports())
         } else {
             Ok(port_numbers)
         }

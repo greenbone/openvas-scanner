@@ -62,7 +62,7 @@ fn add_host_name(
     source: Option<&str>,
 ) -> Result<NaslValue, FnError> {
     let source = source.filter(|x| !x.is_empty()).unwrap_or("NASL");
-    ctx.add_hostname(hostname.0, source.into());
+    ctx.target().add_hostname(hostname.0, source.into());
     Ok(NaslValue::Null)
 }
 
