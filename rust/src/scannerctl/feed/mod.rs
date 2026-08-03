@@ -152,6 +152,21 @@ async fn update(args: UpdateArgs) -> Result<(), CliError> {
 }
 
 async fn transform(args: TransformArgs) -> Result<(), CliError> {
+    // An explanation for those who think the code below looks strange:
+    //
+    // The feed transform is supposed to iterate over all the nasl files in the feed, extract their
+    // metadata from the description block and convert the results into a large json file. You might
+    // think a reasonable implementation of this would simply loop over all the nasl files and call
+    // some `parse_meta_data` function on the file and return the results. However, the reality is a
+    // little more complicated - a small percentage of the scripts in the feed have actual control
+    // flow in the description blocks. As a result, we need a full blown interpreter to run the NASL
+    // script. The interpreter will then execute all the statements in the description block. The
+    // builtin description functions which are called in those description blocks will write their
+    // results into the local `vt` field of the scan context of the interpreter. When the scan
+    // context is dropped, the fields are written into the storage from where we can then extract
+    // them and convert them into json. This is very awkward but the alternative is to have a second
+    // path for the interpreter, and that comes with a lot more code than doing something slightly
+    // convoluted below.
     let storage = Arc::new(InMemoryStorage::default());
     update::run_no_verifier(Arc::clone(&storage), &args.path).await?;
     let vts = storage
