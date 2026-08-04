@@ -581,7 +581,7 @@ async fn http_req_shared(
     };
 
     let tmp_key = format!("/tmp/http/auth/{p}");
-    match ctx.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
+    match script_ctx.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
         Some(KbItem::String(a)) => request.push_str(a),
         _ => request.push_str("http/auth"),
     };
