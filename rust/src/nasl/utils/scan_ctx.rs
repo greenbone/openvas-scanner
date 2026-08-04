@@ -127,11 +127,22 @@ pub struct CtxTargets {
     targets: Vec<CtxTarget>,
 }
 
+impl std::ops::Index<TargetId> for CtxTargets {
+    type Output = CtxTarget;
+
+    fn index(&self, index: TargetId) -> &Self::Output {
+        &self.targets[index.0]
+    }
+}
+
 impl CtxTargets {
-    pub fn single(t: Target, ports: Ports) -> Self {
-        Self {
-            targets: vec![(t, ports).into()],
-        }
+    pub fn single(t: Target, ports: Ports) -> (Self, TargetId) {
+        (
+            Self {
+                targets: vec![(t, ports).into()],
+            },
+            TargetId(0),
+        )
     }
 }
 
@@ -294,6 +305,10 @@ pub enum NotusCtx {
     ///(e.g. `http://127.0.0.1:8085/skiron/v2/api/scanNotus`).
     Address(url::Url),
 }
+
+/// An index into the `targets` field on `ScanCtx`
+#[derive(Clone, Copy)]
+pub struct TargetId(usize);
 
 /// NASL execution context.
 pub struct ScanCtx<'a> {
@@ -681,17 +696,32 @@ pub struct ScriptCtx<'a> {
     pub denial_port: Option<u16>,
     pub multicast_groups: Vec<JmpDesc>,
     pub snmp_next: Option<String>,
-    pub scan_ctx: &'a ScanCtx<'a>,
+    scan_ctx: &'a ScanCtx<'a>,
+    target_id: TargetId,
 }
 
 impl<'a> ScriptCtx<'a> {
-    pub fn new(scan_ctx: &'a ScanCtx) -> Self {
+    pub fn new(scan_ctx: &'a ScanCtx, target_id: TargetId) -> Self {
         Self {
             alive: false,
             denial_port: None,
             multicast_groups: vec![],
             snmp_next: None,
             scan_ctx,
+            target_id,
+        }
+    }
+
+    // TODO: Figure out what to do about this - what is the correct
+    // logic for the multicast groups?
+    pub(crate) fn clone_shallow(&self) -> ScriptCtx<'a> {
+        Self {
+            alive: self.alive,
+            denial_port: self.denial_port,
+            multicast_groups: vec![],
+            snmp_next: self.snmp_next.clone(),
+            scan_ctx: self.scan_ctx,
+            target_id: self.target_id,
         }
     }
 }
