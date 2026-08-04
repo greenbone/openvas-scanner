@@ -65,7 +65,7 @@ impl Executor {
         k: &str,
         ctx: &ScanCtx<'_>,
         register: &Register,
-        script_ctx: &mut ScriptCtx,
+        script_ctx: &mut ScriptCtx<'_>,
     ) -> Option<NaslResult> {
         for set in self.sets.iter() {
             if set.contains(k) {

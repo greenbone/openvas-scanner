@@ -361,7 +361,7 @@ impl<'a> ScanCtx<'a> {
         &self,
         name: &str,
         register: &Register,
-        script_ctx: &mut ScriptCtx,
+        script_ctx: &mut ScriptCtx<'_>,
     ) -> Option<super::NaslResult> {
         const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
 
@@ -676,12 +676,24 @@ pub struct JmpDesc {
     pub count: usize,
 }
 
-#[derive(Default)]
-pub struct ScriptCtx {
+pub struct ScriptCtx<'a> {
     pub alive: bool,
     pub denial_port: Option<u16>,
     pub multicast_groups: Vec<JmpDesc>,
     pub snmp_next: Option<String>,
+    pub scan_ctx: &'a ScanCtx<'a>,
+}
+
+impl<'a> ScriptCtx<'a> {
+    pub fn new(scan_ctx: &'a ScanCtx) -> Self {
+        Self {
+            alive: false,
+            denial_port: None,
+            multicast_groups: vec![],
+            snmp_next: None,
+            scan_ctx,
+        }
+    }
 }
 
 #[cfg(test)]

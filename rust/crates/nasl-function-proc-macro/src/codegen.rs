@@ -246,7 +246,7 @@ impl<'a> ArgsStruct<'a> {
             #self_arg
             _register: &crate::nasl::Register,
             _scan_ctx: &crate::nasl::ScanCtx<'_>,
-            _script_ctx: &mut crate::nasl::ScriptCtx,
+            _script_ctx: &mut crate::nasl::ScriptCtx<'_>,
         };
         let output_ty = match output {
             syn::ReturnType::Default => quote! { () },
