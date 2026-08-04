@@ -53,8 +53,7 @@ async fn set_scan_images(
     id: &str,
     images: &[Result<Image, RegistryError>],
 ) -> Result<(), sqlx::Error> {
-    let mut conn = pool.acquire().await?;
-    let mut tx = conn.begin().await?;
+    let mut tx = pool.begin().await?;
     let count = images.len();
     let dead_count = images.iter().filter(|x| x.is_err()).count();
     let success_count = images.iter().filter(|x| x.is_ok()).count();

@@ -1,0 +1,9 @@
+[scanner]
+type = 'openvasd'
+
+[container_image_scanner.database]
+location = 'in-memory'
+max_connections = 1
+
+[container_image_scanner.image]
+batch_size = 1
