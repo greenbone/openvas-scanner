@@ -4,6 +4,7 @@
 
 use std::{collections::HashMap, path::Path};
 
+use crate::models::ACT;
 use crate::nasl::prelude::*;
 
 /// A type that can be converted from a NaslValue.
@@ -30,6 +31,18 @@ impl FromNaslValue<'_> for String {
         match value {
             NaslValue::String(string) => Ok(string.to_string()),
             _ => Err(ArgumentError::WrongArgument("Expected string.".to_string()).into()),
+        }
+    }
+}
+
+impl FromNaslValue<'_> for ACT {
+    fn from_nasl_value(value: &NaslValue) -> Result<Self, FnError> {
+        match value {
+            NaslValue::AttackCategory(category) => Ok(*category),
+            value => Err(FnError::wrong_unnamed_argument(
+                "AttackCategory",
+                &value.to_string(),
+            )),
         }
     }
 }

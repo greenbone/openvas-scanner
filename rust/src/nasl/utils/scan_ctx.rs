@@ -430,6 +430,17 @@ impl<'a> ScanCtx<'a> {
         self.nvt.lock().unwrap()
     }
 
+    pub fn nvt_mut(&self) -> MutexGuard<'_, Option<VTData>> {
+        let mut nvt = self.nvt.lock().unwrap();
+        if nvt.is_none() {
+            *nvt = Some(VTData {
+                filename: self.filename().to_string_lossy().to_string(),
+                ..Default::default()
+            });
+        }
+        nvt
+    }
+
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
         self.scan_preferences.iter()
     }
