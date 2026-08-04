@@ -48,11 +48,12 @@ async fn get_kb_item(script_ctx: &ScriptCtx<'_>, key: &str) -> Result<NaslValue,
 /// NASL function to replace a kb list
 #[nasl_function(named(name, value))]
 async fn replace_kb_item(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     name: NaslValue,
     value: NaslValue,
 ) -> Result<(), FnError> {
-    ctx.set_single_kb_item(KbKey::Custom(name.to_string()), value.as_kb())
+    script_ctx
+        .set_single_kb_item(KbKey::Custom(name.to_string()), value.as_kb())
         .await
 }
 

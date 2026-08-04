@@ -436,21 +436,25 @@ const KEY_FILE: usize = 7;
 const PEM_PASS: usize = 8;
 const CA_FILE: usize = 9;
 
-async fn find_service_ssl_set_prefs(ctx: &ScanCtx<'_>, register: &Register) -> Result<(), FnError> {
+async fn find_service_ssl_set_prefs(
+    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
+    register: &Register,
+) -> Result<(), FnError> {
     let cert = get_plugin_preference_fname(register, ctx, None, Some(CERT_FILE)).ok();
     let key = get_plugin_preference_fname(register, ctx, None, Some(KEY_FILE)).ok();
 
     if key.is_some() || cert.is_some() {
-        plug_set_ssl_cert(ctx, cert.clone().unwrap_or(key.clone().unwrap())).await?;
-        plug_set_ssl_key(ctx, key.unwrap_or(cert.unwrap())).await?;
+        plug_set_ssl_cert(script_ctx, cert.clone().unwrap_or(key.clone().unwrap())).await?;
+        plug_set_ssl_key(script_ctx, key.unwrap_or(cert.unwrap())).await?;
     };
 
     if let Ok(pem_pass) = get_plugin_preference_fname(register, ctx, None, Some(PEM_PASS)) {
-        plug_set_ssl_password(ctx, pem_pass).await?;
+        plug_set_ssl_password(script_ctx, pem_pass).await?;
     };
 
     if let Ok(ca) = get_plugin_preference_fname(register, ctx, None, Some(CA_FILE)) {
-        plug_set_ssl_ca_file(ctx, ca).await?;
+        plug_set_ssl_ca_file(script_ctx, ca).await?;
     };
 
     Ok(())
@@ -467,7 +471,7 @@ async fn plugin_run_find_service(
         .unwrap_or(NaslValue::String("All".to_string()))
         && val.as_str() == "All"
     {
-        find_service_ssl_set_prefs(ctx, register).await?;
+        find_service_ssl_set_prefs(ctx, script_ctx, register).await?;
     }
 
     let detector = ServiceDetector::new()?;

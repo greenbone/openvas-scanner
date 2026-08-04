@@ -493,17 +493,6 @@ impl<'a> ScanCtx<'a> {
         Ok(result)
     }
 
-    pub async fn set_single_kb_item<T: Into<KbItem>>(
-        &self,
-        key: KbKey,
-        value: T,
-    ) -> Result<(), FnError> {
-        self.storage
-            .dispatch_replace(self.kb_context_key(key), value.into())
-            .await?;
-        Ok(())
-    }
-
     async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
         let result = self
             .storage()
@@ -516,15 +505,6 @@ impl<'a> ScanCtx<'a> {
             1 => Ok(item[0].clone()),
             _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
         }
-    }
-
-    /// Sets the state of a port
-    pub async fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
-        self.set_single_kb_item(
-            KbKey::Transport(kb::Transport::Tcp(port.to_string())),
-            KbItem::Number(transport as i64),
-        )
-        .await
     }
 
     pub async fn get_port_transport(&self, port: u16) -> Option<i64> {
@@ -671,6 +651,27 @@ impl<'a> ScriptCtx<'a> {
             .dispatch(self.scan_ctx.kb_context_key(key), value)
             .await?;
         Ok(())
+    }
+
+    pub async fn set_single_kb_item<T: Into<KbItem>>(
+        &self,
+        key: KbKey,
+        value: T,
+    ) -> Result<(), FnError> {
+        self.scan_ctx
+            .storage
+            .dispatch_replace(self.scan_ctx.kb_context_key(key), value.into())
+            .await?;
+        Ok(())
+    }
+
+    /// Sets the state of a port
+    pub async fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
+        self.set_single_kb_item(
+            KbKey::Transport(kb::Transport::Tcp(port.to_string())),
+            KbItem::Number(transport as i64),
+        )
+        .await
     }
 
     /// Return a single item from the knowledge base.

@@ -605,7 +605,7 @@ async fn plugin_run_openvas_tcp_scanner(
         // Register the port as open under the canonical Ports/tcp/<port> key
         // so that downstream NASL scripts (find_service, secpod_open_tcp_ports, …)
         // can discover it via get_kb_list("Ports/tcp/*").
-        scanner_add_port_shared(ctx, Port::from(*port), Some("tcp")).await?;
+        scanner_add_port_shared(script_ctx, Port::from(*port), Some("tcp")).await?;
 
         if let Some(banner) = results.banners.get(port) {
             // No need for BannerHex in rust anymore, as it was only needed, if the Banner contained

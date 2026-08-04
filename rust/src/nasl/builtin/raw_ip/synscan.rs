@@ -190,7 +190,7 @@ async fn send_task(
 }
 
 #[nasl_function]
-async fn plugin_run_synscan(ctx: &ScanCtx<'_>, script_ctx: &ScriptCtx<'_>) -> Result<(), FnError> {
+async fn plugin_run_synscan(script_ctx: &ScriptCtx<'_>) -> Result<(), FnError> {
     let target_ip = script_ctx.target().ip_addr();
     let mut open_ports = BTreeSet::<u16>::new();
 
@@ -212,7 +212,7 @@ async fn plugin_run_synscan(ctx: &ScanCtx<'_>, script_ctx: &ScriptCtx<'_>) -> Re
 
     while let Some(open_port) = rx_msg.recv().await {
         if ports.contains(&open_port) && !open_ports.contains(&open_port) {
-            scanner_add_port_shared(ctx, Port::from(open_port), Some("tcp")).await?;
+            scanner_add_port_shared(script_ctx, Port::from(open_port), Some("tcp")).await?;
             open_ports.insert(open_port);
             reset_connection(target_ip, &open_port).await?;
             tracing::debug!("{} is open", open_port);
