@@ -504,26 +504,6 @@ impl<'a> ScanCtx<'a> {
         Ok(())
     }
 
-    /// Return a single item from the knowledge base.
-    /// If multiple entries are found (which would result
-    /// in forking the interpreter), return an error.
-    /// This function automatically converts the item
-    /// to a specific type via its `FromNaslValue` impl
-    /// and returns the appropriate error if necessary.
-    pub async fn get_single_kb_item<T: for<'b> FromNaslValue<'b>>(
-        &self,
-        key: &KbKey,
-    ) -> Result<T, FnError> {
-        // If we find multiple or no items at all, return an error that
-        // exits the script instead of continuing execution with a return
-        // value, since this is most likely an error in the feed.
-        let val = self
-            .get_single_kb_item_inner(key)
-            .await
-            .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
-        T::from_nasl_value(&val.into())
-    }
-
     async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
         let result = self
             .storage()
@@ -693,6 +673,27 @@ impl<'a> ScriptCtx<'a> {
         Ok(())
     }
 
+    /// Return a single item from the knowledge base.
+    /// If multiple entries are found (which would result
+    /// in forking the interpreter), return an error.
+    /// This function automatically converts the item
+    /// to a specific type via its `FromNaslValue` impl
+    /// and returns the appropriate error if necessary.
+    pub async fn get_single_kb_item<T: for<'b> FromNaslValue<'b>>(
+        &self,
+        key: &KbKey,
+    ) -> Result<T, FnError> {
+        // If we find multiple or no items at all, return an error that
+        // exits the script instead of continuing execution with a return
+        // value, since this is most likely an error in the feed.
+        let val = self
+            .scan_ctx
+            .get_single_kb_item_inner(key)
+            .await
+            .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
+        T::from_nasl_value(&val.into())
+    }
+
     pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
         let result: Vec<KbItem> = self
             .scan_ctx
@@ -717,8 +718,7 @@ impl<'a> ScriptCtx<'a> {
                         .get_preference_bool("unscanned_closed")
                         .unwrap_or(true));
                 }
-                self.scan_ctx
-                    .get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
                     .await
             }
             Protocol::UDP => {
@@ -733,8 +733,7 @@ impl<'a> ScriptCtx<'a> {
                         .get_preference_bool("unscanned_closed_udp")
                         .unwrap_or(true));
                 }
-                self.scan_ctx
-                    .get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
                     .await
             }
         }
