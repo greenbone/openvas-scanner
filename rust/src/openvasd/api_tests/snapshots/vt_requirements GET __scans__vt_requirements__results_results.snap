@@ -79,4 +79,42 @@ expression: inner
       ),
     )),
   ),
+  Result(
+    id: "[redacted]",
+    type: log,
+    ip_address: Some("127.0.0.1"),
+    hostname: Some(""),
+    oid: Some("0.0.0.0.0.0.0.0.2.0"),
+    port: Some(0),
+    protocol: Some(tcp),
+    message: Some("port producer ran"),
+    detail: Some(Detail(
+      name: "",
+      value: "",
+      source: Source(
+        type: "",
+        name: "",
+        description: "",
+      ),
+    )),
+  ),
+  Result(
+    id: "[redacted]",
+    type: log,
+    ip_address: Some("127.0.0.1"),
+    hostname: Some(""),
+    oid: Some("0.0.0.0.0.0.0.0.2.1"),
+    port: Some(0),
+    protocol: Some(tcp),
+    message: Some("this should be visible"),
+    detail: Some(Detail(
+      name: "",
+      value: "",
+      source: Source(
+        type: "",
+        name: "",
+        description: "",
+      ),
+    )),
+  ),
 ]
