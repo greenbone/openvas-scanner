@@ -475,15 +475,6 @@ impl<'a> ScanCtx<'a> {
         )
     }
 
-    pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
-        let result: Vec<KbItem> = self
-            .storage
-            .retrieve(&self.kb_context_key(key.clone()))
-            .await?
-            .unwrap_or_default();
-        Ok(result)
-    }
-
     async fn get_kb_items_with_keys(
         &self,
         key: &KbKey,
@@ -630,37 +621,6 @@ impl<'a> ScanCtx<'a> {
         pref_is_true(prefs, key)
     }
 
-    pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
-        match protocol {
-            Protocol::TCP => {
-                if !self.target.ports_tcp.contains(&port)
-                    || self
-                        .get_kb_item(&KbKey::Host(kb::Host::Tcp))
-                        .await?
-                        .is_empty()
-                {
-                    return Ok(!self.get_preference_bool("unscanned_closed").unwrap_or(true));
-                }
-                self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
-                    .await
-            }
-            Protocol::UDP => {
-                if !self.target.ports_udp.contains(&port)
-                    || self
-                        .get_kb_item(&KbKey::Host(kb::Host::Udp))
-                        .await?
-                        .is_empty()
-                {
-                    return Ok(!self
-                        .get_preference_bool("unscanned_closed_udp")
-                        .unwrap_or(true));
-                }
-                self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
-                    .await
-            }
-        }
-    }
-
     pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
         self.sockets.read().await
     }
@@ -731,6 +691,53 @@ impl<'a> ScriptCtx<'a> {
             .dispatch(self.scan_ctx.kb_context_key(key), value)
             .await?;
         Ok(())
+    }
+
+    pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
+        let result: Vec<KbItem> = self
+            .scan_ctx
+            .storage
+            .retrieve(&self.scan_ctx.kb_context_key(key.clone()))
+            .await?
+            .unwrap_or_default();
+        Ok(result)
+    }
+
+    pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+        match protocol {
+            Protocol::TCP => {
+                if !self.target().ports_tcp.contains(&port)
+                    || self
+                        .get_kb_item(&KbKey::Host(kb::Host::Tcp))
+                        .await?
+                        .is_empty()
+                {
+                    return Ok(!self
+                        .scan_ctx
+                        .get_preference_bool("unscanned_closed")
+                        .unwrap_or(true));
+                }
+                self.scan_ctx
+                    .get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+                    .await
+            }
+            Protocol::UDP => {
+                if !self.target().ports_udp.contains(&port)
+                    || self
+                        .get_kb_item(&KbKey::Host(kb::Host::Udp))
+                        .await?
+                        .is_empty()
+                {
+                    return Ok(!self
+                        .scan_ctx
+                        .get_preference_bool("unscanned_closed_udp")
+                        .unwrap_or(true));
+                }
+                self.scan_ctx
+                    .get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
+                    .await
+            }
+        }
     }
 
     // TODO: Figure out what to do about this - what is the correct
