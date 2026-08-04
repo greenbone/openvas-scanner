@@ -9,7 +9,6 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::models::VTData;
 use scannerlib::nasl::{
     NaslValue, WithErrorInfo,
     interpreter::InterpreterErrorKind,
@@ -34,6 +33,7 @@ use scannerlib::{
         items::{kb::KbContextKey, nvt::Oid},
     },
 };
+use scannerlib::{models::VTData, nasl::utils::scan_ctx::CtxTargets};
 use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 
 use crate::{CliError, CliErrorKind, Db, Filename};
@@ -156,10 +156,10 @@ async fn run_on_storage<S: ContextStorage>(
     }
 
     let executor = nasl_std_executor();
+    let targets = CtxTargets::single(target, ports);
     let ctx = ScanCtx::new(
         scan_id,
-        target,
-        ports,
+        targets,
         filename.into(),
         &storage,
         &loader,

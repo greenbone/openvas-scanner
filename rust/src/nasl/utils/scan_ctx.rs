@@ -123,6 +123,18 @@ pub struct CtxTarget {
     ports_udp: BTreeSet<u16>,
 }
 
+pub struct CtxTargets {
+    targets: Vec<CtxTarget>,
+}
+
+impl CtxTargets {
+    pub fn single(t: Target, ports: Ports) -> Self {
+        Self {
+            targets: vec![(t, ports).into()],
+        }
+    }
+}
+
 impl Target {
     pub fn localhost() -> Self {
         Self {
@@ -289,6 +301,8 @@ pub struct ScanCtx<'a> {
     scan: ScanID,
     /// Target against which the scan is run.
     target: CtxTarget,
+    /// Targets against which the scan is run.
+    targets: CtxTargets,
     /// Filename of the current script
     filename: PathBuf,
     /// Storage
@@ -312,8 +326,7 @@ impl<'a> ScanCtx<'a> {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         scan: ScanID,
-        target: Target,
-        ports: Ports,
+        mut targets: CtxTargets,
         filename: PathBuf,
         storage: &'a dyn ContextStorage,
         loader: &'a Loader,
@@ -325,11 +338,10 @@ impl<'a> ScanCtx<'a> {
         let mut sockets = NaslSockets::default();
         sockets.with_recv_timeout(scan_preferences.get_preference_int("checks_read_timeout"));
 
-        let target = (target, ports).into();
-
         Self {
             scan,
-            target,
+            target: targets.targets.remove(0), // TODO
+            targets,
             filename,
             storage,
             loader,
