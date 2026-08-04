@@ -673,10 +673,11 @@ mod tests {
 
         // Prepare and test Ports
         assert!(prefh.prepare_ports_for_openvas().await.is_ok());
-        assert!(prefh.redis_connector.item_exists(
-            "internal/123-456/scanprefs",
-            "port_range|||T:22,23,24,25,80,"
-        ));
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "port_range|||T:22-25,80,")
+        );
 
         // Prepare and test Credentials
         assert!(prefh.prepare_credentials_for_openvas().await.is_ok());

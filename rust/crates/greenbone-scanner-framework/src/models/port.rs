@@ -94,19 +94,14 @@ impl AsRef<str> for Protocol {
 }
 
 pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
-    fn add_range_to_list(list: &mut String, start: usize, end: Option<usize>) {
-        // Add range
-        if let Some(end) = end {
-            for p in start..=end {
-                list.push_str(p.to_string().as_str());
-                list.push(',');
-            }
-
-        // Add single port
-        } else {
-            list.push_str(start.to_string().as_str());
-            list.push(',');
-        }
+    // Kept compact (e.g. "1-65535") rather than expanded into a per-port list:
+    // openvas passes this whole string as a single `nmap -p` argument, and an
+    // expanded full-range list is long enough to exceed the kernel's
+    // per-argument limit (`MAX_ARG_STRLEN`), which makes `execve` fail with
+    // E2BIG and silently skips port scanning entirely.
+    fn add_range_to_list(list: &mut String, range: &PortRange) {
+        list.push_str(&range.to_string());
+        list.push(',');
     }
     if ports.is_empty() {
         return None;
@@ -117,22 +112,14 @@ pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
 
     ports.iter().for_each(|p| match p.protocol {
         Some(Protocol::TCP) => {
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));
+            p.range.iter().for_each(|r| add_range_to_list(&mut tcp, r));
         }
         Some(Protocol::UDP) => {
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
+            p.range.iter().for_each(|r| add_range_to_list(&mut udp, r));
         }
         None => {
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
+            p.range.iter().for_each(|r| add_range_to_list(&mut tcp, r));
+            p.range.iter().for_each(|r| add_range_to_list(&mut udp, r));
         }
     });
     let mut port_list = String::new();
@@ -195,7 +182,27 @@ mod tests {
         ];
         assert_eq!(
             ports_to_openvas_port_list(ports),
-            Some("T:22,23,24,25,80,1000,U:30,31,32,33,34,35,36,37,38,39,40,5060,1000,".to_string())
+            Some("T:22-25,80,1000,U:30-40,5060,1000,".to_string())
         );
+    }
+
+    #[test]
+    fn test_port_conversion_keeps_large_ranges_compact() {
+        // Regression test: a full-range port list must stay compact
+        // ("start-end") rather than being expanded into a per-port list.
+        // Expanding "1-65535" produces a ~380 KB string, which openvas
+        // passes as a single `nmap -p` argument and exceeds the kernel's
+        // MAX_ARG_STRLEN, causing execve to fail with E2BIG and silently
+        // skipping port scanning entirely.
+        let ports = vec![Port {
+            protocol: Some(Protocol::TCP),
+            range: vec![PortRange {
+                start: 1,
+                end: Some(65535),
+            }],
+        }];
+        let result = ports_to_openvas_port_list(ports).unwrap();
+        assert_eq!(result, "T:1-65535,");
+        assert!(result.len() < 1024);
     }
 }
