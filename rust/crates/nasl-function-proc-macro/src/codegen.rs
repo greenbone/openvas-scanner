@@ -39,12 +39,6 @@ impl<'a> ArgsStruct<'a> {
             .any(|arg| matches!(arg.kind, ArgKind::Register))
     }
 
-    fn has_script_ctx_arg(&self) -> bool {
-        self.args
-            .iter()
-            .any(|arg| matches!(arg.kind, ArgKind::ScriptCtx))
-    }
-
     fn get_args(&self) -> TokenStream {
         self
             .args.iter().map(|arg| {
@@ -173,9 +167,6 @@ impl<'a> ArgsStruct<'a> {
 
     fn gen_checks(&self) -> TokenStream {
         if self.has_register_arg() {
-            return quote! {};
-        }
-        if self.has_script_ctx_arg() {
             return quote! {};
         }
         let named_array = self.make_array_of_names(ArgKind::get_named_arg_name);
