@@ -1883,12 +1883,11 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
 }
 
 pub async fn nasl_tcp_ping_shared(
-    ctx: &ScanCtx<'_>,
     script_ctx: &ScriptCtx<'_>,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
     if script_ctx.target().ip_addr().is_ipv6() {
-        return nasl_tcp_v6_ping_shared(ctx, script_ctx, port).await;
+        return nasl_tcp_v6_ping_shared(script_ctx, port).await;
     }
 
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
@@ -1919,7 +1918,12 @@ pub async fn nasl_tcp_ping_shared(
     let target_ip = script_ctx.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
-    let port = port.unwrap_or(ctx.get_random_open_tcp_port().await.unwrap_or_default());
+    let port = port.unwrap_or(
+        script_ctx
+            .get_random_open_tcp_port()
+            .await
+            .unwrap_or_default(),
+    );
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -2009,11 +2013,10 @@ pub async fn nasl_tcp_ping_shared(
 /// - port: port for the ping
 #[nasl_function(named(port))]
 async fn nasl_tcp_ping(
-    ctx: &ScanCtx<'_>,
     script_ctx: &ScriptCtx<'_>,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
-    nasl_tcp_ping_shared(ctx, script_ctx, port).await
+    nasl_tcp_ping_shared(script_ctx, port).await
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
@@ -3092,7 +3095,6 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
 }
 
 async fn nasl_tcp_v6_ping_shared(
-    ctx: &ScanCtx<'_>,
     script_ctx: &ScriptCtx<'_>,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
@@ -3125,7 +3127,12 @@ async fn nasl_tcp_v6_ping_shared(
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
-    let port = port.unwrap_or(ctx.get_random_open_tcp_port().await.unwrap_or_default());
+    let port = port.unwrap_or(
+        script_ctx
+            .get_random_open_tcp_port()
+            .await
+            .unwrap_or_default(),
+    );
 
     if islocalhost(target_ip) {
         return Ok(NaslValue::Number(1));
@@ -3208,11 +3215,10 @@ async fn nasl_tcp_v6_ping_shared(
 /// - port: port for the ping
 #[nasl_function(named(port))]
 async fn nasl_tcp_v6_ping(
-    ctx: &ScanCtx<'_>,
     script_ctx: &ScriptCtx<'_>,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
-    nasl_tcp_v6_ping_shared(ctx, script_ctx, port).await
+    nasl_tcp_v6_ping_shared(script_ctx, port).await
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
