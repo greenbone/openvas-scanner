@@ -24,13 +24,14 @@ pub enum KBError {
 /// Only pushes unique values for the given name.
 #[nasl_function(named(name, value, expires))]
 async fn set_kb_item(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     name: NaslValue,
     value: NaslValue,
     expires: Option<u64>,
 ) -> Result<(), FnError> {
     let _ = expires;
-    ctx.set_kb_item(KbKey::Custom(name.to_string()), value.as_kb())
+    script_ctx
+        .set_kb_item(KbKey::Custom(name.to_string()), value.as_kb())
         .await
 }
 
