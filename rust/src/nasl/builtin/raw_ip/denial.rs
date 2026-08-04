@@ -22,7 +22,10 @@ fn get_timeout(ctx: &ScanCtx) -> u8 {
     }
 }
 #[nasl_function]
-async fn start_denial(ctx: &ScanCtx<'_>, script_ctx: &mut ScriptCtx) -> Result<NaslValue, FnError> {
+async fn start_denial(
+    ctx: &ScanCtx<'_>,
+    script_ctx: &mut ScriptCtx<'_>,
+) -> Result<NaslValue, FnError> {
     let retry = get_timeout(ctx);
 
     let port = ctx.get_random_open_tcp_port().await.unwrap_or_default();
@@ -43,7 +46,7 @@ async fn start_denial(ctx: &ScanCtx<'_>, script_ctx: &mut ScriptCtx) -> Result<N
 async fn end_denial(
     ctx: &ScanCtx<'_>,
     register: &Register,
-    script_ctx: &ScriptCtx,
+    script_ctx: &ScriptCtx<'_>,
 ) -> Result<NaslValue, FnError> {
     let retry = get_timeout(ctx);
 
