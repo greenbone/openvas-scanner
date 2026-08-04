@@ -210,7 +210,7 @@ where
             self.alive_test_methods.to_vec(),
             self.notus.clone(),
         );
-        let script_ctx = ScriptCtx::new(&ctx, target_id);
+        let script_ctx = ScriptCtx::new(&ctx, target_id, Some(self.vt.clone()));
         ctx.set_nvt(self.vt.clone());
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
