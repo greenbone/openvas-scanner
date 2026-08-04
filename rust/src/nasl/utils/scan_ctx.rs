@@ -124,17 +124,6 @@ pub struct CtxTarget {
     ports_udp: BTreeSet<u16>,
 }
 
-impl CtxTarget {
-    fn clone_fake_temp(&self) -> Self {
-        Self {
-            target: self.target.clone(),
-            vhosts: Mutex::new(vec![]),
-            ports_tcp: self.ports_tcp.clone(),
-            ports_udp: self.ports_udp.clone(),
-        }
-    }
-}
-
 pub struct CtxTargets {
     targets: Vec<CtxTarget>,
 }
@@ -326,8 +315,6 @@ pub struct TargetId(usize);
 pub struct ScanCtx<'a> {
     /// The key for this context.
     scan: ScanID,
-    /// Target against which the scan is run.
-    target: CtxTarget,
     /// Targets against which the scan is run.
     targets: CtxTargets,
     /// Filename of the current script
@@ -367,7 +354,6 @@ impl<'a> ScanCtx<'a> {
 
         Self {
             scan,
-            target: targets.targets[0].clone_fake_temp(), // TODO
             targets,
             filename,
             storage,
@@ -463,24 +449,6 @@ impl<'a> ScanCtx<'a> {
 
     pub fn alive_test_methods(&self) -> Vec<AliveTestMethods> {
         self.alive_test_methods.clone()
-    }
-
-    async fn get_kb_items_with_keys(
-        &self,
-        key: &KbKey,
-    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
-        let result = self
-            .storage
-            .retrieve(&GetKbContextKey(
-                (
-                    self.scan.clone(),
-                    storage::Target(self.target.ip_addr().to_string()),
-                ),
-                key.clone(),
-            ))
-            .await?
-            .unwrap_or_default();
-        Ok(result)
     }
 
     fn get_preference_bool(&self, key: &str) -> Option<bool> {
@@ -646,6 +614,25 @@ impl<'a> ScriptCtx<'a> {
         Ok(result)
     }
 
+    async fn get_kb_items_with_keys(
+        &self,
+        key: &KbKey,
+    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
+        let result = self
+            .scan_ctx
+            .storage
+            .retrieve(&GetKbContextKey(
+                (
+                    self.scan_ctx.scan.clone(),
+                    storage::Target(self.target().ip_addr().to_string()),
+                ),
+                key.clone(),
+            ))
+            .await?
+            .unwrap_or_default();
+        Ok(result)
+    }
+
     pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
         match protocol {
             Protocol::TCP => {
@@ -684,7 +671,6 @@ impl<'a> ScriptCtx<'a> {
     /// Looks up open TCP ports from the knowledge base
     pub async fn get_open_tcp_ports(&self) -> Result<Vec<u16>, FnError> {
         let open_ports = self
-            .scan_ctx
             .get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))
             .await?;
 
