@@ -99,6 +99,7 @@ pub enum TargetKind {
     IpAddr,
 }
 
+// TODO remove clone
 #[derive(Debug)]
 pub struct CtxTarget {
     /// The target
@@ -121,6 +122,17 @@ pub struct CtxTarget {
     ports_tcp: BTreeSet<u16>,
     /// The UDP ports to test against.
     ports_udp: BTreeSet<u16>,
+}
+
+impl CtxTarget {
+    fn clone_fake_temp(&self) -> Self {
+        Self {
+            target: self.target.clone(),
+            vhosts: Mutex::new(vec![]),
+            ports_tcp: self.ports_tcp.clone(),
+            ports_udp: self.ports_udp.clone(),
+        }
+    }
 }
 
 pub struct CtxTargets {
@@ -341,7 +353,7 @@ impl<'a> ScanCtx<'a> {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         scan: ScanID,
-        mut targets: CtxTargets,
+        targets: CtxTargets,
         filename: PathBuf,
         storage: &'a dyn ContextStorage,
         loader: &'a Loader,
@@ -355,7 +367,7 @@ impl<'a> ScanCtx<'a> {
 
         Self {
             scan,
-            target: targets.targets.remove(0), // TODO
+            target: targets.targets[0].clone_fake_temp(), // TODO
             targets,
             filename,
             storage,
@@ -406,11 +418,6 @@ impl<'a> ScanCtx<'a> {
 
     fn filename(&self) -> &PathBuf {
         &self.filename
-    }
-
-    /// Get the `CtxTarget`
-    pub fn target(&self) -> &CtxTarget {
-        &self.target
     }
 
     /// Get the storage
@@ -579,7 +586,7 @@ impl<'a> ScanCtx<'a> {
 
         // If no ports found in KB, fall back to the ports configured in the scan
         if port_numbers.is_empty() {
-            Ok(self.target().configured_tcp_ports())
+            Ok(self.target.configured_tcp_ports())
         } else {
             Ok(port_numbers)
         }
@@ -669,6 +676,10 @@ impl<'a> ScanCtx<'a> {
             register.add_global_var(name, val);
         }
     }
+
+    fn target_by_id(&self, target_id: TargetId) -> &CtxTarget {
+        &self.targets[target_id]
+    }
 }
 
 impl Drop for ScanCtx<'_> {
@@ -710,6 +721,10 @@ impl<'a> ScriptCtx<'a> {
             scan_ctx,
             target_id,
         }
+    }
+
+    pub(crate) fn target(&self) -> &CtxTarget {
+        self.scan_ctx.target_by_id(self.target_id)
     }
 
     // TODO: Figure out what to do about this - what is the correct
