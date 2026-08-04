@@ -17,8 +17,8 @@ use crate::scanner::preferences::preference::{ScanPrefs, pref_is_true};
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbKey};
 use crate::storage::items::kb::{GetKbContextKey, KbContextKey, KbItem};
+use crate::storage::items::nvt::Oid;
 use crate::storage::items::nvt::{FeedVersion, FileName};
-use crate::storage::items::nvt::{NvtField, Oid};
 use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
@@ -395,23 +395,6 @@ impl<'a> ScanCtx<'a> {
     /// Get the loader
     pub fn loader(&self) -> &Loader {
         self.loader
-    }
-
-    pub fn set_nvt_field(&self, field: NvtField) {
-        let mut nvt = self.nvt.lock().unwrap();
-        match nvt.as_mut() {
-            Some(nvt) => {
-                field.move_to_data(nvt);
-            }
-            _ => {
-                let mut new = VTData {
-                    filename: self.filename().to_string_lossy().to_string(),
-                    ..Default::default()
-                };
-                field.move_to_data(&mut new);
-                *nvt = Some(new);
-            }
-        }
     }
 
     async fn dispatch_nvt(&self, nvt: VTData) {
