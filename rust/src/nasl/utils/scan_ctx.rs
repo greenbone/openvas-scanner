@@ -32,7 +32,7 @@ use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{FnError, Register};
 use std::net::IpAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone)]
@@ -310,9 +310,10 @@ pub struct ScanCtx<'a> {
 
 impl<'a> ScanCtx<'a> {
     #[allow(clippy::too_many_arguments)]
-    fn new(
+    pub fn new(
         scan: ScanID,
-        target: CtxTarget,
+        target: Target,
+        ports: Ports,
         filename: PathBuf,
         storage: &'a dyn ContextStorage,
         loader: &'a Loader,
@@ -323,6 +324,8 @@ impl<'a> ScanCtx<'a> {
     ) -> Self {
         let mut sockets = NaslSockets::default();
         sockets.with_recv_timeout(scan_preferences.get_preference_int("checks_read_timeout"));
+
+        let target = (target, ports).into();
 
         Self {
             scan,
@@ -667,36 +670,6 @@ pub struct ScriptCtx {
     pub denial_port: Option<u16>,
     pub multicast_groups: Vec<JmpDesc>,
     pub snmp_next: Option<String>,
-}
-
-pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
-    pub storage: &'a dyn ContextStorage,
-    pub loader: &'a Loader,
-    pub executor: &'a Executor,
-    pub scan_id: ScanID,
-    pub target: Target,
-    pub ports: Ports,
-    pub filename: P,
-    pub scan_preferences: ScanPrefs,
-    pub alive_test_methods: Vec<AliveTestMethods>,
-    pub notus: Option<NotusCtx>,
-}
-
-impl<'a, P: AsRef<Path>> ScanCtxBuilder<'a, P> {
-    /// Builds the `Context`.
-    pub fn build(self) -> ScanCtx<'a> {
-        ScanCtx::new(
-            self.scan_id,
-            (self.target, self.ports).into(),
-            self.filename.as_ref().to_owned(),
-            self.storage,
-            self.loader,
-            self.executor,
-            self.scan_preferences,
-            self.alive_test_methods,
-            self.notus,
-        )
-    }
 }
 
 #[cfg(test)]

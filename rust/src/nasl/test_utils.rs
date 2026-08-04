@@ -362,22 +362,21 @@ where
 
     fn ctx(&self) -> ScanCtx<'_> {
         let target = Target::do_not_resolve_hostname(&self.target);
-        ScanCtxBuilder {
-            storage: &self.storage,
-            loader: &self.loader,
-            executor: &self.executor,
-            scan_id: self.scan_id.clone(),
+        ScanCtx::new(
+            self.scan_id.clone(),
             target,
-            ports: Ports {
+            Ports {
                 tcp: Default::default(),
                 udp: Default::default(),
             },
-            filename: self.filename.clone(),
-            scan_preferences: ScanPrefs::new(),
-            alive_test_methods: Vec::default(),
-            notus: self.notus.as_ref().map(|x| NotusCtx::Direct(x.clone())),
-        }
-        .build()
+            self.filename.clone(),
+            &self.storage,
+            &self.loader,
+            &self.executor,
+            ScanPrefs::new(),
+            Vec::default(),
+            self.notus.as_ref().map(|x| NotusCtx::Direct(x.clone())),
+        )
     }
 
     /// Check that no errors were returned by any

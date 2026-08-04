@@ -19,7 +19,7 @@ use scannerlib::nasl::{
 use scannerlib::{
     feed,
     nasl::{
-        Code, Register, ScanCtx, ScanCtxBuilder,
+        Code, Register, ScanCtx,
         error::emit_errors,
         interpreter::ForkingInterpreter,
         nasl_std_executor,
@@ -155,19 +155,20 @@ async fn run_on_storage<S: ContextStorage>(
         }
     }
 
-    let ctx = ScanCtxBuilder {
-        storage: &storage,
-        loader: &loader,
-        executor: &nasl_std_executor(),
+    let executor = nasl_std_executor();
+    let ctx = ScanCtx::new(
+        scan_id,
         target,
         ports,
-        scan_id,
-        filename,
+        filename.into(),
+        &storage,
+        &loader,
+        &executor,
         scan_preferences,
-        alive_test_methods: Vec::new(),
+        Vec::new(),
         notus,
-    };
-    run_with_context(ctx.build(), script).await
+    );
+    run_with_context(ctx, script).await
 }
 
 #[allow(clippy::too_many_arguments)]
