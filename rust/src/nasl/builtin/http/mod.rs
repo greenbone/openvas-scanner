@@ -35,8 +35,8 @@ use super::{
     },
 };
 
-async fn get_user_agent(ctx: &ScanCtx<'_>) -> Result<String, FnError> {
-    match ctx
+async fn get_user_agent(ctx: &ScanCtx<'_>, script_ctx: &ScriptCtx<'_>) -> Result<String, FnError> {
+    match script_ctx
         .get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent))
         .await
     {
@@ -167,6 +167,7 @@ impl NaslHttp2 {
     async fn request(
         &self,
         ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         ip_str: &str,
         port: u16,
         uri: String,
@@ -212,7 +213,7 @@ impl NaslHttp2 {
         });
 
         let mut h2 = h2.ready().await.map_err(HttpError::from)?;
-        let ua = get_user_agent(ctx)
+        let ua = get_user_agent(ctx, script_ctx)
             .await
             .map_err(|e| HttpError::Custom(e.to_string()))?;
         // Prepare the HTTP request to send to the server.
@@ -310,7 +311,7 @@ impl NaslHttp2 {
         uri = format!("{uri}{item}");
 
         let (head, body) = self
-            .request(ctx, target_str, port, uri, data, method, handle)
+            .request(ctx, script_ctx, target_str, port, uri, data, method, handle)
             .await?;
 
         handle.http_code = head.status.as_u16();
@@ -553,12 +554,15 @@ async fn http_req_shared(
 ) -> Result<NaslValue, FnError> {
     let p: u16 = port.into();
     let tmp_key = format!("http/{p}");
-    let mut request = match ctx.get_single_kb_item::<i32>(&KbKey::from(tmp_key)).await? {
+    let mut request = match script_ctx
+        .get_single_kb_item::<i32>(&KbKey::from(tmp_key))
+        .await?
+    {
         x if (x == 11 || x <= 0) => {
             //TODO: use plug_get_host_fqdn and do it for all vhosts.
             let hostname = script_ctx.target().ip_addr().to_string();
 
-            let user_agent = get_user_agent(ctx).await?;
+            let user_agent = get_user_agent(ctx, script_ctx).await?;
             let hostreader = match p {
                 80 | 443 => hostname,
                 _ => format!("{hostname}/{p}"),

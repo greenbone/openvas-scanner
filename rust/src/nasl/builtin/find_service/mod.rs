@@ -334,6 +334,7 @@ async fn read_from_tcp_at_port(
         let vhost = get_host_name_shared(script_ctx).unwrap().to_string();
         match open_sock_tcp_vhost(
             ctx,
+            script_ctx,
             target,
             Duration::from_millis(TIMEOUT_MILLIS),
             None,
