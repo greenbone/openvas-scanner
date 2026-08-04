@@ -73,11 +73,11 @@ impl<'a> FromNaslValue<'a> for L4Protocols {
     }
 }
 
-fn get_oid(
-    script_ctx: &mut ScriptCtx,
+fn get_oid<'a>(
+    script_ctx: &mut ScriptCtx<'a>,
     oid: Option<String>,
     is_next: bool,
-) -> Result<Oid<'_>, FnError> {
+) -> Result<Oid<'a>, FnError> {
     let next_oid = script_ctx.snmp_next.clone().unwrap_or_default();
     let oid = if is_next && !next_oid.is_empty() {
         Oid::from_str(&next_oid)
