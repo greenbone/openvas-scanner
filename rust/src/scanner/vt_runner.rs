@@ -197,19 +197,18 @@ where
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
-        let ctx = ScanCtxBuilder {
-            scan_id: crate::storage::ScanID(self.scan_id.clone()),
-            target: self.target.clone(),
-            ports: self.ports.clone(),
+        let ctx = ScanCtx::new(
+            crate::storage::ScanID(self.scan_id.clone()),
+            self.target.clone(),
+            self.ports.clone(),
             filename,
-            storage: self.storage,
-            loader: self.loader,
-            executor: self.executor,
-            scan_preferences: self.scan_preferences.clone(),
-            alive_test_methods: self.alive_test_methods.to_vec(),
-            notus: self.notus.clone(),
-        }
-        .build();
+            self.storage,
+            self.loader,
+            self.executor,
+            self.scan_preferences.clone(),
+            self.alive_test_methods.to_vec(),
+            self.notus.clone(),
+        );
         ctx.set_nvt(self.vt.clone());
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
