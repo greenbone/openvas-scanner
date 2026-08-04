@@ -6,7 +6,7 @@
 //! For more information about the deb package format see:
 //! https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
 
-use super::{Package, PackageVersion};
+use super::{DebianPackageVersion, Package};
 use lazy_regex::{Lazy, Regex, lazy_regex};
 use std::cmp::Ordering;
 
@@ -98,8 +98,8 @@ static RE_VERSION_WO_REVISION: Lazy<Regex> = lazy_regex!(
 pub struct Deb {
     name: String,
     epoch: u64,
-    upstream_version: PackageVersion,
-    debian_revision: PackageVersion,
+    upstream_version: DebianPackageVersion,
+    debian_revision: DebianPackageVersion,
 }
 
 impl PartialOrd for Deb {
@@ -167,8 +167,8 @@ impl Package for Deb {
         Some(Deb {
             name: name.to_string(),
             epoch,
-            upstream_version: PackageVersion(upstream_version.to_string()),
-            debian_revision: PackageVersion(debian_revision.to_string()),
+            upstream_version: DebianPackageVersion(upstream_version.to_string()),
+            debian_revision: DebianPackageVersion(debian_revision.to_string()),
         })
     }
 
@@ -206,8 +206,8 @@ impl Package for Deb {
         Some(Deb {
             name: name.to_string(),
             epoch,
-            upstream_version: PackageVersion(upstream_version.to_string()),
-            debian_revision: PackageVersion(debian_revision.to_string()),
+            upstream_version: DebianPackageVersion(upstream_version.to_string()),
+            debian_revision: DebianPackageVersion(debian_revision.to_string()),
         })
     }
 
@@ -232,7 +232,7 @@ impl Package for Deb {
 
 #[cfg(test)]
 mod deb_tests {
-    use super::PackageVersion;
+    use super::DebianPackageVersion;
 
     use super::{Deb, Package};
 
@@ -241,22 +241,22 @@ mod deb_tests {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.4".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.4".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         assert!(package2 > package1);
 
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("5".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("5".to_string()),
         };
         assert!(package2 > package1);
     }
@@ -266,14 +266,14 @@ mod deb_tests {
         let package1 = Deb {
             name: "foo".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         let package2 = Deb {
             name: "bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         assert!(package2.partial_cmp(&package1).is_none());
     }
@@ -283,30 +283,30 @@ mod deb_tests {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.4".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
-        };
-        assert!(package1 < package2);
-
-        let package2 = Deb {
-            name: "foo-bar".to_string(),
-            epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("5".to_string()),
+            upstream_version: DebianPackageVersion("1.2.4".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         assert!(package1 < package2);
 
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3~rc".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("5".to_string()),
+        };
+        assert!(package1 < package2);
+
+        let package2 = Deb {
+            name: "foo-bar".to_string(),
+            epoch: 1,
+            upstream_version: DebianPackageVersion("1.2.3~rc".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         assert!(package2 < package1);
     }
@@ -316,14 +316,14 @@ mod deb_tests {
         let package1 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         let package2 = Deb {
             name: "foo-bar".to_string(),
             epoch: 1,
-            upstream_version: PackageVersion("1.2.3".to_string()),
-            debian_revision: PackageVersion("4".to_string()),
+            upstream_version: DebianPackageVersion("1.2.3".to_string()),
+            debian_revision: DebianPackageVersion("4".to_string()),
         };
         assert!(package1 == package2);
     }
@@ -337,11 +337,11 @@ mod deb_tests {
         assert_eq!(package.epoch, 2);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("11.2.2".to_string())
+            DebianPackageVersion("11.2.2".to_string())
         );
         assert_eq!(
             package.debian_revision,
-            PackageVersion("2.20160614".to_string())
+            DebianPackageVersion("2.20160614".to_string())
         );
         assert_eq!(package.get_version(), "2:11.2.2-2.20160614");
 
@@ -350,9 +350,12 @@ mod deb_tests {
         assert_eq!(package.epoch, 0);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("1.5.8".to_string())
+            DebianPackageVersion("1.5.8".to_string())
         );
-        assert_eq!(package.debian_revision, PackageVersion("3".to_string()));
+        assert_eq!(
+            package.debian_revision,
+            DebianPackageVersion("3".to_string())
+        );
         assert_eq!(package.get_version(), "1.5.8-3");
 
         let package = Deb::from_full_name("httpd-manual-1:2.4.6-45.0.1.4.h10").unwrap();
@@ -360,11 +363,11 @@ mod deb_tests {
         assert_eq!(package.epoch, 1);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("2.4.6".to_string())
+            DebianPackageVersion("2.4.6".to_string())
         );
         assert_eq!(
             package.debian_revision,
-            PackageVersion("45.0.1.4.h10".to_string())
+            DebianPackageVersion("45.0.1.4.h10".to_string())
         );
         assert_eq!(package.get_version(), "1:2.4.6-45.0.1.4.h10");
 
@@ -373,11 +376,11 @@ mod deb_tests {
         assert_eq!(package.epoch, 0);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("1.3.8+dfsg".to_string())
+            DebianPackageVersion("1.3.8+dfsg".to_string())
         );
         assert_eq!(
             package.debian_revision,
-            PackageVersion("3+deb10u2".to_string())
+            DebianPackageVersion("3+deb10u2".to_string())
         );
         assert_eq!(package.get_version(), "1.3.8+dfsg-3+deb10u2");
 
@@ -387,9 +390,12 @@ mod deb_tests {
         assert_eq!(package.epoch, 2);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("2.99.917+git20180925".to_string())
+            DebianPackageVersion("2.99.917+git20180925".to_string())
         );
-        assert_eq!(package.debian_revision, PackageVersion("2".to_string()));
+        assert_eq!(
+            package.debian_revision,
+            DebianPackageVersion("2".to_string())
+        );
         assert_eq!(package.get_version(), "2:2.99.917+git20180925-2");
 
         let package = Deb::from_full_name("ucf-3.0038+nmu1").unwrap();
@@ -397,16 +403,25 @@ mod deb_tests {
         assert_eq!(package.epoch, 0);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("3.0038+nmu1".to_string())
+            DebianPackageVersion("3.0038+nmu1".to_string())
         );
-        assert_eq!(package.debian_revision, PackageVersion("".to_string()));
+        assert_eq!(
+            package.debian_revision,
+            DebianPackageVersion("".to_string())
+        );
         assert_eq!(package.get_version(), "3.0038+nmu1");
 
         let package = Deb::from_full_name("apport-symptoms-020").unwrap();
         assert_eq!(package.name, "apport-symptoms");
         assert_eq!(package.epoch, 0);
-        assert_eq!(package.upstream_version, PackageVersion("020".to_string()));
-        assert_eq!(package.debian_revision, PackageVersion("".to_string()));
+        assert_eq!(
+            package.upstream_version,
+            DebianPackageVersion("020".to_string())
+        );
+        assert_eq!(
+            package.debian_revision,
+            DebianPackageVersion("".to_string())
+        );
         assert_eq!(package.get_version(), "020");
 
         let package = Deb::from_full_name("mariadb-server-10.6-1:10.6.18+maria~ubu2204").unwrap();
@@ -414,9 +429,12 @@ mod deb_tests {
         assert_eq!(package.epoch, 1);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("10.6.18+maria~ubu2204".to_string())
+            DebianPackageVersion("10.6.18+maria~ubu2204".to_string())
         );
-        assert_eq!(package.debian_revision, PackageVersion("".to_string()));
+        assert_eq!(
+            package.debian_revision,
+            DebianPackageVersion("".to_string())
+        );
         assert_eq!(package.get_version(), "1:10.6.18+maria~ubu2204");
     }
     #[test]
@@ -429,11 +447,11 @@ mod deb_tests {
         assert_eq!(package.epoch, 2);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("11.2.2".to_string())
+            DebianPackageVersion("11.2.2".to_string())
         );
         assert_eq!(
             package.debian_revision,
-            PackageVersion("2.20160614".to_string())
+            DebianPackageVersion("2.20160614".to_string())
         );
         assert_eq!(package.get_version(), "2:11.2.2-2.20160614");
 
@@ -442,9 +460,12 @@ mod deb_tests {
         assert_eq!(package.epoch, 2);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("11.2.2".to_string())
+            DebianPackageVersion("11.2.2".to_string())
         );
-        assert_eq!(package.debian_revision, PackageVersion("".to_string()));
+        assert_eq!(
+            package.debian_revision,
+            DebianPackageVersion("".to_string())
+        );
         assert_eq!(package.get_version(), "2:11.2.2");
 
         let package = Deb::from_name_and_full_version("mesa-libgbm", "11.2.2").unwrap();
@@ -452,9 +473,12 @@ mod deb_tests {
         assert_eq!(package.epoch, 0);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("11.2.2".to_string())
+            DebianPackageVersion("11.2.2".to_string())
         );
-        assert_eq!(package.debian_revision, PackageVersion("".to_string()));
+        assert_eq!(
+            package.debian_revision,
+            DebianPackageVersion("".to_string())
+        );
         assert_eq!(package.get_version(), "11.2.2");
 
         let package = Deb::from_name_and_full_version("mesa-libgbm", "11.2.2-2.20160614").unwrap();
@@ -462,11 +486,11 @@ mod deb_tests {
         assert_eq!(package.epoch, 0);
         assert_eq!(
             package.upstream_version,
-            PackageVersion("11.2.2".to_string())
+            DebianPackageVersion("11.2.2".to_string())
         );
         assert_eq!(
             package.debian_revision,
-            PackageVersion("2.20160614".to_string())
+            DebianPackageVersion("2.20160614".to_string())
         );
         assert_eq!(package.get_version(), "11.2.2-2.20160614");
     }

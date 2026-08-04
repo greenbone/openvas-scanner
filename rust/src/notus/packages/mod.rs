@@ -37,6 +37,156 @@ static RE: Lazy<Regex> = lazy_regex!(r"(\d+|.)");
 ///
 /// These two steps (comparing and removing initial non-digit strings and initial digit strings) are
 /// repeated until a difference is found or both strings are exhausted.
+/// How to break ties when, at the same position, one version part is a run of
+/// digits and the other is a single non-digit character. Real-world package
+/// managers disagree here:
+///
+/// - rpm's `rpmvercmp` always sorts a digit run above a non-digit character,
+///   regardless of which side it's on (verified against Python's
+///   `rpm.labelCompare`).
+/// - dpkg / Debian Policy treats reaching a digit run as "the non-digit
+///   segment ended", which is scored the same as running off the end of the
+///   string: only "~" sorts below that, any other character sorts above it
+///   (verified against `dpkg --compare-versions`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DigitMismatchOrder {
+    /// A digit run always sorts after a non-digit character (rpm-compatible).
+    DigitGreater,
+    /// A digit run marks the end of the non-digit segment; only "~" sorts
+    /// below that (dpkg/Debian-Policy-compatible).
+    DigitEndsSegment,
+}
+
+/// Implements the tokenize-and-compare algorithm described on `PackageVersion`
+/// and `DebianPackageVersion`, parameterized over how to resolve a digit vs.
+/// non-digit mismatch (see `DigitMismatchOrder`).
+fn compare_version_parts(a: &str, b: &str, digit_mismatch: DigitMismatchOrder) -> Option<Ordering> {
+    // Check if both strings are equal
+    if a == b {
+        return Some(Ordering::Equal);
+    }
+
+    // Split both version into its parts
+    let a_parts: Vec<String> = RE.find_iter(a).map(|m| m.as_str().to_string()).collect();
+    let b_parts: Vec<String> = RE.find_iter(b).map(|m| m.as_str().to_string()).collect();
+
+    // Iterate through parts
+    for i in 0..max(a_parts.len(), b_parts.len()) {
+        // get current part of a, when not at the end
+        let a_part = match i < a_parts.len() {
+            true => &a_parts[i],
+            false => {
+                // "~" is sorted before everything, even the end of a string
+                if b_parts[i] == "~" {
+                    return Some(Ordering::Greater);
+                } else {
+                    return Some(Ordering::Less);
+                }
+            }
+        };
+
+        // get current part of b, when not at the end
+        let b_part = match i < b_parts.len() {
+            true => &b_parts[i],
+            false => {
+                // "~" is sorted before everything, even the end of a string
+                if a_parts[i] == "~" {
+                    return Some(Ordering::Less);
+                } else {
+                    return Some(Ordering::Greater);
+                }
+            }
+        };
+
+        // if the current part is the same, go to the next part
+        if a_part == b_part {
+            continue;
+        }
+
+        // check if parts are numbers
+        match (
+            a_part.chars().all(char::is_numeric),
+            b_part.chars().all(char::is_numeric),
+        ) {
+            (true, true) => {
+                // Remove leading zeros
+                let a_trimmed = a_part.trim_start_matches('0');
+                let b_trimmed = b_part.trim_start_matches('0');
+                // Compare the length of the numbers
+                match a_trimmed.len().cmp(&b_trimmed.len()) {
+                    // If the length is the same, compare the numbers
+                    Ordering::Equal => match a_trimmed.cmp(b_trimmed) {
+                        // After trimming zeroes, the numbers could be the same
+                        Ordering::Equal => continue,
+                        ord => return Some(ord),
+                    },
+                    ord => return Some(ord),
+                }
+            }
+            (true, false) => {
+                return Some(match digit_mismatch {
+                    DigitMismatchOrder::DigitGreater => Ordering::Greater,
+                    // "~" is sorted before everything, even the end of a segment
+                    DigitMismatchOrder::DigitEndsSegment => {
+                        if b_part == "~" {
+                            Ordering::Greater
+                        } else {
+                            Ordering::Less
+                        }
+                    }
+                });
+            }
+            (false, true) => {
+                return Some(match digit_mismatch {
+                    DigitMismatchOrder::DigitGreater => Ordering::Less,
+                    // "~" is sorted before everything, even the end of a segment
+                    DigitMismatchOrder::DigitEndsSegment => {
+                        if a_part == "~" {
+                            Ordering::Less
+                        } else {
+                            Ordering::Greater
+                        }
+                    }
+                });
+            }
+            _ => (),
+        }
+
+        // check if parts are alphabetic
+        match (
+            a_part.chars().all(char::is_alphabetic),
+            b_part.chars().all(char::is_alphabetic),
+        ) {
+            (true, true) => return a_part.to_lowercase().partial_cmp(&b_part.to_lowercase()),
+            (true, false) => {
+                // "~" is sorted before everything, even the end of a string
+                if b_part == "~" {
+                    return Some(Ordering::Greater);
+                } else {
+                    return Some(Ordering::Less);
+                }
+            }
+            (false, true) => {
+                // "~" is sorted before everything, even the end of a string
+                if a_part == "~" {
+                    return Some(Ordering::Less);
+                } else {
+                    return Some(Ordering::Greater);
+                }
+            }
+            _ => {
+                // "~" is sorted before everything, even the end of a string
+                if a_part != "~" && a_part > b_part || b_part == "~" {
+                    return Some(Ordering::Greater);
+                } else {
+                    return Some(Ordering::Less);
+                }
+            }
+        }
+    }
+    None
+}
+
 #[derive(PartialEq, Debug, Clone)]
 struct PackageVersion(String);
 
@@ -48,118 +198,39 @@ impl Display for PackageVersion {
 
 impl PartialOrd for PackageVersion {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Check if both strings are equal
-        if self.0 == other.0 {
-            return Some(Ordering::Equal);
-        }
-
-        // Split both version into its parts
-        let a_parts: Vec<String> = RE
-            .find_iter(self.0.as_str())
-            .map(|m| m.as_str().to_string())
-            .collect();
-        let b_parts: Vec<String> = RE
-            .find_iter(other.0.as_str())
-            .map(|m| m.as_str().to_string())
-            .collect();
-
-        // Iterate through parts
-        for i in 0..max(a_parts.len(), b_parts.len()) {
-            // get current part of a, when not at the end
-            let a_part = match i < a_parts.len() {
-                true => &a_parts[i],
-                false => {
-                    // "~" is sorted before everything, even the end of a string
-                    if b_parts[i] == "~" {
-                        return Some(Ordering::Greater);
-                    } else {
-                        return Some(Ordering::Less);
-                    }
-                }
-            };
-
-            // get current part of b, when not at the end
-            let b_part = match i < b_parts.len() {
-                true => &b_parts[i],
-                false => {
-                    // "~" is sorted before everything, even the end of a string
-                    if a_parts[i] == "~" {
-                        return Some(Ordering::Less);
-                    } else {
-                        return Some(Ordering::Greater);
-                    }
-                }
-            };
-
-            // if the current part is the same, go to the next part
-            if a_part == b_part {
-                continue;
-            }
-
-            // check if parts are numbers
-            match (
-                a_part.chars().all(char::is_numeric),
-                b_part.chars().all(char::is_numeric),
-            ) {
-                (true, true) => {
-                    // Remove leading zeros
-                    let a_trimmed = a_part.trim_start_matches('0');
-                    let b_trimmed = b_part.trim_start_matches('0');
-                    // Compare the length of the numbers
-                    match a_trimmed.len().cmp(&b_trimmed.len()) {
-                        // If the length is the same, compare the numbers
-                        Ordering::Equal => match a_trimmed.cmp(b_trimmed) {
-                            // After trimming zeroes, the numbers could be the same
-                            Ordering::Equal => continue,
-                            ord => return Some(ord),
-                        },
-                        ord => return Some(ord),
-                    }
-                }
-                (true, _) => return Some(Ordering::Greater),
-                (_, true) => return Some(Ordering::Less),
-                _ => (),
-            }
-
-            // check if parts are alphabetic
-            match (
-                a_part.chars().all(char::is_alphabetic),
-                b_part.chars().all(char::is_alphabetic),
-            ) {
-                (true, true) => return a_part.to_lowercase().partial_cmp(&b_part.to_lowercase()),
-                (true, false) => {
-                    // "~" is sorted before everything, even the end of a string
-                    if b_part == "~" {
-                        return Some(Ordering::Greater);
-                    } else {
-                        return Some(Ordering::Less);
-                    }
-                }
-                (false, true) => {
-                    // "~" is sorted before everything, even the end of a string
-                    if a_part == "~" {
-                        return Some(Ordering::Less);
-                    } else {
-                        return Some(Ordering::Greater);
-                    }
-                }
-                _ => {
-                    // "~" is sorted before everything, even the end of a string
-                    if a_part != "~" && a_part > b_part || b_part == "~" {
-                        return Some(Ordering::Greater);
-                    } else {
-                        return Some(Ordering::Less);
-                    }
-                }
-            }
-        }
-        None
+        compare_version_parts(&self.0, &other.0, DigitMismatchOrder::DigitGreater)
     }
 }
 
 impl From<&str> for PackageVersion {
     fn from(version: &str) -> Self {
         PackageVersion(version.to_string())
+    }
+}
+
+/// Same tokenize-and-compare rules as `PackageVersion`, but resolves a digit
+/// vs. non-digit mismatch the way dpkg / Debian Policy does rather than the
+/// way rpm's `rpmvercmp` does (see `DigitMismatchOrder`). Used by `Deb`, since
+/// the two real-world algorithms disagree on this edge case and a single
+/// shared comparator can't be correct for both package ecosystems at once.
+#[derive(PartialEq, Debug, Clone)]
+struct DebianPackageVersion(String);
+
+impl Display for DebianPackageVersion {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl PartialOrd for DebianPackageVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        compare_version_parts(&self.0, &other.0, DigitMismatchOrder::DigitEndsSegment)
+    }
+}
+
+impl From<&str> for DebianPackageVersion {
+    fn from(version: &str) -> Self {
+        DebianPackageVersion(version.to_string())
     }
 }
 
@@ -258,5 +329,58 @@ mod tests {
         let v2 = PackageVersion("20211016~20.04.1".to_string());
 
         assert!(v1 > v2);
+    }
+}
+
+#[cfg(test)]
+mod debian_package_version_tests {
+    use super::DebianPackageVersion;
+
+    // These cases all diverge from `PackageVersion` (see `test_version_9`
+    // above, which asserts the opposite ordering for the same strings) and
+    // are verified against the real `dpkg --compare-versions` implementation.
+
+    #[test]
+    fn letter_continuation_sorts_after_digit_transition() {
+        // `dpkg --compare-versions 1.2.3_a gt 1.2.3_1` => true
+        let v1 = DebianPackageVersion("1.2.3_a".to_string());
+        let v2 = DebianPackageVersion("1.2.3_1".to_string());
+
+        assert!(v1 > v2);
+    }
+
+    #[test]
+    fn longer_alpha_suffix_sorts_after_shorter_digit_suffix() {
+        // `dpkg --compare-versions 1.0-beta1 gt 1.0-b1` => true
+        let v1 = DebianPackageVersion("1.0-beta1".to_string());
+        let v2 = DebianPackageVersion("1.0-b1".to_string());
+
+        assert!(v1 > v2);
+    }
+
+    #[test]
+    fn shorter_alpha_prefix_sorts_before_longer_one() {
+        // `dpkg --compare-versions a1 lt ab1` => true
+        let v1 = DebianPackageVersion("a1".to_string());
+        let v2 = DebianPackageVersion("ab1".to_string());
+
+        assert!(v1 < v2);
+    }
+
+    #[test]
+    fn tilde_still_sorts_below_everything() {
+        // `dpkg --compare-versions 1.2.3 gt 1.2.3~rc` => true
+        let v1 = DebianPackageVersion("1.2.3".to_string());
+        let v2 = DebianPackageVersion("1.2.3~rc".to_string());
+
+        assert!(v1 > v2);
+    }
+
+    #[test]
+    fn equal_versions() {
+        let v1 = DebianPackageVersion("1.2.3".to_string());
+        let v2 = DebianPackageVersion("1.2.3".to_string());
+
+        assert!(v1 == v2);
     }
 }
