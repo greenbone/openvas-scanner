@@ -319,6 +319,7 @@ async fn add_kb_entries(
 
 async fn read_from_tcp_at_port(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     target: IpAddr,
     port: u16,
     test_tls: bool,
@@ -326,7 +327,7 @@ async fn read_from_tcp_at_port(
     let mut socket = if test_tls {
         make_tcp_socket(target, port, 0)?
     } else {
-        let vhost = get_host_name_shared(ctx).unwrap().to_string();
+        let vhost = get_host_name_shared(script_ctx).unwrap().to_string();
         match open_sock_tcp_vhost(
             ctx,
             target,
@@ -385,6 +386,7 @@ fn try_http_request(target: IpAddr, port: u16) -> Result<Vec<u8>, FindServiceErr
 
 async fn scan_port(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     detector: &ServiceDetector,
     target: IpAddr,
     port: u16,
@@ -401,7 +403,7 @@ async fn scan_port(
     let banner = if needs_http_request && let Ok(http_response) = try_http_request(target, port) {
         http_response
     } else {
-        match read_from_tcp_at_port(ctx, target, port, false).await {
+        match read_from_tcp_at_port(ctx, script_ctx, target, port, false).await {
             Ok(ReadResult::Data(data)) => data,
             Ok(ReadResult::Timeout) => return Ok(ScanPortResult::Timeout),
             Err(e) => {
@@ -409,7 +411,7 @@ async fn scan_port(
                     "Error connecting to IP Socket. Trying with a TLS socket {}",
                     e.to_string()
                 );
-                match read_from_tcp_at_port(ctx, target, port, true).await? {
+                match read_from_tcp_at_port(ctx, script_ctx, target, port, true).await? {
                     ReadResult::Data(data) => data,
                     ReadResult::Timeout => return Ok(ScanPortResult::Timeout),
                 }
@@ -450,7 +452,11 @@ async fn find_service_ssl_set_prefs(ctx: &ScanCtx<'_>, register: &Register) -> R
 }
 
 #[nasl_function]
-async fn plugin_run_find_service(ctx: &ScanCtx<'_>, register: &Register) -> NaslResult {
+async fn plugin_run_find_service(
+    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
+    register: &Register,
+) -> NaslResult {
     if let NaslValue::String(val) = register
         .script_param(TEST_SSL_PREF)
         .unwrap_or(NaslValue::String("All".to_string()))
@@ -462,7 +468,15 @@ async fn plugin_run_find_service(ctx: &ScanCtx<'_>, register: &Register) -> Nasl
     let detector = ServiceDetector::new()?;
     let open_ports = ctx.get_open_tcp_ports().await?;
     for port in open_ports {
-        match scan_port(ctx, &detector, ctx.target().ip_addr(), port).await {
+        match scan_port(
+            ctx,
+            script_ctx,
+            &detector,
+            script_ctx.target().ip_addr(),
+            port,
+        )
+        .await
+        {
             Ok(ScanPortResult::Service(service)) => {
                 detector.handle_detected_service(ctx, service, port).await?;
             }

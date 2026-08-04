@@ -140,7 +140,7 @@ impl Ssh {
     #[nasl_function(named(socket, port, keytype, csciphers, scciphers, timeout))]
     async fn nasl_ssh_connect(
         &mut self,
-        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         socket: Option<Socket>,
         port: Option<u16>,
         keytype: Option<CommaSeparated<Algorithm>>,
@@ -151,7 +151,7 @@ impl Ssh {
         let port = port
             .filter(|_| socket.is_none())
             .unwrap_or(DEFAULT_SSH_PORT);
-        let ip = ctx.target().ip_addr();
+        let ip = script_ctx.target().ip_addr();
         let timeout = timeout.map(Duration::from_secs);
         let keytype = keytype
             .map(|keytype| keytype.0)

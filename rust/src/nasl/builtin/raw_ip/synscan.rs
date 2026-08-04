@@ -190,8 +190,8 @@ async fn send_task(
 }
 
 #[nasl_function]
-async fn plugin_run_synscan(ctx: &ScanCtx<'_>) -> Result<(), FnError> {
-    let target_ip = ctx.target().ip_addr();
+async fn plugin_run_synscan(ctx: &ScanCtx<'_>, script_ctx: &ScriptCtx<'_>) -> Result<(), FnError> {
+    let target_ip = script_ctx.target().ip_addr();
     let mut open_ports = BTreeSet::<u16>::new();
 
     let capture_inactive =
@@ -202,7 +202,7 @@ async fn plugin_run_synscan(ctx: &ScanCtx<'_>) -> Result<(), FnError> {
 
     let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg));
 
-    let ports = ctx.target().ports_tcp();
+    let ports = script_ctx.target().ports_tcp();
     let send_handle = tokio::spawn(send_task(
         target_ip,
         ports.clone(),
