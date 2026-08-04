@@ -465,16 +465,6 @@ impl<'a> ScanCtx<'a> {
         self.alive_test_methods.clone()
     }
 
-    fn kb_context_key(&self, key: KbKey) -> KbContextKey {
-        KbContextKey(
-            (
-                self.scan.clone(),
-                storage::Target(self.target.ip_addr().to_string()),
-            ),
-            key,
-        )
-    }
-
     async fn get_kb_items_with_keys(
         &self,
         key: &KbKey,
@@ -562,10 +552,20 @@ impl<'a> ScriptCtx<'a> {
         self.scan_ctx.target_by_id(self.target_id)
     }
 
+    fn kb_context_key(&self, key: KbKey) -> KbContextKey {
+        KbContextKey(
+            (
+                self.scan_ctx.scan.clone(),
+                storage::Target(self.target().ip_addr().to_string()),
+            ),
+            key,
+        )
+    }
+
     pub async fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
         self.scan_ctx
             .storage
-            .dispatch(self.scan_ctx.kb_context_key(key), value)
+            .dispatch(self.kb_context_key(key), value)
             .await?;
         Ok(())
     }
@@ -577,7 +577,7 @@ impl<'a> ScriptCtx<'a> {
     ) -> Result<(), FnError> {
         self.scan_ctx
             .storage
-            .dispatch_replace(self.scan_ctx.kb_context_key(key), value.into())
+            .dispatch_replace(self.kb_context_key(key), value.into())
             .await?;
         Ok(())
     }
@@ -595,7 +595,7 @@ impl<'a> ScriptCtx<'a> {
         let result = self
             .scan_ctx
             .storage()
-            .retrieve(&self.scan_ctx.kb_context_key(key.clone()))
+            .retrieve(&self.kb_context_key(key.clone()))
             .await?;
         let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
 
@@ -640,7 +640,7 @@ impl<'a> ScriptCtx<'a> {
         let result: Vec<KbItem> = self
             .scan_ctx
             .storage
-            .retrieve(&self.scan_ctx.kb_context_key(key.clone()))
+            .retrieve(&self.kb_context_key(key.clone()))
             .await?
             .unwrap_or_default();
         Ok(result)
