@@ -649,7 +649,9 @@ pub async fn open_sock_tcp_vhost(
         .ok();
 
     if set_transport {
-        ctx.set_port_transport(port, transport as usize).await?;
+        script_ctx
+            .set_port_transport(port, transport as usize)
+            .await?;
     }
     Ok(conn)
 }
@@ -752,7 +754,6 @@ async fn open_sock_tcp(
 
 #[nasl_function(named(socket, transport))]
 async fn socket_negotiate_ssl(
-    ctx: &ScanCtx<'_>,
     script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     socket: usize,
@@ -789,7 +790,8 @@ async fn socket_negotiate_ssl(
     soc.set_session_id(session_id);
 
     //TODO: transport is set in the kb, but is not specified in the TLS Session
-    ctx.set_port_transport(soc.get_port(), transport as usize)
+    script_ctx
+        .set_port_transport(soc.get_port(), transport as usize)
         .await?;
     Ok(NaslValue::Number(socket as i64))
 }

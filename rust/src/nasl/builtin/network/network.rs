@@ -135,7 +135,7 @@ fn islocalnet(script_ctx: &ScriptCtx) -> Result<bool, SocketError> {
 
 /// Declares an open port on the target host
 pub async fn scanner_add_port_shared(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Port,
     proto: Option<&str>,
 ) -> Result<(), FnError> {
@@ -144,7 +144,9 @@ pub async fn scanner_add_port_shared(
         _ => KbKey::Port(kb::Port::Tcp(port.0.to_string())),
     };
 
-    ctx.set_single_kb_item(kb_key, KbItem::Number(1)).await?;
+    script_ctx
+        .set_single_kb_item(kb_key, KbItem::Number(1))
+        .await?;
 
     Ok(())
 }
@@ -152,11 +154,11 @@ pub async fn scanner_add_port_shared(
 /// Declares an open port on the target host
 #[nasl_function(named(port, proto))]
 async fn scanner_add_port(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Port,
     proto: Option<&str>,
 ) -> Result<(), FnError> {
-    scanner_add_port_shared(ctx, port, proto).await
+    scanner_add_port_shared(script_ctx, port, proto).await
 }
 
 #[nasl_function]
