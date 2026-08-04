@@ -208,6 +208,38 @@ async fn container_image_scan_docker_hub_ubuntu_24_04() {
     scan.delete().await;
 }
 
+#[tokio::test]
+async fn container_image_scanner_deadlock() {
+    let mut registry = mockito::Server::new_async().await;
+    // Set up a registry that returns unauthorized. The exact failure
+    // mode here is probably not very important, what is important is that
+    // the image resolution fails.
+    registry
+        .mock("GET", "/v2/")
+        .with_status(StatusCode::UNAUTHORIZED.as_u16().into())
+        .create();
+
+    let t = Test::new("container_image_scanner_deadlock")
+        .config("cis_single_db_connection")
+        .await;
+    let scan = Scan {
+        scan_id: "fake_id".into(),
+        target: Target {
+            hosts: vec![format!("oci://{}", registry.host_with_port())],
+            ..Default::default()
+        },
+        scan_preferences: vec![("registry_allow_insecure", "true").into()],
+        ..Default::default()
+    };
+
+    let scan = t.create_container_image_scan(scan).await;
+    scan.start().await;
+    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(5)))
+        .await
+        .body::<Status>()
+        .snapshot("status");
+}
+
 #[cfg(feature = "requires-compose")]
 mod requires_compose {
     use std::path::PathBuf;
