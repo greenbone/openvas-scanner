@@ -102,11 +102,8 @@ struct GenerateScript {
     id: String,
     rc: usize,
     dependencies: Vec<String>,
-    required_keys: Vec<String>,
-    mandatory_keys: Vec<String>,
     required_tcp_ports: Vec<String>,
     required_udp_ports: Vec<String>,
-    exclude: Vec<String>,
 }
 
 impl GenerateScript {
@@ -116,33 +113,6 @@ impl GenerateScript {
         GenerateScript {
             id: id.to_string(),
             dependencies,
-            ..Default::default()
-        }
-    }
-
-    fn with_required_keys(id: &str, required_keys: &[&str]) -> GenerateScript {
-        let required_keys = required_keys.iter().map(|x| x.to_string()).collect();
-        GenerateScript {
-            id: id.to_string(),
-            required_keys,
-            ..Default::default()
-        }
-    }
-
-    fn with_mandatory_keys(id: &str, mandatory_keys: &[&str]) -> GenerateScript {
-        let mandatory_keys = mandatory_keys.iter().map(|x| x.to_string()).collect();
-        GenerateScript {
-            id: id.to_string(),
-            mandatory_keys,
-            ..Default::default()
-        }
-    }
-
-    fn with_excluded_keys(id: &str, exclude_keys: &[&str]) -> GenerateScript {
-        let exclude = exclude_keys.iter().map(|x| x.to_string()).collect();
-        GenerateScript {
-            id: id.to_string(),
-            exclude,
             ..Default::default()
         }
     }
@@ -187,10 +157,7 @@ impl GenerateScript {
                 format!("{name}({dependencies});")
             }
         };
-        let mandatory = printable("script_mandatory_keys", &self.mandatory_keys);
-        let required = printable("script_require_keys", &self.required_keys);
         let dependencies = printable("script_dependencies", &self.dependencies);
-        let exclude = printable("script_exclude_keys", &self.exclude);
         let require_ports = printable("script_require_ports", &self.required_tcp_ports);
         let require_udp_ports = printable("script_require_udp_ports", &self.required_udp_ports);
 
@@ -204,9 +171,6 @@ if (description)
   script_oid("{id}");
   script_category(ACT_GATHER_INFO);
   {dependencies}
-  {mandatory}
-  {required}
-  {exclude}
   {require_ports}
   {require_udp_ports}
   exit(0);
@@ -378,78 +342,6 @@ async fn required_ports() {
     let (success, failure) = get_all_results(&vts, storage).await;
     assert_eq!(success.len(), 1);
     assert_eq!(failure.len(), 4);
-}
-
-async fn make_test_storage(vts: &[(String, VTData)]) -> Arc<InMemoryStorage> {
-    let storage = prepare_vt_storage(vts).await;
-    storage
-        .dispatch(
-            KbContextKey(
-                (
-                    ScanID("sid".to_string()),
-                    crate::storage::Target("test.host".to_string()),
-                ),
-                KbKey::Custom("key/exists".to_string()),
-            ),
-            KbItem::Number(1),
-        )
-        .await
-        .expect("store kb");
-    Arc::new(storage)
-}
-
-#[tokio::test]
-#[tracing_test::traced_test]
-async fn exclude_keys() {
-    let only_success = [
-        GenerateScript::with_excluded_keys("0", &["key/not"])
-            .generate()
-            .await,
-        GenerateScript::with_excluded_keys("1", &["key/not"])
-            .generate()
-            .await,
-        GenerateScript::with_excluded_keys("2", &["key/exists"])
-            .generate()
-            .await,
-    ];
-    let storage = make_test_storage(&only_success).await;
-    let (success, failure) = get_all_results(&only_success, storage).await;
-    assert_eq!(success.len(), 2);
-    assert_eq!(failure.len(), 1);
-}
-
-#[tokio::test]
-#[tracing_test::traced_test]
-async fn required_keys() {
-    let only_success = [
-        GenerateScript::with_required_keys("0", &["key/not"])
-            .generate()
-            .await,
-        GenerateScript::with_required_keys("1", &["key/exists"])
-            .generate()
-            .await,
-    ];
-    let dispatcher = make_test_storage(&only_success).await;
-    let (success, failure) = get_all_results(&only_success, dispatcher).await;
-    assert_eq!(success.len(), 1);
-    assert_eq!(failure.len(), 1);
-}
-
-#[tokio::test]
-#[tracing_test::traced_test]
-async fn mandatory_keys() {
-    let only_success = [
-        GenerateScript::with_mandatory_keys("0", &["key/not"])
-            .generate()
-            .await,
-        GenerateScript::with_mandatory_keys("1", &["key/exists"])
-            .generate()
-            .await,
-    ];
-    let dispatcher = make_test_storage(&only_success).await;
-    let (success, failure) = get_all_results(&only_success, dispatcher).await;
-    assert_eq!(success.len(), 1);
-    assert_eq!(failure.len(), 1);
 }
 
 async fn wait_for_status(

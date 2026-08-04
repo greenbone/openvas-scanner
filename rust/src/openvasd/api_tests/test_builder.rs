@@ -43,6 +43,10 @@ static OPENVAS_TEST_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
 /// the type itself means that call-sites become slightly simpler
 /// and easier to write.
 pub trait Snapshottable: Serialize {
+    /// Preparations that need to be done before the snapshot is written
+    /// to make results deterministic
+    fn prepare(&mut self) {}
+
     /// The redactions (in insta format) to be performed
     /// before writing the snapshot.
     fn redactions() -> Vec<String> {
@@ -61,7 +65,8 @@ pub struct Snapshot<S> {
 }
 
 impl<S: Snapshottable> Snapshot<S> {
-    pub fn snapshot(self, name: &str) -> S {
+    pub fn snapshot(mut self, name: &str) -> S {
+        self.prepare();
         let Self {
             ref inner,
             name_prefix,
