@@ -517,65 +517,6 @@ impl<'a> ScanCtx<'a> {
             })
     }
 
-    /// Looks up open TCP ports from the knowledge base
-    pub async fn get_open_tcp_ports(&self) -> Result<Vec<u16>, FnError> {
-        let open_ports = self
-            .get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))
-            .await?;
-
-        let port_numbers: Vec<u16> = open_ports
-            .iter()
-            .filter_map(|(key, _values)| {
-                // Key format is "Ports/tcp/{port}"
-                key.split('/')
-                    .next_back()
-                    .and_then(|port_str| port_str.parse().ok())
-            })
-            .collect();
-
-        // If no ports found in KB, fall back to the ports configured in the scan
-        if port_numbers.is_empty() {
-            Ok(self.target.configured_tcp_ports())
-        } else {
-            Ok(port_numbers)
-        }
-    }
-
-    /// Don't always return the first open port, otherwise
-    /// we might get bitten by OSes doing active SYN flood
-    /// countermeasures. Also, avoid returning 80 and 21 as
-    /// open ports, as many transparent proxies are acting for these...
-    pub async fn get_random_open_tcp_port(&self) -> Result<u16, FnError> {
-        let mut open21 = false;
-        let mut open80 = false;
-        let all_ports = self.get_open_tcp_ports().await?;
-        let ports: Vec<u16> = all_ports
-            .iter()
-            .filter_map(|&port| {
-                if port == 21 {
-                    open21 = true;
-                    None
-                } else if port == 80 {
-                    open80 = true;
-                    None
-                } else {
-                    Some(port)
-                }
-            })
-            .collect();
-
-        let ret = if !ports.is_empty() {
-            *ports.choose(&mut rand::rng()).unwrap()
-        } else if open21 {
-            21
-        } else if open80 {
-            80
-        } else {
-            0
-        };
-        Ok(ret)
-    }
-
     fn get_preference_bool(&self, key: &str) -> Option<bool> {
         let prefs = &self.scan_preferences;
         pref_is_true(prefs, key)
@@ -738,6 +679,66 @@ impl<'a> ScriptCtx<'a> {
                     .await
             }
         }
+    }
+
+    /// Looks up open TCP ports from the knowledge base
+    pub async fn get_open_tcp_ports(&self) -> Result<Vec<u16>, FnError> {
+        let open_ports = self
+            .scan_ctx
+            .get_kb_items_with_keys(&KbKey::Port(kb::Port::Tcp("*".to_string())))
+            .await?;
+
+        let port_numbers: Vec<u16> = open_ports
+            .iter()
+            .filter_map(|(key, _values)| {
+                // Key format is "Ports/tcp/{port}"
+                key.split('/')
+                    .next_back()
+                    .and_then(|port_str| port_str.parse().ok())
+            })
+            .collect();
+
+        // If no ports found in KB, fall back to the ports configured in the scan
+        if port_numbers.is_empty() {
+            Ok(self.target().configured_tcp_ports())
+        } else {
+            Ok(port_numbers)
+        }
+    }
+
+    /// Don't always return the first open port, otherwise
+    /// we might get bitten by OSes doing active SYN flood
+    /// countermeasures. Also, avoid returning 80 and 21 as
+    /// open ports, as many transparent proxies are acting for these...
+    pub async fn get_random_open_tcp_port(&self) -> Result<u16, FnError> {
+        let mut open21 = false;
+        let mut open80 = false;
+        let all_ports = self.get_open_tcp_ports().await?;
+        let ports: Vec<u16> = all_ports
+            .iter()
+            .filter_map(|&port| {
+                if port == 21 {
+                    open21 = true;
+                    None
+                } else if port == 80 {
+                    open80 = true;
+                    None
+                } else {
+                    Some(port)
+                }
+            })
+            .collect();
+
+        let ret = if !ports.is_empty() {
+            *ports.choose(&mut rand::rng()).unwrap()
+        } else if open21 {
+            21
+        } else if open80 {
+            80
+        } else {
+            0
+        };
+        Ok(ret)
     }
 
     // TODO: Figure out what to do about this - what is the correct

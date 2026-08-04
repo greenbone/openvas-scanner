@@ -475,7 +475,7 @@ async fn plugin_run_find_service(
     }
 
     let detector = ServiceDetector::new()?;
-    let open_ports = ctx.get_open_tcp_ports().await?;
+    let open_ports = script_ctx.get_open_tcp_ports().await?;
     for port in open_ports {
         match scan_port(
             ctx,

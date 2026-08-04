@@ -176,8 +176,11 @@ fn scanner_get_port(script_ctx: &ScriptCtx, idx: u16) -> Result<NaslValue, FnErr
 }
 
 #[nasl_function]
-async fn get_host_open_port(ctx: &ScanCtx<'_>) -> i64 {
-    ctx.get_random_open_tcp_port().await.unwrap_or_default() as i64
+async fn get_host_open_port(script_ctx: &ScriptCtx<'_>) -> i64 {
+    script_ctx
+        .get_random_open_tcp_port()
+        .await
+        .unwrap_or_default() as i64
 }
 
 #[nasl_function(named(asstring))]
