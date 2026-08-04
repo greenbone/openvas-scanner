@@ -17,6 +17,8 @@ use crate::nasl::prelude::*;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
+use crate::nasl::utils::scan_ctx::CtxTargets;
+use crate::nasl::utils::scan_ctx::Ports;
 use crate::nasl::utils::scan_ctx::Target;
 
 use crate::feed::verify::HashSumFileItem;
@@ -53,16 +55,14 @@ pub async fn feed_version(
     let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
-    let target = Target::localhost();
-    let ports = Default::default();
+    let targets = CtxTargets::single(Target::localhost(), Ports::default());
     let filename = "";
     let executor = nasl_std_executor();
     let scan_prefs = ScanPrefs::new();
     let alive_test_methods = Vec::default();
     let ctx = ScanCtx::new(
         scan_id,
-        target,
-        ports,
+        targets,
         filename.into(),
         storage,
         loader,
@@ -151,12 +151,10 @@ where
         let register = Register::from_global_variables(&self.initial);
         let scan_prefs = ScanPrefs(Vec::default());
         let alive_test_methods = Vec::default();
-        let target = Target::localhost();
-        let ports = Default::default();
+        let targets = CtxTargets::single(Target::localhost(), Ports::default());
         let ctx = ScanCtx::new(
             ScanID(key.0.clone()),
-            target,
-            ports,
+            targets,
             key.0.clone().into(),
             self.storage,
             &self.loader,

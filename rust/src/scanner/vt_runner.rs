@@ -8,7 +8,7 @@ use crate::models::{AliveTestMethods, Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
-use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Ports, Target};
+use crate::nasl::utils::scan_ctx::{ContextStorage, CtxTargets, NotusCtx, Ports, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
@@ -197,10 +197,11 @@ where
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
+        // TODO Fix this once we've reformed the structure around this
+        let targets = CtxTargets::single(self.target.clone(), self.ports.clone());
         let ctx = ScanCtx::new(
             crate::storage::ScanID(self.scan_id.clone()),
-            self.target.clone(),
-            self.ports.clone(),
+            targets,
             filename,
             self.storage,
             self.loader,

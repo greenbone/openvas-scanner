@@ -11,10 +11,14 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{nasl::prelude::*, notus::Notus, scanner::preferences::preference::ScanPrefs};
 use crate::{
     nasl::utils::scan_ctx::NotusCtx,
     storage::{ScanID, inmemory::InMemoryStorage},
+};
+use crate::{
+    nasl::{prelude::*, utils::scan_ctx::CtxTargets},
+    notus::Notus,
+    scanner::preferences::preference::ScanPrefs,
 };
 use futures::{Stream, StreamExt};
 
@@ -362,13 +366,10 @@ where
 
     fn ctx(&self) -> ScanCtx<'_> {
         let target = Target::do_not_resolve_hostname(&self.target);
+        let targets = CtxTargets::single(target, Ports::default());
         ScanCtx::new(
             self.scan_id.clone(),
-            target,
-            Ports {
-                tcp: Default::default(),
-                udp: Default::default(),
-            },
+            targets,
             self.filename.clone(),
             &self.storage,
             &self.loader,
