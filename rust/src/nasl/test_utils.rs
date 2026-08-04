@@ -7,7 +7,6 @@
 use std::{
     fmt::{self, Display, Formatter},
     panic::Location,
-    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -129,7 +128,6 @@ pub struct TestBuilder<S: ContextStorage> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
     scan_id: ScanID,
-    filename: PathBuf,
     target: String,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
@@ -148,7 +146,6 @@ impl Default for TestBuilder<InMemoryStorage> {
             lines: vec![],
             results: vec![],
             scan_id: Default::default(),
-            filename: Default::default(),
             target: Default::default(),
             variables: vec![],
             should_verify: true,
@@ -171,7 +168,6 @@ impl TestBuilder<InMemoryStorage> {
             lines: vec![],
             results: vec![],
             scan_id: Default::default(),
-            filename: Default::default(),
             target: Default::default(),
             variables: vec![],
             should_verify: true,
@@ -202,7 +198,6 @@ impl TestBuilder<InMemoryStorage> {
             lines: vec![],
             results: vec![],
             scan_id: Default::default(),
-            filename: Default::default(),
             target: Default::default(),
             variables: vec![],
             should_verify: true,
@@ -354,7 +349,6 @@ where
         ScanCtx::new(
             self.scan_id.clone(),
             targets,
-            self.filename.clone(),
             &self.storage,
             &self.loader,
             &self.executor,

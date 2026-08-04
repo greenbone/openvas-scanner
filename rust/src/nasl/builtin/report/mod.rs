@@ -61,7 +61,7 @@ impl Reporting {
             r_type: typus,
             ip_address: Some(ip_address.to_string()),
             hostname,
-            oid: ctx.nvt().as_ref().map(|vt| vt.oid.clone()),
+            oid: script_ctx.vt().map(|vt| vt.oid.clone()),
             port,
             protocol: Some(protocol),
             message: data,
