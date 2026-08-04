@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
-
 use crate::models::{AliveTestMethods, Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
 use crate::nasl::syntax::Loader;
@@ -188,12 +186,7 @@ where
         )
     }
 
-    async fn get_result_kind(
-        &self,
-        filename: PathBuf,
-        code: Code,
-        register: Register,
-    ) -> ScriptResultKind {
+    async fn get_result_kind(&self, code: Code, register: Register) -> ScriptResultKind {
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
@@ -202,7 +195,6 @@ where
         let ctx = ScanCtx::new(
             crate::storage::ScanID(self.scan_id.clone()),
             targets,
-            filename,
             self.storage,
             self.loader,
             self.executor,
@@ -211,7 +203,6 @@ where
             self.notus.clone(),
         );
         let script_ctx = ScriptCtx::new(&ctx, target_id, Some(self.vt.clone()));
-        ctx.set_nvt(self.vt.clone());
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));
@@ -239,9 +230,7 @@ where
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = self
-            .get_result_kind(self.vt.filename.clone().into(), code, register)
-            .await;
+        let kind = self.get_result_kind(code, register).await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),

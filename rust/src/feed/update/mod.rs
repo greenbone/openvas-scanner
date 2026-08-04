@@ -56,14 +56,12 @@ pub async fn feed_version(
     let register = Register::default();
     let scan_id = ScanID("".to_string());
     let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
-    let filename = "";
     let executor = nasl_std_executor();
     let scan_prefs = ScanPrefs::new();
     let alive_test_methods = Vec::default();
     let ctx = ScanCtx::new(
         scan_id,
         targets,
-        filename.into(),
         storage,
         loader,
         &executor,
@@ -157,7 +155,6 @@ where
         let ctx = ScanCtx::new(
             ScanID(key.0.clone()),
             targets,
-            key.0.clone().into(),
             self.storage,
             &self.loader,
             &self.executor,
