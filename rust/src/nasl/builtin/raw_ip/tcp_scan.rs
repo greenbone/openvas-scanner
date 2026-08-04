@@ -17,7 +17,7 @@ use tracing::{debug, warn};
 use crate::function_set;
 use crate::nasl::builtin::network::Port;
 use crate::nasl::builtin::network::network::scanner_add_port_shared;
-use crate::nasl::{FnError, ScanCtx};
+use crate::nasl::{FnError, ScanCtx, ScriptCtx};
 use crate::storage::items::kb::{self, Host, KbItem, KbKey};
 
 /// Maximum number of concurrent sockets (based on FD_SETSIZE)
@@ -510,9 +510,12 @@ async fn set_rtt_stats(ctx: &ScanCtx<'_>, stat: &RttStats, rtt_type: &str) -> Re
 }
 
 #[nasl_function]
-async fn plugin_run_openvas_tcp_scanner(ctx: &ScanCtx<'_>) -> Result<(), FnError> {
-    let target_ip = ctx.target().ip_addr();
-    let port_range = ctx.target().ports_tcp().iter().cloned().collect();
+async fn plugin_run_openvas_tcp_scanner(
+    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
+) -> Result<(), FnError> {
+    let target_ip = script_ctx.target().ip_addr();
+    let port_range = script_ctx.target().ports_tcp().iter().cloned().collect();
 
     let mut params = ctx.scan_params();
 

@@ -30,6 +30,7 @@ impl Reporting {
         typus: ResultType,
         register: &Register,
         ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         let data = register
             .local_nasl_value("data")
@@ -51,7 +52,7 @@ impl Reporting {
             Some("udp") => Protocol::UDP,
             _ => Protocol::TCP,
         };
-        let target = ctx.target();
+        let target = script_ctx.target();
         let hostname = target.hostname();
         let ip_address = target.ip_addr();
         //TODO: rename models::Result to allow direct import
@@ -84,8 +85,10 @@ impl Reporting {
         &self,
         register: &Register,
         ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
-        self.store_result(ResultType::Log, register, ctx).await
+        self.store_result(ResultType::Log, register, ctx, script_ctx)
+            .await
     }
 
     /// *void* **security_message**(data: *string*, port:*int* , proto: *string*, uri: *string*);
@@ -100,8 +103,10 @@ impl Reporting {
         &self,
         register: &Register,
         ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
-        self.store_result(ResultType::Alarm, register, ctx).await
+        self.store_result(ResultType::Alarm, register, ctx, script_ctx)
+            .await
     }
 
     /// *void* **error_message**(data: *string*, port:*int* , proto: *string*, uri: *string*);
@@ -116,12 +121,19 @@ impl Reporting {
         &self,
         register: &Register,
         ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
-        self.store_result(ResultType::Error, register, ctx).await
+        self.store_result(ResultType::Error, register, ctx, script_ctx)
+            .await
     }
 
     #[nasl_function(named(result))]
-    async fn security_notus(&self, ctx: &ScanCtx<'_>, result: NaslValue) -> Result<(), FnError> {
+    async fn security_notus(
+        &self,
+        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
+        result: NaslValue,
+    ) -> Result<(), FnError> {
         match result {
             NaslValue::Dict(dict) => {
                 if let (Some(NaslValue::String(oid)), Some(NaslValue::String(message))) =
@@ -130,7 +142,7 @@ impl Reporting {
                     let result = models::Result {
                         id: self.id(),
                         r_type: ResultType::Alarm,
-                        ip_address: Some(ctx.target().ip_addr().to_string()),
+                        ip_address: Some(script_ctx.target().ip_addr().to_string()),
                         hostname: None,
                         oid: Some(oid.to_owned()),
                         port: None,

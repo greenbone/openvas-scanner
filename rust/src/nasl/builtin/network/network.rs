@@ -12,20 +12,21 @@ use super::{
 use super::{NaslValue, Port, mtu};
 use crate::function_set;
 use crate::models::Protocol;
+use crate::nasl::ScriptCtx;
 use crate::nasl::utils::{FnError, ScanCtx};
 use crate::storage::items::kb::{self, KbItem, KbKey};
 use nasl_function_proc_macro::nasl_function;
 
 /// Get the IP address of the currently scanned host
 #[nasl_function]
-fn get_host_ip(ctx: &ScanCtx) -> String {
-    ctx.target().ip_addr().to_string()
+fn get_host_ip(script_ctx: &ScriptCtx) -> String {
+    script_ctx.target().ip_addr().to_string()
 }
 
 /// Get the IP address of the current (attacking) machine depending on which network device is used
 #[nasl_function]
-fn this_host(ctx: &ScanCtx) -> Result<String, SocketError> {
-    let dst = ctx.target().ip_addr();
+fn this_host(script_ctx: &ScriptCtx) -> Result<String, SocketError> {
+    let dst = script_ctx.target().ip_addr();
 
     let port: u16 = DEFAULT_PORT;
 
@@ -46,21 +47,21 @@ fn this_host_name() -> String {
 
 /// get the maximum transition unit for the scanned host
 #[nasl_function]
-fn get_mtu(ctx: &ScanCtx) -> Result<i64, SocketError> {
-    Ok(mtu(ctx.target().ip_addr()) as i64)
+fn get_mtu(script_ctx: &ScriptCtx) -> Result<i64, SocketError> {
+    Ok(mtu(script_ctx.target().ip_addr()) as i64)
 }
 
 /// check if the currently scanned host is the localhost
 #[nasl_function]
-fn nasl_islocalhost(ctx: &ScanCtx) -> Result<bool, SocketError> {
-    let host_ip = ctx.target().ip_addr();
+fn nasl_islocalhost(script_ctx: &ScriptCtx) -> Result<bool, SocketError> {
+    let host_ip = script_ctx.target().ip_addr();
     Ok(islocalhost(host_ip))
 }
 
 /// Check if the target host is on the same network as the attacking host
 #[nasl_function]
-fn islocalnet(ctx: &ScanCtx) -> Result<bool, SocketError> {
-    let dst = ctx.target().ip_addr();
+fn islocalnet(script_ctx: &ScriptCtx) -> Result<bool, SocketError> {
+    let dst = script_ctx.target().ip_addr();
     let src = get_source_ip(dst, DEFAULT_PORT)?;
     let netmask = match get_netmask_by_local_ip(src)? {
         Some(netmask) => netmask,
@@ -159,8 +160,12 @@ async fn scanner_add_port(
 }
 
 #[nasl_function]
-fn scanner_get_port(ctx: &ScanCtx, idx: u16) -> Result<NaslValue, FnError> {
-    let ports = ctx.target().ports_tcp().iter().collect::<Vec<&u16>>();
+fn scanner_get_port(script_ctx: &ScriptCtx, idx: u16) -> Result<NaslValue, FnError> {
+    let ports = script_ctx
+        .target()
+        .ports_tcp()
+        .iter()
+        .collect::<Vec<&u16>>();
     if (idx as usize) < ports.len() {
         return Ok(NaslValue::Number(*ports[idx as usize] as i64));
     }
