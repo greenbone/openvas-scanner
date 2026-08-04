@@ -47,7 +47,7 @@ pub struct Update<'a, S, V> {
 /// Loads the plugin_feed_info and returns the feed version
 pub async fn feed_version(
     loader: &Loader,
-    dispatcher: &dyn ContextStorage,
+    storage: &dyn ContextStorage,
 ) -> Result<String, ErrorKind> {
     let feed_info_filename = "plugin_feed_info.inc";
     let code = Code::load(loader, feed_info_filename)?;
@@ -57,21 +57,20 @@ pub async fn feed_version(
     let ports = Default::default();
     let filename = "";
     let executor = nasl_std_executor();
-    let scan_params = ScanPrefs::new();
+    let scan_prefs = ScanPrefs::new();
     let alive_test_methods = Vec::default();
-    let ctx = ScanCtxBuilder {
-        storage: dispatcher,
-        loader,
-        executor: &executor,
+    let ctx = ScanCtx::new(
+        scan_id,
         target,
         ports,
-        filename,
-        scan_id,
-        scan_preferences: scan_params,
+        filename.into(),
+        storage,
+        loader,
+        &executor,
+        scan_prefs,
         alive_test_methods,
-        notus: None,
-    };
-    let ctx = ctx.build();
+        None,
+    );
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
@@ -150,23 +149,22 @@ where
         // anymore, since the parse_description_block function returns
         // the statements from within the if.
         let register = Register::from_global_variables(&self.initial);
-        let scan_params = ScanPrefs(Vec::default());
+        let scan_prefs = ScanPrefs(Vec::default());
         let alive_test_methods = Vec::default();
         let target = Target::localhost();
         let ports = Default::default();
-        let ctx = ScanCtxBuilder {
-            scan_id: ScanID(key.0.clone()),
+        let ctx = ScanCtx::new(
+            ScanID(key.0.clone()),
             target,
             ports,
-            filename: &key.0,
-            storage: self.storage,
-            loader: &self.loader,
-            executor: &self.executor,
-            scan_preferences: scan_params,
+            key.0.clone().into(),
+            self.storage,
+            &self.loader,
+            &self.executor,
+            scan_prefs,
             alive_test_methods,
-            notus: None,
-        };
-        let ctx = ctx.build();
+            None,
+        );
         let file = code.source_file();
         let ast = code
             .parse_description_block()
