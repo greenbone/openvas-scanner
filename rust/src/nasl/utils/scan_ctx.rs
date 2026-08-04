@@ -493,30 +493,6 @@ impl<'a> ScanCtx<'a> {
         Ok(result)
     }
 
-    async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
-        let result = self
-            .storage()
-            .retrieve(&self.kb_context_key(key.clone()))
-            .await?;
-        let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
-
-        match item.len() {
-            0 => Ok(KbItem::Null),
-            1 => Ok(item[0].clone()),
-            _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
-        }
-    }
-
-    pub async fn get_port_transport(&self, port: u16) -> Option<i64> {
-        self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
-            .await
-            .ok()
-            .and_then(|item| match item {
-                KbItem::Number(n) => Some(n),
-                _ => None,
-            })
-    }
-
     fn get_preference_bool(&self, key: &str) -> Option<bool> {
         let prefs = &self.scan_preferences;
         pref_is_true(prefs, key)
@@ -615,6 +591,21 @@ impl<'a> ScriptCtx<'a> {
         .await
     }
 
+    async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
+        let result = self
+            .scan_ctx
+            .storage()
+            .retrieve(&self.scan_ctx.kb_context_key(key.clone()))
+            .await?;
+        let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
+
+        match item.len() {
+            0 => Ok(KbItem::Null),
+            1 => Ok(item[0].clone()),
+            _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
+        }
+    }
+
     /// Return a single item from the knowledge base.
     /// If multiple entries are found (which would result
     /// in forking the interpreter), return an error.
@@ -629,11 +620,20 @@ impl<'a> ScriptCtx<'a> {
         // exits the script instead of continuing execution with a return
         // value, since this is most likely an error in the feed.
         let val = self
-            .scan_ctx
             .get_single_kb_item_inner(key)
             .await
             .map_err(|e| e.with(ReturnBehavior::ExitScript))?;
         T::from_nasl_value(&val.into())
+    }
+
+    pub async fn get_port_transport(&self, port: u16) -> Option<i64> {
+        self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
+            .await
+            .ok()
+            .and_then(|item| match item {
+                KbItem::Number(n) => Some(n),
+                _ => None,
+            })
     }
 
     pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
