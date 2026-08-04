@@ -465,7 +465,7 @@ impl<'a> ScanCtx<'a> {
         self.alive_test_methods.clone()
     }
 
-    fn kb_key(&self, key: KbKey) -> KbContextKey {
+    fn kb_context_key(&self, key: KbKey) -> KbContextKey {
         KbContextKey(
             (
                 self.scan.clone(),
@@ -475,15 +475,10 @@ impl<'a> ScanCtx<'a> {
         )
     }
 
-    pub async fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
-        self.storage.dispatch(self.kb_key(key), value).await?;
-        Ok(())
-    }
-
     pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
         let result: Vec<KbItem> = self
             .storage
-            .retrieve(&self.kb_key(key.clone()))
+            .retrieve(&self.kb_context_key(key.clone()))
             .await?
             .unwrap_or_default();
         Ok(result)
@@ -513,7 +508,7 @@ impl<'a> ScanCtx<'a> {
         value: T,
     ) -> Result<(), FnError> {
         self.storage
-            .dispatch_replace(self.kb_key(key), value.into())
+            .dispatch_replace(self.kb_context_key(key), value.into())
             .await?;
         Ok(())
     }
@@ -539,7 +534,10 @@ impl<'a> ScanCtx<'a> {
     }
 
     async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
-        let result = self.storage().retrieve(&self.kb_key(key.clone())).await?;
+        let result = self
+            .storage()
+            .retrieve(&self.kb_context_key(key.clone()))
+            .await?;
         let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
 
         match item.len() {
@@ -725,6 +723,14 @@ impl<'a> ScriptCtx<'a> {
 
     pub(crate) fn target(&self) -> &CtxTarget {
         self.scan_ctx.target_by_id(self.target_id)
+    }
+
+    pub async fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
+        self.scan_ctx
+            .storage
+            .dispatch(self.scan_ctx.kb_context_key(key), value)
+            .await?;
+        Ok(())
     }
 
     // TODO: Figure out what to do about this - what is the correct
