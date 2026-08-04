@@ -1,0 +1,60 @@
+---
+source: src/nasl/interpreter/tests/description.rs
+expression: nvt
+---
+VTData(
+  oid: "0.0.0.0.0.0.0.0.0.1",
+  name: "name",
+  filename: "test.nasl",
+  tag: {
+    creation_date: 1366091481,
+  },
+  dependencies: [
+    "ssh_detect.nasl",
+    "ssh2.nasl",
+  ],
+  required_keys: [
+    "WMI/Apache/RootPath",
+  ],
+  mandatory_keys: [
+    "ssh/foo/detected",
+  ],
+  excluded_keys: [
+    "Settings/disable_cgi_scanning",
+    "bar/baz",
+  ],
+  required_ports: [
+    "Services/ssh",
+    "22",
+  ],
+  required_udp_ports: [
+    "Services/udp/unknown",
+    "17",
+  ],
+  references: [
+    NvtRef(
+      class: "URL",
+      id: "http://freshmeat.sourceforge.net/projects/eventh/",
+    ),
+    NvtRef(
+      class: "cve",
+      id: "CVE-1999-0524",
+    ),
+  ],
+  preferences: [
+    NvtPreference(
+      id: Some(2),
+      class: password,
+      name: "Enable Password",
+      default: "",
+    ),
+    NvtPreference(
+      id: None,
+      class: password,
+      name: "Without ID",
+      default: "",
+    ),
+  ],
+  category: denial,
+  family: "Denial of Service",
+)
