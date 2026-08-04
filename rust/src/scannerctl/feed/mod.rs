@@ -3,12 +3,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 pub mod update;
-use std::{io, path::PathBuf, sync::Arc};
+use std::{
+    io,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 // re-export to work around name conflict
 
 use clap::Subcommand;
 use scannerlib::{
+    models::VTData,
     nasl::syntax::LoadError,
     storage::{
         Retriever,
@@ -151,7 +156,7 @@ async fn update(args: UpdateArgs) -> Result<(), CliError> {
     }
 }
 
-async fn transform(args: TransformArgs) -> Result<(), CliError> {
+async fn transform_feed(path: &Path) -> Result<Vec<VTData>, CliError> {
     // An explanation for those who think the code below looks strange:
     //
     // The feed transform is supposed to iterate over all the nasl files in the feed, extract their
@@ -168,12 +173,16 @@ async fn transform(args: TransformArgs) -> Result<(), CliError> {
     // path for the interpreter, and that comes with a lot more code than doing something slightly
     // convoluted below.
     let storage = Arc::new(InMemoryStorage::default());
-    update::run_no_verifier(Arc::clone(&storage), &args.path).await?;
-    let vts = storage
+    update::run_no_verifier(Arc::clone(&storage), path).await?;
+    Ok(storage
         .retrieve(&Feed)
         .await
         .map_err(CliErrorKind::from)?
-        .unwrap_or_default();
+        .unwrap_or_default())
+}
+
+async fn transform(args: TransformArgs) -> Result<(), CliError> {
+    let vts = transform_feed(&args.path).await?;
     serde_json::to_writer(io::stdout().lock(), &vts)?;
     Ok(())
 }
@@ -184,4 +193,25 @@ pub async fn run(args: FeedArgs) -> Result<(), CliError> {
         Action::Transform(args) => transform(args).await?,
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{fs::File, path::Path};
+
+    use scannerlib::models::VTData;
+
+    #[tokio::test]
+    async fn feed_transform() {
+        let example_feed_path =
+            Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl"));
+        let mut vts = super::transform_feed(example_feed_path).await.unwrap();
+        let mut stored_vts: Vec<VTData> = serde_json::from_reader(
+            File::open(example_feed_path.join("vt-metadata.json")).unwrap(),
+        )
+        .unwrap();
+        vts.sort_by_key(|vt| (vt.oid.clone(), vt.name.clone()));
+        stored_vts.sort_by_key(|vt| (vt.oid.clone(), vt.name.clone()));
+        assert_eq!(vts, stored_vts);
+    }
 }
