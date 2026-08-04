@@ -208,13 +208,13 @@ async fn get_port_transport(
 }
 
 #[nasl_function]
-async fn get_port_state(ctx: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
-    ctx.get_port_state(port, Protocol::TCP).await
+async fn get_port_state(script_ctx: &ScriptCtx<'_>, port: u16) -> Result<bool, FnError> {
+    script_ctx.get_port_state(port, Protocol::TCP).await
 }
 
 #[nasl_function]
-async fn get_udp_port_state(ctx: &ScanCtx<'_>, port: u16) -> Result<bool, FnError> {
-    ctx.get_port_state(port, Protocol::UDP).await
+async fn get_udp_port_state(script_ctx: &ScriptCtx<'_>, port: u16) -> Result<bool, FnError> {
+    script_ctx.get_port_state(port, Protocol::UDP).await
 }
 
 pub struct Network;
