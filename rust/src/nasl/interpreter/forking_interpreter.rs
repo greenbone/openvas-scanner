@@ -2,7 +2,7 @@ use futures::{Stream, stream};
 
 #[cfg(test)]
 use crate::nasl::NaslVersion;
-use crate::nasl::{Register, ScanCtx, syntax::grammar::Ast};
+use crate::nasl::{Register, ScanCtx, ScriptCtx, syntax::grammar::Ast};
 
 use super::{Interpreter, Result};
 
@@ -18,9 +18,14 @@ pub struct ForkingInterpreter<'ctx> {
 }
 
 impl<'ctx> ForkingInterpreter<'ctx> {
-    pub fn new(ast: Ast, mut register: Register, ctx: &'ctx ScanCtx<'ctx>) -> Self {
+    pub fn new(
+        ast: Ast,
+        mut register: Register,
+        ctx: &'ctx ScanCtx<'ctx>,
+        script_ctx: ScriptCtx<'ctx>,
+    ) -> Self {
         ctx.add_fn_global_vars(&mut register);
-        let interpreters = vec![Interpreter::new(register, ctx)];
+        let interpreters = vec![Interpreter::new(register, ctx, script_ctx)];
         Self {
             interpreters,
             interpreter_index: 0,
