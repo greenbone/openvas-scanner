@@ -1,0 +1,12 @@
+---
+source: src/nasl/builtin/report/tests.rs
+expression: result
+---
+Result(
+  id: 3,
+  type: alarm,
+  ip_address: Some("127.0.0.1"),
+  hostname: Some(""),
+  protocol: Some(tcp),
+  message: Some("test3"),
+)

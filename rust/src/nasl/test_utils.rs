@@ -308,11 +308,16 @@ where
         self.results_and_ctx().0
     }
 
+    /// Runs the given lines of code and returns the `ScanCtx`.
+    pub fn ctx(&self) -> ScanCtx<'_> {
+        self.results_and_ctx().1
+    }
+
     /// Runs the given lines of code and returns the list of results
     /// along with the `ScanCtx` used for evaluating them.
     pub fn results_and_ctx(&self) -> (Vec<NaslResult>, ScanCtx<'_>) {
         futures::executor::block_on(async {
-            let ctx = self.ctx();
+            let ctx = self.ctx_inner();
             (self.results_stream(&self.code(), &ctx).collect().await, ctx)
         })
     }
@@ -321,7 +326,7 @@ where
     /// code, panics on any occurring error.
     pub fn values(&self) -> Vec<NaslValue> {
         futures::executor::block_on(async {
-            self.results_stream(&self.code(), &self.ctx())
+            self.results_stream(&self.code(), &self.ctx_inner())
                 .map(|x| x.unwrap())
                 .collect()
                 .await
@@ -346,7 +351,7 @@ where
 
     pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
         let code = self.code();
-        let ctx = self.ctx();
+        let ctx = self.ctx_inner();
         let interpreter = self.interpreter(&code, &ctx);
         futures::executor::block_on(async { interpreter.stream().collect().await })
     }
@@ -370,7 +375,7 @@ where
         CtxTargets::single(target, Ports::default())
     }
 
-    fn ctx(&self) -> ScanCtx<'_> {
+    fn ctx_inner(&self) -> ScanCtx<'_> {
         let (targets, _) = self.targets();
         ScanCtx::new(
             self.scan_id.clone(),
@@ -399,7 +404,7 @@ where
         if self.should_verify {
             let mut references_iter = self.results.iter().enumerate();
             let code = self.code();
-            let ctx = self.ctx();
+            let ctx = self.ctx_inner();
             let mut results = self.results_stream(&code, &ctx);
             while let Some(result) = results.next().await {
                 let (line_count, reference) = references_iter.next().unwrap();
