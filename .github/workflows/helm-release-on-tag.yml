@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Upload to github registry
-        uses: greenbone/actions/helm-build-push@v3
+        uses: greenbone/actions/helm-build-push@v3.36.12
         with:
           chart-name: ${{ matrix.chart }}
           registry: ${{ vars.IMAGE_REGISTRY }}
@@ -27,7 +27,7 @@ jobs:
           registry-token: ${{ secrets.GREENBONE_BOT_PACKAGES_WRITE_TOKEN }}
 
       - name: Trigger product helm chart upgrade
-        uses: greenbone/actions/trigger-workflow@v3
+        uses: greenbone/actions/trigger-workflow@v3.36.12
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           repository: "greenbone/product-helm-chart"

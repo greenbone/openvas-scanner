@@ -7,7 +7,7 @@ jobs:
   detect-hidden-unicode:
     runs-on: ubuntu-latest
     steps:
-      - uses: greenbone/actions/detect-hidden-unicode@v3
+      - uses: greenbone/actions/detect-hidden-unicode@v3.36.12
         with:
           github-token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           filter: "^((?!Packages)(?!.sqlite).)*$"
