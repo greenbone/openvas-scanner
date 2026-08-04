@@ -25,7 +25,6 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                 let ctx = ScanCtx::new(
                     ScanID("test.nasl".to_string()),
                     targets,
-                    "".into(),
                     &in_memory_storage,
                     &loader,
                     &executor,
