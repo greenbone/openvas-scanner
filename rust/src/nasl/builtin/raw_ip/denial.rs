@@ -21,6 +21,7 @@ fn get_timeout(ctx: &ScanCtx) -> u8 {
         DEFAULT_TIMEOUT as u8
     }
 }
+
 #[nasl_function]
 async fn start_denial(
     ctx: &ScanCtx<'_>,
@@ -28,7 +29,10 @@ async fn start_denial(
 ) -> Result<NaslValue, FnError> {
     let retry = get_timeout(ctx);
 
-    let port = ctx.get_random_open_tcp_port().await.unwrap_or_default();
+    let port = script_ctx
+        .get_random_open_tcp_port()
+        .await
+        .unwrap_or_default();
     if port > 0
         && let Ok(_soc) = make_tcp_socket(script_ctx.target().ip_addr(), port, retry)
     {
@@ -37,7 +41,7 @@ async fn start_denial(
         return Ok(NaslValue::Null);
     }
 
-    script_ctx.alive = nasl_tcp_ping_shared(ctx, script_ctx, None).await? > NaslValue::Number(0);
+    script_ctx.alive = nasl_tcp_ping_shared(script_ctx, None).await? > NaslValue::Number(0);
 
     return Ok(NaslValue::Null);
 }
@@ -70,7 +74,7 @@ async fn end_denial(
                     return Ok(NaslValue::Number(1));
                 }
                 true => {
-                    return nasl_tcp_ping_shared(ctx, script_ctx, None).await;
+                    return nasl_tcp_ping_shared(script_ctx, None).await;
                 }
             };
         }
