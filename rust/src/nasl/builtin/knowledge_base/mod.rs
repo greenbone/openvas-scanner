@@ -37,8 +37,10 @@ async fn set_kb_item(
 
 /// NASL function to get a knowledge base
 #[nasl_function]
-async fn get_kb_item(ctx: &ScanCtx<'_>, key: &str) -> Result<NaslValue, FnError> {
-    let kbs = ctx.get_kb_item(&KbKey::Custom(key.to_string())).await?;
+async fn get_kb_item(script_ctx: &ScriptCtx<'_>, key: &str) -> Result<NaslValue, FnError> {
+    let kbs = script_ctx
+        .get_kb_item(&KbKey::Custom(key.to_string()))
+        .await?;
     let ret = Fork::new(kbs.into_iter().map(NaslValue::from));
     Ok(ret.into())
 }
@@ -56,8 +58,10 @@ async fn replace_kb_item(
 
 /// NASL function to retrieve an item in a KB.
 #[nasl_function]
-async fn get_kb_list(ctx: &ScanCtx<'_>, key: &str) -> Result<NaslValue, FnError> {
-    let kbs = ctx.get_kb_item(&KbKey::Custom(key.to_string())).await?;
+async fn get_kb_list(script_ctx: &ScriptCtx<'_>, key: &str) -> Result<NaslValue, FnError> {
+    let kbs = script_ctx
+        .get_kb_item(&KbKey::Custom(key.to_string()))
+        .await?;
     let ret = NaslValue::Array(kbs.into_iter().map(NaslValue::from).collect());
 
     Ok(ret)
