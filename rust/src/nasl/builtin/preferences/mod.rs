@@ -88,21 +88,31 @@ pub fn get_plugin_preference_fname(
     .into())
 }
 
-pub async fn plug_set_ssl_cert(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Cert), path).await
-}
-
-pub async fn plug_set_ssl_key(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Key), path).await
-}
-
-pub async fn plug_set_ssl_password(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Password), path)
+pub async fn plug_set_ssl_cert(script_ctx: &ScriptCtx<'_>, path: String) -> Result<(), FnError> {
+    script_ctx
+        .set_single_kb_item(KbKey::Ssl(Ssl::Cert), path)
         .await
 }
 
-pub async fn plug_set_ssl_ca_file(ctx: &ScanCtx<'_>, path: String) -> Result<(), FnError> {
-    ctx.set_single_kb_item(KbKey::Ssl(Ssl::Ca), path).await
+pub async fn plug_set_ssl_key(script_ctx: &ScriptCtx<'_>, path: String) -> Result<(), FnError> {
+    script_ctx
+        .set_single_kb_item(KbKey::Ssl(Ssl::Key), path)
+        .await
+}
+
+pub async fn plug_set_ssl_password(
+    script_ctx: &ScriptCtx<'_>,
+    path: String,
+) -> Result<(), FnError> {
+    script_ctx
+        .set_single_kb_item(KbKey::Ssl(Ssl::Password), path)
+        .await
+}
+
+pub async fn plug_set_ssl_ca_file(script_ctx: &ScriptCtx<'_>, path: String) -> Result<(), FnError> {
+    script_ctx
+        .set_single_kb_item(KbKey::Ssl(Ssl::Ca), path)
+        .await
 }
 
 #[nasl_function(named(id))]

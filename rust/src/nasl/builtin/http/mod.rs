@@ -50,12 +50,13 @@ async fn get_user_agent(ctx: &ScanCtx<'_>, script_ctx: &ScriptCtx<'_>) -> Result
                     env!("CARGO_PKG_VERSION")
                 ),
             };
-            ctx.set_single_kb_item(
-                KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
-                ua.clone(),
-            )
-            .await
-            .map_err(|e| StorageError::NotFound(e.to_string()))?;
+            script_ctx
+                .set_single_kb_item(
+                    KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
+                    ua.clone(),
+                )
+                .await
+                .map_err(|e| StorageError::NotFound(e.to_string()))?;
             Ok(ua)
         }
     }
