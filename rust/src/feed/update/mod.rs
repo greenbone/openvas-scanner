@@ -55,7 +55,7 @@ pub async fn feed_version(
     let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
-    let targets = CtxTargets::single(Target::localhost(), Ports::default());
+    let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
     let filename = "";
     let executor = nasl_std_executor();
     let scan_prefs = ScanPrefs::new();
@@ -71,10 +71,12 @@ pub async fn feed_version(
         alive_test_methods,
         None,
     );
+    let script_ctx = ScriptCtx::new(&ctx, target_id);
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
         &ctx,
+        script_ctx,
     );
     interpreter.execute_all().await?;
 
@@ -151,7 +153,7 @@ where
         let register = Register::from_global_variables(&self.initial);
         let scan_prefs = ScanPrefs(Vec::default());
         let alive_test_methods = Vec::default();
-        let targets = CtxTargets::single(Target::localhost(), Ports::default());
+        let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
         let ctx = ScanCtx::new(
             ScanID(key.0.clone()),
             targets,
@@ -168,7 +170,9 @@ where
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
+        let script_ctx = ScriptCtx::new(&ctx, target_id);
+        let mut results =
+            Box::pin(ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream());
         while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {

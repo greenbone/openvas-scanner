@@ -10,10 +10,10 @@ use std::{
 
 use futures::StreamExt;
 use scannerlib::nasl::{
-    NaslValue, WithErrorInfo,
+    NaslValue, ScriptCtx, WithErrorInfo,
     interpreter::InterpreterErrorKind,
     syntax::{LoadError, Loader, read_non_utf8_path},
-    utils::scan_ctx::NotusCtx,
+    utils::scan_ctx::{NotusCtx, TargetId},
 };
 use scannerlib::{
     feed,
@@ -55,14 +55,19 @@ async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> 
     }
 }
 
-async fn run_with_context(ctx: ScanCtx<'_>, script: &Path) -> Result<(), CliErrorKind> {
+async fn run_with_context(
+    ctx: ScanCtx<'_>,
+    script: &Path,
+    target_id: TargetId,
+) -> Result<(), CliErrorKind> {
     let register = Register::default();
     let code = Code::from_string_filename(&load(&ctx, script).await?, script);
     let (ast, file) = code
         .parse()
         .emit_errors_get_ast_and_file()
         .map_err(CliErrorKind::SyntaxError)?;
-    let mut results = ForkingInterpreter::new(ast, register, &ctx).stream();
+    let script_ctx = ScriptCtx::new(&ctx, target_id);
+    let mut results = ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream();
     while let Some(result) = results.next().await {
         let r = match result {
             Ok(x) => x,
@@ -156,7 +161,7 @@ async fn run_on_storage<S: ContextStorage>(
     }
 
     let executor = nasl_std_executor();
-    let targets = CtxTargets::single(target, ports);
+    let (targets, target_id) = CtxTargets::single(target, ports);
     let ctx = ScanCtx::new(
         scan_id,
         targets,
@@ -168,7 +173,7 @@ async fn run_on_storage<S: ContextStorage>(
         Vec::new(),
         notus,
     );
-    run_with_context(ctx, script).await
+    run_with_context(ctx, script, target_id).await
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -12,7 +12,7 @@ use std::{
 };
 
 use crate::{
-    nasl::utils::scan_ctx::NotusCtx,
+    nasl::utils::scan_ctx::{NotusCtx, TargetId},
     storage::{ScanID, inmemory::InMemoryStorage},
 };
 use crate::{
@@ -340,7 +340,8 @@ where
             .collect();
         let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();
-        ForkingInterpreter::new(ast, register, ctx).with_version(self.version)
+        let script_ctx = ScriptCtx::new(ctx, self.target_id());
+        ForkingInterpreter::new(ast, register, ctx, script_ctx).with_version(self.version)
     }
 
     pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
@@ -364,9 +365,13 @@ where
         })
     }
 
-    fn ctx(&self) -> ScanCtx<'_> {
+    fn targets(&self) -> (CtxTargets, TargetId) {
         let target = Target::do_not_resolve_hostname(&self.target);
-        let targets = CtxTargets::single(target, Ports::default());
+        CtxTargets::single(target, Ports::default())
+    }
+
+    fn ctx(&self) -> ScanCtx<'_> {
+        let (targets, _) = self.targets();
         ScanCtx::new(
             self.scan_id.clone(),
             targets,
@@ -495,6 +500,10 @@ where
     /// Set the variable with name `arg` to the given `value`
     pub fn set_variable(&mut self, arg: &str, value: NaslValue) {
         self.variables.push((arg.to_string(), value));
+    }
+
+    fn target_id(&self) -> TargetId {
+        self.targets().1
     }
 }
 

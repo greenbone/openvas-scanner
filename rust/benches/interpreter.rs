@@ -4,7 +4,7 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use futures::StreamExt;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::scan_ctx::{CtxTargets, Ports, Target};
-use scannerlib::nasl::{Code, ScanCtx, nasl_std_executor};
+use scannerlib::nasl::{Code, ScanCtx, ScriptCtx, nasl_std_executor};
 use scannerlib::nasl::{Register, interpreter::ForkingInterpreter};
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::storage::ScanID;
@@ -20,7 +20,8 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                 let executor = nasl_std_executor();
                 let loader = Loader::test_empty();
                 let in_memory_storage = InMemoryStorage::default();
-                let targets = CtxTargets::single(Target::localhost(), Ports::default());
+                let (targets, target_id) =
+                    CtxTargets::single(Target::localhost(), Ports::default());
                 let ctx = ScanCtx::new(
                     ScanID("test.nasl".to_string()),
                     targets,
@@ -36,7 +37,8 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     .parse_description_block()
                     .emit_errors()
                     .unwrap();
-                let parser = ForkingInterpreter::new(code, register, &ctx);
+                let script_ctx = ScriptCtx::new(&ctx, target_id);
+                let parser = ForkingInterpreter::new(code, register, &ctx, script_ctx);
                 let _: Vec<_> = black_box(parser.stream().collect().await);
             });
         })

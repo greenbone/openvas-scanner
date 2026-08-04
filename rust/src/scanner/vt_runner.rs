@@ -198,7 +198,7 @@ where
             return e;
         }
         // TODO Fix this once we've reformed the structure around this
-        let targets = CtxTargets::single(self.target.clone(), self.ports.clone());
+        let (targets, target_id) = CtxTargets::single(self.target.clone(), self.ports.clone());
         let ctx = ScanCtx::new(
             crate::storage::ScanID(self.scan_id.clone()),
             targets,
@@ -210,13 +210,16 @@ where
             self.alive_test_methods.to_vec(),
             self.notus.clone(),
         );
+        let script_ctx = ScriptCtx::new(&ctx, target_id);
         ctx.set_nvt(self.vt.clone());
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));
         }
         let ast = ast.unwrap();
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
+
+        let mut results =
+            Box::pin(ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream());
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
