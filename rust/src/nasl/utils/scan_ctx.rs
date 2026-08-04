@@ -402,10 +402,6 @@ impl<'a> ScanCtx<'a> {
         &self.scan
     }
 
-    fn filename(&self) -> &PathBuf {
-        &self.filename
-    }
-
     /// Get the storage
     pub fn storage(&self) -> &dyn ContextStorage {
         self.storage
@@ -430,17 +426,6 @@ impl<'a> ScanCtx<'a> {
 
     pub fn nvt(&self) -> MutexGuard<'_, Option<VTData>> {
         self.nvt.lock().unwrap()
-    }
-
-    pub fn nvt_mut(&self) -> MutexGuard<'_, Option<VTData>> {
-        let mut nvt = self.nvt.lock().unwrap();
-        if nvt.is_none() {
-            *nvt = Some(VTData {
-                filename: self.filename().to_string_lossy().to_string(),
-                ..Default::default()
-            });
-        }
-        nvt
     }
 
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
@@ -520,6 +505,13 @@ impl<'a> ScriptCtx<'a> {
 
     pub(crate) fn target(&self) -> &CtxTarget {
         self.scan_ctx.target_by_id(self.target_id)
+    }
+
+    pub fn vt_mut(&mut self) -> &mut VTData {
+        if self.vt.is_none() {
+            self.vt = Some(VTData::default());
+        }
+        self.vt.as_mut().unwrap()
     }
 
     fn kb_context_key(&self, key: KbKey) -> KbContextKey {
