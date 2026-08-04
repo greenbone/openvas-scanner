@@ -5,14 +5,13 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
-use std::{collections::HashMap, fmt::Display, io::Write, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use crate::storage::{
     Retriever,
     error::StorageError,
     inmemory::InMemoryStorage,
     items::nvt::{ACT, FileName, Oid},
-    json::JsonStorage,
     redis::RedisStorage,
 };
 
@@ -98,7 +97,6 @@ pub trait SchedulerStorage:
 }
 
 impl SchedulerStorage for InMemoryStorage {}
-impl<T: Write + Send> SchedulerStorage for JsonStorage<T> {}
 impl SchedulerStorage for RedisStorage {}
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> where Arc<T>: Sync {}
 
