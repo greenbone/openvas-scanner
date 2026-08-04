@@ -14,33 +14,31 @@ use tempfile::NamedTempFile;
 
 fn script_get_preference_shared(
     register: &Register,
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<NaslValue> {
-    // A parameter ID is given. Search for the param in the scan config, otherwise try the default value from the NVT metadata
+    // A parameter ID is given. Search for the param in the scan config, otherwise try the default value from the VT metadata
     if let Some(id) = id {
         match register.script_param(id) {
             Some(v) => return Some(v),
             None => {
-                if let Some(pref) = ctx.nvt().clone().and_then(|nvt| {
-                    nvt.preferences
-                        .into_iter()
-                        .find(|p| p.id == Some(id as i32))
-                }) {
+                if let Some(pref) = script_ctx
+                    .vt()
+                    .and_then(|vt| vt.preferences.iter().find(|p| p.id == Some(id as i32)))
+                {
                     return Some(pref.default().to_string().into());
                 }
             }
         }
     }
 
-    // A parameter name is given. Search for the param in NVT metadata to get the ID.
-    // Then, search with the ID in the scan config, otherwise return the default value from the NVT metadata.
+    // A parameter name is given. Search for the param in VT metadata to get the ID.
+    // Then, search with the ID in the scan config, otherwise return the default value from the VT metadata.
     if let Some(pref_name) = name
-        && let Some(pref) = ctx
-            .nvt()
-            .clone()
-            .and_then(|nvt| nvt.preferences.into_iter().find(|p| p.name == pref_name))
+        && let Some(pref) = script_ctx
+            .vt()
+            .and_then(|vt| vt.preferences.iter().find(|p| p.name == pref_name))
     {
         return register
             .script_param(pref.id().unwrap() as usize)
@@ -51,11 +49,11 @@ fn script_get_preference_shared(
 
 fn script_get_preference_file_content_shared(
     register: &Register,
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<Vec<u8>> {
-    let content = script_get_preference_shared(register, ctx, name, id)?;
+    let content = script_get_preference_shared(register, script_ctx, name, id)?;
     let content = content.as_string().unwrap();
     base64::engine::general_purpose::STANDARD
         .decode(content)
@@ -68,7 +66,7 @@ fn script_get_preference_file_content_shared(
 // store the TLS stuff in temporary files, which are later use to create a tls socket.
 pub fn get_plugin_preference_fname(
     register: &Register,
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Result<String, FnError> {
@@ -76,7 +74,8 @@ pub fn get_plugin_preference_fname(
         Ok(f) => f,
         Err(e) => return Err(BuiltinError::Preference(e.to_string()).into()),
     };
-    if let Some(file_content) = script_get_preference_file_content_shared(register, ctx, name, id)
+    if let Some(file_content) =
+        script_get_preference_file_content_shared(register, script_ctx, name, id)
         && tmp.write_all(&file_content).is_ok()
     {
         return Ok(tmp.path().to_string_lossy().into_owned());
@@ -118,21 +117,21 @@ pub async fn plug_set_ssl_ca_file(script_ctx: &ScriptCtx<'_>, path: String) -> R
 #[nasl_function(named(id))]
 fn script_get_preference_file_content(
     register: &Register,
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<Vec<u8>> {
-    script_get_preference_file_content_shared(register, ctx, name, id)
+    script_get_preference_file_content_shared(register, script_ctx, name, id)
 }
 
 #[nasl_function(named(id))]
 fn script_get_preference(
     register: &Register,
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     name: Option<String>,
     id: Option<usize>,
 ) -> Option<NaslValue> {
-    script_get_preference_shared(register, ctx, name, id)
+    script_get_preference_shared(register, script_ctx, name, id)
 }
 
 #[nasl_function]

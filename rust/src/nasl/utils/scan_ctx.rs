@@ -32,7 +32,6 @@ use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{FnError, Register};
 use std::net::IpAddr;
-use std::path::PathBuf;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone)]
@@ -317,16 +316,12 @@ pub struct ScanCtx<'a> {
     scan: ScanID,
     /// Targets against which the scan is run.
     targets: CtxTargets,
-    /// Filename of the current script
-    filename: PathBuf,
     /// Storage
     storage: &'a dyn ContextStorage,
     /// Loader
     loader: &'a Loader,
     /// Function executor.
     executor: &'a Executor,
-    /// NVT object, which is put into the storage, when set
-    nvt: Mutex<Option<VTData>>,
     sockets: RwLock<NaslSockets>,
     /// Scanner preferences
     pub scan_preferences: ScanPrefs,
@@ -341,7 +336,6 @@ impl<'a> ScanCtx<'a> {
     pub fn new(
         scan: ScanID,
         targets: CtxTargets,
-        filename: PathBuf,
         storage: &'a dyn ContextStorage,
         loader: &'a Loader,
         executor: &'a Executor,
@@ -355,11 +349,9 @@ impl<'a> ScanCtx<'a> {
         Self {
             scan,
             targets,
-            filename,
             storage,
             loader,
             executor,
-            nvt: Mutex::new(None),
             sockets: RwLock::new(sockets),
             scan_preferences,
             alive_test_methods,
@@ -412,22 +404,6 @@ impl<'a> ScanCtx<'a> {
         self.loader
     }
 
-    async fn dispatch_nvt(&self, nvt: VTData) {
-        self.storage
-            .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
-            .await
-            .unwrap();
-    }
-
-    pub fn set_nvt(&self, vt: VTData) {
-        let mut nvt = self.nvt.lock().unwrap();
-        *nvt = Some(vt);
-    }
-
-    pub fn nvt(&self) -> MutexGuard<'_, Option<VTData>> {
-        self.nvt.lock().unwrap()
-    }
-
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
         self.scan_preferences.iter()
     }
@@ -457,19 +433,6 @@ impl<'a> ScanCtx<'a> {
 
     fn target_by_id(&self, target_id: TargetId) -> &CtxTarget {
         &self.targets[target_id]
-    }
-}
-
-impl Drop for ScanCtx<'_> {
-    fn drop(&mut self) {
-        let mut nvt = self.nvt.lock().unwrap();
-        if let Some(nvt) = nvt.take() {
-            // TODO: This might very well not work.
-            // Do we really need this Drop impl anyways?
-            futures::executor::block_on(async {
-                self.dispatch_nvt(nvt).await;
-            });
-        }
     }
 }
 
@@ -512,6 +475,10 @@ impl<'a> ScriptCtx<'a> {
             self.vt = Some(VTData::default());
         }
         self.vt.as_mut().unwrap()
+    }
+
+    pub fn vt(&self) -> Option<&VTData> {
+        self.vt.as_ref()
     }
 
     fn kb_context_key(&self, key: KbKey) -> KbContextKey {

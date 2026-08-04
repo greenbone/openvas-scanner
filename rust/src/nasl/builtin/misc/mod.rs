@@ -294,8 +294,8 @@ fn safe_checks(ctx: &ScanCtx<'_>) -> bool {
 }
 
 #[nasl_function]
-fn get_script_oid(ctx: &ScanCtx<'_>) -> Option<Vec<u8>> {
-    ctx.nvt().clone().map(|nvt| nvt.oid.into_bytes())
+fn get_script_oid(script_ctx: &ScriptCtx<'_>) -> Option<Vec<u8>> {
+    script_ctx.vt().map(|vt| vt.oid.clone().into_bytes())
 }
 
 // This function is only for backward compatibility.

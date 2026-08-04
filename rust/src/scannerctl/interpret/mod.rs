@@ -142,7 +142,6 @@ async fn run_on_storage<S: ContextStorage>(
     notus: Option<NotusCtx>,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
-    let filename = script;
     let kbctx = (
         scan_id.clone(),
         scannerlib::storage::Target(target.ip_addr().to_string()),
@@ -165,7 +164,6 @@ async fn run_on_storage<S: ContextStorage>(
     let ctx = ScanCtx::new(
         scan_id,
         targets,
-        filename.into(),
         &storage,
         &loader,
         &executor,
