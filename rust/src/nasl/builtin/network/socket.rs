@@ -536,8 +536,11 @@ pub fn make_tcp_socket(ip: IpAddr, port: u16, retry: u8) -> Result<NaslSocket, S
 /// - Secret/kdc_port
 /// - Secret/kdc_use_tcp
 #[nasl_function]
-async fn open_sock_kdc(ctx: &ScanCtx<'_>, sockets: &mut NaslSockets) -> Result<NaslValue, FnError> {
-    let hostname: String = ctx
+async fn open_sock_kdc(
+    script_ctx: &ScriptCtx<'_>,
+    sockets: &mut NaslSockets,
+) -> Result<NaslValue, FnError> {
+    let hostname: String = script_ctx
         .get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))
         .await?;
 
@@ -546,17 +549,17 @@ async fn open_sock_kdc(ctx: &ScanCtx<'_>, sockets: &mut NaslSockets) -> Result<N
         .next()
         .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
-    let port = ctx
+    let port = script_ctx
         .get_single_kb_item::<Port>(&KbKey::Kdc(kb::Kdc::Port))
         .await?
         .0;
 
-    let use_tcp: bool = ctx
+    let use_tcp: bool = script_ctx
         .get_single_kb_item(&KbKey::Kdc(kb::Kdc::Protocol))
         .await?;
 
     let socket = if use_tcp {
-        make_tcp_socket(ip, port, get_retry(ctx).await)?
+        make_tcp_socket(ip, port, get_retry(script_ctx).await)?
     } else {
         let udp = UdpConnection::new(ip, port)?;
         NaslSocket::Udp(udp)
@@ -568,12 +571,12 @@ async fn open_sock_kdc(ctx: &ScanCtx<'_>, sockets: &mut NaslSockets) -> Result<N
 }
 
 async fn make_tls_client_connection(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     transport: &OpenvasEncaps,
     vhost: &str,
     shared_storage: &Arc<Mutex<Option<String>>>,
 ) -> Option<ClientConnection> {
-    get_tls_conf(ctx).await.ok().and_then(|conf| {
+    get_tls_conf(script_ctx).await.ok().and_then(|conf| {
         create_tls_client(
             vhost,
             &conf.cert_path,
@@ -587,8 +590,10 @@ async fn make_tls_client_connection(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn open_sock_tcp_vhost(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     addr: IpAddr,
     timeout: Duration,
     bufsz: Option<usize>,
@@ -609,8 +614,13 @@ pub async fn open_sock_tcp_vhost(
         Some(OpenvasEncaps::Auto) => {
             set_transport = true;
             // Try SSL/TLS first
-            let tls =
-                make_tls_client_connection(ctx, &OpenvasEncaps::Auto, vhost, &shared_storage).await;
+            let tls = make_tls_client_connection(
+                script_ctx,
+                &OpenvasEncaps::Auto,
+                vhost,
+                &shared_storage,
+            )
+            .await;
             if tls.is_some() {
                 transport = OpenvasEncaps::TlsCustom as i64;
             } else {
@@ -628,13 +638,13 @@ pub async fn open_sock_tcp_vhost(
         // TLS/SSL
         Some(tls_version) => match tls_version {
             OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                make_tls_client_connection(ctx, &tls_version, vhost, &shared_storage).await
+                make_tls_client_connection(script_ctx, &tls_version, vhost, &shared_storage).await
             }
             _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport).into()),
         },
     };
 
-    let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(ctx).await)
+    let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(script_ctx).await)
         .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
         .ok();
 
@@ -684,8 +694,12 @@ pub async fn open_sock_tcp_shared(
 
     let mut sockets = vec![];
     for vhost in vhosts.iter() {
-        sockets
-            .push(open_sock_tcp_vhost(ctx, addr, timeout, bufsz, port.0, vhost, transport).await?);
+        sockets.push(
+            open_sock_tcp_vhost(
+                ctx, script_ctx, addr, timeout, bufsz, port.0, vhost, transport,
+            )
+            .await?,
+        );
     }
 
     Ok(Fork::new(sockets.into_iter().flatten().map(|socket| {
@@ -739,13 +753,14 @@ async fn open_sock_tcp(
 #[nasl_function(named(socket, transport))]
 async fn socket_negotiate_ssl(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     socket: usize,
     transport: Option<i64>,
 ) -> Result<NaslValue, FnError> {
     let transport = transport.unwrap_or(OpenvasEncaps::TlsCustom.into());
     let session_id = Arc::new(Mutex::new(None));
-    let client = get_tls_conf(ctx).await.and_then(|conf| {
+    let client = get_tls_conf(script_ctx).await.and_then(|conf| {
         prepare_tls_client(
             &conf.cert_path,
             &conf.key_path,
@@ -889,20 +904,20 @@ async fn socket_check_ssl_safe_renegotiation(
 
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
-async fn get_tls_conf(ctx: &ScanCtx<'_>) -> Result<TlsConfig, FnError> {
-    let cert_path = ctx
+async fn get_tls_conf(script_ctx: &ScriptCtx<'_>) -> Result<TlsConfig, FnError> {
+    let cert_path = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))
         .await
         .unwrap_or_default();
-    let key_path = ctx
+    let key_path = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))
         .await
         .unwrap_or_default();
-    let password = ctx
+    let password = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))
         .await
         .unwrap_or_default();
-    let cafile_path = ctx
+    let cafile_path = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))
         .await
         .unwrap_or_default();
