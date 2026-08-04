@@ -13,7 +13,7 @@ use super::{NaslValue, Port, mtu};
 use crate::function_set;
 use crate::models::Protocol;
 use crate::nasl::ScriptCtx;
-use crate::nasl::utils::{FnError, ScanCtx};
+use crate::nasl::utils::FnError;
 use crate::storage::items::kb::{self, KbItem, KbKey};
 use nasl_function_proc_macro::nasl_function;
 
@@ -185,11 +185,11 @@ async fn get_host_open_port(script_ctx: &ScriptCtx<'_>) -> i64 {
 
 #[nasl_function(named(asstring))]
 async fn get_port_transport(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: u16,
     asstring: bool,
 ) -> Result<NaslValue, FnError> {
-    let transport = ctx.get_port_transport(port).await.unwrap_or(1);
+    let transport = script_ctx.get_port_transport(port).await.unwrap_or(1);
     let ret = if asstring {
         let transport_str = match transport {
             0 => "auto".to_string(),

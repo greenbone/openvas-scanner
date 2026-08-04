@@ -592,7 +592,6 @@ async fn make_tls_client_connection(
 
 #[allow(clippy::too_many_arguments)]
 pub async fn open_sock_tcp_vhost(
-    ctx: &ScanCtx<'_>,
     script_ctx: &ScriptCtx<'_>,
     addr: IpAddr,
     timeout: Duration,
@@ -602,7 +601,7 @@ pub async fn open_sock_tcp_vhost(
     transport: i64,
 ) -> Result<Option<NaslSocket>, FnError> {
     let mut transport = if transport.is_negative() {
-        ctx.get_port_transport(port).await.unwrap_or(1)
+        script_ctx.get_port_transport(port).await.unwrap_or(1)
     } else {
         transport
     };
@@ -697,10 +696,7 @@ pub async fn open_sock_tcp_shared(
     let mut sockets = vec![];
     for vhost in vhosts.iter() {
         sockets.push(
-            open_sock_tcp_vhost(
-                ctx, script_ctx, addr, timeout, bufsz, port.0, vhost, transport,
-            )
-            .await?,
+            open_sock_tcp_vhost(script_ctx, addr, timeout, bufsz, port.0, vhost, transport).await?,
         );
     }
 
