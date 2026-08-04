@@ -30,14 +30,14 @@ async fn start_denial(
 
     let port = ctx.get_random_open_tcp_port().await.unwrap_or_default();
     if port > 0
-        && let Ok(_soc) = make_tcp_socket(ctx.target().ip_addr(), port, retry)
+        && let Ok(_soc) = make_tcp_socket(script_ctx.target().ip_addr(), port, retry)
     {
         script_ctx.denial_port = Some(port);
 
         return Ok(NaslValue::Null);
     }
 
-    script_ctx.alive = nasl_tcp_ping_shared(ctx, None).await? > NaslValue::Number(0);
+    script_ctx.alive = nasl_tcp_ping_shared(ctx, script_ctx, None).await? > NaslValue::Number(0);
 
     return Ok(NaslValue::Null);
 }
@@ -45,8 +45,8 @@ async fn start_denial(
 #[nasl_function]
 async fn end_denial(
     ctx: &ScanCtx<'_>,
-    register: &Register,
     script_ctx: &ScriptCtx<'_>,
+    register: &Register,
 ) -> Result<NaslValue, FnError> {
     let retry = get_timeout(ctx);
 
@@ -57,7 +57,7 @@ async fn end_denial(
                 _ => "".to_string(),
             };
 
-            if let Ok(mut soc) = make_tcp_socket(ctx.target().ip_addr(), port, retry) {
+            if let Ok(mut soc) = make_tcp_socket(script_ctx.target().ip_addr(), port, retry) {
                 let bogus_data = format!("Network Security Scan by {vendor_version} in progress");
                 if soc.write(bogus_data.as_bytes()).is_ok() {
                     return Ok(NaslValue::Number(1));
@@ -70,7 +70,7 @@ async fn end_denial(
                     return Ok(NaslValue::Number(1));
                 }
                 true => {
-                    return nasl_tcp_ping_shared(ctx, None).await;
+                    return nasl_tcp_ping_shared(ctx, script_ctx, None).await;
                 }
             };
         }
@@ -79,7 +79,7 @@ async fn end_denial(
     // Services seem to not respond.
     // Last test with boreas
     if let Ok(alive_test_result) = Scanner::new(
-        HashSet::from([ctx.target().ip_addr().to_string()]),
+        HashSet::from([script_ctx.target().ip_addr().to_string()]),
         ctx.alive_test_methods(),
         Some(retry as u64),
     )

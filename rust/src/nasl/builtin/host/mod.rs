@@ -38,8 +38,8 @@ impl<'a> FromNaslValue<'a> for Hostname {
 
 /// Get a list of found hostnames or a IP of the current target in case no hostnames were found yet.
 #[nasl_function]
-fn get_host_names(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
-    let hns = ctx.target().vhosts();
+fn get_host_names(script_ctx: &ScriptCtx) -> Result<NaslValue, FnError> {
+    let hns = script_ctx.target().vhosts();
     if !hns.is_empty() {
         let hns = hns
             .iter()
@@ -48,7 +48,7 @@ fn get_host_names(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
         return Ok(NaslValue::Array(hns));
     };
     Ok(NaslValue::Array(vec![NaslValue::String(
-        ctx.target().ip_addr().to_string(),
+        script_ctx.target().ip_addr().to_string(),
     )]))
 }
 
@@ -57,7 +57,7 @@ fn get_host_names(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
 ///Additionally a source, how the hostname was detected can be added with the named argument source as a string. If it is not given, the value NASL is set as default.
 #[nasl_function(named(hostname, source))]
 fn add_host_name(
-    ctx: &ScanCtx,
+    ctx: &ScriptCtx,
     hostname: Hostname,
     source: Option<&str>,
 ) -> Result<NaslValue, FnError> {
@@ -66,7 +66,7 @@ fn add_host_name(
     Ok(NaslValue::Null)
 }
 
-pub fn get_host_name_shared(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
+pub fn get_host_name_shared(ctx: &ScriptCtx) -> Result<NaslValue, FnError> {
     let vh = ctx.target().vhosts();
     let v = if !vh.is_empty() {
         vh.iter()
@@ -98,8 +98,8 @@ pub fn get_host_name_shared(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
 
 /// Get the host name of the currently scanned target. If there is no host name available, the IP of the target is returned instead.
 #[nasl_function]
-fn get_host_name(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
-    get_host_name_shared(ctx)
+fn get_host_name(script_ctx: &ScriptCtx) -> Result<NaslValue, FnError> {
+    get_host_name_shared(script_ctx)
 }
 
 /// This function returns the source of detection of a given hostname.
@@ -107,20 +107,20 @@ fn get_host_name(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
 /// When no hostname is given, the current scanned host is taken.
 /// If no virtual hosts are found yet this function always returns IP-address.
 #[nasl_function(named(hostname))]
-fn get_host_name_source(ctx: &ScanCtx, hostname: Hostname) -> String {
-    let vh = ctx.target().vhosts();
+fn get_host_name_source(script_ctx: &ScriptCtx, hostname: Hostname) -> String {
+    let vh = script_ctx.target().vhosts();
     if !vh.is_empty()
         && let Some(vhost) = vh.iter().find(|vhost| vhost.hostname() == hostname.0)
     {
         return vhost.source().to_string();
     }
-    ctx.target().original_target_str().to_string()
+    script_ctx.target().original_target_str().to_string()
 }
 
 /// Return the target's IP address or 127.0.0.1 if not set.
 #[nasl_function]
-fn nasl_get_host_ip(ctx: &ScanCtx) -> Result<NaslValue, FnError> {
-    let ip = ctx.target().ip_addr();
+fn nasl_get_host_ip(script_ctx: &ScriptCtx) -> Result<NaslValue, FnError> {
+    let ip = script_ctx.target().ip_addr();
     Ok(NaslValue::String(ip.to_string()))
 }
 
@@ -146,8 +146,8 @@ fn resolve_hostname_to_multiple_ips(hostname: Hostname) -> Result<NaslValue, FnE
 /// Check if the currently scanned target is an IPv6 address.
 /// Return TRUE if the current target is an IPv6 address, else FALSE.
 #[nasl_function]
-fn target_is_ipv6(ctx: &ScanCtx) -> bool {
-    ctx.target().ip_addr().is_ipv6()
+fn target_is_ipv6(script_ctx: &ScriptCtx) -> bool {
+    script_ctx.target().ip_addr().is_ipv6()
 }
 
 /// Compare if two hosts are the same.
@@ -176,14 +176,17 @@ fn same_host(h1: &str, h2: &str, cmp_hostname: Option<bool>) -> Result<bool, FnE
 
 /// Return the hostname of the given ip or the target if given or localhost as default
 #[nasl_function]
-fn host_reverse_lookup(ctx: &ScanCtx, ip_str: Option<String>) -> Result<Option<String>, FnError> {
+fn host_reverse_lookup(
+    script_ctx: &ScriptCtx,
+    ip_str: Option<String>,
+) -> Result<Option<String>, FnError> {
     let target = if let Some(t) = ip_str {
         match IpAddr::from_str(&t) {
             Ok(a) => Some(a),
             Err(e) => return Err(HostError::InvalidHost(e.to_string()).into()),
         }
     } else {
-        Some(ctx.target().ip_addr())
+        Some(script_ctx.target().ip_addr())
     };
     //safe to unwrap the target, since it always defaults to localhost
     Ok(lookup_addr(&target.unwrap()).ok())

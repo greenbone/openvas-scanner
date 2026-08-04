@@ -286,7 +286,7 @@ fn safe_copy_from_slice(
     data, ip_hl, ip_v, ip_tos, ip_ttl, ip_id, ip_len, ip_off, ip_p, ip_src, ip_dst, ip_sum
 ))]
 fn forge_ip_packet(
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     data: Option<PacketPayload>,
     ip_hl: Option<u8>,
     ip_v: Option<u8>,
@@ -300,7 +300,7 @@ fn forge_ip_packet(
     ip_src: Option<Ipv4Addr>,
     ip_sum: Option<u16>,
 ) -> Result<NaslValue, FnError> {
-    let dst_addr = ctx.target().ip_addr();
+    let dst_addr = script_ctx.target().ip_addr();
     if !dst_addr.is_ipv4() {
         return Err(ArgumentError::WrongArgument(
             "forge_ip_packet: No valid dst_addr could be determined via call to get_host_ip()"
@@ -1884,10 +1884,11 @@ fn new_raw_ipv6_socket() -> Result<Socket, FnError> {
 
 pub async fn nasl_tcp_ping_shared(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
-    if ctx.target().ip_addr().is_ipv6() {
-        return nasl_tcp_v6_ping_shared(ctx, port).await;
+    if script_ctx.target().ip_addr().is_ipv6() {
+        return nasl_tcp_v6_ping_shared(ctx, script_ctx, port).await;
     }
 
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
@@ -1915,7 +1916,7 @@ pub async fn nasl_tcp_ping_shared(
     };
 
     // Get the iface name, to set the capture device.
-    let target_ip = ctx.target().ip_addr();
+    let target_ip = script_ctx.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
     let port = port.unwrap_or(ctx.get_random_open_tcp_port().await.unwrap_or_default());
@@ -2007,8 +2008,12 @@ pub async fn nasl_tcp_ping_shared(
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-async fn nasl_tcp_ping(ctx: &ScanCtx<'_>, port: Option<u16>) -> Result<NaslValue, FnError> {
-    nasl_tcp_ping_shared(ctx, port).await
+async fn nasl_tcp_ping(
+    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
+    port: Option<u16>,
+) -> Result<NaslValue, FnError> {
+    nasl_tcp_ping_shared(ctx, script_ctx, port).await
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
@@ -2022,7 +2027,7 @@ async fn nasl_tcp_ping(ctx: &ScanCtx<'_>, port: Option<u16>) -> Result<NaslValue
 /// - allow_broadcast: default FALSE
 #[nasl_function(named(length, pcap_active, pcap_filter, pcap_timeout, allow_broadcast))]
 fn nasl_send_packet(
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     length: Option<i32>,
     pcap_active: Option<bool>,
     pcap_filter: Option<String>,
@@ -2048,7 +2053,7 @@ fn nasl_send_packet(
     let _dflt_packet_sz = length.unwrap_or_default();
 
     // Get the iface name, to set the capture device.
-    let target_ip = ctx.target().ip_addr();
+    let target_ip = script_ctx.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
@@ -2115,7 +2120,7 @@ fn nasl_send_packet(
 /// - timeout: timeout in seconds, 5 by default
 #[nasl_function(named(interface, pcap_filter, timeout))]
 fn nasl_send_capture(
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     interface: Option<String>,
     pcap_filter: Option<String>,
     timeout: Option<i32>,
@@ -2125,7 +2130,7 @@ fn nasl_send_capture(
     let timeout = timeout.unwrap_or(DEFAULT_TIMEOUT) * 1000;
 
     // Get the iface name, to set the capture device.
-    let target_ip = ctx.target().ip_addr();
+    let target_ip = script_ctx.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let mut iface = get_interface_by_local_ip(local_ip)?;
     if !interface.is_empty() {
@@ -2173,7 +2178,7 @@ fn nasl_send_capture(
 /// Return an IPv6 datagram or Null on error.
 #[nasl_function(named(data, ip6_v, ip6_tc, ip6_fl, ip6_p, ip6_hlim, ip6_src, ip6_dst))]
 fn forge_ip_v6_packet(
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     data: Option<PacketPayload>,
     ip6_v: Option<u8>,
     ip6_tc: Option<u8>,
@@ -2183,7 +2188,7 @@ fn forge_ip_v6_packet(
     ip6_src: Option<Ipv6Addr>,
     ip6_dst: Option<Ipv6Addr>,
 ) -> Result<NaslValue, FnError> {
-    let dst_addr = ctx.target().ip_addr();
+    let dst_addr = script_ctx.target().ip_addr();
     if !dst_addr.is_ipv6() {
         return Err(FnError::wrong_unnamed_argument(
             "IPv6",
@@ -3088,6 +3093,7 @@ fn forge_igmp_v6_packet() -> Result<NaslValue, FnError> {
 
 async fn nasl_tcp_v6_ping_shared(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Option<u16>,
 ) -> Result<NaslValue, FnError> {
     let rnd_tcp_port = || -> u16 { (random_impl().unwrap_or(0) % 65535 + 1024) as u16 };
@@ -3115,7 +3121,7 @@ async fn nasl_tcp_v6_ping_shared(
     };
 
     // Get the iface name, to set the capture device.
-    let target_ip = ctx.target().ip_addr();
+    let target_ip = script_ctx.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 
@@ -3201,8 +3207,12 @@ async fn nasl_tcp_v6_ping_shared(
 /// Its argument is:
 /// - port: port for the ping
 #[nasl_function(named(port))]
-async fn nasl_tcp_v6_ping(ctx: &ScanCtx<'_>, port: Option<u16>) -> Result<NaslValue, FnError> {
-    nasl_tcp_v6_ping_shared(ctx, port).await
+async fn nasl_tcp_v6_ping(
+    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
+    port: Option<u16>,
+) -> Result<NaslValue, FnError> {
+    nasl_tcp_v6_ping_shared(ctx, script_ctx, port).await
 }
 
 /// Send a list of packets, passed as unnamed arguments, with the option to listen to the answers.
@@ -3216,7 +3226,7 @@ async fn nasl_tcp_v6_ping(ctx: &ScanCtx<'_>, port: Option<u16>) -> Result<NaslVa
 /// - allow_broadcast: default FALSE
 #[nasl_function(named(length, pcap_active, pcap_filter, pcap_timeout))]
 fn nasl_send_v6packet(
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     length: Option<i32>,
     pcap_active: Option<bool>,
     pcap_filter: Option<String>,
@@ -3242,7 +3252,7 @@ fn nasl_send_v6packet(
     let _dflt_packet_sz = length.unwrap_or_default();
 
     // Get the iface name, to set the capture device.
-    let target_ip = ctx.target().ip_addr();
+    let target_ip = script_ctx.target().ip_addr();
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;
 

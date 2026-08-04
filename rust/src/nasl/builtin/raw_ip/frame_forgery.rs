@@ -308,7 +308,10 @@ fn send_frame(
 /// It takes the following argument:
 /// - cap_timeout: time to wait for answer in seconds, 5 by default
 #[nasl_function]
-fn nasl_send_arp_request(register: &Register, ctx: &ScanCtx) -> Result<NaslValue, FnError> {
+fn nasl_send_arp_request(
+    register: &Register,
+    script_ctx: &ScriptCtx,
+) -> Result<NaslValue, FnError> {
     let timeout = match register.local_nasl_value("pcap_timeout") {
         Ok(NaslValue::Number(x)) => *x as i32 * 1000i32, // to milliseconds
         Ok(_) => {
@@ -320,7 +323,7 @@ fn nasl_send_arp_request(register: &Register, ctx: &ScanCtx) -> Result<NaslValue
         Err(_) => DEFAULT_TIMEOUT,
     };
 
-    let target_ip = ctx.target().ip_addr();
+    let target_ip = script_ctx.target().ip_addr();
 
     if target_ip.is_ipv6() {
         return Err(FnError::wrong_unnamed_argument(
@@ -422,7 +425,7 @@ fn nasl_forge_frame(register: &Register) -> Result<NaslValue, FnError> {
 /// - pcap_timeout: time to wait for the answer in seconds, default 5
 #[nasl_function(named(frame, pcap_active, pcap_filter, timeout))]
 fn nasl_send_frame(
-    ctx: &ScanCtx,
+    script_ctx: &ScriptCtx,
     frame: &[u8],
     pcap_active: Option<bool>,
     pcap_filter: Option<&str>,
@@ -433,7 +436,7 @@ fn nasl_send_frame(
         .map(|secs| secs.as_millis() as i32)
         .unwrap_or(DEFAULT_TIMEOUT * 1000);
 
-    let target_ip = ctx.target().ip_addr();
+    let target_ip = script_ctx.target().ip_addr();
 
     let local_ip = get_source_ip(target_ip)?;
     let iface = get_interface_by_local_ip(local_ip)?;

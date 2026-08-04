@@ -646,6 +646,7 @@ pub async fn open_sock_tcp_vhost(
 
 pub async fn open_sock_tcp_shared(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -657,7 +658,7 @@ pub async fn open_sock_tcp_shared(
     // Get port
     let transport = transport.unwrap_or(-1);
 
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
 
     nasl_sockets.wait_before_next_probe();
 
@@ -671,14 +672,14 @@ pub async fn open_sock_tcp_shared(
             .unwrap_or(DEFAULT_TIMEOUT.into()) as u64
             * 2,
     ));
-    let mut vhosts = ctx
+    let mut vhosts = script_ctx
         .target()
         .vhosts()
         .iter()
         .map(|v| v.hostname().to_string())
         .collect::<Vec<String>>();
     if vhosts.is_empty() {
-        vhosts.push(ctx.target().ip_addr().to_string());
+        vhosts.push(script_ctx.target().ip_addr().to_string());
     };
 
     let mut sockets = vec![];
@@ -714,6 +715,7 @@ pub async fn open_sock_tcp_shared(
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_sock_tcp(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -722,7 +724,16 @@ async fn open_sock_tcp(
     // TODO: Extract information from custom priority string
     // priority: Option<&str>,
 ) -> Result<NaslValue, FnError> {
-    open_sock_tcp_shared(ctx, nasl_sockets, port, timeout, transport, bufsz).await
+    open_sock_tcp_shared(
+        ctx,
+        script_ctx,
+        nasl_sockets,
+        port,
+        timeout,
+        transport,
+        bufsz,
+    )
+    .await
 }
 
 #[nasl_function(named(socket, transport))]
@@ -907,11 +918,11 @@ async fn get_tls_conf(ctx: &ScanCtx<'_>) -> Result<TlsConfig, FnError> {
 /// Open a UDP socket to the target host
 #[nasl_function]
 async fn open_sock_udp(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
 ) -> Result<NaslValue, FnError> {
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
 
     let socket = NaslSocket::Udp(UdpConnection::new(addr, port.0)?);
     let fd = sockets.add(socket);
@@ -927,12 +938,12 @@ async fn open_sock_udp(
 /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_tcp(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
 ) -> Result<NaslValue, FnError> {
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
     sockets.open_priv_sock(addr, dport, sport, true)
 }
 
@@ -943,12 +954,12 @@ async fn open_priv_sock_tcp(
 ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_udp(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
 ) -> Result<NaslValue, FnError> {
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
     sockets.open_priv_sock(addr, dport, sport, false)
 }
 

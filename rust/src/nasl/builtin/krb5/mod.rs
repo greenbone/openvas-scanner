@@ -21,7 +21,7 @@ use std::sync::Mutex;
 use std::{ffi::CStr, sync::Arc};
 use thiserror::Error;
 
-use crate::nasl::ScanCtx;
+use crate::nasl::ScriptCtx;
 use crate::{
     function_set,
     nasl::{FnError, utils::function::StringOrData},
@@ -234,7 +234,7 @@ impl Krb5 {
     #[allow(clippy::too_many_arguments)]
     fn build_krb5_credential(
         &mut self,
-        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         config_path: Option<&str>,
         realm: Option<&str>,
         kdc: Option<&str>,
@@ -243,25 +243,24 @@ impl Krb5 {
         host: Option<&str>,
         service: Option<&str>,
     ) -> Result<Krb5Credentials, Krb5Error> {
+        let formatted_ip_addr = script_ctx
+            .target()
+            .ip_addr()
+            .to_string()
+            .replace(['.', ':'], "_");
         let config_path = if let Some(path) = config_path {
             unsafe { std::env::set_var("KRB5_CONFIG", path) };
             path.to_string()
         } else if let Ok(env_path) = std::env::var("KRB5_CONFIG") {
             env_path
         } else {
-            let path = format!(
-                "/tmp/krb5_{}.conf",
-                ctx.target().ip_addr().to_string().replace(['.', ':'], "_")
-            );
+            let path = format!("/tmp/krb5_{}.conf", formatted_ip_addr);
             unsafe { std::env::set_var("KRB5_CONFIG", &path) };
             path
         };
 
         if std::env::var("KRB5CCNAME").is_err() {
-            let ccache_path = format!(
-                "/tmp/krb5cc_{}",
-                ctx.target().ip_addr().to_string().replace(['.', ':'], "_")
-            );
+            let ccache_path = format!("/tmp/krb5cc_{}", formatted_ip_addr);
             unsafe { std::env::set_var("KRB5CCNAME", &ccache_path) };
             self.ccache_path = Some(ccache_path);
         }
@@ -335,7 +334,7 @@ impl Krb5 {
     #[nasl_function(named(config_path, realm, kdc, user, password, host))]
     fn krb5_find_kdc(
         &mut self,
-        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         config_path: Option<&str>,
         realm: Option<&str>,
         kdc: Option<&str>,
@@ -343,8 +342,16 @@ impl Krb5 {
         password: Option<&str>,
         host: Option<&str>,
     ) -> Result<String, FnError> {
-        let credential =
-            self.build_krb5_credential(ctx, config_path, realm, kdc, user, password, host, None)?;
+        let credential = self.build_krb5_credential(
+            script_ctx,
+            config_path,
+            realm,
+            kdc,
+            user,
+            password,
+            host,
+            None,
+        )?;
         let mut kdc_ptr: *mut c_char = std::ptr::null_mut();
 
         self.last_okrb5_result =
@@ -391,7 +398,7 @@ impl Krb5 {
     #[nasl_function(named(config_path, realm, kdc, user, password, host, service))]
     fn krb5_gss_prepare_context(
         &mut self,
-        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         config_path: Option<&str>,
         realm: Option<&str>,
         kdc: Option<&str>,
@@ -401,7 +408,7 @@ impl Krb5 {
         service: Option<&str>,
     ) -> Result<u32, FnError> {
         let credential = self.build_krb5_credential(
-            ctx,
+            script_ctx,
             config_path,
             realm,
             kdc,
