@@ -246,7 +246,7 @@ impl ServiceDetector {
 
     async fn handle_detected_service(
         &self,
-        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         service: DetectedService,
         port: u16,
     ) -> Result<(), FnError> {
@@ -263,7 +263,7 @@ impl ServiceDetector {
             .find(|s| s.name == service.id)
             .unwrap();
 
-        add_kb_entries(ctx, service, port, banner).await?;
+        add_kb_entries(script_ctx, service, port, banner).await?;
 
         if service.generate_result.enabled {
             if service.generate_result.is_vulnerability {
@@ -286,7 +286,7 @@ impl ServiceDetector {
 }
 
 async fn add_kb_entries(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     service: &Service,
     port: u16,
     banner: Vec<u8>,
@@ -295,22 +295,26 @@ async fn add_kb_entries(
         let key = key_template.replace("{port}", &port.to_string());
         let value = value_template.replace("{port}", &port.to_string());
 
-        ctx.set_kb_item(KbKey::Custom(key), KbItem::String(value))
+        script_ctx
+            .set_kb_item(KbKey::Custom(key), KbItem::String(value))
             .await?;
     }
 
-    ctx.set_kb_item(
-        KbKey::Service(kb::Service::Custom(service.key())),
-        KbItem::String(format!("{port}/tcp")),
-    )
-    .await?;
+    script_ctx
+        .set_kb_item(
+            KbKey::Service(kb::Service::Custom(service.key())),
+            KbItem::String(format!("{port}/tcp")),
+        )
+        .await?;
 
-    ctx.set_kb_item(KbKey::KnownTcp(port), KbItem::String(service.key()))
+    script_ctx
+        .set_kb_item(KbKey::KnownTcp(port), KbItem::String(service.key()))
         .await?;
 
     if service.save_banner {
         let banner_key = format!("Banner/{port}");
-        ctx.set_kb_item(KbKey::Custom(banner_key), KbItem::Data(banner))
+        script_ctx
+            .set_kb_item(KbKey::Custom(banner_key), KbItem::Data(banner))
             .await?;
     }
 
@@ -478,7 +482,9 @@ async fn plugin_run_find_service(
         .await
         {
             Ok(ScanPortResult::Service(service)) => {
-                detector.handle_detected_service(ctx, service, port).await?;
+                detector
+                    .handle_detected_service(script_ctx, service, port)
+                    .await?;
             }
             Ok(ScanPortResult::Timeout) => {
                 tracing::debug!("Timeout reading from port {}", port);
