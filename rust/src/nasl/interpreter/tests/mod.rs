@@ -8,7 +8,6 @@ use crate::nasl::error::emit_errors_str;
 use crate::nasl::{NaslResult, test_utils::TestBuilder};
 
 mod control_flow;
-mod description;
 mod local_var;
 mod retry;
 

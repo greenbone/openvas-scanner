@@ -161,32 +161,6 @@ impl Default for TestBuilder<InMemoryStorage> {
     }
 }
 
-impl<S> TestBuilder<S>
-where
-    S: ContextStorage,
-{
-    pub fn from_storage(storage: S) -> Self {
-        // Unfortunately, we can't really get rid of all this duplication here, since
-        // struct update syntax won't work due to different generics.
-        // We also can't provide a with_storage method, since there is no way to clone
-        // the storage.
-        Self {
-            lines: vec![],
-            results: vec![],
-            scan_id: Default::default(),
-            filename: Default::default(),
-            target: Default::default(),
-            variables: vec![],
-            should_verify: true,
-            loader: Loader::test_empty(),
-            storage,
-            executor: nasl_std_executor(),
-            version: NaslVersion::default(),
-            notus: None,
-        }
-    }
-}
-
 impl TestBuilder<InMemoryStorage> {
     pub fn from_loader(loader: Loader) -> Self {
         // Unfortunately, we can't really get rid of all this duplication here, since
@@ -477,12 +451,6 @@ where
         }
     }
 
-    /// Return a new `TestBuilder` with the given `filename`.
-    pub fn with_filename(mut self, filename: PathBuf) -> Self {
-        self.filename = filename;
-        self
-    }
-
     #[cfg(test)]
     /// Return a new `TestBuilder` with the given `target`.
     pub fn with_target(mut self, target: String) -> Self {
@@ -500,11 +468,6 @@ where
     pub(crate) fn with_nasl_version(mut self, version: NaslVersion) -> Self {
         self.version = version;
         self
-    }
-
-    /// Set the variable with name `arg` to the given `value`
-    pub fn set_variable(&mut self, arg: &str, value: NaslValue) {
-        self.variables.push((arg.to_string(), value));
     }
 
     fn target_id(&self) -> TargetId {
