@@ -502,10 +502,11 @@ pub struct ScriptCtx<'a> {
     pub snmp_next: Option<String>,
     scan_ctx: &'a ScanCtx<'a>,
     target_id: TargetId,
+    vt: Option<VTData>,
 }
 
 impl<'a> ScriptCtx<'a> {
-    pub fn new(scan_ctx: &'a ScanCtx, target_id: TargetId) -> Self {
+    pub fn new(scan_ctx: &'a ScanCtx, target_id: TargetId, vt: Option<VTData>) -> Self {
         Self {
             alive: false,
             denial_port: None,
@@ -513,6 +514,7 @@ impl<'a> ScriptCtx<'a> {
             snmp_next: None,
             scan_ctx,
             target_id,
+            vt,
         }
     }
 
@@ -737,6 +739,7 @@ impl<'a> ScriptCtx<'a> {
             snmp_next: self.snmp_next.clone(),
             scan_ctx: self.scan_ctx,
             target_id: self.target_id,
+            vt: self.vt.clone(),
         }
     }
 }

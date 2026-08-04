@@ -37,7 +37,7 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     .parse_description_block()
                     .emit_errors()
                     .unwrap();
-                let script_ctx = ScriptCtx::new(&ctx, target_id);
+                let script_ctx = ScriptCtx::new(&ctx, target_id, None);
                 let parser = ForkingInterpreter::new(code, register, &ctx, script_ctx);
                 let _: Vec<_> = black_box(parser.stream().collect().await);
             });

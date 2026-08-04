@@ -71,7 +71,7 @@ pub async fn feed_version(
         alive_test_methods,
         None,
     );
-    let script_ctx = ScriptCtx::new(&ctx, target_id);
+    let script_ctx = ScriptCtx::new(&ctx, target_id, None);
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
@@ -170,7 +170,7 @@ where
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let script_ctx = ScriptCtx::new(&ctx, target_id);
+        let script_ctx = ScriptCtx::new(&ctx, target_id, None);
         let mut results =
             Box::pin(ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream());
         while let Some(stmt) = results.next().await {
