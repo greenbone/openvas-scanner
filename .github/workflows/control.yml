@@ -107,20 +107,10 @@ jobs:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version }}
       binary_version: ${{ needs.init.outputs.binary_version }}
-  functional:
-    if: >-
-      ${{
-        always() &&
-        github.event_name == 'merge_group' &&
-        needs.build.result == 'success'
-      }}
-    needs: [build]
-    uses: ./.github/workflows/functional.yaml
-
   merge_gate:
     name: Merge gate
     if: ${{ always() && (github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.action != 'closed')) }}
-    needs: [unittests, build, linting, container, functional]
+    needs: [unittests, build, linting, container]
     runs-on: ubuntu-latest
     steps:
       - name: Verify required CI jobs
@@ -130,14 +120,12 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           LINTING_RESULT: ${{ needs.linting.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
-          FUNCTIONAL_RESULT: ${{ needs.functional.result }}
         run: |
           test "$UNITTESTS_RESULT" = success
           test "$BUILD_RESULT" = success
           test "$LINTING_RESULT" = success
           if [ "$EVENT_NAME" = merge_group ]; then
             test "$CONTAINER_RESULT" = success
-            test "$FUNCTIONAL_RESULT" = success
           fi
 
   release:

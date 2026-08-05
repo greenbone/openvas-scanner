@@ -33,8 +33,6 @@ If the unit tests fails it will prevent further execution of `build`.
 - **Workflow File**: `build.yml`
 
 
-If the build fails it will prevent further execution of `functional`.
-
 ### 4. Linting (`linting`)
 - **Purpose**: Ensures code quality and consistency through linting.
 - **Workflow File**: `linting.yml`
@@ -42,20 +40,15 @@ If the build fails it will prevent further execution of `functional`.
 If linting fails it will not prevent execution of the other steps, as it may be that newer versions of the used tooling finds new linting issues that are not affecting the binary as much.
 
 
-### 5. Functional Testing (`functional`)
-- **Purpose**: Conducts functional tests on the build.
-- **Dependencies**: Needs a successful `build`.
-- **Workflow File**: `functional.yaml`
-
-If the functional tests fail it will prevent further execution of `containerization`.
+### 5. OpenVAS Integration Build
+- **Purpose**: Checks that the openvas still builds together with gvm-libs and openvas-smb on debian bookworm (since bookworm is used on GOS).
+- **Workflow File**: `integration-build.yml`
+- **Trigger**: Weekly schedule or manual dispatch.
 
 ### 6. Containerization
 - **Purpose**: Packages the build into Docker containers.
-- **Jobs**:
-  - **Container**: Uses `push-container.yml`.
-  - **Container Testing**: Uses `push-container-testing.yml`.
-  - **Container Oldstable**: Uses `push-container-oldstable.yml`.
-- **Dependencies**: Depends on `build`, `init`, and `functional`.
+- **Workflow File**: `push-container.yml`
+- **Dependencies**: Depends on `init`.
 
 ### 7. Release (`release`)
 - **Purpose**: Handles the release process for different version types.
