@@ -9,8 +9,6 @@ use serde::Deserialize;
 /// Represents an product json file for notus
 #[derive(Deserialize, Debug)]
 pub struct Product {
-    /// Version of the file, some version might not be supported by notus
-    pub version: String,
     /// Package type, important for parsing the corresponding package
     pub package_type: PackageType,
     /// List of vulnerability tests for product

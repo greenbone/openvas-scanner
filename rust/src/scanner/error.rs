@@ -95,6 +95,7 @@ impl ScriptResult {
     }
 
     /// Returns true when the script didn't run
+    #[cfg(test)]
     pub fn has_not_run(&self) -> bool {
         matches!(
             self.kind,

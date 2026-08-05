@@ -30,5 +30,4 @@ pub use verify::HashSumFileItem;
 pub use verify::HashSumNameLoader;
 pub use verify::Hasher;
 pub use verify::NoVerifier;
-pub use verify::SignatureChecker;
 pub use verify::check_signature;

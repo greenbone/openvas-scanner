@@ -46,10 +46,6 @@ impl TcpDataStream {
         &self.tls
     }
 
-    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
-        self.transport = transport;
-    }
-
     pub fn transport(&self) -> &Option<OpenvasEncaps> {
         &self.transport
     }
@@ -141,16 +137,6 @@ impl TcpConnection {
     pub fn set_tls(&mut self, tls: ClientConnection) {
         let stream = self.stream.get_mut();
         stream.set_tls(tls);
-    }
-
-    pub fn tls(&self) -> &Option<ClientConnection> {
-        let stream = self.stream.get_ref();
-        stream.tls()
-    }
-
-    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
-        let stream = self.stream.get_mut();
-        stream.set_transport(transport);
     }
 
     pub fn transport(&self) -> &Option<OpenvasEncaps> {

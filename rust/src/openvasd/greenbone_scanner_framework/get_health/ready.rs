@@ -15,6 +15,7 @@ pub trait GetHealthReady: Prefixed + Send + Sync {
 
 pub enum Ready {
     Ready,
+    #[allow(unused)]
     NotReady,
 }
 

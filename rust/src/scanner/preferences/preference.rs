@@ -263,9 +263,6 @@ impl Default for ScanPrefValue {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FullScanPreferences(Vec<FullScanPreference>);
-
 /// Configuration preference information for a scan. The type can be derived from the default value.
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct FullScanPreference {
