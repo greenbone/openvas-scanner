@@ -10,12 +10,13 @@ permissions:
 
 jobs:
   rust-binaries:
-    uses: ./.github/workflows/build-rs.yaml
+    uses: ./.github/workflows/rust-binaries.yaml
     with:
       arch: amd64
       runner: ubuntu-latest
 
   build-and-link:
+    name: OpenVAS (Bookworm)
     needs: rust-binaries
     runs-on: ubuntu-latest
     steps:
