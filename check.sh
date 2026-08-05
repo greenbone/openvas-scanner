@@ -25,8 +25,8 @@ Targets:
   ci-build-c  Build C scanner targets in the CI environment.
   ci-codeql-build-c
               Build C scanner targets for CodeQL.
-  ci-railguard
-              Build and verify a railguard image. Requires RAILGUARD_SYSTEM.
+  ci-integration-build
+              Build and verify the OpenVAS integration on Debian Bookworm.
   test-rust   Run Rust unit tests.
   test-rust-compose
               Run Rust tests that require the compose test environment.
@@ -181,10 +181,9 @@ test_all() {
     test_c
 }
 
-ci_railguard() {
+ci_integration_build() {
     cd "$ROOT"
-    : "${RAILGUARD_SYSTEM:?RAILGUARD_SYSTEM is required}"
-    run docker build -t test -f ".docker/railguards/${RAILGUARD_SYSTEM}.Dockerfile" .
+    run docker build -t test -f .docker/integration-build.Dockerfile .
     run docker run --rm test ldd /usr/local/sbin/openvas
     run sh -c 'docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient'
     run docker run --rm test /usr/local/bin/openvasd -h
@@ -257,8 +256,8 @@ case "$target" in
     ci-codeql-build-c)
         ci_codeql_build_c
         ;;
-    ci-railguard)
-        ci_railguard
+    ci-integration-build)
+        ci_integration_build
         ;;
     test-rust)
         test_rust
