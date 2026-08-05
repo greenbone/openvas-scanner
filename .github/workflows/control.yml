@@ -75,6 +75,7 @@ jobs:
     name: unit-tests
     uses: ./.github/workflows/tests.yml
   build:
+    name: Build
     needs: init
     uses: ./.github/workflows/build.yml
     with:
