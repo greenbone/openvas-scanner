@@ -96,26 +96,24 @@ jobs:
       labels: |
         org.opencontainers.image.vendor=Greenbone
         org.opencontainers.image.base.name=debian:stable-slim
-      prefix: ${{ matrix.build.prefix }}
-      tags: ${{ matrix.tags }}
+      tags: ${{ matrix.build.tags }}
       build-args: |
         BIN_VERSION=${{ inputs.binary_version }}
         ${{ matrix.build.variant-build-args }}
       images: |
         ghcr.io/${{ github.repository }},enable=true
-        ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
-        ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
+        ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule' }}
+        ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule' }}
     secrets: inherit
 
   trigger-replication:
     needs:
       - build
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.repository == 'greenbone/openvas-scanner' }}
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule') && github.repository == 'greenbone/openvas-scanner' }}
     runs-on: self-hosted-generic
     steps:
       - name: Ensure all tags are replicated on the public registry
         uses: greenbone/actions/trigger-harbor-replication@v3.36.12
-        if: ${{ github.event_name != 'pull_request' }}
         with:
           registry: ${{ vars.GREENBONE_REGISTRY }}
           token: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_TOKEN }}
