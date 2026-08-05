@@ -4,7 +4,6 @@
 
 use std::io;
 
-use crate::models::FixedPackage;
 use crate::nasl::syntax::LoadError;
 use thiserror::Error;
 
@@ -50,9 +49,6 @@ pub enum Error {
     /// Unable to parse a given package
     #[error("Unable to parse the given package {0}")]
     PackageParseError(String),
-    /// Unable to parse a package in the notus product file
-    #[error("malformed entry in vulnerability data file {0}: {1:?}")]
-    VulnerabilityTestParseError(String, FixedPackage),
     /// Some issues caused by a HashsumLoader
     #[error("Hashsum verification failed: {0}")]
     HashsumLoadError(VerifyError),
