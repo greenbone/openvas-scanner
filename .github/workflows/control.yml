@@ -112,13 +112,10 @@ jobs:
       ${{
         always() &&
         github.event_name == 'merge_group' &&
-        needs.build.result == 'success' &&
-        needs.container.result == 'success'
+        needs.build.result == 'success'
       }}
-    needs: [build, container]
+    needs: [build]
     uses: ./.github/workflows/functional.yaml
-    with:
-      image: "ghcr.io/${{ github.repository }}:merge-${{ github.sha }}"
 
   merge_gate:
     name: Merge gate
