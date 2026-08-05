@@ -1,4 +1,4 @@
-name: rs-binaries
+name: Rust binaries
 
 on:
   workflow_call:
@@ -18,7 +18,8 @@ on:
 
 
 jobs:
-  build:
+  rust-binaries:
+    name: Rust binaries (${{ inputs.arch }})
     runs-on: ${{ inputs.runner }}
     env:
       ARCH: ${{ inputs.arch }}
@@ -60,4 +61,3 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: assets/*
           retention-days: 1
-
