@@ -22,6 +22,8 @@ on:
       - synchronize
       - reopened
       - closed
+  merge_group:
+    types: [checks_requested]
   repository_dispatch:
   schedule:
     # rebuild image every sunday
@@ -71,8 +73,9 @@ jobs:
     uses: ./.github/workflows/init.yaml
     with:
       release: ${{ needs.adapt_release.outputs.kind }}
+      base_ref: ${{ github.event.merge_group.base_ref || github.base_ref }}
   unittests:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     name: unit-tests
     uses: ./.github/workflows/tests.yml
   build:
@@ -81,9 +84,10 @@ jobs:
     with:
       binary_version: ${{ needs.init.outputs.binary_version }}
   linting:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     uses: ./.github/workflows/linting.yml
   container:
+    if: github.event_name != 'merge_group'
     needs: [init]
     uses: ./.github/workflows/push-container.yml
     secrets:
@@ -103,15 +107,75 @@ jobs:
       is_latest_tag: ${{needs.init.outputs.docker_build_is_latest}}
       is_version_tag: ${{needs.init.outputs.docker_build_is_version }}
       binary_version: ${{ needs.init.outputs.binary_version }}
+  merge_container:
+    name: Build merge-group container
+    if: github.event_name == 'merge_group'
+    needs: [init]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out merge group
+        uses: actions/checkout@v7
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679fb # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b05f3f5519dd87d3ba754cc423b652a5edd6d2c5 # v4.2.0
+      - name: Build and push merge-group container
+        uses: docker/build-push-action@3b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: .docker/prod.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:merge-${{ github.sha }}
+          build-args: |
+            BIN_VERSION=${{ needs.init.outputs.binary_version }}
   functional:
-    if: github.event_name == 'pull_request'
-    needs: [build, container]
+    if: >-
+      ${{
+        always() &&
+        needs.build.result == 'success' &&
+        (
+          (github.event_name == 'merge_group' && needs.merge_container.result == 'success') ||
+          (github.event_name == 'pull_request' && github.event.action != 'closed' && needs.container.result == 'success')
+        )
+      }}
+    needs: [build, container, merge_container]
     uses: ./.github/workflows/functional.yaml
     with:
-      image: "ghcr.io/${{ github.repository }}:pr-${{ github.event.pull_request.number }}"
+      image: "ghcr.io/${{ github.repository }}:${{ github.event_name == 'merge_group' && format('merge-{0}', github.sha) || format('pr-{0}', github.event.pull_request.number) }}"
+
+  merge_gate:
+    name: Merge gate
+    if: ${{ always() && (github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.action != 'closed')) }}
+    needs: [unittests, build, linting, container, merge_container, functional]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required CI jobs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          UNITTESTS_RESULT: ${{ needs.unittests.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          LINTING_RESULT: ${{ needs.linting.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+          MERGE_CONTAINER_RESULT: ${{ needs.merge_container.result }}
+          FUNCTIONAL_RESULT: ${{ needs.functional.result }}
+        run: |
+          test "$UNITTESTS_RESULT" = success
+          test "$BUILD_RESULT" = success
+          test "$LINTING_RESULT" = success
+          test "$FUNCTIONAL_RESULT" = success
+          if [ "$EVENT_NAME" = merge_group ]; then
+            test "$MERGE_CONTAINER_RESULT" = success
+          else
+            test "$CONTAINER_RESULT" = success
+          fi
 
   release:
-    name: "release (${{ needs.init.outputs.latest_version }} -> ${{ needs.init.outputs.new_version }}"
+    name: "release (${{ needs.init.outputs.release_latest_version }} -> ${{ needs.init.outputs.release_new_version }})"
     permissions:
       contents: write
     # we release after container build so that we can release on a closed pr as we don't push the release container yet
