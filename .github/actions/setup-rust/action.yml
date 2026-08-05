@@ -7,35 +7,9 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Disable incremental compilation
-      run: echo "CARGO_INCREMENTAL=0" >> "$GITHUB_ENV"
-      shell: bash
-    - name: Restore Cargo cache
-      uses: actions/cache@v4
+    - uses: ./.github/actions/cache-rust
       with:
-        path: |
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          rust/target/debug/.fingerprint/
-          rust/target/debug/build/
-          rust/target/debug/deps/
-        key: rust-target-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('rust/rust-toolchain.toml') }}-${{ inputs.cache-key }}-${{ hashFiles('rust/Cargo.lock', 'rust/**/Cargo.toml') }}
-        restore-keys: |
-          rust-target-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('rust/rust-toolchain.toml') }}-${{ inputs.cache-key }}-
-    - name: Restore native archive cache
-      id: native-archive-cache
-      uses: actions/cache@v4
-      with:
-        path: rust/crates/nasl-c-lib/build-cache/archives/
-        key: rust-native-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.docker/prod.Dockerfile', '.docker/vendor/krb5-*/**', '.docker/vendor/libpcap-*/**', 'rust/crates/nasl-c-lib/Makefile', 'rust/rust-toolchain.toml') }}
-    - name: Refresh native archive build stamp
-      if: steps.native-archive-cache.outputs.cache-hit == 'true'
-      run: |
-        test -f rust/crates/nasl-c-lib/build-cache/archives/libpcap.a
-        test -f rust/crates/nasl-c-lib/build-cache/archives/libgssapi_krb5.a
-        touch rust/crates/nasl-c-lib/build-cache/archives/.stamp
-      shell: bash
+        cache-key: ${{ inputs.cache-key }}
     - run: sudo apt update || true
       shell: bash
     - run: sudo apt-get install -y libpcap-dev libclang-dev libsnmp-dev patchelf 
