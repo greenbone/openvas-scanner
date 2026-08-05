@@ -157,6 +157,8 @@ test_rust() {
 }
 
 test_rust_compose() {
+    run make -C "$ROOT/rust"
+
     if [[ "${INSTA_FROM_COMPOSE:-0}" == "1" ]]; then
         local pending_dir="$ROOT/.insta-pending"
         mkdir -p "$pending_dir"
