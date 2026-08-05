@@ -26,6 +26,15 @@ jobs:
           cache-key: tests
       - name: unit-tests
         run: ../check.sh --verbose test-rust
+      - name: Prune workspace artifacts from cache
+        run: cargo clean --workspace --locked
+  Rust-Compose:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v7
       - name: compose-tests
         id: compose_tests
         run: ../check.sh --verbose test-rust-compose
@@ -35,5 +44,3 @@ jobs:
       - name: compose-test-cleanup
         if: always() && steps.compose_tests.outcome != 'skipped'
         run: cd ../compose && make rust-test-environment-down
-      - name: Prune workspace artifacts from cache
-        run: cargo clean --workspace --locked
