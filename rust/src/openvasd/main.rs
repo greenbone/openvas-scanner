@@ -9,33 +9,30 @@
 // We allow this fow now, since it would require lots of changes
 // but should eventually solve this.
 
+mod api;
 #[cfg(test)]
 mod api_tests;
 mod config;
 mod container_image_scanner;
 mod crypt;
 mod database;
-mod greenbone_scanner_framework;
 mod json_stream;
 mod notus;
 mod scans;
 mod vts;
 
 use sqlx::migrate::Migrator;
-use std::{
-    marker::{Send, Sync},
-    sync::Arc,
-};
+use std::sync::Arc;
 
+use anyhow::{Context, Result};
+use api::Authentication;
 use config::{Config, StorageType};
 use container_image_scanner::config::{DBLocation, SqliteConfiguration};
-use greenbone_scanner_framework::{End, RuntimeBuilder, ServerCertificate};
 use notus::config_to_products;
-use scannerlib::models::FeedState;
-use scannerlib::utils::version::show_version;
+use scannerlib::{models::FeedState, utils::version::show_version};
 use sqlx::SqlitePool;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+use crate::api::ApiConfig;
 
 static MIGRATOR: Migrator = sqlx::migrate!();
 
@@ -66,57 +63,54 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     Ok(result)
 }
 
-async fn build_runtime(config: Config) -> Result<RuntimeBuilder<End>> {
+/// Initializes all dependencies required to serve the API.
+pub async fn init_api(config: Config) -> Result<ApiConfig> {
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
-    let feed_snapshot = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
-    let (sender, vts) = vts::init(pool.clone(), &config, feed_snapshot.clone()).await;
-    let vts = Arc::new(vts);
-    let scan = scans::init(pool.clone(), &config, sender).await?;
-    let (get_notus, post_notus) = notus::init(products.clone());
+    let feed_state = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
+    let (sender, feed) = vts::init(pool.clone(), &config, feed_state.clone()).await;
+    let scanner = scans::init(pool.clone(), &config, sender).await?;
+    let image_scanner =
+        container_image_scanner::init(products.clone(), config.container_image_scanner.clone())
+            .await?;
 
-    let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
-        .feed_version(feed_snapshot.clone());
-    if let Some(api_key) = config.endpoints.key.clone() {
-        rb = rb.api_keys(vec![api_key]);
-    }
-    match (config.tls.certs.clone(), config.tls.key.clone()) {
-        (Some(certificate), Some(key)) => {
-            rb = rb.server_tls_cer(ServerCertificate::new(key, certificate))
+    let tls_cfg = config.tls().context("configuration error")?;
+
+    let auth_method = match (
+        tls_cfg.client_certs.is_some(),
+        config.endpoints.key.is_some(),
+    ) {
+        (true, true) => {
+            tracing::info!("mTLS and api-key configured, favoring mTLS and disabling api-key");
+            Authentication::Mtls
         }
-        (None, None) => {
-            // ok no TLS
-        }
-        _ => {
-            tracing::warn!(
-                "Invalid TLS configuration. Please provide a certificate path and a key path. Falling back to http."
-            )
+        (true, false) => Authentication::Mtls,
+        (false, true) => Authentication::ApiKey,
+        (false, false) => {
+            tracing::warn!("neither api-key nor mTLS configured. Endpoints are not secured.");
+            Authentication::Disabled
         }
     };
+
     if !config.feed.signature_check {
         tracing::warn!(
             "Integrity check for feed has been disabled. Neither hashsums nor GPG signature will get verified."
-        );
-    }
-    if let Some(client_certs) = config.tls.client_certs.clone() {
-        rb = rb.path_client_certs(client_certs);
+        )
     }
 
-    let (cis_scans, cis_vts) = container_image_scanner::init(
-        pool.clone(),
-        feed_snapshot,
-        products,
-        config.container_image_scanner,
-    )
-    .await?;
-
-    Ok(rb
-        .insert_scans(Arc::new(scan))
-        .insert_get_vts(vts.clone())
-        .max_concurrent_connections(config.storage.max_http_connections())
-        .add_request_handler(get_notus)
-        .add_request_handler(post_notus)
-        .insert_additional_scan_endpoints(Arc::new(cis_scans), Arc::new(cis_vts)))
+    Ok(ApiConfig {
+        address: config.listener.address,
+        auth_method,
+        tls_cfg,
+        // TODO: make new variable?
+        max_requests: config.storage.max_http_connections(),
+        api_keys: Arc::new(config.endpoints.key.map(|x| vec![x]).unwrap_or(vec![])),
+        feed,
+        scanner,
+        image_scanner,
+        notus: products,
+        enable_additional_routes: config.endpoints.enable_get_scans,
+    })
 }
 
 async fn _main() -> Result<i32> {
@@ -128,7 +122,8 @@ async fn _main() -> Result<i32> {
         return Ok(0);
     }
 
-    build_runtime(config).await?.run_blocking().await
+    let cfg = init_api(config).await?;
+    api::run(&cfg).await
 }
 
 #[tokio::main]

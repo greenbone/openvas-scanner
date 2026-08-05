@@ -1,240 +1,10 @@
-use std::{pin::Pin, sync::Arc};
+use std::sync::Arc;
 
-use crate::database::{
-    dao::{DAOError, DBViolation, Execute, Fetch, StreamFetch},
-    sqlite::{DataBase, results::DBResults, scans::ScanDB},
-};
-use crate::greenbone_scanner_framework::InternalIdentifier;
-use crate::greenbone_scanner_framework::prelude::*;
-use futures::TryStreamExt;
-use scannerlib::{models, scanner};
-use tokio::sync::mpsc::Sender;
+use crate::api::states::ScannerBridge;
+use crate::database::sqlite::DataBase;
 
-use crate::{
-    config::Config,
-    crypt::{ChaCha20Crypt, Crypt},
-    vts::orchestrator,
-};
-mod scheduling;
-pub struct Endpoints<E> {
-    pool: DataBase,
-    crypter: Arc<E>,
-    scheduling: Sender<scheduling::Message>,
-}
-
-impl<T> Prefixed for Endpoints<T> {
-    fn prefix(&self) -> &'static str {
-        ""
-    }
-}
-
-impl<E> PostScans for Endpoints<E>
-where
-    E: crate::crypt::Crypt + Sync + Send,
-{
-    fn post_scans(
-        &self,
-        client_id: String,
-        scan: models::Scan,
-    ) -> Pin<Box<dyn Future<Output = Result<String, PostScansError>> + Send + '_>> {
-        Box::pin(async move {
-            match ScanDB::new(
-                &self.pool,
-                (self.crypter.as_ref(), &client_id as &str, &scan),
-            )
-            .exec()
-            .await
-            {
-                Ok(result) => Ok(result),
-                Err(DAOError::DBViolation(DBViolation::UniqueViolation)) => {
-                    Err(PostScansError::DuplicateId(scan.scan_id))
-                }
-                Err(x) => Err(PostScansError::External(Box::new(x))),
-            }
-        })
-    }
-}
-
-impl<E> MapScanID for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn contains_scan_id<'a>(
-        &'a self,
-        client_id: &'a str,
-        scan_id: &'a str,
-    ) -> Pin<Box<dyn Future<Output = Option<InternalIdentifier>> + Send + 'a>> {
-        Box::pin(async move {
-            match ScanDB::new(&self.pool, (client_id, scan_id)).fetch().await {
-                Ok(x) => x,
-                Err(error) => {
-                    tracing::warn!(%error, "Unable to fetch id from client_scan_map. Returning no id found.");
-                    None
-                }
-            }
-        })
-    }
-}
-
-fn into_external_error<T>(value: T) -> GetScansError
-where
-    T: std::error::Error + Send + Sync + 'static,
-{
-    GetScansError::External(Box::new(value))
-}
-
-impl<E> GetScans for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn get_scans(&self, client_id: String) -> StreamResult<String, GetScansError> {
-        Box::pin(
-            ScanDB::new(&self.pool, client_id)
-                .stream_fetch()
-                .map_err(into_external_error),
-        )
-    }
-}
-
-impl<E> GetScansPreferences for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn get_scans_preferences(
-        &self,
-    ) -> Pin<Box<dyn Future<Output = Vec<models::ScanPreferenceInformation>> + Send>> {
-        Box::pin(async move { scanner::preferences::preference::PREFERENCES.to_vec() })
-    }
-}
-
-impl<E> GetScansId for Endpoints<E>
-where
-    E: Send + Sync + Crypt,
-{
-    fn get_scans_id(
-        &self,
-        id: String,
-    ) -> Pin<Box<dyn Future<Output = Result<models::Scan, GetScansIDError>> + Send + '_>> {
-        Box::pin(async move {
-            let id = id.parse().map_err(into_external_error)?;
-            ScanDB::new(&self.pool, (self.crypter.as_ref(), id))
-                .fetch()
-                .await
-                .map_err(into_external_error)
-        })
-    }
-}
-
-impl<E> GetScansIdResults for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn get_scans_id_results(
-        &self,
-        id: String,
-        from: Option<usize>,
-        to: Option<usize>,
-    ) -> StreamResult<models::Result, GetScansIDResultsError> {
-        let result = DBResults::new(&self.pool, (id, from, to))
-            .stream_fetch()
-            .map_err(GetScansError::from_external);
-
-        Box::pin(result)
-    }
-}
-
-impl<E> GetScansIdResultsId for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn get_scans_id_results_id(
-        &self,
-        id: String,
-        result_id: usize,
-    ) -> Pin<Box<dyn Future<Output = Result<models::Result, GetScansIDResultsIDError>> + Send + '_>>
-    {
-        Box::pin(async move {
-            DBResults::new(&self.pool, (id, result_id))
-                .fetch()
-                .await
-                .map_err(|e| match e {
-                    DAOError::NotFound => GetScansIDResultsIDError::NotFound,
-                    e => e.into(),
-                })
-        })
-    }
-}
-
-impl<E> GetScansIdStatus for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn get_scans_id_status(
-        &self,
-        id: String,
-    ) -> Pin<Box<dyn Future<Output = Result<models::Status, GetScansIDStatusError>> + Send + '_>>
-    {
-        Box::pin(async move {
-            let id: i64 = id
-                .parse()
-                .map_err(|e| GetScansIDStatusError::External(Box::new(e)))?;
-            ScanDB::new(&self.pool, id)
-                .fetch()
-                .await
-                .map_err(|e| GetScansIDStatusError::External(Box::new(e)))
-        })
-    }
-}
-impl<E> PostScansId for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn post_scans_id(
-        &self,
-        id: String,
-        action: models::Action,
-    ) -> Pin<Box<dyn Future<Output = Result<(), PostScansIDError>> + Send + '_>> {
-        Box::pin(async move {
-            self.scheduling
-                .send(match action {
-                    models::Action::Start => scheduling::Message::Start(id),
-                    models::Action::Stop => scheduling::Message::Stop(id),
-                })
-                .await
-                .map_err(|e| PostScansIDError::External(Box::new(e)))
-        })
-    }
-}
-impl<E> DeleteScansId for Endpoints<E>
-where
-    E: Send + Sync,
-{
-    fn delete_scans_id(
-        &self,
-        id: String,
-    ) -> Pin<Box<dyn Future<Output = Result<(), DeleteScansIDError>> + Send + '_>> {
-        Box::pin(async move {
-            // Ensure the scan is not running.
-            let internal_id: i64 = id
-                .parse()
-                .map_err(|e| DeleteScansIDError::External(Box::new(e)))?;
-            let status: models::Status = ScanDB::new(&self.pool, internal_id)
-                .fetch()
-                .await
-                .map_err(|e| DeleteScansIDError::External(Box::new(e)))?;
-            if status.is_running() {
-                return Err(DeleteScansIDError::Running);
-            }
-
-            // everything else should have ON DELETE CASCADE
-            ScanDB::new(&self.pool, id)
-                .exec()
-                .await
-                .map_err(|e| DeleteScansIDError::External(Box::new(e)))
-                .map(|_| ())
-        })
-    }
-}
+use crate::{config::Config, crypt::ChaCha20Crypt, vts::orchestrator};
+pub(crate) mod scheduling;
 
 pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
     // unwrap_or_else is a safe guard in the case the db is stored on disk but no key is provided.
@@ -250,15 +20,10 @@ pub async fn init(
     pool: DataBase,
     config: &Config,
     feed_status: orchestrator::Communicator,
-) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
+) -> anyhow::Result<ScannerBridge> {
     let crypter = Arc::new(config_to_crypt(config));
-    let scheduler_sender =
-        scheduling::init(pool.clone(), crypter.clone(), config, feed_status).await?;
-    Ok(Endpoints {
-        pool,
-        crypter,
-        scheduling: scheduler_sender,
-    })
+    let scheduler = scheduling::init(pool.clone(), crypter.clone(), config, feed_status).await?;
+    Ok(ScannerBridge::new(pool, Some(crypter), Some(scheduler)))
 }
 
 #[cfg(test)]
@@ -267,11 +32,8 @@ pub mod tests {
 
     use super::*;
 
-    use crate::greenbone_scanner_framework::{
-        GetScans, GetScansId, GetScansIdResults, GetScansIdStatus, GetScansPreferences, MapScanID,
-        PostScans, PostScansError, prelude::PostScansId,
-    };
-
+    use axum::body::{Body, to_bytes};
+    use axum::extract::Request;
     use futures::StreamExt;
     use scannerlib::models::{
         self, AliveTestMethods, Credential, CredentialType, Phase, PrivilegeInformation,
@@ -279,17 +41,16 @@ pub mod tests {
     };
     use scannerlib::{scanner, utils::scanner_types::ScannerType};
     use sqlx::{SqlitePool, query_scalar};
+    use tower::ServiceExt;
 
-    use crate::{
-        config::Config,
-        crypt::ChaCha20Crypt,
-        scans::{config_to_crypt, scheduling},
-    };
+    use crate::api::{error::ApiError, routes};
+    use crate::database::{dao::Execute, sqlite::scans::ScanDB};
+    use crate::{config::Config, scans::config_to_crypt};
 
-    async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {
+    async fn init(pool: SqlitePool, config: &Config) -> anyhow::Result<ScannerBridge> {
         let ignored = Default::default();
 
-        super::init(pool, config, ignored).await.unwrap()
+        super::init(pool, config, ignored).await
     }
 
     fn generate_hosts() -> Vec<Vec<String>> {
@@ -506,7 +267,7 @@ pub mod tests {
         results
     }
 
-    pub async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
+    pub async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let advisories_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -564,37 +325,33 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn post_scan() -> crate::Result<()> {
+    async fn post_scan() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
 
-        let undertest = init(pool, &config).await;
+        let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         for scan in generate_scan() {
-            let id = scan.scan_id.clone();
-            let result = undertest.post_scans(client_id.clone(), scan).await.unwrap();
-            assert_eq!(id, result);
+            undertest.post_scan(&client_id, &scan).await?;
         }
 
         Ok(())
     }
 
     #[tokio::test]
-    async fn post_scan_duplicate_id() -> crate::Result<()> {
+    async fn post_scan_duplicate_id() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = init(pool, &config).await;
+        let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         assert!(!scans.is_empty());
         for scan in scans.clone() {
-            let id = scan.scan_id.clone();
-            let result = undertest.post_scans(client_id.clone(), scan).await;
+            let result = undertest.post_scan(&client_id, &scan).await;
             assert!(result.is_ok(), "scan must be successfully added");
-            assert_eq!(id, result.unwrap());
         }
         for scan in scans {
-            let result = undertest.post_scans(client_id.clone(), scan).await;
+            let result = undertest.post_scan(&client_id, &scan).await;
             assert!(
-                matches!(result, Err(PostScansError::DuplicateId(_))),
+                matches!(result, Err(crate::database::dao::DAOError::DBViolation(_))),
                 "scan must be declined"
             );
         }
@@ -603,39 +360,35 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn map_id() -> crate::Result<()> {
+    async fn map_id() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = init(pool, &config).await;
+        let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         assert!(!scans.is_empty());
         for scan in scans.clone() {
-            undertest.post_scans(client_id.clone(), scan).await?;
+            undertest.post_scan(&client_id, &scan).await?;
         }
         for scan in scans {
-            let result = undertest.contains_scan_id(&client_id, &scan.scan_id).await;
-            assert!(result.is_some(), "scan must be found");
+            let result = undertest.get_scan_id(&client_id, &scan.scan_id).await;
+            assert!(result.is_ok(), "scan must be found");
         }
 
         Ok(())
     }
 
     #[tokio::test]
-    async fn get_scan_id() -> crate::Result<()> {
+    async fn get_scan_id() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = init(pool, &config).await;
+        let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         assert!(!scans.is_empty());
         for scan in scans.clone() {
-            undertest.post_scans(client_id.clone(), scan).await?;
+            undertest.post_scan(&client_id, &scan).await?;
         }
         for scan in scans {
-            let result = undertest
-                .contains_scan_id(&client_id, &scan.scan_id)
-                .await
-                .unwrap();
-            let result = undertest.get_scans_id(result).await?;
+            let result = undertest.get_scan(&client_id, &scan.scan_id).await?;
             assert_eq!(scan.scan_id, result.scan_id);
             assert_eq!(
                 scan.target.credentials.len(),
@@ -647,25 +400,38 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn get_scans_preferences() -> crate::Result<()> {
+    async fn get_scans_preferences() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = init(pool, &config).await;
-        let result = undertest.get_scans_preferences().await;
+        let undertest = init(pool, &config).await?;
+
+        let router = routes::scans::router(
+            undertest,
+            crate::api::Authentication::Disabled,
+            Arc::new(Vec::new()),
+            false,
+        );
+
+        let response = router
+            .oneshot(Request::get("/preferences").body(Body::empty())?)
+            .await?;
+        let bytes = to_bytes(response.into_body(), usize::MAX).await?;
+        let preferences = String::from_utf8(bytes.to_vec())?;
+
         assert_eq!(
-            result,
-            scanner::preferences::preference::PREFERENCES.to_vec()
+            preferences,
+            *scanner::preferences::preference::PREFERENCES_JSON
         );
 
         Ok(())
     }
 
     #[tokio::test]
-    async fn get_scan_id_status() -> crate::Result<()> {
+    async fn get_scan_id_status() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
 
         let crypter = Arc::new(config_to_crypt(&config));
         let (_, _, communicator) = orchestrator::Communicator::init();
-        let scheduler_sender = scheduling::init_with_scanner(
+        let scheduler = scheduling::init_with_scanner(
             pool.clone(),
             crypter.clone(),
             &config,
@@ -673,84 +439,80 @@ pub mod tests {
             communicator,
         )
         .await?;
-        let undertest = super::Endpoints {
+
+        let undertest = super::ScannerBridge {
             pool,
-            crypter,
-            scheduling: scheduler_sender,
+            crypter: Some(crypter),
+            scheduler: Some(scheduler),
         };
 
         let client_id = "moep".to_string();
         let scans = generate_scan();
         assert!(!scans.is_empty());
         for scan in scans.clone() {
-            undertest.post_scans(client_id.clone(), scan).await?;
+            undertest.post_scan(&client_id, &scan).await?;
         }
         for scan in scans.iter() {
-            let result = undertest
-                .contains_scan_id(&client_id, &scan.scan_id)
-                .await
-                .unwrap();
-            let result = undertest.get_scans_id_status(result).await?;
+            let result = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
             assert_eq!(result.status, Phase::Stored);
         }
 
         for scan in scans.iter() {
-            let id = undertest
-                .contains_scan_id(&client_id, &scan.scan_id)
-                .await
-                .unwrap();
-
             undertest
-                .post_scans_id(id.clone(), models::Action::Start)
+                .schedule_scan(&client_id, &scan.scan_id, models::Action::Start)
                 .await?;
             let mut status;
             loop {
-                status = undertest.get_scans_id_status(id.clone()).await?;
+                status = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
                 if status.is_running() {
                     break;
                 }
             }
             assert!(matches!(status.status, Phase::Requested | Phase::Running));
         }
-        for scan in scans.iter() {
-            let id = undertest
-                .contains_scan_id(&client_id, &scan.scan_id)
-                .await
-                .unwrap();
 
+        for scan in scans.iter() {
+            // Why start them again ?
             undertest
-                .post_scans_id(id.clone(), models::Action::Start)
+                .schedule_scan(&client_id, &scan.scan_id, models::Action::Start)
                 .await?;
             let mut status;
             loop {
-                status = undertest.get_scans_id_status(id.clone()).await?;
+                status = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
                 if status.is_done() {
                     break;
                 }
             }
+
             assert!(matches!(status.status, Phase::Succeeded));
+
             let result = undertest
-                .get_scans_id_results(id.clone(), None, None)
+                .get_scan_results(&client_id, &scan.scan_id, None, None)
+                .await?
                 .collect::<Vec<_>>()
                 .await;
             assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 2);
             let result = undertest
-                .get_scans_id_results(id.clone(), Some(1), None)
+                .get_scan_results(&client_id, &scan.scan_id, Some(1), None)
+                .await?
                 .collect::<Vec<_>>()
                 .await;
             assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
             let result = undertest
-                .get_scans_id_results(id.clone(), None, Some(0))
+                .get_scan_results(&client_id, &scan.scan_id, None, Some(0))
+                .await?
                 .collect::<Vec<_>>()
                 .await;
             assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
             let result = undertest
-                .get_scans_id_results(id.clone(), Some(0), Some(0))
+                .get_scan_results(&client_id, &scan.scan_id, Some(0), Some(0))
+                .await?
                 .collect::<Vec<_>>()
                 .await;
             assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
             let result = undertest
-                .get_scans_id_results(id, Some(23), None)
+                .get_scan_results(&client_id, &scan.scan_id, Some(23), None)
+                .await?
                 .collect::<Vec<_>>()
                 .await;
             assert_eq!(result.len(), 0);
@@ -760,19 +522,24 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn get_scans() -> crate::Result<()> {
+    async fn get_scans() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
-        let undertest = init(pool, &config).await;
+        let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
         for scan in generate_scan() {
-            undertest.post_scans(client_id.clone(), scan).await?;
+            undertest.post_scan(&client_id, &scan).await?;
         }
-        let client_ids = undertest.get_scans(client_id).collect::<Vec<_>>().await;
+        let client_ids = undertest
+            .get_scans(client_id)
+            .await
+            .collect::<Vec<Result<String, ApiError>>>()
+            .await;
         assert_eq!(client_ids.iter().filter(|x| x.is_err()).count(), 0);
         assert_eq!(client_ids.iter().filter(|x| x.is_ok()).count(), scans.len());
         let client_ids = undertest
             .get_scans("notme".to_string())
+            .await
             .collect::<Vec<_>>()
             .await;
         assert!(client_ids.is_empty());
