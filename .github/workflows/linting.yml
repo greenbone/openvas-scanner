@@ -26,14 +26,13 @@ jobs:
       - run: ../check.sh --verbose lint-rust
   Rust-Typos:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
+    env:
+      TYPOS_VERSION: 1.49.0
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-rust
-      - run: cargo install typos-cli || true
-      - run: ../check.sh --verbose typos
+      - name: Install typos
+        run: cargo install --locked --version "=${TYPOS_VERSION}" typos-cli
+      - run: ./check.sh --verbose typos
   License-Headers:
     runs-on: ubuntu-latest
     steps:
