@@ -410,7 +410,9 @@ static int
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
+  const char *openvasd_server;
   const char *notus_url;
+  const char *table_driven_lsc;
 
   set_default_openvas_prefs ();
   prefs_config (config_file);
@@ -431,59 +433,73 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
     }
   nvticache_reset ();
 
-  /* Init Notus communication */
-  notus_url = prefs_get ("openvasd_server");
-  if (notus_url)
+  table_driven_lsc = prefs_get ("table_driven_lsc");
+  if (!table_driven_lsc || strcmp (table_driven_lsc, "yes") == 0)
     {
-      gchar *full_notus_url;
-      g_warning ("%s: option openvasd_server is deprecated and will be removed "
-                 "in the next major release. Please use notus_url instead.",
-                 __func__);
-      full_notus_url = g_strconcat (notus_url, "/notus/", NULL);
-      prefs_set ("notus_url", full_notus_url);
-      g_free (full_notus_url);
-      g_message ("%s: LSC via openvasd", __func__);
-      prefs_set ("http_lsc_enabled", "yes");
-    }
-  else
-    {
-      notus_url = prefs_get ("notus_url");
-      if (notus_url)
+      openvasd_server = prefs_get ("openvasd_server");
+      if (openvasd_server)
         {
-          g_message ("%s: LSC via HTTP(S)", __func__);
+          gchar *full_notus_url;
+          g_warning (
+            "%s: option openvasd_server is deprecated and will be removed "
+            "in the next major release. Please use notus_url instead.",
+            __func__);
+          full_notus_url = g_strconcat (openvasd_server, "/notus/", NULL);
+          prefs_set ("notus_url", full_notus_url);
+          g_free (full_notus_url);
+          g_message ("%s: LSC via openvasd", __func__);
           prefs_set ("http_lsc_enabled", "yes");
+          prefs_set ("table_driven_lsc", "yes");
         }
       else
         {
-          mqtt_server_uri = prefs_get ("mqtt_server_uri");
-          if (mqtt_server_uri)
+          notus_url = prefs_get ("notus_url");
+          if (notus_url)
             {
-#ifdef AUTH_MQTT
-              const char *mqtt_user = prefs_get ("mqtt_user");
-              const char *mqtt_pass = prefs_get ("mqtt_pass");
-              if ((mqtt_init_auth (mqtt_server_uri, mqtt_user, mqtt_pass)) != 0)
-#else
-              if ((mqtt_init (mqtt_server_uri)) != 0)
-#endif
-                {
-                  g_message ("%s: INIT MQTT: FAIL", __func__);
-                  send_message_to_client_and_finish_scan (
-                    "ERRMSG||| ||| ||| ||| |||MQTT initialization failed");
-                }
-              else
-                {
-                  g_message ("%s: INIT MQTT: SUCCESS", __func__);
-                  prefs_set ("mqtt_enabled", "yes");
-                }
+              g_message ("%s: LSC via HTTP(S)", __func__);
+              prefs_set ("http_lsc_enabled", "yes");
+              prefs_set ("table_driven_lsc", "yes");
             }
           else
             {
-              g_message (
-                "%s: Neither openvasd_server nor mqtt_server_uri given, "
-                "LSC disabled",
-                __func__);
+              mqtt_server_uri = prefs_get ("mqtt_server_uri");
+              if (mqtt_server_uri)
+                {
+#ifdef AUTH_MQTT
+                  const char *mqtt_user = prefs_get ("mqtt_user");
+                  const char *mqtt_pass = prefs_get ("mqtt_pass");
+                  if ((mqtt_init_auth (mqtt_server_uri, mqtt_user, mqtt_pass))
+                      != 0)
+#else
+                  if ((mqtt_init (mqtt_server_uri)) != 0)
+#endif
+                    {
+                      g_message ("%s: INIT MQTT: FAIL", __func__);
+                      send_message_to_client_and_finish_scan (
+                        "ERRMSG||| ||| ||| ||| |||MQTT initialization failed");
+                    }
+                  else
+                    {
+                      g_message ("%s: INIT MQTT: SUCCESS", __func__);
+                      prefs_set ("mqtt_enabled", "yes");
+                      prefs_set ("table_driven_lsc", "yes");
+                    }
+                }
+              else
+                {
+                  g_message ("%s: Neither openvasd_server, notus_url nor "
+                             "mqtt_server_uri given, "
+                             "LSC disabled",
+                             __func__);
+                  prefs_set ("table_driven_lsc", "no");
+                }
             }
         }
+    }
+  else
+    {
+      g_message ("%s: Table driven LSC is disabled", __func__);
+      prefs_set ("table_driven_lsc", "no");
     }
 
   init_signal_handlers ();

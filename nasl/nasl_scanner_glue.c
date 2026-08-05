@@ -1450,6 +1450,13 @@ nasl_notus (lex_ctxt *lexic)
 
   notus_err = 0;
 
+  if (!prefs_get_bool ("http_lsc_enabled"))
+    {
+      g_debug ("%s: HTTP LSC is not enabled", __func__);
+      notus_err = -5;
+      return NULL;
+    }
+
   if (product == NULL || pkg_list == NULL)
     {
       g_warning ("%s: Missing data for running LSC", __func__);
@@ -1539,6 +1546,9 @@ nasl_notus_error (lex_ctxt *lexic)
       break;
     case -4:
       notus_err_str = strdup ("Unable to process the response");
+      break;
+    case -5:
+      notus_err_str = strdup ("HTTP LSC is not enabled");
       break;
     default:
       return NULL;
