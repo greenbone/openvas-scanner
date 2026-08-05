@@ -407,7 +407,9 @@ impl Config {
                     .long("feed-path")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
-                    .help("path to openvas feed"),
+                    .help(
+                        "path to openvas feed. its parent directory must be writable unless --lock-file-dir is set",
+                    ),
             )
             .arg(
                 clap::Arg::new("lock-file-dir")
@@ -415,7 +417,9 @@ impl Config {
                     .long("lock-file-dir")
                     .value_parser(clap::builder::PathBufValueParser::new())
                     .action(ArgAction::Set)
-                    .help("path to the lock file directory"),
+                    .help(
+                        "directory in which openvasd creates feed-update.lock. must be writable",
+                    ),
             )
 
             .arg(
@@ -597,7 +601,9 @@ impl Config {
                     .long("storage-path")
                     .value_name("PATH")
                     .value_parser(clap::builder::PathBufValueParser::new())
-                    .help("the path that contains the files when type is set to fs."),
+                    .help(
+                        "directory for the openvasd and container image scanner database files. must be writable",
+                    ),
             )
             .arg(
                 clap::Arg::new("storage_key")

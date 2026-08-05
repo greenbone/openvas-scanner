@@ -7,6 +7,9 @@ mode = "service"
 [feed]
 # Path to the openvas feed. This is required for the /vts endpoint.
 path = "/var/lib/openvas/plugins"
+# Directory in which openvasd creates feed-update.lock. must be writable. If
+# unset, the parent directory of `path` is used.
+# lock_file_dir = "/var/lib/openvas"
 # Disables or enables the signature check
 signature_check = true
 
@@ -55,7 +58,9 @@ level = 'INFO'
 sqlx = 'WARN'
 
 [storage]
-# The location can be either in-memory or a path
+# The location can be either 'in-memory' or the path to a directory. If a
+# directory path is given, openvasd will create its SQLite database in it, so
+# the directory must be writable.
 location = 'in-memory'
 busy_timeout = '2s'
 max_connections = 1
@@ -83,11 +88,15 @@ check_interval = "500ms"
 max_scans = 5
 
 [container_image_scanner.database]
+# The location can be either 'in-memory' or the path to a directory. If a
+# directory path is given, openvasd will create its container image scanning
+# SQLite database in it, so the directory must be writable.
 location = 'in-memory'
 busy_timeout = '2s'
 max_connections = 1
 
 [container_image_scanner.image]
+# Directory used to extract temporary image contents. Must be writable.
 extract_to = '/tmp/openvasd/cis'
 # How many times an image scan should be retried on a failure that is retryable
 scanning_retries = 10

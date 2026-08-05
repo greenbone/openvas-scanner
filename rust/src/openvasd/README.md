@@ -151,29 +151,35 @@ Options:
   -c, --config <config>
           path to toml config file [env: OPENVASD_CONFIG=]
       --feed-path <feed-path>
-          path to openvas feed [env: FEED_PATH=]
+          path to openvas feed. its parent directory must be writable unless --lock-file-dir is set [env: FEED_PATH=]
+      --lock-file-dir <lock-file-dir>
+          directory in which openvasd creates feed-update.lock. must be writable [env: LOCK_FILE_DIR=]
   -x, --feed-signature-check
-          Enable feed signature check
+          Deprecated. To enable or disable feed signature use the configuration.
       --feed-check-interval <SECONDS>
           interval to check for feed updates in seconds [env: FEED_CHECK_INTERVAL=]
       --advisories <notus-advisories>
           Path containing the Notus advisories directory [env: NOTUS_ADVISORIES=]
       --products <notus-products>
           Path containing the Notus products directory [env: NOTUS_PRODUCTS=]
+      --notus-address <IP:PORT>
+          the address to reach notus on [env: NOTUS_ADDRESS=]
       --redis-url <redis-url>
-          Redis url. Either unix:// or redis://
+          Redis url. Either unix:// or redis:// [env: REDIS_URL=]
       --tls-certs <tls-certs>
           path to server tls certs [env: TLS_CERTS=]
       --tls-key <tls-key>
           path to server tls key [env: TLS_KEY=]
       --tls-client-certs <tls-client-certs>
           path to client tls certs. Enables mtls. [env: TLS_CLIENT_CERTS=]
-      --enable-get-scans
-          enable get scans endpoint [env: ENABLE_GET_SCANS=]
+      --enable-get-scans [<enable-get-scans>]
+          enable get scans endpoint. Default 'true'. [env: ENABLE_GET_SCANS=] [possible values: true, false]
+      --enable-get-performance [<enable-get-performance>]
+          enable get performance endpoint. Default 'false'. [env: ENABLE_GET_PERFORMANCE=] [possible values: true, false]
       --api-key <api-key>
           API key that must be set as X-API-KEY header to gain access [env: API_KEY=]
       --scanner-type <ospd,openvas>
-          Type of wrapper used to manage scans [env: WRAPPER_TYPE=]
+          Type of scanner used to manage scans [env: SCANNER_TYPE=]
       --max-queued-scans <max-queued-scans>
           Maximum number of queued scans [env: MAX_QUEUED_SCANS=]
       --max-running-scans <max-running-scans>
@@ -190,16 +196,64 @@ Options:
           interval to check for new results in seconds [env: RESULT_CHECK_INTERVAL=]
   -l, --listening <IP:PORT>
           the address to listen to (e.g. 127.0.0.1:3000 or 0.0.0.0:3000). [env: LISTENING=]
-      --storage-type <fs,inmemory>
+      --storage-type <redis,inmemory,fs>
           either be stored in memory or on the filesystem. [env: STORAGE_TYPE=]
       --storage-path <PATH>
-          the path that contains the files when type is set to fs. [env: STORAGE_PATH=]
+          directory for the openvasd and container image scanner database files. must be writable [env: STORAGE_PATH=]
       --storage-key <KEY>
           the password to use for encryption when type is set to fs. If not set the files are not encrypted. [env: STORAGE_KEY=]
   -L, --log-level <log-level>
           Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR [env: OPENVASD_LOG=]
+      --version
+          Show openvasd version and exit.
       --mode <service,service_notus>
           Sets the openvasd mode [env: OPENVASD_MODE=]
+      --auto_enable_dependencies <auto_enable_dependencies>
+          OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins available, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvas will automatically enable the plugins that are depended on. [possible values: true, false]
+      --cgi_path <cgi_path>
+          By default, openvas looks for default CGIs in /cgi-bin and /scripts. You may change these to something else to reflect the policy of your site. The syntax of this option is the same as the shell $PATH variable: path1:path2:...
+      --checks_read_timeout <checks_read_timeout>
+          Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvas across a slow network slink (testing a host via a dialup connection for instance)
+      --non_simult_ports <non_simult_ports>
+          Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvas to make two connections on the same given ports at the same time. The syntax of this option is 'port1[, port2...]'. Note that you can use the KB notation of openvas to designate a service formally. Ex: '139, Services/www', will prevent openvas from making two connections at the same time on port 139 and on every port which hosts a web server.
+      --open_sock_max_attempts <open_sock_max_attempts>
+          When a port is found as opened at the beginning of the scan, and for some reason the status changes to filtered/closed, it will not be possible to open a socket. This is the number of unsuccessful retries to open the socket before to set the port as closed. This avoids to launch plugins which need the opened port as a mandatory key, therefore it avoids an overlong scan duration. If the set value is 0 or a negative value, this option is disabled. It should be take in account that one unsuccessful attempt needs the number of retries set in 'Socket timeout retry'.
+      --timeout_retry <timeout_retry>
+          Number of retries when a socket connection attempt times out. This option is different from 'Maximum Attempts to open Sockets', as after the number of retries here is reached it counts as a single attempt for open the socket.
+      --optimize_test <optimize_test>
+          By default, optimize_test is enabled which means openvas does trust the remote host banners and is only launching plugins against the services they have been designed to check. For example it will check a web server claiming to be IIS only for IIS related flaws but will skip plugins testing for Apache flaws, and so on. This default behavior is used to optimize the scanning performance and to avoid false positives. If you are not sure that the banners of the remote host have been tampered with, you can disable this option. [possible values: true, false]
+      --plugins_timeout <plugins_timeout>
+          This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin. Doesn't affect ACT_SCANNER plugins, use 'ACT_SCANNER plugins timeout' for them instead.
+      --report_host_details <report_host_details>
+          Host Details are general Information about a Host collected during a scan. These are used internally for plugins, but it is also possible to report these as results. In order for this option to work the Plugin 'Host Details' with the OID 1.3.6.1.4.1.25623.1.0.103997 must also be in the VTs list, as this plugin is responsible for doing the actual reporting. [possible values: true, false]
+      --safe_checks <safe_checks>
+          Most of the time, openvas attempts to reproduce an exceptional condition to determine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'true', openvas will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvas nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one). [possible values: true, false]
+      --scanner_plugins_timeout <scanner_plugins_timeout>
+          Like 'Plugins Timeout', but for ACT_SCANNER plugins.
+      --time_between_request <time_between_request>
+          Some devices do not appreciate quick connection establishment and termination neither quick request. This option allows you to set a wait time between two actions like to open a tcp socket, to send a request through the open tcp socket, and to close the tcp socket. This value should be given in milliseconds. If the set value is 0 (default value), this option is disabled and there is no wait time between requests.
+      --unscanned_closed <unscanned_closed>
+          This defines whether TCP ports that were not scanned should be treated like closed ports. [possible values: true, false]
+      --unscanned_closed_udp <unscanned_closed_udp>
+          This defines whether UDP ports that were not scanned should be treated as closed ports. [possible values: true, false]
+      --expand_vhosts <expand_vhosts>
+          Whether to expand the target host's list of vhosts with values gathered from sources such as reverse-lookup queries and VT checks for SSL/TLS certificates. [possible values: true, false]
+      --test_empty_vhost <test_empty_vhost>
+          If set to yes, the scanner will also test the target by using empty vhost value in addition to the target's associated vhost values. [possible values: true, false]
+      --alive_test_ports <alive_test_ports>
+          Preference to set the port list for the TCP SYN and TCP ACK alive test methods.
+      --test_alive_hosts_only <test_alive_hosts_only>
+          If this option is set to 'true', openvas will scan the target list for alive hosts in a separate process while only testing those hosts which are identified as alive. This boosts the scan speed of target ranges with a high amount of dead hosts significantly. [possible values: true, false]
+      --test_alive_wait_timeout <test_alive_wait_timeout>
+          This option is to set how long (in sec) Boreas (alive test) waits for replies after last packet was sent.
+      --table_driven_lsc <table_driven_lsc>
+          This option will enable table driven local security Checks (LSC). This means gathered packages are sent to a specialized scanner. This is far more efficient than doing checks via NASL. [possible values: true, false]
+      --dry_run <dry_run>
+          A dry run is a simulated scan, with no actual host scanned. This mode is useful for automated testing and also to check up, if the setup is actually working. [possible values: true, false]
+      --results_per_host <results_per_host>
+          Amount of fake results generated per each host in the target list for a dry run scan.
+      --max_mem_kb <max_mem_kb>
+          Maximum amount of memory (in MB) allowed to use for a single script. If this value is set, the amount of memory put into redis is tracked for every Script. If the amount of memory exceeds this limit, the script is not able to set more kb items. The tracked the value written into redis is only estimated, as it does not check, if a value was replaced or appended. The size of the key is also not tracked. If this value is not set or <= 0, the maximum amount is unlimited (Default).
   -h, --help
           Print help
 ```
@@ -213,7 +267,8 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 | Option                   | Long Command            | Short Command | Config Section                     | Config Name       | Environment Variable     | Description                                                                                                                                                               | Default Value                 |
 | ------------------------ | ----------------------- | ------------- | ---------------------------------- | ----------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
 | Config Path              | --config                | -c            |                                    |                   | OPENVASD_CONFIG          | Path to toml config file                                                                                                                                                  |                               |
-| Feed Path                | --feed-path             |               | feed                               | path              | FEEED_PATH               | Path to openvas feed                                                                                                                                                      | /var/lib/openvas/plugins      |
+| Feed Path                | --feed-path             |               | feed                               | path              | FEED_PATH                | Path to the OpenVAS feed. If no lock file directory is configured, its parent directory must be writable.                                                                 | /var/lib/openvas/plugins      |
+| Feed lock file directory | --lock-file-dir         |               | feed                               | lock_file_dir     | LOCK_FILE_DIR            | Directory in which `openvasd` creates `feed-update.lock`; must be writable. Defaults to the parent directory of the feed path.                                            | /var/lib/openvas              |
 | Feed Signature Check     | --feed-signature-check  | -x            | feed                               | signature_check   |                          | Enable feed signature check.                                                                                                                                              | false                         |
 | Feed Check Interval      | --feed-check-interval   |               | feed.check_interval                | secs</br>nanos    | FEED_CHECK_INTERVAL      | Interval to check for feed updates in seconds. Using the config file, it can be set in seconds and nanoseconds                                                            | 3600 (seconds)                |
 | Notus advisories path    | --advisories            |               | notus                              | advisories_path   | NOTUS_ADVISORIES         | Path containing the Notus advisories directory                                                                                                                            | /var/lib/notus/advisories/    |
@@ -234,7 +289,7 @@ If the signature check is enabled, it is also required to set the the `GNUPGHOME
 | Result Check Interval    | --result-check-interval |               | scanner.ospd.result_check_interval | secs</br>nanos    | RESULT_CHECK_INTERVAL    | Interval to check for new results in seconds. Using the config file, it can be set in seconds and nanoseconds                                                             | 1 (second)                    |
 | Listening                | --listening             | -l            | listener                           | address           | LISTENING                | IP address and port to listen to                                                                                                                                          | 127.0.0.1:3000                |
 | Storage type             | --storage-type          |               | storage                            | type              | STORAGE_TYPE             | Information can either be stored in memory or on the filesystem                                                                                                           | inmemory                      |
-| Storage path             | --storage-path          |               | storage.fs                         | path              | STORAGE_PATH             | the path that contains the files when type is set to fs                                                                                                                   | /var/lib/openvasd/storage     |
+| Storage path             | --storage-path          |               | storage                            | location          | STORAGE_PATH             | Directory for the main and container image scanner SQLite databases; must be writable. `in-memory` does not use a directory.                                              | in-memory                     |
 | Log Level                | --log-level             | -L            | log                                | level             | OPENVASD_LOG             | Level of log messages to be shown. TRACE > DEBUG > INFO > WARN > ERROR                                                                                                    | INFO                          |
 | Service mode             | --mode                  |               |                                    | mode              | OPENVASD_MODE            | Sets the openvasd mode, can be either `service` or `service_notus`                                                                                                        | service                       |
 | Help                     | --help                  | -h            |                                    |                   |                          | Print help                                                                                                                                                                |                               |
