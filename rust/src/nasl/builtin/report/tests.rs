@@ -38,7 +38,7 @@ async fn verify(function: &str, result_type: ResultType) {
             r_type: result_type.clone(),
             ip_address: Some(ctx.target().ip_addr().to_string()),
             hostname: Some("".into()),
-            oid: Some(ctx.scan().0.clone()),
+            oid: ctx.nvt().as_ref().map(|vt| vt.oid.clone()),
             port,
             protocol: Some(protocol),
             message: Some(format!("test{id}")),
