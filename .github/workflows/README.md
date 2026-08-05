@@ -57,13 +57,7 @@ If the functional tests fail it will prevent further execution of `containerizat
   - **Container Oldstable**: Uses `push-container-oldstable.yml`.
 - **Dependencies**: Depends on `build`, `init`, and `functional`.
 
-### 7. Helm Chart Deployment (`helm`)
-- **Purpose**: Deploys Helm chart, assuming `IMAGE_REGISTRY` is configured.
-- **Conditions**: Triggered if `IMAGE_REGISTRY` is set.
-- **Dependencies**: Depends on `container` and `init`.
-- **Workflow File**: `push-helm-chart.yml`
-
-### 8. Release (`release`)
+### 7. Release (`release`)
 - **Purpose**: Handles the release process for different version types.
 - **Conditions**: Activated based on the release type set in `init`.
 - **Dependencies**: Requires `build` and `init`.
@@ -76,6 +70,6 @@ The CI workflow employs GitHub secrets for secure authentication and interaction
 ### Utilized Secrets
 - **DOCKERHUB_USERNAME**: DockerHub username.
 - **DOCKERHUB_TOKEN**: Token for DockerHub with write access to the registry.
-- **GREENBONE_BOT_TOKEN**: Token for Helm chart registry and GitHub repository operations.
+- **GREENBONE_BOT_TOKEN**: Token for GitHub repository operations.
 - **GREENBONE_BOT**: Username for git commits.
 - **GREENBONE_BOT_MAIL**: Email address for git commits.

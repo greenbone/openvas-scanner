@@ -133,14 +133,3 @@ jobs:
       email: ${{ secrets.GREENBONE_BOT_MAIL }}
       gpg_key: ${{ secrets.GPG_KEY }}
       gpg_pass: ${{ secrets.GPG_PASSPHRASE }}
-  helm:
-    if: github.event_name != 'pull_request' && vars.IMAGE_REGISTRY != ''
-    needs: [container, init]
-    permissions:
-      packages: write
-    uses: ./.github/workflows/push-helm-chart.yml
-    secrets:
-      user: ${{ secrets.GREENBONE_BOT }}
-      token: ${{ secrets.GITHUB_TOKEN }}
-    with:
-      registry: ${{ vars.IMAGE_REGISTRY }}
