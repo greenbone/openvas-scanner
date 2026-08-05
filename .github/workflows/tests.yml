@@ -30,14 +30,22 @@ jobs:
         run: cargo clean --workspace --locked
   Rust-Compose:
     runs-on: ubuntu-latest
+    env:
+      RUST_TEST_ENVIRONMENTS_EXTRA: -f tests/rust-tests-ci-cache.yaml
     defaults:
       run:
         working-directory: rust
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/cache-rust
+        with:
+          cache-key: compose-bookworm-${{ hashFiles('compose/tests/rust-tests.Dockerfile') }}
       - name: compose-tests
         id: compose_tests
         run: ../check.sh --verbose test-rust-compose
+      - name: Prune workspace artifacts from cache
+        if: steps.compose_tests.outcome == 'success'
+        run: cd ../compose && make rust-test-cache-prune
       - name: compose-test-logs
         if: failure() && steps.compose_tests.outcome == 'failure'
         run: cd ../compose && make rust-test-environment-logs
