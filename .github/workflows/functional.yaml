@@ -1,7 +1,5 @@
 name: functional
 
-# github.event.pull_request.number
-
 on:
   workflow_call:
     inputs:

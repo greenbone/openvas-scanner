@@ -105,8 +105,10 @@ jobs:
         if: inputs.base_ref == '' 
         run: echo "RELEASE_REF=${{ inputs.ref_name }}" >> $GITHUB_ENV
       - name: "set RELEASE_REF = ${{ inputs.base_ref }}"
-        if: inputs.base_ref != '' 
-        run: echo "RELEASE_REF=${{ inputs.base_ref }}" >> $GITHUB_ENV
+        if: inputs.base_ref != ''
+        env:
+          BASE_REF: ${{ inputs.base_ref }}
+        run: echo "RELEASE_REF=${BASE_REF#refs/heads/}" >> "$GITHUB_ENV"
       - name: RELEASE_REF != NULL
         run: ([ -n "${{ env.RELEASE_REF }}" ])
       - name: "LATEST_VERSION"
