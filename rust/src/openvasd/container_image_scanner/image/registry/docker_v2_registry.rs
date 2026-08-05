@@ -567,12 +567,18 @@ impl Timed<Result<Vec<u8>, RegistryError>> {
 
 #[cfg(test)]
 pub mod fake {
-    use std::collections::{HashMap, HashSet};
+    use std::{
+        collections::{HashMap, HashSet},
+        path::Path,
+        sync::OnceLock,
+    };
 
     use docker_registry::mediatypes::MediaTypes;
+    use flate2::{Compression, write::GzEncoder};
     use itertools::Itertools;
     use mockito::Matcher;
     use sha2::{Digest, Sha256};
+    use tar::Builder;
 
     use crate::container_image_scanner::image::Image;
 
@@ -585,6 +591,24 @@ pub mod fake {
 
     fn digest(input: &[u8]) -> String {
         format!("sha256:{}", hash_hex(input))
+    }
+
+    fn victim_layer() -> &'static [u8] {
+        static LAYER: OnceLock<Vec<u8>> = OnceLock::new();
+
+        LAYER.get_or_init(|| {
+            let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("data/tests/images/victim");
+            let encoder = GzEncoder::new(Vec::new(), Compression::default());
+            let mut archive = Builder::new(encoder);
+            archive
+                .append_dir_all(".", input)
+                .expect("create victim test layer");
+            archive
+                .into_inner()
+                .expect("finish victim test archive")
+                .finish()
+                .expect("compress victim test layer")
+        })
     }
 
     #[derive(Debug, Clone)]
@@ -814,13 +838,8 @@ pub mod fake {
             server: &mut mockito::ServerGuard,
             status_codes: Vec<usize>,
         ) -> Vec<mockito::Mock> {
-            const NICHTSFREI_VICTIM_LAYER: &[u8] = include_bytes!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/data/tests/layers/victim.tar.gz"
-            ));
-
             // we currently just have one layer example and are repeating it for each image.
-            let layer = vec![Layer::from(NICHTSFREI_VICTIM_LAYER)];
+            let layer = vec![Layer::from(victim_layer())];
 
             let manifests = self.images.iter().map(|image| {
                 let manifest = Manifest {
@@ -1001,9 +1020,6 @@ pub mod fake {
         /// Creates caralog and image list for each given image, but manifest as well as block
         /// download only for nichtsfrei/victim:latest. This is because there is just one binary
         /// layer available at the moment.
-        ///
-        /// If new entries are added to the build.rs and inside `data/tests/layers` those
-        /// manifest_mocks needs to be extended within FakeResponses::Pull.
         pub async fn serve_images(images: &[Image], status_codes: &[usize]) -> Self {
             let mut port_expander: PortExpander = status_codes.into();
             let mut server = mockito::Server::new_async().await;
