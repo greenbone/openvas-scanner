@@ -22,6 +22,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-rust
+        with:
+          cache-key: tests
       - name: unit-tests
         run: ../check.sh --verbose test-rust
       - name: compose-tests
@@ -33,3 +35,5 @@ jobs:
       - name: compose-test-cleanup
         if: always() && steps.compose_tests.outcome != 'skipped'
         run: cd ../compose && make rust-test-environment-down
+      - name: Prune workspace artifacts from cache
+        run: cargo clean --workspace --locked
