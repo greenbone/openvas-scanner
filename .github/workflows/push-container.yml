@@ -37,8 +37,6 @@ on:
         required: false
       greenbone_registry_replication_token:
         required: false
-      mattermost_webhook_url:
-        required: true
 
 # Grants rights to push to the Github container registry.
 permissions:
@@ -107,15 +105,6 @@ jobs:
         ghcr.io/${{ github.repository }},enable=true
         ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
         ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
-    secrets: inherit
-
-  notify:
-    needs:
-      - build
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.repository == 'greenbone/openvas-scanner' }}
-    uses: greenbone/workflows/.github/workflows/notify-mattermost-2nd-gen.yml@main
-    with:
-      status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
     secrets: inherit
 
   trigger-replication:

@@ -35,13 +35,3 @@ jobs:
           workflow: development-packaging.yml
           inputs: '{"release-name": "${{ github.event.release.name }}", "component-repo-name-to-package": "${{ github.repository }}", "release-tag": "${{ github.event.release.tag_name }}"}'
           wait-for-completion-timeout: 10000
-
-  notify:
-    needs:
-      - call_packaging_workflow
-    if: ${{ !cancelled() }}
-    uses: greenbone/workflows/.github/workflows/notify-mattermost-generic.yml@main
-    with:
-      status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
-      channel: gea-pipeline-notifications
-    secrets: inherit
