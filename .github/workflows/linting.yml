@@ -23,7 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-rust
+        with:
+          cache-key: clippy
       - run: ../check.sh --verbose lint-rust
+      - name: Prune workspace artifacts from cache
+        run: cargo clean --workspace --locked
   Rust-Typos:
     runs-on: ubuntu-latest
     env:
