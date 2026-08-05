@@ -1,0 +1,26 @@
+name: OpenVAS integration build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  rust-binaries:
+    uses: ./.github/workflows/build-rs.yaml
+    with:
+      arch: amd64
+      runner: ubuntu-latest
+
+  build-and-link:
+    needs: rust-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/copy-docker-binaries
+        with:
+          arch: amd64
+      - run: ./check.sh --verbose ci-integration-build
