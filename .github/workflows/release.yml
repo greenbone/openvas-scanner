@@ -103,9 +103,6 @@ jobs:
           git checkout "${{ env.RELEASE_REF }}"
           # ignore failure on setting version
           pontos-version update ${{ env.NEW_VERSION }} || true
-          # set app version on chart
-          awk '{sub(/appVersion: "[0-9]+\.[0-9]+\.[0-9]+"/,"appVersion: \"${{ env.NEW_VERSION }}\""); print}' charts/openvasd/Chart.yaml | tee /tmp/Chart.yaml
-          mv /tmp/Chart.yaml charts/openvasd/Chart.yaml
           # as soon as pontos-version release is available and it supports cargo do
           # cd rust
           # pontos-version update ${{ env.NEW_VERSION }}
@@ -114,7 +111,6 @@ jobs:
             echo "There are no modified files, skipping."
           else
             git add CMakeLists.txt
-            git add charts/openvasd/Chart.yaml
             git commit -m "Automated commit: change version from ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}"
             git fetch --all
             git rebase origin/${{ env.RELEASE_REF}}
