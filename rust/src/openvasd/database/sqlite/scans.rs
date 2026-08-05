@@ -3,12 +3,12 @@ use scannerlib::models::{self, AliveTestMethods};
 use sqlx::{Connection, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow};
 
 use crate::{
+    api::InternalIdentifier,
     crypt::{self, Crypt, Encrypted},
     database::{
         dao::{DAOError, DAOHandler, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
         sqlite::{DataBase, OpenVASDDB, insert_values_chunked, state_change},
     },
-    greenbone_scanner_framework::InternalIdentifier,
 };
 
 pub type ScanDB<'o, T> = OpenVASDDB<'o, T>;

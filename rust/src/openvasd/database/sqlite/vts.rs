@@ -15,8 +15,8 @@ use sqlx::SqlitePool;
 use sqlx::query;
 use sqlx::sqlite::SqliteRow;
 
+use crate::api::StreamResult;
 use crate::config::Config;
-use crate::greenbone_scanner_framework::{GetVTsError, StreamResult};
 use crate::vts::FeedHash;
 use crate::vts::PluginFetcher;
 use crate::vts::PluginStorer;
@@ -88,14 +88,13 @@ impl PluginStorer for SqlPluginStorage {
         let pool = self.pool.clone();
         let typus = hash.typus;
         Box::pin(async move {
-            let json = serde_json::to_vec(&plugin).map_err(error_vts_error)?;
+            let json = serde_json::to_vec(&plugin)?;
             query(r#" INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)"#)
                 .bind(plugin.oid())
                 .bind(&json)
                 .bind(typus.as_ref())
                 .execute(&pool)
-                .await
-                .map_err(error_vts_error)?;
+                .await?;
 
             Ok(())
         })
@@ -115,8 +114,7 @@ impl PluginStorer for SqlPluginStorage {
             .bind(path)
             .bind(ht.as_ref())
             .execute(&pool)
-            .await
-            .map_err(error_vts_error)?;
+            .await?;
             Ok(())
         })
     }
@@ -168,13 +166,6 @@ impl Retriever<FileName> for SqlPluginStorage {
             .transpose()
             .map(Option::flatten)
     }
-}
-
-fn error_vts_error<T>(error: T) -> GetVTsError
-where
-    T: std::error::Error + Sync + Send + 'static,
-{
-    GetVTsError::External(Box::new(error))
 }
 
 impl orchestrator::Worker for FeedSynchronizer {
@@ -254,15 +245,16 @@ mod tests {
 
     use std::sync::{Arc, RwLock};
 
-    use crate::container_image_scanner::endpoints::vts::VTEndpoints;
-    use crate::greenbone_scanner_framework::{GetVTsError, GetVts};
+    use crate::api::{error::ApiError, states::Feed};
     use scannerlib::models::FeedState;
+
+    use futures_util::StreamExt;
 
     use crate::setup_sqlite;
 
     use super::*;
 
-    async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
+    async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let notus = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -290,25 +282,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_oids() -> crate::Result<()> {
+    async fn get_oids() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
         let feed_state = Arc::new(RwLock::new(FeedState::default()));
-        let endpoint = VTEndpoints::new(
-            SqlPluginStorage::from(pool.clone()),
-            feed_state.clone(),
-            None,
-        );
-        let synchronizer = FeedSynchronizer::new(pool.clone(), &config);
 
-        let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
-        assert_eq!(oids.len(), 1);
-        assert_eq!(
-            oids.into_iter()
-                .filter_map(|x| x.err())
-                .filter(|x| matches!(x, GetVTsError::NotYetAvailable))
-                .count(),
-            1
-        );
+        let synchronizer = FeedSynchronizer::new(pool.clone(), &config);
+        let feed = Feed::new(SqlPluginStorage::from(pool.clone()), feed_state.clone());
+
+        assert!(matches!(feed.get_oids(), Err(ApiError::FeedNotSynced)));
 
         orchestrator::test::verify_allowed_for(
             synchronizer,
@@ -319,11 +300,11 @@ mod tests {
 
         // in the case that examples are changed, I don't want to change this test each time hence
         // we just verify if we got oids.
-        let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
+        let oids = feed.get_oids()?.collect::<Vec<_>>().await;
         let oids = oids.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert!(!oids.is_empty());
 
-        let vts = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;
+        let vts = feed.get_vts()?.collect::<Vec<_>>().await;
         let vts = vts.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert!(!vts.is_empty());
         Ok(())
