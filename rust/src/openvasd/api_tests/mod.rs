@@ -52,7 +52,7 @@ async fn check_head_endpoints(t: &OpenvasdInstance, write_snapshots: bool) {
 
 #[tokio::test]
 async fn head_endpoints() {
-    let t = Test::new("head_endpoints").config("basic").await;
+    let t = Test::new("head_endpoints").config("basic_feed").await;
     check_head_endpoints(&t, true).await
 }
 
@@ -64,6 +64,141 @@ async fn get_scans_preferences() {
 
     let mut body = t
         .request(GET, "/scans/preferences")
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<BTreeMap<String, Value>>>();
+
+    // The full response body looks ugly, so we extract
+    // it as a map to make the snapshot more readable
+    // Then we sort by id to have some sort of order
+    body.sort_by_key(|entry| entry["id"].to_string());
+    body.snapshot("body");
+}
+
+/// Tests that the endpoints enable-get-scans works
+#[tokio::test]
+async fn get_scans_route_config() {
+    let t = Test::new("get_scans_disabled").config("basic").await;
+    t.request(GET, "/scans")
+        .await
+        .assert_status(StatusCode::METHOD_NOT_ALLOWED);
+    t.request(GET, "/container-image-scanner/scans")
+        .await
+        .assert_status(StatusCode::METHOD_NOT_ALLOWED);
+
+    let t = Test::new("get_scans_enabled").config("basic_feed").await;
+    t.request(GET, "/scans").await.assert_status(StatusCode::OK);
+    t.request(GET, "/container-image-scanner/scans")
+        .await
+        .assert_status(StatusCode::OK);
+}
+
+#[tokio::test]
+async fn scans_error_handling() {
+    let t = Test::new("scans_error_handling").config("basic").await;
+
+    t.request(POST, "/scans")
+        .json(Scan {
+            scan_id: "scan1".to_string(),
+            ..Default::default()
+        })
+        .await
+        .assert_status(StatusCode::CREATED);
+
+    // duplicate scan id
+    t.request(POST, "/scans")
+        .json(Scan {
+            scan_id: "scan1".to_string(),
+            ..Default::default()
+        })
+        .await
+        .assert_status(StatusCode::CONFLICT)
+        .snapshot_with_name("duplicate_id");
+
+    // valid JSON but invalid scan struct
+    t.request(POST, "/scans")
+        .json("{}")
+        .await
+        .assert_status(StatusCode::BAD_REQUEST)
+        .snapshot_with_name("invalid_scan");
+
+    // invalid JSON
+    t.request(POST, "/scans")
+        .json("{")
+        .await
+        .assert_status(StatusCode::BAD_REQUEST)
+        .snapshot_with_name("invalid_json");
+
+    // unknown scan id
+    t.request(GET, "/scans/doesnt-exist")
+        .await
+        .assert_status(StatusCode::NOT_FOUND)
+        .snapshot();
+
+    // unknown result id
+    t.request(GET, "/scans/scan1/results/9999")
+        .await
+        .assert_status(StatusCode::NOT_FOUND)
+        .snapshot();
+}
+
+#[tokio::test]
+async fn cis_scans_error_handling() {
+    let t = Test::new("scans_error_handling").config("basic").await;
+
+    t.request(POST, "/container-image-scanner/scans")
+        .json(Scan {
+            scan_id: "scan1".to_string(),
+            ..Default::default()
+        })
+        .await
+        .assert_status(StatusCode::CREATED);
+
+    // duplicate scan id
+    t.request(POST, "/container-image-scanner/scans")
+        .json(Scan {
+            scan_id: "scan1".to_string(),
+            ..Default::default()
+        })
+        .await
+        .assert_status(StatusCode::CONFLICT)
+        .snapshot_with_name("duplicate_id");
+
+    // valid JSON but invalid scan struct
+    t.request(POST, "/container-image-scanner/scans")
+        .json("{}")
+        .await
+        .assert_status(StatusCode::BAD_REQUEST)
+        .snapshot_with_name("invalid_scan");
+
+    // invalid JSON
+    t.request(POST, "/container-image-scanner/scans")
+        .json("{")
+        .await
+        .assert_status(StatusCode::BAD_REQUEST)
+        .snapshot_with_name("invalid_json");
+
+    // unknown scan id
+    t.request(GET, "/container-image-scanner/scans/doesnt-exist")
+        .await
+        .assert_status(StatusCode::NOT_FOUND)
+        .snapshot();
+
+    // unknown result id
+    t.request(GET, "/container-image-scanner/scans/scan1/results/9999")
+        .await
+        .assert_status(StatusCode::NOT_FOUND)
+        .snapshot();
+}
+
+#[tokio::test]
+async fn get_container_image_scanner_scans_preferences() {
+    let t = Test::new("get_scans_preferences")
+        .config("cis_single_db_connection")
+        .await;
+
+    let mut body = t
+        .request(GET, "/container-image-scanner/scans/preferences")
         .await
         .assert_status(StatusCode::OK)
         .body::<Vec<BTreeMap<String, Value>>>();
@@ -107,6 +242,17 @@ async fn notus_test(
 async fn notus() {
     let t = Test::new("notus").config("notus").await;
     notus_test(&t, "man-db-1.1.1", "test", true).await
+}
+
+#[tokio::test]
+async fn notus_malformed_package() {
+    let t = Test::new("notus_malformed_package").config("notus").await;
+    // Very professional creation of a malformed package
+    let package = "malformed_input~";
+    t.request(POST, "/notus/test")
+        .json(vec![package])
+        .await
+        .assert_status(StatusCode::BAD_REQUEST);
 }
 
 impl Snapshottable for Vec<String> {}
@@ -156,6 +302,35 @@ impl Snapshottable for Vec<models::Result> {
     fn redactions() -> Vec<String> {
         vec!["[].id".into()]
     }
+}
+
+impl Snapshottable for Vec<models::VTData> {
+    fn prepare(&mut self) {
+        self.sort_by_key(|vt| vt.oid.clone());
+    }
+
+    fn redactions() -> Vec<String> {
+        // the entries in references appear in random order
+        vec!["[].references".into()]
+    }
+}
+
+#[tokio::test]
+async fn get_vts_with_information() {
+    let t = Test::new("get_vts_with_information")
+        .config("basic_feed")
+        .await;
+
+    t.request(GET, "/vts?information=1")
+        .wait_for(
+            StatusCode::OK
+                .with_timeout(Duration::from_millis(100))
+                .with_intermediate_status(StatusCode::SERVICE_UNAVAILABLE),
+        )
+        .await
+        .assert_status(StatusCode::OK)
+        .body::<Vec<models::VTData>>()
+        .snapshot("vts");
 }
 
 #[tokio::test]
@@ -291,8 +466,10 @@ async fn container_image_scanner_deadlock() {
     };
 
     let scan = t.create_container_image_scan(scan).await;
+
     scan.start().await;
-    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(5)))
+
+    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(10)))
         .await
         .body::<Status>()
         .snapshot("status");
