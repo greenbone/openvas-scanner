@@ -1,5 +1,5 @@
 ---
-source: src/openvasd/tests/test_builder.rs
+source: src/openvasd/api_tests/test_builder.rs
 expression: inner
 ---
 {
@@ -7,6 +7,8 @@ expression: inner
   "headers": {
     "api-version": "1",
     "authentication": "disabled",
+    "content-length": "41",
+    "content-type": "application/json",
     "date": "[redacted]",
     "feed-version": "[redacted]",
   },

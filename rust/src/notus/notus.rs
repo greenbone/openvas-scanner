@@ -36,13 +36,7 @@ impl Notus {
     fn load_product(&self, os: &str) -> Result<Product, Error> {
         let product = self.loader.load_product(os)?;
 
-        Product::try_from(product).map_err(|e| {
-            if let Error::VulnerabilityTestParseError(_, pkg) = e {
-                Error::VulnerabilityTestParseError(format!("{os}.notus"), pkg)
-            } else {
-                e
-            }
-        })
+        Product::try_from(product)
     }
 
     fn parse<P: Package>(packages: &[String]) -> Result<Vec<P>, Error> {
