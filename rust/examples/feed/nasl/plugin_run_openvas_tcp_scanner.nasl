@@ -4,6 +4,10 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+if (description) {
+    exit(0);
+}
+
 plugin_run_openvas_tcp_scanner();
 
 open = get_kb_item( "TCPScanner/OpenPortsNb" );
