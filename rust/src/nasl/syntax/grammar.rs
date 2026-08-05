@@ -29,6 +29,7 @@ impl Ast {
         Self { stmts }
     }
 
+    #[cfg(test)]
     pub fn stmts(self) -> Vec<Statement> {
         self.stmts
     }

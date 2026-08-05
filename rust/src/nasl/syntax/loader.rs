@@ -228,10 +228,6 @@ impl TestLoader {
         }
     }
 
-    pub fn insert(&mut self, format: String, script: String) {
-        self.files.insert(format, script);
-    }
-
     pub fn with_file(mut self, file_name: &str, contents: String) -> Self {
         self.files.insert(file_name.into(), contents);
         self

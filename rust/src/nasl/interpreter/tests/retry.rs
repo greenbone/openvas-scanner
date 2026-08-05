@@ -5,7 +5,10 @@
 //! Checks that errors that specify that they are solvable by
 //! retrying are actually retried within the interpreter.
 
-use crate::nasl::{test_prelude::*, utils::Executor};
+use crate::nasl::{
+    test_prelude::*,
+    utils::{Executor, error::Retryable},
+};
 
 struct Counter {
     count: usize,

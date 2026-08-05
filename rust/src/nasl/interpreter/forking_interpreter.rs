@@ -1,6 +1,8 @@
 use futures::{Stream, stream};
 
-use crate::nasl::{NaslVersion, Register, ScanCtx, syntax::grammar::Ast};
+#[cfg(test)]
+use crate::nasl::NaslVersion;
+use crate::nasl::{Register, ScanCtx, syntax::grammar::Ast};
 
 use super::{Interpreter, Result};
 
@@ -39,6 +41,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         Ok(())
     }
 
+    #[cfg(test)]
     pub fn iter_blocking(self) -> impl Iterator<Item = Result> + use<> {
         use futures::StreamExt;
 
@@ -116,6 +119,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         &self.interpreters[0].register
     }
 
+    #[cfg(test)]
     pub fn with_version(mut self, version: NaslVersion) -> ForkingInterpreter<'ctx> {
         for interpreter in self.interpreters.iter_mut() {
             interpreter.version = version;

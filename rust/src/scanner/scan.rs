@@ -13,6 +13,7 @@ pub struct Scan {
     pub vts: Vec<VT>,
     pub scan_preferences: ScanPrefs,
     pub alive_test_methods: Vec<AliveTestMethods>,
+    #[allow(unused)]
     pub alive_test_ports: Vec<Port>,
 }
 

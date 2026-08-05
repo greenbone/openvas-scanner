@@ -244,16 +244,6 @@ where
     }
 }
 
-/// Trait for signature check
-pub trait SignatureChecker {
-    /// For signature check the GNUPGHOME environment variable
-    /// must be set with the path to the keyring.
-    /// If this is satisfied, the signature check is performed
-    fn signature_check(feed_path: &str) -> Result<(), Error> {
-        check_signature(feed_path)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Hasher implements the used hashing algorithm to calculate the hashsum
 pub enum Hasher {
@@ -395,10 +385,6 @@ impl HashSumFileItem<'_> {
             }
         }
         Ok(())
-    }
-
-    pub fn load(&self) -> Result<String, LoadError> {
-        self.reader.load(&self.file_name)
     }
 
     /// returns file name

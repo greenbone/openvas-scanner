@@ -163,19 +163,6 @@ impl NaslSocket {
         &None
     }
 
-    pub fn set_transport(&mut self, transport: Option<OpenvasEncaps>) {
-        if let NaslSocket::Tcp(tcp_connection) = self {
-            tcp_connection.set_transport(transport);
-        };
-    }
-
-    pub fn transport(&self) -> &Option<OpenvasEncaps> {
-        if let NaslSocket::Tcp(tcp_connection) = self {
-            return tcp_connection.transport();
-        }
-        &None
-    }
-
     pub fn set_session_id(&mut self, sid: Arc<Mutex<Option<String>>>) {
         if let NaslSocket::Tcp(tcp_connection) = self {
             tcp_connection.set_session_id(sid);
@@ -880,6 +867,7 @@ async fn socket_get_error(
 }
 
 #[nasl_function(named(socket))]
+#[allow(unused)]
 async fn socket_check_ssl_safe_renegotiation(
     nasl_sockets: &mut NaslSockets,
     socket: usize,
@@ -1362,7 +1350,6 @@ fn join_multicast_group(script_ctx: &mut ScriptCtx, ip: String) -> Result<NaslVa
         let new_jmp = JmpDesc {
             in_addr: Some(multicast_addr),
             count: 1,
-            socket: Some(s),
         };
         script_ctx.multicast_groups.push(new_jmp);
     }

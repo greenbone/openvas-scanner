@@ -179,8 +179,10 @@ pub trait WithErrorInfo<Info> {
     fn with(self, e: Info) -> Self::Error;
 }
 
+#[cfg(test)]
 pub struct Retryable;
 
+#[cfg(test)]
 impl<E: Into<FnError>> WithErrorInfo<Retryable> for E {
     type Error = FnError;
 

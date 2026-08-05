@@ -33,9 +33,12 @@ pub enum PortState {
     Unknown,
     Closed,
     Open,
-    Silent,   // Filtered - no response
+    Silent, // Filtered - no response
+    #[allow(unused)]
     Rejected, // Filtered - ICMP unreachable
+    #[allow(unused)]
     NotTested,
+    #[allow(unused)]
     Testing,
 }
 
@@ -119,6 +122,7 @@ pub struct ScannerConfig {
     pub read_timeout: Duration,
     pub min_connections: usize,
     pub max_connections: usize,
+    #[allow(unused)]
     pub safe_checks: bool,
 }
 

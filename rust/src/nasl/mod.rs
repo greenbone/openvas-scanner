@@ -29,7 +29,6 @@ pub mod prelude {
     pub use super::utils::ArgumentError;
     pub use super::utils::FnError;
     pub use super::utils::NaslResult;
-    pub use super::utils::error::Retryable;
     pub use super::utils::error::ReturnValue;
     pub use super::utils::error::WithErrorInfo;
     pub use super::utils::function::CheckedPositionals;

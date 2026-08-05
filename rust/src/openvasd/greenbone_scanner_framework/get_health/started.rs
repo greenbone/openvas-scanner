@@ -15,6 +15,7 @@ pub trait GetHealthStarted: Send + Sync {
 
 pub enum Started {
     Started,
+    #[allow(unused)]
     NotStarted,
 }
 

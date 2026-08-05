@@ -49,13 +49,6 @@ impl ParseResult {
         self.result
     }
 
-    pub fn num_errors(&self) -> usize {
-        match &self.result {
-            Ok(_) => 0,
-            Err(errs) => errs.len(),
-        }
-    }
-
     pub fn emit_errors(self) -> Result<Ast, Vec<ParseError>> {
         match self.result {
             Ok(result) => Ok(result),
