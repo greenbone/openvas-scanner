@@ -4966,6 +4966,7 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "tracing-test",
+ "url",
  "urlencoding",
  "uuid",
  "vergen-git2",
@@ -6386,6 +6387,7 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+ "serde_derive",
 ]
 
 [[package]]

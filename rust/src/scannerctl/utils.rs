@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr};
 
 #[derive(Clone)]
 pub enum ArgOrStdin<T> {
@@ -24,7 +24,8 @@ where
 
 #[derive(Clone)]
 pub enum NotusArgs {
-    Address(SocketAddr),
+    /// Full URL to reach notus on, including the endpoint path.
+    Address(url::Url),
     Internal(PathBuf),
 }
 
@@ -32,10 +33,9 @@ impl FromStr for NotusArgs {
     type Err = std::io::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(addr) = s.parse() {
-            Ok(Self::Address(addr))
-        } else {
-            Ok(Self::Internal(PathBuf::from(s)))
+        match url::Url::parse(s) {
+            Ok(url) => Ok(Self::Address(url)),
+            Err(_) => Ok(Self::Internal(PathBuf::from(s))),
         }
     }
 }

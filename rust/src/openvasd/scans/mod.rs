@@ -523,7 +523,7 @@ pub mod tests {
         let notus = crate::config::Notus {
             advisories_path,
             products_path,
-            address: None,
+            url: None,
         };
         let scanner = crate::config::Scanner {
             scanner_type: ScannerType::Openvasd,

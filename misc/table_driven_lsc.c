@@ -1027,7 +1027,7 @@ lsc_get_response (const char *pkg_list, const char *os)
 
   // Parse the server and get the port, host, schema
   // and necessary information to build the message
-  server = prefs_get ("notus_route");
+  server = prefs_get ("notus_url");
   notusdata = init_notus_info (server);
 
   if (parse_server (&notusdata) < 0)

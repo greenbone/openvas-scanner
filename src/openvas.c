@@ -410,7 +410,7 @@ static int
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
-  const char *notus_route;
+  const char *notus_url;
 
   set_default_openvas_prefs ();
   prefs_config (config_file);
@@ -432,23 +432,23 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   nvticache_reset ();
 
   /* Init Notus communication */
-  notus_route = prefs_get ("openvasd_server");
-  if (notus_route)
+  notus_url = prefs_get ("openvasd_server");
+  if (notus_url)
     {
-      gchar *full_notus_route;
+      gchar *full_notus_url;
       g_warning ("%s: option openvasd_server is deprecated and will be removed "
-                 "in the next major release. Please use notus_route instead.",
+                 "in the next major release. Please use notus_url instead.",
                  __func__);
-      full_notus_route = g_strconcat (notus_route, "/notus/", NULL);
-      prefs_set ("notus_route", full_notus_route);
-      g_free (full_notus_route);
+      full_notus_url = g_strconcat (notus_url, "/notus/", NULL);
+      prefs_set ("notus_url", full_notus_url);
+      g_free (full_notus_url);
       g_message ("%s: LSC via openvasd", __func__);
       prefs_set ("http_lsc_enabled", "yes");
     }
   else
     {
-      notus_route = prefs_get ("notus_route");
-      if (notus_route)
+      notus_url = prefs_get ("notus_url");
+      if (notus_url)
         {
           g_message ("%s: LSC via HTTP(S)", __func__);
           prefs_set ("http_lsc_enabled", "yes");

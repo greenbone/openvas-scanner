@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::{collections::HashMap, net::SocketAddr};
+use std::collections::HashMap;
 
 use http::StatusCode;
 use nasl_function_proc_macro::nasl_function;
@@ -58,15 +58,16 @@ impl NaslNotus {
 
     async fn notus_extern(
         &self,
-        addr: &SocketAddr,
+        addr: &url::Url,
         pkg_list: &[String],
         product: &str,
     ) -> Result<NaslValue, FnError> {
         let pkg_json = serde_json::to_string(pkg_list)
             .map_err(|e| FnError::wrong_unnamed_argument("pkg_list", &e.to_string()))?;
 
-        // TODO: Currently we only support http
-        let url = format!("http://{}/notus/{}", addr, product);
+        // `addr` is the full endpoint URL (including scheme and path), the
+        // product is appended as the last path segment.
+        let url = format!("{}/{}", addr.as_str().trim_end_matches('/'), product);
 
         let client = reqwest::Client::new();
         let response = client
@@ -79,8 +80,9 @@ impl NaslNotus {
 
         if response.status() != StatusCode::OK {
             return Err(HttpError::Custom(format!(
-                "Notus service returned status code {}",
-                response.status()
+                "Notus service returned status code {} for URL {}",
+                response.status(),
+                url
             ))
             .into());
         }
