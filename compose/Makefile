@@ -12,7 +12,8 @@ else
 endif
 
 TEST_ENVIRONMENTS := -f base.yaml -f openvasd.yaml -f mtls.yaml -f tests/victim.yaml -f local-registry.yaml
-RUST_TEST_ENVIRONMENTS := -f base.yaml -f tests/victim.yaml -f local-registry.yaml -f tests/rust-tests.yaml -f tests/rust-tests-mtls.yaml
+RUST_TEST_ENVIRONMENTS_EXTRA ?=
+RUST_TEST_ENVIRONMENTS := -f base.yaml -f tests/victim.yaml -f local-registry.yaml -f tests/rust-tests.yaml -f tests/rust-tests-mtls.yaml $(RUST_TEST_ENVIRONMENTS_EXTRA)
 RUST_TEST_ARGS ?= --features requires-compose --bin openvasd api_tests::requires_compose::
 RUST_TEST_RUN_ARGS ?=
 
@@ -88,3 +89,7 @@ local-test-environment-running: local-test-environment-up wait-for-services
 .PHONY: rust-test
 rust-test: certs/server.key certs/clients/client1.pem
 	${CMD} ${RUST_TEST_ENVIRONMENTS} run --rm --build ${RUST_TEST_RUN_ARGS} rust-tests cargo test ${RUST_TEST_ARGS}
+
+.PHONY: rust-test-cache-prune
+rust-test-cache-prune:
+	${CMD} ${RUST_TEST_ENVIRONMENTS} run --rm --no-deps rust-tests cargo clean --workspace --locked
