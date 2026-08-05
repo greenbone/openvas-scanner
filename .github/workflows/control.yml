@@ -29,13 +29,9 @@ on:
     # rebuild image every sunday
     - cron: "0 0 * * 0"
 
-# Grants rights to push to the Github container registry.
-# The main workflow has to set the permissions.
+# Jobs that publish containers opt into additional permissions below.
 permissions:
   contents: read
-  packages: write
-  id-token: write
-  pull-requests: write
 
 jobs:
   # sets the release kind when it wasn't triggered by an workflow dispatch
@@ -89,6 +85,10 @@ jobs:
   container:
     if: github.event_name != 'merge_group'
     needs: [init]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     uses: ./.github/workflows/push-container.yml
     secrets:
       dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -112,6 +112,9 @@ jobs:
     if: github.event_name == 'merge_group'
     needs: [init]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out merge group
         uses: actions/checkout@v7
