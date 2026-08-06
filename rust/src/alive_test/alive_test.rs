@@ -52,7 +52,7 @@ struct AliveTestCtlStop;
 #[derive(Debug, Clone)]
 struct AliveHostInfo {
     ip: String,
-    detectihttp_method: AliveTestMethods,
+    detection_method: AliveTestMethods,
 }
 
 struct PktCodec;
@@ -117,7 +117,7 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         {
             return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detectihttp_method: AliveTestMethods::Icmp,
+                detection_method: AliveTestMethods::Icmp,
             }));
         }
     }
@@ -130,7 +130,7 @@ fn process_ipv4_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         if tcp_packet.get_destination() == FILTER_PORT {
             return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detectihttp_method: AliveTestMethods::TcpSyn,
+                detection_method: AliveTestMethods::TcpSyn,
             }));
         }
     }
@@ -149,7 +149,7 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         let make_alive_host_ctl = |pkt: Ipv6Packet<'_>, method| {
             Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detectihttp_method: method,
+                detection_method: method,
             }))
         };
 
@@ -169,7 +169,7 @@ fn process_ipv6_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTest
         if tcp_packet.get_destination() == FILTER_PORT {
             return Ok(Some(AliveHostInfo {
                 ip: pkt.get_source().to_string(),
-                detectihttp_method: AliveTestMethods::TcpSyn,
+                detection_method: AliveTestMethods::TcpSyn,
             }));
         }
     }
@@ -183,7 +183,7 @@ fn process_arp_frame(frame: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestErr
     if arp.get_operation() == ArpOperations::Reply {
         return Ok(Some(AliveHostInfo {
             ip: arp.get_sender_proto_addr().to_string(),
-            detectihttp_method: AliveTestMethods::Arp,
+            detection_method: AliveTestMethods::Arp,
         }));
     }
     Ok(None)
@@ -406,12 +406,12 @@ impl Scanner {
         while let Some(alivehost) = rx_msg.recv().await {
             if self.target.contains(&alivehost.ip) && !alive.contains(&alivehost.ip) {
                 alive.insert(alivehost.ip.clone());
-                println!("{} via {:?}", &alivehost.ip, &alivehost.detectihttp_method);
+                println!("{} via {:?}", &alivehost.ip, &alivehost.detection_method);
             } else if let Some(Ok(dst)) = get_host_discovery_ipv6_net(&self.methods, &self.target)
                 && dst.contains(&alivehost.ip.parse::<std::net::Ipv6Addr>().unwrap())
             {
                 alive.insert(alivehost.ip.clone());
-                println!("{} via {:?}", &alivehost.ip, &alivehost.detectihttp_method);
+                println!("{} via {:?}", &alivehost.ip, &alivehost.detection_method);
             }
         }
 
