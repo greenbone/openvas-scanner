@@ -1,0 +1,145 @@
+name: Create release
+on:
+  workflow_call:
+    inputs:
+      new_version:
+        required: true
+        type: string
+      latest_version:
+        required: true
+        type: string
+      release_kind:
+        required: true
+        type: string
+      release_ref:
+        required: true
+        type: string
+      project:
+        required: true
+        type: string
+      repository:
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+      name:
+        required: true
+      email:
+        required: true
+      gpg_key:
+        required: true
+      gpg_pass:
+        required: true
+
+
+# This job first determines the target branch of the closed pull request. If the target branch is "main",
+# then the latest release tag is used. If no release tag exists, it is set to 0.1.0. If it is a release
+# branch (e.g. v22), then the latest tag within that major version is used.
+#
+# For a patch release, the latest tag is enhanced with 0.0.1, leaving the major and minor versions as
+# they are.
+#
+# For a minor release, the latest tag is enhanced with 0.1.0, and the patch version is set to 0.
+#
+# For a major release, a branch is created for the latest major release found by tag, and the version
+# is enhanced with $latest_tag + 1.0.0, increasing the major version by 1 and setting the minor and
+# patch versions to 0.
+#
+# Major version releases are only valid on the "main" branch.
+#
+# Once the version is found and enhanced, each CMakeLists file is updated to the new
+# version, and a commit is created in the found branch.
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_KIND: ${{inputs.release_kind}}
+      RELEASE_REF: ${{inputs.release_ref}}
+      LATEST_VERSION: ${{inputs.latest_version}}
+      NEW_VERSION: ${{inputs.new_version}}
+      PROJECT: ${{inputs.project}}
+      REPOSITORY: ${{inputs.repository}}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.token }}
+          fetch-depth: '0'
+
+      - name: set git credentials
+        run: |
+             git config --global user.email "${{ secrets.email }}"
+             git config --global user.name "${{ secrets.name }}"
+      - name: "create working branch for previous major release (${{ env.LATEST_VERSION }})"
+        if: ( env.RELEASE_KIND == 'major' )
+        run: |
+          # checkout latest version
+          git checkout "v${{ env.LATEST_VERSION }}"
+          # get just the major version of latest version
+          export BRANCH_NAME=$(echo "${{ env.LATEST_VERSION }}" | sed 's/^\([0-9]*\).*/v\1/')
+          git checkout -b "$BRANCH_NAME" && git push origin "$BRANCH_NAME" || true
+      # create binaries
+      - uses: greenbone/actions/setup-pontos@v3.36.12
+      - name: download rs binaries
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rs-binaries-*
+          merge-multiple: true
+          path: ./assets
+      #- uses: ./.github/actions/compile-x86_64
+      # - uses: ./.github/actions/compile-aarch64
+      - run: mv assets/linux/arm64/openvasd assets/openvasd-aarch64-unknown-linux-gnu
+      - run: mv assets/linux/arm64/scannerctl assets/scannerctl-aarch64-unknown-linux-gnu
+      - run: mv assets/linux/amd64/openvasd assets/openvasd-x86_64-unknown-linux-gnu
+      - run: mv assets/linux/amd64/scannerctl assets/scannerctl-x86_64-unknown-linux-gnu
+      - run: rm -rf assets/linux
+      - run: ls -las assets/
+      # create branch of version
+      - name: prepare project version ${{ env.RELEASE_REF }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
+        run: |
+          # jump back for the case that we switched to a tag
+          git checkout "${{ env.RELEASE_REF }}"
+          # ignore failure on setting version
+          pontos-version update ${{ env.NEW_VERSION }} || true
+          # as soon as pontos-version release is available and it supports cargo do
+          # cd rust
+          # pontos-version update ${{ env.NEW_VERSION }}
+          # but since we don't upload cargo modules to registry the version doesn't matter as of now.
+          if git diff --exit-code --quiet; then
+            echo "There are no modified files, skipping."
+          else
+            git add CMakeLists.txt
+            git commit -m "Automated commit: change version from ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}"
+            git fetch --all
+            git rebase origin/${{ env.RELEASE_REF}}
+            git push origin ${{ env.RELEASE_REF }}
+          fi
+      - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
+        run: |
+          pontos-changelog \
+            --current-version ${{ env.LATEST_VERSION }} \
+            --next-version ${{ env.NEW_VERSION }} \
+            --config changelog.toml \
+            --repository $REPOSITORY \
+            --versioning-scheme semver \
+            -o /tmp/changelog.md   || true
+          # we would rather have empty release notes than no release
+          if [ ! -f "/tmp/changelog.md" ]; then
+            touch /tmp/changelog.md
+          fi
+          echo "${{ secrets.token }}" | gh auth login --with-token
+          export nrn="v${{ env.NEW_VERSION }}"
+          gh release create "$nrn" -F /tmp/changelog.md
+
+      - name: "sign ${{ env.PROJECT }}"
+        run: |
+          export nrn="v${{ env.NEW_VERSION }}"
+          export filename="$PROJECT-$nrn"
+          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o assets/$filename.zip https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.zip
+          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o assets/$filename.tar.gz https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.tar.gz
+          echo -e "${{ secrets.gpg_key }}" > private.pgp
+          echo ${{ secrets.gpg_pass }} | bash .github/sign-assets.sh private.pgp
+          rm assets/$filename.zip
+          rm assets/$filename.tar.gz
+          gh release upload $nrn assets/*
