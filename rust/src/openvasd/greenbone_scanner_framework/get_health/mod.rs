@@ -1,7 +1,6 @@
 mod alive;
 pub use alive::GetHealthAliveHandler;
 mod ready;
-pub use ready::GetHealthReadyHandler;
-
+pub use ready::{GetHealthReadyHandler, RealReady};
 mod started;
-pub use started::GetHealthStartedHandler;
+pub use started::{GetHealthStartedHandler, RealStarted};

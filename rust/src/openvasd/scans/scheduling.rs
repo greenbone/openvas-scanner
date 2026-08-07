@@ -182,6 +182,7 @@ impl<T, C> ScanScheduler<T, C> {
 
         if changed {
             tracing::warn!(id, reason, "Set scan from running to failed.");
+            crate::metrics::scanner_metrics().record_scan_end("failed");
         }
         Ok(())
     }
@@ -189,6 +190,10 @@ impl<T, C> ScanScheduler<T, C> {
     async fn scan_insert_results(&self, id: i64, results: Vec<models::Result>) -> R<()> {
         // TODO: maybe better to use i64 in the impl?
         let id: &str = &id.to_string();
+        let metrics = crate::metrics::scanner_metrics();
+        for r in &results {
+            metrics.record_result(&r.r_type.to_string().to_lowercase());
+        }
         DBResults::new(&self.pool, (id, &results as &[_]))
             .retry_exec()
             .await?;
@@ -272,6 +277,7 @@ where
             .await?;
 
         tracing::info!(id, running, "Started scan");
+        crate::metrics::scanner_metrics().record_scan_start();
 
         self.scan_start(id, scan).await;
         Ok(())
@@ -379,6 +385,9 @@ where
             .change_state(id, "running", "stopped")
             .await?;
         tracing::debug!(changed, id, "Changed scan from running to stopped");
+        if changed {
+            crate::metrics::scanner_metrics().record_scan_end("stopped");
+        }
 
         Ok(())
     }

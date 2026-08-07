@@ -37,7 +37,11 @@ pub use get_scans_preferences::GetScansPreferences;
 mod get_vts;
 pub use get_vts::{GetVTsError, GetVts};
 mod get_health;
-use get_health::{GetHealthAliveHandler, GetHealthReadyHandler, GetHealthStartedHandler};
+use get_health::{
+    GetHealthAliveHandler, GetHealthReadyHandler, GetHealthStartedHandler, RealReady, RealStarted,
+};
+mod get_metrics;
+pub use get_metrics::GetMetricsHandler;
 
 mod post_scans;
 use once_cell::sync::Lazy;
@@ -127,6 +131,8 @@ pub struct RuntimeBuilder<T> {
     api_keys: Option<Vec<String>>,
     handlers: RequestHandlers,
     max_concurrent_connections: usize,
+    metrics_enabled: bool,
+    metrics_authenticated: bool,
     _phantom: PhantomData<T>,
 }
 
@@ -162,6 +168,8 @@ impl<T> RuntimeBuilder<T> {
             handlers,
             listener_address,
             max_concurrent_connections: 10,
+            metrics_enabled: false,
+            metrics_authenticated: false,
             _phantom: PhantomData,
         }
     }
@@ -221,6 +229,32 @@ impl<T> RuntimeBuilder<T> {
     ) -> RuntimeBuilder<T> {
         self.max_concurrent_connections = max_concurrent_connections;
         self
+    }
+
+    /// Enables the `/metrics` endpoint (Prometheus text format).
+    ///
+    /// `authenticated` controls whether the endpoint requires API key / mTLS.
+    pub fn metrics(mut self, authenticated: bool) -> RuntimeBuilder<T> {
+        self.metrics_enabled = true;
+        self.metrics_authenticated = authenticated;
+        self.handlers
+            .push(GetMetricsHandler::new(authenticated));
+        self
+    }
+
+    /// Replaces the default stub `/health/ready` handler with one that checks
+    /// the actual feed state.
+    ///
+    /// The scanner is considered ready only when the feed has reached
+    /// [`FeedState::Synced`].
+    pub fn real_ready(self, feed_state: Arc<RwLock<FeedState>>) -> RuntimeBuilder<T> {
+        self.add_request_handler(GetHealthReadyHandler::from(RealReady::new(feed_state)))
+    }
+
+    /// Replaces the default stub `/health/started` handler with one that tracks
+    /// whether the feed has been synced at least once.
+    pub fn real_started(self, feed_synced: Arc<std::sync::atomic::AtomicBool>) -> RuntimeBuilder<T> {
+        self.add_request_handler(GetHealthStartedHandler::from(RealStarted::new(feed_synced)))
     }
 
     pub fn add_request_handler<R>(mut self, value: R) -> RuntimeBuilder<T>
@@ -286,6 +320,8 @@ impl<T> RuntimeBuilder<T> {
             handlers: ior.handlers,
             _phantom: PhantomData,
             max_concurrent_connections: ior.max_concurrent_connections,
+            metrics_enabled: ior.metrics_enabled,
+            metrics_authenticated: ior.metrics_authenticated,
         }
     }
 
@@ -359,6 +395,8 @@ impl RuntimeBuilder<runtime_builder_states::Start> {
             handlers: ior.handlers,
             _phantom: PhantomData,
             max_concurrent_connections: ior.max_concurrent_connections,
+            metrics_enabled: ior.metrics_enabled,
+            metrics_authenticated: ior.metrics_authenticated,
         }
     }
 }
@@ -377,6 +415,8 @@ impl RuntimeBuilder<runtime_builder_states::DeleteScanIDSet> {
             api_keys: ior.api_keys,
             handlers: ior.handlers,
             max_concurrent_connections: ior.max_concurrent_connections,
+            metrics_enabled: ior.metrics_enabled,
+            metrics_authenticated: ior.metrics_authenticated,
             _phantom: PhantomData,
         }
     }

@@ -1,4 +1,4 @@
-use std::{pin::Pin, sync::Arc};
+use std::{pin::Pin, sync::{Arc, atomic::{AtomicBool, Ordering}}};
 
 use hyper::StatusCode;
 
@@ -60,6 +60,44 @@ impl Default for GetHealthStartedHandler<JustStarted> {
         Self {
             get_health_started: Arc::new(JustStarted {}),
         }
+    }
+}
+
+/// A started checker that tracks whether the feed has been synced at least once.
+///
+/// The scanner is considered "started" once the feed reaches [`FeedState::Synced`]
+/// for the first time. This is tracked via an [`AtomicBool`] that is set when the
+/// feed orchestrator reports a successful sync.
+pub struct RealStarted {
+    feed_synced: Arc<AtomicBool>,
+}
+
+impl RealStarted {
+    /// Creates a new `RealStarted` that shares the `feed_synced` flag.
+    ///
+    /// The flag should be set to `true` by the feed orchestrator when the feed
+    /// first reaches `Synced` state.
+    pub fn new(feed_synced: Arc<AtomicBool>) -> Self {
+        Self { feed_synced }
+    }
+}
+
+impl Prefixed for RealStarted {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
+
+impl GetHealthStarted for RealStarted {
+    fn get_health_started(&self) -> Pin<Box<dyn Future<Output = Started> + Send>> {
+        let synced = self.feed_synced.clone();
+        Box::pin(async move {
+            if synced.load(Ordering::SeqCst) {
+                Started::Started
+            } else {
+                Started::NotStarted
+            }
+        })
     }
 }
 

@@ -176,6 +176,10 @@ Options:
           enable get scans endpoint. Default 'true'. [env: ENABLE_GET_SCANS=] [possible values: true, false]
       --enable-get-performance [<enable-get-performance>]
           enable get performance endpoint. Default 'false'. [env: ENABLE_GET_PERFORMANCE=] [possible values: true, false]
+      --enable-metrics [<enable-metrics>]
+          enable /metrics endpoint (Prometheus text format). Default 'false'. [env: ENABLE_METRICS=] [possible values: true, false]
+      --metrics-auth [<metrics-auth>]
+          require auth for /metrics (true/false). Default: follow global auth. [env: METRICS_AUTH=] [possible values: true, false]
       --api-key <api-key>
           API key that must be set as X-API-KEY header to gain access [env: API_KEY=]
       --scanner-type <ospd,openvas>

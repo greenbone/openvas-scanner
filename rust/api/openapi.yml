@@ -51,6 +51,8 @@ tags:
   description: Feed related
 - name: notus
   description: Notus vulnerability scanner
+- name: metrics
+  description: Prometheus metrics endpoint
 paths:
   /health:
     head:
@@ -83,15 +85,15 @@ paths:
 
   /health/ready:
     get:
-      description: "Get application's health information"
+      description: "Get application's readiness. Returns 200 when the feed is synced and the scanner is ready to accept scans; 503 otherwise."
       operationId: "get_health_ready"
       tags:
       - "health"
       responses:
         "200":
-          description: "Ok"
+          description: "Ready - feed synced"
         "503":
-          description: "Service Unavailable"
+          description: "Service Unavailable - feed not yet synced"
   /health/started:
     get:
       description: "Get application's health information"
@@ -101,6 +103,24 @@ paths:
       responses:
         "200":
           description: "Ok"
+        "503":
+          description: "Service Unavailable"
+  /metrics:
+    get:
+      description: "Prometheus metrics endpoint. Exposes scan, feed, VT execution, DB, and HTTP metrics in Prometheus text format."
+      operationId: "get_metrics"
+      tags:
+      - "metrics"
+      security: []
+      responses:
+        "200":
+          description: "Prometheus text-format metrics"
+          content:
+            text/plain:
+              schema:
+                type: string
+        "401":
+          description: "Unauthorized (when metrics authentication is enabled)"
         "503":
           description: "Service Unavailable"
 

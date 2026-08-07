@@ -1,6 +1,7 @@
-use std::{pin::Pin, sync::Arc};
+use std::{pin::Pin, sync::{Arc, RwLock}};
 
 use hyper::StatusCode;
+use scannerlib::models::FeedState;
 
 use crate::{
     auth_method_segments,
@@ -60,6 +61,45 @@ impl Default for GetHealthReadyHandler<JustReady> {
         Self {
             get_health_ready: Arc::new(JustReady {}),
         }
+    }
+}
+
+/// A readiness checker that reflects the actual feed state.
+///
+/// The scanner is considered ready when the feed has reached [`FeedState::Synced`].
+/// This allows orchestrators (e.g. Kubernetes) to route traffic only to instances
+/// that have a loaded vulnerability test feed.
+pub struct RealReady {
+    feed_state: Arc<RwLock<FeedState>>,
+}
+
+impl RealReady {
+    pub fn new(feed_state: Arc<RwLock<FeedState>>) -> Self {
+        Self { feed_state }
+    }
+}
+
+impl Prefixed for RealReady {
+    fn prefix(&self) -> &'static str {
+        ""
+    }
+}
+
+impl GetHealthReady for RealReady {
+    fn get_health_ready(&self) -> Pin<Box<dyn Future<Output = Ready> + Send>> {
+        let fs = self.feed_state.clone();
+        Box::pin(async move {
+            // Use try_read to avoid blocking the handler if the lock is contended.
+            // If the lock is poisoned or contended, treat as not ready.
+            let is_ready = fs.try_read().map_or(false, |s| {
+                matches!(*s, FeedState::Synced(_, _))
+            });
+            if is_ready {
+                Ready::Ready
+            } else {
+                Ready::NotReady
+            }
+        })
     }
 }
 

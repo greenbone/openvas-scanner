@@ -347,9 +347,20 @@ where
 
         let acc = self.counter.clone();
         let max_connections = self.max_connections;
+        let req_method = req.method().clone();
         Box::pin(async move {
+            let metrics = crate::metrics::scanner_metrics();
+            let start = std::time::Instant::now();
+            metrics.http_request_started();
+
             if acc.load(Ordering::Relaxed) > max_connections {
                 tracing::trace!("Too many open connections, returning 503");
+                metrics.http_request_finished();
+                metrics.record_http_request(
+                    req_method.as_str(),
+                    "503",
+                    start.elapsed().as_secs_f64(),
+                );
                 return Ok(rb
                     .header("Retry-After", 10)
                     .status(StatusCode::SERVICE_UNAVAILABLE)
@@ -365,10 +376,21 @@ where
                 BodyKindContent::Binary(x) => rb
                     .header("Content-Type", "application/json")
                     .header("Content-Length", x.len()),
+                BodyKindContent::Text(x, ct) => rb
+                    .header("Content-Type", *ct)
+                    .header("Content-Length", x.len()),
                 BodyKindContent::BinaryStream(_) => rb.header("Content-Type", "application/json"),
             };
             let current = acc.fetch_sub(1, Ordering::Relaxed);
             tracing::trace!(current, max_connections, "releasing request");
+
+            let status = resp.status_code.as_u16().to_string();
+            metrics.record_http_request(
+                req_method.as_str(),
+                &status,
+                start.elapsed().as_secs_f64(),
+            );
+            metrics.http_request_finished();
 
             Ok(rb.status(resp.status_code).body(resp.content).unwrap())
         })

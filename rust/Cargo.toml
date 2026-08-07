@@ -73,6 +73,7 @@ pathdiff = "0.2.3"
 pbkdf2 = { version = "0.13.0", features = ["password-hash"] }
 pcap = { version = "2.4.0", features = ["capture-stream"] }
 pkcs8 = { version = "0.10.2", features = ["encryption", "pem", "std"] }
+prometheus = "0.13"
 pnet = { version = "0.35.0" }
 pnet_base = { version = "0.35.0" }
 pnet_macros = { version = "0.35.0" }

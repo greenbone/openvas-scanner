@@ -14,6 +14,7 @@ mod crypt;
 mod database;
 mod greenbone_scanner_framework;
 mod json_stream;
+mod metrics;
 mod notus;
 mod scans;
 mod vts;
@@ -73,9 +74,24 @@ async fn build_runtime(config: Config) -> Result<RuntimeBuilder<End>> {
     let (get_notus, post_notus) = notus::init(products.clone());
 
     let mut rb = RuntimeBuilder::<greenbone_scanner_framework::End>::new(config.listener.address)
-        .feed_version(feed_snapshot.clone());
+        .feed_version(feed_snapshot.clone())
+        .real_ready(feed_snapshot.clone());
+
     if let Some(api_key) = config.endpoints.key.clone() {
         rb = rb.api_keys(vec![api_key]);
+    }
+
+    // Enable /metrics endpoint if configured
+    if config.endpoints.enable_metrics {
+        let metrics_auth = config
+            .endpoints
+            .metrics_auth
+            .unwrap_or(config.endpoints.key.is_some() || config.tls.client_certs.is_some());
+        rb = rb.metrics(metrics_auth);
+        tracing::info!(
+            "Metrics endpoint enabled (authenticated: {})",
+            metrics_auth
+        );
     }
     match (config.tls.certs.clone(), config.tls.key.clone()) {
         (Some(certificate), Some(key)) => {

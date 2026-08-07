@@ -191,6 +191,14 @@ pub struct Endpoints {
     pub enable_get_performance: Option<bool>,
     #[serde(default)]
     pub key: Option<String>,
+    /// Enable the `/metrics` endpoint (Prometheus text format).
+    #[serde(default)]
+    pub enable_metrics: bool,
+    /// When `Some(true)`, `/metrics` requires authentication (API key or mTLS).
+    /// When `Some(false)`, `/metrics` is exposed without authentication.
+    /// When `None` (default), follows the global authentication setting.
+    #[serde(default)]
+    pub metrics_auth: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -509,6 +517,23 @@ impl Config {
                     .help("enable get performance endpoint. Default 'false'."),
             )
             .arg(
+                clap::Arg::new("enable-metrics")
+                    .env("ENABLE_METRICS")
+                    .long("enable-metrics")
+                    .num_args(0..=1)
+                    .value_parser(clap::builder::BoolValueParser::new())
+                    .default_missing_value("true")
+                    .help("enable /metrics endpoint (Prometheus). Default 'false'."),
+            )
+            .arg(
+                clap::Arg::new("metrics-auth")
+                    .env("METRICS_AUTH")
+                    .long("metrics-auth")
+                    .num_args(0..=1)
+                    .value_parser(clap::builder::BoolValueParser::new())
+                    .help("require auth for /metrics (true/false). Default: follow global."),
+            )
+            .arg(
                 clap::Arg::new("api-key")
                     .env("API_KEY")
                     .long("api-key")
@@ -723,6 +748,12 @@ impl Config {
         }
         if let Some(enable) = cmds.get_one::<bool>("enable-get-performance") {
             config.endpoints.enable_get_performance = Some(*enable);
+        }
+        if let Some(enable) = cmds.get_one::<bool>("enable-metrics") {
+            config.endpoints.enable_metrics = *enable;
+        }
+        if let Some(auth) = cmds.get_one::<bool>("metrics-auth") {
+            config.endpoints.metrics_auth = Some(*auth);
         }
         if let Some(api_key) = cmds.get_one::<String>("api-key") {
             config.endpoints.key = Some(api_key.clone());

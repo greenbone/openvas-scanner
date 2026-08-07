@@ -229,6 +229,23 @@ where
     }
     async fn change_outer_state(&self, state: FeedState) {
         let narf = self.outer_state.clone();
+        // Update feed state metrics
+        let metrics = crate::metrics::scanner_metrics();
+        match &state {
+            FeedState::Unknown => {
+                metrics.set_feed_state("nasl", crate::metrics::FEED_STATE_UNKNOWN);
+                metrics.set_feed_state("advisories", crate::metrics::FEED_STATE_UNKNOWN);
+            }
+            FeedState::Syncing => {
+                metrics.set_feed_state("nasl", crate::metrics::FEED_STATE_SYNCING);
+                metrics.set_feed_state("advisories", crate::metrics::FEED_STATE_SYNCING);
+            }
+            FeedState::Synced(_, _) => {
+                metrics.set_feed_state("nasl", crate::metrics::FEED_STATE_SYNCED);
+                metrics.set_feed_state("advisories", crate::metrics::FEED_STATE_SYNCED);
+                metrics.set_feed_last_sync(chrono::Utc::now().timestamp());
+            }
+        }
         tokio::task::spawn_blocking(move || {
             let mut out = narf.write().unwrap();
             *out = state;

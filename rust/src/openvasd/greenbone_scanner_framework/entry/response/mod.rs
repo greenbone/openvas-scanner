@@ -20,6 +20,8 @@ pub enum BodyKindContent {
     Empty,
     /// Static binary buffer
     Binary(Bytes),
+    /// Static text buffer with an explicit content type
+    Text(Bytes, &'static str),
     /// Generic boxed stream
     BinaryStream(Pin<Box<dyn Stream<Item = Bytes> + Send>>),
 }
@@ -75,6 +77,16 @@ impl BodyKind {
                 content: BodyKindContent::Binary(v.into()),
             },
             Err(e) => internal_server_error!(e),
+        }
+    }
+
+    /// Creates a text response with an explicit content type.
+    ///
+    /// Used for non-JSON responses such as the Prometheus `/metrics` endpoint.
+    pub fn text_content(status_code: StatusCode, content_type: &'static str, v: String) -> Self {
+        BodyKind {
+            status_code,
+            content: BodyKindContent::Text(v.into(), content_type),
         }
     }
 
@@ -151,6 +163,7 @@ impl Body for BodyKindContent {
         match self {
             BodyKindContent::Empty => SizeHint::with_exact(0),
             BodyKindContent::Binary(b) => SizeHint::with_exact(b.len() as u64),
+            BodyKindContent::Text(b, _) => SizeHint::with_exact(b.len() as u64),
             _ => SizeHint::default(),
         }
     }
@@ -163,6 +176,11 @@ impl Body for BodyKindContent {
         match this {
             BodyKindContent::Empty => Poll::Ready(None),
             BodyKindContent::Binary(b) => {
+                let data = b.clone();
+                *this = BodyKindContent::Empty;
+                Poll::Ready(Some(Ok(Frame::data(data))))
+            }
+            BodyKindContent::Text(b, _) => {
                 let data = b.clone();
                 *this = BodyKindContent::Empty;
                 Poll::Ready(Some(Ok(Frame::data(data))))
