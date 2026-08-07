@@ -5,7 +5,7 @@
 [![GitHub releases](https://img.shields.io/github/release/greenbone/openvas-scanner.svg)](https://github.com/greenbone/openvas-scanner/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/greenbone/openvas-scanner.svg)](https://github.com/greenbone/openvas-scanner/pkgs/container/openvas-scanner)
 [![Docker Image Size](https://img.shields.io/docker/image-size/greenbone/openvas-scanner.svg?maxAge=2592000)](https://github.com/greenbone/openvas-scanner/pkgs/container/openvas-scanner)
-[![CI](https://github.com/greenbone/openvas-scanner/actions/workflows/control.yml/badge.svg?branch=main)](https://github.com/greenbone/openvas-scanner/actions/workflows/control.yml?query=branch%3Amain)
+[![CI](https://github.com/greenbone/openvas-scanner/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/greenbone/openvas-scanner/actions/workflows/ci.yml?query=branch%3Amain)
 
 This is the OpenVAS Scanner of the Greenbone Community Edition.
 

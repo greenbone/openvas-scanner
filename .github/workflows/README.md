@@ -1,68 +1,68 @@
-# Continuous Integration Workflow Documentation
+# GitHub Actions workflows
 
-This document outlines the Continuous Integration (CI) pipeline, detailing how to trigger releases and the specific roles of various jobs within the workflow.
+The workflows are organized by the event that starts them. Build, test, and
+release implementations are kept in reusable workflows so that the entry
+workflows contain only orchestration.
 
-## Release Trigger Process
+## Entry workflows
 
-To initiate a release, navigate to `Actions -> CI` in the GitHub repository, and click on `Run workflow`. Choose from the following options:
-- `major`: For a major release with incompatible changes.
-- `minor`: For a minor release introducing new features.
-- `patch`: For a patch release focusing on bug fixes and minor improvements.
-- `no_release`: To run the pipeline without releasing, updating the edge image.
+### `ci.yml` — continuous integration
 
-## Jobs Overview
+Runs for open pull requests, pushes to `main`, and merge groups. It calls the
+reusable unit-test, lint, and build workflows. Merge groups additionally run the
+stable, testing, and oldstable container compatibility builds.
 
-The CI pipeline incorporates multiple jobs, each with a specific function in the development lifecycle.
+`Merge gate` is the single aggregate job intended for branch protection. On a
+pull request it requires tests, linting, and builds. In the merge queue it also
+requires all container compatibility builds.
 
-### 1. Initialization (`init`)
+### `container.yml` — container publishing
 
-If the initialization fails it will prevent further execution of `build`.
+Runs on pushes to `main`, version tags, the weekly schedule, repository
+dispatches, or manual dispatch. It initializes the version and calls
+`push-container.yml` to build and publish the stable, testing, and oldstable
+multi-architecture images.
 
-- **Purpose**: Sets the release type based on the input or event that triggered the workflow.
-- **Workflow File**: `init.yaml`
+Container publishing is deliberately separate from pull-request validation.
 
-### 2. Unit Tests (`unittests`)
-- **Purpose**: Executes unit tests to validate code changes.
-- **Workflow File**: `tests.yml`
+### `release.yml` — release orchestration
 
-If the unit tests fails it will prevent further execution of `build`.
+Runs manually with an explicit major, minor, or patch choice. It also preserves
+the existing release-label behavior for merged pull requests:
 
-### 3. Build (`build`)
-- **Purpose**: Compiles and builds the project, preparing it for testing and deployment.
-- **Dependencies**: Requires successful completion of `unittests`.
-- **Workflow File**: `build.yml`
+- `major_release`
+- `minor_release`
+- `patch_release`
 
+The workflow calculates the version, builds both architecture-qualified Rust
+artifacts, and calls `create-release.yml`.
 
-### 4. Linting (`linting`)
-- **Purpose**: Ensures code quality and consistency through linting.
-- **Workflow File**: `linting.yml`
+### Other entry workflows
 
-If linting fails it will not prevent execution of the other steps, as it may be that newer versions of the used tooling finds new linting issues that are not affecting the binary as much.
+- `auto_label.yml`: labels pull requests from conventional commits.
+- `codeql.yml`: analyzes the C code on pull requests, main, and weekly.
+- `dependency-review.yml`: reviews dependency changes on pull requests.
+- `detect-hidden-unicode.yml`: checks pull requests for hidden Unicode.
+- `docs.yml`: checks Markdown links when documentation changes.
+- `integration-build.yml`: runs the weekly/manual Bookworm integration build.
+- `package-build-on-release.yml`: triggers downstream packaging after a release.
+- `sbom-upload.yml`: uploads the SBOM on main or by manual dispatch.
 
+## Reusable workflows
 
-### 5. OpenVAS Integration Build
-- **Purpose**: Checks that the openvas still builds together with gvm-libs and openvas-smb on debian bookworm (since bookworm is used on GOS).
-- **Workflow File**: `integration-build.yml`
-- **Trigger**: Weekly schedule or manual dispatch.
+- `init.yaml`: calculates refs, versions, and container-tag properties.
+- `tests.yml`: runs C, Rust, and Compose-dependent Rust tests.
+- `linting.yml`: runs C/Rust formatting, Clippy, typos, and license checks.
+- `build.yml`: builds C and calls the AMD64 and ARM64 Rust binary builder.
+- `rust-binaries.yaml`: builds `openvasd` and `scannerctl` for one architecture.
+- `container-compatibility.yml`: build-only validation of the three container
+  variants on AMD64.
+- `push-container.yml`: publishes the three multi-architecture container
+  variants and performs registry follow-up work.
+- `create-release.yml`: creates, signs, and uploads a GitHub release.
 
-### 6. Containerization
-- **Purpose**: Packages the build into Docker containers.
-- **Workflow File**: `push-container.yml`
-- **Dependencies**: Depends on `init`.
+## Required check
 
-### 7. Release (`release`)
-- **Purpose**: Handles the release process for different version types.
-- **Conditions**: Activated based on the release type set in `init`.
-- **Dependencies**: Requires `build` and `init`.
-- **Workflow File**: `release.yml`
-
-## Secrets and Authentication
-
-The CI workflow employs GitHub secrets for secure authentication and interaction with external services such as DockerHub.
-
-### Utilized Secrets
-- **DOCKERHUB_USERNAME**: DockerHub username.
-- **DOCKERHUB_TOKEN**: Token for DockerHub with write access to the registry.
-- **GREENBONE_BOT_TOKEN**: Token for GitHub repository operations.
-- **GREENBONE_BOT**: Username for git commits.
-- **GREENBONE_BOT_MAIL**: Email address for git commits.
+Configure repository rules to require only `Merge gate`. Keep the `CI` workflow
+and `Merge gate` job names stable because GitHub identifies required checks by
+their displayed names.

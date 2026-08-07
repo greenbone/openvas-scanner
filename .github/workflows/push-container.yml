@@ -13,10 +13,6 @@ on:
         required: false
         type: string
     secrets:
-      dockerhub_user:
-        required: true
-      dockerhub_token:
-        required: true
       cosign_key_opensight:
         required: true
       cosign_password_opensight:
@@ -46,7 +42,6 @@ permissions:
 
 jobs:
   build:
-    if: ${{ github.event_name != 'merge_group' && github.repository == 'greenbone/openvas-scanner' }}
     strategy:
       fail-fast: false
       matrix:
@@ -101,51 +96,16 @@ jobs:
         ${{ matrix.build.variant-build-args }}
       images: |
         ghcr.io/${{ github.repository }},enable=true
-        ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule' }}
-        ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule' }}
+        ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=true
+        ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=true
     secrets:
       GREENBONE_REGISTRY_USER: ${{ secrets.greenbone_registry_user }}
       GREENBONE_REGISTRY_TOKEN: ${{ secrets.greenbone_registry_token }}
 
-  merge-build:
-    if: ${{ github.event_name == 'merge_group' && github.repository == 'greenbone/openvas-scanner' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - build:
-              name: stable
-              variant-build-args: ""
-          - build:
-              name: testing
-              variant-build-args: |
-                VERSION=testing-edge
-                OPENVAS_SMB_IMAGE=greenbone/openvas-smb:testing-edge
-          - build:
-              name: oldstable
-              variant-build-args: |
-                VERSION=oldstable
-                RUST_IMAGE=rust:bookworm
-    name: Build merge-group container (${{ matrix.build.name }})
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@b05f3f5519dd87d3ba754cc423b652a5edd6d2c5 # v4.2.0
-      - name: Build merge-group container
-        uses: docker/build-push-action@3b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
-        with:
-          context: .
-          file: .docker/prod.Dockerfile
-          platforms: linux/amd64
-          build-args: |
-            BIN_VERSION=${{ inputs.binary_version }}
-            ${{ matrix.build.variant-build-args }}
-
   trigger-replication:
     needs:
       - build
-    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule') && github.repository == 'greenbone/openvas-scanner' }}
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: self-hosted-generic
     steps:
       - name: Ensure all tags are replicated on the public registry
