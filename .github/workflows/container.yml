@@ -1,0 +1,44 @@
+name: Container publishing
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  repository_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  initialize:
+    name: Initialize
+    uses: ./.github/workflows/init.yaml
+    with:
+      release: no_release
+
+  publish:
+    name: Publish containers
+    needs: initialize
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/push-container.yml
+    with:
+      is_latest_tag: ${{ needs.initialize.outputs.docker_build_is_latest }}
+      is_version_tag: ${{ needs.initialize.outputs.docker_build_is_version }}
+      binary_version: ${{ needs.initialize.outputs.binary_version }}
+    secrets:
+      cosign_key_opensight: ${{ secrets.COSIGN_KEY_OPENSIGHT }}
+      cosign_password_opensight: ${{ secrets.COSIGN_KEY_PASSWORD_OPENSIGHT }}
+      greenbone_bot_token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+      greenbone_registry: ${{ vars.GREENBONE_REGISTRY }}
+      greenbone_registry_user: ${{ secrets.GREENBONE_REGISTRY_USER }}
+      greenbone_registry_token: ${{ secrets.GREENBONE_REGISTRY_TOKEN }}
+      greenbone_registry_read_user: ${{ secrets.GREENBONE_REGISTRY_READ_USER }}
+      greenbone_registry_read_token: ${{ secrets.GREENBONE_REGISTRY_READ_TOKEN }}
+      greenbone_registry_replication_user: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_USER }}
+      greenbone_registry_replication_token: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_TOKEN }}

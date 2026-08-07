@@ -221,7 +221,7 @@ fn forge_igmp() {
 #[should_panic]
 fn copy_from_slice_panic() {
     let mut a = [1u8, 2u8, 3u8, 4u8];
-    let b = *b"abcd";
+    let b = [b'a', b'b', b'c', b'd'];
 
     // this should panic
     a[..2].copy_from_slice(&b[..b.len()]);

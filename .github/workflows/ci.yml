@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+jobs:
+  initialize:
+    name: Initialize
+    uses: ./.github/workflows/init.yaml
+    with:
+      release: no_release
+      base_ref: ${{ github.event.merge_group.base_ref || github.base_ref }}
+
+  unit-tests:
+    name: Unit tests
+    uses: ./.github/workflows/tests.yml
+
+  build:
+    name: Build
+    needs: initialize
+    uses: ./.github/workflows/build.yml
+    with:
+      binary_version: ${{ needs.initialize.outputs.binary_version }}
+
+  lint:
+    name: Lint
+    uses: ./.github/workflows/linting.yml
+
+  container-compatibility:
+    name: Container compatibility
+    if: github.event_name == 'merge_group'
+    needs: initialize
+    uses: ./.github/workflows/container-compatibility.yml
+    with:
+      binary_version: ${{ needs.initialize.outputs.binary_version }}
+
+  merge-gate:
+    name: Merge gate
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+    needs:
+      - unit-tests
+      - build
+      - lint
+      - container-compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required CI jobs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          UNIT_TESTS_RESULT: ${{ needs.unit-tests.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          CONTAINER_COMPATIBILITY_RESULT: ${{ needs.container-compatibility.result }}
+        run: |
+          test "$UNIT_TESTS_RESULT" = success
+          test "$BUILD_RESULT" = success
+          test "$LINT_RESULT" = success
+          if [ "$EVENT_NAME" = merge_group ]; then
+            test "$CONTAINER_COMPATIBILITY_RESULT" = success
+          else
+            test "$CONTAINER_COMPATIBILITY_RESULT" = skipped
+          fi
