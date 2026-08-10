@@ -378,13 +378,25 @@ impl Scanner {
     }
 
     pub async fn run_alive_test(&self) -> Result<HashSet<String>, AliveTestError> {
+        self.run_alive_test_streaming(None).await
+    }
+
+    pub async fn run_alive_test_streaming(
+        &self,
+        notify: Option<Sender<Host>>,
+    ) -> Result<HashSet<String>, AliveTestError> {
         // TODO: Replace with a Storage type to store the alive host list
         let mut alive = HashSet::<String>::new();
 
         if self.methods.contains(&AliveTestMethods::ConsiderAlive) {
             for t in self.target.iter() {
                 alive.insert(t.clone());
-                println!("{t} via {}", AliveTestMethods::ConsiderAlive)
+                println!("{t} via {}", AliveTestMethods::ConsiderAlive);
+                if let Some(tx) = &notify {
+                    // TODO: check what happens if there is no receiver (scan stop)
+                    // We should break the alive test too.
+                    let _ = tx.send(t.clone()).await;
+                }
             }
             return Ok(alive);
         };
@@ -404,14 +416,22 @@ impl Scanner {
         let send_handle = tokio::spawn(send_task(methods_c, trgt, timeout, tx_ctl));
 
         while let Some(alivehost) = rx_msg.recv().await {
+            let mut newly_found = None;
             if self.target.contains(&alivehost.ip) && !alive.contains(&alivehost.ip) {
                 alive.insert(alivehost.ip.clone());
                 println!("{} via {:?}", &alivehost.ip, &alivehost.detection_method);
+                newly_found = Some(alivehost.ip.clone());
             } else if let Some(Ok(dst)) = get_host_discovery_ipv6_net(&self.methods, &self.target)
                 && dst.contains(&alivehost.ip.parse::<std::net::Ipv6Addr>().unwrap())
             {
                 alive.insert(alivehost.ip.clone());
                 println!("{} via {:?}", &alivehost.ip, &alivehost.detection_method);
+                newly_found = Some(alivehost.ip.clone());
+            }
+            if let Some(host) = newly_found
+                && let Some(tx) = &notify
+            {
+                let _ = tx.send(host).await;
             }
         }
 

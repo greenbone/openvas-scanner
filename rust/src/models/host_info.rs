@@ -59,6 +59,16 @@ impl HostInfo {
         self.remaining_vts_per_host.clear();
     }
 
+    // Used by openvasd scanner when using Boreas.
+    pub fn mark_hosts_dead<'a>(&mut self, hosts: impl Iterator<Item = &'a str>) {
+        for host in hosts {
+            if self.remaining_vts_per_host.remove(host).is_some() {
+                self.dead += 1;
+                self.queued -= 1;
+            }
+        }
+    }
+
     pub fn update_with(mut self, other: &HostInfo) -> Self {
         // total hosts value is sent once and only once must be updated
         if other.all != 0 {

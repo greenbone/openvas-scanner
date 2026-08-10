@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::{
+    collections::{HashMap, HashSet},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -10,8 +11,9 @@ use std::{
     time::SystemTime,
 };
 
-use crate::models::{HostInfo, Phase, Status};
-use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx};
+use crate::alive_test::Scanner as BoreasScanner;
+use crate::models::{Host, HostInfo, Phase, Status};
+use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Target};
 use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
 use crate::{
@@ -19,6 +21,7 @@ use crate::{
     scheduling::{Scheduler, SchedulerStorage, VTError},
 };
 use futures::StreamExt;
+use tokio::sync::mpsc::{self, Receiver};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
@@ -35,6 +38,10 @@ pub struct RunningScan<S> {
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<Status>>,
     notus: Option<NotusCtx>,
+    /// When set, hosts are attacked as they arrive on this channel
+    /// (e.g. as they are confirmed alive by a concurrently running alive
+    /// test) instead of scanning `scan.targets` all at once.
+    host_feed: Option<Receiver<Target>>,
 }
 
 pub(super) fn current_time_in_seconds(name: &'static str) -> u64 {
@@ -72,6 +79,7 @@ where
                     keep_running: keep_running.clone(),
                     status: status.clone(),
                     notus,
+                    host_feed: None,
                 }
                 // TODO run per target
                 .run(),
@@ -81,8 +89,82 @@ where
         }
     }
 
-    async fn run(self) -> Result<(), Error> {
-        let runner = match self.make_runner().await {
+    pub fn start_with_alive_test(
+        scan: Scan,
+        storage: Arc<S>,
+        loader: Arc<Loader>,
+        function_executor: Arc<Executor>,
+        notus: Option<NotusCtx>,
+    ) -> RunningScanHandle {
+        let keep_running: Arc<AtomicBool> = Arc::new(true.into());
+        let status = Arc::new(RwLock::new(Status {
+            ..Default::default()
+        }));
+
+        let host_by_name: HashMap<String, Target> = scan
+            .targets
+            .iter()
+            .map(|t| (t.original_target_str().to_string(), t.clone()))
+            .collect();
+        let host_set: HashSet<Host> = host_by_name.keys().cloned().collect();
+        let methods = scan.alive_test_methods.clone();
+        let capacity = host_by_name.len().max(1);
+
+        // This channel is for sending a target to the running scan.
+        let (tx_target, rx_target) = mpsc::channel::<Target>(capacity);
+        // This channel receves alive host from the boreas
+        let (tx_host, mut rx_host) = mpsc::channel::<Host>(capacity);
+
+        // Resolves every host reported alive to its `Target` and forwards
+        // it to the running scan so it can start attacking it right away.
+        tokio::spawn(async move {
+            while let Some(host) = rx_host.recv().await {
+                if let Some(target) = host_by_name.get(&host)
+                    && tx_target.send(target.clone()).await.is_err()
+                {
+                    break;
+                }
+            }
+            // Dropping `tx_target` here closes the channel, signalling to
+            // the running scan that no further hosts will arrive.
+        });
+
+        let status_for_alive = status.clone();
+        tokio::spawn(async move {
+            let alive_scanner = BoreasScanner::new(host_set.clone(), methods, None);
+            let alive = alive_scanner
+                .run_alive_test_streaming(Some(tx_host))
+                .await
+                .unwrap_or_default();
+            let dead: Vec<String> = host_set.difference(&alive).cloned().collect();
+            if !dead.is_empty() {
+                mark_hosts_dead_when_available(&status_for_alive, &dead).await;
+            }
+        });
+
+        RunningScanHandle {
+            handle: tokio::spawn(
+                Self {
+                    scan,
+                    storage,
+                    loader,
+                    function_executor,
+                    keep_running: keep_running.clone(),
+                    status: status.clone(),
+                    notus,
+                    host_feed: Some(rx_target),
+                }
+                // TODO run per target
+                .run(),
+            ),
+            keep_running,
+            status,
+        }
+    }
+
+    async fn run(mut self) -> Result<(), Error> {
+        let host_feed = self.host_feed.take();
+        let runner = match self.make_runner(host_feed).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("{}", e);
@@ -96,7 +178,10 @@ where
         Ok(())
     }
 
-    async fn make_runner(&self) -> Result<ScanRunner<'_, S>, Error> {
+    async fn make_runner(
+        &self,
+        host_feed: Option<Receiver<Target>>,
+    ) -> Result<ScanRunner<'_, S>, Error> {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
         let make_scheduling_error = |e: VTError| Error::SchedulingError {
@@ -110,13 +195,14 @@ where
             .map_err(make_scheduling_error)?
             .collect::<Result<_, _>>()
             .map_err(make_scheduling_error)?;
-        ScanRunner::new(
+        ScanRunner::with_host_feed(
             &*self.storage,
             &self.loader,
             &self.function_executor,
             schedule.into_iter().map(Ok),
             &self.scan,
             &self.notus,
+            host_feed,
         )
         .map_err(make_scheduling_error)
     }
@@ -167,6 +253,28 @@ where
             host_info.finish();
         }
     }
+}
+
+/// Marks the given hosts as dead in `status`, once its `host_info` has
+/// been populated by [`RunningScan::update_status_at_beginning_of_run`].
+/// The alive test and the scheduling of the scan (which determines when
+/// `host_info` becomes available) run concurrently, so this waits (with
+/// a bounded number of retries) until `host_info` is set.
+async fn mark_hosts_dead_when_available(status: &Arc<RwLock<Status>>, dead_hosts: &[String]) {
+    const MAX_ATTEMPTS: usize = 200;
+    const RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(25);
+
+    for _ in 0..MAX_ATTEMPTS {
+        {
+            let mut status = status.write().await;
+            if let Some(host_info) = status.host_info.as_mut() {
+                host_info.mark_hosts_dead(dead_hosts.iter().map(String::as_str));
+                return;
+            }
+        }
+        tokio::time::sleep(RETRY_DELAY).await;
+    }
+    warn!("scan status was never initialized; unable to mark dead hosts");
 }
 
 /// A handle to a `RunningScan`. Can be used to obtain the status of
