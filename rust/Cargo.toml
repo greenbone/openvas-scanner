@@ -154,8 +154,6 @@ insta = { workspace = true }
 mockito = "1.7.2"
 
 [build-dependencies]
-flate2 = "1"
-tar = "0"
 vergen-git2 = "10.0.0"
 
 [features]
