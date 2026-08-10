@@ -1180,6 +1180,12 @@ run_table_driven_lsc (const char *scan_id, const char *ip_str,
   if (!os_release || !package_list)
     return 0;
 
+  if (!prefs_get_bool ("table_driven_lsc_enabled"))
+    {
+      g_debug ("%s: Table driven LSC is disabled. Skipping.", __func__);
+      return 0;
+    }
+
   if (prefs_get ("http_lsc_enabled"))
     {
       g_message ("Running Notus for %s via HTTP", ip_str);
