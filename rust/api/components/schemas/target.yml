@@ -141,6 +141,46 @@ Credential:
       $ref: "#/USK"
     snmp:
       $ref: "#/SNMP"
+  required:
+    - service
+  # Exactly one credential object must be present.
+  oneOf:
+    - required: [up]
+    - required: [krb5]
+    - required: [usk]
+    - required: [snmp]
+  # The allowed credential object depends on the selected service.
+  allOf:
+    - if:
+        properties:
+          service:
+            const: ssh
+        required: [service]
+      then:
+        oneOf:
+          - required: [up]
+          - required: [usk]
+    - if:
+        properties:
+          service:
+            enum: [smb, esxi]
+        required: [service]
+      then:
+        required: [up]
+    - if:
+        properties:
+          service:
+            const: snmp
+        required: [service]
+      then:
+        required: [snmp]
+    - if:
+        properties:
+          service:
+            const: krb5
+        required: [service]
+      then:
+        required: [krb5]
 
 UP:
   description: "Authentication via Username and Password."
