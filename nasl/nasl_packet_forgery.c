@@ -443,8 +443,14 @@ dump_ip_packet (lex_ctxt *lexic)
   for (i = 0;; i++)
     {
       struct ip *ip = (struct ip *) get_str_var_by_num (lexic, i);
+      unsigned int ipsz;
       if (ip == NULL)
         break;
+      ipsz = get_var_size_by_num (lexic, i);
+      if (ipsz < sizeof (struct ip))
+        {
+          nasl_perror (lexic, "dump_ip_packet: packet too short\n");
+        }
       else
         {
           printf ("------\n");
@@ -679,6 +685,9 @@ get_tcp_element (lex_ctxt *lexic)
 
   if (UNFIX (ip->ip_len) > ipsz)
     return NULL; /* Invalid packet */
+
+  if ((size_t) (ip->ip_hl * 4) + sizeof (struct tcphdr) > ipsz)
+    return NULL; /* Invalid packet: too short for a TCP header */
 
   tcp = (struct tcphdr *) (packet + ip->ip_hl * 4);
 
@@ -1383,11 +1392,18 @@ dump_tcp_packet (lex_ctxt *lexic)
     {
       int a = 0;
       struct ip *ip = (struct ip *) pkt;
-      struct tcphdr *tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
+      struct tcphdr *tcp;
       unsigned int j;
       unsigned int limit;
       char *c;
       limit = get_var_size_by_num (lexic, i - 1);
+      if (limit < sizeof (struct ip)
+          || (unsigned int) (ip->ip_hl * 4) + sizeof (struct tcphdr) > limit)
+        {
+          nasl_perror (lexic, "dump_tcp_packet: packet too short\n");
+          continue;
+        }
+      tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
       printf ("------\n");
       printf ("\tth_sport : %d\n", ntohs (tcp->th_sport));
       printf ("\tth_dport : %d\n", ntohs (tcp->th_dport));
@@ -1445,7 +1461,9 @@ dump_tcp_packet (lex_ctxt *lexic)
       printf ("\tth_sum   : 0x%x\n", ntohs (tcp->th_sum));
       printf ("\tth_urp   : %d\n", ntohs (tcp->th_urp));
 
-      if (tcp->th_off > 5) // Options present
+      if (tcp->th_off > 5
+          && (unsigned int) (ip->ip_hl * 4) + 20 + 4 * (tcp->th_off - 5)
+               <= limit) // Options present
         {
           char *options;
           struct tcp_options *tcp_all_options;
@@ -1474,15 +1492,24 @@ dump_tcp_packet (lex_ctxt *lexic)
         }
 
       printf ("\n\tData     : ");
-      c = (char *) ((char *) tcp + sizeof (struct tcphdr)
-                    + sizeof (uint8_t) * 4 * (tcp->th_off - 5));
-      if (UNFIX (ip->ip_len) > (sizeof (struct ip) + sizeof (struct tcphdr)))
-        for (j = 0; j < UNFIX (ip->ip_len) - sizeof (struct ip)
-                          - sizeof (struct tcphdr)
-                          - sizeof (uint8_t) * 4 * (tcp->th_off - 5)
-                    && j < limit;
-             j++)
-          printf ("%c", isprint (c[j]) ? c[j] : '.');
+      if (tcp->th_off >= 5)
+        {
+          unsigned int data_off =
+            (unsigned int) (ip->ip_hl * 4) + sizeof (struct tcphdr)
+            + 4 * (tcp->th_off - 5);
+          if (data_off <= limit
+              && UNFIX (ip->ip_len) > (sizeof (struct ip) + sizeof (struct tcphdr)))
+            {
+              unsigned int remaining = limit - data_off;
+              c = (char *) pkt + data_off;
+              for (j = 0; j < UNFIX (ip->ip_len) - sizeof (struct ip)
+                                - sizeof (struct tcphdr)
+                                - sizeof (uint8_t) * 4 * (tcp->th_off - 5)
+                          && j < remaining;
+                   j++)
+                printf ("%c", isprint (c[j]) ? c[j] : '.');
+            }
+        }
       printf ("\n");
 
       printf ("\n");
@@ -1820,10 +1847,16 @@ dump_udp_packet (lex_ctxt *lexic)
   u_char *pkt;
   while ((pkt = (u_char *) get_str_var_by_num (lexic, i++)) != NULL)
     {
-      struct udphdr *udp = (struct udphdr *) (pkt + sizeof (struct ip));
+      struct udphdr *udp;
       unsigned int j;
       char *c;
       unsigned int limit = get_var_size_by_num (lexic, i - 1);
+      if (limit < sizeof (struct ip) + sizeof (struct udphdr))
+        {
+          nasl_perror (lexic, "dump_udp_packet: packet too short\n");
+          continue;
+        }
+      udp = (struct udphdr *) (pkt + sizeof (struct ip));
       printf ("------\n");
       printf ("\tuh_sport : %d\n", ntohs (udp->uh_sport));
       printf ("\tuh_dport : %d\n", ntohs (udp->uh_dport));
@@ -1833,7 +1866,7 @@ dump_udp_packet (lex_ctxt *lexic)
       c = (char *) udp;
       if (udp->uh_ulen > sizeof (struct udphdr))
         for (j = sizeof (struct udphdr);
-             j < (ntohs (udp->uh_ulen)) && j < limit; j++)
+             j < (ntohs (udp->uh_ulen)) && j < limit - sizeof (struct ip); j++)
           printf ("%c", isprint (c[j]) ? c[j] : '.');
 
       printf ("\n");
@@ -1964,6 +1997,14 @@ get_icmp_element (lex_ctxt *lexic)
       int value;
       struct ip *ip = (struct ip *) p;
       tree_cell *retc;
+      size_t psz = get_var_size_by_name (lexic, "icmp");
+
+      if (psz < sizeof (struct ip)
+          || (size_t) (ip->ip_hl * 4) + 8 > psz)
+        {
+          nasl_perror (lexic, "get_icmp_element: packet too short\n");
+          return NULL;
+        }
 
       icmp = (struct icmp *) (p + ip->ip_hl * 4);
 

@@ -644,6 +644,9 @@ get_tcp_v6_element (lex_ctxt *lexic)
   if (UNFIX (ip6->ip6_plen) > ipsz)
     return NULL; /* Invalid packet */
 
+  if (ipsz < 40 + (long int) sizeof (struct tcphdr))
+    return NULL; /* Invalid packet: too short for a TCP header */
+
   tcp = (struct tcphdr *) (packet + 40);
 
   element = get_str_var_by_name (lexic, "element");
@@ -2064,6 +2067,13 @@ get_icmp_v6_element (lex_ctxt *lexic)
       char *elem = get_str_var_by_name (lexic, "element");
       int value;
       tree_cell *retc;
+      long int psz = get_var_size_by_name (lexic, "icmp");
+
+      if (psz < 40 + 8)
+        {
+          nasl_perror (lexic, "%s: packet too short\n", __func__);
+          return NULL;
+        }
 
       icmp = (struct icmp6_hdr *) (p + 40);
 
