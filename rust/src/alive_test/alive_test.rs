@@ -69,7 +69,7 @@ fn pkt_stream(
     capture_inactive: Capture<Inactive>,
 ) -> Result<PacketStream<Active, PktCodec>, pcap::Error> {
     let cap = capture_inactive
-        .promisc(true)
+        .promisc(false)
         .immediate_mode(true)
         .timeout(DEFAULT_TIMEOUT * 1000)
         .immediate_mode(true)
