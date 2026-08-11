@@ -220,8 +220,6 @@ paths:
             schema:
               $ref: "#/components/schemas/ScanReq"
             examples:
-              schema:
-                description: "Schema of a Scan."
               create simple scan:
                 $ref: "./components/examples/scans.yml#/scan_simple"
               create complex scan:
