@@ -640,12 +640,14 @@ get_tcp_v6_element (lex_ctxt *lexic)
 
   ip6 = (struct ip6_hdr *) packet;
 
+  /* Packet must hold a full IPv6 header plus a TCP header before any of
+   * its fields, including ip6_plen below, can be read safely. */
+  if (ipsz < 40 + (long int) sizeof (struct tcphdr))
+    return NULL; /* Invalid packet: too short for a TCP header */
+
   /* valid ipv6 header check */
   if (UNFIX (ip6->ip6_plen) > ipsz)
     return NULL; /* Invalid packet */
-
-  if (ipsz < 40 + (long int) sizeof (struct tcphdr))
-    return NULL; /* Invalid packet: too short for a TCP header */
 
   tcp = (struct tcphdr *) (packet + 40);
 

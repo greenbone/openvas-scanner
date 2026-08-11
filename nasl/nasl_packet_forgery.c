@@ -680,6 +680,11 @@ get_tcp_element (lex_ctxt *lexic)
 
   ip = (struct ip *) packet;
 
+  /* Packet must hold at least an IP header before any of its fields,
+   * including ip_hl below, can be read safely. */
+  if (ipsz < sizeof (struct ip))
+    return NULL; /* Invalid packet */
+
   if (ip->ip_hl * 4 > ipsz)
     return NULL; /* Invalid packet */
 
