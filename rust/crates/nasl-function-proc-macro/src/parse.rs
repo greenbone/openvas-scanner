@@ -6,6 +6,7 @@ use crate::utils::{
     get_subty_if_name_is, ty_is_nasl_sockets, ty_is_register, ty_is_scan_ctx, ty_is_script_ctx,
     ty_name_is,
 };
+use syn::ext::IdentExt;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{FnArg, Ident, ItemFn, Token, Type, parenthesized, parse::Parse, spanned::Spanned};
@@ -64,7 +65,7 @@ impl Attrs {
             .find(|attr| attr.idents.contains(ident))
             .map(|attr| &attr.kind);
         let make_named = || NamedArg {
-            name: ident.to_string(),
+            name: ident.unraw().to_string(),
         };
         let make_positional = || PositionalArg { position };
         match attr_kind {

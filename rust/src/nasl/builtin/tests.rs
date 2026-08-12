@@ -143,3 +143,21 @@ fn optional_named_args_ignore_globals() {
         Some("Expected error."),
     );
 }
+
+#[nasl_function(named(r#type))]
+fn raw_identifier(r#type: String) -> String {
+    r#type
+}
+
+struct RawIdentifier;
+
+function_set! {
+    RawIdentifier,
+    (raw_identifier)
+}
+
+#[test]
+fn raw_identifier_treated_properly() {
+    let mut t = TestBuilder::default().with_executor(Executor::single(RawIdentifier));
+    t.ok(r#"raw_identifier(type: "entry");"#, "entry");
+}

@@ -16,10 +16,8 @@ use redis::*;
 use crate::models::VTData;
 use crate::notus::advisories::Vulnerability;
 use crate::notus::advisories::VulnerabilityData;
-use crate::storage::StorageError;
 use crate::storage::items::nvt;
 use crate::storage::items::nvt::ACT;
-use crate::storage::items::nvt::NvtKey;
 use crate::storage::items::nvt::NvtPreference;
 use crate::storage::items::nvt::NvtRef;
 use crate::storage::items::nvt::TagKey;
@@ -42,30 +40,6 @@ enum KbNvtPos {
     Name,
 }
 
-impl TryFrom<NvtKey> for KbNvtPos {
-    type Error = StorageError;
-
-    fn try_from(value: NvtKey) -> Result<Self, Self::Error> {
-        Ok(match value {
-            NvtKey::FileName => Self::Filename,
-            NvtKey::Name => Self::Name,
-            NvtKey::Dependencies => Self::Dependencies,
-            NvtKey::RequiredKeys => Self::RequiredKeys,
-            NvtKey::MandatoryKeys => Self::MandatoryKeys,
-            NvtKey::ExcludedKeys => Self::ExcludedKeys,
-            NvtKey::RequiredPorts => Self::RequiredPorts,
-            NvtKey::RequiredUdpPorts => Self::RequiredUDPPorts,
-            NvtKey::Category => Self::Category,
-            NvtKey::Family => Self::Family,
-            // tags must also be handled manually due to differentiation
-            _ => {
-                return Err(StorageError::UnexpectedData(format!(
-                    "{value:?} is not a redis position and must be handled differently"
-                )));
-            }
-        })
-    }
-}
 #[derive(Default)]
 pub struct RedisCtx {
     kb: Option<Connection>, //a redis connection
