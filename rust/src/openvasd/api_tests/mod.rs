@@ -4,6 +4,7 @@
 
 use std::{collections::BTreeMap, time::Duration};
 
+use futures::StreamExt;
 use http::{Method, StatusCode};
 use scannerlib::models::{self, Phase, Scan, Status, Target};
 use serde_json::Value;
@@ -238,6 +239,52 @@ async fn container_image_scanner_deadlock() {
         .await
         .body::<Status>()
         .snapshot("status");
+}
+
+// This tests against a specific bug in which
+// a streamed response would own its own database
+// connection, which led to problems if only a single
+// db connection was allowed at a time, since the stream
+// might be read slowly, blocking all other async tasks
+// from making progress.
+#[tokio::test]
+async fn streamed_response_does_not_block_db() {
+    let t = Test::new("streamed_response_does_not_block_db")
+        .config("cis_single_db_connection")
+        .await;
+
+    // Make the first streamed row very large.
+    t.container_image_scans(POST)
+        .json(Scan {
+            scan_id: "x".repeat(16 * 1024 * 1024),
+            ..Default::default()
+        })
+        .await
+        .assert_status(StatusCode::CREATED);
+
+    let response = t
+        .container_image_scans(GET)
+        .stream()
+        .await
+        .error_for_status()
+        .unwrap();
+    let mut body = response.bytes_stream();
+    body.next().await.unwrap().unwrap();
+    let slow_reader = tokio::spawn(async move {
+        while let Some(chunk) = body.next().await {
+            chunk.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
+    let second_request = t.container_image_scans(POST).json(Scan {
+        scan_id: "second-scan".into(),
+        ..Default::default()
+    });
+    let result = tokio::time::timeout(Duration::from_secs(2), second_request).await;
+    slow_reader.abort();
+
+    result.unwrap().assert_status(StatusCode::CREATED);
 }
 
 #[cfg(feature = "requires-compose")]

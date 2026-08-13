@@ -4,9 +4,13 @@ use http::StatusCode;
 use reqwest::Method;
 use scannerlib::models::{self, Scan};
 
-use super::test_builder::{OpenvasdInstance, Response, WaitFor};
+use super::test_builder::{OpenvasdInstance, Request, Response, WaitFor};
 
 impl OpenvasdInstance {
+    pub fn container_image_scans(&self, method: Method) -> Request<()> {
+        self.request(method, "/container-image-scanner/scans")
+    }
+
     pub async fn create_scan(&self, scan: Scan) -> TestScan<'_> {
         self.create_scan_at("/scans", scan).await
     }

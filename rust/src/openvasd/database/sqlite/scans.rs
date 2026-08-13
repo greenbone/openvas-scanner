@@ -1,4 +1,4 @@
-use futures::StreamExt;
+use futures::{StreamExt, stream};
 use scannerlib::models::{self, AliveTestMethods};
 use sqlx::{Connection, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow};
 
@@ -503,17 +503,29 @@ where
 {
     fn stream_fetch(self) -> DAOStreamer<String> {
         let (db, client_id) = self.inner();
-        let result = query(
-            r#"
+        let pool = db.clone();
+        // The code below is a temporary fix for a problem we encountered where a response being
+        // read slowly if sqlite was configured to only a single connection at a time would lead to
+        // a deadlock.
+        // The implementation is not great, since it fetches all entries from the DB and
+        // then streams them from memory instead of streaming them from the DB, but it prevents the
+        // bug, which occurred due to the async task owning the DB connection.
+        // TODO: Fix this implementation by removing all these traits and properly implementing the DB access.
+        let result = stream::once(async move {
+            match query_scalar::<_, String>(
+                r#"
                 SELECT scan_id FROM client_scan_map WHERE client_id = ?
             "#,
-        )
-        .bind(client_id)
-        .fetch(db)
-        .map(|x| {
-            x.map(|x| x.get::<String, _>("scan_id"))
-                .map_err(DAOError::from)
-        });
+            )
+            .bind(client_id)
+            .fetch_all(&pool)
+            .await
+            {
+                Ok(scan_ids) => scan_ids.into_iter().map(Ok).collect(),
+                Err(error) => vec![Err(DAOError::from(error))],
+            }
+        })
+        .flat_map(stream::iter);
         Box::pin(result)
     }
 }

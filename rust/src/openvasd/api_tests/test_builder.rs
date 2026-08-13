@@ -451,6 +451,11 @@ impl<S: Serialize> Request<S> {
         request
     }
 
+    /// Sends the request without consuming the response body.
+    pub async fn stream(self) -> reqwest::Response {
+        self.build_reqwest_request().send().await.unwrap()
+    }
+
     async fn get_response(&self) -> Response {
         let reqwest = self.build_reqwest_request();
         let test_name = format!("{} {} {}", self.test_name, self.method, self.path);
