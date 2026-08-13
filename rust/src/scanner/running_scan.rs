@@ -101,14 +101,14 @@ where
             ..Default::default()
         }));
 
-        let host_by_name: HashMap<String, Target> = scan
+        let host_by_ip: HashMap<String, Target> = scan
             .targets
             .iter()
-            .map(|t| (t.original_target_str().to_string(), t.clone()))
+            .map(|t| (t.ip_addr().to_string(), t.clone()))
             .collect();
-        let host_set: HashSet<Host> = host_by_name.keys().cloned().collect();
+        let host_set: HashSet<Host> = host_by_ip.keys().cloned().collect();
         let methods = scan.alive_test_methods.clone();
-        let capacity = host_by_name.len().max(1);
+        let capacity = host_by_ip.len().max(1);
 
         // This channel is for sending a target to the running scan.
         let (tx_target, rx_target) = mpsc::channel::<Target>(capacity);
@@ -119,7 +119,7 @@ where
         // it to the running scan so it can start attacking it right away.
         tokio::spawn(async move {
             while let Some(host) = rx_host.recv().await {
-                if let Some(target) = host_by_name.get(&host)
+                if let Some(target) = host_by_ip.get(&host)
                     && tx_target.send(target.clone()).await.is_err()
                 {
                     break;
