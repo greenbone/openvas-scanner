@@ -112,7 +112,7 @@ where
 
         // This channel is for sending a target to the running scan.
         let (tx_target, rx_target) = mpsc::channel::<Target>(capacity);
-        // This channel receves alive host from the boreas
+        // This channel receives alive host from the boreas
         let (tx_host, mut rx_host) = mpsc::channel::<Host>(capacity);
 
         // Resolves every host reported alive to its `Target` and forwards

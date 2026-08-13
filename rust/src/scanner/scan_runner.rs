@@ -92,7 +92,7 @@ where
         Self::with_host_feed(storage, loader, executor, schedule, scan, notus, None)
     }
 
-    /// This method uses the alive host recieved via the channel in host_feed
+    /// This method uses the alive host received via the channel in host_feed
     /// in the mean they are found alive instead of the targets in scan.target
     pub fn with_host_feed<Sched>(
         storage: &'a S,
