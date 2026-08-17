@@ -38,9 +38,9 @@ pub struct RunningScan<S> {
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<Status>>,
     notus: Option<NotusCtx>,
-    /// When set, hosts are attacked as they arrive on this channel
+    /// When set, hosts are scanned as they arrive on this channel
     /// (e.g. as they are confirmed alive by a concurrently running alive
-    /// test) instead of scanning `scan.targets` all at once.
+    /// test).
     host_feed: Option<Receiver<Target>>,
 }
 
@@ -112,11 +112,11 @@ where
 
         // This channel is for sending a target to the running scan.
         let (tx_target, rx_target) = mpsc::channel::<Target>(capacity);
-        // This channel receives alive host from the boreas
+        // This channel receives alive host from the alive test scanner
         let (tx_host, mut rx_host) = mpsc::channel::<Host>(capacity);
 
         // Resolves every host reported alive to its `Target` and forwards
-        // it to the running scan so it can start attacking it right away.
+        // it to the running scan so it can start scanning it right away.
         tokio::spawn(async move {
             while let Some(host) = rx_host.recv().await {
                 if let Some(target) = host_by_ip.get(&host)

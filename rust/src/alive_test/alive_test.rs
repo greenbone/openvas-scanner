@@ -391,9 +391,8 @@ impl Scanner {
                 alive.insert(t.clone());
                 println!("{t} via {}", AliveTestMethods::ConsiderAlive);
                 if let Some(tx) = &notify {
-                    // TODO: check what happens if there is no receiver (scan stop)
-                    // We should break the alive test too.
-                    let _ = tx.send(t.clone()).await;
+                    // if there is no receiver, we just stop here.
+                    tx.send(t.clone()).await.unwrap();
                 }
             }
             return Ok(alive);
@@ -414,20 +413,27 @@ impl Scanner {
         let send_handle = tokio::spawn(send_task(methods_c, trgt, timeout, tx_ctl));
 
         while let Some(alivehost) = rx_msg.recv().await {
-            let mut newly_found = None;
-            let mut newly_found_method: Option<AliveTestMethods> = None;
-            if self.target.contains(&alivehost.ip) && !alive.contains(&alivehost.ip) {
-                newly_found = Some(alivehost.ip.clone());
-                newly_found_method = Some(alivehost.detection_method.clone());
+            let (newly_found, newly_found_method) = if self.target.contains(&alivehost.ip)
+                && !alive.contains(&alivehost.ip)
+            {
+                (
+                    Some(alivehost.ip.clone()),
+                    Some(alivehost.detection_method.clone()),
+                )
             } else if let Some(Ok(dst)) = get_host_discovery_ipv6_net(&self.methods, &self.target)
                 && dst.contains(&alivehost.ip.parse::<std::net::Ipv6Addr>().unwrap())
             {
-                newly_found = Some(alivehost.ip.clone());
-                newly_found_method = Some(alivehost.detection_method.clone());
-            }
+                (
+                    Some(alivehost.ip.clone()),
+                    Some(alivehost.detection_method.clone()),
+                )
+            } else {
+                (None, None)
+            };
+
             if let Some(host) = newly_found {
                 if let Some(tx) = &notify {
-                    let _ = tx.send(host).await;
+                    tx.send(host).await.unwrap();
                 } else {
                     println!("{} via {:?}", &host, &newly_found_method.unwrap());
                 }
