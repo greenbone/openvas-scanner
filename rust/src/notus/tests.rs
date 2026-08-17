@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::{
-    models::{FixedPackage, FixedVersion, Specifier},
+    models::{FixedVersion, Specifier},
     nasl::Loader,
     notus::{ProductLoader, error::Error, notus::Notus},
 };
@@ -89,32 +89,15 @@ fn test_err_package_parse_error() {
 }
 
 #[test]
-fn test_err_product_parse_error() {
+fn test_invalid_product_entry_is_skipped() {
     let mut notus = setup();
 
-    let packages = vec![];
+    let packages = vec!["gitlab-ce-16.0.1".to_string()];
 
     let os = "debian_10_product_parse_err";
-    let err = notus.scan(os, &packages).expect_err("Should fail");
+    let results = notus.scan(os, &packages).expect("product should load");
 
-    assert!(matches!(
-        &err,
-        Error::VulnerabilityTestParseError(
-            product,
-            FixedPackage::ByRange {
-                name,
-                range,
-                module,
-            },
-        ) if product == "debian_10_product_parse_err.notus"
-            && name == "gitlab-ce"
-            && range.start == "?"
-            && range.end == "="
-            && module.is_none()
-    ));
-    assert!(
-        err.to_string().contains(
-            "malformed entry in vulnerability data file debian_10_product_parse_err.notus"
-        )
-    );
+    let vulnerable = &results["1.3.6.1.4.1.25623.1.1.7.2.2023.10089729899100"];
+    assert_eq!(vulnerable.len(), 1);
+    assert_eq!(vulnerable[0].name, "gitlab-ce");
 }
