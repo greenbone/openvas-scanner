@@ -772,9 +772,6 @@ nasl_psrp_cli (lex_ctxt *lexic)
     NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD, NULL,
     NULL, &child_pid, NULL, &sout, NULL, &err);
 
-  for (int i = 0; i < argv_pos; i++)
-    g_free (argv[i]);
-
   if (ret == FALSE)
     {
       char *err_aux = err ? g_strdup (err->message) : g_strdup ("Error");
@@ -783,6 +780,15 @@ nasl_psrp_cli (lex_ctxt *lexic)
         g_error_free (err);
       return array_from_psrp_error (2, err_aux);
     }
+
+  // Set the process group id of the spawned process to its own id.
+  // Then the spawn process becomes group leader and the grandpather process
+  // (host attack process) can not reap it via sighand_chld() leaving the
+  // calling process (nasl function process) to wait for the child
+  setpgid (child_pid, child_pid);
+
+  for (int i = 0; i < argv_pos; i++)
+    g_free (argv[i]);
 
   string = g_string_new ("");
   while (1)
@@ -809,15 +815,17 @@ nasl_psrp_cli (lex_ctxt *lexic)
     }
   close (sout);
 
-  /* waitpid(-1) in sighand_chld may have already reaped this child before
-   * we get here, which is why g_child_watch_add() fails with ECHILD.
-   * Use waitpid() directly and treat ECHILD as a successful reap with
+  /* Use waitpid() directly and treat ECHILD as a successful reap with
    * an unknown (assumed zero) exit code. */
   int wait_status = 0;
   if (waitpid (child_pid, &wait_status, 0) == -1)
     {
       if (errno == ECHILD)
-        err_code = 0; /* already reaped by SIGCHLD handler */
+        {
+          g_warning ("%s: child process already reaped by SIGCHLD handler",
+                     __func__);
+          err_code = 0; /* already reaped by SIGCHLD handler */
+        }
       else
         err_code = -1;
     }
