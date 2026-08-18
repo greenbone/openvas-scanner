@@ -13,12 +13,13 @@ use scannerlib::feed::{HashSumNameLoader, Update};
 use scannerlib::models;
 use scannerlib::nasl::nasl_std_executor;
 use scannerlib::nasl::syntax::Loader;
-use scannerlib::nasl::utils::scan_ctx::NotusCtx;
+use scannerlib::nasl::utils::scan_ctx::{NotusCtx, Target};
 use scannerlib::notus::{Notus, ProductLoader};
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::scanner::{Scan, ScanRunner};
 use scannerlib::scheduling::Scheduler;
 use scannerlib::storage::inmemory::InMemoryStorage;
+use tokio::sync::mpsc;
 use tracing::{info, warn, warn_span};
 
 use crate::utils::{ArgOrStdin, NotusArgs};
@@ -137,8 +138,13 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
                 ProductLoader::new(false, Loader::from_feed_path(path)),
             )))),
         });
-        let runner: ScanRunner<Arc<InMemoryStorage>> =
-            ScanRunner::new(&storage, &loader, &executor, schedule, &scan, &notus).unwrap();
+
+        let (_dummy_tx, dummy_rx) = mpsc::channel::<Target>(1);
+
+        let runner: ScanRunner<Arc<InMemoryStorage>> = ScanRunner::new(
+            &storage, &loader, &executor, schedule, &scan, &notus, dummy_rx,
+        )
+        .unwrap();
         let mut results = Box::pin(runner.stream());
         while let Some(x) = results.next().await {
             match x {
