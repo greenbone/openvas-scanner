@@ -60,7 +60,17 @@ struct ClientBuilder {
     insecure: bool,
     accept_invalid_certs: bool,
     scope: String,
+    /// Registry name retained in image identity and error reporting.
     registry: String,
+    /// Network endpoint used by the Docker Registry v2 client.
+    endpoint: String,
+}
+
+fn registry_endpoint(logical_registry: &str) -> &str {
+    match logical_registry {
+        "docker.io" => "registry-1.docker.io",
+        other => other,
+    }
 }
 
 impl ClientBuilder {
@@ -125,14 +135,20 @@ impl ClientBuilder {
     pub async fn authenticated(&self) -> Result<docker_registry::v2::Client, RegistryError> {
         let scope = &self.scope;
         let registry = &self.registry;
-        tracing::trace!(scope, registry, "trying to login");
+        let endpoint = &self.endpoint;
+        tracing::trace!(
+            scope,
+            logical_registry = registry,
+            endpoint,
+            "trying to login"
+        );
         let as_ce = |error| self.authenticatation_error(error);
         docker_registry::v2::Client::configure()
             .insecure_registry(self.insecure)
             .accept_invalid_certs(self.accept_invalid_certs)
             .username(self.username.clone())
             .password(self.password.clone())
-            .registry(registry)
+            .registry(endpoint)
             .build()
             .map_err(as_ce)?
             // TODO: change library to automatically use the scope given by the server header
@@ -158,6 +174,7 @@ impl Client {
         scope: String,
         registry: String,
     ) -> Result<Client, RegistryError> {
+        let endpoint = registry_endpoint(&registry).to_owned();
         let builder = ClientBuilder {
             username,
             password,
@@ -165,6 +182,7 @@ impl Client {
             accept_invalid_certs,
             scope,
             registry,
+            endpoint,
         };
         let client = builder.authenticated().await?;
         Ok(Self { builder, client })
@@ -1057,8 +1075,9 @@ pub mod fake {
 mod tests {
 
     use futures::StreamExt;
+    use mockito::Matcher;
 
-    use super::fake::RegistryMock;
+    use super::{Client, ClientBuilder, fake::RegistryMock, registry_endpoint};
     use crate::container_image_scanner::image::{
         Credential, DockerV2Registry, Image, RegistryPreference,
     };
@@ -1150,5 +1169,177 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn resolves_only_the_logical_docker_hub_endpoint() {
+        assert_eq!(registry_endpoint("docker.io"), "registry-1.docker.io");
+        assert_eq!(
+            registry_endpoint("registry-1.docker.io"),
+            "registry-1.docker.io"
+        );
+        assert_eq!(registry_endpoint("quay.io"), "quay.io");
+        assert_eq!(registry_endpoint("localhost:5000"), "localhost:5000");
+    }
+
+    #[tokio::test]
+    async fn authenticates_at_transport_endpoint_with_normalized_scope() {
+        let mut server = mockito::Server::new_async().await;
+        let scope = "repository:library/ubuntu:pull";
+        let challenge = server
+            .mock("GET", "/v2/")
+            .with_status(401)
+            .with_header(
+                "WWW-Authenticate",
+                &format!(r#"Bearer realm="http://{}/token""#, server.host_with_port()),
+            )
+            .create_async()
+            .await;
+        let token = server
+            .mock("GET", "/token")
+            .match_query(Matcher::UrlEncoded("scope".to_owned(), scope.to_owned()))
+            .with_status(200)
+            .with_header("Content-Type", "application/json")
+            .with_body(r#"{"token":"waldfee"}"#)
+            .create_async()
+            .await;
+        let tags = server
+            .mock("GET", "/v2/library/ubuntu/tags/list")
+            .match_header("authorization", "Bearer waldfee")
+            .with_status(200)
+            .with_header("Content-Type", "application/json")
+            .with_body(r#"{"name":"library/ubuntu","tags":["24.04"]}"#)
+            .create_async()
+            .await;
+
+        let builder = ClientBuilder {
+            username: None,
+            password: None,
+            insecure: true,
+            accept_invalid_certs: false,
+            scope: scope.to_owned(),
+            registry: "docker.io".to_owned(),
+            endpoint: server.host_with_port(),
+        };
+        let client = builder.authenticated().await.expect("authenticate");
+        let client = Client { builder, client };
+        let resolved: Vec<_> = client
+            .get_tags("library/ubuntu", None)
+            .map(|tag| Image {
+                registry: client.builder.registry.clone(),
+                image: Some("library/ubuntu".to_owned()),
+                tag: Some(tag.expect("tag")),
+            })
+            .collect()
+            .await;
+
+        assert_eq!(
+            resolved,
+            vec![Image {
+                registry: "docker.io".to_owned(),
+                image: Some("library/ubuntu".to_owned()),
+                tag: Some("24.04".to_owned()),
+            }]
+        );
+        challenge.assert_async().await;
+        token.assert_async().await;
+        tags.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn follows_cross_origin_blob_redirect_without_forwarding_authorization() {
+        const EMPTY_SHA256: &str =
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+        let mut registry = mockito::Server::new_async().await;
+        let mut storage = mockito::Server::new_async().await;
+        let challenge = registry
+            .mock("GET", "/v2/")
+            .with_status(401)
+            .with_header(
+                "WWW-Authenticate",
+                &format!(
+                    r#"Bearer realm="http://{}/token""#,
+                    registry.host_with_port()
+                ),
+            )
+            .create_async()
+            .await;
+        let token = registry
+            .mock("GET", "/token")
+            .match_query(Matcher::Any)
+            .with_status(200)
+            .with_header("Content-Type", "application/json")
+            .with_body(r#"{"token":"secret-registry-token"}"#)
+            .create_async()
+            .await;
+        let redirect = registry
+            .mock(
+                "GET",
+                format!("/v2/library/ubuntu/blobs/{EMPTY_SHA256}").as_str(),
+            )
+            .match_header("authorization", "Bearer secret-registry-token")
+            .with_status(307)
+            .with_header(
+                "Location",
+                &format!("http://{}/blob", storage.host_with_port()),
+            )
+            .create_async()
+            .await;
+        let blob = storage
+            .mock("GET", "/blob")
+            .match_header("authorization", Matcher::Missing)
+            .with_status(200)
+            .with_body([])
+            .create_async()
+            .await;
+
+        let builder = ClientBuilder {
+            username: None,
+            password: None,
+            insecure: true,
+            accept_invalid_certs: false,
+            scope: "repository:library/ubuntu:pull".to_owned(),
+            registry: "docker.io".to_owned(),
+            endpoint: registry.host_with_port(),
+        };
+        let client = builder.authenticated().await.expect("authenticate");
+        let client = Client { builder, client };
+
+        assert_eq!(
+            client
+                .get_blob("library/ubuntu", EMPTY_SHA256)
+                .await
+                .expect("follow signed blob redirect"),
+            Vec::<u8>::new()
+        );
+        challenge.assert_async().await;
+        token.assert_async().await;
+        redirect.assert_async().await;
+        blob.assert_async().await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires network access to Docker Hub"]
+    async fn authenticates_logical_docker_hub_reference_anonymously() {
+        let image: Image = "oci://docker.io/ubuntu:24.04"
+            .parse()
+            .expect("valid Docker Hub reference");
+        let registry = DockerV2Registry::initialize(None, Vec::new()).expect("initialize registry");
+        let client = registry
+            .pull_client(
+                image.registry.as_str(),
+                image.image().expect("normalized repository"),
+            )
+            .await
+            .expect("authenticate anonymously with Docker Hub");
+
+        client
+            .get_manifest(
+                image.image().expect("normalized repository"),
+                image.tag().expect("explicit tag"),
+            )
+            .await
+            .expect("retrieve the Docker Hub manifest");
+        assert_eq!(image.to_string(), "oci://docker.io/library/ubuntu:24.04");
     }
 }
