@@ -182,7 +182,7 @@ impl ScanStateController {
         end_time      = COALESCE(?, end_time),
         host_dead     = COALESCE(NULLIF(?, 0), host_dead),
         host_alive    = COALESCE(NULLIF(?, 0), host_alive),
-        host_queued   = COALESCE(NULLIF(?, 0), host_queued),
+        host_queued   = ?,
         host_excluded = COALESCE(NULLIF(?, 0), host_excluded),
         host_all      = COALESCE(NULLIF(?, 0), host_all),
         status        = COALESCE(NULLIF(NULLIF(?, 'stored'), 'requested'), status)
