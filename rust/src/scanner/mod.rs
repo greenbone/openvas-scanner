@@ -76,17 +76,9 @@ where
         let id = scan.scan_id.clone();
         // TODO: An empty test method should never happen, it should default to icmp.
         // Is this already happening? check if this is dead code
-        let handle = if scan.alive_test_methods.is_empty() {
-            RunningScan::<S>::start(scan, storage, loader, function_executor, self.notus.clone())
-        } else {
-            RunningScan::<S>::start_with_alive_test(
-                scan,
-                storage,
-                loader,
-                function_executor,
-                self.notus.clone(),
-            )
-        };
+        let handle =
+            RunningScan::<S>::start(scan, storage, loader, function_executor, self.notus.clone());
+
         self.running.write().await.insert(id, handle);
         Ok(())
     }

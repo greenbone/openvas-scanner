@@ -24,26 +24,6 @@ struct Position {
     vt: usize,
 }
 
-/// Where hosts to be scanned come from. Either a fixed, upfront known
-/// list of hosts (the classic behaviour), or a live feed of hosts that
-/// arrive one at a time (e.g. as they are confirmed alive by an alive
-/// test running concurrently). In the latter case scanning of a host
-/// can start as soon as it arrives, without waiting for the remaining
-/// hosts to be resolved as alive or not.
-enum HostFeed {
-    Fixed(std::vec::IntoIter<Target>),
-    Live(Receiver<Target>),
-}
-
-impl HostFeed {
-    async fn next(&mut self) -> Option<Target> {
-        match self {
-            HostFeed::Fixed(it) => it.next(),
-            HostFeed::Live(rx) => rx.recv().await,
-        }
-    }
-}
-
 /// Given the currently known `vts` schedule, enqueues all `(stage, vt)`
 /// positions that need to be run for `host`.
 fn enqueue_host(queue: &mut VecDeque<Position>, host: &Target, vts: &[ConcurrentVT]) {
@@ -71,13 +51,15 @@ pub struct ScanRunner<'a, S> {
     notus: &'a Option<NotusCtx>,
     // if the channel is set, receive the alive hosts for the attack.
     // Otherwise, uses scan.target.
-    host_feed: Option<Receiver<Target>>,
+    host_feed: Receiver<Target>,
 }
 
 impl<'a, S> ScanRunner<'a, S>
 where
     S: ContextStorage,
 {
+    /// This method uses the alive host received via the channel in host_feed
+    /// in the mean they are found alive instead of the targets in scan.target
     pub fn new<Sched>(
         storage: &'a S,
         loader: &'a Loader,
@@ -85,23 +67,7 @@ where
         schedule: Sched,
         scan: &'a Scan,
         notus: &'a Option<NotusCtx>,
-    ) -> Result<Self, VTError>
-    where
-        Sched: Iterator<Item = ConcurrentVTResult> + 'a,
-    {
-        Self::with_host_feed(storage, loader, executor, schedule, scan, notus, None)
-    }
-
-    /// This method uses the alive host received via the channel in host_feed
-    /// in the mean they are found alive instead of the targets in scan.target
-    pub fn with_host_feed<Sched>(
-        storage: &'a S,
-        loader: &'a Loader,
-        executor: &'a Executor,
-        schedule: Sched,
-        scan: &'a Scan,
-        notus: &'a Option<NotusCtx>,
-        host_feed: Option<Receiver<Target>>,
+        host_feed: Receiver<Target>,
     ) -> Result<Self, VTError>
     where
         Sched: Iterator<Item = ConcurrentVTResult> + 'a,
@@ -138,10 +104,6 @@ where
             notus,
             host_feed,
         } = self;
-        let host_feed = match host_feed {
-            Some(rx) => HostFeed::Live(rx),
-            None => HostFeed::Fixed(scan.targets.clone().into_iter()),
-        };
         let state = (host_feed, VecDeque::<Position>::new());
         // The usage of unfold here will prevent any real asynchronous running of VTs
         // and automatically guarantee that we stick to the scheduling requirements.
@@ -156,7 +118,7 @@ where
             async move {
                 loop {
                     if queue.is_empty() {
-                        match host_feed.next().await {
+                        match host_feed.recv().await {
                             Some(host) => {
                                 enqueue_host(&mut queue, &host, &concurrent_vts);
                                 // A host may end up with no VTs to run (e.g.

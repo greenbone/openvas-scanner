@@ -41,7 +41,7 @@ pub struct RunningScan<S> {
     /// When set, hosts are scanned as they arrive on this channel
     /// (e.g. as they are confirmed alive by a concurrently running alive
     /// test).
-    host_feed: Option<Receiver<Target>>,
+    host_feed: Receiver<Target>,
 }
 
 pub(super) fn current_time_in_seconds(name: &'static str) -> u64 {
@@ -59,37 +59,6 @@ where
     S: ContextStorage + SchedulerStorage + Send + Sync + Clone + 'static,
 {
     pub fn start(
-        scan: Scan,
-        storage: Arc<S>,
-        loader: Arc<Loader>,
-        function_executor: Arc<Executor>,
-        notus: Option<NotusCtx>,
-    ) -> RunningScanHandle {
-        let keep_running: Arc<AtomicBool> = Arc::new(true.into());
-        let status = Arc::new(RwLock::new(Status {
-            ..Default::default()
-        }));
-        RunningScanHandle {
-            handle: tokio::spawn(
-                Self {
-                    scan,
-                    storage,
-                    loader,
-                    function_executor,
-                    keep_running: keep_running.clone(),
-                    status: status.clone(),
-                    notus,
-                    host_feed: None,
-                }
-                // TODO run per target
-                .run(),
-            ),
-            keep_running,
-            status,
-        }
-    }
-
-    pub fn start_with_alive_test(
         scan: Scan,
         storage: Arc<S>,
         loader: Arc<Loader>,
@@ -152,7 +121,7 @@ where
                     keep_running: keep_running.clone(),
                     status: status.clone(),
                     notus,
-                    host_feed: Some(rx_target),
+                    host_feed: rx_target,
                 }
                 // TODO run per target
                 .run(),
@@ -163,8 +132,12 @@ where
     }
 
     async fn run(mut self) -> Result<(), Error> {
-        let host_feed = self.host_feed.take();
-        let runner = match self.make_runner(host_feed).await {
+        // to avoid the option envelop for the host_feed receiver
+        // we need to replace the receiver with dummy one.
+        let (_dummy_tx, dummy_rx) = mpsc::channel::<Target>(1);
+        let rx = std::mem::replace(&mut self.host_feed, dummy_rx);
+
+        let runner = match self.make_runner(rx).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("{}", e);
@@ -178,10 +151,7 @@ where
         Ok(())
     }
 
-    async fn make_runner(
-        &self,
-        host_feed: Option<Receiver<Target>>,
-    ) -> Result<ScanRunner<'_, S>, Error> {
+    async fn make_runner(&self, host_feed: Receiver<Target>) -> Result<ScanRunner<'_, S>, Error> {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
         let make_scheduling_error = |e: VTError| Error::SchedulingError {
@@ -195,7 +165,7 @@ where
             .map_err(make_scheduling_error)?
             .collect::<Result<_, _>>()
             .map_err(make_scheduling_error)?;
-        ScanRunner::with_host_feed(
+        ScanRunner::new(
             &*self.storage,
             &self.loader,
             &self.function_executor,
