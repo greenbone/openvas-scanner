@@ -13,10 +13,6 @@ on:
         required: false
         type: string
     secrets:
-      dockerhub_user:
-        required: true
-      dockerhub_token:
-        required: true
       cosign_key_opensight:
         required: true
       cosign_password_opensight:
@@ -43,11 +39,9 @@ permissions:
   contents: read
   packages: write
   id-token: write
-  pull-requests: write
 
 jobs:
   build:
-    if: ${{ github.repository == 'greenbone/openvas-scanner' }}
     strategy:
       fail-fast: false
       matrix:
@@ -96,26 +90,26 @@ jobs:
       labels: |
         org.opencontainers.image.vendor=Greenbone
         org.opencontainers.image.base.name=debian:stable-slim
-      prefix: ${{ matrix.build.prefix }}
-      tags: ${{ matrix.tags }}
+      tags: ${{ matrix.build.tags }}
       build-args: |
         BIN_VERSION=${{ inputs.binary_version }}
         ${{ matrix.build.variant-build-args }}
       images: |
         ghcr.io/${{ github.repository }},enable=true
-        ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
-        ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' }}
-    secrets: inherit
+        ${{ vars.GREENBONE_REGISTRY }}/community/${{ github.event.repository.name }},enable=true
+        ${{ vars.GREENBONE_REGISTRY }}/openvas-detect-dev/${{ github.event.repository.name }},enable=true
+    secrets:
+      GREENBONE_REGISTRY_USER: ${{ secrets.greenbone_registry_user }}
+      GREENBONE_REGISTRY_TOKEN: ${{ secrets.greenbone_registry_token }}
 
   trigger-replication:
     needs:
       - build
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.repository == 'greenbone/openvas-scanner' }}
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: self-hosted-generic
     steps:
       - name: Ensure all tags are replicated on the public registry
         uses: greenbone/actions/trigger-harbor-replication@v3.36.12
-        if: ${{ github.event_name != 'pull_request' }}
         with:
           registry: ${{ vars.GREENBONE_REGISTRY }}
           token: ${{ secrets.GREENBONE_REGISTRY_REPLICATION_TOKEN }}
