@@ -45,12 +45,13 @@ impl Product {
                 let (pkg_name, adv) =
                     match VulnerabilityTest::create(vt_model.oid.clone(), &fixed_package) {
                         Some(adv) => adv,
-                        // Notus data on system are wrong!
                         None => {
-                            return Err(Error::VulnerabilityTestParseError(
-                                "".to_string(),
-                                fixed_package,
-                            ));
+                            tracing::error!(
+                                oid = vt_model.oid,
+                                package = ?fixed_package,
+                                "Could not parse fixed package information"
+                            );
+                            continue;
                         }
                     };
                 // Add vulnerability test to map

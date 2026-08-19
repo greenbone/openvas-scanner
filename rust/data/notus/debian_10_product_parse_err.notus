@@ -6,6 +6,10 @@
             "oid": "1.3.6.1.4.1.25623.1.1.7.2.2023.10089729899100",
             "fixed_packages": [
                 {
+                    "full_name": "kata-containers",
+                    "specifier": ">="
+                },
+                {
                     "name": "gitlab-ce",
                     "range": {
                         "start": "?",
