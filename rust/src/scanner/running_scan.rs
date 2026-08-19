@@ -38,10 +38,6 @@ pub struct RunningScan<S> {
     keep_running: Arc<AtomicBool>,
     status: Arc<RwLock<Status>>,
     notus: Option<NotusCtx>,
-    /// When set, hosts are scanned as they arrive on this channel
-    /// (e.g. as they are confirmed alive by a concurrently running alive
-    /// test).
-    host_feed: Receiver<Target>,
 }
 
 pub(super) fn current_time_in_seconds(name: &'static str) -> u64 {
@@ -121,23 +117,17 @@ where
                     keep_running: keep_running.clone(),
                     status: status.clone(),
                     notus,
-                    host_feed: rx_target,
                 }
                 // TODO run per target
-                .run(),
+                .run(rx_target),
             ),
             keep_running,
             status,
         }
     }
 
-    async fn run(mut self) -> Result<(), Error> {
-        // to avoid the option envelop for the host_feed receiver
-        // we need to replace the receiver with dummy one.
-        let (_dummy_tx, dummy_rx) = mpsc::channel::<Target>(1);
-        let rx = std::mem::replace(&mut self.host_feed, dummy_rx);
-
-        let runner = match self.make_runner(rx).await {
+    async fn run(self, host_info: Receiver<Target>) -> Result<(), Error> {
+        let runner = match self.make_runner(host_info).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("{}", e);

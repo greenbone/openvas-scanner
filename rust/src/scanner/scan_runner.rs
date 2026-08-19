@@ -49,8 +49,6 @@ pub struct ScanRunner<'a, S> {
     executor: &'a Executor,
     concurrent_vts: Vec<ConcurrentVT>,
     notus: &'a Option<NotusCtx>,
-    // if the channel is set, receive the alive hosts for the attack.
-    // Otherwise, uses scan.target.
     host_feed: Receiver<Target>,
 }
 
@@ -58,8 +56,6 @@ impl<'a, S> ScanRunner<'a, S>
 where
     S: ContextStorage,
 {
-    /// This method uses the alive host received via the channel in host_feed
-    /// in the mean they are found alive instead of the targets in scan.target
     pub fn new<Sched>(
         storage: &'a S,
         loader: &'a Loader,
@@ -110,45 +106,36 @@ where
         // If this is changed, make sure to uphold the scheduling requirements in the
         // new implementation.
         stream::unfold(state, move |(mut host_feed, mut queue)| {
-            // Cloning here (a cheap borrow of the outer captured
-            // `concurrent_vts`) instead of moving it directly into the
-            // `async move` block below keeps `concurrent_vts` available
-            // across repeated calls of this `FnMut` closure.
             let concurrent_vts = concurrent_vts.clone();
             async move {
                 loop {
                     if queue.is_empty() {
-                        match host_feed.recv().await {
-                            Some(host) => {
-                                enqueue_host(&mut queue, &host, &concurrent_vts);
-                                // A host may end up with no VTs to run (e.g.
-                                // empty schedule); keep pulling hosts until we
-                                // either have work to do or the feed is
-                                // exhausted.
-                                continue;
-                            }
-                            None => return None,
+                        if let Some(host) = host_feed.recv().await {
+                            enqueue_host(&mut queue, &host, &concurrent_vts);
+                        } else {
+                            return None;
                         }
                     }
-                    let pos = queue.pop_front().expect("queue checked to be non-empty");
-                    let (stage, vts) = &concurrent_vts[pos.stage];
-                    let (vt, param) = &vts[pos.vt];
-                    let result = VTRunner::<S>::run(
-                        storage,
-                        loader,
-                        executor,
-                        &pos.host,
-                        &scan.ports,
-                        vt,
-                        *stage,
-                        param.as_ref(),
-                        scan.scan_id.clone(),
-                        &scan.scan_preferences,
-                        &scan.alive_test_methods,
-                        notus,
-                    )
-                    .await;
-                    return Some((result, (host_feed, queue)));
+                    if let Some(pos) = queue.pop_front() {
+                        let (stage, vts) = &concurrent_vts[pos.stage];
+                        let (vt, param) = &vts[pos.vt];
+                        let result = VTRunner::<S>::run(
+                            storage,
+                            loader,
+                            executor,
+                            &pos.host,
+                            &scan.ports,
+                            vt,
+                            *stage,
+                            param.as_ref(),
+                            scan.scan_id.clone(),
+                            &scan.scan_preferences,
+                            &scan.alive_test_methods,
+                            notus,
+                        )
+                        .await;
+                        return Some((result, (host_feed, queue)));
+                    }
                 }
             }
         })
