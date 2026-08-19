@@ -392,7 +392,9 @@ impl Scanner {
                 println!("{t} via {}", AliveTestMethods::ConsiderAlive);
                 if let Some(tx) = &notify {
                     // if there is no receiver, we just stop here.
-                    tx.send(t.clone()).await.unwrap();
+                    if tx.send(t.clone()).await.is_err() {
+                        break;
+                    }
                 }
             }
             return Ok(alive);
@@ -413,29 +415,28 @@ impl Scanner {
         let send_handle = tokio::spawn(send_task(methods_c, trgt, timeout, tx_ctl));
 
         while let Some(alivehost) = rx_msg.recv().await {
-            let (newly_found, newly_found_method) = if self.target.contains(&alivehost.ip)
+            let newly_found = if self.target.contains(&alivehost.ip)
                 && !alive.contains(&alivehost.ip)
             {
-                (
-                    Some(alivehost.ip.clone()),
-                    Some(alivehost.detection_method.clone()),
-                )
+                Some((alivehost.ip.clone(), alivehost.detection_method.clone()))
             } else if let Some(Ok(dst)) = get_host_discovery_ipv6_net(&self.methods, &self.target)
-                && dst.contains(&alivehost.ip.parse::<std::net::Ipv6Addr>().unwrap())
-            {
-                (
-                    Some(alivehost.ip.clone()),
-                    Some(alivehost.detection_method.clone()),
+                && dst.contains(
+                    &alivehost
+                        .ip
+                        .parse::<std::net::Ipv6Addr>()
+                        .expect("IPv6 address"),
                 )
+            {
+                Some((alivehost.ip.clone(), alivehost.detection_method.clone()))
             } else {
-                (None, None)
+                None
             };
 
-            if let Some(host) = newly_found {
+            if let Some((host, method)) = newly_found {
                 if let Some(tx) = &notify {
                     tx.send(host).await.unwrap();
                 } else {
-                    println!("{} via {:?}", &host, &newly_found_method.unwrap());
+                    println!("{} via {:?}", &host, &method);
                 }
                 alive.insert(alivehost.ip.clone());
             }

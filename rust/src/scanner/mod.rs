@@ -74,8 +74,6 @@ where
         let loader = self.loader.clone();
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
-        // TODO: An empty test method should never happen, it should default to icmp.
-        // Is this already happening? check if this is dead code
         let handle =
             RunningScan::<S>::start(scan, storage, loader, function_executor, self.notus.clone());
 
