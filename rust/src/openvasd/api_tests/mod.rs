@@ -143,7 +143,15 @@ impl Snapshottable for models::Status {
     }
 }
 
-impl Snapshottable for Vec<models::Result> {}
+impl Snapshottable for Vec<models::Result> {
+    fn prepare(&mut self) {
+        self.sort_by_key(|result| result.oid.clone());
+    }
+
+    fn redactions() -> Vec<String> {
+        vec!["[].id".into()]
+    }
+}
 
 #[tokio::test]
 async fn scan_lifecycle() {
@@ -182,6 +190,49 @@ async fn scan_lifecycle() {
 
     scan.delete().await;
     scan.get().await.assert_status(StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn vt_requirements() {
+    let t = Test::new("vt_requirements").config("vt_requirements").await;
+    let scan = Scan {
+        scan_id: "vt_requirements".to_string(),
+        target: Target {
+            hosts: vec!["127.0.0.1".to_string()],
+            alive_test_methods: vec![models::AliveTestMethods::ConsiderAlive],
+            ..Default::default()
+        },
+        vts: [
+            "0.0.0.0.0.0.0.0.1.1",
+            "0.0.0.0.0.0.0.0.1.2",
+            "0.0.0.0.0.0.0.0.1.3",
+            "0.0.0.0.0.0.0.0.1.4",
+            "0.0.0.0.0.0.0.0.1.5",
+            "0.0.0.0.0.0.0.0.1.6",
+            "0.0.0.0.0.0.0.0.2.1",
+            "0.0.0.0.0.0.0.0.2.2",
+            "0.0.0.0.0.0.0.0.2.3",
+            "0.0.0.0.0.0.0.0.2.4",
+            "0.0.0.0.0.0.0.0.2.5",
+        ]
+        .into_iter()
+        .map(|oid| models::VT {
+            oid: oid.to_string(),
+            parameters: vec![],
+        })
+        .collect(),
+        ..Default::default()
+    };
+
+    let scan = t.create_scan(scan).await;
+    scan.start().await;
+    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(5)))
+        .await;
+    scan.get_results()
+        .await
+        .body::<Vec<models::Result>>()
+        .snapshot("results");
+    scan.delete().await;
 }
 
 #[tokio::test]
