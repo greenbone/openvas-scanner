@@ -407,7 +407,7 @@ pub mod scans_utils {
                 .clone()
                 .into_iter()
                 .map(|mut x| {
-                    x.registry = self.registry.address();
+                    x.registry = self.registry.address().into();
                     x.to_string()
                 })
                 .collect();
@@ -711,7 +711,7 @@ mod test {
             &[200, 200, 200, 200, 200, 200, 503],
         )
         .await;
-        image.registry = registry.address();
+        image.registry = registry.address().into();
 
         let scan = fakes.insecure_scan("blob-503-during-scan", [image.to_string()]);
 
