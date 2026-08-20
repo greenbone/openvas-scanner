@@ -97,10 +97,13 @@ where
         let status_for_alive = status.clone();
         tokio::spawn(async move {
             let alive_scanner = BoreasScanner::new(host_set.clone(), methods, None);
-            let alive = alive_scanner
-                .run_alive_test_streaming(Some(tx_host))
-                .await
-                .unwrap_or_default();
+            let alive = match alive_scanner.run_alive_test_streaming(Some(tx_host)).await {
+                Ok(alive) => alive,
+                Err(e) => {
+                    warn!(error=?e, "alive test failed; no hosts will be scanned");
+                    return;
+                }
+            };
             let dead: Vec<String> = host_set.difference(&alive).cloned().collect();
             if !dead.is_empty() {
                 mark_hosts_dead_when_available(&status_for_alive, &dead).await;
@@ -220,6 +223,7 @@ where
 /// The alive test and the scheduling of the scan (which determines when
 /// `host_info` becomes available) run concurrently, so this waits (with
 /// a bounded number of retries) until `host_info` is set.
+//TODO: if possible initialize host_info instead of wait.
 async fn mark_hosts_dead_when_available(status: &Arc<RwLock<Status>>, dead_hosts: &[String]) {
     const MAX_ATTEMPTS: usize = 200;
     const RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(25);
