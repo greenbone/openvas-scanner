@@ -12,9 +12,45 @@ pub mod packages;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq)]
 pub struct Image {
-    pub registry: String,
+    pub registry: Registry,
     pub image: Option<String>,
     pub tag: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Eq)]
+pub struct Registry(String);
+
+impl Registry {
+    pub fn endpoint(&self) -> &str {
+        match self.0.as_str() {
+            "docker.io" => "registry-1.docker.io",
+            name => name,
+        }
+    }
+}
+
+impl AsRef<str> for Registry {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for Registry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<String> for Registry {
+    fn from(name: String) -> Self {
+        Self(name)
+    }
+}
+
+impl From<&str> for Registry {
+    fn from(name: &str) -> Self {
+        Self(name.to_owned())
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -179,7 +215,7 @@ impl FromStr for Image {
         let registry = parts.next().ok_or(ImageParseError::NoRegistry)?;
         let image_parts: Vec<&str> = parts.collect();
         let mut result = Image {
-            registry: registry.to_owned(),
+            registry: registry.into(),
             image: None,
             tag: None,
         };
@@ -218,7 +254,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -232,7 +268,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "narf.io".to_owned(),
+                registry: "narf.io".into(),
                 image: Some("myuser/myimage".to_owned()),
                 tag: Some("sha256:abc1234def56789".to_owned())
             })
@@ -250,7 +286,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry:6969".to_owned(),
+                registry: "myregistry:6969".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -264,7 +300,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -278,7 +314,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -292,7 +328,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: None,
                 tag: None,
             })
@@ -306,7 +342,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
                 tag: None,
             })

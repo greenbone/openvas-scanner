@@ -238,7 +238,7 @@ async fn vt_requirements() {
 #[tokio::test]
 #[ignore = "very slow"]
 async fn container_image_scan_docker_hub_ubuntu_24_04() {
-    const IMAGE: &str = "oci://registry-1.docker.io/library/ubuntu:24.04";
+    const IMAGE: &str = "oci://docker.io/library/ubuntu:24.04";
 
     let t = Test::new("container_image_scan_docker_hub_ubuntu_24_04")
         .config("basic")

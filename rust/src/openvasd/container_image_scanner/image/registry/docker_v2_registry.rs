@@ -11,7 +11,7 @@ use super::{PackedLayer, RegistryPreference};
 use crate::container_image_scanner::{
     Streamer,
     image::{
-        Digest, Image,
+        Digest, Image, Registry,
         registry::{RegistryError, RegistryErrorKind},
     },
     timings::Timed,
@@ -60,7 +60,7 @@ struct ClientBuilder {
     insecure: bool,
     accept_invalid_certs: bool,
     scope: String,
-    registry: String,
+    registry: Registry,
 }
 
 impl ClientBuilder {
@@ -69,9 +69,9 @@ impl ClientBuilder {
         kind: RegistryErrorKind,
         source: docker_registry::errors::Error,
     ) -> RegistryError {
-        tracing::warn!(?source, %kind, self.registry, self.scope);
+        tracing::warn!(?source, %kind, registry = %self.registry, self.scope);
         RegistryError {
-            registry: Some(self.registry.to_owned()),
+            registry: Some(self.registry.to_string()),
             kind,
             status_code: match source {
                 // This can happen on wrong body response, which could be sign of limited
@@ -88,9 +88,9 @@ impl ClientBuilder {
     where
         T: std::fmt::Debug,
     {
-        tracing::warn!(?reason, %kind, self.registry, self.scope);
+        tracing::warn!(?reason, %kind, registry = %self.registry, self.scope);
         RegistryError {
-            registry: Some(self.registry.to_owned()),
+            registry: Some(self.registry.to_string()),
             kind,
             status_code: None,
         }
@@ -125,14 +125,20 @@ impl ClientBuilder {
     pub async fn authenticated(&self) -> Result<docker_registry::v2::Client, RegistryError> {
         let scope = &self.scope;
         let registry = &self.registry;
-        tracing::trace!(scope, registry, "trying to login");
+        let endpoint = self.registry.endpoint();
+        tracing::trace!(
+            scope,
+            logical_registry = %registry,
+            endpoint,
+            "trying to login"
+        );
         let as_ce = |error| self.authenticatation_error(error);
         docker_registry::v2::Client::configure()
             .insecure_registry(self.insecure)
             .accept_invalid_certs(self.accept_invalid_certs)
             .username(self.username.clone())
             .password(self.password.clone())
-            .registry(registry)
+            .registry(endpoint)
             .build()
             .map_err(as_ce)?
             // TODO: change library to automatically use the scope given by the server header
@@ -156,7 +162,7 @@ impl Client {
         insecure: bool,
         accept_invalid_certs: bool,
         scope: String,
-        registry: String,
+        registry: Registry,
     ) -> Result<Client, RegistryError> {
         let builder = ClientBuilder {
             username,
@@ -278,7 +284,7 @@ impl Client {
 }
 
 impl DockerV2Registry {
-    async fn catalog_client(&self, registry: &str) -> Result<Client, RegistryError> {
+    async fn catalog_client(&self, registry: &Registry) -> Result<Client, RegistryError> {
         let scope = "registry:catalog:*";
         Client::authenticated(
             self.username.clone(),
@@ -286,12 +292,16 @@ impl DockerV2Registry {
             self.insecure,
             self.accept_invalid_certs,
             scope.to_owned(),
-            registry.to_owned(),
+            registry.clone(),
         )
         .await
     }
 
-    async fn pull_client(&self, registry: &str, repository: &str) -> Result<Client, RegistryError> {
+    async fn pull_client(
+        &self,
+        registry: &Registry,
+        repository: &str,
+    ) -> Result<Client, RegistryError> {
         let scope = format!("repository:{repository}:pull",);
         Client::authenticated(
             self.username.clone(),
@@ -299,21 +309,21 @@ impl DockerV2Registry {
             self.insecure,
             self.accept_invalid_certs,
             scope.to_owned(),
-            registry.to_owned(),
+            registry.clone(),
         )
         .await
     }
 
     async fn resolve_or_search_repository(
         &self,
-        registry: &str,
+        registry: &Registry,
         repository: &str,
     ) -> Vec<Result<Image, RegistryError>> {
-        tracing::debug!(registry, repository, "resolve_or_search_repository");
+        tracing::debug!(%registry, repository, "resolve_or_search_repository");
         let client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
-                tracing::info!(registry, repository, error=%e, "Trying to find owner through catalog and filtering.");
+                tracing::info!(%registry, repository, error=%e, "Trying to find owner through catalog and filtering.");
                 return self
                     .resolve_catalog(registry, Some(Filter::StartsWith(repository.to_owned())))
                     .await;
@@ -323,7 +333,7 @@ impl DockerV2Registry {
             .get_tags(repository, None)
             .map(|x| match x {
                 Ok(x) => Ok(Image {
-                    registry: registry.to_owned(),
+                    registry: registry.clone(),
                     image: Some(repository.to_owned()),
                     tag: Some(x),
                 }),
@@ -337,13 +347,13 @@ impl DockerV2Registry {
 
     async fn resolve_repository(
         &self,
-        registry: &str,
+        registry: &Registry,
         repository: &str,
     ) -> Vec<Result<Image, RegistryError>> {
         let client = match self.pull_client(registry, repository).await {
             Ok(x) => x,
             Err(e) => {
-                tracing::warn!(registry, repository, error=%e, "Unable to resolve repository");
+                tracing::warn!(%registry, repository, error=%e, "Unable to resolve repository");
                 return vec![Err(e)];
             }
         };
@@ -352,7 +362,7 @@ impl DockerV2Registry {
             .map(|x| match x {
                 Ok(x) => {
                     let image = Image {
-                        registry: registry.to_owned(),
+                        registry: registry.clone(),
                         image: Some(repository.to_owned()),
                         tag: Some(x),
                     };
@@ -367,17 +377,17 @@ impl DockerV2Registry {
             .collect()
             .await;
 
-        tracing::debug!(registry, repository, images = repos.len(), "resolved");
+        tracing::debug!(%registry, repository, images = repos.len(), "resolved");
 
         repos
     }
 
     async fn resolve_catalog(
         &self,
-        registry: &str,
+        registry: &Registry,
         filter: Option<Filter>,
     ) -> Vec<Result<Image, RegistryError>> {
-        tracing::debug!(registry, ?filter, "resolve_catalog");
+        tracing::debug!(%registry, ?filter, "resolve_catalog");
         let client = match self.catalog_client(registry).await {
             Ok(x) => x,
             Err(e) => {
@@ -401,7 +411,7 @@ impl DockerV2Registry {
                             {
                                 Some(that.resolve_repository(&registry, &repository).await)
                             } else {
-                                tracing::debug!(registry, repository, "Ignoring");
+                                tracing::debug!(%registry, repository, "Ignoring");
                                 None
                             }
                         }
@@ -1056,12 +1066,11 @@ pub mod fake {
 #[cfg(test)]
 mod tests {
 
-    use futures::StreamExt;
-
     use super::fake::RegistryMock;
     use crate::container_image_scanner::image::{
-        Credential, DockerV2Registry, Image, RegistryPreference,
+        Credential, DockerV2Registry, Image, Registry, RegistryPreference,
     };
+    use futures::StreamExt;
 
     #[tokio::test]
     async fn resolve_images() {
@@ -1113,7 +1122,7 @@ mod tests {
             DockerV2Registry::initialize(Some(credential), vec![RegistryPreference::Insecure])
                 .expect("Registry cannot fail to initialize");
         let image = Image {
-            registry: addr.clone(),
+            registry: addr.clone().into(),
             image: None,
             tag: None,
         };
@@ -1133,7 +1142,7 @@ mod tests {
 
         let server = RegistryMock::from_images(&[image.clone()]).await;
 
-        image.registry = server.server.host_with_port();
+        image.registry = server.server.host_with_port().into();
 
         let credential = Credential {
             username: "user".to_owned(),
@@ -1150,5 +1159,14 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn resolves_docker_hub_endpoint() {
+        assert_eq!(
+            Registry::from("docker.io").endpoint(),
+            "registry-1.docker.io"
+        );
+        assert_eq!(Registry::from("quay.io").endpoint(), "quay.io");
     }
 }
