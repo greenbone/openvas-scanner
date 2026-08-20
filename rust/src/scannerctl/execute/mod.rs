@@ -184,7 +184,7 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
         let runner: ScanRunner<Arc<InMemoryStorage>> = ScanRunner::new(
             &storage, &loader, &executor, schedule, &scan, &notus, rx_target,
         )
-            .unwrap();
+        .unwrap();
         let mut results = Box::pin(runner.stream());
         while let Some(x) = results.next().await {
             match x {

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use crate::models::HostInfo;
 use crate::nasl::syntax::Loader;
@@ -47,7 +48,7 @@ pub struct ScanRunner<'a, S> {
     storage: &'a S,
     loader: &'a Loader,
     executor: &'a Executor,
-    concurrent_vts: Vec<ConcurrentVT>,
+    concurrent_vts: Arc<Vec<ConcurrentVT>>,
     notus: &'a Option<NotusCtx>,
     host_feed: Receiver<Target>,
 }
@@ -68,7 +69,7 @@ where
     where
         Sched: Iterator<Item = ConcurrentVTResult> + 'a,
     {
-        let concurrent_vts = schedule.collect::<Result<Vec<_>, _>>()?;
+        let concurrent_vts = Arc::new(schedule.collect::<Result<Vec<_>, _>>()?);
         Ok(Self {
             scan,
             storage,
