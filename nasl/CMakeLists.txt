@@ -144,6 +144,11 @@ if (OPENVAS_CONF)
 endif (OPENVAS_CONF)
 
 set_source_files_properties (nasl_grammar.tab.c GENERATED)
+# The bison-generated parser sets 'naslnerrs' (yynerrs) without using it, which
+# newer compilers (e.g. gcc-16) report under -Wunused-but-set-variable. This is
+# a bug in bison. As this file is generated, silence the warning.
+set_source_files_properties (nasl_grammar.tab.c PROPERTIES
+  COMPILE_OPTIONS "-Wno-unused-but-set-variable")
 
 ## Pass-throughs
 add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
