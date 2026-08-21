@@ -243,7 +243,7 @@ mod tests {
     use crate::scans::tests::{create_pool, prepare_scans};
 
     #[tokio::test]
-    async fn set_single_state() -> crate::Result<()> {
+    async fn set_single_state() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
         let under_test = ScanStateController::init(pool.clone()).await?;
 
@@ -255,7 +255,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn set_all_scans() -> crate::Result<()> {
+    async fn set_all_scans() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
         let under_test = ScanStateController::init(pool.clone()).await?;
         let scans = prepare_scans(pool, &config).await;

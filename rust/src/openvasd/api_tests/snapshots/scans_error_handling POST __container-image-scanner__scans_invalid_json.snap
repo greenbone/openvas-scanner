@@ -1,0 +1,16 @@
+---
+source: src/openvasd/api_tests/test_builder.rs
+expression: inner
+---
+{
+  "status_code": 400,
+  "headers": {
+    "api-version": "1",
+    "authentication": "disabled",
+    "content-length": "187",
+    "content-type": "application/json",
+    "date": "[redacted]",
+    "feed-version": "[redacted]",
+  },
+  "body": "{\"status\":400,\"message\":\"Failed to process JSON\",\"details\":\"Failed to deserialize the JSON body into the target type: invalid type: string \\\"{\\\", expected struct Scan at line 1 column 3\"}",
+}
