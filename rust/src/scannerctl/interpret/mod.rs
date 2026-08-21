@@ -9,17 +9,16 @@ use std::{
 };
 
 use futures::StreamExt;
-use scannerlib::models::VTData;
 use scannerlib::nasl::{
-    NaslValue, WithErrorInfo,
+    NaslValue, ScriptCtx, WithErrorInfo,
     interpreter::InterpreterErrorKind,
     syntax::{LoadError, Loader, read_non_utf8_path},
-    utils::scan_ctx::NotusCtx,
+    utils::scan_ctx::{NotusCtx, TargetId},
 };
 use scannerlib::{
     feed,
     nasl::{
-        Code, Register, ScanCtx, ScanCtxBuilder,
+        Code, Register, ScanCtx,
         error::emit_errors,
         interpreter::ForkingInterpreter,
         nasl_std_executor,
@@ -34,6 +33,7 @@ use scannerlib::{
         items::{kb::KbContextKey, nvt::Oid},
     },
 };
+use scannerlib::{models::VTData, nasl::utils::scan_ctx::CtxTargets};
 use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 
 use crate::{CliError, CliErrorKind, Db, Filename};
@@ -55,14 +55,19 @@ async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> 
     }
 }
 
-async fn run_with_context(ctx: ScanCtx<'_>, script: &Path) -> Result<(), CliErrorKind> {
+async fn run_with_context(
+    ctx: ScanCtx<'_>,
+    script: &Path,
+    target_id: TargetId,
+) -> Result<(), CliErrorKind> {
     let register = Register::default();
     let code = Code::from_string_filename(&load(&ctx, script).await?, script);
     let (ast, file) = code
         .parse()
         .emit_errors_get_ast_and_file()
         .map_err(CliErrorKind::SyntaxError)?;
-    let mut results = ForkingInterpreter::new(ast, register, &ctx).stream();
+    let script_ctx = ScriptCtx::new(&ctx, target_id, None);
+    let mut results = ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream();
     while let Some(result) = results.next().await {
         let r = match result {
             Ok(x) => x,
@@ -137,7 +142,6 @@ async fn run_on_storage<S: ContextStorage>(
     notus: Option<NotusCtx>,
 ) -> Result<(), CliErrorKind> {
     let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
-    let filename = script;
     let kbctx = (
         scan_id.clone(),
         scannerlib::storage::Target(target.ip_addr().to_string()),
@@ -155,19 +159,19 @@ async fn run_on_storage<S: ContextStorage>(
         }
     }
 
-    let ctx = ScanCtxBuilder {
-        storage: &storage,
-        loader: &loader,
-        executor: &nasl_std_executor(),
-        target,
-        ports,
+    let executor = nasl_std_executor();
+    let (targets, target_id) = CtxTargets::single(target, ports);
+    let ctx = ScanCtx::new(
         scan_id,
-        filename,
+        targets,
+        &storage,
+        &loader,
+        &executor,
         scan_preferences,
-        alive_test_methods: Vec::new(),
+        Vec::new(),
         notus,
-    };
-    run_with_context(ctx.build(), script).await
+    );
+    run_with_context(ctx, script, target_id).await
 }
 
 #[allow(clippy::too_many_arguments)]

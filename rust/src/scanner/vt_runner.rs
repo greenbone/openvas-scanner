@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
-
 use crate::models::{AliveTestMethods, Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
-use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Ports, Target};
+use crate::nasl::utils::scan_ctx::{ContextStorage, CtxTargets, NotusCtx, Ports, Target};
 use crate::nasl::utils::{Executor, Register};
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
@@ -188,35 +186,31 @@ where
         )
     }
 
-    async fn get_result_kind(
-        &self,
-        filename: PathBuf,
-        code: Code,
-        register: Register,
-    ) -> ScriptResultKind {
+    async fn get_result_kind(&self, code: Code, register: Register) -> ScriptResultKind {
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
-        let ctx = ScanCtxBuilder {
-            scan_id: crate::storage::ScanID(self.scan_id.clone()),
-            target: self.target.clone(),
-            ports: self.ports.clone(),
-            filename,
-            storage: self.storage,
-            loader: self.loader,
-            executor: self.executor,
-            scan_preferences: self.scan_preferences.clone(),
-            alive_test_methods: self.alive_test_methods.to_vec(),
-            notus: self.notus.clone(),
-        }
-        .build();
-        ctx.set_nvt(self.vt.clone());
+        // TODO Fix this once we've reformed the structure around this
+        let (targets, target_id) = CtxTargets::single(self.target.clone(), self.ports.clone());
+        let ctx = ScanCtx::new(
+            crate::storage::ScanID(self.scan_id.clone()),
+            targets,
+            self.storage,
+            self.loader,
+            self.executor,
+            self.scan_preferences.clone(),
+            self.alive_test_methods.to_vec(),
+            self.notus.clone(),
+        );
+        let script_ctx = ScriptCtx::new(&ctx, target_id, Some(self.vt.clone()));
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));
         }
         let ast = ast.unwrap();
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
+
+        let mut results =
+            Box::pin(ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream());
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
@@ -236,9 +230,7 @@ where
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = self
-            .get_result_kind(self.vt.filename.clone().into(), code, register)
-            .await;
+        let kind = self.get_result_kind(code, register).await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),

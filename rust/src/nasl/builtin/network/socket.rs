@@ -536,8 +536,11 @@ pub fn make_tcp_socket(ip: IpAddr, port: u16, retry: u8) -> Result<NaslSocket, S
 /// - Secret/kdc_port
 /// - Secret/kdc_use_tcp
 #[nasl_function]
-async fn open_sock_kdc(ctx: &ScanCtx<'_>, sockets: &mut NaslSockets) -> Result<NaslValue, FnError> {
-    let hostname: String = ctx
+async fn open_sock_kdc(
+    script_ctx: &ScriptCtx<'_>,
+    sockets: &mut NaslSockets,
+) -> Result<NaslValue, FnError> {
+    let hostname: String = script_ctx
         .get_single_kb_item(&KbKey::Kdc(kb::Kdc::Hostname))
         .await?;
 
@@ -546,17 +549,17 @@ async fn open_sock_kdc(ctx: &ScanCtx<'_>, sockets: &mut NaslSockets) -> Result<N
         .next()
         .ok_or(SocketError::HostnameNoIpFound(hostname))?;
 
-    let port = ctx
+    let port = script_ctx
         .get_single_kb_item::<Port>(&KbKey::Kdc(kb::Kdc::Port))
         .await?
         .0;
 
-    let use_tcp: bool = ctx
+    let use_tcp: bool = script_ctx
         .get_single_kb_item(&KbKey::Kdc(kb::Kdc::Protocol))
         .await?;
 
     let socket = if use_tcp {
-        make_tcp_socket(ip, port, get_retry(ctx).await)?
+        make_tcp_socket(ip, port, get_retry(script_ctx).await)?
     } else {
         let udp = UdpConnection::new(ip, port)?;
         NaslSocket::Udp(udp)
@@ -568,12 +571,12 @@ async fn open_sock_kdc(ctx: &ScanCtx<'_>, sockets: &mut NaslSockets) -> Result<N
 }
 
 async fn make_tls_client_connection(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     transport: &OpenvasEncaps,
     vhost: &str,
     shared_storage: &Arc<Mutex<Option<String>>>,
 ) -> Option<ClientConnection> {
-    get_tls_conf(ctx).await.ok().and_then(|conf| {
+    get_tls_conf(script_ctx).await.ok().and_then(|conf| {
         create_tls_client(
             vhost,
             &conf.cert_path,
@@ -587,8 +590,9 @@ async fn make_tls_client_connection(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn open_sock_tcp_vhost(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     addr: IpAddr,
     timeout: Duration,
     bufsz: Option<usize>,
@@ -597,7 +601,7 @@ pub async fn open_sock_tcp_vhost(
     transport: i64,
 ) -> Result<Option<NaslSocket>, FnError> {
     let mut transport = if transport.is_negative() {
-        ctx.get_port_transport(port).await.unwrap_or(1)
+        script_ctx.get_port_transport(port).await.unwrap_or(1)
     } else {
         transport
     };
@@ -609,8 +613,13 @@ pub async fn open_sock_tcp_vhost(
         Some(OpenvasEncaps::Auto) => {
             set_transport = true;
             // Try SSL/TLS first
-            let tls =
-                make_tls_client_connection(ctx, &OpenvasEncaps::Auto, vhost, &shared_storage).await;
+            let tls = make_tls_client_connection(
+                script_ctx,
+                &OpenvasEncaps::Auto,
+                vhost,
+                &shared_storage,
+            )
+            .await;
             if tls.is_some() {
                 transport = OpenvasEncaps::TlsCustom as i64;
             } else {
@@ -628,24 +637,27 @@ pub async fn open_sock_tcp_vhost(
         // TLS/SSL
         Some(tls_version) => match tls_version {
             OpenvasEncaps::Tls12 | OpenvasEncaps::Tls13 => {
-                make_tls_client_connection(ctx, &tls_version, vhost, &shared_storage).await
+                make_tls_client_connection(script_ctx, &tls_version, vhost, &shared_storage).await
             }
             _ => return Err(SocketError::UnsupportedTransportLayerTlsVersion(transport).into()),
         },
     };
 
-    let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(ctx).await)
+    let conn = TcpConnection::connect(addr, port, tls, timeout, bufsz, get_retry(script_ctx).await)
         .map(|tcp| NaslSocket::Tcp(Box::new(tcp)))
         .ok();
 
     if set_transport {
-        ctx.set_port_transport(port, transport as usize).await?;
+        script_ctx
+            .set_port_transport(port, transport as usize)
+            .await?;
     }
     Ok(conn)
 }
 
 pub async fn open_sock_tcp_shared(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -657,7 +669,7 @@ pub async fn open_sock_tcp_shared(
     // Get port
     let transport = transport.unwrap_or(-1);
 
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
 
     nasl_sockets.wait_before_next_probe();
 
@@ -671,20 +683,21 @@ pub async fn open_sock_tcp_shared(
             .unwrap_or(DEFAULT_TIMEOUT.into()) as u64
             * 2,
     ));
-    let mut vhosts = ctx
+    let mut vhosts = script_ctx
         .target()
         .vhosts()
         .iter()
         .map(|v| v.hostname().to_string())
         .collect::<Vec<String>>();
     if vhosts.is_empty() {
-        vhosts.push(ctx.target().ip_addr().to_string());
+        vhosts.push(script_ctx.target().ip_addr().to_string());
     };
 
     let mut sockets = vec![];
     for vhost in vhosts.iter() {
-        sockets
-            .push(open_sock_tcp_vhost(ctx, addr, timeout, bufsz, port.0, vhost, transport).await?);
+        sockets.push(
+            open_sock_tcp_vhost(script_ctx, addr, timeout, bufsz, port.0, vhost, transport).await?,
+        );
     }
 
     Ok(Fork::new(sockets.into_iter().flatten().map(|socket| {
@@ -714,6 +727,7 @@ pub async fn open_sock_tcp_shared(
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_sock_tcp(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -722,19 +736,28 @@ async fn open_sock_tcp(
     // TODO: Extract information from custom priority string
     // priority: Option<&str>,
 ) -> Result<NaslValue, FnError> {
-    open_sock_tcp_shared(ctx, nasl_sockets, port, timeout, transport, bufsz).await
+    open_sock_tcp_shared(
+        ctx,
+        script_ctx,
+        nasl_sockets,
+        port,
+        timeout,
+        transport,
+        bufsz,
+    )
+    .await
 }
 
 #[nasl_function(named(socket, transport))]
 async fn socket_negotiate_ssl(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     socket: usize,
     transport: Option<i64>,
 ) -> Result<NaslValue, FnError> {
     let transport = transport.unwrap_or(OpenvasEncaps::TlsCustom.into());
     let session_id = Arc::new(Mutex::new(None));
-    let client = get_tls_conf(ctx).await.and_then(|conf| {
+    let client = get_tls_conf(script_ctx).await.and_then(|conf| {
         prepare_tls_client(
             &conf.cert_path,
             &conf.key_path,
@@ -763,7 +786,8 @@ async fn socket_negotiate_ssl(
     soc.set_session_id(session_id);
 
     //TODO: transport is set in the kb, but is not specified in the TLS Session
-    ctx.set_port_transport(soc.get_port(), transport as usize)
+    script_ctx
+        .set_port_transport(soc.get_port(), transport as usize)
         .await?;
     Ok(NaslValue::Number(socket as i64))
 }
@@ -878,20 +902,20 @@ async fn socket_check_ssl_safe_renegotiation(
 
 /// Reads the information necessary for a TLS connection from the KB and
 /// return a TlsConfig on success.
-async fn get_tls_conf(ctx: &ScanCtx<'_>) -> Result<TlsConfig, FnError> {
-    let cert_path = ctx
+async fn get_tls_conf(script_ctx: &ScriptCtx<'_>) -> Result<TlsConfig, FnError> {
+    let cert_path = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Cert))
         .await
         .unwrap_or_default();
-    let key_path = ctx
+    let key_path = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Key))
         .await
         .unwrap_or_default();
-    let password = ctx
+    let password = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Password))
         .await
         .unwrap_or_default();
-    let cafile_path = ctx
+    let cafile_path = script_ctx
         .get_single_kb_item(&KbKey::Ssl(kb::Ssl::Ca))
         .await
         .unwrap_or_default();
@@ -907,11 +931,11 @@ async fn get_tls_conf(ctx: &ScanCtx<'_>) -> Result<TlsConfig, FnError> {
 /// Open a UDP socket to the target host
 #[nasl_function]
 async fn open_sock_udp(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
 ) -> Result<NaslValue, FnError> {
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
 
     let socket = NaslSocket::Udp(UdpConnection::new(addr, port.0)?);
     let fd = sockets.add(socket);
@@ -927,12 +951,12 @@ async fn open_sock_udp(
 /// - timeout: An integer with the timeout value in seconds.  The default timeout is controlled by a global value.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_tcp(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
 ) -> Result<NaslValue, FnError> {
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
     sockets.open_priv_sock(addr, dport, sport, true)
 }
 
@@ -943,12 +967,12 @@ async fn open_priv_sock_tcp(
 ///   If it is not set, the function will try to open a socket on any port from 1 to 1023.
 #[nasl_function(named(dport, sport))]
 async fn open_priv_sock_udp(
-    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     dport: Port,
     sport: Option<Port>,
 ) -> Result<NaslValue, FnError> {
-    let addr = ctx.target().ip_addr();
+    let addr = script_ctx.target().ip_addr();
     sockets.open_priv_sock(addr, dport, sport, false)
 }
 

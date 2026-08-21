@@ -17,6 +17,8 @@ use crate::nasl::prelude::*;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::ContextStorage;
+use crate::nasl::utils::scan_ctx::CtxTargets;
+use crate::nasl::utils::scan_ctx::Ports;
 use crate::nasl::utils::scan_ctx::Target;
 
 use crate::feed::verify::HashSumFileItem;
@@ -47,35 +49,32 @@ pub struct Update<'a, S, V> {
 /// Loads the plugin_feed_info and returns the feed version
 pub async fn feed_version(
     loader: &Loader,
-    dispatcher: &dyn ContextStorage,
+    storage: &dyn ContextStorage,
 ) -> Result<String, ErrorKind> {
     let feed_info_filename = "plugin_feed_info.inc";
     let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
-    let target = Target::localhost();
-    let ports = Default::default();
-    let filename = "";
+    let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
     let executor = nasl_std_executor();
-    let scan_params = ScanPrefs::new();
+    let scan_prefs = ScanPrefs::new();
     let alive_test_methods = Vec::default();
-    let ctx = ScanCtxBuilder {
-        storage: dispatcher,
-        loader,
-        executor: &executor,
-        target,
-        ports,
-        filename,
+    let ctx = ScanCtx::new(
         scan_id,
-        scan_preferences: scan_params,
+        targets,
+        storage,
+        loader,
+        &executor,
+        scan_prefs,
         alive_test_methods,
-        notus: None,
-    };
-    let ctx = ctx.build();
+        None,
+    );
+    let script_ctx = ScriptCtx::new(&ctx, target_id, None);
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
         &ctx,
+        script_ctx,
     );
     interpreter.execute_all().await?;
 
@@ -150,29 +149,27 @@ where
         // anymore, since the parse_description_block function returns
         // the statements from within the if.
         let register = Register::from_global_variables(&self.initial);
-        let scan_params = ScanPrefs(Vec::default());
+        let scan_prefs = ScanPrefs(Vec::default());
         let alive_test_methods = Vec::default();
-        let target = Target::localhost();
-        let ports = Default::default();
-        let ctx = ScanCtxBuilder {
-            scan_id: ScanID(key.0.clone()),
-            target,
-            ports,
-            filename: &key.0,
-            storage: self.storage,
-            loader: &self.loader,
-            executor: &self.executor,
-            scan_preferences: scan_params,
+        let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
+        let ctx = ScanCtx::new(
+            ScanID(key.0.clone()),
+            targets,
+            self.storage,
+            &self.loader,
+            &self.executor,
+            scan_prefs,
             alive_test_methods,
-            notus: None,
-        };
-        let ctx = ctx.build();
+            None,
+        );
         let file = code.source_file();
         let ast = code
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
+        let script_ctx = ScriptCtx::new(&ctx, target_id, None);
+        let mut results =
+            Box::pin(ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream());
         while let Some(stmt) = results.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
