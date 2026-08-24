@@ -1,0 +1,4 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"root.nasl\"], &\n[(\"root.nasl\", \"include(\\\"first.inc\\\"); foo();\"),\n(\"first.inc\", \"include(\\\"second.inc\\\");\"),\n(\"second.inc\", \"function foo() {}\")],)"
+---
