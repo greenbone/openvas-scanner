@@ -91,12 +91,16 @@ impl Linter {
                         });
                     }
                 };
+                let include_file = code.file();
                 match self.parse_file(code) {
                     Ok(ast) => {
                         self.cache.insert(&include.path, CachedFile::new(&ast));
                     }
-                    Err(_) => {
-                        todo!()
+                    Err(msgs) => {
+                        return Ok(LintMsgs {
+                            file: include_file,
+                            msgs,
+                        });
                     }
                 }
             }
