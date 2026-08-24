@@ -2,19 +2,48 @@ mod duplicate_function_arg;
 mod duplicate_function_declaration;
 mod fn_undefined;
 
+use std::ops::Range;
+
 use codespan_reporting::diagnostic::Diagnostic;
-use scannerlib::nasl::error::IntoDiagnostic;
 use scannerlib::nasl::syntax::grammar::Ast;
+use scannerlib::nasl::{
+    SourceFile,
+    error::{IntoDiagnostic, Span},
+};
 
 use super::ctx::LintCtx;
 
+/// A key used to identify the same lint message when it is created
+/// multiple times. Getting the same message multiple times happens when
+/// a file is included from multiple places.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(super) struct LintMsgKey {
+    rule: &'static str,
+    file: String,
+    span: Range<usize>,
+}
+
 pub(super) struct LintMsg {
+    rule: &'static str,
+    span: Range<usize>,
     diagnostic: Diagnostic<()>,
 }
 
-impl From<Diagnostic<()>> for LintMsg {
-    fn from(diagnostic: Diagnostic<()>) -> Self {
-        Self { diagnostic }
+impl LintMsg {
+    pub(super) fn new(rule: &'static str, span: Span, diagnostic: Diagnostic<()>) -> Self {
+        Self {
+            rule,
+            span: span.into(),
+            diagnostic,
+        }
+    }
+
+    pub(super) fn message_key(&self, file: &SourceFile) -> LintMsgKey {
+        LintMsgKey {
+            rule: self.rule,
+            file: file.name().clone(),
+            span: self.span.clone(),
+        }
     }
 }
 
