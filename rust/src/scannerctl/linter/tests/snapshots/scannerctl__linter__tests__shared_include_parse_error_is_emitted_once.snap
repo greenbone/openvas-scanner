@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"a.nasl\", \"b.nasl\"], &\n[(\"a.nasl\", \"include(\\\"common.inc\\\");\"),\n(\"b.nasl\", \"include(\\\"common.inc\\\");\"),\n(\"common.inc\", \"function broken(\")],)"
+---
+error: Expected ')'
+  ┌─ common.inc:1:1
+  │
+1 │ function broken(
+  │ ^^^^^^^^^^^^^^^^ Expected ')'
