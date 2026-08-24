@@ -46,6 +46,10 @@ impl Default for Cache {
 }
 
 impl Cache {
+    pub(crate) fn clear_files(&mut self) {
+        self.files.clear();
+    }
+
     pub(crate) fn insert(&mut self, rel_path: &str, file: CachedFile) {
         self.files.insert(rel_path.to_owned(), file);
     }
