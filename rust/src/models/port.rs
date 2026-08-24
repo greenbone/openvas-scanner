@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
-use std::{fmt::Display, str::FromStr};
+use std::{collections::BTreeSet, fmt::Display, str::FromStr};
 
 /// Represents a port representation for scanning.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -94,58 +94,73 @@ impl AsRef<str> for Protocol {
 }
 
 pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
-    fn add_range_to_list(list: &mut String, start: usize, end: Option<usize>) {
-        // Add range
-        if let Some(end) = end {
-            for p in start..=end {
-                list.push_str(p.to_string().as_str());
-                list.push(',');
+    // Collect all ports per protocol into a sorted, deduplicated set so that
+    // contiguous ports, including many single ports, can be compacted into
+    // ranges. This keeps the resulting string as short as possible. This is
+    // necessary because of the call to nmap, which fails to execute with too
+    // many arguments given.
+    fn compact(ports: &BTreeSet<usize>) -> String {
+        let mut parts: Vec<String> = Vec::new();
+        let mut start: Option<usize> = None;
+        let mut prev: Option<usize> = None;
+        for &port in ports {
+            match prev {
+                Some(p) if port == p + 1 => {}
+                _ => {
+                    if let (Some(s), Some(e)) = (start, prev) {
+                        parts.push(if s == e {
+                            s.to_string()
+                        } else {
+                            format!("{s}-{e}")
+                        });
+                    }
+                    start = Some(port);
+                }
             }
-
-        // Add single port
-        } else {
-            list.push_str(start.to_string().as_str());
-            list.push(',');
+            prev = Some(port);
         }
+        if let (Some(s), Some(e)) = (start, prev) {
+            parts.push(if s == e {
+                s.to_string()
+            } else {
+                format!("{s}-{e}")
+            });
+        }
+        parts.join(",")
     }
+
     if ports.is_empty() {
         return None;
     }
 
-    let mut udp = String::from("U:");
-    let mut tcp = String::from("T:");
+    let mut tcp = BTreeSet::new();
+    let mut udp = BTreeSet::new();
 
-    ports.iter().for_each(|p| match p.protocol {
-        Some(Protocol::TCP) => {
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));
+    for p in &ports {
+        for r in &p.range {
+            let range = r.start..=r.end.unwrap_or(r.start);
+            match p.protocol {
+                Some(Protocol::TCP) => tcp.extend(range),
+                Some(Protocol::UDP) => udp.extend(range),
+                None => {
+                    tcp.extend(range.clone());
+                    udp.extend(range);
+                }
+            }
         }
-        Some(Protocol::UDP) => {
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
-        }
-        None => {
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut tcp, r.start, r.end));
-            p.range
-                .iter()
-                .for_each(|r| add_range_to_list(&mut udp, r.start, r.end));
-        }
-    });
-    let mut port_list = String::new();
-    // both TCP and UDP
-    if tcp != *"T:" && udp != *"U:" {
-        port_list.push_str(&tcp);
-        port_list.push_str(&udp);
     }
-    // only UDP
-    else if tcp == *"T:" && udp != *"U:" {
-        port_list.push_str(&udp);
-    } else if tcp != *"T:" && udp == *"U:" {
-        port_list.push_str(&tcp);
+
+    let mut port_list = String::new();
+    if !tcp.is_empty() {
+        port_list.push_str("T:");
+        port_list.push_str(&compact(&tcp));
+    }
+    if !udp.is_empty() {
+        if !port_list.is_empty() {
+            port_list.push(',');
+        }
+        port_list.push_str("U:");
+        port_list.push_str(&compact(&udp));
     }
 
     Some(port_list)
@@ -170,6 +185,26 @@ mod tests {
                         start: 80,
                         end: None,
                     },
+                    PortRange {
+                        start: 2000,
+                        end: None,
+                    },
+                    PortRange {
+                        start: 2001,
+                        end: None,
+                    },
+                    PortRange {
+                        start: 2002,
+                        end: None,
+                    },
+                    PortRange {
+                        start: 2003,
+                        end: None,
+                    },
+                    PortRange {
+                        start: 2004,
+                        end: None,
+                    },
                 ],
             },
             Port {
@@ -192,10 +227,24 @@ mod tests {
                     end: None,
                 }],
             },
+            Port {
+                protocol: None,
+                range: vec![PortRange {
+                    start: 22,
+                    end: None,
+                }],
+            },
+            Port {
+                protocol: None,
+                range: vec![PortRange {
+                    start: 24,
+                    end: Some(32),
+                }],
+            },
         ];
         assert_eq!(
             ports_to_openvas_port_list(ports),
-            Some("T:22,23,24,25,80,1000,U:30,31,32,33,34,35,36,37,38,39,40,5060,1000,".to_string())
+            Some("T:22-32,80,1000,2000-2004,U:22,24-40,1000,5060".to_string())
         );
     }
 }
