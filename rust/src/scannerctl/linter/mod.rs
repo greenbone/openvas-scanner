@@ -70,6 +70,7 @@ impl Linter {
     }
 
     fn lint_file(&mut self, rel_path: &str) -> Result<LintMsgs, LoadError> {
+        self.cache.clear_files();
         let code = self.load(rel_path)?;
         let file = code.file();
         let ast = match self.parse_file(code) {
