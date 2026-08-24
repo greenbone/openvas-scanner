@@ -369,19 +369,29 @@ where
 
     async fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
         let options = self
-            .scan_config
-            .scan_preferences
-            .clone()
+            .scan_params_defaults
             .iter()
             .map(|x| {
-                let p = self.scan_params_defaults.iter().find(|p| p.id == x.id);
-                if let Some(p) = p {
-                    match p.default {
-                        PreferenceValue::Bool(_) => format!("{}|||{}", x.id, bool_to_str(&x.value)),
-                        _ => format!("{}|||{}", x.id, x.value),
+                if let Some(pref) = self
+                    .scan_config
+                    .scan_preferences
+                    .iter()
+                    .find(|p| p.id == x.id)
+                {
+                    match x.default {
+                        PreferenceValue::Bool(_) => {
+                            format!("{}|||{}", x.id, bool_to_str(&pref.value))
+                        }
+                        _ => format!("{}|||{}", x.id, pref.value),
                     }
                 } else {
-                    format!("{}|||{}", x.id, x.value)
+                    match x.default {
+                        PreferenceValue::Bool(b) => {
+                            format!("{}|||{}", x.id, bool_to_str(&b.to_string()))
+                        }
+                        PreferenceValue::Int(i) => format!("{}|||{}", x.id, i),
+                        PreferenceValue::String(s) => format!("{}|||{}", x.id, s),
+                    }
                 }
             })
             .collect::<Vec<String>>();
@@ -573,9 +583,12 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::models::{
-        self, AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan,
-        Service,
+    use crate::{
+        models::{
+            self, AliveTestMethods, Credential, CredentialType, Port, PortRange, Protocol, Scan,
+            Service,
+        },
+        scanner::preferences::preference::PREFERENCES,
     };
 
     use super::PreferenceHandler;
@@ -626,12 +639,16 @@ mod tests {
         }];
         scan.scan_preferences = vec![
             models::ScanPreference {
-                id: "testParam1".to_string(),
-                value: "1".to_string(),
+                id: "auto_enable_dependencies".to_string(),
+                value: "0".to_string(),
             },
             models::ScanPreference {
-                id: "testParam2".to_string(),
+                id: "cgi_path".to_string(),
                 value: "abc".to_string(),
+            },
+            models::ScanPreference {
+                id: "checks_read_timeout".to_string(),
+                value: "10".to_string(),
             },
         ];
         scan.vts = vec![models::VT {
@@ -652,7 +669,7 @@ mod tests {
             data: HashMap::new(),
         };
 
-        let mut prefh = PreferenceHandler::new(scan, &mut rc, Vec::default());
+        let mut prefh = PreferenceHandler::new(scan, &mut rc, PREFERENCES.to_vec());
         assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
         // Prepare and test Scan ID
         assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
@@ -732,16 +749,39 @@ mod tests {
 
         // Prepare and test Scan Params
         assert!(prefh.prepare_scan_params_for_openvas().await.is_ok());
+        // Check overwrite bool
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "auto_enable_dependencies|||no"
+        ));
+        // Check overwrite string
         assert!(
             prefh
                 .redis_connector
-                .item_exists("internal/123-456/scanprefs", "testParam1|||1")
+                .item_exists("internal/123-456/scanprefs", "cgi_path|||abc")
         );
+        // Check overwrite int
         assert!(
             prefh
                 .redis_connector
-                .item_exists("internal/123-456/scanprefs", "testParam2|||abc")
+                .item_exists("internal/123-456/scanprefs", "checks_read_timeout|||10")
         );
+        // Check default bool
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "unscanned_closed|||yes")
+        );
+        // Check default string
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "non_simult_ports|||139, 445, 3389, Services/irc"
+        ));
+        // Check default int
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "scanner_plugins_timeout|||36000"
+        ));
 
         // Prepare and test Reverse Lookup Options
         assert!(prefh.prepare_reverse_lookup_opt_for_openvas().await.is_ok());
