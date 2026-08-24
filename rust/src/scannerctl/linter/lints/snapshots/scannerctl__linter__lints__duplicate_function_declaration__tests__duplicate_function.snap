@@ -1,0 +1,11 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function_declaration.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (duplicate_function), \"function foo() {} function foo() {}\",)"
+---
+error: Function declared multiple times: foo
+  ┌─ duplicate_function:1:10
+  │
+1 │ function foo() {} function foo() {}
+  │          ^^^               --- redeclared here
+  │          │                  
+  │          first declaration

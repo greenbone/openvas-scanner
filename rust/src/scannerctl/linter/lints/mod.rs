@@ -1,4 +1,5 @@
 mod duplicate_function_arg;
+mod duplicate_function_declaration;
 mod fn_undefined;
 
 use codespan_reporting::diagnostic::Diagnostic;
@@ -50,10 +51,11 @@ where
 }
 
 pub fn all_lints() -> Vec<Box<dyn Lint>> {
-    let ast_lint = |f| Box::new(AstLint(f)) as Box<dyn Lint>;
+    let ast_lint = |f: fn(&Ast) -> Vec<LintMsg>| Box::new(AstLint(f)) as Box<dyn Lint>;
     let fn_lint = |f| Box::new(FnLint(f)) as Box<dyn Lint>;
     vec![
         ast_lint(duplicate_function_arg::duplicate_function_args),
+        ast_lint(duplicate_function_declaration::duplicate_function_declarations),
         fn_lint(fn_undefined::fn_undefined),
     ]
 }
