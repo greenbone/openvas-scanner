@@ -26,7 +26,7 @@ jobs:
       run: |
           sh .github/install-openvas-dependencies.sh
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4.37.7
+      uses: github/codeql-action/init@v4.37.8
       with:
         languages: 'c'
       # build between init and analyze ...
@@ -34,4 +34,4 @@ jobs:
       run: ./check.sh --verbose ci-codeql-build-c
       working-directory: ${{ github.WORKSPACE }}
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4.37.7
+      uses: github/codeql-action/analyze@v4.37.8
