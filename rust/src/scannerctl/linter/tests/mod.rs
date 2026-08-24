@@ -1,6 +1,7 @@
-use scannerlib::nasl::{Code, error::emit_errors_str};
+use scannerlib::nasl::{Code, Loader, error::emit_errors_str};
 
 use crate::linter::{
+    Linter, Statistics,
     ctx::{Cache, CachedFile, LintCtx},
     lints::all_lints,
 };
@@ -22,6 +23,29 @@ pub fn lint(file_name: &str, code: &str) -> String {
         .flat_map(|lint| lint.lint(&ctx))
         .collect();
     emit_errors_str(&file, msgs.into_iter())
+}
+
+#[test]
+fn included_parse_error_uses_included_source() {
+    let loader = Loader::test()
+        .with_file("root.nasl", "include(\"broken.inc\");".into())
+        .with_file("broken.inc", "function foo(".into())
+        .build();
+    let mut linter = Linter {
+        verbose: false,
+        quiet: false,
+        only_syntax: false,
+        loader,
+        stats: Statistics::default(),
+        lints: all_lints(),
+        cache: Cache::default(),
+    };
+
+    let result = linter.lint_file("root.nasl").unwrap();
+    let output = emit_errors_str(&result.file, result.msgs.into_iter());
+
+    assert!(output.contains("broken.inc"), "{output}");
+    assert!(!output.contains("root.nasl"), "{output}");
 }
 
 #[macro_export]
