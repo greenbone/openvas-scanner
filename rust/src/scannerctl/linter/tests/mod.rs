@@ -76,3 +76,31 @@ linter_test_multi!(
         "second.nasl" => "leaked();",
     },
 );
+
+linter_test_multi!(
+    resolves_direct_include,
+    roots: ["root.nasl"],
+    files: {
+        "root.nasl" => "include(\"functions.inc\"); foo();",
+        "functions.inc" => "function foo() {}",
+    },
+);
+
+linter_test_multi!(
+    resolves_transitive_include,
+    roots: ["root.nasl"],
+    files: {
+        "root.nasl" => "include(\"first.inc\"); foo();",
+        "first.inc" => "include(\"second.inc\");",
+        "second.inc" => "function foo() {}",
+    },
+);
+
+linter_test_multi!(
+    handles_include_cycle,
+    roots: ["root.nasl"],
+    files: {
+        "root.nasl" => "include(\"first.inc\");",
+        "first.inc" => "include(\"root.nasl\");",
+    },
+);

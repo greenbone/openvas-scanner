@@ -4,7 +4,7 @@ mod lints;
 #[cfg(test)]
 pub(crate) mod tests;
 
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 pub use cli::LinterArgs;
 use cli::get_files_and_loader;
@@ -80,37 +80,44 @@ impl Linter {
         let msgs = if self.only_syntax {
             vec![]
         } else {
-            for include in ast.iter_includes() {
-                let code = match self.load(&include.path) {
-                    Ok(code) => code,
-                    Err(_) => {
-                        // TODO report multiple errors here if multiple files
-                        // cannot be found.
-                        return Ok(LintMsgs {
-                            file,
-                            msgs: vec![make_load_error_msg(include)],
-                        });
-                    }
-                };
-                let include_file = code.file();
-                match self.parse_file(code) {
-                    Ok(ast) => {
-                        self.cache.insert(&include.path, CachedFile::new(&ast));
-                    }
-                    Err(msgs) => {
-                        return Ok(LintMsgs {
-                            file: include_file,
-                            msgs,
-                        });
-                    }
-                }
-            }
             self.cache.insert(rel_path, CachedFile::new(&ast));
+            let mut loaded = HashSet::from([rel_path.to_owned()]);
+            if let Err(msgs) = self.load_includes(&ast, &file, &mut loaded) {
+                return Ok(msgs);
+            }
 
             let ctx = LintCtx::new(&ast, &mut self.cache);
             self.lints.iter().flat_map(|lint| lint.lint(&ctx)).collect()
         };
         Ok(LintMsgs { file, msgs })
+    }
+
+    fn load_includes(
+        &mut self,
+        ast: &Ast,
+        file: &SourceFile,
+        loaded: &mut HashSet<String>,
+    ) -> Result<(), LintMsgs> {
+        for include in ast.iter_includes() {
+            if !loaded.insert(include.path.clone()) {
+                continue;
+            }
+
+            let code = self.load(&include.path).map_err(|_| LintMsgs {
+                file: file.clone(),
+                msgs: vec![make_load_error_msg(include)],
+            })?;
+            let include_file = code.file();
+            let include_ast = self.parse_file(code).map_err(|msgs| LintMsgs {
+                file: include_file.clone(),
+                msgs,
+            })?;
+
+            self.cache
+                .insert(&include.path, CachedFile::new(&include_ast));
+            self.load_includes(&include_ast, &include_file, loaded)?;
+        }
+        Ok(())
     }
 
     fn parse_file(&self, code: Code) -> Result<Ast, Vec<LintMsg>> {
