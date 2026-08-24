@@ -3,6 +3,8 @@ use scannerlib::nasl::error::Spanned;
 
 use crate::linter::{LintMsg, ctx::LintCtx};
 
+const RULE: &str = "undefined_function";
+
 pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
     ctx.ast
         .iter_fn_calls()
@@ -11,12 +13,13 @@ pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
             !ctx.fn_defined(&name) && !ctx.builtin_defined(&name)
         })
         .map(|call| {
-            Diagnostic::error()
+            let span = call.fn_name.span();
+            let diagnostic = Diagnostic::error()
                 .with_message(format!("Undefined function '{}'", call.fn_name))
                 .with_labels(vec![
-                    Label::primary((), call.fn_name.span()).with_message("undefined function"),
-                ])
-                .into()
+                    Label::primary((), span).with_message("undefined function"),
+                ]);
+            LintMsg::new(RULE, span, diagnostic)
         })
         .collect()
 }

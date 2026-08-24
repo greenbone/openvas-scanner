@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use scannerlib::nasl::{Loader, error::emit_errors_str};
 
 use crate::linter::{Linter, Statistics, ctx::Cache, lints::all_lints};
@@ -21,12 +23,14 @@ pub fn lint_files(roots: &[&str], files: &[(&str, &str)]) -> String {
         stats: Statistics::default(),
         lints: all_lints(),
         cache: Cache::default(),
+        lint_msgs: HashSet::new(),
     };
 
     roots
         .iter()
         .map(|root| {
             let result = linter.lint_file(root).unwrap();
+            let result = linter.deduplicate(result);
             emit_errors_str(&result.file, result.msgs.into_iter())
         })
         .collect()
@@ -102,5 +106,15 @@ linter_test_multi!(
     files: {
         "root.nasl" => "include(\"first.inc\");",
         "first.inc" => "include(\"root.nasl\");",
+    },
+);
+
+linter_test_multi!(
+    shared_include_parse_error_is_emitted_once,
+    roots: ["a.nasl", "b.nasl"],
+    files: {
+        "a.nasl" => "include(\"common.inc\");",
+        "b.nasl" => "include(\"common.inc\");",
+        "common.inc" => "function broken(",
     },
 );
