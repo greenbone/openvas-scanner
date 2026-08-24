@@ -10,7 +10,7 @@ pub use cli::LinterArgs;
 use cli::get_files_and_loader;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use ctx::{Cache, CachedFile, LintCtx};
-use lints::{Lint, LintMsg, all_lints};
+use lints::{LintMsgKey, Lint, LintMsg, all_lints};
 use scannerlib::nasl::{
     Code, Loader, SourceFile,
     error::{IntoDiagnostic, emit_errors},
@@ -39,6 +39,7 @@ struct Linter {
     lints: Vec<Box<dyn Lint>>,
 
     cache: Cache,
+    lint_msgs: HashSet<LintMsgKey>,
 }
 
 struct LintMsgs {
@@ -125,8 +126,11 @@ impl Linter {
         let result = parsed.result();
         result.map_err(|e| {
             e.into_iter()
-                .map(ParseError::into_diagnostic)
-                .map(|diagnostic| diagnostic.into())
+                .map(|error| {
+                    let span = error.span;
+                    let diagnostic = ParseError::into_diagnostic(error);
+                    LintMsg::new("syntax", span, diagnostic)
+                })
                 .collect()
         })
     }
@@ -136,19 +140,29 @@ impl Linter {
     }
 
     fn handle_msgs(&mut self, msgs: LintMsgs) {
+        let msgs = self.deduplicate(msgs);
         self.stats.errors += msgs.msgs.len();
         if !self.quiet {
             emit_errors(&msgs.file, msgs.msgs.into_iter());
         }
     }
+
+    fn deduplicate(&mut self, msgs: LintMsgs) -> LintMsgs {
+        let LintMsgs { file, msgs } = msgs;
+        let msgs = msgs
+            .into_iter()
+            .filter(|msg| self.lint_msgs.insert(msg.message_key(&file)))
+            .collect();
+        LintMsgs { file, msgs }
+    }
 }
 
 fn make_load_error_msg(include: &Include) -> LintMsg {
     let msg = format!("Could not find file '{:?}'", include.path);
-    Diagnostic::error()
+    let diagnostic = Diagnostic::error()
         .with_message(&msg)
-        .with_labels(vec![Label::primary((), include.span).with_message(&msg)])
-        .into()
+        .with_labels(vec![Label::primary((), include.span).with_message(&msg)]);
+    LintMsg::new("include_not_found", include.span, diagnostic)
 }
 
 pub(crate) async fn run(
@@ -166,6 +180,7 @@ pub(crate) async fn run(
         lints,
         stats: Statistics::default(),
         cache: Cache::default(),
+        lint_msgs: HashSet::new(),
 
         loader,
     };

@@ -8,6 +8,8 @@ use scannerlib::nasl::{
 
 use crate::linter::LintMsg;
 
+const RULE: &str = "duplicate_function_declaration";
+
 struct Declarations {
     name: String,
     spans: Vec<Span>,
@@ -57,7 +59,11 @@ pub fn duplicate_function_declarations(ast: &Ast) -> Vec<LintMsg> {
     declarations
         .into_iter()
         .filter(|declarations| declarations.spans.len() > 1)
-        .map(|declarations| declarations.into_diagnostic().into())
+        .map(|declarations| {
+            let span = declarations.spans[0];
+            let diagnostic = declarations.into_diagnostic();
+            LintMsg::new(RULE, span, diagnostic)
+        })
         .collect()
 }
 

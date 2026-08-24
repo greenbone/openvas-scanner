@@ -8,6 +8,8 @@ use scannerlib::nasl::{
 
 use crate::linter::LintMsg;
 
+const RULE: &str = "duplicate_function_argument";
+
 struct Entry {
     count: usize,
     spans: Vec<Span>,
@@ -49,7 +51,11 @@ pub fn get_duplicate_args(fn_call: &FnCall) -> Vec<LintMsg> {
     counter
         .into_iter()
         .filter(|(_, entry)| entry.count > 1)
-        .map(|(name, entry)| entry.into_diagnostic(&name).into())
+        .map(|(name, entry)| {
+            let span = entry.spans[0];
+            let diagnostic = entry.into_diagnostic(&name);
+            LintMsg::new(RULE, span, diagnostic)
+        })
         .collect()
 }
 
