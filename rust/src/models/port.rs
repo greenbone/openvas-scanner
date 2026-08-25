@@ -247,4 +247,30 @@ mod tests {
             Some("T:22-32,80,1000,2000-2004,U:22,24-40,1000,5060".to_string())
         );
     }
+
+    #[test]
+    fn test_very_deranged_ports() {
+        let mut ports = vec![];
+        for i in 1..=1000 {
+            ports.push(Port {
+                protocol: Some(Protocol::TCP),
+                range: vec![PortRange {
+                    start: i,
+                    end: None,
+                }],
+            });
+            ports.push(Port {
+                protocol: Some(Protocol::TCP),
+                range: vec![PortRange {
+                    start: 65535 - i + 1,
+                    end: None,
+                }],
+            });
+        }
+
+        assert_eq!(
+            ports_to_openvas_port_list(ports),
+            Some("T:1-1000,64536-65535".to_string())
+        );
+    }
 }
