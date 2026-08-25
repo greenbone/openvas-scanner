@@ -3374,6 +3374,10 @@ impl DefineGlobalVars for PacketForgery {
                 NaslValue::Number(IpNextHeaderProtocols::Icmp.to_primitive_values().0.into()),
             ),
             (
+                "IPPROTO_ICMPV6",
+                NaslValue::Number(IpNextHeaderProtocols::Icmpv6.to_primitive_values().0.into()),
+            ),
+            (
                 "IPPROTO_IGMP",
                 NaslValue::Number(IpNextHeaderProtocols::Igmp.to_primitive_values().0.into()),
             ),
