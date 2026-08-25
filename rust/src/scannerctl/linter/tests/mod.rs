@@ -129,8 +129,8 @@ linter_test_multi!(
     duplicate_function_declaration_across_includes,
     roots: ["a.nasl", "b.nasl"],
     files: {
-        "a.nasl" => "include(\"first.inc\"); include(\"second.inc\");",
-        "b.nasl" => "include(\"second.inc\"); include(\"first.inc\");",
+        "a.nasl" => "include(\"first.inc\"); include(\"second.inc\"); foo();",
+        "b.nasl" => "include(\"second.inc\"); include(\"first.inc\"); foo();",
         "first.inc" => "function foo() {}",
         "second.inc" => "function foo() {}",
     },

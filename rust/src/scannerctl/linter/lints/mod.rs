@@ -3,6 +3,7 @@ mod duplicate_function_declaration;
 mod fn_undefined;
 mod script_xref;
 mod undeclared_variable;
+mod unused_include;
 
 use std::ops::Range;
 
@@ -88,5 +89,6 @@ pub fn all_lints() -> Vec<Box<dyn Lint>> {
         fn_lint(fn_undefined::fn_undefined),
         fn_lint(script_xref::script_xref),
         fn_lint(undeclared_variable::undeclared_variables),
+        fn_lint(unused_include::unused_includes),
     ]
 }
