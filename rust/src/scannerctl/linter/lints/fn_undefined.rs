@@ -6,20 +6,27 @@ use crate::linter::{LintMsg, ctx::LintCtx};
 const RULE: &str = "undefined_function";
 
 pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
-    ctx.ast
-        .iter_fn_calls()
-        .filter(|call| {
-            let name = call.fn_name.to_string();
-            !ctx.fn_defined(&name) && !ctx.builtin_defined(&name)
-        })
-        .map(|call| {
-            let span = call.fn_name.span();
-            let diagnostic = Diagnostic::error()
-                .with_message(format!("Undefined function '{}'", call.fn_name))
-                .with_labels(vec![
-                    Label::primary((), span).with_message("undefined function"),
-                ]);
-            LintMsg::new(RULE, ctx.file.clone(), span, diagnostic)
+    let mut files = ctx.cache.files().collect::<Vec<_>>();
+    files.sort_by_key(|(path, _)| *path);
+
+    files
+        .into_iter()
+        .flat_map(|(_, file)| {
+            file.ast()
+                .iter_fn_calls()
+                .filter(|call| {
+                    let name = call.fn_name.to_string();
+                    !ctx.fn_defined(&name) && !ctx.builtin_defined(&name)
+                })
+                .map(|call| {
+                    let span = call.fn_name.span();
+                    let diagnostic = Diagnostic::error()
+                        .with_message(format!("Undefined function '{}'", call.fn_name))
+                        .with_labels(vec![
+                            Label::primary((), span).with_message("undefined function"),
+                        ]);
+                    LintMsg::new(RULE, file.file().clone(), span, diagnostic)
+                })
         })
         .collect()
 }
