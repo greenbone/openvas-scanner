@@ -135,3 +135,31 @@ linter_test_multi!(
         "second.inc" => "function foo() {}",
     },
 );
+
+linter_test_multi!(
+    variable_declared_in_include,
+    roots: ["root.nasl"],
+    files: {
+        "root.nasl" => "include(\"globals.inc\"); display(shared);",
+        "globals.inc" => "shared = 1;",
+    },
+);
+
+linter_test_multi!(
+    variable_used_before_declaring_include,
+    roots: ["root.nasl"],
+    files: {
+        "root.nasl" => "display(shared); include(\"globals.inc\");",
+        "globals.inc" => "shared = 1;",
+    },
+);
+
+linter_test_multi!(
+    undeclared_variable_in_shared_include_is_emitted_once,
+    roots: ["a.nasl", "b.nasl"],
+    files: {
+        "a.nasl" => "include(\"common.inc\");",
+        "b.nasl" => "include(\"common.inc\");",
+        "common.inc" => "display(missing);",
+    },
+);

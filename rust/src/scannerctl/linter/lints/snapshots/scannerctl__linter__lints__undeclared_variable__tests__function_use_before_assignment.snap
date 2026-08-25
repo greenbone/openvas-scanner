@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (function_use_before_assignment),\n\"function foo() { display(scoped); scoped = 1; }\",)"
+---
+error: Variable `scoped` is not declared
+  ┌─ function_use_before_assignment:1:26
+  │
+1 │ function foo() { display(scoped); scoped = 1; }
+  │                          ^^^^^^ undeclared variable
