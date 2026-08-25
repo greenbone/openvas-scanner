@@ -33,6 +33,7 @@ pub trait Visitor<'ast> {
     fn visit_array(&mut self, _array: &'ast Array) {}
     fn visit_array_access(&mut self, _access: &'ast ArrayAccess) {}
     fn visit_fn_call(&mut self, _call: &'ast FnCall) {}
+    fn leave_fn_call(&mut self, _call: &'ast FnCall) {}
     fn visit_increment(&mut self, _inc: &'ast Increment) {}
     fn leave_increment(&mut self, _inc: &'ast Increment) {}
     fn visit_literal(&mut self, _literal: &'ast super::super::syntax::token::Literal) {}
@@ -223,6 +224,7 @@ fn walk_fn_call<'ast, V: Visitor<'ast>>(visitor: &mut V, call: &'ast FnCall) {
     for arg in &call.args.items {
         walk_fn_arg(visitor, arg);
     }
+    visitor.leave_fn_call(call);
 }
 
 fn walk_fn_arg<'ast, V: Visitor<'ast>>(visitor: &mut V, arg: &'ast FnArg) {

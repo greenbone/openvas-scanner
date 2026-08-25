@@ -6,7 +6,7 @@ use super::{
 };
 use crate::nasl::{
     error::{Span, Spanned},
-    syntax::token::{Ident, Literal, TokenKind},
+    syntax::token::{Ident, Literal, LiteralKind, TokenKind},
 };
 
 #[derive(Clone, Debug)]
@@ -217,6 +217,18 @@ pub enum Atom {
     ArrayAccess(ArrayAccess),
     FnCall(FnCall),
     Increment(Increment),
+}
+
+impl Atom {
+    pub fn as_string_literal(&self) -> Option<&str> {
+        match self {
+            Self::Literal(Literal {
+                kind: LiteralKind::String(value),
+                ..
+            }) => Some(value),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

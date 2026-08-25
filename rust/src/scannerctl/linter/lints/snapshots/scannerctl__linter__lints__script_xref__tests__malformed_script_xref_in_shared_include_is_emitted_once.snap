@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"a.nasl\", \"b.nasl\"], &\n[(\"a.nasl\", \"include(\\\"xref.inc\\\");\"), (\"b.nasl\", \"include(\\\"xref.inc\\\");\"),\n(\"xref.inc\", \"script_xref(name: \\\"URL\\\");\")],)"
+---
+error: Invalid script_xref call
+  ┌─ xref.inc:1:1
+  │
+1 │ script_xref(name: "URL");
+  │ ^^^^^^^^^^^ at least one of `value` or `csv` is required
