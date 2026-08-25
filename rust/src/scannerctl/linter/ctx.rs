@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use scannerlib::nasl::{
     SourceFile, nasl_std_executor,
@@ -7,9 +7,29 @@ use scannerlib::nasl::{
         grammar::{Ast, FnDecl},
         walk_ast,
     },
+    utils::Executor,
 };
 
+/// Names supplied by the script execution context or accepted for C-linter compatibility,
+/// rather than registered as globals by Rust builtin function sets.
+const PREDEFINED_VARS: [&str; 5] = [
+    "ACT_UNKNOWN",
+    "COMMAND_LINE",
+    "OPENVAS_VERSION",
+    "SCRIPT_NAME",
+    "description",
+];
+
+fn predefined_vars(executor: &Executor) -> HashSet<String> {
+    executor
+        .iter_global_var_names()
+        .chain(PREDEFINED_VARS)
+        .map(str::to_owned)
+        .collect()
+}
+
 pub(crate) struct CachedFile {
+    ast: Ast,
     file: SourceFile,
     fns: HashMap<String, FnDecl>,
 }
@@ -20,9 +40,14 @@ impl CachedFile {
         walk_ast(&mut collector, ast);
 
         CachedFile {
+            ast: ast.clone(),
             file,
             fns: collector.functions,
         }
+    }
+
+    pub(crate) fn ast(&self) -> &Ast {
+        &self.ast
     }
 
     pub(crate) fn file(&self) -> &SourceFile {
@@ -41,17 +66,21 @@ pub struct BuiltinFn;
 pub(crate) struct Cache {
     files: HashMap<String, CachedFile>,
     builtin_fns: HashMap<String, BuiltinFn>,
+    predefined_vars: HashSet<String>,
 }
 
 impl Default for Cache {
     fn default() -> Self {
-        let builtin_fns = nasl_std_executor()
+        let executor = nasl_std_executor();
+        let builtin_fns = executor
             .iter()
             .map(|name| (name.to_owned(), BuiltinFn))
             .collect();
+        let predefined_vars = predefined_vars(&executor);
         Self {
             files: HashMap::new(),
             builtin_fns,
+            predefined_vars,
         }
     }
 }
@@ -67,6 +96,14 @@ impl Cache {
 
     pub(crate) fn files(&self) -> impl Iterator<Item = (&str, &CachedFile)> {
         self.files.iter().map(|(path, file)| (path.as_str(), file))
+    }
+
+    pub(crate) fn file(&self, path: &str) -> Option<&CachedFile> {
+        self.files.get(path)
+    }
+
+    pub(crate) fn predefined_vars(&self) -> impl Iterator<Item = &str> {
+        self.predefined_vars.iter().map(String::as_str)
     }
 }
 

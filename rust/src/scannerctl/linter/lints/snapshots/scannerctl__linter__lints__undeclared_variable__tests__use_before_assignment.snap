@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (use_before_assignment), \"display(value); value = 1;\",)"
+---
+error: Variable `value` is not declared
+  ┌─ use_before_assignment:1:9
+  │
+1 │ display(value); value = 1;
+  │         ^^^^^ undeclared variable
