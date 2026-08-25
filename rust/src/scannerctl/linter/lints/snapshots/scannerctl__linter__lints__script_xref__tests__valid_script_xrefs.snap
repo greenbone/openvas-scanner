@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (valid_script_xrefs),\nr#\"\nscript_xref(name: \"URL\", value: \"https://example.com\");\nscript_xref(name: \"CVE\", csv: \"CVE-2025-0001,CVE-2025-0002\");\nscript_xref(name: \"GHSA\", value: \"GHSA-3333-4444-5555\", csv: \"GHSA-1111-2222-3333,GHSA-2222-3333-4444\");\n\"#,)"
+---
+
