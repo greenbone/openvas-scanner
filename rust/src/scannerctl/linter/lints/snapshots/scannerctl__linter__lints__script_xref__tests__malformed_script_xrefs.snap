@@ -1,0 +1,35 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (malformed_script_xrefs),\nr#\"\nscript_xref(value: \"https://example.com\");\nscript_xref(name: \"URL\");\nscript_xref();\nscript_xref(name: \"URL\", value: \"https://example.com/a, b\");\nscript_xref(name: \"CVE, GHSA\", csv: \"CVE-2025-0001, CVE-2025-0002\");\n\"#,)"
+---
+error: Invalid script_xref call
+  ┌─ malformed_script_xrefs:2:1
+  │
+2 │ script_xref(value: "https://example.com");
+  │ ^^^^^^^^^^^ `name` is required
+
+error: Invalid script_xref call
+  ┌─ malformed_script_xrefs:3:1
+  │
+3 │ script_xref(name: "URL");
+  │ ^^^^^^^^^^^ at least one of `value` or `csv` is required
+
+error: Invalid script_xref call
+  ┌─ malformed_script_xrefs:4:1
+  │
+4 │ script_xref();
+  │ ^^^^^^^^^^^ `name` and at least one of `value` or `csv` are required
+
+error: Invalid script_xref call
+  ┌─ malformed_script_xrefs:5:33
+  │
+5 │ script_xref(name: "URL", value: "https://example.com/a, b");
+  │                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ xref strings must not contain `, `
+
+error: Invalid script_xref call
+  ┌─ malformed_script_xrefs:6:19
+  │
+6 │ script_xref(name: "CVE, GHSA", csv: "CVE-2025-0001, CVE-2025-0002");
+  │                   ^^^^^^^^^^^       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ xref strings must not contain `, `
+  │                   │                  
+  │                   xref strings must not contain `, `
