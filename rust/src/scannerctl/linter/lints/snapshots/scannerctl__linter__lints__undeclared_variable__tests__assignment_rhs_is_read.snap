@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (assignment_rhs_is_read), \"value = missing;\",)"
+---
+error: Variable `missing` is not declared
+  ┌─ assignment_rhs_is_read:1:9
+  │
+1 │ value = missing;
+  │         ^^^^^^^ undeclared variable
