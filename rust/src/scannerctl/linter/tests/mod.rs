@@ -31,7 +31,13 @@ pub fn lint_files(roots: &[&str], files: &[(&str, &str)]) -> String {
         .map(|root| {
             let result = linter.lint_file(root).unwrap();
             let result = linter.deduplicate(result);
-            emit_errors_str(&result.file, result.msgs.into_iter())
+            result
+                .into_iter()
+                .map(|msg| {
+                    let file = msg.file().clone();
+                    emit_errors_str(&file, std::iter::once(msg))
+                })
+                .collect::<String>()
         })
         .collect()
 }
@@ -116,5 +122,16 @@ linter_test_multi!(
         "a.nasl" => "include(\"common.inc\");",
         "b.nasl" => "include(\"common.inc\");",
         "common.inc" => "function broken(",
+    },
+);
+
+linter_test_multi!(
+    duplicate_function_declaration_across_includes,
+    roots: ["a.nasl", "b.nasl"],
+    files: {
+        "a.nasl" => "include(\"first.inc\"); include(\"second.inc\");",
+        "b.nasl" => "include(\"second.inc\"); include(\"first.inc\");",
+        "first.inc" => "function foo() {}",
+        "second.inc" => "function foo() {}",
     },
 );

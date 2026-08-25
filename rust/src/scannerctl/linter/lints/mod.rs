@@ -5,7 +5,6 @@ mod fn_undefined;
 use std::ops::Range;
 
 use codespan_reporting::diagnostic::Diagnostic;
-use scannerlib::nasl::syntax::grammar::Ast;
 use scannerlib::nasl::{
     SourceFile,
     error::{IntoDiagnostic, Span},
@@ -25,23 +24,34 @@ pub(super) struct LintMsgKey {
 
 pub(super) struct LintMsg {
     rule: &'static str,
+    file: SourceFile,
     span: Range<usize>,
     diagnostic: Diagnostic<()>,
 }
 
 impl LintMsg {
-    pub(super) fn new(rule: &'static str, span: Span, diagnostic: Diagnostic<()>) -> Self {
+    pub(super) fn new(
+        rule: &'static str,
+        file: SourceFile,
+        span: Span,
+        diagnostic: Diagnostic<()>,
+    ) -> Self {
         Self {
             rule,
+            file,
             span: span.into(),
             diagnostic,
         }
     }
 
-    pub(super) fn message_key(&self, file: &SourceFile) -> LintMsgKey {
+    pub(super) fn file(&self) -> &SourceFile {
+        &self.file
+    }
+
+    pub(super) fn message_key(&self) -> LintMsgKey {
         LintMsgKey {
             rule: self.rule,
-            file: file.name().clone(),
+            file: self.file.name().clone(),
             span: self.span.clone(),
         }
     }
@@ -57,17 +67,6 @@ pub(super) trait Lint {
     fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg>;
 }
 
-struct AstLint<T>(T);
-
-impl<T> Lint for AstLint<T>
-where
-    T: Fn(&Ast) -> Vec<LintMsg>,
-{
-    fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg> {
-        (self.0)(ctx.ast)
-    }
-}
-
 struct FnLint<T>(T);
 
 impl<T> Lint for FnLint<T>
@@ -80,11 +79,10 @@ where
 }
 
 pub fn all_lints() -> Vec<Box<dyn Lint>> {
-    let ast_lint = |f: fn(&Ast) -> Vec<LintMsg>| Box::new(AstLint(f)) as Box<dyn Lint>;
-    let fn_lint = |f| Box::new(FnLint(f)) as Box<dyn Lint>;
+    let fn_lint = |f: fn(&LintCtx) -> Vec<LintMsg>| Box::new(FnLint(f)) as Box<dyn Lint>;
     vec![
-        ast_lint(duplicate_function_arg::duplicate_function_args),
-        ast_lint(duplicate_function_declaration::duplicate_function_declarations),
+        fn_lint(duplicate_function_arg::duplicate_function_args),
+        fn_lint(duplicate_function_declaration::duplicate_function_declarations),
         fn_lint(fn_undefined::fn_undefined),
     ]
 }

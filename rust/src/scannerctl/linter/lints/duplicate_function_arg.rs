@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use scannerlib::nasl::{
     error::{Span, Spanned},
-    syntax::grammar::{Ast, FnArg, FnCall},
+    syntax::grammar::{FnArg, FnCall},
 };
 
-use crate::linter::LintMsg;
+use crate::linter::{LintMsg, ctx::LintCtx};
 
 const RULE: &str = "duplicate_function_argument";
 
@@ -36,7 +36,7 @@ impl Entry {
     }
 }
 
-pub fn get_duplicate_args(fn_call: &FnCall) -> Vec<LintMsg> {
+pub fn get_duplicate_args(ctx: &LintCtx, fn_call: &FnCall) -> Vec<LintMsg> {
     let mut counter: HashMap<_, _> = HashMap::default();
     for arg in fn_call.args.items.iter() {
         if let FnArg::Named(arg) = arg {
@@ -54,13 +54,16 @@ pub fn get_duplicate_args(fn_call: &FnCall) -> Vec<LintMsg> {
         .map(|(name, entry)| {
             let span = entry.spans[0];
             let diagnostic = entry.into_diagnostic(&name);
-            LintMsg::new(RULE, span, diagnostic)
+            LintMsg::new(RULE, ctx.file.clone(), span, diagnostic)
         })
         .collect()
 }
 
-pub fn duplicate_function_args(ast: &Ast) -> Vec<LintMsg> {
-    ast.iter_fn_calls().flat_map(get_duplicate_args).collect()
+pub fn duplicate_function_args(ctx: &LintCtx) -> Vec<LintMsg> {
+    ctx.ast
+        .iter_fn_calls()
+        .flat_map(|fn_call| get_duplicate_args(ctx, fn_call))
+        .collect()
 }
 
 #[cfg(test)]
