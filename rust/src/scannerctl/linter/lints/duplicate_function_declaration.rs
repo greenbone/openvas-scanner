@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use scannerlib::nasl::{
     error::{Span, Spanned},
-    syntax::grammar::{Ast, Statement},
+    syntax::grammar::Statement,
 };
 
-use crate::linter::LintMsg;
+use crate::linter::{LintMsg, ctx::LintCtx};
 
 const RULE: &str = "duplicate_function_declaration";
 
@@ -36,14 +36,18 @@ impl Declarations {
     }
 }
 
-pub fn duplicate_function_declarations(ast: &Ast) -> Vec<LintMsg> {
+fn duplicate_function_declarations_in_file(ctx: &LintCtx) -> Vec<LintMsg> {
     let mut declarations = Vec::<Declarations>::new();
     let mut indices = HashMap::<String, usize>::new();
 
-    for declaration in ast.iter_stmts().filter_map(|statement| match statement {
-        Statement::FnDecl(declaration) => Some(declaration),
-        _ => None,
-    }) {
+    for declaration in ctx
+        .ast
+        .iter_stmts()
+        .filter_map(|statement| match statement {
+            Statement::FnDecl(declaration) => Some(declaration),
+            _ => None,
+        })
+    {
         let name = declaration.fn_name.to_string();
         if let Some(index) = indices.get(&name) {
             declarations[*index].spans.push(declaration.fn_name.span());
@@ -62,8 +66,53 @@ pub fn duplicate_function_declarations(ast: &Ast) -> Vec<LintMsg> {
         .map(|declarations| {
             let span = declarations.spans[0];
             let diagnostic = declarations.into_diagnostic();
-            LintMsg::new(RULE, span, diagnostic)
+            LintMsg::new(RULE, ctx.file.clone(), span, diagnostic)
         })
+        .collect()
+}
+
+fn duplicate_function_declarations_across_files(ctx: &LintCtx) -> Vec<LintMsg> {
+    let mut first_declarations = HashMap::<String, String>::new();
+    let mut messages = vec![];
+
+    let mut files = ctx.cache.files().collect::<Vec<_>>();
+    files.sort_by(|(left, _), (right, _)| left.cmp(right));
+
+    for (path, file) in files {
+        let mut functions = file.functions().collect::<Vec<_>>();
+        functions.sort_by_key(|(_, declaration)| {
+            let span: std::ops::Range<usize> = declaration.fn_name.span().into();
+            span.start
+        });
+
+        for (name, declaration) in functions {
+            if let Some(first_file) = first_declarations.get(name) {
+                if first_file == path {
+                    continue;
+                }
+
+                let message = format!("Function declared multiple times: {name}");
+                let span = declaration.fn_name.span();
+                let diagnostic = Diagnostic::error()
+                    .with_message(message)
+                    .with_labels(vec![
+                        Label::primary((), span).with_message("redeclared here"),
+                    ])
+                    .with_notes(vec![format!("also declared in {first_file}")]);
+                messages.push(LintMsg::new(RULE, file.file().clone(), span, diagnostic));
+            } else {
+                first_declarations.insert(name.to_owned(), path.to_owned());
+            }
+        }
+    }
+
+    messages
+}
+
+pub fn duplicate_function_declarations(ctx: &LintCtx) -> Vec<LintMsg> {
+    duplicate_function_declarations_in_file(ctx)
+        .into_iter()
+        .chain(duplicate_function_declarations_across_files(ctx))
         .collect()
 }
 
