@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"a.nasl\", \"b.nasl\"], &\n[(\"a.nasl\", \"include(\\\"common.inc\\\"); common();\"),\n(\"b.nasl\", \"include(\\\"common.inc\\\"); common();\"),\n(\"common.inc\", \"include(\\\"unused.inc\\\"); function common() {}\"),\n(\"unused.inc\", \"function unused() {}\")],)"
+---
+warning: Included file 'unused.inc' is never used
+  ┌─ common.inc:1:9
+  │
+1 │ include("unused.inc"); function common() {}
+  │         ^^^^^^^^^^^^ unused include
