@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (assignment_array_index_is_read),\n\"array[index] = 1; display(array);\",)"
+---
+error: Variable `index` is not declared
+  ┌─ assignment_array_index_is_read:1:7
+  │
+1 │ array[index] = 1; display(array);
+  │       ^^^^^ undeclared variable
