@@ -163,3 +163,22 @@ linter_test_multi!(
         "common.inc" => "display(missing);",
     },
 );
+
+linter_test_multi!(
+    function_call_lints_in_include,
+    roots: ["root.nasl"],
+    files: {
+        "root.nasl" => "include(\"calls.inc\");",
+        "calls.inc" => "missing(value: 1, value: 2);",
+    },
+);
+
+linter_test_multi!(
+    function_call_lints_in_shared_include_are_emitted_once,
+    roots: ["a.nasl", "b.nasl"],
+    files: {
+        "a.nasl" => "include(\"calls.inc\");",
+        "b.nasl" => "include(\"calls.inc\");",
+        "calls.inc" => "missing(value: 1, value: 2);",
+    },
+);
