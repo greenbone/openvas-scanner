@@ -239,4 +239,8 @@ mod tests {
         predefined_variables,
         "if (description) { display(ACT_UNKNOWN, NASL_ERR_NOERR); }"
     );
+    linter_test!(
+        c_predefined_constants,
+        "display(IPPROTO_ICMPV6, MSG_OOB, NOERR, ETIMEDOUT, ECONNRESET, EUNREACH, EUNKNOWN);"
+    );
 }
