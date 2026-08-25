@@ -19,7 +19,7 @@ pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
                 .with_labels(vec![
                     Label::primary((), span).with_message("undefined function"),
                 ]);
-            LintMsg::new(RULE, span, diagnostic)
+            LintMsg::new(RULE, ctx.file.clone(), span, diagnostic)
         })
         .collect()
 }
