@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (function_global_is_visible_elsewhere),\n\"function define() { global_var shared; } function use() { display(shared); } display(shared);\",)"
+---
+

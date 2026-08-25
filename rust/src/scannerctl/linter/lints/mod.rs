@@ -1,6 +1,7 @@
 mod duplicate_function_arg;
 mod duplicate_function_declaration;
 mod fn_undefined;
+mod undeclared_variable;
 
 use std::ops::Range;
 
@@ -84,5 +85,6 @@ pub fn all_lints() -> Vec<Box<dyn Lint>> {
         fn_lint(duplicate_function_arg::duplicate_function_args),
         fn_lint(duplicate_function_declaration::duplicate_function_declarations),
         fn_lint(fn_undefined::fn_undefined),
+        fn_lint(undeclared_variable::undeclared_variables),
     ]
 }

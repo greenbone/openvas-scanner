@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (function_scope),\n\"function foo(arg) { local_var value; value = arg; display(value); display(missing); }\",)"
+---
+error: Variable `missing` is not declared
+  ┌─ function_scope:1:75
+  │
+1 │ function foo(arg) { local_var value; value = arg; display(value); display(missing); }
+  │                                                                           ^^^^^^^ undeclared variable
