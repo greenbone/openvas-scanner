@@ -94,11 +94,12 @@ impl AsRef<str> for Protocol {
 }
 
 pub fn ports_to_openvas_port_list(ports: Vec<Port>) -> Option<String> {
-    // Collect all ports per protocol into a sorted, deduplicated set so that
-    // contiguous ports, including many single ports, can be compacted into
-    // ranges. This keeps the resulting string as short as possible. This is
-    // necessary because of the call to nmap, which fails to execute with too
-    // many arguments given.
+    // This function creates the most compact representation of ports
+    // for nmap. This is necessary, as nmap is called as an executable
+    // during a scan on NASL side (feed). If the port list is too long,
+    // nmap will fail to start, as the argument list is too long.
+    // Check https://github.com/greenbone/openvas-scanner/issues/2223
+    // for more details.
     fn compact(ports: &BTreeSet<usize>) -> String {
         let mut parts: Vec<String> = Vec::new();
         let mut start: Option<usize> = None;
