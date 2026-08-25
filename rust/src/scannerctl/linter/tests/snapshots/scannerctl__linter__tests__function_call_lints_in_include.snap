@@ -1,0 +1,17 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"root.nasl\"], &\n[(\"root.nasl\", \"include(\\\"calls.inc\\\");\"),\n(\"calls.inc\", \"missing(value: 1, value: 2);\")],)"
+---
+warning: Function argument passed multiple times: value
+  ┌─ calls.inc:1:9
+  │
+1 │ missing(value: 1, value: 2);
+  │         ^^^^^     ^^^^^ Also here
+  │         │          
+  │         Function argument passed multiple times: value
+
+error: Undefined function 'missing'
+  ┌─ calls.inc:1:1
+  │
+1 │ missing(value: 1, value: 2);
+  │ ^^^^^^^ undefined function
