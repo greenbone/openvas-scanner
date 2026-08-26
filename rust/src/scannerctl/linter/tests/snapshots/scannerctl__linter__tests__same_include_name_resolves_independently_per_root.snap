@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+assertion_line: 189
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"a/root.nasl\", \"b/root.nasl\"], &\n[(\"a/root.nasl\", \"include(\\\"helper.inc\\\"); from_a();\"),\n(\"a/helper.inc\", \"function from_a() {}\"),\n(\"b/root.nasl\", \"include(\\\"helper.inc\\\"); from_b();\"),\n(\"b/helper.inc\", \"function from_b() {}\")],)"
+---
