@@ -23,10 +23,65 @@ const PREDEFINED_VARS: [&str; 5] = [
     "description",
 ];
 
+/// Functions registered by the C NASL interpreter but not by `nasl_std_executor`.
+/// Keep this list synchronized with `libfuncs` in `nasl/nasl_init.c`.
+const C_COMPAT_BUILTINS: [&str; 42] = [
+    "dsa_do_sign",
+    "dsa_do_verify",
+    "exit",
+    "file_close",
+    "file_open",
+    "file_read",
+    "file_seek",
+    "file_write",
+    "get_host_kb_index",
+    "psrp_cli",
+    "script_get_preference_file_location",
+    "smb_close",
+    "smb_connect",
+    "smb_file_SDDL",
+    "smb_file_group_sid",
+    "smb_file_owner_sid",
+    "smb_file_trustee_rights",
+    "socket_check_ssl_safe_renegotiation",
+    "socket_ssl_do_handshake",
+    "tls1_prf",
+    "update_table_driven_lsc_data",
+    "win_cmd_exec",
+    "wmi_close",
+    "wmi_connect",
+    "wmi_connect_reg",
+    "wmi_connect_rsop",
+    "wmi_query",
+    "wmi_query_rsop",
+    "wmi_reg_create_key",
+    "wmi_reg_delete_key",
+    "wmi_reg_enum_key",
+    "wmi_reg_enum_value",
+    "wmi_reg_get_bin_val",
+    "wmi_reg_get_dword_val",
+    "wmi_reg_get_ex_string_val",
+    "wmi_reg_get_mul_string_val",
+    "wmi_reg_get_qword_val",
+    "wmi_reg_get_sz",
+    "wmi_reg_set_dword_val",
+    "wmi_reg_set_ex_string_val",
+    "wmi_reg_set_qword_val",
+    "wmi_reg_set_string_val",
+];
+
 fn predefined_vars(executor: &Executor) -> HashSet<String> {
     executor
         .iter_global_var_names()
         .chain(PREDEFINED_VARS)
+        .map(str::to_owned)
+        .collect()
+}
+
+fn builtin_fns(executor: &Executor) -> HashSet<String> {
+    executor
+        .iter()
+        .chain(C_COMPAT_BUILTINS)
         .map(str::to_owned)
         .collect()
 }
@@ -64,21 +119,16 @@ impl CachedFile {
     }
 }
 
-pub struct BuiltinFn;
-
 pub(crate) struct Cache {
     files: HashMap<String, Arc<CachedFile>>,
-    builtin_fns: HashMap<String, BuiltinFn>,
+    builtin_fns: HashSet<String>,
     predefined_vars: HashSet<String>,
 }
 
 impl Default for Cache {
     fn default() -> Self {
         let executor = nasl_std_executor();
-        let builtin_fns = executor
-            .iter()
-            .map(|name| (name.to_owned(), BuiltinFn))
-            .collect();
+        let builtin_fns = builtin_fns(&executor);
         let predefined_vars = predefined_vars(&executor);
         Self {
             files: HashMap::new(),
@@ -131,7 +181,7 @@ impl<'a> LintCtx<'a> {
     }
 
     pub(crate) fn builtin_defined(&self, fn_name: &str) -> bool {
-        self.cache.builtin_fns.contains_key(fn_name)
+        self.cache.builtin_fns.contains(fn_name)
     }
 }
 
@@ -146,5 +196,23 @@ impl<'ast> Visitor<'ast> for FnDefinitionCollector {
         self.functions
             .entry(fn_name)
             .or_insert_with(|| decl.clone());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn c_compat_builtins_are_not_in_rust_executor() {
+        let executor = nasl_std_executor();
+        let executor_builtins = executor.iter().collect::<HashSet<_>>();
+
+        for name in C_COMPAT_BUILTINS {
+            assert!(
+                !executor_builtins.contains(name),
+                "C-compatible builtin `{name}` is already registered by the Rust executor"
+            );
+        }
     }
 }
