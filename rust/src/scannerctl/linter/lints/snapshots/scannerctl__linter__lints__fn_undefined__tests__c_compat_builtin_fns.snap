@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+assertion_line: 41
+expression: "$crate :: linter :: tests ::\nlint(stringify! (c_compat_builtin_fns),\n\"wmi_query(); socket_ssl_do_handshake();\",)"
+---
