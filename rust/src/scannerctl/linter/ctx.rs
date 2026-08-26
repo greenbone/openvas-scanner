@@ -233,13 +233,6 @@ impl<'a> LintCtx<'a> {
         }
     }
 
-    pub fn fn_defined(&self, fn_name: &str) -> bool {
-        self.cache
-            .files
-            .values()
-            .any(|file| file.fns.contains_key(fn_name))
-    }
-
     pub(crate) fn builtin_defined(&self, fn_name: &str) -> bool {
         self.cache.builtin_fns.contains(fn_name)
     }
