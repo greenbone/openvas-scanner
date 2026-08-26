@@ -13,7 +13,7 @@ pub struct Credential {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RegistryPreference {
-    /// Allows the usage of insecure connections
+    /// Allows falling back to an insecure connection when HTTPS is unavailable
     Insecure,
     /// Allows the usage of invalid certificates
     AcceptInvalidCerts,

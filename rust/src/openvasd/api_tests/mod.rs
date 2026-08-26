@@ -249,6 +249,7 @@ async fn container_image_scan_docker_hub_ubuntu_24_04() {
             hosts: vec![IMAGE.to_string()],
             ..Default::default()
         },
+        scan_preferences: vec![("registry_allow_insecure", "true").into()],
         ..Default::default()
     };
 

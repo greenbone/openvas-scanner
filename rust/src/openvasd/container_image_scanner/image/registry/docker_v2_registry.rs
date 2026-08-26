@@ -36,7 +36,7 @@ type ArchitectureLayer = (Option<Digest>, String, Digest);
 pub struct DockerV2Registry {
     username: Option<String>,
     password: Option<String>,
-    insecure: bool,
+    allow_insecure: bool,
     accept_invalid_certs: bool,
 }
 
@@ -99,7 +99,7 @@ impl ClientBuilder {
         self.error_kind(RegistryErrorKind::Catalog, source)
     }
 
-    fn authenticatation_error(&self, source: docker_registry::errors::Error) -> RegistryError {
+    fn authentication_error(&self, source: docker_registry::errors::Error) -> RegistryError {
         self.error_kind(
             RegistryErrorKind::Authentication {
                 scope: self.scope.to_owned(),
@@ -122,7 +122,9 @@ impl ClientBuilder {
 }
 
 impl ClientBuilder {
-    pub async fn authenticated(&self) -> Result<docker_registry::v2::Client, RegistryError> {
+    async fn authenticate(
+        &self,
+    ) -> Result<docker_registry::v2::Client, docker_registry::errors::Error> {
         let scope = &self.scope;
         let registry = &self.registry;
         let endpoint = self.registry.endpoint();
@@ -132,21 +134,24 @@ impl ClientBuilder {
             endpoint,
             "trying to login"
         );
-        let as_ce = |error| self.authenticatation_error(error);
         docker_registry::v2::Client::configure()
             .insecure_registry(self.insecure)
             .accept_invalid_certs(self.accept_invalid_certs)
             .username(self.username.clone())
             .password(self.password.clone())
             .registry(endpoint)
-            .build()
-            .map_err(as_ce)?
+            .build()?
             // TODO: change library to automatically use the scope given by the server header
             // information:
             // `www-authenticate: Bearer realm="https://localhost:5001/auth",service="localhost:5000",scope="registry:catalog:*"`
             .authenticate(&[scope])
             .await
-            .map_err(as_ce)
+    }
+
+    pub async fn authenticated(&self) -> Result<docker_registry::v2::Client, RegistryError> {
+        self.authenticate()
+            .await
+            .map_err(|error| self.authentication_error(error))
     }
 }
 
@@ -159,21 +164,34 @@ impl Client {
     pub async fn authenticated(
         username: Option<String>,
         password: Option<String>,
-        insecure: bool,
+        allow_insecure: bool,
         accept_invalid_certs: bool,
         scope: String,
         registry: Registry,
     ) -> Result<Client, RegistryError> {
-        let builder = ClientBuilder {
+        let mut builder = ClientBuilder {
             username,
             password,
-            insecure,
+            insecure: false,
             accept_invalid_certs,
             scope,
             registry,
         };
-        let client = builder.authenticated().await?;
-        Ok(Self { builder, client })
+
+        match builder.authenticate().await {
+            Ok(client) => Ok(Self { builder, client }),
+            Err(docker_registry::errors::Error::Reqwest(error)) if allow_insecure => {
+                tracing::debug!(
+                    %error,
+                    registry = %builder.registry,
+                    "HTTPS connection failed; retrying registry over HTTP"
+                );
+                builder.insecure = true;
+                let client = builder.authenticated().await?;
+                Ok(Self { builder, client })
+            }
+            Err(error) => Err(builder.authentication_error(error)),
+        }
     }
 
     pub fn get_catalog<'a>(
@@ -289,7 +307,7 @@ impl DockerV2Registry {
         Client::authenticated(
             self.username.clone(),
             self.password.clone(),
-            self.insecure,
+            self.allow_insecure,
             self.accept_invalid_certs,
             scope.to_owned(),
             registry.clone(),
@@ -306,7 +324,7 @@ impl DockerV2Registry {
         Client::authenticated(
             self.username.clone(),
             self.password.clone(),
-            self.insecure,
+            self.allow_insecure,
             self.accept_invalid_certs,
             scope.to_owned(),
             registry.clone(),
@@ -467,7 +485,7 @@ impl DockerV2Registry {
         credential: Option<super::Credential>,
         settings: Vec<RegistryPreference>,
     ) -> Result<DockerV2Registry, RegistryError> {
-        let insecure = settings
+        let allow_insecure = settings
             .iter()
             .any(|x| matches!(x, RegistryPreference::Insecure));
         let accept_invalid_certs = settings
@@ -477,7 +495,7 @@ impl DockerV2Registry {
         Ok(Self {
             username: credential.clone().map(|x| x.username),
             password: credential.clone().map(|x| x.password),
-            insecure,
+            allow_insecure,
             accept_invalid_certs,
         })
     }
