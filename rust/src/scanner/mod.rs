@@ -76,6 +76,7 @@ where
         let id = scan.scan_id.clone();
         let handle =
             RunningScan::<S>::start(scan, storage, loader, function_executor, self.notus.clone());
+
         self.running.write().await.insert(id, handle);
         Ok(())
     }

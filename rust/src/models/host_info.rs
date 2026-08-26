@@ -46,7 +46,7 @@ impl HostInfo {
             *num_vts -= 1;
             if *num_vts == 0 {
                 self.finished += 1;
-                self.queued -= 1;
+                self.queued = self.queued.saturating_sub(1);
                 // A host whose VTs have all run is implicitly alive (the
                 // openvasd scanner type has no separate alive-detection phase).
                 self.alive += 1;
@@ -57,6 +57,16 @@ impl HostInfo {
 
     pub fn finish(&mut self) {
         self.remaining_vts_per_host.clear();
+    }
+
+    // Used by openvasd scanner when using Boreas.
+    pub fn mark_hosts_dead<'a>(&mut self, hosts: impl Iterator<Item = &'a str>) {
+        for host in hosts {
+            if self.remaining_vts_per_host.remove(host).is_some() {
+                self.dead += 1;
+                self.queued -= 1;
+            }
+        }
     }
 
     pub fn update_with(mut self, other: &HostInfo) -> Self {
