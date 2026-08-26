@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+expression: "$crate :: linter :: tests ::\nlint_files_with_options(& [\"root.nasl\"], &\n[(\"root.nasl\", \"include(\\\"broken.inc\\\");\"),\n(\"broken.inc\", \"function broken(\")], true,)"
+---
+error: Expected ')'
+  ┌─ broken.inc:1:1
+  │
+1 │ function broken(
+  │ ^^^^^^^^^^^^^^^^ Expected ')'
