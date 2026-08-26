@@ -133,17 +133,16 @@ impl<'cache> OrderedVariables<'cache> {
     }
 
     fn check_include(&mut self, include: &Include) {
-        if !self.loaded.insert(include.path.clone()) {
-            return;
-        }
-
-        let Some((ast, file)) = self
+        let Some((path, ast, file)) = self
             .cache
-            .file(&include.path)
-            .map(|cached| (cached.ast().clone(), cached.file().clone()))
+            .included_file(self.file.name(), &include.path)
+            .map(|(path, cached)| (path.to_owned(), cached.ast().clone(), cached.file().clone()))
         else {
             return;
         };
+        if !self.loaded.insert(path) {
+            return;
+        }
 
         let outer_file = mem::replace(&mut self.file, file);
         walk_ast(self, &ast);
