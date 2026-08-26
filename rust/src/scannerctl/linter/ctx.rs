@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use scannerlib::nasl::{
     SourceFile, nasl_std_executor,
@@ -64,7 +67,7 @@ impl CachedFile {
 pub struct BuiltinFn;
 
 pub(crate) struct Cache {
-    files: HashMap<String, CachedFile>,
+    files: HashMap<String, Arc<CachedFile>>,
     builtin_fns: HashMap<String, BuiltinFn>,
     predefined_vars: HashSet<String>,
 }
@@ -90,16 +93,18 @@ impl Cache {
         self.files.clear();
     }
 
-    pub(crate) fn insert(&mut self, rel_path: &str, file: CachedFile) {
+    pub(crate) fn insert(&mut self, rel_path: &str, file: Arc<CachedFile>) {
         self.files.insert(rel_path.to_owned(), file);
     }
 
     pub(crate) fn files(&self) -> impl Iterator<Item = (&str, &CachedFile)> {
-        self.files.iter().map(|(path, file)| (path.as_str(), file))
+        self.files
+            .iter()
+            .map(|(path, file)| (path.as_str(), file.as_ref()))
     }
 
     pub(crate) fn file(&self, path: &str) -> Option<&CachedFile> {
-        self.files.get(path)
+        self.files.get(path).map(Arc::as_ref)
     }
 
     pub(crate) fn predefined_vars(&self) -> impl Iterator<Item = &str> {

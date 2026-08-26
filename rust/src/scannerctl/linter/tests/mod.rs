@@ -1,21 +1,14 @@
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+};
 
 use scannerlib::nasl::{Loader, error::emit_errors_str};
 
 use crate::linter::{Linter, Statistics, ctx::Cache, lints::all_lints};
 
-pub fn lint(file_name: &str, code: &str) -> String {
-    lint_files(&[file_name], &[(file_name, code)])
-}
-
-pub fn lint_files(roots: &[&str], files: &[(&str, &str)]) -> String {
-    let loader = files
-        .iter()
-        .fold(Loader::test(), |loader, (name, code)| {
-            loader.with_file(name, (*code).into())
-        })
-        .build();
-    let mut linter = Linter {
+fn make_linter(loader: Loader) -> Linter {
+    Linter {
         verbose: false,
         quiet: false,
         only_syntax: false,
@@ -23,8 +16,32 @@ pub fn lint_files(roots: &[&str], files: &[(&str, &str)]) -> String {
         stats: Statistics::default(),
         lints: all_lints(),
         cache: Cache::default(),
+        parsed_includes: HashMap::new(),
         lint_msgs: HashSet::new(),
-    };
+    }
+}
+
+pub fn lint(file_name: &str, code: &str) -> String {
+    lint_files(&[file_name], &[(file_name, code)])
+}
+
+pub fn lint_files(roots: &[&str], files: &[(&str, &str)]) -> String {
+    lint_files_with_options(roots, files, false)
+}
+
+pub fn lint_files_with_options(
+    roots: &[&str],
+    files: &[(&str, &str)],
+    only_syntax: bool,
+) -> String {
+    let loader = files
+        .iter()
+        .fold(Loader::test(), |loader, (name, code)| {
+            loader.with_file(name, (*code).into())
+        })
+        .build();
+    let mut linter = make_linter(loader);
+    linter.only_syntax = only_syntax;
 
     roots
         .iter()
@@ -42,6 +59,33 @@ pub fn lint_files(roots: &[&str], files: &[(&str, &str)]) -> String {
         .collect()
 }
 
+#[test]
+fn parsed_include_is_reused_between_roots() {
+    let directory = tempfile::tempdir().unwrap();
+    fs::write(
+        directory.path().join("first.nasl"),
+        "include(\"functions.inc\"); helper();",
+    )
+    .unwrap();
+    fs::write(
+        directory.path().join("second.nasl"),
+        "include(\"functions.inc\"); helper();",
+    )
+    .unwrap();
+    let include = directory.path().join("functions.inc");
+    fs::write(&include, "function helper() {}").unwrap();
+
+    let mut linter = make_linter(Loader::from_feed_path(directory.path()));
+    assert!(linter.lint_file("first.nasl").unwrap().is_empty());
+    assert_eq!(
+        linter.parsed_includes.keys().collect::<Vec<_>>(),
+        vec!["functions.inc"]
+    );
+
+    fs::write(include, "function helper(").unwrap();
+    assert!(linter.lint_file("second.nasl").unwrap().is_empty());
+}
+
 #[macro_export]
 macro_rules! linter_test {
     ($name: ident, $code: literal) => {
@@ -56,6 +100,21 @@ macro_rules! linter_test {
 macro_rules! linter_test_multi {
     (
         $name:ident,
+        only_syntax: $only_syntax:literal,
+        roots: [$($root:literal),+ $(,)?],
+        files: {$($file:literal => $code:literal),+ $(,)?} $(,)?
+    ) => {
+        #[test]
+        fn $name() {
+            insta::assert_snapshot!($crate::linter::tests::lint_files_with_options(
+                &[$($root),+],
+                &[$(($file, $code)),+],
+                $only_syntax,
+            ));
+        }
+    };
+    (
+        $name:ident,
         roots: [$($root:literal),+ $(,)?],
         files: {$($file:literal => $code:literal),+ $(,)?} $(,)?
     ) => {
@@ -68,6 +127,16 @@ macro_rules! linter_test_multi {
         }
     };
 }
+
+linter_test_multi!(
+    syntax_checks_included_files,
+    only_syntax: true,
+    roots: ["root.nasl"],
+    files: {
+        "root.nasl" => "include(\"broken.inc\");",
+        "broken.inc" => "function broken(",
+    },
+);
 
 linter_test_multi!(
     included_parse_error_uses_included_source,
