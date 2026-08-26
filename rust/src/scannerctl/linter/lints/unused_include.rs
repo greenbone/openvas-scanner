@@ -38,10 +38,13 @@ fn collect_function_library(
                 statement,
                 Statement::FnDecl(_) | Statement::Include(_) | Statement::NoOp
             )
-        }) && file
-            .ast()
-            .iter_includes()
-            .all(|include| collect_function_library(cache, &include.path, files, visiting))
+        }) && file.ast().iter_includes().all(|include| {
+            cache
+                .included_path(path, &include.path)
+                .is_some_and(|included_path| {
+                    collect_function_library(cache, included_path, files, visiting)
+                })
+        })
     });
     visiting.remove(path);
     is_library
@@ -102,11 +105,14 @@ pub fn unused_includes(ctx: &LintCtx) -> Vec<LintMsg> {
     let mut libraries = HashMap::<String, Option<HashSet<String>>>::new();
     let mut messages = vec![];
 
-    for (_, file) in files {
+    for (path, file) in files {
         for include in file.ast().iter_includes() {
+            let Some(included_path) = cache.included_path(path, &include.path) else {
+                continue;
+            };
             let library_files = libraries
-                .entry(include.path.clone())
-                .or_insert_with(|| function_library(cache, &include.path));
+                .entry(included_path.to_owned())
+                .or_insert_with(|| function_library(cache, included_path));
             if let Some(library_files) = library_files
                 && !is_used(cache, &callers, library_files)
             {

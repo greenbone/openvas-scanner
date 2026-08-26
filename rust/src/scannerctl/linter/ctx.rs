@@ -121,8 +121,25 @@ impl CachedFile {
 
 pub(crate) struct Cache {
     files: HashMap<String, Arc<CachedFile>>,
+    /// Resolves an include as written in a parent AST to its feed-relative path.
+    include_paths: HashMap<IncludeKey, String>,
     builtin_fns: HashSet<String>,
     predefined_vars: HashSet<String>,
+}
+
+#[derive(Eq, Hash, PartialEq)]
+struct IncludeKey {
+    parent_path: String,
+    include_path: String,
+}
+
+impl IncludeKey {
+    fn new(parent_path: &str, include_path: &str) -> Self {
+        Self {
+            parent_path: parent_path.to_owned(),
+            include_path: include_path.to_owned(),
+        }
+    }
 }
 
 impl Default for Cache {
@@ -132,6 +149,7 @@ impl Default for Cache {
         let predefined_vars = predefined_vars(&executor);
         Self {
             files: HashMap::new(),
+            include_paths: HashMap::new(),
             builtin_fns,
             predefined_vars,
         }
@@ -141,6 +159,7 @@ impl Default for Cache {
 impl Cache {
     pub(crate) fn clear_files(&mut self) {
         self.files.clear();
+        self.include_paths.clear();
     }
 
     pub(crate) fn insert(&mut self, rel_path: &str, file: Arc<CachedFile>) {
@@ -155,6 +174,33 @@ impl Cache {
 
     pub(crate) fn file(&self, path: &str) -> Option<&CachedFile> {
         self.files.get(path).map(Arc::as_ref)
+    }
+
+    pub(crate) fn record_include(
+        &mut self,
+        parent_path: &str,
+        include_path: &str,
+        resolved_path: &str,
+    ) {
+        self.include_paths.insert(
+            IncludeKey::new(parent_path, include_path),
+            resolved_path.to_owned(),
+        );
+    }
+
+    pub(crate) fn included_path(&self, parent_path: &str, include_path: &str) -> Option<&str> {
+        self.include_paths
+            .get(&IncludeKey::new(parent_path, include_path))
+            .map(String::as_str)
+    }
+
+    pub(crate) fn included_file(
+        &self,
+        parent_path: &str,
+        include_path: &str,
+    ) -> Option<(&str, &CachedFile)> {
+        let path = self.included_path(parent_path, include_path)?;
+        self.file(path).map(|file| (path, file))
     }
 
     pub(crate) fn predefined_vars(&self) -> impl Iterator<Item = &str> {

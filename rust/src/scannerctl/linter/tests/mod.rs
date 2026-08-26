@@ -176,6 +176,28 @@ linter_test_multi!(
 );
 
 linter_test_multi!(
+    resolves_in_root_directory_before_feed_root,
+    roots: ["nested/root.nasl"],
+    files: {
+        "nested/root.nasl" => "include(\"helper.inc\"); include(\"shared.inc\"); local_helper(); shared();",
+        "nested/helper.inc" => "function local_helper() {}",
+        "helper.inc" => "function feed_helper() {}",
+        "shared.inc" => "function shared() {}",
+    },
+);
+
+linter_test_multi!(
+    same_include_name_resolves_independently_per_root,
+    roots: ["a/root.nasl", "b/root.nasl"],
+    files: {
+        "a/root.nasl" => "include(\"helper.inc\"); from_a();",
+        "a/helper.inc" => "function from_a() {}",
+        "b/root.nasl" => "include(\"helper.inc\"); from_b();",
+        "b/helper.inc" => "function from_b() {}",
+    },
+);
+
+linter_test_multi!(
     handles_include_cycle,
     roots: ["root.nasl"],
     files: {
