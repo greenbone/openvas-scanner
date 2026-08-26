@@ -294,6 +294,16 @@ impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
                 3,
             )
             .await?;
+            let excluded_images = scan
+                .target
+                .excluded_hosts
+                .iter()
+                .map(|image| {
+                    Image::from_str(image)
+                        .map(|image| image.to_string())
+                        .unwrap_or_else(|_| image.clone())
+                })
+                .collect::<Vec<_>>();
             insert_values_chunked(
                 &mut *tx,
                 "INSERT OR IGNORE INTO images (id, image, status)",
@@ -302,7 +312,7 @@ impl<'o> Execute<()> for DBScan<'o, (&str, &Scan)> {
                         .push_bind(img)
                         .push_bind(ImageState::Excluded.as_ref());
                 },
-                &scan.target.excluded_hosts,
+                &excluded_images,
                 3,
             )
             .await?;

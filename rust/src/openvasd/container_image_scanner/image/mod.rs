@@ -12,9 +12,53 @@ pub mod packages;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq)]
 pub struct Image {
-    pub registry: String,
+    pub registry: Registry,
     pub image: Option<String>,
     pub tag: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Eq)]
+pub struct Registry(String);
+
+impl Registry {
+    pub fn endpoint(&self) -> &str {
+        match self.0.as_str() {
+            "docker.io" => "registry-1.docker.io",
+            name => name,
+        }
+    }
+
+    fn normalize_repository(&self, repository: String) -> String {
+        if self.0 == "docker.io" && !repository.is_empty() && !repository.contains('/') {
+            format!("library/{repository}")
+        } else {
+            repository
+        }
+    }
+}
+
+impl AsRef<str> for Registry {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for Registry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<String> for Registry {
+    fn from(name: String) -> Self {
+        Self(name)
+    }
+}
+
+impl From<&str> for Registry {
+    fn from(name: &str) -> Self {
+        Self(name.to_owned())
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -179,7 +223,7 @@ impl FromStr for Image {
         let registry = parts.next().ok_or(ImageParseError::NoRegistry)?;
         let image_parts: Vec<&str> = parts.collect();
         let mut result = Image {
-            registry: registry.to_owned(),
+            registry: registry.into(),
             image: None,
             tag: None,
         };
@@ -201,7 +245,7 @@ impl FromStr for Image {
             }
             None => (full_image, None),
         };
-        result.image = Some(image);
+        result.image = Some(result.registry.normalize_repository(image));
         result.tag = tag;
         Ok(result)
     }
@@ -218,7 +262,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -232,7 +276,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "narf.io".to_owned(),
+                registry: "narf.io".into(),
                 image: Some("myuser/myimage".to_owned()),
                 tag: Some("sha256:abc1234def56789".to_owned())
             })
@@ -250,7 +294,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry:6969".to_owned(),
+                registry: "myregistry:6969".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -264,7 +308,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -278,7 +322,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
@@ -292,7 +336,7 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: None,
                 tag: None,
             })
@@ -306,8 +350,45 @@ mod tests {
         assert_eq!(
             parsed,
             Ok(Image {
-                registry: "myregistry".to_owned(),
+                registry: "myregistry".into(),
                 image: Some("myimage".to_owned()),
+                tag: None,
+            })
+        );
+    }
+
+    #[test]
+    fn normalize_docker_hub_official_image() {
+        let parsed = "oci://docker.io/ubuntu:24.04".parse();
+        assert_eq!(
+            parsed,
+            Ok(Image {
+                registry: "docker.io".into(),
+                image: Some("library/ubuntu".to_owned()),
+                tag: Some("24.04".to_owned()),
+            })
+        );
+    }
+
+    #[test]
+    fn keep_docker_hub_namespace() {
+        for user_input in [
+            "oci://docker.io/library/ubuntu:24.04",
+            "oci://docker.io/example/application:1.0",
+        ] {
+            let parsed: Image = user_input.parse().unwrap();
+            assert_eq!(parsed.to_string(), user_input);
+        }
+    }
+
+    #[test]
+    fn keep_untagged_docker_hub_image_untagged() {
+        let parsed = "oci://docker.io/ubuntu".parse();
+        assert_eq!(
+            parsed,
+            Ok(Image {
+                registry: "docker.io".into(),
+                image: Some("library/ubuntu".to_owned()),
                 tag: None,
             })
         );
