@@ -1,0 +1,4 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (undefined_function_exceptions),\n\"scan_phase(); network_targets();\",)"
+---
