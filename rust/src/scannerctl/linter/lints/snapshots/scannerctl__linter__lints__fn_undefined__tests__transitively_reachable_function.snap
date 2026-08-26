@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (transitively_reachable_function),\n\"function first() { second(); } function second() { missing(); } first();\",)"
+---
+error: Undefined function 'missing'
+  ┌─ transitively_reachable_function:1:52
+  │
+1 │ function first() { second(); } function second() { missing(); } first();
+  │                                                    ^^^^^^^ undefined function
