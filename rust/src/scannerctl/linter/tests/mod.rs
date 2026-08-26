@@ -206,6 +206,16 @@ linter_test_multi!(
 );
 
 linter_test_multi!(
+    builtin_function_redefinition_in_shared_include_is_emitted_once,
+    roots: ["a.nasl", "b.nasl"],
+    files: {
+        "a.nasl" => "include(\"common.inc\"); display();",
+        "b.nasl" => "include(\"common.inc\"); display();",
+        "common.inc" => "function display() {}",
+    },
+);
+
+linter_test_multi!(
     variable_declared_in_include,
     roots: ["root.nasl"],
     files: {

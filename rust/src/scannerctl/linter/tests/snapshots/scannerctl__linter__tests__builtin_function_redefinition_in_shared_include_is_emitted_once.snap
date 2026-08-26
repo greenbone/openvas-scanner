@@ -1,0 +1,10 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+assertion_line: 208
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"a.nasl\", \"b.nasl\"], &\n[(\"a.nasl\", \"include(\\\"common.inc\\\"); display();\"),\n(\"b.nasl\", \"include(\\\"common.inc\\\"); display();\"),\n(\"common.inc\", \"function display() {}\")],)"
+---
+error: Cannot redefine built-in function: display
+  ┌─ common.inc:1:10
+  │
+1 │ function display() {}
+  │          ^^^^^^^ built-in function redefined here

@@ -109,10 +109,40 @@ fn duplicate_function_declarations_across_files(ctx: &LintCtx) -> Vec<LintMsg> {
     messages
 }
 
+fn builtin_function_redefinitions(ctx: &LintCtx) -> Vec<LintMsg> {
+    let mut files = ctx.cache.files().collect::<Vec<_>>();
+    files.sort_by(|(left, _), (right, _)| left.cmp(right));
+
+    files
+        .into_iter()
+        .flat_map(|(_, file)| {
+            let mut functions = file
+                .functions()
+                .filter(|(name, _)| ctx.builtin_defined(name))
+                .collect::<Vec<_>>();
+            functions.sort_by_key(|(_, declaration)| {
+                let span: std::ops::Range<usize> = declaration.fn_name.span().into();
+                span.start
+            });
+
+            functions.into_iter().map(move |(name, declaration)| {
+                let span = declaration.fn_name.span();
+                let diagnostic = Diagnostic::error()
+                    .with_message(format!("Cannot redefine built-in function: {name}"))
+                    .with_labels(vec![
+                        Label::primary((), span).with_message("built-in function redefined here"),
+                    ]);
+                LintMsg::new(RULE, file.file().clone(), span, diagnostic)
+            })
+        })
+        .collect()
+}
+
 pub fn duplicate_function_declarations(ctx: &LintCtx) -> Vec<LintMsg> {
     duplicate_function_declarations_in_file(ctx)
         .into_iter()
         .chain(duplicate_function_declarations_across_files(ctx))
+        .chain(builtin_function_redefinitions(ctx))
         .collect()
 }
 
@@ -122,4 +152,5 @@ mod tests {
 
     linter_test!(duplicate_function, "function foo() {} function foo() {}");
     linter_test!(distinct_functions, "function foo() {} function bar() {}");
+    linter_test!(builtin_function, "function display() {}");
 }

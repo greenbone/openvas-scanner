@@ -1,0 +1,10 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function_declaration.rs
+assertion_line: 149
+expression: "$crate :: linter :: tests ::\nlint(stringify! (builtin_function), \"function display() {}\",)"
+---
+error: Cannot redefine built-in function: display
+  ┌─ builtin_function:1:10
+  │
+1 │ function display() {}
+  │          ^^^^^^^ built-in function redefined here
