@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::stdin;
 use std::path::PathBuf;
@@ -9,16 +10,18 @@ use std::sync::{Arc, Mutex};
 
 use clap::Subcommand;
 use futures::StreamExt;
+use scannerlib::alive_test::Scanner as BoreasScanner;
 use scannerlib::feed::{HashSumNameLoader, Update};
-use scannerlib::models;
+use scannerlib::models::{self, Host};
 use scannerlib::nasl::nasl_std_executor;
 use scannerlib::nasl::syntax::Loader;
-use scannerlib::nasl::utils::scan_ctx::NotusCtx;
+use scannerlib::nasl::utils::scan_ctx::{NotusCtx, Target};
 use scannerlib::notus::{Notus, ProductLoader};
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 use scannerlib::scanner::{Scan, ScanRunner};
 use scannerlib::scheduling::Scheduler;
 use scannerlib::storage::inmemory::InMemoryStorage;
+use tokio::sync::mpsc;
 use tracing::{info, warn, warn_span};
 
 use crate::utils::{ArgOrStdin, NotusArgs};
@@ -91,7 +94,6 @@ pub async fn run(args: ExecuteArgs) -> Result<(), CliError> {
         Action::Scan(args) => scan(args).await,
     }
 }
-
 async fn scan(args: ScanArgs) -> Result<(), CliError> {
     let scan: models::Scan = match args.json {
         ArgOrStdin::Arg(f) => serde_json::from_reader(File::open(f)?)
@@ -137,8 +139,52 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
                 ProductLoader::new(false, Loader::from_feed_path(path)),
             )))),
         });
-        let runner: ScanRunner<Arc<InMemoryStorage>> =
-            ScanRunner::new(&storage, &loader, &executor, schedule, &scan, &notus).unwrap();
+
+        let host_by_ip: HashMap<String, Target> = scan
+            .targets
+            .iter()
+            .map(|t| (t.ip_addr().to_string(), t.clone()))
+            .collect();
+        let host_set: HashSet<Host> = host_by_ip.keys().cloned().collect();
+        let methods = scan.alive_test_methods.clone();
+        let capacity = host_by_ip.len().max(1);
+
+        // This channel is for sending a target to the running scan.
+        let (tx_target, rx_target) = mpsc::channel::<Target>(capacity);
+        // This channel receives alive host from the alive test scanner
+        let (tx_host, mut rx_host) = mpsc::channel::<Host>(capacity);
+
+        // Resolves every host reported alive to its `Target` and forwards
+        // it to the running scan so it can start scanning it right away.
+        tokio::spawn(async move {
+            while let Some(host) = rx_host.recv().await {
+                if let Some(target) = host_by_ip.get(&host)
+                    && tx_target.send(target.clone()).await.is_err()
+                {
+                    break;
+                }
+            }
+            // Dropping `tx_target` here closes the channel, signalling to
+            // the running scan that no further hosts will arrive.
+        });
+
+        tokio::spawn(async move {
+            let alive_scanner = BoreasScanner::new(host_set.clone(), methods, None);
+            let alive = alive_scanner
+                .run_alive_test_streaming(Some(tx_host))
+                .await
+                .unwrap_or_default();
+            let dead: Vec<String> = host_set.difference(&alive).cloned().collect();
+            if !dead.is_empty() {
+                info!("Dead hosts: {:?}", &dead);
+            }
+        });
+
+        // TODO: fix this standalone scanner. It loads the feed but no result is shown
+        let runner: ScanRunner<Arc<InMemoryStorage>> = ScanRunner::new(
+            &storage, &loader, &executor, schedule, &scan, &notus, rx_target,
+        )
+        .unwrap();
         let mut results = Box::pin(runner.stream());
         while let Some(x) = results.next().await {
             match x {
@@ -158,7 +204,6 @@ async fn scan(args: ScanArgs) -> Result<(), CliError> {
             }
         }
     }
-
     Ok(())
 }
 
