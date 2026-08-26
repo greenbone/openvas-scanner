@@ -14,6 +14,7 @@ use scannerlib::nasl::{
 use crate::linter::{
     LintMsg,
     ctx::{Cache, LintCtx},
+    paths::{IncludePath, ResolvedPath},
 };
 
 const RULE: &str = "undeclared_variable";
@@ -48,19 +49,21 @@ struct OrderedVariables<'cache> {
     cache: &'cache Cache,
     scope: Scope,
     scope_kind: ScopeKind,
+    path: ResolvedPath,
     file: SourceFile,
-    loaded: HashSet<String>,
+    loaded: HashSet<ResolvedPath>,
     messages: Vec<LintMsg>,
 }
 
 impl<'cache> OrderedVariables<'cache> {
     fn new(
         cache: &'cache Cache,
+        path: ResolvedPath,
         file: SourceFile,
         globals: HashSet<String>,
         scope_kind: ScopeKind,
     ) -> Self {
-        let loaded = HashSet::from([file.name().clone()]);
+        let loaded = HashSet::from([path.clone()]);
         Self {
             cache,
             scope: Scope {
@@ -68,6 +71,7 @@ impl<'cache> OrderedVariables<'cache> {
                 locals: HashSet::new(),
             },
             scope_kind,
+            path,
             file,
             loaded,
             messages: vec![],
@@ -119,6 +123,7 @@ impl<'cache> OrderedVariables<'cache> {
     fn check_function(&mut self, declaration: &FnDecl) {
         let mut function = OrderedVariables::new(
             self.cache,
+            self.path.clone(),
             self.file.clone(),
             self.scope.globals.clone(),
             ScopeKind::Function,
@@ -133,20 +138,23 @@ impl<'cache> OrderedVariables<'cache> {
     }
 
     fn check_include(&mut self, include: &Include) {
+        let include_path = IncludePath::new(include.path.as_str());
         let Some((path, ast, file)) = self
             .cache
-            .included_file(self.file.name(), &include.path)
-            .map(|(path, cached)| (path.to_owned(), cached.ast().clone(), cached.file().clone()))
+            .included_file(&self.path, &include_path)
+            .map(|(path, cached)| (path.clone(), cached.ast().clone(), cached.file().clone()))
         else {
             return;
         };
-        if !self.loaded.insert(path) {
+        if !self.loaded.insert(path.clone()) {
             return;
         }
 
+        let outer_path = mem::replace(&mut self.path, path);
         let outer_file = mem::replace(&mut self.file, file);
         walk_ast(self, &ast);
         self.file = outer_file;
+        self.path = outer_path;
     }
 }
 
@@ -189,7 +197,13 @@ impl<'ast> Visitor<'ast> for OrderedVariables<'_> {
 pub fn undeclared_variables(ctx: &LintCtx) -> Vec<LintMsg> {
     let cache = &*ctx.cache;
     let globals = cache.predefined_vars().map(str::to_owned).collect();
-    let mut variables = OrderedVariables::new(cache, ctx.file.clone(), globals, ScopeKind::File);
+    let mut variables = OrderedVariables::new(
+        cache,
+        ctx.path.clone(),
+        ctx.file.clone(),
+        globals,
+        ScopeKind::File,
+    );
     walk_ast(&mut variables, ctx.ast);
     variables.messages
 }

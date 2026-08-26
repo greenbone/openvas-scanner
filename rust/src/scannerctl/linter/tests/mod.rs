@@ -5,7 +5,7 @@ use std::{
 
 use scannerlib::nasl::{Loader, error::emit_errors_str};
 
-use crate::linter::{Linter, Statistics, ctx::Cache, lints::all_lints};
+use crate::linter::{Linter, Statistics, ctx::Cache, lints::all_lints, paths::ResolvedPath};
 
 fn make_linter(loader: Loader) -> Linter {
     Linter {
@@ -78,8 +78,12 @@ fn parsed_include_is_reused_between_roots() {
     let mut linter = make_linter(Loader::from_feed_path(directory.path()));
     assert!(linter.lint_file("first.nasl").unwrap().is_empty());
     assert_eq!(
-        linter.parsed_includes.keys().collect::<Vec<_>>(),
-        vec!["functions.inc"]
+        linter
+            .parsed_includes
+            .keys()
+            .map(ResolvedPath::as_path)
+            .collect::<Vec<_>>(),
+        vec![std::path::Path::new("functions.inc")]
     );
 
     fs::write(include, "function helper(").unwrap();
