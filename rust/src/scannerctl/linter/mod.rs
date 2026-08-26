@@ -178,7 +178,7 @@ impl Linter {
 }
 
 fn make_load_error_msg(file: SourceFile, include: &Include) -> LintMsg {
-    let msg = format!("Could not find file '{:?}'", include.path);
+    let msg = format!("Could not find file {:?}", include.path);
     let diagnostic = Diagnostic::error()
         .with_message(&msg)
         .with_labels(vec![Label::primary((), include.span).with_message(&msg)]);
