@@ -153,4 +153,5 @@ mod tests {
     linter_test!(duplicate_function, "function foo() {} function foo() {}");
     linter_test!(distinct_functions, "function foo() {} function bar() {}");
     linter_test!(builtin_function, "function display() {}");
+    linter_test!(c_compat_builtin_function, "function wmi_query() {}");
 }

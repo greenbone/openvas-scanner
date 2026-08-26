@@ -38,4 +38,8 @@ mod tests {
     linter_test!(undefined_fn, "foo();");
     linter_test!(defined_fn, "function foo() {} foo();");
     linter_test!(builtin_fn, "display(\"hello\");");
+    linter_test!(
+        c_compat_builtin_fns,
+        "wmi_query(); socket_ssl_do_handshake();"
+    );
 }
