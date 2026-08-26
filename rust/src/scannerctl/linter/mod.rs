@@ -4,7 +4,11 @@ mod lints;
 #[cfg(test)]
 pub(crate) mod tests;
 
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+    sync::Arc,
+};
 
 pub use cli::LinterArgs;
 use cli::get_files_and_loader;
@@ -21,6 +25,8 @@ use scannerlib::nasl::{
 };
 
 use crate::error::{CliError, CliErrorKind};
+
+type ParsedFile = Result<Arc<CachedFile>, Vec<LintMsg>>;
 
 #[derive(Default)]
 struct Statistics {
@@ -39,6 +45,7 @@ struct Linter {
     lints: Vec<Box<dyn Lint>>,
 
     cache: Cache,
+    parsed_includes: HashMap<String, ParsedFile>,
     lint_msgs: HashSet<LintMsgKey>,
 }
 
@@ -67,23 +74,20 @@ impl Linter {
 
     fn lint_file(&mut self, rel_path: &str) -> Result<Vec<LintMsg>, LoadError> {
         self.cache.clear_files();
-        let code = self.load(rel_path)?;
-        let file = code.file();
-        let ast = match self.parse_file(code) {
-            Ok(ast) => ast,
+        let root = match self.get_or_parse_root(rel_path)? {
+            Ok(root) => root,
             Err(msgs) => return Ok(msgs),
         };
+        self.cache.insert(rel_path, root.clone());
+        let mut loaded = HashSet::from([rel_path.to_owned()]);
+        if let Err(msgs) = self.load_includes(root.ast(), root.file(), &mut loaded) {
+            return Ok(msgs);
+        }
+
         let msgs = if self.only_syntax {
             vec![]
         } else {
-            self.cache
-                .insert(rel_path, CachedFile::new(file.clone(), &ast));
-            let mut loaded = HashSet::from([rel_path.to_owned()]);
-            if let Err(msgs) = self.load_includes(&ast, &file, &mut loaded) {
-                return Ok(msgs);
-            }
-
-            let ctx = LintCtx::new(&ast, &file, &mut self.cache);
+            let ctx = LintCtx::new(root.ast(), root.file(), &mut self.cache);
             self.lints.iter().flat_map(|lint| lint.lint(&ctx)).collect()
         };
         Ok(msgs)
@@ -100,19 +104,40 @@ impl Linter {
                 continue;
             }
 
-            let code = self
-                .load(&include.path)
-                .map_err(|_| vec![make_load_error_msg(file.clone(), include)])?;
-            let include_file = code.file();
-            let include_ast = self.parse_file(code)?;
+            let included = self
+                .get_or_parse_include(&include.path)
+                .map_err(|_| vec![make_load_error_msg(file.clone(), include)])??;
 
-            self.cache.insert(
-                &include.path,
-                CachedFile::new(include_file.clone(), &include_ast),
-            );
-            self.load_includes(&include_ast, &include_file, loaded)?;
+            self.cache.insert(&include.path, included.clone());
+            self.load_includes(included.ast(), included.file(), loaded)?;
         }
         Ok(())
+    }
+
+    fn get_or_parse_root(&self, rel_path: &str) -> Result<ParsedFile, LoadError> {
+        if let Some(parsed) = self.parsed_includes.get(rel_path) {
+            return Ok(parsed.clone());
+        }
+        self.parse_path(rel_path)
+    }
+
+    fn get_or_parse_include(&mut self, rel_path: &str) -> Result<ParsedFile, LoadError> {
+        if let Some(parsed) = self.parsed_includes.get(rel_path) {
+            return Ok(parsed.clone());
+        }
+
+        let parsed = self.parse_path(rel_path)?;
+        self.parsed_includes
+            .insert(rel_path.to_owned(), parsed.clone());
+        Ok(parsed)
+    }
+
+    fn parse_path(&self, rel_path: &str) -> Result<ParsedFile, LoadError> {
+        let code = self.load(rel_path)?;
+        let file = code.file();
+        Ok(self
+            .parse_file(code)
+            .map(|ast| Arc::new(CachedFile::new(file, &ast))))
     }
 
     fn parse_file(&self, code: Code) -> Result<Ast, Vec<LintMsg>> {
@@ -130,7 +155,7 @@ impl Linter {
         })
     }
 
-    fn load(&mut self, rel_path: &str) -> Result<Code, LoadError> {
+    fn load(&self, rel_path: &str) -> Result<Code, LoadError> {
         Code::load(&self.loader, rel_path)
     }
 
@@ -175,6 +200,7 @@ pub(crate) async fn run(
         lints,
         stats: Statistics::default(),
         cache: Cache::default(),
+        parsed_includes: HashMap::new(),
         lint_msgs: HashSet::new(),
 
         loader,

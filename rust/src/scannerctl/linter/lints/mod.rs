@@ -25,6 +25,7 @@ pub(super) struct LintMsgKey {
     span: Range<usize>,
 }
 
+#[derive(Clone)]
 pub(super) struct LintMsg {
     rule: &'static str,
     file: SourceFile,
