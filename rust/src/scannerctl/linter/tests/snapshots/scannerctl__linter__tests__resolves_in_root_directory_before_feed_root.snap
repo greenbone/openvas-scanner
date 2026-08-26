@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+assertion_line: 178
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"nested/root.nasl\"], &\n[(\"nested/root.nasl\",\n\"include(\\\"helper.inc\\\"); include(\\\"shared.inc\\\"); local_helper(); shared();\"),\n(\"nested/helper.inc\", \"function local_helper() {}\"),\n(\"helper.inc\", \"function feed_helper() {}\"),\n(\"shared.inc\", \"function shared() {}\")],)"
+---

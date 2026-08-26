@@ -6,7 +6,7 @@ pub(crate) mod tests;
 
 use std::{
     collections::{HashMap, HashSet},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -27,6 +27,11 @@ use scannerlib::nasl::{
 use crate::error::{CliError, CliErrorKind};
 
 type ParsedFile = Result<Arc<CachedFile>, Vec<LintMsg>>;
+
+struct ResolvedInclude {
+    path: String,
+    parsed: ParsedFile,
+}
 
 #[derive(Default)]
 struct Statistics {
@@ -80,7 +85,8 @@ impl Linter {
         };
         self.cache.insert(rel_path, root.clone());
         let mut loaded = HashSet::from([rel_path.to_owned()]);
-        if let Err(msgs) = self.load_includes(root.ast(), root.file(), &mut loaded) {
+        let root_dir = Path::new(rel_path).parent().unwrap_or(Path::new(""));
+        if let Err(msgs) = self.load_includes(root.ast(), root.file(), root_dir, &mut loaded) {
             return Ok(msgs);
         }
 
@@ -97,19 +103,21 @@ impl Linter {
         &mut self,
         ast: &Ast,
         file: &SourceFile,
+        root_dir: &Path,
         loaded: &mut HashSet<String>,
     ) -> Result<(), Vec<LintMsg>> {
         for include in ast.iter_includes() {
-            if !loaded.insert(include.path.clone()) {
-                continue;
+            let resolved = self
+                .get_or_parse_include(root_dir, &include.path)
+                .map_err(|_| vec![make_load_error_msg(file.clone(), include)])?;
+            let included = resolved.parsed?;
+
+            self.cache
+                .record_include(file.name(), &include.path, &resolved.path);
+            if loaded.insert(resolved.path.clone()) {
+                self.cache.insert(&resolved.path, included.clone());
+                self.load_includes(included.ast(), included.file(), root_dir, loaded)?;
             }
-
-            let included = self
-                .get_or_parse_include(&include.path)
-                .map_err(|_| vec![make_load_error_msg(file.clone(), include)])??;
-
-            self.cache.insert(&include.path, included.clone());
-            self.load_includes(included.ast(), included.file(), loaded)?;
         }
         Ok(())
     }
@@ -121,7 +129,7 @@ impl Linter {
         self.parse_path(rel_path)
     }
 
-    fn get_or_parse_include(&mut self, rel_path: &str) -> Result<ParsedFile, LoadError> {
+    fn get_or_parse_cached(&mut self, rel_path: &str) -> Result<ParsedFile, LoadError> {
         if let Some(parsed) = self.parsed_includes.get(rel_path) {
             return Ok(parsed.clone());
         }
@@ -130,6 +138,31 @@ impl Linter {
         self.parsed_includes
             .insert(rel_path.to_owned(), parsed.clone());
         Ok(parsed)
+    }
+
+    fn get_or_parse_include(
+        &mut self,
+        root_dir: &Path,
+        include_path: &str,
+    ) -> Result<ResolvedInclude, LoadError> {
+        // The C linter runs from the root script's directory, then searches its
+        // configured include directory. For a feed scan, that directory is the
+        // feed root.
+        let root_relative = root_dir.join(include_path);
+        let root_relative = root_relative.to_string_lossy();
+        match self.get_or_parse_cached(&root_relative) {
+            Ok(parsed) => Ok(ResolvedInclude {
+                path: root_relative.into_owned(),
+                parsed,
+            }),
+            Err(error) if root_relative == include_path => Err(error),
+            Err(_) => self
+                .get_or_parse_cached(include_path)
+                .map(|parsed| ResolvedInclude {
+                    path: include_path.to_owned(),
+                    parsed,
+                }),
+        }
     }
 
     fn parse_path(&self, rel_path: &str) -> Result<ParsedFile, LoadError> {
