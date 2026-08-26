@@ -25,6 +25,7 @@ use std::collections::HashSet;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::oneshot;
 use tokio::time::sleep;
 
 use std::net::IpAddr;
@@ -70,7 +71,6 @@ fn pkt_stream(
 ) -> Result<PacketStream<Active, PktCodec>, pcap::Error> {
     let cap = capture_inactive
         .promisc(false)
-        .immediate_mode(true)
         .timeout(DEFAULT_TIMEOUT * 1000)
         .immediate_mode(true)
         .open()?
@@ -193,6 +193,7 @@ fn process_packet(packet: &[u8]) -> Result<Option<AliveHostInfo>, AliveTestError
     if packet.len() <= MIN_ALLOWED_PACKET_LEN {
         return Err(AliveTestError::WrongPacketLength);
     };
+
     // 2 last bytes in the data link layer of ether2 is the ether type (the protocol contained in the payload)
     let ether_type = &packet[14..16];
     let ether_type = EtherTypes::try_from(ether_type)?;
@@ -213,8 +214,10 @@ async fn capture_task(
     capture_inactive: Capture<Inactive>,
     mut rx_ctl: Receiver<AliveTestCtlStop>,
     tx_msg: Sender<AliveHostInfo>,
+    tx_ready: oneshot::Sender<()>,
 ) -> Result<(), AliveTestError> {
     let mut stream = pkt_stream(capture_inactive).expect("Failed to create stream");
+    tx_ready.send(()).unwrap();
     tracing::debug!("Start capture loop");
 
     loop {
@@ -408,7 +411,13 @@ impl Scanner {
         let (tx_msg, mut rx_msg): (Sender<AliveHostInfo>, Receiver<AliveHostInfo>) =
             mpsc::channel(1024);
 
-        let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg));
+        // for signaling when the capture is ready.
+        let (tx_ready, rx_ready) = oneshot::channel();
+        let capture_handle = tokio::spawn(capture_task(capture_inactive, rx_ctl, tx_msg, tx_ready));
+
+        rx_ready
+            .await
+            .map_err(|_| AliveTestError::NoValidInterface("capture task exited early".into()))?;
 
         let timeout = self.timeout.unwrap_or((DEFAULT_TIMEOUT * 1000) as u64);
         let methods_c = self.methods.clone();
