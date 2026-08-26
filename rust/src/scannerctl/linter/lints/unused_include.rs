@@ -6,6 +6,7 @@ use scannerlib::nasl::syntax::grammar::{Include, Statement};
 use crate::linter::{
     LintMsg,
     ctx::{Cache, LintCtx},
+    paths::{IncludePath, ResolvedPath},
 };
 
 const RULE: &str = "unused_include";
@@ -19,9 +20,9 @@ const RULE: &str = "unused_include";
 // This function recursively collects all such library files.
 fn collect_function_library(
     cache: &Cache,
-    path: &str,
-    files: &mut HashSet<String>,
-    visiting: &mut HashSet<String>,
+    path: &ResolvedPath,
+    files: &mut HashSet<ResolvedPath>,
+    visiting: &mut HashSet<ResolvedPath>,
 ) -> bool {
     if visiting.contains(path) {
         return false;
@@ -29,8 +30,8 @@ fn collect_function_library(
     if files.contains(path) {
         return true;
     }
-    files.insert(path.to_owned());
-    visiting.insert(path.to_owned());
+    files.insert(path.clone());
+    visiting.insert(path.clone());
 
     let is_library = cache.file(path).is_some_and(|file| {
         file.ast().iter_root_stmts().all(|statement| {
@@ -39,8 +40,9 @@ fn collect_function_library(
                 Statement::FnDecl(_) | Statement::Include(_) | Statement::NoOp
             )
         }) && file.ast().iter_includes().all(|include| {
+            let include_path = IncludePath::new(include.path.as_str());
             cache
-                .included_path(path, &include.path)
+                .included_path(path, &include_path)
                 .is_some_and(|included_path| {
                     collect_function_library(cache, included_path, files, visiting)
                 })
@@ -50,20 +52,20 @@ fn collect_function_library(
     is_library
 }
 
-fn function_library(cache: &Cache, path: &str) -> Option<HashSet<String>> {
+fn function_library(cache: &Cache, path: &ResolvedPath) -> Option<HashSet<ResolvedPath>> {
     let mut files = HashSet::new();
     let mut visiting = HashSet::new();
     collect_function_library(cache, path, &mut files, &mut visiting).then_some(files)
 }
 
-fn function_callers(cache: &Cache) -> HashMap<String, HashSet<String>> {
-    let mut callers = HashMap::<String, HashSet<String>>::new();
+fn function_callers(cache: &Cache) -> HashMap<String, HashSet<ResolvedPath>> {
+    let mut callers = HashMap::<String, HashSet<ResolvedPath>>::new();
     for (path, file) in cache.files() {
         for call in file.ast().iter_fn_calls() {
             callers
                 .entry(call.fn_name.to_string())
                 .or_default()
-                .insert(path.to_owned());
+                .insert(path.clone());
         }
     }
     callers
@@ -71,8 +73,8 @@ fn function_callers(cache: &Cache) -> HashMap<String, HashSet<String>> {
 
 fn is_used(
     cache: &Cache,
-    callers: &HashMap<String, HashSet<String>>,
-    library_files: &HashSet<String>,
+    callers: &HashMap<String, HashSet<ResolvedPath>>,
+    library_files: &HashSet<ResolvedPath>,
 ) -> bool {
     // An include is used when code outside that include chain calls a function
     // it provides. Calls between files in the same include chain do not count.
@@ -100,18 +102,19 @@ fn message(file: &scannerlib::nasl::SourceFile, include: &Include) -> LintMsg {
 pub fn unused_includes(ctx: &LintCtx) -> Vec<LintMsg> {
     let cache = &*ctx.cache;
     let mut files = cache.files().collect::<Vec<_>>();
-    files.sort_by_key(|(path, _)| *path);
+    files.sort_by(|(left, _), (right, _)| left.cmp(right));
     let callers = function_callers(cache);
-    let mut libraries = HashMap::<String, Option<HashSet<String>>>::new();
+    let mut libraries = HashMap::<ResolvedPath, Option<HashSet<ResolvedPath>>>::new();
     let mut messages = vec![];
 
     for (path, file) in files {
         for include in file.ast().iter_includes() {
-            let Some(included_path) = cache.included_path(path, &include.path) else {
+            let include_path = IncludePath::new(include.path.as_str());
+            let Some(included_path) = cache.included_path(path, &include_path) else {
                 continue;
             };
             let library_files = libraries
-                .entry(included_path.to_owned())
+                .entry(included_path.clone())
                 .or_insert_with(|| function_library(cache, included_path));
             if let Some(library_files) = library_files
                 && !is_used(cache, &callers, library_files)

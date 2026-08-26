@@ -13,6 +13,8 @@ use scannerlib::nasl::{
     utils::Executor,
 };
 
+use super::paths::{IncludePath, ResolvedPath};
+
 /// Names supplied by the script execution context or accepted for C-linter compatibility,
 /// rather than registered as globals by Rust builtin function sets.
 const PREDEFINED_VARS: [&str; 5] = [
@@ -120,24 +122,24 @@ impl CachedFile {
 }
 
 pub(crate) struct Cache {
-    files: HashMap<String, Arc<CachedFile>>,
-    /// Resolves an include as written in a parent AST to its feed-relative path.
-    include_paths: HashMap<IncludeKey, String>,
+    files: HashMap<ResolvedPath, Arc<CachedFile>>,
+    /// Resolves an include as written in a parent AST to its loader path.
+    include_paths: HashMap<IncludeKey, ResolvedPath>,
     builtin_fns: HashSet<String>,
     predefined_vars: HashSet<String>,
 }
 
 #[derive(Eq, Hash, PartialEq)]
 struct IncludeKey {
-    parent_path: String,
-    include_path: String,
+    parent_path: ResolvedPath,
+    include_path: IncludePath,
 }
 
 impl IncludeKey {
-    fn new(parent_path: &str, include_path: &str) -> Self {
+    fn new(parent_path: &ResolvedPath, include_path: &IncludePath) -> Self {
         Self {
-            parent_path: parent_path.to_owned(),
-            include_path: include_path.to_owned(),
+            parent_path: parent_path.clone(),
+            include_path: include_path.clone(),
         }
     }
 }
@@ -162,43 +164,44 @@ impl Cache {
         self.include_paths.clear();
     }
 
-    pub(crate) fn insert(&mut self, rel_path: &str, file: Arc<CachedFile>) {
-        self.files.insert(rel_path.to_owned(), file);
+    pub(crate) fn insert(&mut self, path: &ResolvedPath, file: Arc<CachedFile>) {
+        self.files.insert(path.clone(), file);
     }
 
-    pub(crate) fn files(&self) -> impl Iterator<Item = (&str, &CachedFile)> {
-        self.files
-            .iter()
-            .map(|(path, file)| (path.as_str(), file.as_ref()))
+    pub(crate) fn files(&self) -> impl Iterator<Item = (&ResolvedPath, &CachedFile)> {
+        self.files.iter().map(|(path, file)| (path, file.as_ref()))
     }
 
-    pub(crate) fn file(&self, path: &str) -> Option<&CachedFile> {
+    pub(crate) fn file(&self, path: &ResolvedPath) -> Option<&CachedFile> {
         self.files.get(path).map(Arc::as_ref)
     }
 
     pub(crate) fn record_include(
         &mut self,
-        parent_path: &str,
-        include_path: &str,
-        resolved_path: &str,
+        parent_path: &ResolvedPath,
+        include_path: &IncludePath,
+        resolved_path: &ResolvedPath,
     ) {
         self.include_paths.insert(
             IncludeKey::new(parent_path, include_path),
-            resolved_path.to_owned(),
+            resolved_path.clone(),
         );
     }
 
-    pub(crate) fn included_path(&self, parent_path: &str, include_path: &str) -> Option<&str> {
+    pub(crate) fn included_path(
+        &self,
+        parent_path: &ResolvedPath,
+        include_path: &IncludePath,
+    ) -> Option<&ResolvedPath> {
         self.include_paths
             .get(&IncludeKey::new(parent_path, include_path))
-            .map(String::as_str)
     }
 
     pub(crate) fn included_file(
         &self,
-        parent_path: &str,
-        include_path: &str,
-    ) -> Option<(&str, &CachedFile)> {
+        parent_path: &ResolvedPath,
+        include_path: &IncludePath,
+    ) -> Option<(&ResolvedPath, &CachedFile)> {
         let path = self.included_path(parent_path, include_path)?;
         self.file(path).map(|file| (path, file))
     }
@@ -212,11 +215,22 @@ pub(crate) struct LintCtx<'a> {
     pub cache: &'a mut Cache,
     pub ast: &'a Ast,
     pub file: &'a SourceFile,
+    pub path: &'a ResolvedPath,
 }
 
 impl<'a> LintCtx<'a> {
-    pub fn new(ast: &'a Ast, file: &'a SourceFile, cache: &'a mut Cache) -> Self {
-        Self { cache, ast, file }
+    pub fn new(
+        ast: &'a Ast,
+        file: &'a SourceFile,
+        path: &'a ResolvedPath,
+        cache: &'a mut Cache,
+    ) -> Self {
+        Self {
+            cache,
+            ast,
+            file,
+            path,
+        }
     }
 
     pub fn fn_defined(&self, fn_name: &str) -> bool {

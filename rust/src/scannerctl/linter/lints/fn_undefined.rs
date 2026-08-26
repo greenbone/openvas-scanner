@@ -7,7 +7,7 @@ const RULE: &str = "undefined_function";
 
 pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
     let mut files = ctx.cache.files().collect::<Vec<_>>();
-    files.sort_by_key(|(path, _)| *path);
+    files.sort_by(|(left, _), (right, _)| left.cmp(right));
 
     files
         .into_iter()
