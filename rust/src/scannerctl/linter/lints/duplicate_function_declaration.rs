@@ -6,6 +6,7 @@ use scannerlib::nasl::{
     syntax::grammar::Statement,
 };
 
+use crate::linter::paths::ResolvedPath;
 use crate::linter::{LintMsg, ctx::LintCtx};
 
 const RULE: &str = "duplicate_function_declaration";
@@ -72,7 +73,7 @@ fn duplicate_function_declarations_in_file(ctx: &LintCtx) -> Vec<LintMsg> {
 }
 
 fn duplicate_function_declarations_across_files(ctx: &LintCtx) -> Vec<LintMsg> {
-    let mut first_declarations = HashMap::<String, String>::new();
+    let mut first_declarations = HashMap::<String, ResolvedPath>::new();
     let mut messages = vec![];
 
     let mut files = ctx.cache.files().collect::<Vec<_>>();
@@ -101,7 +102,7 @@ fn duplicate_function_declarations_across_files(ctx: &LintCtx) -> Vec<LintMsg> {
                     .with_notes(vec![format!("also declared in {first_file}")]);
                 messages.push(LintMsg::new(RULE, file.file().clone(), span, diagnostic));
             } else {
-                first_declarations.insert(name.to_owned(), path.to_owned());
+                first_declarations.insert(name.to_owned(), path.clone());
             }
         }
     }
