@@ -219,7 +219,7 @@ where
             oid: None,
             port: None,
             protocol: None,
-            message: Some(Utc::now().to_string()),
+            message: Some(Utc::now().timestamp().to_string()),
             detail: None,
         };
         if let Err(e) = self

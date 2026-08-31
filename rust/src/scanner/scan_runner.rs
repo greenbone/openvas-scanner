@@ -111,7 +111,6 @@ where
         // and automatically guarantee that we stick to the scheduling requirements.
         // If this is changed, make sure to uphold the scheduling requirements in the
         // new implementation.
-
         stream::unfold(state, move |(mut host_feed, mut queue, mut last_host)| {
             let concurrent_vts = concurrent_vts.clone();
             async move {
@@ -136,7 +135,7 @@ where
                                 oid: None,
                                 port: None,
                                 protocol: None,
-                                message: Some(Utc::now().to_string()),
+                                message: Some(Utc::now().timestamp().to_string()),
                                 detail: None,
                             };
                             if let Err(e) = self
