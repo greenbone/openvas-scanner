@@ -2,13 +2,18 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{collections::BTreeMap, time::Duration};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    time::Duration,
+};
 
 use futures::StreamExt;
 use http::{Method, StatusCode};
 use scannerlib::models::{self, Phase, Scan, Status, Target};
 use serde_json::Value;
 use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
+
+use crate::container_image_scanner::DockerRegistryV2Mock;
 
 mod test_builder;
 mod test_scan;
@@ -291,6 +296,68 @@ async fn container_image_scanner_deadlock() {
         .await
         .body::<Status>()
         .snapshot("status");
+}
+
+#[tokio::test]
+async fn container_image_scan_registry_subrepository() {
+    const SUBREPOSITORY: &str = "subrepo";
+    const REPOSITORY: &str = "subrepo/image";
+    const TAGS: &[&str] = &["latest", "v1"];
+
+    let mut registry = DockerRegistryV2Mock::serve_repository(REPOSITORY, TAGS).await;
+    let _missing_repository = registry
+        .server
+        .mock("GET", format!("/v2/{SUBREPOSITORY}/tags/list").as_str())
+        .with_status(StatusCode::NOT_FOUND.as_u16().into())
+        .with_header("Content-Type", "application/json")
+        .with_body(
+            r#"{"errors":[{"code":"NAME_UNKNOWN","message":"repository name not known to registry"}]}"#,
+        )
+        .create();
+
+    let registry_address = registry.address();
+    let expected_images = TAGS
+        .iter()
+        .map(|tag| format!("oci://{registry_address}/{REPOSITORY}:{tag}"))
+        .collect::<BTreeSet<_>>();
+
+    let t = Test::new("container_image_scan_registry_subrepository")
+        .config("notus")
+        .await;
+    let scan = Scan {
+        scan_id: "container-image-registry-subrepository".into(),
+        target: Target {
+            hosts: vec![format!("oci://{registry_address}/{SUBREPOSITORY}")],
+            ..Default::default()
+        },
+        scan_preferences: vec![("registry_allow_insecure", "true").into()],
+        ..Default::default()
+    };
+
+    let scan = t.create_container_image_scan(scan).await;
+    scan.start().await;
+    let status = scan
+        .wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(10)))
+        .await
+        .body::<Status>();
+    let host_info = status
+        .host_info
+        .as_ref()
+        .expect("successful scan should include host information");
+    let expected_image_count = expected_images.len() as u64;
+    assert_eq!(host_info.all, expected_image_count);
+    assert_eq!(host_info.finished, expected_image_count);
+    assert_eq!(host_info.dead, 0);
+
+    let discovered_images = scan
+        .get_results()
+        .await
+        .body::<Vec<models::Result>>()
+        .iter()
+        .filter_map(|result| result.hostname.clone())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(discovered_images, expected_images);
+    scan.delete().await;
 }
 
 // This tests against a specific bug in which

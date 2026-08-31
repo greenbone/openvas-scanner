@@ -42,14 +42,23 @@ pub struct DockerV2Registry {
 
 #[derive(Debug, Clone)]
 enum Filter {
-    StartsWith(String),
+    /// Filter out repositories that do not start
+    /// with the specified namespace
+    /// i.e. RepositoryNamespace("foo") filters for
+    /// foo/a
+    /// foo/b
+    /// but not for
+    /// foo_bar/a
+    RepositoryNamespace(String),
 }
 
 impl Filter {
     pub fn matches(&self, other: &str) -> bool {
         tracing::trace!(?self, other, "Matches");
         match self {
-            Filter::StartsWith(value) => other.starts_with(value),
+            Filter::RepositoryNamespace(value) => other
+                .strip_prefix(value)
+                .is_some_and(|suffix| suffix.is_empty() || suffix.starts_with('/')),
         }
     }
 }
@@ -76,8 +85,11 @@ impl ClientBuilder {
             status_code: match source {
                 // This can happen on wrong body response, which could be sign of limited
                 // availability. That's why we treat it as a 503.
-                docker_registry::errors::Error::Reqwest(_) => Some(503),
+                docker_registry::errors::Error::Reqwest(error) => {
+                    Some(error.status().map_or(503, |status| status.as_u16()))
+                }
                 docker_registry::errors::Error::UnexpectedHttpStatus(status)
+                | docker_registry::errors::Error::Client { status }
                 | docker_registry::errors::Error::Server { status } => Some(status.as_u16()),
                 _ => None,
             },
@@ -343,7 +355,10 @@ impl DockerV2Registry {
             Err(e) => {
                 tracing::info!(%registry, repository, error=%e, "Trying to find owner through catalog and filtering.");
                 return self
-                    .resolve_catalog(registry, Some(Filter::StartsWith(repository.to_owned())))
+                    .resolve_catalog(
+                        registry,
+                        Some(Filter::RepositoryNamespace(repository.to_owned())),
+                    )
                     .await;
             }
         };
@@ -359,6 +374,16 @@ impl DockerV2Registry {
             })
             .collect()
             .await;
+
+        if matches!(repos.as_slice(), [Err(error)] if error.status_code == Some(404)) {
+            tracing::info!(%registry, repository, "Repository was not found; searching the registry catalog by namespace");
+            return self
+                .resolve_catalog(
+                    registry,
+                    Some(Filter::RepositoryNamespace(repository.to_owned())),
+                )
+                .await;
+        }
 
         repos
     }
@@ -1027,6 +1052,18 @@ pub mod fake {
     }
 
     impl RegistryMock {
+        pub async fn serve_repository(repository: &str, tags: &[&str]) -> Self {
+            let images = tags
+                .iter()
+                .map(|tag| Image {
+                    registry: Default::default(),
+                    image: Some(repository.to_owned()),
+                    tag: Some((*tag).to_owned()),
+                })
+                .collect::<Vec<_>>();
+            Self::from_images(&images).await
+        }
+
         pub fn supported_images() -> Vec<Image> {
             vec![
                 Image {
