@@ -143,7 +143,7 @@ async fn get_vts() {
 }
 
 impl Snapshottable for models::Status {
-    fn redactions() -> Vec<String> {
+    fn redactions(&self) -> Vec<String> {
         vec![".start_time".into(), ".end_time".into()]
     }
 }
@@ -153,8 +153,19 @@ impl Snapshottable for Vec<models::Result> {
         self.sort_by_key(|result| result.oid.clone());
     }
 
-    fn redactions() -> Vec<String> {
-        vec!["[].id".into()]
+    fn redactions(&self) -> Vec<String> {
+        let mut redactions = vec!["[].id".into()];
+        for (i, result) in self.iter().enumerate() {
+            // Redact the timestamp in `HostStart` and `HostEnd`
+            // results.
+            if matches!(
+                result.r_type,
+                models::ResultType::HostStart | models::ResultType::HostEnd
+            ) {
+                redactions.push(format!("[{i}].message"))
+            }
+        }
+        redactions
     }
 }
 

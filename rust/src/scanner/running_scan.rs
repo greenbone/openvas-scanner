@@ -12,14 +12,16 @@ use std::{
 };
 
 use crate::alive_test::Scanner as BoreasScanner;
-use crate::models::{Host, HostInfo, Phase, Status};
+use crate::models::{self, Host, HostInfo, Phase, ResultType, Status};
 use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Target};
 use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
+use crate::storage::{Dispatcher, ScanID};
 use crate::{
     scanner::scan_runner::ScanRunner,
     scheduling::{Scheduler, SchedulerStorage, VTError},
 };
+use chrono::Utc;
 use futures::StreamExt;
 use tokio::sync::mpsc::{self, Receiver};
 use tokio::{sync::RwLock, task::JoinHandle};
@@ -177,9 +179,17 @@ where
             match it {
                 Ok(result) => {
                     trace!(target = result.target, targets=?self.scan.targets);
-                    let mut status = self.status.write().await;
-                    if let Some(host_info) = status.host_info.as_mut() {
-                        host_info.register_finished_script(&result.target);
+                    let host_finished = {
+                        let mut status = self.status.write().await;
+                        let mut host_finished = false;
+                        if let Some(host_info) = status.host_info.as_mut() {
+                            host_info.register_started_host(&result.target);
+                            host_finished = host_info.register_finished_script(&result.target);
+                        }
+                        host_finished
+                    };
+                    if host_finished {
+                        self.generate_host_end_result(&result.target).await;
                     }
                     debug!(result=?result, "script finished");
 
@@ -198,6 +208,27 @@ where
             }
         }
         end_phase
+    }
+
+    async fn generate_host_end_result(&self, host: &str) {
+        let result = models::Result {
+            id: 0,
+            r_type: ResultType::HostEnd,
+            ip_address: Some(host.to_string()),
+            hostname: None,
+            oid: None,
+            port: None,
+            protocol: None,
+            message: Some(Utc::now().timestamp().to_string()),
+            detail: None,
+        };
+        if let Err(e) = self
+            .storage
+            .retry_dispatch(ScanID(self.scan.scan_id.clone()), result, 5)
+            .await
+        {
+            warn!(error=?e, host, "unable to dispatch host_end type result");
+        }
     }
 
     async fn update_status_at_beginning_of_run(&self, host_info: HostInfo) {
