@@ -1,0 +1,18 @@
+---
+source: src/openvasd/api_tests/test_builder.rs
+expression: inner
+---
+[
+  {
+    "default": true,
+    "description": "This disables the CA chain verification for TLS certificates when connecting to a registry. This is useful for self-signed certificates.",
+    "id": "accept_invalid_certs",
+    "name": "Accepts certificates without trust chain verification",
+  },
+  {
+    "default": false,
+    "description": "This allows falling back to unencrypted communication with a registry when HTTPS is unavailable.",
+    "id": "registry_allow_insecure",
+    "name": "Allow HTTP when HTTPS is unavailable",
+  },
+]

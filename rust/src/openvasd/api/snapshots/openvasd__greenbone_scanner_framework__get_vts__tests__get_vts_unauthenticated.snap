@@ -1,0 +1,5 @@
+---
+source: src/openvasd/api/get_vts.rs
+expression: resp
+---
+["unknown"]

@@ -1,0 +1,6 @@
+---
+source: src/openvasd/api/get_scans.rs
+assertion_line: 180
+expression: resp
+---
+[""]

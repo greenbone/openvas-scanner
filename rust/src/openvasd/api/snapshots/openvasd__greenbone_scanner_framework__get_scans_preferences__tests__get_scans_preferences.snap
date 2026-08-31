@@ -1,0 +1,5 @@
+---
+source: src/openvasd/api/get_scans_preferences.rs
+expression: resp
+---
+[]
