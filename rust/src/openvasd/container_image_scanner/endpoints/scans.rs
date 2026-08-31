@@ -93,9 +93,9 @@ impl GetScansPreferences for Scans {
                 },
                 ScanPreferenceInformation {
                     id: "registry_allow_insecure",
-                    name: "Use HTTP instead of HTTPS",
+                    name: "Allow HTTP when HTTPS is unavailable",
                     default: PreferenceValue::Bool(false),
-                    description: "This allows unencrypted communication with an registry (HTTP instead of HTTPS).",
+                    description: "This allows falling back to unencrypted communication with a registry when HTTPS is unavailable.",
                 },
             ]
         })
