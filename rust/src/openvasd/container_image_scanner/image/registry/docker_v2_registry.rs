@@ -215,14 +215,21 @@ impl Client {
             .map_err(|x| self.builder.catalog_error(x))
     }
 
-    pub fn get_tags<'a>(
+    pub fn get_images<'a>(
         &'a self,
-        name: &'a str,
-        paginate: Option<u32>,
-    ) -> impl Stream<Item = Result<String, RegistryError>> + 'a {
+        registry: &'a Registry,
+        repository: &'a str,
+    ) -> impl Stream<Item = Result<Image, RegistryError>> + 'a {
         self.client
-            .get_tags(name, paginate)
-            .map_err(|x| self.builder.tag_error(x))
+            .get_tags(repository, None)
+            .map_err(|tag| self.builder.tag_error(tag))
+            .map(|tag| {
+                tag.map(|tag| Image {
+                    registry: registry.clone(),
+                    image: Some(repository.to_owned()),
+                    tag: Some(tag),
+                })
+            })
     }
 
     pub async fn get_manifest(
@@ -362,20 +369,9 @@ impl DockerV2Registry {
                     .await;
             }
         };
-        let repos: Vec<Result<Image, RegistryError>> = client
-            .get_tags(repository, None)
-            .map(|x| match x {
-                Ok(x) => Ok(Image {
-                    registry: registry.clone(),
-                    image: Some(repository.to_owned()),
-                    tag: Some(x),
-                }),
-                Err(x) => Err(x),
-            })
-            .collect()
-            .await;
+        let images: Vec<_> = client.get_images(registry, repository).collect().await;
 
-        if matches!(repos.as_slice(), [Err(error)] if error.status_code == Some(404)) {
+        if matches!(images.as_slice(), [Err(error)] if error.status_code == Some(404)) {
             tracing::info!(%registry, repository, "Repository was not found; searching the registry catalog by namespace");
             return self
                 .resolve_catalog(
@@ -385,7 +381,7 @@ impl DockerV2Registry {
                 .await;
         }
 
-        repos
+        images
     }
 
     async fn resolve_repository(
@@ -400,29 +396,9 @@ impl DockerV2Registry {
                 return vec![Err(e)];
             }
         };
-        let repos: Vec<Result<Image, RegistryError>> = client
-            .get_tags(repository, None)
-            .map(|x| match x {
-                Ok(x) => {
-                    let image = Image {
-                        registry: registry.clone(),
-                        image: Some(repository.to_owned()),
-                        tag: Some(x),
-                    };
-                    tracing::trace!(%image, "Found");
-                    Ok(image)
-                }
-                Err(x) => {
-                    tracing::warn!(error=%x, "unable to resolve_repository");
-                    Err(x)
-                }
-            })
-            .collect()
-            .await;
-
-        tracing::debug!(%registry, repository, images = repos.len(), "resolved");
-
-        repos
+        let images: Vec<_> = client.get_images(registry, repository).collect().await;
+        tracing::debug!(%registry, repository, tags = images.len(), "resolved");
+        images
     }
 
     async fn resolve_catalog(
