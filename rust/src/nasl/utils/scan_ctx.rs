@@ -51,7 +51,7 @@ impl VHost {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Target {
     /// The original target. IP or hostname
     original_target_str: String,
@@ -93,7 +93,7 @@ impl From<Vec<Port>> for Ports {
 
 /// Specifies whether the string given to `Target` was a hostname
 /// or an ip address.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TargetKind {
     Hostname,
     IpAddr,
