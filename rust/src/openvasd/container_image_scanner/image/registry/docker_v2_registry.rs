@@ -42,14 +42,23 @@ pub struct DockerV2Registry {
 
 #[derive(Debug, Clone)]
 enum Filter {
-    StartsWith(String),
+    /// Filter out repositories that do not start
+    /// with the specified namespace
+    /// i.e. RepositoryNamespace("foo") filters for
+    /// foo/a
+    /// foo/b
+    /// but not for
+    /// foo_bar/a
+    RepositoryNamespace(String),
 }
 
 impl Filter {
     pub fn matches(&self, other: &str) -> bool {
         tracing::trace!(?self, other, "Matches");
         match self {
-            Filter::StartsWith(value) => other.starts_with(value),
+            Filter::RepositoryNamespace(value) => other
+                .strip_prefix(value)
+                .is_some_and(|suffix| suffix.is_empty() || suffix.starts_with('/')),
         }
     }
 }
@@ -76,8 +85,11 @@ impl ClientBuilder {
             status_code: match source {
                 // This can happen on wrong body response, which could be sign of limited
                 // availability. That's why we treat it as a 503.
-                docker_registry::errors::Error::Reqwest(_) => Some(503),
+                docker_registry::errors::Error::Reqwest(error) => {
+                    Some(error.status().map_or(503, |status| status.as_u16()))
+                }
                 docker_registry::errors::Error::UnexpectedHttpStatus(status)
+                | docker_registry::errors::Error::Client { status }
                 | docker_registry::errors::Error::Server { status } => Some(status.as_u16()),
                 _ => None,
             },
@@ -203,23 +215,30 @@ impl Client {
             .map_err(|x| self.builder.catalog_error(x))
     }
 
-    pub fn get_tags<'a>(
+    pub fn get_images<'a>(
         &'a self,
-        name: &'a str,
-        paginate: Option<u32>,
-    ) -> impl Stream<Item = Result<String, RegistryError>> + 'a {
+        registry: &'a Registry,
+        repository: &'a str,
+    ) -> impl Stream<Item = Result<Image, RegistryError>> + 'a {
         self.client
-            .get_tags(name, paginate)
-            .map_err(|x| self.builder.tag_error(x))
+            .get_tags(repository, None)
+            .map_err(|tag| self.builder.tag_error(tag))
+            .map(|tag| {
+                tag.map(|tag| Image {
+                    registry: registry.clone(),
+                    repository: Some(repository.to_owned()),
+                    tag: Some(tag),
+                })
+            })
     }
 
     pub async fn get_manifest(
         &self,
-        name: &str,
+        repository: &str,
         reference: &str,
     ) -> Result<(Manifest, Option<String>), RegistryError> {
         self.client
-            .get_manifest_and_ref(name, reference)
+            .get_manifest_and_ref(repository, reference)
             .await
             .map_err(|source| self.builder.manifest_error(source))
     }
@@ -259,10 +278,10 @@ impl Client {
 
     pub async fn resolve_manifests(
         &self,
-        name: &str,
+        repository: &str,
         reference: &str,
     ) -> Vec<Result<(Manifest, String, Option<Digest>), RegistryError>> {
-        let og = self.get_manifest(name, reference).await;
+        let og = self.get_manifest(repository, reference).await;
         let manifests = match og {
             Ok((Manifest::ML(ml), _)) => ml.manifests,
             Ok((Manifest::OciIndex(oi), _)) => oi.manifests,
@@ -283,7 +302,7 @@ impl Client {
                 );
                 continue;
             }
-            match self.get_manifest(name, &m.digest).await {
+            match self.get_manifest(repository, &m.digest).await {
                 Ok((m, digest)) => {
                     results.push(self.manifest_to_architecture(digest, m));
                 }
@@ -293,9 +312,9 @@ impl Client {
         results
     }
 
-    pub async fn get_blob(&self, name: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
+    pub async fn get_blob(&self, repository: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
         self.client
-            .get_blob(name, digest)
+            .get_blob(repository, digest)
             .await
             .map_err(|source| self.builder.blob_error(source))
     }
@@ -343,24 +362,26 @@ impl DockerV2Registry {
             Err(e) => {
                 tracing::info!(%registry, repository, error=%e, "Trying to find owner through catalog and filtering.");
                 return self
-                    .resolve_catalog(registry, Some(Filter::StartsWith(repository.to_owned())))
+                    .resolve_catalog(
+                        registry,
+                        Some(Filter::RepositoryNamespace(repository.to_owned())),
+                    )
                     .await;
             }
         };
-        let repos: Vec<Result<Image, RegistryError>> = client
-            .get_tags(repository, None)
-            .map(|x| match x {
-                Ok(x) => Ok(Image {
-                    registry: registry.clone(),
-                    image: Some(repository.to_owned()),
-                    tag: Some(x),
-                }),
-                Err(x) => Err(x),
-            })
-            .collect()
-            .await;
+        let images: Vec<_> = client.get_images(registry, repository).collect().await;
 
-        repos
+        if matches!(images.as_slice(), [Err(error)] if error.status_code == Some(404)) {
+            tracing::info!(%registry, repository, "Repository was not found; searching the registry catalog by namespace");
+            return self
+                .resolve_catalog(
+                    registry,
+                    Some(Filter::RepositoryNamespace(repository.to_owned())),
+                )
+                .await;
+        }
+
+        images
     }
 
     async fn resolve_repository(
@@ -375,29 +396,9 @@ impl DockerV2Registry {
                 return vec![Err(e)];
             }
         };
-        let repos: Vec<Result<Image, RegistryError>> = client
-            .get_tags(repository, None)
-            .map(|x| match x {
-                Ok(x) => {
-                    let image = Image {
-                        registry: registry.clone(),
-                        image: Some(repository.to_owned()),
-                        tag: Some(x),
-                    };
-                    tracing::trace!(%image, "Found");
-                    Ok(image)
-                }
-                Err(x) => {
-                    tracing::warn!(error=%x, "unable to resolve_repository");
-                    Err(x)
-                }
-            })
-            .collect()
-            .await;
-
-        tracing::debug!(%registry, repository, images = repos.len(), "resolved");
-
-        repos
+        let images: Vec<_> = client.get_images(registry, repository).collect().await;
+        tracing::debug!(%registry, repository, tags = images.len(), "resolved");
+        images
     }
 
     async fn resolve_catalog(
@@ -450,7 +451,7 @@ impl DockerV2Registry {
         &self,
         image: &Image,
     ) -> Result<(Client, Vec<Result<ArchitectureLayer, RegistryError>>), RegistryError> {
-        let repository = match image.image() {
+        let repository = match image.repository() {
             None => {
                 return Err(RegistryError::no_repository());
             }
@@ -504,14 +505,17 @@ impl DockerV2Registry {
         match image {
             Image {
                 registry,
-                image: None,
+                repository: None,
                 tag: _,
             } => self.resolve_catalog(&registry, None).await,
             Image {
                 registry,
-                image: Some(image),
+                repository: Some(repository),
                 tag: None,
-            } => self.resolve_or_search_repository(&registry, &image).await,
+            } => {
+                self.resolve_or_search_repository(&registry, &repository)
+                    .await
+            }
             image => vec![Ok(image)],
         }
     }
@@ -542,8 +546,7 @@ impl DockerV2Registry {
                     Ok((image_digest, arch, d)) => {
                         let blob = client.get_blob(
                             image
-                                .image()
-                                .as_ref()
+                                .repository()
                                 .expect("already verified in fetch_digest_layer"),
                             d.as_ref(),
                         );
@@ -673,7 +676,11 @@ pub mod fake {
             image: &Image,
             status_code: usize,
         ) -> mockito::Mock {
-            let url = format!("/v2/{}/blobs/{}", image.image().unwrap(), self.digest());
+            let url = format!(
+                "/v2/{}/blobs/{}",
+                image.repository().unwrap(),
+                self.digest()
+            );
             server
                 .mock("GET", &url as &str)
                 .with_status(status_code)
@@ -712,8 +719,11 @@ pub mod fake {
         }
 
         pub fn mock(&self, server: &mut mockito::ServerGuard, status_code: usize) -> mockito::Mock {
-            let bobconfig_url =
-                format!("/v2/{}/blobs/{}", self.image.image().unwrap(), self.digest);
+            let bobconfig_url = format!(
+                "/v2/{}/blobs/{}",
+                self.image.repository().unwrap(),
+                self.digest
+            );
 
             server
                 .mock("GET", &bobconfig_url as &str)
@@ -732,7 +742,7 @@ pub mod fake {
             let repos = self
                 .images
                 .iter()
-                .filter_map(|x| x.image.as_ref())
+                .filter_map(|image| image.repository.as_ref())
                 .map(|x| format!(r#""{x}""#))
                 .unique()
                 .join(",");
@@ -825,12 +835,12 @@ pub mod fake {
         ) -> Vec<mockito::Mock> {
             let ml_path = format!(
                 "/v2/{}/manifests/{}",
-                self.blobconfig.image.image().unwrap(),
+                self.blobconfig.image.repository().unwrap(),
                 self.blobconfig.image.tag().unwrap()
             );
             let image_path = format!(
                 "/v2/{}/manifests/{}",
-                self.blobconfig.image.image().unwrap(),
+                self.blobconfig.image.repository().unwrap(),
                 self.blobconfig.digest
             );
             let mut mock_it = |media_type, path: &str, json| {
@@ -896,9 +906,9 @@ pub mod fake {
                 .images
                 .iter()
                 .cloned()
-                .filter_map(|entry| entry.image.map(|image| (image, entry.tag)))
-                .fold(HashMap::new(), |mut table, (image, tag)| {
-                    let entry = table.entry(image).or_default();
+                .filter_map(|entry| entry.repository.map(|repository| (repository, entry.tag)))
+                .fold(HashMap::new(), |mut table, (repository, tag)| {
+                    let entry = table.entry(repository).or_default();
                     if let Some(tag) = tag {
                         entry.insert(tag);
                     }
@@ -1027,17 +1037,29 @@ pub mod fake {
     }
 
     impl RegistryMock {
+        pub async fn serve_repository(repository: &str, tags: &[&str]) -> Self {
+            let images = tags
+                .iter()
+                .map(|tag| Image {
+                    registry: Default::default(),
+                    repository: Some(repository.to_owned()),
+                    tag: Some((*tag).to_owned()),
+                })
+                .collect::<Vec<_>>();
+            Self::from_images(&images).await
+        }
+
         pub fn supported_images() -> Vec<Image> {
             vec![
                 Image {
                     // registry will always be the addr of the mock
                     registry: Default::default(),
-                    image: Some("nichtsfrei/victim".to_owned()),
+                    repository: Some("nichtsfrei/victim".to_owned()),
                     tag: "latest".to_owned().into(),
                 },
                 Image {
                     registry: Default::default(),
-                    image: Some("nichtsfrei/victim".to_owned()),
+                    repository: Some("nichtsfrei/victim".to_owned()),
                     tag: "v1".to_owned().into(),
                 },
             ]
@@ -1096,33 +1118,33 @@ mod tests {
             Image {
                 // registry will always be the addr of the mock
                 registry: Default::default(),
-                image: Some("nichtsfrei/victim".to_owned()),
+                repository: Some("nichtsfrei/victim".to_owned()),
                 tag: "latest".to_owned().into(),
             },
             Image {
                 registry: Default::default(),
-                image: Some("nichtsfrei/victim".to_owned()),
+                repository: Some("nichtsfrei/victim".to_owned()),
                 tag: "v1".to_owned().into(),
             },
             Image {
                 registry: Default::default(),
-                image: Some("nichtsfrei/victim".to_owned()),
+                repository: Some("nichtsfrei/victim".to_owned()),
                 tag: "v2".to_owned().into(),
             },
             Image {
                 // registry will always be the addr of the mock
                 registry: Default::default(),
-                image: Some("greenbone/gvmd".to_owned()),
+                repository: Some("greenbone/gvmd".to_owned()),
                 tag: "latest".to_owned().into(),
             },
             Image {
                 registry: Default::default(),
-                image: Some("greenbone/gvmd".to_owned()),
+                repository: Some("greenbone/gvmd".to_owned()),
                 tag: "v1".to_owned().into(),
             },
             Image {
                 registry: Default::default(),
-                image: Some("greenbone/gvmd".to_owned()),
+                repository: Some("greenbone/gvmd".to_owned()),
                 tag: "v2".to_owned().into(),
             },
         ];
@@ -1141,7 +1163,7 @@ mod tests {
                 .expect("Registry cannot fail to initialize");
         let image = Image {
             registry: addr.clone().into(),
-            image: None,
+            repository: None,
             tag: None,
         };
         let client = aha.resolve_image(image).await;
@@ -1154,7 +1176,7 @@ mod tests {
         let mut image = Image {
             // registry will always be the addr of the mock
             registry: Default::default(),
-            image: Some("nichtsfrei/victim".to_owned()),
+            repository: Some("nichtsfrei/victim".to_owned()),
             tag: "latest".to_owned().into(),
         };
 

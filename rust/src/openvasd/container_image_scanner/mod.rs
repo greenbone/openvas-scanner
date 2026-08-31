@@ -8,6 +8,8 @@ mod scheduling;
 mod timings;
 
 pub use config::Config;
+#[cfg(test)]
+pub(crate) use image::DockerRegistryV2Mock;
 pub(crate) use scannerlib::{ExternalError, PromiseRef, Streamer};
 
 use std::sync::{Arc, RwLock};
