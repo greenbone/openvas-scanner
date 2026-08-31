@@ -13,7 +13,7 @@ pub mod packages;
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq)]
 pub struct Image {
     pub registry: Registry,
-    pub image: Option<String>,
+    pub repository: Option<String>,
     pub tag: Option<String>,
 }
 
@@ -100,8 +100,8 @@ impl FromStr for ImageState {
 }
 
 impl Image {
-    pub fn image(&self) -> Option<&str> {
-        self.image.as_ref().map(|x| x as &str)
+    pub fn repository(&self) -> Option<&str> {
+        self.repository.as_deref()
     }
 
     fn is_sha256(&self) -> bool {
@@ -188,23 +188,23 @@ impl Display for Image {
         match self {
             Image {
                 registry,
-                image: None,
+                repository: None,
                 tag: _,
             } => write!(f, "oci://{registry}"),
             Image {
                 registry,
-                image: Some(image),
+                repository: Some(repository),
                 tag: None,
-            } => write!(f, "oci://{registry}/{image}"),
+            } => write!(f, "oci://{registry}/{repository}"),
             Image {
                 registry,
-                image: Some(image),
+                repository: Some(repository),
                 tag: Some(tag),
             } => {
                 if self.is_sha256() {
-                    write!(f, "oci://{registry}/{}@{}", image, tag)
+                    write!(f, "oci://{registry}/{}@{}", repository, tag)
                 } else {
-                    write!(f, "oci://{registry}/{image}:{tag}")
+                    write!(f, "oci://{registry}/{repository}:{tag}")
                 }
             }
         }
@@ -221,31 +221,34 @@ impl FromStr for Image {
         let value = value.strip_prefix("oci://").unwrap_or(value);
         let mut parts = value.split('/').filter(|s| !s.is_empty());
         let registry = parts.next().ok_or(ImageParseError::NoRegistry)?;
-        let image_parts: Vec<&str> = parts.collect();
+        let repository_parts: Vec<&str> = parts.collect();
         let mut result = Image {
             registry: registry.into(),
-            image: None,
+            repository: None,
             tag: None,
         };
-        if image_parts.is_empty() {
+        if repository_parts.is_empty() {
             return Ok(result);
         }
 
-        let full_image = image_parts.join("/");
-        let (image, tag) = match full_image.rsplit_once(':') {
-            Some((img, t)) => {
-                if img.ends_with("@sha256") {
+        let full_repository = repository_parts.join("/");
+        let (repository, tag) = match full_repository.rsplit_once(':') {
+            Some((repository, tag)) => {
+                if repository.ends_with("@sha256") {
                     (
-                        img.strip_suffix("@sha256").unwrap_or_default().to_string(),
-                        Some(format!("sha256:{t}")),
+                        repository
+                            .strip_suffix("@sha256")
+                            .unwrap_or_default()
+                            .to_string(),
+                        Some(format!("sha256:{tag}")),
                     )
                 } else {
-                    (img.to_string(), Some(t.to_string()))
+                    (repository.to_string(), Some(tag.to_string()))
                 }
             }
-            None => (full_image, None),
+            None => (full_repository, None),
         };
-        result.image = Some(result.registry.normalize_repository(image));
+        result.repository = Some(result.registry.normalize_repository(repository));
         result.tag = tag;
         Ok(result)
     }
@@ -263,7 +266,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "myregistry".into(),
-                image: Some("myimage".to_owned()),
+                repository: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
         );
@@ -277,7 +280,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "narf.io".into(),
-                image: Some("myuser/myimage".to_owned()),
+                repository: Some("myuser/myimage".to_owned()),
                 tag: Some("sha256:abc1234def56789".to_owned())
             })
         );
@@ -295,7 +298,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "myregistry:6969".into(),
-                image: Some("myimage".to_owned()),
+                repository: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
         );
@@ -309,7 +312,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "myregistry".into(),
-                image: Some("myimage".to_owned()),
+                repository: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
         );
@@ -323,7 +326,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "myregistry".into(),
-                image: Some("myimage".to_owned()),
+                repository: Some("myimage".to_owned()),
                 tag: Some("mytag".to_owned())
             })
         );
@@ -337,7 +340,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "myregistry".into(),
-                image: None,
+                repository: None,
                 tag: None,
             })
         );
@@ -351,7 +354,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "myregistry".into(),
-                image: Some("myimage".to_owned()),
+                repository: Some("myimage".to_owned()),
                 tag: None,
             })
         );
@@ -364,7 +367,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "docker.io".into(),
-                image: Some("library/ubuntu".to_owned()),
+                repository: Some("library/ubuntu".to_owned()),
                 tag: Some("24.04".to_owned()),
             })
         );
@@ -388,7 +391,7 @@ mod tests {
             parsed,
             Ok(Image {
                 registry: "docker.io".into(),
-                image: Some("library/ubuntu".to_owned()),
+                repository: Some("library/ubuntu".to_owned()),
                 tag: None,
             })
         );
