@@ -1,0 +1,7 @@
+services:
+  rust-tests:
+    environment:
+      CARGO_INCREMENTAL: "0"
+    volumes:
+      - ${HOME}/.cargo:/cargo
+      - ../rust/target:/target
