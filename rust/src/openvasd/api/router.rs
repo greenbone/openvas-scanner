@@ -117,22 +117,25 @@ pub fn create_router(cfg: &ApiConfig) -> Router {
         .nest(
             "/scans",
             scans::router(
-                cfg.scanner.clone(),
+                cfg.database.clone(),
                 cfg.auth_method,
                 cfg.api_keys.clone(),
                 cfg.enable_additional_routes,
             ),
         )
         .nest("/notus", notus::router(cfg.notus.clone()))
+        // TODO: reintroduce
+        /*
         .nest(
             "/container-image-scanner/scans",
             container_image_scanner::router(
-                cfg.image_scanner.clone(),
+                cfg.database.clone(),
                 cfg.auth_method,
                 cfg.api_keys.clone(),
                 cfg.enable_additional_routes,
             ),
         )
+        */
         .merge(vts::router(cfg.feed.clone()))
         // Inject the api-version, feed-version and authentication headers into all responses
         .layer(middleware::from_fn_with_state(

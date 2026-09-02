@@ -26,11 +26,6 @@ pub mod utils;
 
 use std::pin::Pin;
 
-use futures::Stream;
-
 pub type Promise<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 pub type PromiseRef<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
-pub type Streamer<T> = Pin<Box<dyn Stream<Item = T> + Send>>;
 pub type ExternalError = Box<dyn std::error::Error + Send + Sync + 'static>;
-
-pub const SQLITE_LIMIT_VARIABLE_NUMBER: usize = 32766;

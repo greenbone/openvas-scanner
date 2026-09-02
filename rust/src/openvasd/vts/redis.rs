@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf, task::Poll, time::UNIX_EPOCH};
 
-use crate::api::stream::StreamResult;
+use crate::database::sqlite::StreamResult;
 use futures::Stream;
 use scannerlib::{
     models::{FeedType, VTData},

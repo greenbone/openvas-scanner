@@ -1,5 +1,7 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
+use crate::database::sqlite::SqliteDatabase;
 use crate::vts::FeedHashes;
 use crate::vts::Plugin;
 use async_trait::async_trait;
@@ -11,47 +13,33 @@ use scannerlib::storage::Retriever;
 use scannerlib::storage::error::StorageError;
 use scannerlib::storage::items::nvt::{FileName, Oid};
 use sqlx::Row;
-use sqlx::SqlitePool;
 use sqlx::query;
 use sqlx::sqlite::SqliteRow;
 
-use crate::api::stream::StreamResult;
+use super::StreamResult;
 use crate::config::Config;
 use crate::vts::FeedHash;
-use crate::vts::PluginFetcher;
 use crate::vts::PluginStorer;
 use crate::vts::orchestrator;
 use crate::vts::orchestrator::WorkerError;
 
 pub struct FeedSynchronizer {
-    pool: SqlitePool,
+    db: Arc<SqliteDatabase>,
     plugin_feed: PathBuf,
     advisory_feed: PathBuf,
     signature_check: bool,
-    plugin_storer: SqlPluginStorage,
 }
 
-#[derive(Debug, Clone)]
-pub struct SqlPluginStorage {
-    pool: SqlitePool,
-}
-
-impl From<SqlitePool> for SqlPluginStorage {
-    fn from(value: SqlitePool) -> Self {
-        SqlPluginStorage { pool: value }
-    }
-}
-
-impl PluginFetcher for SqlPluginStorage {
+impl super::SqliteDatabase {
     fn get_oids(&self) -> StreamResult<String, WorkerError> {
-        let result = query("SELECT oid FROM plugins where oid NOT LIKE '%inc' ORDER BY oid")
+        let result = sqlx::query("SELECT oid FROM plugins where oid NOT LIKE '%inc' ORDER BY oid")
             .fetch(&self.pool)
             .map(|row| row.map(|e| e.get("oid")).map_err(WorkerError::Cache));
         Box::pin(result)
     }
 
     fn get_vts(&self) -> StreamResult<scannerlib::models::VTData, WorkerError> {
-        let result = query("SELECT feed_type, json_blob FROM plugins")
+        let result = sqlx::query("SELECT feed_type, json_blob FROM plugins")
             .fetch(&self.pool)
             .map(|row| {
                 let r = row
@@ -74,6 +62,7 @@ impl PluginFetcher for SqlPluginStorage {
         Box::pin(result)
     }
 }
+
 // TODO: verify before loading the plugin
 impl PluginStorer for SqlPluginStorage {
     fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
@@ -89,7 +78,7 @@ impl PluginStorer for SqlPluginStorage {
         let typus = hash.typus;
         Box::pin(async move {
             let json = serde_json::to_vec(&plugin)?;
-            query(r#" INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)"#)
+            query("INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)")
                 .bind(plugin.oid())
                 .bind(&json)
                 .bind(typus.as_ref())
@@ -172,7 +161,7 @@ impl orchestrator::Worker for FeedSynchronizer {
     fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
         let mut fetched =
             query("SELECT hash FROM feed WHERE type = 'nasl' OR type = 'advisories' ORDER BY type")
-                .fetch(&self.pool);
+                .fetch(self.db.pool());
         let transform = |x: Option<Result<SqliteRow, sqlx::error::Error>>| {
             if let Some(Ok(x)) = x {
                 Some(x.get::<String, _>("hash"))
@@ -194,11 +183,11 @@ impl orchestrator::Worker for FeedSynchronizer {
         })
     }
 
-    fn update_feed(
+    async fn update_feed(
         &self,
         kind: FeedType,
         new_hash: String,
-    ) -> Promise<Result<(), orchestrator::WorkerError>> {
+    ) -> Result<(), orchestrator::WorkerError> {
         let ps = self.plugin_storer.clone();
         let path = match kind {
             FeedType::Products | FeedType::Advisories => self.advisory_feed(),
@@ -210,9 +199,7 @@ impl orchestrator::Worker for FeedSynchronizer {
             typus: kind,
         };
         let feed_integrity_check = self.signature_check;
-        Box::pin(
-            async move { crate::vts::synchronize_feed(&ps, feed_hash, feed_integrity_check).await },
-        )
+        crate::vts::synchronize_feed(&ps, feed_hash, feed_integrity_check).await
     }
 
     fn signature_check(&self) -> bool {
@@ -229,13 +216,12 @@ impl orchestrator::Worker for FeedSynchronizer {
 }
 
 impl FeedSynchronizer {
-    pub fn new(pool: SqlitePool, config: &Config) -> Self {
+    pub fn new(db: Arc<SqliteDatabase>, config: &Config) -> Self {
         Self {
-            pool: pool.clone(),
+            db,
             plugin_feed: config.feed.path.clone(),
             advisory_feed: config.notus.advisories_path.clone(),
             signature_check: config.feed.signature_check,
-            plugin_storer: SqlPluginStorage { pool },
         }
     }
 }

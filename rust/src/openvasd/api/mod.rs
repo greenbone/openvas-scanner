@@ -48,14 +48,12 @@ pub struct ApiConfig {
     pub api_keys: Arc<Vec<String>>,
     /// Feed database fetcher, redis or sqlite.
     pub feed: states::Feed,
-    /// Scanner access point.
-    pub scanner: states::ScannerBridge,
-    /// Container image scanner access point.
-    pub image_scanner: states::ScannerBridge,
     /// Notus products.
     pub notus: Arc<RwLock<scannerlib::notus::Notus>>,
     /// Enables the `GET /scans` and `GET /container-image-scanner` routes.
     pub enable_additional_routes: bool,
+    /// Sqlite database
+    pub database: Arc<crate::database::sqlite::SqliteDatabase>,
 }
 
 /// Main API entry point.

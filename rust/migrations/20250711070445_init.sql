@@ -170,5 +170,3 @@ CREATE TABLE knowledge_base_items(
 );
 
 CREATE INDEX idx_knowledge_base_items ON knowledge_base_items(id, host, key);
-
-

@@ -4995,6 +4995,7 @@ dependencies = [
  "aes-gcm 0.10.3",
  "anyhow",
  "argon2 0.6.0",
+ "async-stream",
  "async-trait",
  "axum",
  "axum-server",

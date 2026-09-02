@@ -19,11 +19,11 @@ use scannerlib::{
 };
 use walkdir::WalkDir;
 
-use crate::api::{states::Feed, stream::StreamResult};
+use crate::api::states::Feed;
 use crate::config::Config;
 pub mod orchestrator;
 pub mod redis;
-use crate::database::sqlite::DataBase;
+use crate::database::sqlite::{DataBase, SqliteDatabase, StreamResult};
 use crate::json_stream;
 use crate::vts::orchestrator::WorkerError;
 
@@ -118,7 +118,7 @@ where
 
 /// Initializes endpoints, spawns background task for feed verification.
 pub async fn init(
-    pool: DataBase,
+    db: Arc<SqliteDatabase>,
     config: &Config,
     snapshot: Arc<RwLock<FeedState>>,
 ) -> (orchestrator::Communicator, Feed) {
@@ -134,15 +134,14 @@ pub async fn init(
             let socket = get_redis_socket().await;
             let plugins_folder = get_plugins_folder().await;
             let fetcher = redis::RedisPluginHandler::new(socket, plugins_folder);
-            let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
+            let worker = crate::database::sqlite::vts::FeedSynchronizer::new(db, config);
             _init(config, fetcher, worker, snapshot).await
         }
         // For OSPD we actually don't need a communicator at all, however as we are facing out OSPD
         // altogether the effort of getting rid of that seems not worth it.
         ScannerType::Openvasd => {
-            let fetcher = crate::database::sqlite::vts::SqlPluginStorage::from(pool.clone());
-            let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
-            _init(config, fetcher, worker, snapshot).await
+            let worker = crate::database::sqlite::vts::FeedSynchronizer::new(db.clone(), config);
+            _init(config, db, worker, snapshot).await
         }
         ScannerType::Lambda => panic!("Invalid Scanner type"),
     }
