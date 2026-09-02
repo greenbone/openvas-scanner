@@ -13,9 +13,7 @@ use axum::{
 use futures::{Stream, StreamExt, prelude::*};
 
 use crate::api::error::ApiError;
-
-/// An async stream of Results used by the database.
-pub type StreamResult<T, E> = Pin<Box<dyn Stream<Item = Result<T, E>> + Send>>;
+use crate::database::sqlite::StreamResult;
 
 #[derive(Copy, Clone)]
 enum JsonFramingState {

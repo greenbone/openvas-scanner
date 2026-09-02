@@ -8,13 +8,15 @@ use futures::{Stream, StreamExt, TryStreamExt};
 use tokio::sync::mpsc::Receiver;
 
 use super::{PackedLayer, RegistryPreference};
-use crate::container_image_scanner::{
-    Streamer,
-    image::{
-        Digest, Image, Registry,
-        registry::{RegistryError, RegistryErrorKind},
+use crate::{
+    container_image_scanner::{
+        image::{
+            Digest, Image, Registry,
+            registry::{RegistryError, RegistryErrorKind},
+        },
+        timings::Timed,
     },
-    timings::Timed,
+    database::sqlite::StreamResult,
 };
 
 struct BlobStream {
@@ -520,7 +522,7 @@ impl DockerV2Registry {
         }
     }
 
-    pub fn pull_image(&self, image: Image) -> Streamer<Result<PackedLayer, RegistryError>> {
+    pub fn pull_image(&self, image: Image) -> StreamResult<PackedLayer, RegistryError> {
         let (sender, receiver) = tokio::sync::mpsc::channel(3);
         let result = BlobStream { receiver };
         let that = self.clone();

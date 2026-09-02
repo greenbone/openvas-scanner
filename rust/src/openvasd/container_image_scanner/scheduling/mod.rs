@@ -296,6 +296,8 @@ impl Scheduler {
         let mut interval = time::interval(check_interval);
         let config = self.config.clone();
 
+        // TODO: makes no sense, this is essentially an Arc<Mutex<Arc<Mutex<Arc<Sqlite>>>>>
+        // Other references to the pool exist in the API so this only effects this particular loop
         let pool = self.pool.clone();
         // ehww....
         let conn = pool.clone();

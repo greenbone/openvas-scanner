@@ -5,11 +5,11 @@
 #![allow(clippy::result_large_err)]
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 
-use crate::api::{error::ApiError, stream::StreamResult};
+use crate::api::error::ApiError;
 use crate::container_image_scanner::DBScan;
 use crate::database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch};
-use crate::database::sqlite::results::DBResults;
 use crate::database::sqlite::scans::ScanDB;
+use crate::database::sqlite::{StreamResult, results::DBResults};
 use crate::scans::scheduling::{self, Message};
 use crate::vts::PluginFetcher;
 use crate::{crypt::Crypter, database::sqlite::DataBase};
@@ -245,12 +245,16 @@ impl ScannerBridge {
     }
 
     /// Helper function to resolve a `client_id` and `scan_id` to the scans internal id.
-    pub async fn get_scan_id(&self, client_id: &str, scan_id: &str) -> Result<i64, ApiError> {
-        Ok(ScanDB::new(&self.pool, (client_id, scan_id))
-            .fetch()
-            .await?
-            .ok_or(DAOError::NotFound)?
-            .parse::<i64>()
-            .expect("failed to parse ID as numeric"))
+    pub async fn get_scan_id(
+        &self,
+        client_id: &str,
+        scan_id: &str,
+    ) -> anyhow::Result<i64, ApiError> {
+        sqlx::query_scalar("SELECT id FROM scans WHERE client_id = ? AND scan_id = ?")
+            .bind(client_id)
+            .bind(scan_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| DAOError::from(e).into())
     }
 }

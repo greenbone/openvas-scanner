@@ -41,7 +41,8 @@ mod tests {
     use sqlx::{SqlitePool, query, query_scalar};
 
     use crate::{
-        container_image_scanner::{MIGRATOR, config::DBLocation, scheduling::db::scan::DBScan},
+        config::DBLocation,
+        container_image_scanner::{MIGRATOR, scheduling::db::scan::DBScan},
         database::dao::RetryExec,
     };
 

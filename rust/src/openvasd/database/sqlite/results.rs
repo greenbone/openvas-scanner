@@ -1,11 +1,92 @@
 use futures::StreamExt;
 use scannerlib::models;
-use sqlx::{Acquire, Row, SqlitePool, sqlite::SqliteRow};
+use sqlx::{Acquire, Row, Sqlite, SqlitePool, Transaction, sqlite::SqliteRow};
 
 use crate::database::{
-    dao::{DAOError, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
-    sqlite::insert_values_chunked,
+    dao::{DAOError, DAOPromiseRef, Execute, Fetch, StreamFetch},
+    sqlite::{StreamResult, insert_values_chunked},
 };
+
+impl super::SqliteDatabase {
+    pub async fn scan_insert_results(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        id: i64,
+        results: &[models::Result],
+    ) -> anyhow::Result<()> {
+        if results.is_empty() {
+            return Ok(());
+        }
+
+        let base_id = match sqlx::query(
+            r#"
+                SELECT COUNT(*) AS result_count
+                FROM results
+                WHERE scan_id = ? "#,
+        )
+        .bind(id)
+        .fetch_one(&mut **tx)
+        .await
+        {
+            Ok(x) => x.get::<i64, _>("result_count"),
+            Err(sqlx::Error::RowNotFound) => 0,
+            Err(e) => {
+                return Err(e.into());
+            }
+        };
+        tracing::trace!(id, base_id, "Results.");
+        let results = results
+            .iter()
+            .enumerate()
+            .map(|(idx, result)| (base_id + idx as i64, result.to_owned().into()))
+            .collect::<Vec<(i64, models::Result)>>();
+
+        insert_values_chunked(
+            &mut **tx,
+            r#"
+            INSERT INTO results (
+                scan_id,
+                id,
+                type,
+                ip_address,
+                hostname,
+                oid,
+                port,
+                protocol,
+                message,
+                detail_name,
+                detail_value,
+                source_type,
+                source_name,
+                source_description
+            )
+            "#,
+            |mut b, (result_id, result)| {
+                let detail = result.detail.clone().unwrap_or_default();
+                b.push_bind(id)
+                    .push_bind(*result_id)
+                    .push_bind(result.r_type.to_string())
+                    .push_bind(result.ip_address.clone().unwrap_or_default())
+                    .push_bind(result.hostname.clone().unwrap_or_default())
+                    .push_bind(result.oid.clone().unwrap_or_default())
+                    .push_bind(result.port.unwrap_or_default())
+                    .push_bind(result.protocol.map(|x| x.to_string()).unwrap_or_default())
+                    .push_bind(result.message.clone().unwrap_or_default())
+                    .push_bind(detail.name)
+                    .push_bind(detail.value)
+                    .push_bind(detail.source.s_type)
+                    .push_bind(detail.source.name)
+                    .push_bind(detail.source.description);
+            },
+            &results,
+            14,
+        )
+        .await?;
+
+        Ok(())
+    }
+}
+
 fn row_to_result(row: SqliteRow) -> models::Result {
     let detail = match (
         row.try_get::<Option<String>, _>("detail_name")
@@ -68,7 +149,7 @@ impl<'o, T> DBResults<'o, T> {
 }
 
 impl<'o> StreamFetch<models::Result> for DBResults<'o, (String, Option<usize>, Option<usize>)> {
-    fn stream_fetch(self) -> DAOStreamer<models::Result> {
+    fn stream_fetch(self) -> StreamResult<models::Result, DAOError> {
         let (id, from, to) = self.input;
         const SQL_BASE: &str = r#"
     SELECT id, type, ip_address, hostname, oid, port, protocol, message,

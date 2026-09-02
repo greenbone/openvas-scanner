@@ -15,7 +15,7 @@ use sqlx::SqlitePool;
 use sqlx::query;
 use sqlx::sqlite::SqliteRow;
 
-use crate::api::stream::StreamResult;
+use super::StreamResult;
 use crate::config::Config;
 use crate::vts::FeedHash;
 use crate::vts::PluginFetcher;

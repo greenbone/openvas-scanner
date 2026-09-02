@@ -8,6 +8,7 @@ use super::host_info::HostInfo;
 
 /// Status information about a scan
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+// TODO: rename, a field named status already exists in the Scans table making this confusing
 pub struct Status {
     /// Timestamp for the start of a scan
     pub start_time: Option<u64>,

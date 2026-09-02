@@ -56,6 +56,8 @@ pub struct ApiConfig {
     pub notus: Arc<RwLock<scannerlib::notus::Notus>>,
     /// Enables the `GET /scans` and `GET /container-image-scanner` routes.
     pub enable_additional_routes: bool,
+    /// Sqlite database
+    pub database: Arc<crate::database::sqlite::SqliteDatabase>,
 }
 
 /// Main API entry point.

@@ -19,11 +19,11 @@ use scannerlib::{
 };
 use walkdir::WalkDir;
 
-use crate::api::{states::Feed, stream::StreamResult};
+use crate::api::states::Feed;
 use crate::config::Config;
 pub mod orchestrator;
 pub mod redis;
-use crate::database::sqlite::DataBase;
+use crate::database::sqlite::{DataBase, StreamResult};
 use crate::json_stream;
 use crate::vts::orchestrator::WorkerError;
 
