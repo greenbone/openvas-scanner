@@ -32,7 +32,6 @@ use super::executor::Executor;
 use super::hosts::{LOCALHOST, resolve_hostname};
 use super::{FnError, Register};
 use std::net::IpAddr;
-use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 #[derive(Debug, Clone)]
@@ -99,6 +98,7 @@ pub enum TargetKind {
     IpAddr,
 }
 
+// TODO remove clone
 #[derive(Debug)]
 pub struct CtxTarget {
     /// The target
@@ -121,6 +121,29 @@ pub struct CtxTarget {
     ports_tcp: BTreeSet<u16>,
     /// The UDP ports to test against.
     ports_udp: BTreeSet<u16>,
+}
+
+pub struct CtxTargets {
+    targets: Vec<CtxTarget>,
+}
+
+impl std::ops::Index<TargetId> for CtxTargets {
+    type Output = CtxTarget;
+
+    fn index(&self, index: TargetId) -> &Self::Output {
+        &self.targets[index.0]
+    }
+}
+
+impl CtxTargets {
+    pub fn single(t: Target, ports: Ports) -> (Self, TargetId) {
+        (
+            Self {
+                targets: vec![(t, ports).into()],
+            },
+            TargetId(0),
+        )
+    }
 }
 
 impl Target {
@@ -188,7 +211,7 @@ impl From<(Target, Ports)> for CtxTarget {
 }
 
 impl CtxTarget {
-    fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
+    pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
         self.vhosts.lock().unwrap().push(VHost { hostname, source });
         self
     }
@@ -220,6 +243,10 @@ impl CtxTarget {
 
     pub fn ports_tcp(&self) -> &BTreeSet<u16> {
         &self.ports_tcp
+    }
+
+    pub fn configured_tcp_ports(&self) -> Vec<u16> {
+        self.ports_tcp.iter().cloned().collect()
     }
 }
 
@@ -279,22 +306,22 @@ pub enum NotusCtx {
     Address(url::Url),
 }
 
+/// An index into the `targets` field on `ScanCtx`
+#[derive(Clone, Copy)]
+pub struct TargetId(usize);
+
 /// NASL execution context.
 pub struct ScanCtx<'a> {
     /// The key for this context.
     scan: ScanID,
-    /// Target against which the scan is run.
-    target: CtxTarget,
-    /// Filename of the current script
-    filename: PathBuf,
+    /// Targets against which the scan is run.
+    targets: CtxTargets,
     /// Storage
     storage: &'a dyn ContextStorage,
     /// Loader
     loader: &'a Loader,
     /// Function executor.
     executor: &'a Executor,
-    /// NVT object, which is put into the storage, when set
-    nvt: Mutex<Option<VTData>>,
     sockets: RwLock<NaslSockets>,
     /// Scanner preferences
     pub scan_preferences: ScanPrefs,
@@ -306,10 +333,9 @@ pub struct ScanCtx<'a> {
 
 impl<'a> ScanCtx<'a> {
     #[allow(clippy::too_many_arguments)]
-    fn new(
+    pub fn new(
         scan: ScanID,
-        target: CtxTarget,
-        filename: PathBuf,
+        targets: CtxTargets,
         storage: &'a dyn ContextStorage,
         loader: &'a Loader,
         executor: &'a Executor,
@@ -322,12 +348,10 @@ impl<'a> ScanCtx<'a> {
 
         Self {
             scan,
-            target,
-            filename,
+            targets,
             storage,
             loader,
             executor,
-            nvt: Mutex::new(None),
             sockets: RwLock::new(sockets),
             scan_preferences,
             alive_test_methods,
@@ -342,7 +366,7 @@ impl<'a> ScanCtx<'a> {
         &self,
         name: &str,
         register: &Register,
-        script_ctx: &mut ScriptCtx,
+        script_ctx: &mut ScriptCtx<'_>,
     ) -> Option<super::NaslResult> {
         const NUM_RETRIES_ON_RETRYABLE_ERROR: usize = 5;
 
@@ -370,23 +394,6 @@ impl<'a> ScanCtx<'a> {
         &self.scan
     }
 
-    fn filename(&self) -> &PathBuf {
-        &self.filename
-    }
-
-    /// Get the `CtxTarget`
-    pub fn target(&self) -> &CtxTarget {
-        &self.target
-    }
-
-    pub fn add_hostname(&self, hostname: String, source: String) {
-        self.target.add_hostname(hostname, source);
-    }
-
-    fn configured_tcp_ports(&self) -> Vec<u16> {
-        self.target.ports_tcp.iter().cloned().collect()
-    }
-
     /// Get the storage
     pub fn storage(&self) -> &dyn ContextStorage {
         self.storage
@@ -397,33 +404,6 @@ impl<'a> ScanCtx<'a> {
         self.loader
     }
 
-    async fn dispatch_nvt(&self, nvt: VTData) {
-        self.storage
-            .dispatch(FileName(self.filename.to_string_lossy().to_string()), nvt)
-            .await
-            .unwrap();
-    }
-
-    pub fn set_nvt(&self, vt: VTData) {
-        let mut nvt = self.nvt.lock().unwrap();
-        *nvt = Some(vt);
-    }
-
-    pub fn nvt(&self) -> MutexGuard<'_, Option<VTData>> {
-        self.nvt.lock().unwrap()
-    }
-
-    pub fn nvt_mut(&self) -> MutexGuard<'_, Option<VTData>> {
-        let mut nvt = self.nvt.lock().unwrap();
-        if nvt.is_none() {
-            *nvt = Some(VTData {
-                filename: self.filename().to_string_lossy().to_string(),
-                ..Default::default()
-            });
-        }
-        nvt
-    }
-
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
         self.scan_preferences.iter()
     }
@@ -432,46 +412,91 @@ impl<'a> ScanCtx<'a> {
         self.alive_test_methods.clone()
     }
 
-    fn kb_key(&self, key: KbKey) -> KbContextKey {
+    fn get_preference_bool(&self, key: &str) -> Option<bool> {
+        let prefs = &self.scan_preferences;
+        pref_is_true(prefs, key)
+    }
+
+    pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
+        self.sockets.read().await
+    }
+
+    pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
+        self.sockets.write().await
+    }
+
+    pub(crate) fn add_fn_global_vars(&self, register: &mut Register) {
+        for (name, val) in self.executor.iter_fn_global_vars() {
+            register.add_global_var(name, val);
+        }
+    }
+
+    fn target_by_id(&self, target_id: TargetId) -> &CtxTarget {
+        &self.targets[target_id]
+    }
+}
+
+/// Struct to hold joins to multicast groups.
+#[derive(Default)]
+pub struct JmpDesc {
+    pub in_addr: Option<IpAddr>,
+    pub count: usize,
+}
+
+pub struct ScriptCtx<'a> {
+    pub alive: bool,
+    pub denial_port: Option<u16>,
+    pub multicast_groups: Vec<JmpDesc>,
+    pub snmp_next: Option<String>,
+    scan_ctx: &'a ScanCtx<'a>,
+    target_id: TargetId,
+    vt: Option<VTData>,
+}
+
+impl<'a> ScriptCtx<'a> {
+    pub fn new(scan_ctx: &'a ScanCtx, target_id: TargetId, vt: Option<VTData>) -> Self {
+        Self {
+            alive: false,
+            denial_port: None,
+            multicast_groups: vec![],
+            snmp_next: None,
+            scan_ctx,
+            target_id,
+            vt,
+        }
+    }
+
+    pub(crate) fn target(&self) -> &CtxTarget {
+        self.scan_ctx.target_by_id(self.target_id)
+    }
+
+    pub fn vt_mut(&mut self) -> &mut VTData {
+        if self.vt.is_none() {
+            self.vt = Some(VTData::default());
+        }
+        self.vt.as_mut().unwrap()
+    }
+
+    pub fn vt(&self) -> Option<&VTData> {
+        self.vt.as_ref()
+    }
+
+    fn kb_context_key(&self, key: KbKey) -> KbContextKey {
         KbContextKey(
             (
-                self.scan.clone(),
-                storage::Target(self.target.ip_addr().to_string()),
+                self.scan_ctx.scan.clone(),
+                storage::Target(self.target().ip_addr().to_string()),
             ),
             key,
         )
     }
 
     pub async fn set_kb_item(&self, key: KbKey, value: KbItem) -> Result<(), FnError> {
-        self.storage.dispatch(self.kb_key(key), value).await?;
+        self.scan_ctx
+            .storage
+            .dispatch(self.kb_context_key(key), value)
+            .await?;
         Ok(())
-    }
-
-    pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
-        let result: Vec<KbItem> = self
-            .storage
-            .retrieve(&self.kb_key(key.clone()))
-            .await?
-            .unwrap_or_default();
-        Ok(result)
-    }
-
-    async fn get_kb_items_with_keys(
-        &self,
-        key: &KbKey,
-    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
-        let result = self
-            .storage
-            .retrieve(&GetKbContextKey(
-                (
-                    self.scan.clone(),
-                    storage::Target(self.target.ip_addr().to_string()),
-                ),
-                key.clone(),
-            ))
-            .await?
-            .unwrap_or_default();
-        Ok(result)
     }
 
     pub async fn set_single_kb_item<T: Into<KbItem>>(
@@ -479,10 +504,35 @@ impl<'a> ScanCtx<'a> {
         key: KbKey,
         value: T,
     ) -> Result<(), FnError> {
-        self.storage
-            .dispatch_replace(self.kb_key(key), value.into())
+        self.scan_ctx
+            .storage
+            .dispatch_replace(self.kb_context_key(key), value.into())
             .await?;
         Ok(())
+    }
+
+    /// Sets the state of a port
+    pub async fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
+        self.set_single_kb_item(
+            KbKey::Transport(kb::Transport::Tcp(port.to_string())),
+            KbItem::Number(transport as i64),
+        )
+        .await
+    }
+
+    async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
+        let result = self
+            .scan_ctx
+            .storage()
+            .retrieve(&self.kb_context_key(key.clone()))
+            .await?;
+        let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
+
+        match item.len() {
+            0 => Ok(KbItem::Null),
+            1 => Ok(item[0].clone()),
+            _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
+        }
     }
 
     /// Return a single item from the knowledge base.
@@ -505,26 +555,6 @@ impl<'a> ScanCtx<'a> {
         T::from_nasl_value(&val.into())
     }
 
-    async fn get_single_kb_item_inner(&self, key: &KbKey) -> Result<KbItem, FnError> {
-        let result = self.storage().retrieve(&self.kb_key(key.clone())).await?;
-        let item = result.ok_or_else(|| KBError::ItemNotFound(key.to_string()))?;
-
-        match item.len() {
-            0 => Ok(KbItem::Null),
-            1 => Ok(item[0].clone()),
-            _ => Err(KBError::MultipleItemsFound(key.to_string()).into()),
-        }
-    }
-
-    /// Sets the state of a port
-    pub async fn set_port_transport(&self, port: u16, transport: usize) -> Result<(), FnError> {
-        self.set_single_kb_item(
-            KbKey::Transport(kb::Transport::Tcp(port.to_string())),
-            KbItem::Number(transport as i64),
-        )
-        .await
-    }
-
     pub async fn get_port_transport(&self, port: u16) -> Option<i64> {
         self.get_single_kb_item_inner(&KbKey::Transport(kb::Transport::Tcp(port.to_string())))
             .await
@@ -533,6 +563,70 @@ impl<'a> ScanCtx<'a> {
                 KbItem::Number(n) => Some(n),
                 _ => None,
             })
+    }
+
+    pub async fn get_kb_item(&self, key: &KbKey) -> Result<Vec<KbItem>, FnError> {
+        let result: Vec<KbItem> = self
+            .scan_ctx
+            .storage
+            .retrieve(&self.kb_context_key(key.clone()))
+            .await?
+            .unwrap_or_default();
+        Ok(result)
+    }
+
+    async fn get_kb_items_with_keys(
+        &self,
+        key: &KbKey,
+    ) -> Result<Vec<(String, Vec<KbItem>)>, FnError> {
+        let result = self
+            .scan_ctx
+            .storage
+            .retrieve(&GetKbContextKey(
+                (
+                    self.scan_ctx.scan.clone(),
+                    storage::Target(self.target().ip_addr().to_string()),
+                ),
+                key.clone(),
+            ))
+            .await?
+            .unwrap_or_default();
+        Ok(result)
+    }
+
+    pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
+        match protocol {
+            Protocol::TCP => {
+                if !self.target().ports_tcp.contains(&port)
+                    || self
+                        .get_kb_item(&KbKey::Host(kb::Host::Tcp))
+                        .await?
+                        .is_empty()
+                {
+                    return Ok(!self
+                        .scan_ctx
+                        .get_preference_bool("unscanned_closed")
+                        .unwrap_or(true));
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
+                    .await
+            }
+            Protocol::UDP => {
+                if !self.target().ports_udp.contains(&port)
+                    || self
+                        .get_kb_item(&KbKey::Host(kb::Host::Udp))
+                        .await?
+                        .is_empty()
+                {
+                    return Ok(!self
+                        .scan_ctx
+                        .get_preference_bool("unscanned_closed_udp")
+                        .unwrap_or(true));
+                }
+                self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
+                    .await
+            }
+        }
     }
 
     /// Looks up open TCP ports from the knowledge base
@@ -553,7 +647,7 @@ impl<'a> ScanCtx<'a> {
 
         // If no ports found in KB, fall back to the ports configured in the scan
         if port_numbers.is_empty() {
-            Ok(self.configured_tcp_ports())
+            Ok(self.target().configured_tcp_ports())
         } else {
             Ok(port_numbers)
         }
@@ -594,112 +688,18 @@ impl<'a> ScanCtx<'a> {
         Ok(ret)
     }
 
-    fn get_preference_bool(&self, key: &str) -> Option<bool> {
-        let prefs = &self.scan_preferences;
-        pref_is_true(prefs, key)
-    }
-
-    pub async fn get_port_state(&self, port: u16, protocol: Protocol) -> Result<bool, FnError> {
-        match protocol {
-            Protocol::TCP => {
-                if !self.target.ports_tcp.contains(&port)
-                    || self
-                        .get_kb_item(&KbKey::Host(kb::Host::Tcp))
-                        .await?
-                        .is_empty()
-                {
-                    return Ok(!self.get_preference_bool("unscanned_closed").unwrap_or(true));
-                }
-                self.get_single_kb_item(&KbKey::Port(kb::Port::Tcp(port.to_string())))
-                    .await
-            }
-            Protocol::UDP => {
-                if !self.target.ports_udp.contains(&port)
-                    || self
-                        .get_kb_item(&KbKey::Host(kb::Host::Udp))
-                        .await?
-                        .is_empty()
-                {
-                    return Ok(!self
-                        .get_preference_bool("unscanned_closed_udp")
-                        .unwrap_or(true));
-                }
-                self.get_single_kb_item(&KbKey::Port(kb::Port::Udp(port.to_string())))
-                    .await
-            }
+    // TODO: Figure out what to do about this - what is the correct
+    // logic for the multicast groups?
+    pub(crate) fn clone_shallow(&self) -> ScriptCtx<'a> {
+        Self {
+            alive: self.alive,
+            denial_port: self.denial_port,
+            multicast_groups: vec![],
+            snmp_next: self.snmp_next.clone(),
+            scan_ctx: self.scan_ctx,
+            target_id: self.target_id,
+            vt: self.vt.clone(),
         }
-    }
-
-    pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
-        self.sockets.read().await
-    }
-
-    pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
-        self.sockets.write().await
-    }
-
-    pub(crate) fn add_fn_global_vars(&self, register: &mut Register) {
-        for (name, val) in self.executor.iter_fn_global_vars() {
-            register.add_global_var(name, val);
-        }
-    }
-}
-
-impl Drop for ScanCtx<'_> {
-    fn drop(&mut self) {
-        let mut nvt = self.nvt.lock().unwrap();
-        if let Some(nvt) = nvt.take() {
-            // TODO: This might very well not work.
-            // Do we really need this Drop impl anyways?
-            futures::executor::block_on(async {
-                self.dispatch_nvt(nvt).await;
-            });
-        }
-    }
-}
-
-/// Struct to hold joins to multicast groups.
-#[derive(Default)]
-pub struct JmpDesc {
-    pub in_addr: Option<IpAddr>,
-    pub count: usize,
-}
-
-#[derive(Default)]
-pub struct ScriptCtx {
-    pub alive: bool,
-    pub denial_port: Option<u16>,
-    pub multicast_groups: Vec<JmpDesc>,
-    pub snmp_next: Option<String>,
-}
-
-pub struct ScanCtxBuilder<'a, P: AsRef<Path>> {
-    pub storage: &'a dyn ContextStorage,
-    pub loader: &'a Loader,
-    pub executor: &'a Executor,
-    pub scan_id: ScanID,
-    pub target: Target,
-    pub ports: Ports,
-    pub filename: P,
-    pub scan_preferences: ScanPrefs,
-    pub alive_test_methods: Vec<AliveTestMethods>,
-    pub notus: Option<NotusCtx>,
-}
-
-impl<'a, P: AsRef<Path>> ScanCtxBuilder<'a, P> {
-    /// Builds the `Context`.
-    pub fn build(self) -> ScanCtx<'a> {
-        ScanCtx::new(
-            self.scan_id,
-            (self.target, self.ports).into(),
-            self.filename.as_ref().to_owned(),
-            self.storage,
-            self.loader,
-            self.executor,
-            self.scan_preferences,
-            self.alive_test_methods,
-            self.notus,
-        )
     }
 }
 

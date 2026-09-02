@@ -69,11 +69,11 @@ pub trait StatefulCallable<State> {
 
 impl<F, State> StatefulCallable<State> for F
 where
-    F: for<'a> AsyncQuadrupleArgFn<
+    F: for<'a, 'b> AsyncQuadrupleArgFn<
             &'a State,
             &'a Register,
             &'a ScanCtx<'a>,
-            &'a mut ScriptCtx,
+            &'a mut ScriptCtx<'b>,
             Output = NaslResult,
         > + 'static,
 {
@@ -107,11 +107,11 @@ pub trait StatefulMutCallable<State> {
 
 impl<F, State> StatefulMutCallable<State> for F
 where
-    F: for<'a> AsyncQuadrupleArgFn<
+    F: for<'a, 'b> AsyncQuadrupleArgFn<
             &'a mut State,
             &'a Register,
             &'a ScanCtx<'a>,
-            &'a mut ScriptCtx,
+            &'a mut ScriptCtx<'b>,
             Output = NaslResult,
         > + 'static,
 {
@@ -143,10 +143,10 @@ pub trait StatelessCallable {
 
 impl<F> StatelessCallable for F
 where
-    F: for<'a> AsyncTripleArgFn<
+    F: for<'a, 'b> AsyncTripleArgFn<
             &'a Register,
             &'a ScanCtx<'a>,
-            &'a mut ScriptCtx,
+            &'a mut ScriptCtx<'b>,
             Output = NaslResult,
         > + 'static,
 {

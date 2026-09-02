@@ -7,14 +7,17 @@
 use std::{
     fmt::{self, Display, Formatter},
     panic::Location,
-    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
-use crate::{nasl::prelude::*, notus::Notus, scanner::preferences::preference::ScanPrefs};
 use crate::{
-    nasl::utils::scan_ctx::NotusCtx,
+    nasl::utils::scan_ctx::{NotusCtx, TargetId},
     storage::{ScanID, inmemory::InMemoryStorage},
+};
+use crate::{
+    nasl::{prelude::*, utils::scan_ctx::CtxTargets},
+    notus::Notus,
+    scanner::preferences::preference::ScanPrefs,
 };
 use futures::{Stream, StreamExt};
 
@@ -125,7 +128,6 @@ pub struct TestBuilder<S: ContextStorage> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
     scan_id: ScanID,
-    filename: PathBuf,
     target: String,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
@@ -144,38 +146,11 @@ impl Default for TestBuilder<InMemoryStorage> {
             lines: vec![],
             results: vec![],
             scan_id: Default::default(),
-            filename: Default::default(),
             target: Default::default(),
             variables: vec![],
             should_verify: true,
             loader: Loader::test_empty(),
             storage: InMemoryStorage::default(),
-            executor: nasl_std_executor(),
-            version: NaslVersion::default(),
-            notus: None,
-        }
-    }
-}
-
-impl<S> TestBuilder<S>
-where
-    S: ContextStorage,
-{
-    pub fn from_storage(storage: S) -> Self {
-        // Unfortunately, we can't really get rid of all this duplication here, since
-        // struct update syntax won't work due to different generics.
-        // We also can't provide a with_storage method, since there is no way to clone
-        // the storage.
-        Self {
-            lines: vec![],
-            results: vec![],
-            scan_id: Default::default(),
-            filename: Default::default(),
-            target: Default::default(),
-            variables: vec![],
-            should_verify: true,
-            loader: Loader::test_empty(),
-            storage,
             executor: nasl_std_executor(),
             version: NaslVersion::default(),
             notus: None,
@@ -193,7 +168,6 @@ impl TestBuilder<InMemoryStorage> {
             lines: vec![],
             results: vec![],
             scan_id: Default::default(),
-            filename: Default::default(),
             target: Default::default(),
             variables: vec![],
             should_verify: true,
@@ -224,7 +198,6 @@ impl TestBuilder<InMemoryStorage> {
             lines: vec![],
             results: vec![],
             scan_id: Default::default(),
-            filename: Default::default(),
             target: Default::default(),
             variables: vec![],
             should_verify: true,
@@ -304,11 +277,16 @@ where
         self.results_and_ctx().0
     }
 
+    /// Runs the given lines of code and returns the `ScanCtx`.
+    pub fn ctx(&self) -> ScanCtx<'_> {
+        self.results_and_ctx().1
+    }
+
     /// Runs the given lines of code and returns the list of results
     /// along with the `ScanCtx` used for evaluating them.
     pub fn results_and_ctx(&self) -> (Vec<NaslResult>, ScanCtx<'_>) {
         futures::executor::block_on(async {
-            let ctx = self.ctx();
+            let ctx = self.ctx_inner();
             (self.results_stream(&self.code(), &ctx).collect().await, ctx)
         })
     }
@@ -317,7 +295,7 @@ where
     /// code, panics on any occurring error.
     pub fn values(&self) -> Vec<NaslValue> {
         futures::executor::block_on(async {
-            self.results_stream(&self.code(), &self.ctx())
+            self.results_stream(&self.code(), &self.ctx_inner())
                 .map(|x| x.unwrap())
                 .collect()
                 .await
@@ -336,12 +314,13 @@ where
             .collect();
         let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();
-        ForkingInterpreter::new(ast, register, ctx).with_version(self.version)
+        let script_ctx = ScriptCtx::new(ctx, self.target_id(), None);
+        ForkingInterpreter::new(ast, register, ctx, script_ctx).with_version(self.version)
     }
 
     pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
         let code = self.code();
-        let ctx = self.ctx();
+        let ctx = self.ctx_inner();
         let interpreter = self.interpreter(&code, &ctx);
         futures::executor::block_on(async { interpreter.stream().collect().await })
     }
@@ -360,24 +339,23 @@ where
         })
     }
 
-    fn ctx(&self) -> ScanCtx<'_> {
+    fn targets(&self) -> (CtxTargets, TargetId) {
         let target = Target::do_not_resolve_hostname(&self.target);
-        ScanCtxBuilder {
-            storage: &self.storage,
-            loader: &self.loader,
-            executor: &self.executor,
-            scan_id: self.scan_id.clone(),
-            target,
-            ports: Ports {
-                tcp: Default::default(),
-                udp: Default::default(),
-            },
-            filename: self.filename.clone(),
-            scan_preferences: ScanPrefs::new(),
-            alive_test_methods: Vec::default(),
-            notus: self.notus.as_ref().map(|x| NotusCtx::Direct(x.clone())),
-        }
-        .build()
+        CtxTargets::single(target, Ports::default())
+    }
+
+    fn ctx_inner(&self) -> ScanCtx<'_> {
+        let (targets, _) = self.targets();
+        ScanCtx::new(
+            self.scan_id.clone(),
+            targets,
+            &self.storage,
+            &self.loader,
+            &self.executor,
+            ScanPrefs::new(),
+            Vec::default(),
+            self.notus.as_ref().map(|x| NotusCtx::Direct(x.clone())),
+        )
     }
 
     /// Check that no errors were returned by any
@@ -394,7 +372,7 @@ where
         if self.should_verify {
             let mut references_iter = self.results.iter().enumerate();
             let code = self.code();
-            let ctx = self.ctx();
+            let ctx = self.ctx_inner();
             let mut results = self.results_stream(&code, &ctx);
             while let Some(result) = results.next().await {
                 let (line_count, reference) = references_iter.next().unwrap();
@@ -467,12 +445,6 @@ where
         }
     }
 
-    /// Return a new `TestBuilder` with the given `filename`.
-    pub fn with_filename(mut self, filename: PathBuf) -> Self {
-        self.filename = filename;
-        self
-    }
-
     #[cfg(test)]
     /// Return a new `TestBuilder` with the given `target`.
     pub fn with_target(mut self, target: String) -> Self {
@@ -492,9 +464,8 @@ where
         self
     }
 
-    /// Set the variable with name `arg` to the given `value`
-    pub fn set_variable(&mut self, arg: &str, value: NaslValue) {
-        self.variables.push((arg.to_string(), value));
+    fn target_id(&self) -> TargetId {
+        self.targets().1
     }
 }
 
