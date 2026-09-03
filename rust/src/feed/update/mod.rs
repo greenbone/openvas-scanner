@@ -69,7 +69,7 @@ pub async fn feed_version(
         alive_test_methods,
         None,
     );
-    let script_ctx = ScriptCtx::new(&ctx, target_id, None);
+    let script_ctx = ScriptCtx::new(&ctx, target_id, None, feed_info_filename.into());
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
@@ -167,12 +167,16 @@ where
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let script_ctx = ScriptCtx::new(&ctx, target_id, None);
-        let mut results =
-            Box::pin(ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream());
-        while let Some(stmt) = results.next().await {
+        let script_ctx = ScriptCtx::new(&ctx, target_id, None, file.name().into());
+        let mut interpreter = ForkingInterpreter::new(ast, register, &ctx, script_ctx);
+        while let Some(stmt) = interpreter.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
+                    let filename: FileName = file.name().into();
+                    let script_ctx = interpreter.take_script_ctx();
+                    if let Some(vt) = script_ctx.take_vt() {
+                        self.storage.dispatch(filename, vt).await?;
+                    }
                     return Ok(i);
                 }
                 Ok(_) => {}

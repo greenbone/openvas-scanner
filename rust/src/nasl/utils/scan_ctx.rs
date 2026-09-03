@@ -451,10 +451,16 @@ pub struct ScriptCtx<'a> {
     scan_ctx: &'a ScanCtx<'a>,
     target_id: TargetId,
     vt: Option<VTData>,
+    filename: FileName,
 }
 
 impl<'a> ScriptCtx<'a> {
-    pub fn new(scan_ctx: &'a ScanCtx, target_id: TargetId, vt: Option<VTData>) -> Self {
+    pub fn new(
+        scan_ctx: &'a ScanCtx,
+        target_id: TargetId,
+        vt: Option<VTData>,
+        filename: FileName,
+    ) -> Self {
         Self {
             alive: false,
             denial_port: None,
@@ -463,6 +469,7 @@ impl<'a> ScriptCtx<'a> {
             scan_ctx,
             target_id,
             vt,
+            filename,
         }
     }
 
@@ -472,13 +479,20 @@ impl<'a> ScriptCtx<'a> {
 
     pub fn vt_mut(&mut self) -> &mut VTData {
         if self.vt.is_none() {
-            self.vt = Some(VTData::default());
+            self.vt = Some(VTData {
+                filename: self.filename.0.clone(),
+                ..Default::default()
+            });
         }
         self.vt.as_mut().unwrap()
     }
 
     pub fn vt(&self) -> Option<&VTData> {
         self.vt.as_ref()
+    }
+
+    pub fn take_vt(self) -> Option<VTData> {
+        self.vt
     }
 
     fn kb_context_key(&self, key: KbKey) -> KbContextKey {
@@ -699,6 +713,7 @@ impl<'a> ScriptCtx<'a> {
             scan_ctx: self.scan_ctx,
             target_id: self.target_id,
             vt: self.vt.clone(),
+            filename: self.filename.clone(),
         }
     }
 }

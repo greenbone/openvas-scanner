@@ -66,7 +66,7 @@ async fn run_with_context(
         .parse()
         .emit_errors_get_ast_and_file()
         .map_err(CliErrorKind::SyntaxError)?;
-    let script_ctx = ScriptCtx::new(&ctx, target_id, None);
+    let script_ctx = ScriptCtx::new(&ctx, target_id, None, file.name().into());
     let mut results = ForkingInterpreter::new(ast, register, &ctx, script_ctx).stream();
     while let Some(result) = results.next().await {
         let r = match result {
