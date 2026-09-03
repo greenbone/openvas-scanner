@@ -202,7 +202,12 @@ where
             self.alive_test_methods.to_vec(),
             self.notus.clone(),
         );
-        let script_ctx = ScriptCtx::new(&ctx, target_id, Some(self.vt.clone()));
+        let script_ctx = ScriptCtx::new(
+            &ctx,
+            target_id,
+            Some(self.vt.clone()),
+            (&self.vt.filename).into(),
+        );
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));

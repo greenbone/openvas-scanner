@@ -53,7 +53,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         futures::executor::block_on(async { self.stream().collect::<Vec<_>>().await.into_iter() })
     }
 
-    async fn next(&mut self) -> Option<Result> {
+    pub async fn next(&mut self) -> Option<Result> {
         while self
             .interpreters
             .iter()
@@ -130,6 +130,15 @@ impl<'ctx> ForkingInterpreter<'ctx> {
             interpreter.version = version;
         }
         self
+    }
+
+    pub(crate) fn take_script_ctx(mut self) -> ScriptCtx<'ctx> {
+        assert_eq!(
+            self.interpreters.len(),
+            1,
+            "Tried to take script_ctx from an interpreter that has forked."
+        );
+        self.interpreters.remove(0).script_ctx
     }
 }
 
