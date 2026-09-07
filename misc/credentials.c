@@ -290,7 +290,7 @@ process_credentials_json (const char *json_credentials,
           {
             ret = credential_ssh_new (service_obj, &credential);
             if (credential->ssh_credential->private_key != NULL
-                && credential->ssh_credential->private_key[0] == '\0')
+                && credential->ssh_credential->private_key[0] != '\0')
               {
                 char *file_uuid = gvm_uuid_make ();
                 if (store_file (*globals,
@@ -422,7 +422,6 @@ try_ssh_auth_methods (ssh_session session, ssh_credential_t *credential)
         }
       g_debug ("SSH password authentication failed : %s",
                ssh_get_error (session));
-      /* Keep on trying.  */
     }
 
   // try interactive
@@ -439,7 +438,6 @@ try_ssh_auth_methods (ssh_session session, ssh_credential_t *credential)
           char echoflag;
           int found_prompt = 0;
 
-          // remove this later or set with DEBUG log level
           s = ssh_userauth_kbdint_getname (session);
           if (s && *s)
             g_debug ("SSH kbdint name='%s'", s);
@@ -451,7 +449,7 @@ try_ssh_auth_methods (ssh_session session, ssh_credential_t *credential)
           for (n = 0; n < nprompt; n++)
             {
               s = ssh_userauth_kbdint_getprompt (session, n, &echoflag);
-              if (s && *s) // debug
+              if (s && *s)
                 g_debug ("SSH kbdint prompt='%s'%s", s,
                          echoflag ? "" : " [hide input]");
               if (s && *s && !echoflag && !found_prompt)
@@ -477,7 +475,6 @@ try_ssh_auth_methods (ssh_session session, ssh_credential_t *credential)
           g_debug ("SSH keyboard-interactive authentication failed for session"
                    ": %s",
                    ssh_get_error (session));
-          /* Keep on trying.  */
         }
     }
 
@@ -506,13 +503,16 @@ try_ssh_auth_methods (ssh_session session, ssh_credential_t *credential)
         }
       else if (ssh_userauth_publickey (session, NULL, key) == SSH_AUTH_SUCCESS)
         {
+          g_debug ("pubkey success");
           retc_val = 0;
           ssh_key_free (key);
           goto leave;
         }
+      g_debug ("SSH pub-key authentication failed for session"
+               ": %s",
+               ssh_get_error (session));
       g_free (priv_key);
       ssh_key_free (key);
-      /* Keep on trying.  */
     }
 leave:
 
@@ -551,7 +551,6 @@ try_ssh_credential (ssh_credential_t *credential, const char *host_target)
 
   // Authenticate
   rc = try_ssh_auth_methods (session, credential);
-  // rc = ssh_userauth_password (session, NULL, credential->password);
 
   if (rc != SSH_AUTH_SUCCESS)
     {
