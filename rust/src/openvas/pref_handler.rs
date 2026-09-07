@@ -409,7 +409,7 @@ where
         let credentials = self.scan_config.target.credentials.clone();
 
         let mut credential_preferences: Vec<String> = vec![];
-        for credential in credentials {
+        for credential in credentials.clone() {
             // TODO: refactor that
             match credential.service {
                 Service::KRB5 => {
@@ -567,6 +567,12 @@ where
                     "OpenVAS is not aware about service::generic it was introduced for image-scanner"
                 ),
             }
+        }
+        if !credentials.is_empty() {
+            credential_preferences.push(format!(
+                "multi-credentials|||{}",
+                serde_json::to_string(&credentials).unwrap()
+            ));
         }
 
         if !credential_preferences.is_empty() {
