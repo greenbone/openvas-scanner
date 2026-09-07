@@ -105,17 +105,15 @@ store_file (struct scan_globals *globals, const char *file,
   gchar *contents = NULL;
 
   size_t bytes = 0;
-
   if (!file_hash || *file_hash == '\0')
     return -1;
 
   origname = g_strdup (file_hash);
 
   contents = (gchar *) g_base64_decode (file, &bytes);
-
   if (contents == NULL)
     {
-      g_debug ("store_file: Failed to allocate memory for uploaded file.");
+      g_warning ("store_file: Failed to allocate memory for uploaded file.");
       g_free (origname);
       return -1;
     }
