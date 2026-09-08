@@ -73,11 +73,11 @@ impl<'a> FromNaslValue<'a> for L4Protocols {
     }
 }
 
-fn get_oid(
-    script_ctx: &mut ScriptCtx,
+fn get_oid<'a>(
+    script_ctx: &mut ScriptCtx<'a>,
     oid: Option<String>,
     is_next: bool,
-) -> Result<Oid<'_>, FnError> {
+) -> Result<Oid<'a>, FnError> {
     let next_oid = script_ctx.snmp_next.clone().unwrap_or_default();
     let oid = if is_next && !next_oid.is_empty() {
         Oid::from_str(&next_oid)
@@ -97,7 +97,6 @@ fn get_oid(
 
 #[allow(clippy::too_many_arguments)]
 fn snmpv1v2c_get_shared(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -111,7 +110,7 @@ fn snmpv1v2c_get_shared(
     }
     let oid = get_oid(script_ctx, oid, is_next)?;
 
-    let peername = format!("{}:{}", ctx.target().ip_addr(), port);
+    let peername = format!("{}:{}", script_ctx.target().ip_addr(), port);
 
     let mut sess = match snmp_ver {
         Version::V1 => SyncSession::new_v1(peername, community.as_bytes(), Some(SNMPTIMEOUT), 0)
@@ -143,7 +142,6 @@ fn snmpv1v2c_get_shared(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv1_get(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -151,7 +149,6 @@ fn snmpv1_get(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        ctx,
         script_ctx,
         oid,
         port,
@@ -164,7 +161,6 @@ fn snmpv1_get(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv1_getnext(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -172,7 +168,6 @@ fn snmpv1_getnext(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        ctx,
         script_ctx,
         oid,
         port,
@@ -185,7 +180,6 @@ fn snmpv1_getnext(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv2c_get(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -193,7 +187,6 @@ fn snmpv2c_get(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        ctx,
         script_ctx,
         oid,
         port,
@@ -206,7 +199,6 @@ fn snmpv2c_get(
 
 #[nasl_function(named(oid, port, protocol, community))]
 fn snmpv2c_getnext(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -214,7 +206,6 @@ fn snmpv2c_getnext(
     community: String,
 ) -> Result<NaslValue, FnError> {
     snmpv1v2c_get_shared(
-        ctx,
         script_ctx,
         oid,
         port,
@@ -227,7 +218,6 @@ fn snmpv2c_getnext(
 
 #[allow(clippy::too_many_arguments)]
 fn snmpv3_get_shared(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -244,7 +234,7 @@ fn snmpv3_get_shared(
     }
 
     let oid = get_oid(script_ctx, oid, is_next)?;
-    let peername = format!("{}:{}", ctx.target().ip_addr(), port);
+    let peername = format!("{}:{}", script_ctx.target().ip_addr(), port);
     let auth_protocol = match authproto.as_str() {
         "sha1" => v3::AuthProtocol::Sha1,
         "md5" => v3::AuthProtocol::Md5,
@@ -307,7 +297,6 @@ fn snmpv3_get_shared(
     oid, port, protocol, username, authpass, authproto, privpass, privproto
 ))]
 fn snmpv3_get(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -319,8 +308,7 @@ fn snmpv3_get(
     privproto: String,
 ) -> Result<NaslValue, FnError> {
     snmpv3_get_shared(
-        ctx, script_ctx, oid, port, protocol, username, authpass, authproto, privpass, privproto,
-        false,
+        script_ctx, oid, port, protocol, username, authpass, authproto, privpass, privproto, false,
     )
 }
 
@@ -328,7 +316,6 @@ fn snmpv3_get(
     oid, port, protocol, username, authpass, authproto, privpass, privproto
 ))]
 fn snmpv3_getnext(
-    ctx: &ScanCtx,
     script_ctx: &mut ScriptCtx,
     oid: Option<String>,
     port: i64,
@@ -340,8 +327,7 @@ fn snmpv3_getnext(
     privproto: String,
 ) -> Result<NaslValue, FnError> {
     snmpv3_get_shared(
-        ctx, script_ctx, oid, port, protocol, username, authpass, authproto, privpass, privproto,
-        true,
+        script_ctx, oid, port, protocol, username, authpass, authproto, privpass, privproto, true,
     )
 }
 

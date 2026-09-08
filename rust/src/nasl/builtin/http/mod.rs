@@ -35,8 +35,8 @@ use super::{
     },
 };
 
-async fn get_user_agent(ctx: &ScanCtx<'_>) -> Result<String, FnError> {
-    match ctx
+async fn get_user_agent(ctx: &ScanCtx<'_>, script_ctx: &ScriptCtx<'_>) -> Result<String, FnError> {
+    match script_ctx
         .get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent))
         .await
     {
@@ -50,12 +50,13 @@ async fn get_user_agent(ctx: &ScanCtx<'_>) -> Result<String, FnError> {
                     env!("CARGO_PKG_VERSION")
                 ),
             };
-            ctx.set_single_kb_item(
-                KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
-                ua.clone(),
-            )
-            .await
-            .map_err(|e| StorageError::NotFound(e.to_string()))?;
+            script_ctx
+                .set_single_kb_item(
+                    KbKey::GlobalSettings(GlobalSettings::HttpUserAgent),
+                    ua.clone(),
+                )
+                .await
+                .map_err(|e| StorageError::NotFound(e.to_string()))?;
             Ok(ua)
         }
     }
@@ -167,6 +168,7 @@ impl NaslHttp2 {
     async fn request(
         &self,
         ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         ip_str: &str,
         port: u16,
         uri: String,
@@ -212,7 +214,7 @@ impl NaslHttp2 {
         });
 
         let mut h2 = h2.ready().await.map_err(HttpError::from)?;
-        let ua = get_user_agent(ctx)
+        let ua = get_user_agent(ctx, script_ctx)
             .await
             .map_err(|e| HttpError::Custom(e.to_string()))?;
         // Prepare the HTTP request to send to the server.
@@ -256,6 +258,7 @@ impl NaslHttp2 {
         &self,
         register: &Register,
         ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
         method: Method,
     ) -> Result<NaslValue, FnError> {
         let handle_id = match register.local_nasl_value("handle") {
@@ -297,7 +300,7 @@ impl NaslHttp2 {
             _ => 0u16,
         };
 
-        let target_str = ctx.target().original_target_str();
+        let target_str = script_ctx.target().original_target_str();
 
         let mut uri: String;
         if port != 80 && port != 443 {
@@ -309,7 +312,7 @@ impl NaslHttp2 {
         uri = format!("{uri}{item}");
 
         let (head, body) = self
-            .request(ctx, target_str, port, uri, data, method, handle)
+            .request(ctx, script_ctx, target_str, port, uri, data, method, handle)
             .await?;
 
         handle.http_code = head.status.as_u16();
@@ -330,32 +333,60 @@ impl NaslHttp2 {
 
     /// Wrapper function for GET request. See http2_req
     #[nasl_function]
-    async fn get(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
-        self.http2_req(register, ctx, Method::GET).await
+    async fn get(
+        &self,
+        register: &Register,
+        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
+    ) -> Result<NaslValue, FnError> {
+        self.http2_req(register, ctx, script_ctx, Method::GET).await
     }
 
     /// Wrapper function for POST request. See http2_req
     #[nasl_function]
-    async fn post(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
-        self.http2_req(register, ctx, Method::POST).await
+    async fn post(
+        &self,
+        register: &Register,
+        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
+    ) -> Result<NaslValue, FnError> {
+        self.http2_req(register, ctx, script_ctx, Method::POST)
+            .await
     }
 
     /// Wrapper function for PUT request. See http2_req
     #[nasl_function]
-    async fn put(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
-        self.http2_req(register, ctx, Method::PUT).await
+    async fn put(
+        &self,
+        register: &Register,
+        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
+    ) -> Result<NaslValue, FnError> {
+        self.http2_req(register, ctx, script_ctx, Method::PUT).await
     }
 
     /// Wrapper function for HEAD request. See http2_req
     #[nasl_function]
-    async fn head(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
-        self.http2_req(register, ctx, Method::HEAD).await
+    async fn head(
+        &self,
+        register: &Register,
+        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
+    ) -> Result<NaslValue, FnError> {
+        self.http2_req(register, ctx, script_ctx, Method::HEAD)
+            .await
     }
 
     /// Wrapper function for DELETE request. See http2_req
     #[nasl_function]
-    async fn delete(&self, register: &Register, ctx: &ScanCtx<'_>) -> Result<NaslValue, FnError> {
-        self.http2_req(register, ctx, Method::DELETE).await
+    async fn delete(
+        &self,
+        register: &Register,
+        ctx: &ScanCtx<'_>,
+        script_ctx: &ScriptCtx<'_>,
+    ) -> Result<NaslValue, FnError> {
+        self.http2_req(register, ctx, script_ctx, Method::DELETE)
+            .await
     }
 
     /// Creates a handle for http requests
@@ -491,6 +522,7 @@ async fn close_socket(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(),
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_socket(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
     timeout: Option<i64>,
@@ -499,6 +531,7 @@ async fn open_socket(
 ) -> Result<NaslValue, FnError> {
     open_sock_tcp_shared(
         ctx,
+        script_ctx,
         sockets,
         port,
         timeout,
@@ -514,6 +547,7 @@ fn build_encode_url(keyword: Method, item: String, httpver: &str) -> String {
 
 async fn http_req_shared(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     keyword: Method,
     port: Port,
     item: String,
@@ -521,12 +555,15 @@ async fn http_req_shared(
 ) -> Result<NaslValue, FnError> {
     let p: u16 = port.into();
     let tmp_key = format!("http/{p}");
-    let mut request = match ctx.get_single_kb_item::<i32>(&KbKey::from(tmp_key)).await? {
+    let mut request = match script_ctx
+        .get_single_kb_item::<i32>(&KbKey::from(tmp_key))
+        .await?
+    {
         x if (x == 11 || x <= 0) => {
             //TODO: use plug_get_host_fqdn and do it for all vhosts.
-            let hostname = ctx.target().ip_addr().to_string();
+            let hostname = script_ctx.target().ip_addr().to_string();
 
-            let user_agent = get_user_agent(ctx).await?;
+            let user_agent = get_user_agent(ctx, script_ctx).await?;
             let hostreader = match p {
                 80 | 443 => hostname,
                 _ => format!("{hostname}/{p}"),
@@ -549,7 +586,7 @@ async fn http_req_shared(
     };
 
     let tmp_key = format!("/tmp/http/auth/{p}");
-    match ctx.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
+    match script_ctx.get_kb_item(&KbKey::from(tmp_key)).await?.first() {
         Some(KbItem::String(a)) => request.push_str(a),
         _ => request.push_str("http/auth"),
     };
@@ -566,48 +603,57 @@ async fn http_req_shared(
 }
 
 #[nasl_function(named(port, item))]
-async fn get(ctx: &ScanCtx<'_>, port: Port, item: String) -> Result<NaslValue, FnError> {
-    http_req_shared(ctx, Method::GET, port, item, None).await
+async fn get(
+    ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
+    port: Port,
+    item: String,
+) -> Result<NaslValue, FnError> {
+    http_req_shared(ctx, script_ctx, Method::GET, port, item, None).await
 }
 
 #[nasl_function]
 async fn head(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(ctx, Method::HEAD, port, item, data).await
+    http_req_shared(ctx, script_ctx, Method::HEAD, port, item, data).await
 }
 
 #[nasl_function]
 async fn post(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(ctx, Method::POST, port, item, data).await
+    http_req_shared(ctx, script_ctx, Method::POST, port, item, data).await
 }
 
 #[nasl_function]
 async fn delete(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(ctx, Method::DELETE, port, item, data).await
+    http_req_shared(ctx, script_ctx, Method::DELETE, port, item, data).await
 }
 
 #[nasl_function]
 async fn put(
     ctx: &ScanCtx<'_>,
+    script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
     data: Option<String>,
 ) -> Result<NaslValue, FnError> {
-    http_req_shared(ctx, Method::PUT, port, item, data).await
+    http_req_shared(ctx, script_ctx, Method::PUT, port, item, data).await
 }
 
 #[nasl_function]

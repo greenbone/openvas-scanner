@@ -36,7 +36,6 @@ pub mod prelude {
     pub use super::utils::function::Positionals;
     pub use super::utils::function::ToNaslResult;
     pub use super::utils::scan_ctx::ScanCtx;
-    pub use super::utils::scan_ctx::ScanCtxBuilder;
     pub use super::utils::scan_ctx::ScriptCtx;
     pub use super::version::NaslVersion;
     pub use crate::function_set;

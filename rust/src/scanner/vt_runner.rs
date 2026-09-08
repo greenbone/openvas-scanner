@@ -2,14 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
-
-use crate::models::{AliveTestMethods, Parameter, Protocol, VTData};
+use crate::models::{Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
-use crate::nasl::syntax::Loader;
+use crate::nasl::utils::Register;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
-use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Ports, Target};
-use crate::nasl::utils::{Executor, Register};
+use crate::nasl::utils::scan_ctx::TargetId;
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
@@ -20,57 +17,33 @@ use crate::nasl::prelude::*;
 
 use super::ExecuteError;
 use super::error::{ScriptResult, ScriptResultKind};
-use super::preferences::preference::ScanPrefs;
 
 /// Runs a single VT to completion on a single host.
-pub struct VTRunner<'a, S> {
-    storage: &'a S,
-    loader: &'a Loader,
-    executor: &'a Executor,
-
-    target: &'a Target,
-    ports: &'a Ports,
+pub struct VTRunner<'a> {
+    target: TargetId,
     vt: &'a VTData,
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
-    scan_id: String,
-    scan_preferences: &'a ScanPrefs,
-    alive_test_methods: &'a Vec<AliveTestMethods>,
-    notus: &'a Option<NotusCtx>,
+
+    scan_ctx: &'a ScanCtx<'a>,
 }
 
-impl<'a, S> VTRunner<'a, S>
-where
-    S: ContextStorage,
-{
+impl<'a> VTRunner<'a> {
     #[allow(clippy::too_many_arguments)]
     pub async fn run(
-        storage: &'a S,
-        loader: &'a Loader,
-        executor: &'a Executor,
-        target: &'a Target,
-        ports: &'a Ports,
+        target: TargetId,
         vt: &'a VTData,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
-        scan_id: String,
-        scan_preferences: &'a ScanPrefs,
-        alive_test_methods: &'a Vec<AliveTestMethods>,
-        notus: &'a Option<NotusCtx>,
+        scan_ctx: &'a ScanCtx<'a>,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
-            storage,
-            loader,
-            executor,
             target,
-            ports,
             vt,
             stage,
             param,
-            scan_id,
-            scan_preferences,
-            alive_test_methods,
-            notus,
+
+            scan_ctx,
         };
         s.execute().await
     }
@@ -99,7 +72,7 @@ where
         B: Fn(Vec<KbItem>) -> Option<ScriptResultKind>,
         C: Fn(StorageError) -> Option<ScriptResultKind>,
     {
-        let result = match self.storage.retrieve(key).await {
+        let result = match self.scan_ctx.storage().retrieve(key).await {
             Ok(x) => {
                 if let Some(x) = x {
                     result_some(x)
@@ -182,41 +155,34 @@ where
 
     // TODO: probably better to enhance ContextKey::Scan to contain target and scan_id?
     fn generate_key(&self) -> KbContext {
+        let original_target_str = self
+            .scan_ctx
+            .target_by_id(self.target)
+            .original_target_str();
         (
-            crate::storage::ScanID(self.scan_id.clone()),
-            crate::storage::Target(self.target.original_target_str().into()),
+            self.scan_ctx.scan().clone(),
+            crate::storage::Target(original_target_str.into()),
         )
     }
 
-    async fn get_result_kind(
-        &self,
-        filename: PathBuf,
-        code: Code,
-        register: Register,
-    ) -> ScriptResultKind {
+    async fn get_result_kind(&self, code: Code, register: Register) -> ScriptResultKind {
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
-        let ctx = ScanCtxBuilder {
-            scan_id: crate::storage::ScanID(self.scan_id.clone()),
-            target: self.target.clone(),
-            ports: self.ports.clone(),
-            filename,
-            storage: self.storage,
-            loader: self.loader,
-            executor: self.executor,
-            scan_preferences: self.scan_preferences.clone(),
-            alive_test_methods: self.alive_test_methods.to_vec(),
-            notus: self.notus.clone(),
-        }
-        .build();
-        ctx.set_nvt(self.vt.clone());
+        let script_ctx = ScriptCtx::new(
+            &self.scan_ctx,
+            self.target,
+            Some(self.vt.clone()),
+            (&self.vt.filename).into(),
+        );
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));
         }
         let ast = ast.unwrap();
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
+
+        let mut results =
+            Box::pin(ForkingInterpreter::new(ast, register, &self.scan_ctx, script_ctx).stream());
         while let Some(r) = results.next().await {
             match r {
                 Ok(NaslValue::Exit(x)) => return ScriptResultKind::ReturnCode(x),
@@ -230,22 +196,24 @@ where
     }
 
     async fn execute(mut self) -> Result<ScriptResult, ExecuteError> {
-        let code = Code::load(self.loader, &self.vt.filename)?;
+        let code = Code::load(self.scan_ctx.loader(), &self.vt.filename)?;
         let mut register = Register::default();
         self.set_parameters(&mut register)?;
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = self
-            .get_result_kind(self.vt.filename.clone().into(), code, register)
-            .await;
+        let kind = self.get_result_kind(code, register).await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),
             filename: self.vt.filename.clone(),
             stage: self.stage,
             kind,
-            target: self.target.original_target_str().into(),
+            target: self
+                .scan_ctx
+                .target_by_id(self.target)
+                .original_target_str()
+                .into(),
         })
     }
 }

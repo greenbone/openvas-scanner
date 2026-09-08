@@ -16,8 +16,20 @@ use crate::notus::advisories::{Vulnerability, VulnerabilityData};
 #[derive(Clone)]
 pub struct Oid(pub String);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FileName(pub String);
+
+impl From<&str> for FileName {
+    fn from(value: &str) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<&String> for FileName {
+    fn from(value: &String) -> Self {
+        Self(value.into())
+    }
+}
 
 #[derive(Clone)]
 pub struct FeedVersion;

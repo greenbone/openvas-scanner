@@ -11,11 +11,20 @@ use std::{
     time::SystemTime,
 };
 
-use crate::alive_test::Scanner as BoreasScanner;
-use crate::models::{Host, HostInfo, Phase, Status};
-use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Target};
 use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
+use crate::{alive_test::Scanner as BoreasScanner, nasl::utils::scan_ctx::TargetId};
+use crate::{
+    models::{Host, HostInfo, Phase, Status},
+    nasl::utils::scan_ctx::CtxTargets,
+};
+use crate::{
+    nasl::{
+        ScanCtx,
+        utils::scan_ctx::{ContextStorage, NotusCtx},
+    },
+    storage::ScanID,
+};
 use crate::{
     scanner::scan_runner::ScanRunner,
     scheduling::{Scheduler, SchedulerStorage, VTError},
@@ -66,17 +75,18 @@ where
             ..Default::default()
         }));
 
-        let host_by_ip: HashMap<String, Target> = scan
+        let host_by_ip: HashMap<String, TargetId> = scan
             .targets
             .iter()
-            .map(|t| (t.ip_addr().to_string(), t.clone()))
+            .enumerate()
+            .map(|(i, t)| (t.ip_addr().to_string(), TargetId(i)))
             .collect();
         let host_set: HashSet<Host> = host_by_ip.keys().cloned().collect();
         let methods = scan.alive_test_methods.clone();
         let capacity = host_by_ip.len().max(1);
 
         // This channel is for sending a target to the running scan.
-        let (tx_target, rx_target) = mpsc::channel::<Target>(capacity);
+        let (tx_target, rx_target) = mpsc::channel::<TargetId>(capacity);
         // This channel receives alive host from the alive test scanner
         let (tx_host, mut rx_host) = mpsc::channel::<Host>(capacity);
 
@@ -129,8 +139,25 @@ where
         }
     }
 
-    async fn run(self, host_info: Receiver<Target>) -> Result<(), Error> {
-        let runner = match self.make_runner(host_info).await {
+    async fn run(self, host_feed: Receiver<TargetId>) -> Result<(), Error> {
+        let targets = CtxTargets::new(
+            self.scan
+                .targets
+                .iter()
+                .map(|target| (target.clone(), self.scan.ports.clone()).into())
+                .collect(),
+        );
+        let scan_ctx = ScanCtx::new(
+            ScanID(self.scan.scan_id.clone()),
+            targets,
+            &*self.storage,
+            &self.loader,
+            &self.function_executor,
+            self.scan.scan_preferences.clone(),
+            self.scan.alive_test_methods.clone(),
+            self.notus.clone(),
+        );
+        let runner = match self.make_runner(host_feed, &scan_ctx).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("{}", e);
@@ -144,7 +171,11 @@ where
         Ok(())
     }
 
-    async fn make_runner(&self, host_feed: Receiver<Target>) -> Result<ScanRunner<'_, S>, Error> {
+    async fn make_runner<'ctx>(
+        &'ctx self,
+        host_feed: Receiver<TargetId>,
+        scan_ctx: &'ctx ScanCtx<'ctx>,
+    ) -> Result<ScanRunner<'ctx>, Error> {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
         let make_scheduling_error = |e: VTError| Error::SchedulingError {
@@ -158,19 +189,12 @@ where
             .map_err(make_scheduling_error)?
             .collect::<Result<_, _>>()
             .map_err(make_scheduling_error)?;
-        ScanRunner::new(
-            &*self.storage,
-            &self.loader,
-            &self.function_executor,
-            schedule.into_iter().map(Ok),
-            &self.scan,
-            &self.notus,
-            host_feed,
-        )
-        .map_err(make_scheduling_error)
+
+        ScanRunner::new(schedule.into_iter().map(Ok), host_feed, scan_ctx)
+            .map_err(make_scheduling_error)
     }
 
-    async fn run_to_completion(&self, runner: ScanRunner<'_, S>) -> Phase {
+    async fn run_to_completion(&self, runner: ScanRunner<'_>) -> Phase {
         let mut end_phase = Phase::Succeeded;
         let mut stream = Box::pin(runner.stream());
         while let Some(it) = stream.next().await {
