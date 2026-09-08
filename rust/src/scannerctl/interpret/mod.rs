@@ -8,7 +8,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use futures::StreamExt;
 use scannerlib::nasl::{
     NaslValue, ScriptCtx, WithErrorInfo,
     interpreter::InterpreterErrorKind,

@@ -136,6 +136,10 @@ impl std::ops::Index<TargetId> for CtxTargets {
 }
 
 impl CtxTargets {
+    pub fn new(targets: Vec<CtxTarget>) -> Self {
+        Self { targets }
+    }
+
     pub fn single(t: Target, ports: Ports) -> (Self, TargetId) {
         (
             Self {
@@ -143,6 +147,10 @@ impl CtxTargets {
             },
             TargetId(0),
         )
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &CtxTarget> {
+        self.targets.iter()
     }
 }
 
@@ -307,8 +315,10 @@ pub enum NotusCtx {
 }
 
 /// An index into the `targets` field on `ScanCtx`
-#[derive(Clone, Copy)]
-pub struct TargetId(usize);
+#[derive(Clone, Copy, Debug)]
+// TODO: Make this field private by properly wrapping the targets
+// field on `Scan` in some storage type
+pub struct TargetId(pub usize);
 
 /// NASL execution context.
 pub struct ScanCtx<'a> {
@@ -431,8 +441,16 @@ impl<'a> ScanCtx<'a> {
         }
     }
 
-    fn target_by_id(&self, target_id: TargetId) -> &CtxTarget {
+    pub(crate) fn target_by_id(&self, target_id: TargetId) -> &CtxTarget {
         &self.targets[target_id]
+    }
+
+    pub fn scan_mut(&mut self) -> &mut ScanID {
+        &mut self.scan
+    }
+
+    pub fn targets(&self) -> &CtxTargets {
+        &self.targets
     }
 }
 
