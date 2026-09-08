@@ -1,0 +1,10 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function_declaration.rs
+assertion_line: 156
+expression: "$crate :: linter :: tests ::\nlint(stringify! (c_compat_builtin_function), \"function wmi_query() {}\",)"
+---
+error: Cannot redefine built-in function: wmi_query
+  ┌─ c_compat_builtin_function:1:10
+  │
+1 │ function wmi_query() {}
+  │          ^^^^^^^^^ built-in function redefined here

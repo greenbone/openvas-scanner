@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (foreach_declares_iterator),\n\"items = [1]; foreach item(items) { display(item); }\",)"
+---
+

@@ -1,0 +1,12 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+assertion_line: 128
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"a.nasl\", \"b.nasl\"], &\n[(\"a.nasl\", \"include(\\\"first.inc\\\"); include(\\\"second.inc\\\");\"),\n(\"b.nasl\", \"include(\\\"second.inc\\\"); include(\\\"first.inc\\\");\"),\n(\"first.inc\", \"function foo() {}\"), (\"second.inc\", \"function foo() {}\")],)"
+---
+error: Function declared multiple times: foo
+  ┌─ second.inc:1:10
+  │
+1 │ function foo() {}
+  │          ^^^ redeclared here
+  │
+  = also declared in first.inc

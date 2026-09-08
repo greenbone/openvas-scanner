@@ -1,0 +1,4 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (c_predefined_constants),\n\"display(IPPROTO_ICMPV6, MSG_OOB, NOERR, ETIMEDOUT, ECONNRESET, EUNREACH, EUNKNOWN);\",)"
+---

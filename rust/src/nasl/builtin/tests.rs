@@ -6,11 +6,36 @@
 //! It would be nicer to have this within the proc_macro crate itself,
 //! but testing proc_macros comes with a lot of difficulties and the tests
 //! are very easy to do here.
+use std::collections::HashMap;
 
 use crate::nasl::{
+    builtin::misc::{
+        NASL_ERR_ECONNRESET, NASL_ERR_ETIMEDOUT, NASL_ERR_EUNKNOWN, NASL_ERR_EUNREACH,
+        NASL_ERR_NOERR,
+    },
+    nasl_std_executor,
     test_prelude::*,
     utils::{Executor, ScanCtx},
 };
+
+#[test]
+fn standard_executor_has_c_compatible_globals() {
+    let executor = nasl_std_executor();
+    let globals = executor.iter_fn_global_vars().collect::<HashMap<_, _>>();
+    let expected = [
+        ("IPPROTO_ICMPV6", 58),
+        ("MSG_OOB", libc::MSG_OOB.into()),
+        ("NOERR", NASL_ERR_NOERR),
+        ("ETIMEDOUT", NASL_ERR_ETIMEDOUT),
+        ("ECONNRESET", NASL_ERR_ECONNRESET),
+        ("EUNREACH", NASL_ERR_EUNREACH),
+        ("EUNKNOWN", NASL_ERR_EUNKNOWN),
+    ];
+
+    for (name, value) in expected {
+        assert_eq!(globals.get(name), Some(&NaslValue::Number(value)), "{name}");
+    }
+}
 
 #[nasl_function]
 fn foo1(_ctx: &ScanCtx, x: usize) -> usize {
