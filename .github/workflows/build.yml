@@ -10,6 +10,7 @@ on:
 
 jobs:
   C:
+    name: C
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/greenbone/gvm-libs:stable
@@ -21,13 +22,13 @@ jobs:
       - name: build 
         run: ./check.sh --verbose ci-build-c
   rs-amd64:
-    uses: ./.github/workflows/build-rs.yaml
+    uses: ./.github/workflows/rust-binaries.yaml
     with:
       arch: amd64
       runner: ubuntu-latest
       binary_version: ${{ inputs.binary_version }}
   rs-arm64:
-    uses: ./.github/workflows/build-rs.yaml
+    uses: ./.github/workflows/rust-binaries.yaml
     with:
       arch: arm64
       runner: self-hosted-generic-arm64

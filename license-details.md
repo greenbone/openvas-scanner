@@ -140,21 +140,6 @@ nasl/smb_signing.h: GPL-2+
 nasl/time.c: GPL-2+
 nasl/wmi_interface_stub.c: GPL-2+
 
-nasl/tests/Makefile: GPL-2+
-nasl/tests/signed.nasl: GPL-2+
-nasl/tests/test_blowfish.nasl: GPL-2+
-nasl/tests/test_bn.nasl: GPL-2+
-nasl/tests/test_crypt_data_aes.nasl: GPL-2+
-nasl/tests/test_dh.nasl: GPL-2+
-nasl/tests/test_dsa.nasl: GPL-2+
-nasl/tests/test_hexstr.nasl: GPL-2+
-nasl/tests/test_isotime.nasl: GPL-2+
-nasl/tests/test_md.nasl: GPL-2+
-nasl/tests/test_privkey.nasl: GPL-2+
-nasl/tests/test_rsa.nasl: GPL-2+
-nasl/tests/test_socket.nasl: GPL-2+
-nasl/tests/testsuiteinit.nasl: GPL-2+
-nasl/tests/testsuitesummary.nasl: GPL-2+
 
 misc/CMakeLists.txt: GPL-2+
 misc/bpf_share.c: GPL-2

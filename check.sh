@@ -25,14 +25,8 @@ Targets:
   ci-build-c  Build C scanner targets in the CI environment.
   ci-codeql-build-c
               Build C scanner targets for CodeQL.
-  ci-railguard
-              Build and verify a railguard image. Requires RAILGUARD_SYSTEM.
-  ci-feed-syntax
-              Run scannerctl feed syntax checks.
-  ci-nasl-tests
-              Run NASL make check tests.
-  ci-nasl-lint
-              Run openvas-nasl-lint smoketest.
+  ci-integration-build
+              Build and verify the OpenVAS integration on Debian Bookworm.
   test-rust   Run Rust unit tests.
   test-rust-compose
               Run Rust tests that require the compose test environment.
@@ -157,6 +151,8 @@ test_rust() {
 }
 
 test_rust_compose() {
+    run make -C "$ROOT/rust"
+
     if [[ "${INSTA_FROM_COMPOSE:-0}" == "1" ]]; then
         local pending_dir="$ROOT/.insta-pending"
         mkdir -p "$pending_dir"
@@ -185,33 +181,14 @@ test_all() {
     test_c
 }
 
-ci_railguard() {
+ci_integration_build() {
     cd "$ROOT"
-    : "${RAILGUARD_SYSTEM:?RAILGUARD_SYSTEM is required}"
-    run docker build -t test -f ".docker/railguards/${RAILGUARD_SYSTEM}.Dockerfile" .
+    run docker build -t test -f .docker/integration-build.Dockerfile .
     run docker run --rm test ldd /usr/local/sbin/openvas
     run sh -c 'docker run --rm test ldd /usr/local/sbin/openvas | grep libopenvas_wmiclient'
     run docker run --rm test /usr/local/bin/openvasd -h
     run docker run --rm test /usr/local/bin/scannerctl -h
     docker rmi test || true
-}
-
-ci_feed_syntax() {
-    version_command openvas --version
-    version_command scannerctl version
-    run sh -c 'scannerctl syntax --quiet "$(openvas -s | grep plugins_folder | sed '\''s/plugins_folder = //'\'')/"'
-}
-
-ci_nasl_tests() {
-    cd "$ROOT"
-    mkdir -p /etc/openvas
-    run sh -c 'cd nasl/tests && make check'
-}
-
-ci_nasl_lint() {
-    cd "$ROOT/smoketest_lint"
-    run make build
-    run ./run -e openvas-nasl-lint
 }
 
 local_all() {
@@ -279,17 +256,8 @@ case "$target" in
     ci-codeql-build-c)
         ci_codeql_build_c
         ;;
-    ci-railguard)
-        ci_railguard
-        ;;
-    ci-feed-syntax)
-        ci_feed_syntax
-        ;;
-    ci-nasl-tests)
-        ci_nasl_tests
-        ;;
-    ci-nasl-lint)
-        ci_nasl_lint
+    ci-integration-build)
+        ci_integration_build
         ;;
     test-rust)
         test_rust

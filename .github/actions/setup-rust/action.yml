@@ -1,26 +1,22 @@
 name: "Setup Rust Environment"
-description: "Install necessary dependencies and set up Rust stable"
+description: "Install dependencies, set up the pinned Rust toolchain, and restore build caches"
+inputs:
+  cache-key:
+    description: "Distinguishes build artifacts produced by different Cargo commands"
+    required: true
 runs:
   using: "composite"
   steps:
-    - uses: actions/cache@v4
+    - uses: ./.github/actions/cache-rust
       with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          rust/target/
-        key: amd64-cargo
+        cache-key: ${{ inputs.cache-key }}
     - run: sudo apt update || true
       shell: bash
     - run: sudo apt-get install -y libpcap-dev libclang-dev libsnmp-dev patchelf 
       shell: bash
     - run: sudo apt-get install -y capnproto # required for sequoia-ipc
       shell: bash
-    - run: rustup update stable && rustup default stable || rustup default stable
-      shell: bash
-    - run: rustup component add rustfmt
-      shell: bash
-    - run: rustup component add clippy
+    - name: Install pinned Rust toolchain
+      run: rustup toolchain install
+      working-directory: rust
       shell: bash
