@@ -10,6 +10,7 @@
 
 #include "credentials.h"
 
+#include "../nasl/nasl_snmp.h"
 #include "scanneraux.h"
 
 #include <cjson/cJSON.h>
@@ -98,9 +99,9 @@ struct snmp_credential_type
   char *username;
   char *password;
   char *community;
-  char *auth_algorithm;
   char *privacy_password;
-  char *privacy_algorithm;
+  char *auth_proto;    // snmp authorization protocol. 0 for md5, 1 for sha1.
+  char *privacy_proto; // snmp private protocol. 0 for des, 1 for aes
 };
 
 struct esxi_credential_type
@@ -221,9 +222,11 @@ credential_snmp_new (cJSON *service, credential_t **credential)
       cred->username = g_strdup (gvm_json_obj_str (item, "username"));
       cred->password = g_strdup (gvm_json_obj_str (item, "password"));
       cred->community = g_strdup (gvm_json_obj_str (item, "community"));
-      cred->auth_algorithm = g_strdup (gvm_json_obj_str (item, "algorithm"));
-      cred->privacy_password = g_strdup (gvm_json_obj_str (item, "password"));
-      cred->privacy_algorithm = g_strdup (gvm_json_obj_str (item, "algorithm"));
+      cred->privacy_password =
+        g_strdup (gvm_json_obj_str (item, "privacy_password"));
+      cred->auth_proto = g_strdup (gvm_json_obj_str (item, "auth_algorithm"));
+      cred->privacy_proto =
+        g_strdup (gvm_json_obj_str (item, "privacy_algorithm"));
     }
   if (item == NULL)
     {
@@ -383,7 +386,6 @@ free_credential (gpointer data)
       g_free (credential->snmp_credential->username);
       g_free (credential->snmp_credential->password);
       g_free (credential->snmp_credential->community);
-      g_free (credential->snmp_credential->privacy_algorithm);
       g_free (credential->snmp_credential->privacy_password);
       g_free (credential->snmp_credential);
     }
@@ -393,6 +395,100 @@ void
 destroy_credentials (GSList **credentials)
 {
   g_slist_free_full (*credentials, (GDestroyNotify) free_credential);
+}
+
+static void
+store_snmp_credential (snmp_credential_t *credential)
+{
+  // prefs set will replace the old values if any.
+  prefs_set (OID_SNMP_AUTH_USER, credential->username);
+  prefs_set (OID_SNMP_AUTH_COMMUNITY, credential->community);
+  prefs_set (OID_SNMP_AUTH_PASS, credential->password);
+  prefs_set (OID_SNMP_AUTH_AUTH_ALGO, credential->auth_proto);
+  prefs_set (OID_SNMP_AUTH_PRIV_PASS, credential->privacy_password);
+  prefs_set (OID_SNMP_AUTH_PRIV_ALGO, credential->privacy_proto);
+}
+
+static int
+try_snmp_credential (snmp_credential_t *credential, const char *host_target)
+{
+  static int already_set = 0;
+  int ret;
+  char peername[2048];
+  snmp_result_t result;
+  snmpv1v2_request_t requestv1v2c;
+  snmpv3_request_t requestv3;
+
+  if (already_set)
+    {
+      g_debug ("SNMP credential already set");
+      return already_set;
+    }
+
+  g_snprintf (peername, sizeof (peername), "udp:%s:161", host_target);
+
+  if (credential->community)
+    {
+      // try SNMP v1
+      requestv1v2c = new_snmpv1v2_request (peername, credential->community, 0);
+      result = new_snmp_result ();
+
+      ret = snmpv1v2c_get (requestv1v2c, result);
+      g_free (requestv1v2c);
+      destroy_snmp_result (result);
+      if (ret != 0)
+        g_debug ("%s: Failed authenticating SNMP v1 credential", __func__);
+      else
+        {
+          g_debug ("%s: snmp v1 successfully authenticated", __func__);
+          store_snmp_credential (credential);
+          already_set = 1;
+          return already_set;
+        }
+
+      // try SNMP v2c
+      requestv1v2c = new_snmpv1v2_request (peername, credential->community, 1);
+      result = new_snmp_result ();
+
+      ret = snmpv1v2c_get (requestv1v2c, result);
+      g_free (requestv1v2c);
+      destroy_snmp_result (result);
+      if (ret != 0)
+        g_debug ("%s: Failed authenticating SNMP v2c credential", __func__);
+      else
+        {
+          g_debug ("%s: snmp v2c successfully authenticated", __func__);
+          store_snmp_credential (credential);
+          already_set = 1;
+          return already_set;
+        }
+    }
+  // try SNMP v3
+  else if (credential && credential->username && credential->password
+           && credential->auth_proto)
+    {
+      requestv3 = new_snmpv3_request (
+        peername, credential->username, credential->password,
+        credential->privacy_password,
+        g_strcmp0 (credential->auth_proto, "md5") ? 1 : 0,
+        g_strcmp0 (credential->privacy_proto, "des") ? 1 : 0);
+      result = new_snmp_result ();
+
+      ret = snmpv3_get (requestv3, result);
+      g_free (requestv3);
+      destroy_snmp_result (result);
+      if (ret != 0)
+        g_debug ("%s: Failed authenticating SNMP v2c credential", __func__);
+      else
+        {
+          g_debug ("%s: snmp v3 successfully authenticated", __func__);
+          store_snmp_credential (credential);
+          already_set = 1;
+          return already_set;
+        }
+    }
+
+  return already_set;
 }
 
 static void
@@ -579,6 +675,10 @@ set_host_credential (gpointer credential, gpointer host_target)
   if (cred->type == SSH)
     {
       try_ssh_credential (cred->ssh_credential, host);
+    }
+  if (cred->type == SNMP)
+    {
+      try_snmp_credential (cred->snmp_credential, host);
     }
 }
 
