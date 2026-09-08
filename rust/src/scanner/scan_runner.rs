@@ -6,32 +6,30 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use crate::models::HostInfo;
-use crate::nasl::syntax::Loader;
-use crate::nasl::utils::Executor;
-use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Target};
+use crate::nasl::ScanCtx;
+use crate::nasl::utils::scan_ctx::TargetId;
 use futures::{Stream, stream};
 use tokio::sync::mpsc::Receiver;
 
 use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
 
-use super::Scan;
 use super::error::{ExecuteError, ScriptResult};
 use super::vt_runner::VTRunner;
 
 #[derive(Debug, Clone)]
 struct Position {
-    host: Target,
+    target: TargetId,
     stage: usize,
     vt: usize,
 }
 
 /// Given the currently known `vts` schedule, enqueues all `(stage, vt)`
 /// positions that need to be run for `host`.
-fn enqueue_host(queue: &mut VecDeque<Position>, host: &Target, vts: &[ConcurrentVT]) {
+fn enqueue_host(queue: &mut VecDeque<Position>, host: TargetId, vts: &[ConcurrentVT]) {
     for (stage, (_, stage_vts)) in vts.iter().enumerate() {
         for vt in 0..stage_vts.len() {
             queue.push_back(Position {
-                host: host.clone(),
+                target: host,
                 stage,
                 vt,
             });
@@ -43,48 +41,33 @@ fn enqueue_host(queue: &mut VecDeque<Position>, host: &Target, vts: &[Concurrent
 /// This does not provide any control over the scan but merely executes the
 /// necessary instructions. In order to have control over the scan (such as
 /// starting and stopping it), use `RunningScan` instead.
-pub struct ScanRunner<'a, S> {
-    scan: &'a Scan,
-    storage: &'a S,
-    loader: &'a Loader,
-    executor: &'a Executor,
+pub struct ScanRunner<'a> {
     concurrent_vts: Arc<Vec<ConcurrentVT>>,
-    notus: &'a Option<NotusCtx>,
-    host_feed: Receiver<Target>,
+    host_feed: Receiver<TargetId>,
+    scan_ctx: &'a ScanCtx<'a>,
 }
 
-impl<'a, S> ScanRunner<'a, S>
-where
-    S: ContextStorage,
-{
+impl<'a> ScanRunner<'a> {
     pub fn new<Sched>(
-        storage: &'a S,
-        loader: &'a Loader,
-        executor: &'a Executor,
         schedule: Sched,
-        scan: &'a Scan,
-        notus: &'a Option<NotusCtx>,
-        host_feed: Receiver<Target>,
+        host_feed: Receiver<TargetId>,
+        scan_ctx: &'a ScanCtx<'a>,
     ) -> Result<Self, VTError>
     where
         Sched: Iterator<Item = ConcurrentVTResult> + 'a,
     {
         let concurrent_vts = Arc::new(schedule.collect::<Result<Vec<_>, _>>()?);
         Ok(Self {
-            scan,
-            storage,
-            loader,
-            executor,
             concurrent_vts,
-            notus,
             host_feed,
+            scan_ctx,
         })
     }
 
     pub fn host_info(&self) -> HostInfo {
         HostInfo::from_hosts_and_num_vts(
-            self.scan
-                .targets
+            self.scan_ctx
+                .targets()
                 .iter()
                 .map(|target| target.original_target_str()),
             self.concurrent_vts.len(),
@@ -93,13 +76,9 @@ where
 
     pub fn stream(self) -> impl Stream<Item = Result<ScriptResult, ExecuteError>> + 'a {
         let ScanRunner {
-            scan,
-            storage,
-            loader,
-            executor,
             concurrent_vts,
-            notus,
             host_feed,
+            scan_ctx,
         } = self;
         let state = (host_feed, VecDeque::<Position>::new());
         // The usage of unfold here will prevent any real asynchronous running of VTs
@@ -112,7 +91,7 @@ where
                 loop {
                     if queue.is_empty() {
                         if let Some(host) = host_feed.recv().await {
-                            enqueue_host(&mut queue, &host, &concurrent_vts);
+                            enqueue_host(&mut queue, host, &concurrent_vts);
                         } else {
                             return None;
                         }
@@ -120,21 +99,8 @@ where
                     if let Some(pos) = queue.pop_front() {
                         let (stage, vts) = &concurrent_vts[pos.stage];
                         let (vt, param) = &vts[pos.vt];
-                        let result = VTRunner::<S>::run(
-                            storage,
-                            loader,
-                            executor,
-                            &pos.host,
-                            &scan.ports,
-                            vt,
-                            *stage,
-                            param.as_ref(),
-                            scan.scan_id.clone(),
-                            &scan.scan_preferences,
-                            &scan.alive_test_methods,
-                            notus,
-                        )
-                        .await;
+                        let result =
+                            VTRunner::run(pos.target, vt, *stage, param.as_ref(), &scan_ctx).await;
                         return Some((result, (host_feed, queue)));
                     }
                 }
