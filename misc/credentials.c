@@ -10,6 +10,7 @@
 
 #include "credentials.h"
 
+#include "../nasl/nasl_smb.h"
 #include "../nasl/nasl_snmp.h"
 #include "scanneraux.h"
 
@@ -398,6 +399,76 @@ destroy_credentials (GSList **credentials)
 }
 
 static void
+store_smb_credential (smb_credential_t *credential)
+{
+  // prefs set will replace the old values if any.
+  prefs_set (OID_SMB_AUTH_USER, credential->username);
+  prefs_set (OID_SMB_AUTH_PASS, credential->password);
+}
+
+static int
+try_smb_credential (credential_t *cred, char *host)
+{
+  static int already_set = 0;
+  int ret;
+  smb_credential_t *smb_cred = NULL;
+
+  if (already_set)
+    {
+      g_debug ("SMB credential already set");
+      return already_set;
+    }
+
+  smb_cred = cred->smb_credential;
+  ret = smb_krb5_login_test (host, smb_cred->username, smb_cred->password, NULL,
+                             NULL);
+  if (ret == 0)
+    {
+      g_warning ("SMB credential worked succesfully ");
+      store_smb_credential (smb_cred);
+      already_set = 1;
+    }
+
+  return already_set;
+}
+
+static void
+store_krb5_credential (krb5_credential_t *credential)
+{
+  // prefs set will replace the old values if any.
+  prefs_set (OID_KRB5_AUTH_USER, credential->username);
+  prefs_set (OID_KRB5_AUTH_PASS, credential->password);
+  prefs_set (OID_KRB5_AUTH_REALM, credential->realm);
+  prefs_set (OID_KRB5_AUTH_KDC, credential->kdc);
+}
+
+static int
+try_krb5_credential (credential_t *cred, char *host)
+{
+  static int already_set = 0;
+  int ret;
+  krb5_credential_t *krb5_cred = NULL;
+
+  if (already_set)
+    {
+      g_debug ("KRB5 credential already set");
+      return already_set;
+    }
+
+  krb5_cred = cred->krb5_credential;
+  ret = smb_krb5_login_test (host, krb5_cred->username, krb5_cred->password,
+                             krb5_cred->realm, krb5_cred->kdc);
+  if (ret == 0)
+    {
+      g_warning ("KRB5 credential worked succesfully ");
+      store_krb5_credential (krb5_cred);
+      already_set = 1;
+    }
+
+  return already_set;
+}
+
+static void
 store_snmp_credential (snmp_credential_t *credential)
 {
   // prefs set will replace the old values if any.
@@ -424,7 +495,8 @@ try_snmp_credential (snmp_credential_t *credential, const char *host_target)
       g_debug ("SNMP credential already set");
       return already_set;
     }
-
+  // TODO: get the protocol and port from the kb instead of assuming udp:161,
+  // since a script could have stored need values.
   g_snprintf (peername, sizeof (peername), "udp:%s:161", host_target);
 
   if (credential->community)
@@ -615,6 +687,8 @@ leave:
   return retc_val;
 }
 
+// TODO: get the port from the kb if the port was not provided. Default
+// to 22 in last case.
 static int
 try_ssh_credential (ssh_credential_t *credential, const char *host_target)
 {
@@ -676,9 +750,17 @@ set_host_credential (gpointer credential, gpointer host_target)
     {
       try_ssh_credential (cred->ssh_credential, host);
     }
-  if (cred->type == SNMP)
+  else if (cred->type == SNMP)
     {
       try_snmp_credential (cred->snmp_credential, host);
+    }
+  else if (cred->type == SMB)
+    {
+      try_smb_credential (cred, host);
+    }
+  else if (cred->type == KRB5)
+    {
+      try_krb5_credential (cred, host);
     }
 }
 
