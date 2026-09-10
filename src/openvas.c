@@ -22,6 +22,7 @@
 
 #include "openvas.h"
 
+#include "../misc/credentials.h" /* for process_credentials_json */
 #include "../misc/kb_cache.h"
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/scan_id.h"       /* to manage global scan_id */
@@ -118,7 +119,7 @@ static openvas_option openvas_defaults[] = {
  * @brief Set the prefs from the openvas_defaults array.
  */
 static void
-set_default_openvas_prefs ()
+set_default_openvas_prefs (void)
 {
   for (int i = 0; openvas_defaults[i].option != NULL; i++)
     prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
@@ -252,6 +253,17 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
       g_strfreev (pref);
       res = res->next;
     }
+
+  const char *json = prefs_get ("multi-credentials");
+  if (json != NULL && json[0] != '\0')
+    {
+      char *err = NULL;
+
+      if (process_credentials_json (json, &globals, &err) < 0)
+        g_warning ("It was not possible to process multiple credentials: %s",
+                   err);
+    }
+
   kb_del_items (kb, key);
   snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
   kb_item_set_str_with_main_kb_check (kb, key, "ready", 0);
@@ -259,7 +271,6 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   kb_lnk_reset (kb);
 
   g_debug ("End loading scan preferences.");
-
   kb_item_free (res);
   return 0;
 }
@@ -270,7 +281,7 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
  * @return 0 on success, -1 on error.
  */
 static int
-init_logging ()
+init_logging (void)
 {
   static gchar *log_config_file_name = NULL;
   int err;
@@ -309,7 +320,7 @@ gcrypt_init (void)
  * @brief Check TLS.
  */
 static void
-check_tls ()
+check_tls (void)
 {
 #if GNUTLS_VERSION_NUMBER < 0x030300
   if (openvas_SSL_init () < 0)
@@ -330,7 +341,7 @@ check_tls ()
  * @brief Print start message.
  */
 static void
-openvas_print_start_msg ()
+openvas_print_start_msg (void)
 {
 #ifdef OPENVAS_GIT_REVISION
   g_message ("openvas %s (GIT revision %s) started", OPENVAS_VERSION,
