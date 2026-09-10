@@ -22,6 +22,7 @@
 #include "nasl_debug.h"
 #include "nasl_lex_ctxt.h"
 #include "nasl_misc_funcs.h"
+#include "nasl_tree.h"
 #include "nasl_var.h"
 #include "openvas_smb_interface.h"
 
@@ -877,4 +878,154 @@ nasl_psrp_cli (lex_ctxt *lexic)
   add_var_to_list (retc->x.ref_val, 1, &v);
 
   return retc;
+}
+
+// TODO: check path, port, interpreter and ssl. Probably we should use values
+// existing in the kb, stored by scripts during the running scan
+static lex_ctxt *
+prepare_ctx_login_test (char *host, char *username, char *password, char *realm,
+                        char *kdc, int psrp_auth_method)
+{
+  lex_ctxt *lexic = init_empty_lex_ctxt ();
+  struct script_infos *script_infos = g_malloc0 (sizeof (struct script_infos));
+
+  script_infos->ip = NULL;
+  lexic->script_infos = script_infos;
+
+  tree_cell *h = NULL;
+  h = alloc_typed_cell (CONST_DATA);
+  h->x.str_val = g_strdup (host);
+  h->size = strlen (host);
+  add_named_var_to_ctxt (lexic, "host", h);
+
+  tree_cell *user = NULL;
+  user = alloc_typed_cell (CONST_DATA);
+  user->x.str_val = g_strdup (username);
+  user->size = strlen (username);
+  add_named_var_to_ctxt (lexic, "username", user);
+
+  tree_cell *pass = NULL;
+  pass = alloc_typed_cell (CONST_DATA);
+  pass->x.str_val = g_strdup (password);
+  pass->size = strlen (password);
+  add_named_var_to_ctxt (lexic, "password", pass);
+
+  if (realm)
+    {
+      tree_cell *r = NULL;
+      r = alloc_typed_cell (CONST_DATA);
+      r->x.str_val = g_strdup (realm);
+      r->size = strlen (realm);
+      add_named_var_to_ctxt (lexic, "realm", r);
+    }
+
+  if (kdc)
+    {
+      tree_cell *k = NULL;
+      k = alloc_typed_cell (CONST_DATA);
+      k->x.str_val = g_strdup (kdc);
+      k->size = strlen (kdc);
+      add_named_var_to_ctxt (lexic, "kdc", k);
+    }
+
+  tree_cell *cmd = NULL;
+  cmd = alloc_typed_cell (CONST_DATA);
+  cmd->x.str_val = g_strdup ("netstat");
+  cmd->size = strlen ("netstat");
+  add_named_var_to_ctxt (lexic, "cmd", cmd);
+
+  tree_cell *interpreter = NULL;
+  interpreter = alloc_typed_cell (CONST_DATA);
+  interpreter->x.str_val = g_strdup ("PS");
+  interpreter->size = strlen ("PS");
+  add_named_var_to_ctxt (lexic, "interpreter", interpreter);
+
+  tree_cell *path = NULL;
+  path = alloc_typed_cell (CONST_DATA);
+  path->x.str_val = g_strdup ("wsman");
+  path->size = strlen ("wsman");
+  add_named_var_to_ctxt (lexic, "path", path);
+
+  tree_cell *port = NULL;
+  port = alloc_typed_cell (CONST_INT);
+  port->x.i_val = 5985;
+  add_named_var_to_ctxt (lexic, "port", port);
+
+  tree_cell *ssl = NULL;
+  ssl = alloc_typed_cell (CONST_INT);
+  ssl->x.i_val = 0;
+  add_named_var_to_ctxt (lexic, "ssl", ssl);
+
+  // try ntlm first
+  tree_cell *authentication = NULL;
+  authentication = alloc_typed_cell (CONST_DATA);
+  if (psrp_auth_method == 0)
+    {
+      authentication->x.str_val = g_strdup ("NTLM");
+      authentication->size = strlen ("NTLM");
+    }
+  else
+    {
+      authentication->x.str_val = g_strdup ("Kerberos");
+      authentication->size = strlen ("Kerberos");
+    }
+  add_named_var_to_ctxt (lexic, "authentication", authentication);
+
+  return lexic;
+}
+
+int
+smb_krb5_login_test (char *host, char *username, char *password, char *realm,
+                     char *kdc)
+{
+  tree_cell *ret;
+  lex_ctxt *lexic = NULL;
+
+  // init with NTLM method, not need for impacket but psrp
+  lexic = prepare_ctx_login_test (host, username, password, realm, kdc, 0);
+
+  ret = nasl_win_cmd_exec (lexic);
+  // success with impacket
+  if (ret != NULL)
+    {
+      free_lex_ctxt (lexic);
+      deref_cell (ret);
+      return 0;
+    }
+
+  // impacket can be blocked by Windows targets
+  // then, we try with psrp and NTLM auth methods
+  ret = nasl_psrp_cli (lexic);
+  if (ret != NULL && ret->type == DYN_ARRAY)
+    {
+      anon_nasl_var *v =
+        nasl_get_var_by_num (NULL, (nasl_array *) ret->x.ref_val, 0, 0);
+      if (v->var_type == VAR2_INT && v->v.v_int == 0)
+        {
+          free_lex_ctxt (lexic);
+          deref_cell (ret);
+          return 0;
+        }
+    }
+
+  // try now with kerberos method
+  lexic = prepare_ctx_login_test (host, username, password, realm, kdc, 1);
+  deref_cell (ret);
+  ret = nasl_psrp_cli (lexic);
+  if (ret != NULL && ret->type == DYN_ARRAY)
+    {
+      anon_nasl_var *v =
+        nasl_get_var_by_num (NULL, (nasl_array *) ret->x.ref_val, 0, 0);
+      if (v->var_type == VAR2_INT && v->v.v_int == 0)
+        {
+          free_lex_ctxt (lexic);
+          deref_cell (ret);
+          return 0;
+        }
+    }
+
+  // All methods failed
+  free_lex_ctxt (lexic);
+  deref_cell (ret);
+  return 1;
 }
