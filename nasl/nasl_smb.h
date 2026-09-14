@@ -38,6 +38,7 @@ nasl_win_cmd_exec (lex_ctxt *lexic);
 tree_cell *
 nasl_psrp_cli (lex_ctxt *lexic);
 int
-smb_krb5_login_test (char *, char *, char *, char *, char *);
+smb_krb5_login_test (const char *, const char *, const char *, const char *,
+                     const char *);
 
 #endif

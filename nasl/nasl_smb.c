@@ -883,8 +883,9 @@ nasl_psrp_cli (lex_ctxt *lexic)
 // TODO: check path, port, interpreter and ssl. Probably we should use values
 // existing in the kb, stored by scripts during the running scan
 static lex_ctxt *
-prepare_ctx_login_test (char *host, char *username, char *password, char *realm,
-                        char *kdc, int psrp_auth_method)
+prepare_ctx_login_test (const char *host, const char *username,
+                        const char *password, const char *realm,
+                        const char *kdc, int psrp_auth_method)
 {
   lex_ctxt *lexic = init_empty_lex_ctxt ();
   struct script_infos *script_infos = g_malloc0 (sizeof (struct script_infos));
@@ -975,8 +976,8 @@ prepare_ctx_login_test (char *host, char *username, char *password, char *realm,
 }
 
 int
-smb_krb5_login_test (char *host, char *username, char *password, char *realm,
-                     char *kdc)
+smb_krb5_login_test (const char *host, const char *username,
+                     const char *password, const char *realm, const char *kdc)
 {
   tree_cell *ret;
   lex_ctxt *lexic = NULL;

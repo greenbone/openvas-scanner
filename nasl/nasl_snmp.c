@@ -95,8 +95,8 @@ new_snmpv1v2_request (char *peername, char *community, u_char version)
 {
   snmpv1v2_request_t request = g_malloc0 (sizeof (struct snmpv1v2_request));
 
-  request->peername = peername;
-  request->community = community;
+  request->peername = g_strdup (peername);
+  request->community = g_strdup (community);
   request->oid_str = g_strdup ("1.3.6.1.2.1.1.1.0");
   request->version = version;
   request->action = NASL_SNMP_GET;
@@ -110,10 +110,10 @@ new_snmpv3_request (char *peername, char *username, char *authpass,
 {
   snmpv3_request_t request = g_malloc0 (sizeof (struct snmpv3_request));
 
-  request->peername = peername;
-  request->username = username;
-  request->authpass = authpass;
-  request->privpass = privpass;
+  request->peername = g_strdup (peername);
+  request->username = g_strdup (username);
+  request->authpass = g_strdup (authpass);
+  request->privpass = g_strdup (privpass);
   request->authproto = authproto;
   request->privproto = privproto;
   request->oid_str = "1.3.6.1.2.1.1.1.0";
