@@ -10,8 +10,6 @@
 
 #include "credentials.h"
 
-#include "../nasl/nasl_smb.h"
-#include "../nasl/nasl_snmp.h"
 #include "scanneraux.h"
 
 #include <cjson/cJSON.h>
@@ -27,48 +25,6 @@
  * @brief GLib logging domain.
  */
 #define G_LOG_DOMAIN "lib  misc"
-
-#define OID_SSH_AUTH "1.3.6.1.4.1.25623.1.0.103591"
-#define OID_KRB5_AUTH "1.3.6.1.4.1.25623.1.0.102114"
-#define OID_SMB_AUTH "1.3.6.1.4.1.25623.1.0.90023"
-#define OID_ESXI_AUTH "1.3.6.1.4.1.25623.1.0.105058"
-#define OID_SNMP_AUTH "1.3.6.1.4.1.25623.1.0.105076"
-
-#define OID_SMB_AUTH_USER "1.3.6.1.4.1.25623.1.0.90023:1:entry:SMB login:"
-#define OID_SMB_AUTH_PASS "1.3.6.1.4.1.25623.1.0.90023:2:password:SMB password:"
-
-#define OID_SSH_AUTH_PASS \
-  "1.3.6.1.4.1.25623.1.0.103591:3:password:SSH password (unsafe!):"
-#define OID_SSH_AUTH_USER "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:"
-#define OID_SSH_AUTH_PRIV_USER \
-  "1.3.6.1.4.1.25623.1.0.103591:7:entry:SSH privilege login name:"
-#define OID_SSH_AUTH_PRIV_PASS \
-  "1.3.6.1.4.1.25623.1.0.103591:8:password:SSH privilege password:"
-#define OID_SSH_AUTH_PRIV_KEY \
-  "1.3.6.1.4.1.25623.1.0.103591:4:file:SSH private key:"
-#define OID_SSH_AUTH_PASSPHRASE \
-  "1.3.6.1.4.1.25623.1.0.103591:2:password:SSH key passphrase:"
-
-#define OID_KRB5_AUTH_USER "1.3.6.1.4.1.25623.1.0.102114:1:entry::"
-#define OID_KRB5_AUTH_PASS "1.3.6.1.4.1.25623.1.0.102114:2:password::"
-#define OID_KRB5_AUTH_REALM "1.3.6.1.4.1.25623.1.0.102114:3:entry::"
-#define OID_KRB5_AUTH_KDC "1.3.6.1.4.1.25623.1.0.102114:4:entry::"
-
-#define OID_ESXI_AUTH_USER "1.3.6.1.4.1.25623.1.0.105058"
-#define OID_ESXI_AUTH_PASS "1.3.6.1.4.1.25623.1.0.105058"
-
-#define OID_SNMP_AUTH_USER \
-  "1.3.6.1.4.1.25623.1.0.105076:2:entry:SNMPv3 Username:"
-#define OID_SNMP_AUTH_PASS \
-  "1.3.6.1.4.1.25623.1.0.105076:3:password:SNMPv3 Password:"
-#define OID_SNMP_AUTH_COMMUNITY \
-  "1.3.6.1.4.1.25623.1.0.105076:1:password:SNMP Community:"
-#define OID_SNMP_AUTH_PRIV_PASS \
-  "1.3.6.1.4.1.25623.1.0.105076:5:password:SNMPv3 Privacy Password:"
-#define OID_SNMP_AUTH_AUTH_ALGO \
-  "1.3.6.1.4.1.25623.1.0.105076:4:radio:SNMPv3 Authentication Algorithm:"
-#define OID_SNMP_AUTH_PRIV_ALGO \
-  "1.3.6.1.4.1.25623.1.0.105076:6:radio:SNMPv3 Privacy Algorithm:"
 
 struct ssh_credential_type
 {
@@ -110,19 +66,6 @@ struct esxi_credential_type
   char *username;
   char *password;
 };
-
-typedef struct credential
-{
-  enum credential_type type;
-  union
-  {
-    ssh_credential_t *ssh_credential;
-    smb_credential_t *smb_credential;
-    esxi_credential_t *esxi_credential;
-    snmp_credential_t *snmp_credential;
-    krb5_credential_t *krb5_credential;
-  };
-} credential_t;
 
 static int
 credential_ssh_new (cJSON *service, credential_t **credential)
@@ -398,374 +341,132 @@ destroy_credentials (GSList **credentials)
   g_slist_free_full (*credentials, (GDestroyNotify) free_credential);
 }
 
-static void
-store_smb_credential (smb_credential_t *credential)
+credential_type_t
+get_credential_type (credential_t *credential)
 {
-  // prefs set will replace the old values if any.
-  prefs_set (OID_SMB_AUTH_USER, credential->username);
-  prefs_set (OID_SMB_AUTH_PASS, credential->password);
+  return credential->type;
 }
 
-static int
-try_smb_credential (credential_t *cred, char *host)
+int
+get_ssh_credential_port (credential_t *credential)
 {
-  static int already_set = 0;
-  int ret;
-  smb_credential_t *smb_cred = NULL;
-
-  if (already_set)
-    {
-      g_debug ("SMB credential already set");
-      return already_set;
-    }
-
-  smb_cred = cred->smb_credential;
-  ret = smb_krb5_login_test (host, smb_cred->username, smb_cred->password, NULL,
-                             NULL);
-  if (ret == 0)
-    {
-      g_warning ("SMB credential worked succesfully ");
-      store_smb_credential (smb_cred);
-      already_set = 1;
-    }
-
-  return already_set;
+  return credential->ssh_credential->port;
 }
 
-static void
-store_krb5_credential (krb5_credential_t *credential)
+char *
+get_ssh_credential_username (credential_t *credential)
 {
-  // prefs set will replace the old values if any.
-  prefs_set (OID_KRB5_AUTH_USER, credential->username);
-  prefs_set (OID_KRB5_AUTH_PASS, credential->password);
-  prefs_set (OID_KRB5_AUTH_REALM, credential->realm);
-  prefs_set (OID_KRB5_AUTH_KDC, credential->kdc);
+  return credential->ssh_credential->username;
 }
 
-static int
-try_krb5_credential (credential_t *cred, char *host)
+char *
+get_ssh_credential_password (credential_t *credential)
 {
-  static int already_set = 0;
-  int ret;
-  krb5_credential_t *krb5_cred = NULL;
-
-  if (already_set)
-    {
-      g_debug ("KRB5 credential already set");
-      return already_set;
-    }
-
-  krb5_cred = cred->krb5_credential;
-  ret = smb_krb5_login_test (host, krb5_cred->username, krb5_cred->password,
-                             krb5_cred->realm, krb5_cred->kdc);
-  if (ret == 0)
-    {
-      g_warning ("KRB5 credential worked succesfully ");
-      store_krb5_credential (krb5_cred);
-      already_set = 1;
-    }
-
-  return already_set;
+  return credential->ssh_credential->password;
 }
 
-static void
-store_snmp_credential (snmp_credential_t *credential)
+char *
+get_ssh_credential_private_key (credential_t *credential)
 {
-  // prefs set will replace the old values if any.
-  prefs_set (OID_SNMP_AUTH_USER, credential->username);
-  prefs_set (OID_SNMP_AUTH_COMMUNITY, credential->community);
-  prefs_set (OID_SNMP_AUTH_PASS, credential->password);
-  prefs_set (OID_SNMP_AUTH_AUTH_ALGO, credential->auth_proto);
-  prefs_set (OID_SNMP_AUTH_PRIV_PASS, credential->privacy_password);
-  prefs_set (OID_SNMP_AUTH_PRIV_ALGO, credential->privacy_proto);
+  return credential->ssh_credential->private_key;
 }
 
-static int
-try_snmp_credential (snmp_credential_t *credential, const char *host_target)
+char *
+get_ssh_credential_private_key_uuid (credential_t *credential)
 {
-  static int already_set = 0;
-  int ret;
-  char peername[2048];
-  snmp_result_t result;
-  snmpv1v2_request_t requestv1v2c;
-  snmpv3_request_t requestv3;
-
-  if (already_set)
-    {
-      g_debug ("SNMP credential already set");
-      return already_set;
-    }
-  // TODO: get the protocol and port from the kb instead of assuming udp:161,
-  // since a script could have stored need values.
-  g_snprintf (peername, sizeof (peername), "udp:%s:161", host_target);
-
-  if (credential->community)
-    {
-      // try SNMP v1
-      requestv1v2c = new_snmpv1v2_request (peername, credential->community, 0);
-      result = new_snmp_result ();
-
-      ret = snmpv1v2c_get (requestv1v2c, result);
-      g_free (requestv1v2c);
-      destroy_snmp_result (result);
-      if (ret != 0)
-        g_debug ("%s: Failed authenticating SNMP v1 credential", __func__);
-      else
-        {
-          g_debug ("%s: snmp v1 successfully authenticated", __func__);
-          store_snmp_credential (credential);
-          already_set = 1;
-          return already_set;
-        }
-
-      // try SNMP v2c
-      requestv1v2c = new_snmpv1v2_request (peername, credential->community, 1);
-      result = new_snmp_result ();
-
-      ret = snmpv1v2c_get (requestv1v2c, result);
-      g_free (requestv1v2c);
-      destroy_snmp_result (result);
-      if (ret != 0)
-        g_debug ("%s: Failed authenticating SNMP v2c credential", __func__);
-      else
-        {
-          g_debug ("%s: snmp v2c successfully authenticated", __func__);
-          store_snmp_credential (credential);
-          already_set = 1;
-          return already_set;
-        }
-    }
-  // try SNMP v3
-  else if (credential && credential->username && credential->password
-           && credential->auth_proto)
-    {
-      requestv3 = new_snmpv3_request (
-        peername, credential->username, credential->password,
-        credential->privacy_password,
-        g_strcmp0 (credential->auth_proto, "md5") ? 1 : 0,
-        g_strcmp0 (credential->privacy_proto, "des") ? 1 : 0);
-      result = new_snmp_result ();
-
-      ret = snmpv3_get (requestv3, result);
-      g_free (requestv3);
-      destroy_snmp_result (result);
-      if (ret != 0)
-        g_debug ("%s: Failed authenticating SNMP v2c credential", __func__);
-      else
-        {
-          g_debug ("%s: snmp v3 successfully authenticated", __func__);
-          store_snmp_credential (credential);
-          already_set = 1;
-          return already_set;
-        }
-    }
-
-  return already_set;
+  return credential->ssh_credential->private_key_uuid;
 }
 
-static void
-store_ssh_credential (ssh_credential_t *credential)
+char *
+get_ssh_credential_privilege_username (credential_t *credential)
 {
-  // prefs set will replace the old values if any.
-  prefs_set (OID_SSH_AUTH_USER, credential->username);
-  prefs_set (OID_SSH_AUTH_PASS, credential->password);
-  prefs_set (OID_SSH_AUTH_PASSPHRASE, credential->password);
-  prefs_set (OID_SSH_AUTH_PRIV_USER, credential->privilege_username);
-  prefs_set (OID_SSH_AUTH_PRIV_PASS, credential->privilege_password);
-  prefs_set (OID_SSH_AUTH_PRIV_KEY, credential->private_key_uuid);
+  return credential->ssh_credential->privilege_username;
 }
 
-static int
-try_ssh_auth_methods (ssh_session session, ssh_credential_t *credential)
+char *
+get_ssh_credential_privilege_password (credential_t *credential)
 {
-  int rc, retc_val = -1;
-  // try with user pass
-  if (credential->password)
-    {
-      rc = ssh_userauth_password (session, NULL, credential->password);
-      if (rc == SSH_AUTH_SUCCESS)
-        {
-          retc_val = 0;
-          goto leave;
-        }
-      g_debug ("SSH password authentication failed : %s",
-               ssh_get_error (session));
-    }
-
-  // try interactive
-  if (credential->password)
-    {
-      g_debug ("trying interactive method");
-      /* Our strategy for kbint is to send the password to the first
-         prompt marked as non-echo.  */
-
-      while ((rc = ssh_userauth_kbdint (session, NULL, NULL)) == SSH_AUTH_INFO)
-        {
-          const char *s;
-          int n, nprompt;
-          char echoflag;
-          int found_prompt = 0;
-
-          s = ssh_userauth_kbdint_getname (session);
-          if (s && *s)
-            g_debug ("SSH kbdint name='%s'", s);
-          s = ssh_userauth_kbdint_getinstruction (session);
-          if (s && *s)
-            g_debug ("SSH kbdint instruction='%s'", s);
-
-          nprompt = ssh_userauth_kbdint_getnprompts (session);
-          for (n = 0; n < nprompt; n++)
-            {
-              s = ssh_userauth_kbdint_getprompt (session, n, &echoflag);
-              if (s && *s)
-                g_debug ("SSH kbdint prompt='%s'%s", s,
-                         echoflag ? "" : " [hide input]");
-              if (s && *s && !echoflag && !found_prompt)
-                {
-                  found_prompt = 1;
-                  rc = ssh_userauth_kbdint_setanswer (session, n,
-                                                      credential->password);
-                  if (rc != SSH_AUTH_SUCCESS)
-                    {
-                      g_debug ("SSH keyboard-interactive authentication "
-                               "failed at prompt for session %d: %s",
-                               n, ssh_get_error (session));
-                    }
-                }
-            }
-
-          if (rc == SSH_AUTH_SUCCESS)
-            {
-              retc_val = 0;
-              goto leave;
-            }
-
-          g_debug ("SSH keyboard-interactive authentication failed for session"
-                   ": %s",
-                   ssh_get_error (session));
-        }
-    }
-
-  /* If we have a private key, try public key authentication.  */
-  if (credential->private_key && credential->private_key[0] != '\0')
-    {
-      char *priv_key;
-      size_t bytes = 0;
-      ssh_key key = NULL;
-
-      g_debug ("trying public key auth method");
-      priv_key = (char *) g_base64_decode (credential->private_key, &bytes);
-      if (ssh_pki_import_privkey_base64 (priv_key, credential->password, NULL,
-                                         NULL, &key))
-        {
-          g_debug ("SSH public key authentication failed for "
-                   "session: %s",
-                   "Error converting provided key");
-        }
-      else if (ssh_userauth_try_publickey (session, NULL, key)
-               != SSH_AUTH_SUCCESS)
-        {
-          g_debug ("SSH public key authentication failed for "
-                   "session: %s",
-                   "Server does not want our key");
-        }
-      else if (ssh_userauth_publickey (session, NULL, key) == SSH_AUTH_SUCCESS)
-        {
-          g_debug ("pubkey success");
-          retc_val = 0;
-          ssh_key_free (key);
-          goto leave;
-        }
-      g_debug ("SSH pub-key authentication failed for session"
-               ": %s",
-               ssh_get_error (session));
-      g_free (priv_key);
-      ssh_key_free (key);
-    }
-leave:
-
-  return retc_val;
+  return credential->ssh_credential->privilege_password;
 }
 
-// TODO: get the port from the kb if the port was not provided. Default
-// to 22 in last case.
-static int
-try_ssh_credential (ssh_credential_t *credential, const char *host_target)
+char *
+get_smb_credential_username (credential_t *credential)
 {
-  static int already_set = 0;
-  ssh_session session = NULL;
-  int rc;
-
-  if (already_set)
-    {
-      g_debug ("SSH credential already set");
-      return already_set;
-    }
-  // Open session and set options
-  session = ssh_new ();
-  if (session == NULL)
-    exit (-1);
-  ssh_options_set (session, SSH_OPTIONS_HOST, host_target);
-  ssh_options_set (session, SSH_OPTIONS_PORT, &credential->port);
-  ssh_options_set (session, SSH_OPTIONS_USER, credential->username);
-  ssh_options_set (session, SSH_OPTIONS_KNOWNHOSTS, "/dev/null");
-  // Connect to server
-  rc = ssh_connect (session);
-  if (rc != SSH_OK)
-    {
-      g_debug ("Error connecting to %s: %s\n", host_target,
-               ssh_get_error (session));
-      ssh_free (session);
-      exit (-1);
-    }
-
-  // Authenticate
-  rc = try_ssh_auth_methods (session, credential);
-
-  if (rc != SSH_AUTH_SUCCESS)
-    {
-      g_debug ("Error authenticating with password: %s\n",
-               ssh_get_error (session));
-      ssh_disconnect (session);
-      ssh_free (session);
-      return already_set;
-    }
-  already_set = 1;
-
-  ssh_disconnect (session);
-  ssh_free (session);
-
-  store_ssh_credential (credential);
-
-  return already_set;
+  return credential->smb_credential->username;
 }
 
-static void
-set_host_credential (gpointer credential, gpointer host_target)
+char *
+get_smb_credential_password (credential_t *credential)
 {
-  char *host = host_target;
-  credential_t *cred = credential;
-
-  if (cred->type == SSH)
-    {
-      try_ssh_credential (cred->ssh_credential, host);
-    }
-  else if (cred->type == SNMP)
-    {
-      try_snmp_credential (cred->snmp_credential, host);
-    }
-  else if (cred->type == SMB)
-    {
-      try_smb_credential (cred, host);
-    }
-  else if (cred->type == KRB5)
-    {
-      try_krb5_credential (cred, host);
-    }
+  return credential->smb_credential->password;
 }
 
-void
-set_host_credentials (GSList *credentials, const char *host)
+char *
+get_krb5_credential_username (credential_t *credential)
 {
-  g_slist_foreach (credentials, (GFunc) set_host_credential, (gpointer) host);
+  return credential->krb5_credential->username;
+}
+char *
+get_krb5_credential_password (credential_t *credential)
+{
+  return credential->krb5_credential->password;
+}
+
+char *
+get_krb5_credential_realm (credential_t *credential)
+{
+  return credential->krb5_credential->realm;
+}
+
+char *
+get_krb5_credential_kdc (credential_t *credential)
+{
+  return credential->krb5_credential->kdc;
+}
+
+char *
+get_snmp_credential_username (credential_t *credential)
+{
+  return credential->snmp_credential->username;
+}
+
+char *
+get_snmp_credential_password (credential_t *credential)
+{
+  return credential->snmp_credential->password;
+}
+
+char *
+get_snmp_credential_community (credential_t *credential)
+{
+  return credential->snmp_credential->community;
+}
+char *
+get_snmp_credential_privacy_password (credential_t *credential)
+{
+  return credential->snmp_credential->privacy_password;
+}
+
+char *
+get_snmp_credential_auth_proto (credential_t *credential)
+{
+  return credential->snmp_credential->auth_proto;
+}
+
+char *
+get_snmp_credential_privacy_proto (credential_t *credential)
+{
+  return credential->snmp_credential->privacy_proto;
+}
+
+char *
+get_esxi_credential_username (credential_t *credential)
+{
+  return credential->esxi_credential->username;
+}
+
+char *
+get_esxi_credential_password (credential_t *credential)
+{
+  return credential->esxi_credential->password;
 }

@@ -573,9 +573,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   setproctitle ("openvas: testing %s", ip_str);
   kb_lnk_reset (args->host_kb);
 
-  /* try and set credentials */
-  set_host_credentials (globals->credentials, ip_str);
-
   /* launch the plugins */
   pluginlaunch_init (ip_str);
   num_plugs = plugins_scheduler_count_active (args->sched);
