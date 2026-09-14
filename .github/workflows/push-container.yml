@@ -114,7 +114,7 @@ jobs:
     runs-on: self-hosted-generic
     steps:
       - name: Ensure all tags are replicated on the public registry
-        uses: greenbone/actions/trigger-harbor-replication@v3.36.15
+        uses: greenbone/actions/trigger-harbor-replication@v3.36.18
         if: ${{ github.event_name != 'pull_request' }}
         with:
           registry: ${{ vars.GREENBONE_REGISTRY }}
