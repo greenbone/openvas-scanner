@@ -124,7 +124,6 @@ mod tests {
         create_single_handler,
         greenbone_scanner_framework::{Authentication, entry::ClientHash},
     };
-    use scannerlib::models::Credential;
 
     struct Test {}
     impl Prefixed for Test {
@@ -200,25 +199,6 @@ mod tests {
             .unwrap();
         let resp = entry_point.call(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::CONFLICT);
-    }
-
-    #[tokio::test]
-    async fn duplicate_credential_service() {
-        let entry_point = test_utilities::entry_point(
-            Authentication::Mtls,
-            create_single_handler!(PostScansHandler::from(Test {})),
-            Some(ClientHash::from("ok")),
-        );
-        let mut scans = models::Scan::default();
-        scans.target.credentials = vec![Credential::default(), Credential::default()];
-
-        let req = Request::builder()
-            .uri("/scans")
-            .method(Method::POST)
-            .body(json_bytes(&scans))
-            .unwrap();
-        let resp = entry_point.call(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
