@@ -5,12 +5,15 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use crate::models::HostInfo;
+use crate::models::{self, HostInfo, ResultType};
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
 use crate::nasl::utils::scan_ctx::{ContextStorage, NotusCtx, Target};
+use crate::storage::ScanID;
+use chrono::Utc;
 use futures::{Stream, stream};
 use tokio::sync::mpsc::Receiver;
+use tracing::warn;
 
 use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
 
@@ -82,12 +85,13 @@ where
     }
 
     pub fn host_info(&self) -> HostInfo {
+        let num_vts: usize = self.concurrent_vts.iter().map(|(_, vts)| vts.len()).sum();
         HostInfo::from_hosts_and_num_vts(
             self.scan
                 .targets
                 .iter()
                 .map(|target| target.original_target_str()),
-            self.concurrent_vts.len(),
+            num_vts,
         )
     }
 
@@ -101,12 +105,13 @@ where
             notus,
             host_feed,
         } = self;
-        let state = (host_feed, VecDeque::<Position>::new());
+        let last_host: Option<Target> = None;
+        let state = (host_feed, VecDeque::<Position>::new(), last_host);
         // The usage of unfold here will prevent any real asynchronous running of VTs
         // and automatically guarantee that we stick to the scheduling requirements.
         // If this is changed, make sure to uphold the scheduling requirements in the
         // new implementation.
-        stream::unfold(state, move |(mut host_feed, mut queue)| {
+        stream::unfold(state, move |(mut host_feed, mut queue, mut last_host)| {
             let concurrent_vts = concurrent_vts.clone();
             async move {
                 loop {
@@ -117,7 +122,34 @@ where
                             return None;
                         }
                     }
+
                     if let Some(pos) = queue.pop_front() {
+                        let is_host_start = last_host != Some(pos.host.clone());
+                        last_host = Some(pos.host.clone());
+                        if is_host_start {
+                            let result = models::Result {
+                                id: 0,
+                                r_type: ResultType::HostStart,
+                                ip_address: Some(pos.host.original_target_str().to_string()),
+                                hostname: None,
+                                oid: None,
+                                port: None,
+                                protocol: None,
+                                message: Some(Utc::now().timestamp().to_string()),
+                                detail: None,
+                            };
+                            if let Err(e) = self
+                                .storage
+                                .retry_dispatch(ScanID(scan.scan_id.clone()), result, 5)
+                                .await
+                            {
+                                warn!(
+                                    error=?e,
+                                    host = pos.host.original_target_str(),
+                                    "unable to dispatch HostStart result"
+                                );
+                            }
+                        }
                         let (stage, vts) = &concurrent_vts[pos.stage];
                         let (vt, param) = &vts[pos.vt];
                         let result = VTRunner::<S>::run(
@@ -135,7 +167,7 @@ where
                             notus,
                         )
                         .await;
-                        return Some((result, (host_feed, queue)));
+                        return Some((result, (host_feed, queue, last_host)));
                     }
                 }
             }

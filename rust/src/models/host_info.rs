@@ -41,18 +41,37 @@ impl HostInfo {
         }
     }
 
-    pub fn register_finished_script(&mut self, target: &Host) {
+    pub fn register_started_host(&mut self, target: &Host) {
+        if !self.remaining_vts_per_host.contains_key(target) {
+            return;
+        }
+        let scanning = self.scanning.get_or_insert_with(HashMap::new);
+        if scanning.contains_key(target) {
+            return;
+        }
+        scanning.insert(target.clone(), 0);
+        self.queued = self.queued.saturating_sub(1);
+    }
+
+    pub fn register_finished_script(&mut self, target: &Host) -> bool {
         if let Some(num_vts) = self.remaining_vts_per_host.get_mut(target) {
             *num_vts -= 1;
             if *num_vts == 0 {
                 self.finished += 1;
-                self.queued = self.queued.saturating_sub(1);
-                // A host whose VTs have all run is implicitly alive (the
-                // openvasd scanner type has no separate alive-detection phase).
                 self.alive += 1;
                 self.remaining_vts_per_host.remove(target);
+                // one host less in the queued counter, even if it was not scanned (no vts, dead)
+                if let Some(scanning) = self.scanning.as_mut() {
+                    if scanning.remove(target).is_none() {
+                        self.queued = self.queued.saturating_sub(1);
+                    }
+                } else {
+                    self.queued = self.queued.saturating_sub(1);
+                }
+                return true;
             }
         }
+        false
     }
 
     pub fn finish(&mut self) {
