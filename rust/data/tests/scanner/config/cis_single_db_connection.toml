@@ -7,3 +7,6 @@ max_connections = 1
 
 [container_image_scanner.image]
 batch_size = 1
+
+[endpoints]
+enable_get_scans = true
