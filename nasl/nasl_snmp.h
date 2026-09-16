@@ -52,5 +52,9 @@ new_snmpv1v2_request (char *, char *, u_char);
 snmp_result_t
 new_snmp_result (void);
 
+void free_snmpv1v2_request (snmpv1v2_request_t);
+
+void free_snmpv3_request (snmpv3_request_t);
+
 void destroy_snmp_result (snmp_result_t);
 #endif

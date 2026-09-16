@@ -104,6 +104,18 @@ new_snmpv1v2_request (char *peername, char *community, u_char version)
   return request;
 }
 
+void
+free_snmpv1v2_request (snmpv1v2_request_t request)
+{
+  if (request == NULL)
+    return;
+
+  g_free (request->peername);
+  g_free (request->oid_str);
+  g_free (request->community);
+  g_free (request);
+}
+
 snmpv3_request_t
 new_snmpv3_request (char *peername, char *username, char *authpass,
                     char *privpass, int authproto, int privproto)
@@ -116,10 +128,23 @@ new_snmpv3_request (char *peername, char *username, char *authpass,
   request->privpass = g_strdup (privpass);
   request->authproto = authproto;
   request->privproto = privproto;
-  request->oid_str = "1.3.6.1.2.1.1.1.0";
+  request->oid_str = g_strdup ("1.3.6.1.2.1.1.1.0");
   request->action = NASL_SNMP_GET;
 
   return request;
+}
+
+void
+free_snmpv3_request (snmpv3_request_t request)
+{
+  if (request == NULL)
+    return;
+  g_free (request->peername);
+  g_free (request->username);
+  g_free (request->authpass);
+  g_free (request->privpass);
+  g_free (request->oid_str);
+  g_free (request);
 }
 
 snmp_result_t

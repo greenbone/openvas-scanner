@@ -434,7 +434,7 @@ static init_func libfuncs[] = {
   {"krb5_gss_update_context_out", nasl_okrb5_gss_update_context_out},
   {"krb5_gss_session_key", nasl_okrb5_gss_session_key_context},
   {"krb5_error_code_to_string", nasl_okrb5_error_code_to_string},
-  {"init_host_ssh_credential ", nasl_init_host_ssh_credential},
+  {"init_host_ssh_credential", nasl_init_host_ssh_credential},
   {"init_host_smb_credential", nasl_init_host_smb_credential},
   {"init_host_krb5_credential", nasl_init_host_krb5_credential},
   {"init_host_snmp_credential", nasl_init_host_snmp_credential},

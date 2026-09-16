@@ -88,6 +88,8 @@ static int
 try_smb_credential (struct script_infos *args, credential_t *cred,
                     const char *host)
 {
+  // be carefull with this static var, since it only works under the current
+  // forked host process model.
   static int already_set = 0;
   int ret;
 
@@ -145,6 +147,8 @@ static int
 try_esxi_credential (struct script_infos *args, credential_t *cred,
                      const char *host)
 {
+  // be carefull with this static var, since it only works under the current
+  // forked host process model.
   static int already_set = 0;
   int ret = 1;
 
@@ -171,6 +175,8 @@ static int
 try_krb5_credential (struct script_infos *args, credential_t *cred,
                      const char *host)
 {
+  // be carefull with this static var, since it only works under the current
+  // forked host process model.
   static int already_set = 0;
   int ret;
 
@@ -227,6 +233,8 @@ static int
 try_snmp_credential (struct script_infos *args, credential_t *credential,
                      const char *host_target)
 {
+  // be carefull with this static var, since it only works under the current
+  // forked host process model.
   static int already_set = 0;
   int ret;
   char peername[2048];
@@ -251,7 +259,7 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
       result = new_snmp_result ();
 
       ret = snmpv1v2c_get (requestv1v2c, result);
-      g_free (requestv1v2c);
+      free_snmpv1v2_request (requestv1v2c);
       destroy_snmp_result (result);
       if (ret != 0)
         g_debug ("%s: Failed authenticating SNMP v1 credential", __func__);
@@ -269,7 +277,7 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
       result = new_snmp_result ();
 
       ret = snmpv1v2c_get (requestv1v2c, result);
-      g_free (requestv1v2c);
+      free_snmpv1v2_request (requestv1v2c);
       destroy_snmp_result (result);
       if (ret != 0)
         g_debug ("%s: Failed authenticating SNMP v2c credential", __func__);
@@ -296,7 +304,7 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
       result = new_snmp_result ();
 
       ret = snmpv3_get (requestv3, result);
-      g_free (requestv3);
+      free_snmpv3_request (requestv3);
       destroy_snmp_result (result);
       if (ret != 0)
         g_debug ("%s: Failed authenticating SNMP v2c credential", __func__);
@@ -461,6 +469,8 @@ static int
 try_ssh_credential (struct script_infos *args, credential_t *credential,
                     const char *host_target)
 {
+  // be carefull with this static var, since it only works under the current
+  // forked host process model.
   static int already_set = 0;
   ssh_session session = NULL;
   int rc;
@@ -570,7 +580,7 @@ set_host_credentials (struct script_infos *args, GSList *credentials,
 tree_cell *
 nasl_init_host_ssh_credential (lex_ctxt *lexic)
 {
-  char *ip_str = NULL;
+  char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
@@ -581,18 +591,18 @@ nasl_init_host_ssh_credential (lex_ctxt *lexic)
 tree_cell *
 nasl_init_host_smb_credential (lex_ctxt *lexic)
 {
-  char *ip_str = NULL;
+  char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
-  set_host_credentials (lexic->script_infos, credentials, ip_str, SSH);
+  set_host_credentials (lexic->script_infos, credentials, ip_str, SMB);
   return NULL;
 }
 
 tree_cell *
 nasl_init_host_snmp_credential (lex_ctxt *lexic)
 {
-  char *ip_str = NULL;
+  char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
@@ -603,7 +613,7 @@ nasl_init_host_snmp_credential (lex_ctxt *lexic)
 tree_cell *
 nasl_init_host_krb5_credential (lex_ctxt *lexic)
 {
-  char *ip_str = NULL;
+  char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
@@ -614,7 +624,7 @@ nasl_init_host_krb5_credential (lex_ctxt *lexic)
 tree_cell *
 nasl_init_host_esxi_credential (lex_ctxt *lexic)
 {
-  char *ip_str = NULL;
+  char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
