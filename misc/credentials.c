@@ -213,10 +213,13 @@ process_credentials_json (const char *json_credentials,
 {
   cJSON *parser;
   cJSON *service_obj = NULL;
+  int ret = 0;
+
   parser = cJSON_Parse (json_credentials);
   if (parser == NULL || !cJSON_IsArray (parser))
     {
       *err = g_strdup ("Unable to parse credentials data");
+      ret = -1;
       goto res_cleanup;
     }
 
@@ -225,6 +228,7 @@ process_credentials_json (const char *json_credentials,
     if (!cJSON_IsObject (service_obj))
       {
         *err = g_strdup ("Unable to parse credential data object");
+        ret = -1;
         goto res_cleanup;
       }
 
@@ -232,21 +236,27 @@ process_credentials_json (const char *json_credentials,
       {
         char *service = gvm_json_obj_str (service_obj, "service");
         credential_t *credential = g_malloc0 (sizeof (credential_t));
-        int ret = 0;
+        ret = 0;
         if (!g_strcmp0 (service, "ssh"))
           {
             ret = credential_ssh_new (service_obj, &credential);
-            if (credential->ssh_credential->private_key != NULL
+            if (ret == 0 && credential->ssh_credential->private_key != NULL
                 && credential->ssh_credential->private_key[0] != '\0')
               {
                 char *file_uuid = gvm_uuid_make ();
                 if (store_file (*globals,
                                 credential->ssh_credential->private_key,
                                 file_uuid))
-                  g_debug ("%s: Failed to parse file tipe private key.",
-                           __func__);
-                credential->ssh_credential->private_key_uuid =
-                  g_strdup (file_uuid);
+                  {
+                    g_free (file_uuid);
+                    g_debug ("%s: Failed to parse file tipe private key.",
+
+                             __func__);
+                  }
+                else
+                  {
+                    credential->ssh_credential->private_key_uuid = file_uuid;
+                  }
               }
           }
         else if (!g_strcmp0 (service, "smb"))
@@ -267,6 +277,7 @@ process_credentials_json (const char *json_credentials,
           }
         else
           {
+            g_free (credential);
             g_warning ("%s: Unknown credential service type %s", __func__,
                        service);
             continue;
@@ -275,20 +286,19 @@ process_credentials_json (const char *json_credentials,
           (*globals)->credentials =
             g_slist_prepend ((*globals)->credentials, credential);
         else
-          g_warning (
-            "%s: not possible to parse a credential. Missing information",
-            __func__);
+          {
+            g_free (credential);
+            g_warning (
+              "%s: not possible to parse a credential. Missing information",
+              __func__);
+          }
       }
   }
 
 res_cleanup:
-  if (*err != NULL)
-    {
-      g_warning ("%s: Unable to parse credentials. Reason: %s", __func__, *err);
-    }
   cJSON_Delete (parser);
 
-  return 0;
+  return ret;
 }
 
 static void
