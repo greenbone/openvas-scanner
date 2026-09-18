@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #undef G_LOG_DOMAIN
@@ -27,6 +28,21 @@
  * @brief GLib logging domain.
  */
 #define G_LOG_DOMAIN "lib  nasl"
+
+#ifdef HAVE_NETSNMP
+
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/net-snmp-includes.h>
+
+#define NASL_SNMP_GET SNMP_MSG_GET
+#define NASL_SNMP_GETNEXT SNMP_MSG_GETNEXT
+
+#else
+
+#define NASL_SNMP_GET 0
+#define NASL_SNMP_GETNEXT 1
+
+#endif /* HAVE_NETSNMP */
 
 /**
  * @brief SNMP V1
@@ -53,8 +69,6 @@ struct snmpv1v2_request
   u_char action;   /**< snmp get or getnext action. */
 };
 
-typedef struct snmpv1v2_request *snmpv1v2_request_t;
-
 /**
  * @brief SNMP Request struct for snmp v3
  */
@@ -70,17 +84,77 @@ struct snmpv3_request
   u_char action;  /**< snmp get or getnext action. */
 };
 
-typedef struct snmpv3_request *snmpv3_request_t;
-
 struct snmp_result
 {
   char *oid_str; /**< oid. */
   char *name;    /**< value in stored under the oid. */
 };
 
-typedef struct snmp_result *snmp_result_t;
+snmpv1v2_request_t
+new_snmpv1v2_request (char *peername, char *community, u_char version)
+{
+  snmpv1v2_request_t request = g_malloc0 (sizeof (struct snmpv1v2_request));
 
-static void
+  request->peername = g_strdup (peername);
+  request->community = g_strdup (community);
+  request->oid_str = g_strdup ("1.3.6.1.2.1.1.1.0");
+  request->version = version;
+  request->action = NASL_SNMP_GET;
+
+  return request;
+}
+
+void
+free_snmpv1v2_request (snmpv1v2_request_t request)
+{
+  if (request == NULL)
+    return;
+
+  g_free (request->peername);
+  g_free (request->oid_str);
+  g_free (request->community);
+  g_free (request);
+}
+
+snmpv3_request_t
+new_snmpv3_request (char *peername, char *username, char *authpass,
+                    char *privpass, int authproto, int privproto)
+{
+  snmpv3_request_t request = g_malloc0 (sizeof (struct snmpv3_request));
+
+  request->peername = g_strdup (peername);
+  request->username = g_strdup (username);
+  request->authpass = g_strdup (authpass);
+  request->privpass = g_strdup (privpass);
+  request->authproto = authproto;
+  request->privproto = privproto;
+  request->oid_str = g_strdup ("1.3.6.1.2.1.1.1.0");
+  request->action = NASL_SNMP_GET;
+
+  return request;
+}
+
+void
+free_snmpv3_request (snmpv3_request_t request)
+{
+  if (request == NULL)
+    return;
+  g_free (request->peername);
+  g_free (request->username);
+  g_free (request->authpass);
+  g_free (request->privpass);
+  g_free (request->oid_str);
+  g_free (request);
+}
+
+snmp_result_t
+new_snmp_result (void)
+{
+  snmp_result_t result = g_malloc0 (sizeof (struct snmp_result));
+  return result;
+}
+
+void
 destroy_snmp_result (snmp_result_t result)
 {
   if (result == NULL)
@@ -172,12 +246,6 @@ array_from_snmp_error (int ret, const char *err)
 
 #ifdef HAVE_NETSNMP
 
-#include <net-snmp/net-snmp-config.h>
-#include <net-snmp/net-snmp-includes.h>
-
-#define NASL_SNMP_GET SNMP_MSG_GET
-#define NASL_SNMP_GETNEXT SNMP_MSG_GETNEXT
-
 /*
  * @brief SNMP Get query value.
  *
@@ -246,7 +314,7 @@ snmp_get (struct snmp_session *session, const char *oid_str,
  *
  * @return 0 if success and result value, -1 otherwise.
  */
-static int
+int
 snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
 {
   struct snmp_session session;
@@ -332,7 +400,7 @@ snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
  *
  * @return 0 if success and result value, -1 otherwise.
  */
-static int
+int
 snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
 {
   struct snmp_session session;
@@ -355,9 +423,6 @@ snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
 }
 
 #else // no libnet. snmpget cmd wrap-up
-
-#define NASL_SNMP_GET 0
-#define NASL_SNMP_GETNEXT 1
 
 /**
  * @brief Parse the snmp error.
@@ -463,7 +528,7 @@ check_spwan_output (int fd, snmp_result_t result, int fd_flag)
  *
  * @return 0 if success and result value, -1 otherwise.
  */
-static int
+int
 snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
 {
   char *argv[8], *pos = NULL;
@@ -541,7 +606,7 @@ snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
  *
  * @return 0 if success and result value, -1 otherwise.
  */
-static int
+int
 snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
 {
   char *argv[18], *pos = NULL;

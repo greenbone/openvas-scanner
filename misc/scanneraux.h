@@ -19,6 +19,7 @@ struct scan_globals
 {
   GHashTable *files_translation;
   GHashTable *files_size_translation;
+  GSList *credentials;
   char *scan_id;
   pid_t host_pid;
 };
@@ -43,5 +44,9 @@ struct script_infos
 
 void
 destroy_scan_globals (struct scan_globals *);
+
+int
+store_file (struct scan_globals *globals, const char *file,
+            const char *file_hash);
 
 #endif /* not MISC_SCANNERAUX_H */
