@@ -19,12 +19,14 @@
 #include "nasl_tree.h"
 
 #include <cjson/cJSON.h>
+#include <curl/curl.h>
 #include <glib.h>
 #include <gnutls/gnutls.h>
 #include <gvm/base/prefs.h> /* for prefs_get */
 #include <gvm/util/json.h>
 #include <gvm/util/uuidutils.h> /* gvm_uuid_make */
 #include <libssh/libssh.h>
+#include <unistd.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -130,47 +132,6 @@ store_krb5_credential (struct script_infos *args, credential_t *credential)
                     get_krb5_credential_kdc (credential));
 }
 
-static void
-store_esxi_credential (struct script_infos *args, credential_t *cred)
-{
-  // prefs set will replace the old values if any.
-  prefs_set (OID_ESXI_AUTH_USER, get_esxi_credential_username (cred));
-  prefs_set (OID_ESXI_AUTH_PASS, get_esxi_credential_password (cred));
-
-  plug_replace_key (args, "esxi/login_filled/0", ARG_STRING,
-                    get_esxi_credential_username (cred));
-  plug_replace_key (args, "esxi/password_filled/0", ARG_STRING,
-                    get_esxi_credential_password (cred));
-}
-
-static int
-try_esxi_credential (struct script_infos *args, credential_t *cred,
-                     const char *host)
-{
-  // be carefull with this static var, since it only works under the current
-  // forked host process model.
-  static int already_set = 0;
-  int ret = 1;
-
-  if (already_set)
-    {
-      g_debug ("ESXi credential already set");
-      return already_set;
-    }
-
-  // TODO: Implement ESXi credential test
-  (void) host;
-
-  if (ret == 0)
-    {
-      g_debug ("ESXi credential worked succesfully ");
-      store_esxi_credential (args, cred);
-      already_set = 1;
-    }
-
-  return already_set;
-}
-
 static int
 try_krb5_credential (struct script_infos *args, credential_t *cred,
                      const char *host)
@@ -194,6 +155,235 @@ try_krb5_credential (struct script_infos *args, credential_t *cred,
     {
       g_debug ("KRB5 credential worked succesfully ");
       store_krb5_credential (args, cred);
+      already_set = 1;
+    }
+
+  return already_set;
+}
+
+static void
+store_esxi_credential (struct script_infos *args, credential_t *cred)
+{
+  // prefs set will replace the old values if any.
+  prefs_set (OID_ESXI_AUTH_USER, get_esxi_credential_username (cred));
+  prefs_set (OID_ESXI_AUTH_PASS, get_esxi_credential_password (cred));
+
+  plug_replace_key (args, "esxi/login_filled/0", ARG_STRING,
+                    get_esxi_credential_username (cred));
+  plug_replace_key (args, "esxi/password_filled/0", ARG_STRING,
+                    get_esxi_credential_password (cred));
+}
+
+struct data
+{
+  char *memory;
+  size_t size;
+};
+
+static size_t
+write_memory_callback (void *contents, size_t size, size_t nmemb, void *userp)
+{
+  size_t realsize = size * nmemb;
+  struct data *mem = (struct data *) userp;
+  char *ptr = realloc (mem->memory, mem->size + realsize + 1);
+  if (!ptr)
+    return 0;
+  mem->memory = ptr;
+  memcpy (&(mem->memory[mem->size]), contents, realsize);
+  mem->size += realsize;
+  mem->memory[mem->size] = 0;
+  return realsize;
+}
+
+static char *
+extract_xml_tag (const char *xml, const char *tag)
+{
+  char start_tag[64];
+  char end_tag[64];
+
+  if (!xml || !tag)
+    return NULL;
+
+  g_snprintf (start_tag, sizeof (start_tag), "<%s", tag);
+  g_snprintf (end_tag, sizeof (end_tag), "</%s>", tag);
+
+  char *start = strstr (xml, start_tag);
+  if (!start)
+    return NULL;
+
+  start = strchr (start, '>');
+  if (!start)
+    return NULL;
+  start += 1;
+
+  char *end = strstr (start, end_tag);
+  if (!end)
+    return NULL;
+
+  size_t len = end - start;
+  char *result = g_malloc0 (len + 1);
+  if (!result)
+    return NULL;
+  memcpy (result, start, len);
+  result[len] = '\0';
+  return result;
+}
+
+static int
+try_esxi_credential (struct script_infos *args, credential_t *cred,
+                     const char *host)
+{
+  // be carefull with this static var, since it only works under the current
+  // forked host process model.
+  static int already_set = 0;
+  int ret = 1;
+
+  if (already_set)
+    {
+      g_debug ("ESXi credential already set");
+      return already_set;
+    }
+
+  char cookie_file[32];
+  char url[256];
+  char host_header[256];
+  CURL *curl;
+  CURLcode res;
+  long response_code = 0;
+
+  g_snprintf (url, sizeof (url), "https://%s:443/sdk/webService", host);
+  g_snprintf (host_header, sizeof (host_header), "Host: %s", host);
+  g_snprintf (cookie_file, sizeof (cookie_file), "/tmp/cookies-%d.txt",
+              getpid ());
+  // Continuous raw string without layout modifications or newlines
+  const char *bootstrap_payload =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><soapenv:Envelope "
+    "xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+    "xmlns:xsi=\"http://www.w3.org/2001/"
+    "XMLSchema-instance\"><soapenv:Body><RetrieveServiceContent "
+    "xmlns=\"urn:vim25\"><_this "
+    "type=\"ServiceInstance\">ServiceInstance</_this></"
+    "RetrieveServiceContent></soapenv:Body></soapenv:Envelope>";
+
+  curl_global_init (CURL_GLOBAL_ALL);
+  curl = curl_easy_init ();
+
+  if (curl)
+    {
+      struct curl_slist *headers = NULL;
+      headers = curl_slist_append (headers, "Connection: Close");
+      // UA intentioanlly hardcoded, like in the nasl script
+      headers = curl_slist_append (headers, "User-Agent: VI Perl");
+      headers = curl_slist_append (headers, host_header);
+      headers = curl_slist_append (headers, "SOAPAction: \"urn:vim25/\"");
+      headers = curl_slist_append (headers, "Content-Type: text/xml");
+
+      curl_easy_setopt (curl, CURLOPT_URL, url);
+      curl_easy_setopt (curl, CURLOPT_HTTPHEADER, headers);
+      curl_easy_setopt (curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+      // this is intentionally disabled so we can test unknown targets
+      curl_easy_setopt (curl, CURLOPT_SSL_VERIFYPEER, 0L);
+      curl_easy_setopt (curl, CURLOPT_SSL_VERIFYHOST, 0L);
+      curl_easy_setopt (curl, CURLOPT_COOKIEFILE, "");
+
+      // get service content
+      struct data write_data = {g_malloc0 (1), 0};
+      curl_easy_setopt (curl, CURLOPT_POSTFIELDS, bootstrap_payload);
+      curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
+      curl_easy_setopt (curl, CURLOPT_WRITEDATA, (void *) &write_data);
+
+      res = curl_easy_perform (curl);
+
+      if (res != CURLE_OK)
+        {
+          g_debug ("%s: Step 1 Connection failed: %s", __func__,
+                   curl_easy_strerror (res));
+          g_free (write_data.memory);
+          curl_slist_free_all (headers);
+          curl_easy_cleanup (curl);
+          goto finish;
+        }
+
+      char *sm_value = extract_xml_tag (write_data.memory, "sessionManager");
+      g_free (write_data.memory);
+
+      if (!sm_value)
+        {
+          g_debug ("%s: Could not extract dynamic sessionManager string",
+                   __func__);
+          curl_slist_free_all (headers);
+          curl_easy_cleanup (curl);
+          goto finish;
+        }
+      g_debug ("%s: Dynamic SessionManager ID found: %s", __func__, sm_value);
+
+      // authenticate
+      size_t login_sz = strlen (sm_value)
+                        + strlen (get_esxi_credential_username (cred))
+                        + strlen (get_esxi_credential_password (cred)) + 512;
+      char *login_payload = g_malloc0 (login_sz);
+
+      g_snprintf (
+        login_payload, login_sz,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><soapenv:Envelope "
+        "xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+        "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+        "xmlns:xsi=\"http://www.w3.org/2001/"
+        "XMLSchema-instance\"><soapenv:Body><Login xmlns=\"urn:vim25\"><_this "
+        "type=\"SessionManager\">%s</_this><userName>%s</"
+        "userName><password>%s</password></Login></soapenv:Body></"
+        "soapenv:Envelope>",
+        sm_value, get_esxi_credential_username (cred),
+        get_esxi_credential_password (cred));
+
+      g_free (sm_value);
+
+      struct data login_chunk = {g_malloc0 (1), 0};
+      curl_easy_setopt (curl, CURLOPT_POSTFIELDS, login_payload);
+      curl_easy_setopt (curl, CURLOPT_WRITEDATA, (void *) &login_chunk);
+      curl_easy_setopt (curl, CURLOPT_COOKIEJAR, cookie_file);
+
+      res = curl_easy_perform (curl);
+
+      if (res != CURLE_OK)
+        {
+          g_debug ("%s: Step 2 Connection failed: %s", __func__,
+                   curl_easy_strerror (res));
+        }
+      else
+        {
+          curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &response_code);
+          if (response_code == 200)
+            {
+              g_debug ("%s: Credentials verified", __func__);
+              ret = 0;
+            }
+          else
+            {
+              g_debug (
+                "%s: FAILED: Target rejected authentication (HTTP %ld).\n",
+                __func__, response_code);
+              g_debug ("%s: Raw Server Response: \n %s", __func__,
+                       login_chunk.memory);
+            }
+          remove (cookie_file);
+        }
+
+      g_free (login_payload);
+      g_free (login_chunk.memory);
+      curl_slist_free_all (headers);
+      curl_easy_cleanup (curl);
+    }
+
+finish:
+  curl_global_cleanup ();
+
+  if (ret == 0)
+    {
+      g_debug ("%s: ESXi credential worked succesfully", __func__);
+      store_esxi_credential (args, cred);
       already_set = 1;
     }
 
