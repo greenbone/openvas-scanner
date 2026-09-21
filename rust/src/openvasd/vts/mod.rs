@@ -392,10 +392,7 @@ fn verify_signature_and_send(
 ) -> Result<(), String> {
     let hashsum = if signature_check {
         let Some(checker) = sumsfile.get(&item.filename) else {
-            return Err(format!(
-                "File not present in sumsfile: {:?}",
-                &item.filename
-            ));
+            return Err(format!("File not present in sumsfile: {:?}", item.filename));
         };
         checker
             .verify()

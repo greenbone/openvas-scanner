@@ -25,15 +25,15 @@ impl BuiltinStats {
         let mut function_calls = HashMap::new();
 
         // Initialize all built-in functions with zero calls
-        for (func, _) in builtins.unimplemented().iter() {
+        for func in builtins.unimplemented().keys() {
             function_calls.entry(func.clone()).or_insert(0);
         }
-        for (func, _) in builtins.implemented().iter() {
+        for func in builtins.implemented().keys() {
             function_calls.entry(func.clone()).or_insert(0);
         }
 
         // Count function calls in all scripts
-        for (_, script) in scripts.iter() {
+        for script in scripts.values() {
             for call in iter_fn_calls(&script.ast) {
                 let function = call.fn_name.to_string();
                 *function_calls.entry(function).or_insert(0) += 1;
