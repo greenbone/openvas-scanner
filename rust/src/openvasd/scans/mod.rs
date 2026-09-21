@@ -12,7 +12,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     config::Config,
-    crypt::{ChaCha20Crypt, Crypt},
+    crypt::{Crypt, Crypter},
     vts::orchestrator,
 };
 mod scheduling;
@@ -236,22 +236,33 @@ where
     }
 }
 
-pub(crate) fn config_to_crypt(config: &Config) -> ChaCha20Crypt {
-    // unwrap_or_else is a safe guard in the case the db is stored on disk but no key is provided.
-    // Otherwise the credentials can never be decrypted.
-    config
-        .storage
-        .credential_key()
-        .map(ChaCha20Crypt::new)
-        .unwrap_or_else(|| ChaCha20Crypt::new("insecure"))
+pub(crate) async fn config_to_crypt(config: &Config, pool: &DataBase) -> anyhow::Result<Crypter> {
+    // fallback keyphrase and salt in case they are not set in the config
+    //
+    // WARNING: the fallback does not create any security and purely functions acts as a way to
+    // be able to use a single logic for the storage. The security is the same as storing the data
+    // unencrypted
+    let keyphrase = config.storage.credential_key().unwrap_or_else(|| {
+        // actually they are encrypted but with a static fallback passphrase which is essentially the
+        // same but this wording carries more weight.
+        tracing::warn!("WARNING: no credential_key set. Credentials will be stored unencrypted.");
+        "insecure_key"
+    });
+
+    let salt = crate::crypt::get_salt(pool).await?;
+    Crypter::new(keyphrase.as_bytes(), &salt)
 }
 
 pub async fn init(
     pool: DataBase,
     config: &Config,
     feed_status: orchestrator::Communicator,
-) -> Result<Endpoints<ChaCha20Crypt>, Box<dyn std::error::Error + Send + Sync>> {
-    let crypter = Arc::new(config_to_crypt(config));
+) -> anyhow::Result<Endpoints<Crypter>, Box<dyn std::error::Error + Send + Sync>> {
+    let crypter = Arc::new(
+        config_to_crypt(config, &pool)
+            .await
+            .map_err(|e| e.into_boxed_dyn_error())?,
+    );
     let scheduler_sender =
         scheduling::init(pool.clone(), crypter.clone(), config, feed_status).await?;
     Ok(Endpoints {
@@ -282,11 +293,11 @@ pub mod tests {
 
     use crate::{
         config::Config,
-        crypt::ChaCha20Crypt,
+        crypt::Crypter,
         scans::{config_to_crypt, scheduling},
     };
 
-    async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<ChaCha20Crypt> {
+    async fn init(pool: SqlitePool, config: &Config) -> super::Endpoints<Crypter> {
         let ignored = Default::default();
 
         super::init(pool, config, ignored).await.unwrap()
@@ -550,7 +561,7 @@ pub mod tests {
     pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
         let client_id = "moep".to_string();
         let scans = generate_scan();
-        let crypter = config_to_crypt(config);
+        let crypter = config_to_crypt(config, &pool).await.unwrap();
         for scan in scans {
             ScanDB::new(&pool, (&crypter, &client_id as &str, &scan))
                 .exec()
@@ -663,7 +674,7 @@ pub mod tests {
     async fn get_scan_id_status() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
 
-        let crypter = Arc::new(config_to_crypt(&config));
+        let crypter = Arc::new(config_to_crypt(&config, &pool).await?);
         let (_, _, communicator) = orchestrator::Communicator::init();
         let scheduler_sender = scheduling::init_with_scanner(
             pool.clone(),

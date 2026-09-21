@@ -64,7 +64,8 @@ sqlx = 'WARN'
 location = 'in-memory'
 busy_timeout = '2s'
 max_connections = 1
-# credentials are stored encrypted. To set a manual key you can set credential_key
+# Keyphrase for the encryption of credential data. Removing this option results in the
+# storage of unencrypted credential data.
 credential_key = "verysecretive"
 
 [scheduler]

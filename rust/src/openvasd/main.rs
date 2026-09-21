@@ -41,7 +41,7 @@ static MIGRATOR: Migrator = sqlx::migrate!();
 
 // TODO: move to config
 async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
-    let result = match config.storage.clone() {
+    let pool = match config.storage.clone() {
         config::StorageTypes::V1(storage_v1) => {
             let mut sqliteconfig = SqliteConfiguration::default();
 
@@ -62,8 +62,8 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
     }
     .create_pool("openvasd")
     .await?;
-    MIGRATOR.run(&result).await?;
-    Ok(result)
+    MIGRATOR.run(&pool).await?;
+    Ok(pool)
 }
 
 async fn build_runtime(config: Config) -> Result<RuntimeBuilder<End>> {
