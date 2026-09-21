@@ -445,7 +445,7 @@ impl Scanner {
                 if let Some(tx) = &notify {
                     tx.send(host).await.unwrap();
                 } else {
-                    println!("{} via {:?}", &host, &method);
+                    println!("{} via {:?}", host, method);
                 }
                 alive.insert(alivehost.ip.clone());
             }

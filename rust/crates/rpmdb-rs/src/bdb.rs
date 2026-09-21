@@ -36,7 +36,9 @@ fn hash_page_value_indexes(data: Vec<u8>, entries: u16) -> Result<Vec<u16>, Rpmd
         &data[PAGE_HEADER_SIZE..PAGE_HEADER_SIZE + (entries as usize) * HASH_INDEX_ENTRY_SIZE];
 
     let hash_index_values: Vec<u16> = hash_index_data
-        .chunks_exact(2 * HASH_INDEX_ENTRY_SIZE)
+        .as_chunks::<{ 2 * HASH_INDEX_ENTRY_SIZE }>()
+        .0
+        .iter()
         .map(|chunk| {
             u16::from_le_bytes([
                 chunk[HASH_INDEX_ENTRY_SIZE],

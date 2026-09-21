@@ -111,11 +111,8 @@ where
             async move {
                 loop {
                     if queue.is_empty() {
-                        if let Some(host) = host_feed.recv().await {
-                            enqueue_host(&mut queue, &host, &concurrent_vts);
-                        } else {
-                            return None;
-                        }
+                        let host = host_feed.recv().await?;
+                        enqueue_host(&mut queue, &host, &concurrent_vts);
                     }
                     if let Some(pos) = queue.pop_front() {
                         let (stage, vts) = &concurrent_vts[pos.stage];

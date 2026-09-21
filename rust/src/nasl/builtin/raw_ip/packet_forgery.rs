@@ -238,7 +238,7 @@ fn display_packet(vector: &[u8]) {
             s.push('\n');
         }
     }
-    println!("packet = {}", &s);
+    println!("packet = {}", s);
 }
 
 /// Copy from a slice in safe way, performing the necessary test to avoid panicking
@@ -2079,7 +2079,7 @@ fn nasl_send_packet(
             )));
         }
 
-        let sock_str = format!("{}:{}", &packet.get_destination().to_string().as_str(), 0);
+        let sock_str = format!("{}:{}", packet.get_destination().to_string().as_str(), 0);
         let sockaddr =
             SocketAddr::from_str(&sock_str).map_err(PacketForgeryError::ParseSocketAddr)?;
         let sockaddr = socket2::SockAddr::from(sockaddr);
@@ -3264,7 +3264,7 @@ fn nasl_send_v6packet(
             )));
         }
 
-        let sock_str = format!("[{}]:{}", &packet.get_destination().to_string().as_str(), 0);
+        let sock_str = format!("[{}]:{}", packet.get_destination().to_string().as_str(), 0);
 
         let sockaddr = match SocketAddr::from_str(&sock_str) {
             Ok(addr) => socket2::SockAddr::from(addr),

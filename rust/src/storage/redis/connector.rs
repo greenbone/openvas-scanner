@@ -248,7 +248,7 @@ impl RedisCtx {
     pub fn redis_add_advisory(&mut self, adv: Option<VulnerabilityData>) -> RedisStorageResult<()> {
         match adv {
             Some(data) => {
-                let key = format!("internal/notus/advisories/{}", &data.adv.oid);
+                let key = format!("internal/notus/advisories/{}", data.adv.oid);
                 let value = Vulnerability::from(data);
                 let value = serde_json::to_string(&value)
                     .map_err(|e| DbError::Unknown(format!("Serialization error: {e}")))?;
