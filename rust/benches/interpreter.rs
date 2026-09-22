@@ -2,6 +2,7 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use futures::StreamExt;
+use scannerlib::models::VTData;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::ctx::{CtxTargets, Ports, Target};
 use scannerlib::nasl::{Code, ScanCtx, ScriptCtx, nasl_std_executor};
@@ -36,7 +37,8 @@ pub fn run_interpreter_in_description_mode(c: &mut Criterion) {
                     .parse_description_block()
                     .emit_errors()
                     .unwrap();
-                let script_ctx = ScriptCtx::new(&ctx, target_id, None, "simple_parse.nasl".into());
+                let script_ctx =
+                    ScriptCtx::new(&ctx, target_id, VTData::from_filename("simple_parse.nasl"));
                 let parser = ForkingInterpreter::new(code, register, &ctx, script_ctx);
                 let _: Vec<_> = black_box(parser.stream().collect().await);
             });

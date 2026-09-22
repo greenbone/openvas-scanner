@@ -10,6 +10,7 @@ pub use error::ErrorKind;
 use futures::{Stream, StreamExt, stream};
 use tracing::trace;
 
+use crate::models::VTData;
 use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_executor;
@@ -69,7 +70,7 @@ pub async fn feed_version(
         alive_test_methods,
         None,
     );
-    let script_ctx = ScriptCtx::new(&ctx, target_id, None, feed_info_filename.into());
+    let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(feed_info_filename));
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
@@ -167,16 +168,15 @@ where
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let script_ctx = ScriptCtx::new(&ctx, target_id, None, file.name().into());
+        let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(file.name()));
         let mut interpreter = ForkingInterpreter::new(ast, register, &ctx, script_ctx);
         while let Some(stmt) = interpreter.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
                     let filename: FileName = file.name().into();
                     let script_ctx = interpreter.take_script_ctx();
-                    if let Some(vt) = script_ctx.take_vt() {
-                        self.storage.dispatch(filename, vt).await?;
-                    }
+                    let vt = script_ctx.take_vt();
+                    self.storage.dispatch(filename, vt).await?;
                     return Ok(i);
                 }
                 Ok(_) => {}

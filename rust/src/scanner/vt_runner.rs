@@ -168,12 +168,7 @@ impl<'a> VTRunner<'a> {
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
-        let script_ctx = ScriptCtx::new(
-            self.scan_ctx,
-            self.target,
-            Some(self.vt.clone()),
-            (&self.vt.filename).into(),
-        );
+        let script_ctx = ScriptCtx::new(self.scan_ctx, self.target, self.vt.clone());
         let ast = code.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));

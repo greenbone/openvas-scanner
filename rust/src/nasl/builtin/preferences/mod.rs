@@ -25,7 +25,9 @@ fn script_get_preference_shared(
             None => {
                 if let Some(pref) = script_ctx
                     .vt()
-                    .and_then(|vt| vt.preferences.iter().find(|p| p.id == Some(id as i32)))
+                    .preferences
+                    .iter()
+                    .find(|p| p.id == Some(id as i32))
                 {
                     return Some(pref.default().to_string().into());
                 }
@@ -38,7 +40,9 @@ fn script_get_preference_shared(
     if let Some(pref_name) = name
         && let Some(pref) = script_ctx
             .vt()
-            .and_then(|vt| vt.preferences.iter().find(|p| p.name == pref_name))
+            .preferences
+            .iter()
+            .find(|p| p.name == pref_name)
     {
         return register
             .script_param(pref.id().unwrap() as usize)

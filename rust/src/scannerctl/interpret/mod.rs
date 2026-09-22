@@ -65,7 +65,7 @@ async fn run_with_context(
         .parse()
         .emit_errors_get_ast_and_file()
         .map_err(CliErrorKind::SyntaxError)?;
-    let script_ctx = ScriptCtx::new(&ctx, target_id, None, file.name().into());
+    let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(file.name()));
     let mut interpreter = ForkingInterpreter::new(ast, register, &ctx, script_ctx);
     while let Some(result) = interpreter.next().await {
         let r = match result {

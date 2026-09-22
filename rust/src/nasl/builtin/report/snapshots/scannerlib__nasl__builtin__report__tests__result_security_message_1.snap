@@ -7,6 +7,7 @@ Result(
   type: alarm,
   ip_address: Some("127.0.0.1"),
   hostname: Some(""),
+  oid: Some(""),
   port: Some(12),
   protocol: Some(tcp),
   message: Some("test1"),

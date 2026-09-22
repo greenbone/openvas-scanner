@@ -11,6 +11,7 @@ use std::{
 };
 
 use crate::{
+    models::VTData,
     nasl::utils::ctx::{NotusCtx, TargetId},
     storage::{ScanID, inmemory::InMemoryStorage},
 };
@@ -314,7 +315,7 @@ where
             .collect();
         let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();
-        let script_ctx = ScriptCtx::new(ctx, self.target_id(), None, "".into());
+        let script_ctx = ScriptCtx::new(ctx, self.target_id(), VTData::from_filename(""));
         ForkingInterpreter::new(ast, register, ctx, script_ctx).with_version(self.version)
     }
 
