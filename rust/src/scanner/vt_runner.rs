@@ -164,7 +164,7 @@ impl<'a> VTRunner<'a> {
         )
     }
 
-    async fn get_result_kind(&self, code: Code, register: Register) -> ScriptResultKind {
+    async fn execute_inner(&self, code: Code, register: Register) -> ScriptResultKind {
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
@@ -200,7 +200,7 @@ impl<'a> VTRunner<'a> {
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = self.get_result_kind(code, register).await;
+        let kind = self.execute_inner(code, register).await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),
