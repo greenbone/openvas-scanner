@@ -79,7 +79,7 @@ where
             .targets
             .iter()
             .enumerate()
-            .map(|(i, t)| (t.ip_addr().to_string(), TargetId(i)))
+            .map(|(i, t)| (t.ip_addr().to_string(), TargetId::new(i)))
             .collect();
         let host_set: HashSet<Host> = host_by_ip.keys().cloned().collect();
         let methods = scan.alive_test_methods.clone();

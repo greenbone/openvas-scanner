@@ -316,9 +316,13 @@ pub enum NotusCtx {
 
 /// An index into the `targets` field on `ScanCtx`
 #[derive(Clone, Copy, Debug)]
-// TODO: Make this field private by properly wrapping the targets
-// field on `Scan` in some storage type
-pub struct TargetId(pub usize);
+pub struct TargetId(usize);
+
+impl TargetId {
+    pub fn new(id: usize) -> Self {
+        Self(id)
+    }
+}
 
 /// NASL execution context.
 pub struct ScanCtx<'a> {
