@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use clap::Subcommand;
 use scannerlib::nasl::syntax::Loader;
-use scannerlib::nasl::utils::scan_ctx::NotusCtx;
+use scannerlib::nasl::utils::ctx::NotusCtx;
 use scannerlib::notus::{Notus, ProductLoader};
 use scannerlib::scanner::preferences::preference::ScanPrefs;
 

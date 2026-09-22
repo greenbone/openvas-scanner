@@ -3,7 +3,7 @@ use std::hint::black_box;
 use criterion::{Criterion, criterion_group, criterion_main};
 use futures::StreamExt;
 use scannerlib::nasl::syntax::Loader;
-use scannerlib::nasl::utils::scan_ctx::{CtxTargets, Ports, Target};
+use scannerlib::nasl::utils::ctx::{CtxTargets, Ports, Target};
 use scannerlib::nasl::{Code, ScanCtx, ScriptCtx, nasl_std_executor};
 use scannerlib::nasl::{Register, interpreter::ForkingInterpreter};
 use scannerlib::scanner::preferences::preference::ScanPrefs;

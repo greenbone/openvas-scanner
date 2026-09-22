@@ -16,10 +16,10 @@ use crate::nasl::nasl_std_executor;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::scan_ctx::ContextStorage;
-use crate::nasl::utils::scan_ctx::CtxTargets;
-use crate::nasl::utils::scan_ctx::Ports;
-use crate::nasl::utils::scan_ctx::Target;
+use crate::nasl::utils::ctx::ContextStorage;
+use crate::nasl::utils::ctx::CtxTargets;
+use crate::nasl::utils::ctx::Ports;
+use crate::nasl::utils::ctx::Target;
 
 use crate::feed::verify::HashSumFileItem;
 use crate::feed::verify::check_signature;

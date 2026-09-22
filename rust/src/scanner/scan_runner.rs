@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::models::HostInfo;
 use crate::nasl::ScanCtx;
-use crate::nasl::utils::scan_ctx::TargetId;
+use crate::nasl::utils::ctx::TargetId;
 use futures::{Stream, stream};
 use tokio::sync::mpsc::Receiver;
 

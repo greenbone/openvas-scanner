@@ -5,8 +5,8 @@
 use crate::models::{Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
 use crate::nasl::utils::Register;
+use crate::nasl::utils::ctx::TargetId;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
-use crate::nasl::utils::scan_ctx::TargetId;
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};

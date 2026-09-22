@@ -8,8 +8,8 @@ use crate::nasl::{
     prelude::*,
     utils::{
         DefineGlobalVars,
+        ctx::JmpDesc,
         function::{Seconds, utils::DEFAULT_TIMEOUT},
-        scan_ctx::JmpDesc,
     },
 };
 

@@ -29,14 +29,14 @@ pub mod prelude {
     pub use super::utils::ArgumentError;
     pub use super::utils::FnError;
     pub use super::utils::NaslResult;
+    pub use super::utils::ctx::ScanCtx;
+    pub use super::utils::ctx::ScriptCtx;
     pub use super::utils::error::ReturnValue;
     pub use super::utils::error::WithErrorInfo;
     pub use super::utils::function::CheckedPositionals;
     pub use super::utils::function::FromNaslValue;
     pub use super::utils::function::Positionals;
     pub use super::utils::function::ToNaslResult;
-    pub use super::utils::scan_ctx::ScanCtx;
-    pub use super::utils::scan_ctx::ScriptCtx;
     pub use super::version::NaslVersion;
     pub use crate::function_set;
     pub use nasl_function_proc_macro::nasl_function;

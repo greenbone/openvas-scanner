@@ -11,11 +11,11 @@ use std::{
 };
 
 use crate::{
-    nasl::utils::scan_ctx::{NotusCtx, TargetId},
+    nasl::utils::ctx::{NotusCtx, TargetId},
     storage::{ScanID, inmemory::InMemoryStorage},
 };
 use crate::{
-    nasl::{prelude::*, utils::scan_ctx::CtxTargets},
+    nasl::{prelude::*, utils::ctx::CtxTargets},
     notus::Notus,
     scanner::preferences::preference::ScanPrefs,
 };
@@ -27,7 +27,7 @@ use super::{
     syntax::Loader,
     utils::{
         Executor, ScanCtx,
-        scan_ctx::{ContextStorage, Ports, Target},
+        ctx::{ContextStorage, Ports, Target},
     },
     version::NaslVersion,
 };

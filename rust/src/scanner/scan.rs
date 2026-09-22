@@ -1,7 +1,7 @@
 use tracing::error;
 
 use crate::models::{self, AliveTestMethods, Port, VT};
-use crate::nasl::utils::scan_ctx::{Ports, Target};
+use crate::nasl::utils::ctx::{Ports, Target};
 
 use super::preferences::preference::ScanPrefs;
 

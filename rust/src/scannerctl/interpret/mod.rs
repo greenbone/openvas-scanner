@@ -12,7 +12,7 @@ use scannerlib::nasl::{
     NaslValue, ScriptCtx, WithErrorInfo,
     interpreter::InterpreterErrorKind,
     syntax::{LoadError, Loader, read_non_utf8_path},
-    utils::scan_ctx::{NotusCtx, TargetId},
+    utils::ctx::{NotusCtx, TargetId},
 };
 use scannerlib::{
     feed,
@@ -22,8 +22,8 @@ use scannerlib::{
         interpreter::ForkingInterpreter,
         nasl_std_executor,
         utils::{
+            ctx::{Ports, Target},
             error::ReturnBehavior,
-            scan_ctx::{Ports, Target},
         },
     },
     scanner::preferences::preference::ScanPrefs,
@@ -32,8 +32,8 @@ use scannerlib::{
         items::{kb::KbContextKey, nvt::Oid},
     },
 };
-use scannerlib::{models::VTData, nasl::utils::scan_ctx::CtxTargets};
-use scannerlib::{nasl::utils::scan_ctx::ContextStorage, storage::inmemory::InMemoryStorage};
+use scannerlib::{models::VTData, nasl::utils::ctx::CtxTargets};
+use scannerlib::{nasl::utils::ctx::ContextStorage, storage::inmemory::InMemoryStorage};
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 

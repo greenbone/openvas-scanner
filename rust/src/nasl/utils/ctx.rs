@@ -98,7 +98,6 @@ pub enum TargetKind {
     IpAddr,
 }
 
-// TODO remove clone
 #[derive(Debug)]
 pub struct CtxTarget {
     /// The target
@@ -742,7 +741,7 @@ impl<'a> ScriptCtx<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::utils::scan_ctx::TargetKind;
+    use crate::nasl::utils::ctx::TargetKind;
 
     use super::Target;
 

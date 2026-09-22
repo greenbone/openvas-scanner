@@ -13,15 +13,15 @@ use std::{
 
 use crate::nasl::{syntax::Loader, utils::Executor};
 use crate::scanner::Error;
-use crate::{alive_test::Scanner as BoreasScanner, nasl::utils::scan_ctx::TargetId};
+use crate::{alive_test::Scanner as BoreasScanner, nasl::utils::ctx::TargetId};
 use crate::{
     models::{Host, HostInfo, Phase, Status},
-    nasl::utils::scan_ctx::CtxTargets,
+    nasl::utils::ctx::CtxTargets,
 };
 use crate::{
     nasl::{
         ScanCtx,
-        utils::scan_ctx::{ContextStorage, NotusCtx},
+        utils::ctx::{ContextStorage, NotusCtx},
     },
     storage::ScanID,
 };
