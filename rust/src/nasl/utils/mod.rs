@@ -144,6 +144,7 @@ pub mod error;
 mod executor;
 pub mod function;
 pub mod hosts;
+pub mod indexed_arena;
 pub mod lookup_keys;
 
 pub use super::interpreter::Register;

@@ -11,13 +11,13 @@ use std::{
     time::SystemTime,
 };
 
-use crate::nasl::{syntax::Loader, utils::Executor};
+use crate::models::{Host, HostInfo, Phase, Status};
+use crate::nasl::{
+    syntax::Loader,
+    utils::{Executor, ctx::CtxTarget},
+};
 use crate::scanner::Error;
 use crate::{alive_test::Scanner as BoreasScanner, nasl::utils::ctx::TargetId};
-use crate::{
-    models::{Host, HostInfo, Phase, Status},
-    nasl::utils::ctx::CtxTargets,
-};
 use crate::{
     nasl::{
         ScanCtx,
@@ -77,9 +77,8 @@ where
 
         let host_by_ip: HashMap<String, TargetId> = scan
             .targets
-            .iter()
             .enumerate()
-            .map(|(i, t)| (t.ip_addr().to_string(), TargetId::new(i)))
+            .map(|(i, t)| (t.ip_addr().to_string(), i))
             .collect();
         let host_set: HashSet<Host> = host_by_ip.keys().cloned().collect();
         let methods = scan.alive_test_methods.clone();
@@ -140,13 +139,12 @@ where
     }
 
     async fn run(self, host_feed: Receiver<TargetId>) -> Result<(), Error> {
-        let targets = CtxTargets::new(
-            self.scan
-                .targets
-                .iter()
-                .map(|target| (target.clone(), self.scan.ports.clone()).into())
-                .collect(),
-        );
+        let targets = self
+            .scan
+            .targets
+            .iter()
+            .map(|target| CtxTarget::new(target.clone(), self.scan.ports.clone()))
+            .collect();
         let scan_ctx = ScanCtx::new(
             ScanID(self.scan.scan_id.clone()),
             targets,

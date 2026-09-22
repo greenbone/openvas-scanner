@@ -5,6 +5,7 @@
 //! Defines the context used within the interpreter and utilized by the builtin functions
 
 use crate::models::{AliveTestMethods, Port, Protocol, ScanPreference};
+use crate::nasl::utils::indexed_arena::{ArenaIndex, IndexedArena};
 use async_trait::async_trait;
 use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
@@ -122,34 +123,13 @@ pub struct CtxTarget {
     ports_udp: BTreeSet<u16>,
 }
 
-pub struct CtxTargets {
-    targets: Vec<CtxTarget>,
-}
-
-impl std::ops::Index<TargetId> for CtxTargets {
-    type Output = CtxTarget;
-
-    fn index(&self, index: TargetId) -> &Self::Output {
-        &self.targets[index.0]
-    }
-}
+pub type CtxTargets = IndexedArena<TargetId, CtxTarget>;
 
 impl CtxTargets {
-    pub fn new(targets: Vec<CtxTarget>) -> Self {
-        Self { targets }
-    }
-
     pub fn single(t: Target, ports: Ports) -> (Self, TargetId) {
-        (
-            Self {
-                targets: vec![(t, ports).into()],
-            },
-            TargetId(0),
-        )
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &CtxTarget> {
-        self.targets.iter()
+        let mut arena = Self::default();
+        let id = arena.add(CtxTarget::new(t, ports));
+        (arena, id)
     }
 }
 
@@ -206,18 +186,16 @@ impl Target {
     }
 }
 
-impl From<(Target, Ports)> for CtxTarget {
-    fn from(value: (Target, Ports)) -> Self {
+impl CtxTarget {
+    pub fn new(target: Target, ports: Ports) -> Self {
         CtxTarget {
-            target: value.0,
+            target,
             vhosts: Mutex::new(vec![]),
-            ports_tcp: value.1.tcp,
-            ports_udp: value.1.udp,
+            ports_tcp: ports.tcp,
+            ports_udp: ports.udp,
         }
     }
-}
 
-impl CtxTarget {
     pub fn add_hostname(&self, hostname: String, source: String) -> &CtxTarget {
         self.vhosts.lock().unwrap().push(VHost { hostname, source });
         self
@@ -317,9 +295,13 @@ pub enum NotusCtx {
 #[derive(Clone, Copy, Debug)]
 pub struct TargetId(usize);
 
-impl TargetId {
-    pub fn new(id: usize) -> Self {
-        Self(id)
+impl ArenaIndex for TargetId {
+    fn to_index(self) -> usize {
+        self.0
+    }
+
+    fn from_index(index: usize) -> Self {
+        Self(index)
     }
 }
 
