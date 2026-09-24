@@ -292,7 +292,7 @@ case "$target" in
         ci_nasl_lint
         ;;
     test-rust)
-        test_rust "$@"
+        test_rust "${@:2}"
         ;;
     test-rust-compose)
         test_rust_compose
