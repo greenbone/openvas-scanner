@@ -1412,6 +1412,7 @@ function_set! {
 impl DefineGlobalVars for SocketFns {
     fn get_global_vars() -> Vec<(&'static str, NaslValue)> {
         vec![
+            ("MSG_OOB", NaslValue::Number(libc::MSG_OOB.into())),
             ("ENCAPS_AUTO", NaslValue::Number(OpenvasEncaps::Auto.into())),
             ("ENCAPS_IP", NaslValue::Number(OpenvasEncaps::Ip.into())),
             (

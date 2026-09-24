@@ -88,6 +88,11 @@ impl Executor {
         self.fn_global_vars.iter().cloned()
     }
 
+    /// Names of global variables supplied by registered builtin function sets.
+    pub fn iter_global_var_names(&self) -> impl Iterator<Item = &str> {
+        self.fn_global_vars.iter().map(|(name, _)| *name)
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &str> {
         self.sets.iter().flat_map(|set| set.iter())
     }

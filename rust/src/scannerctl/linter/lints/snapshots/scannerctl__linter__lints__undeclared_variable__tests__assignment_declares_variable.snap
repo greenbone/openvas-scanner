@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (assignment_declares_variable), \"value = 1; display(value);\",)"
+---
+

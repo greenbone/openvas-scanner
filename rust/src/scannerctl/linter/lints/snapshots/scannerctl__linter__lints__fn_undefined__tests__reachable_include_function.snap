@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"root.nasl\"], &\n[(\"root.nasl\", \"include(\\\"library.inc\\\"); used();\"),\n(\"library.inc\", \"function used() { missing(); }\")],)"
+---
+error: Undefined function 'missing'
+  ┌─ library.inc:1:19
+  │
+1 │ function used() { missing(); }
+  │                   ^^^^^^^ undefined function

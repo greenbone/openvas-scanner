@@ -343,6 +343,11 @@ impl DefineGlobalVars for Misc {
             ),
             ("NASL_ERR_EUNREACH", NaslValue::Number(NASL_ERR_EUNREACH)),
             ("NASL_ERR_EUNKNOWN", NaslValue::Number(NASL_ERR_EUNKNOWN)),
+            ("NOERR", NaslValue::Number(NASL_ERR_NOERR)),
+            ("ETIMEDOUT", NaslValue::Number(NASL_ERR_ETIMEDOUT)),
+            ("ECONNRESET", NaslValue::Number(NASL_ERR_ECONNRESET)),
+            ("EUNREACH", NaslValue::Number(NASL_ERR_EUNREACH)),
+            ("EUNKNOWN", NaslValue::Number(NASL_ERR_EUNKNOWN)),
         ]
     }
 }

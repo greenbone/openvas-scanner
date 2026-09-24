@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"root.nasl\"], &\n[(\"root.nasl\", \"include(\\\"wrapper.inc\\\"); wrapper();\"),\n(\"wrapper.inc\", \"include(\\\"helper.inc\\\"); function wrapper() { helper(); }\"),\n(\"helper.inc\", \"function helper() {}\")],)"
+---
+
