@@ -39,12 +39,6 @@ impl<'a> ArgsStruct<'a> {
             .any(|arg| matches!(arg.kind, ArgKind::Register))
     }
 
-    fn has_script_ctx_arg(&self) -> bool {
-        self.args
-            .iter()
-            .any(|arg| matches!(arg.kind, ArgKind::ScriptCtx))
-    }
-
     fn get_args(&self) -> TokenStream {
         self
             .args.iter().map(|arg| {
@@ -175,9 +169,6 @@ impl<'a> ArgsStruct<'a> {
         if self.has_register_arg() {
             return quote! {};
         }
-        if self.has_script_ctx_arg() {
-            return quote! {};
-        }
         let named_array = self.make_array_of_names(ArgKind::get_named_arg_name);
         let maybe_named_array = self.make_array_of_names(ArgKind::get_maybe_named_arg_name);
         let num_allowed_positional_args = if self.has_positional_iterator_arg() {
@@ -255,7 +246,7 @@ impl<'a> ArgsStruct<'a> {
             #self_arg
             _register: &crate::nasl::Register,
             _scan_ctx: &crate::nasl::ScanCtx<'_>,
-            _script_ctx: &mut crate::nasl::ScriptCtx,
+            _script_ctx: &mut crate::nasl::ScriptCtx<'_>,
         };
         let output_ty = match output {
             syn::ReturnType::Default => quote! { () },

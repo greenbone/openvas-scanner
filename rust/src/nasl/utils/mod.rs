@@ -139,17 +139,18 @@
 //! }
 //! ```
 
+pub mod ctx;
 pub mod error;
 mod executor;
 pub mod function;
 pub mod hosts;
+pub mod indexed_arena;
 pub mod lookup_keys;
-pub mod scan_ctx;
 
 pub use super::interpreter::Register;
+pub use ctx::ScanCtx;
 pub use error::ArgumentError;
 pub use error::FnError;
-pub use scan_ctx::ScanCtx;
 
 pub use executor::{Executor, IntoFunctionSet, NaslFunction, StoredFunctionSet};
 

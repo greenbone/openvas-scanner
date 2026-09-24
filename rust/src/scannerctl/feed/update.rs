@@ -7,7 +7,7 @@ use std::path::Path;
 use scannerlib::feed;
 use scannerlib::feed::NoVerifier;
 use scannerlib::nasl::syntax::Loader;
-use scannerlib::nasl::utils::scan_ctx::ContextStorage;
+use scannerlib::nasl::utils::ctx::ContextStorage;
 
 use crate::CliError;
 use crate::notus_update::update::signature_error;

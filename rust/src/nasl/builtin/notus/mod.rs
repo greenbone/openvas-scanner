@@ -16,8 +16,7 @@ use crate::{
     function_set,
     models::FixedVersion,
     nasl::{
-        ArgumentError, FnError, NaslValue, ScanCtx, builtin::http::HttpError,
-        utils::scan_ctx::NotusCtx,
+        ArgumentError, FnError, NaslValue, ScanCtx, builtin::http::HttpError, utils::ctx::NotusCtx,
     },
     notus::Notus,
 };

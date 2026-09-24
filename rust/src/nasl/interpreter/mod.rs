@@ -279,7 +279,7 @@ fn expand_fork_at(
 struct Interpreter<'ctx> {
     pub(super) register: Register,
     pub(super) scan_ctx: &'ctx ScanCtx<'ctx>,
-    pub(super) script_ctx: ScriptCtx,
+    pub(super) script_ctx: ScriptCtx<'ctx>,
     pub(super) fork_reentry_data: ForkReentryData,
     fork_history: ForkHistory,
     stmt_index: usize,
@@ -289,12 +289,12 @@ struct Interpreter<'ctx> {
 
 impl<'ctx> Interpreter<'ctx> {
     /// Creates a new Interpreter
-    fn new(register: Register, scan_ctx: &'ctx ScanCtx) -> Self {
+    fn new(register: Register, scan_ctx: &'ctx ScanCtx, script_ctx: ScriptCtx<'ctx>) -> Self {
         Interpreter {
             register,
             stmt_index: 0,
             scan_ctx,
-            script_ctx: ScriptCtx::default(),
+            script_ctx,
             fork_reentry_data: ForkReentryData::new(),
             fork_history: ForkHistory::default(),
             state: InterpreterState::Running,
@@ -541,7 +541,12 @@ impl<'ctx> Interpreter<'ctx> {
         let ast = code
             .result()
             .map_err(|errs| Error::include_syntax_error(errs, file))?;
-        let mut inter = ForkingInterpreter::new(ast, self.register.clone(), self.scan_ctx);
+        let mut inter = ForkingInterpreter::new(
+            ast,
+            self.register.clone(),
+            self.scan_ctx,
+            self.script_ctx.clone_shallow(),
+        );
         Box::pin(inter.execute_all()).await?;
         self.register = inter.register().clone();
         Ok(NaslValue::Null)
@@ -567,7 +572,7 @@ impl<'ctx> Interpreter<'ctx> {
             register: register.clone(),
             stmt_index,
             scan_ctx: self.scan_ctx,
-            script_ctx: ScriptCtx::default(),
+            script_ctx: self.script_ctx.clone_shallow(),
             fork_reentry_data,
             state: InterpreterState::Running,
             fork_history: self.fork_history.clone(),
