@@ -22,6 +22,7 @@
 
 #include "openvas.h"
 
+#include "../misc/file_utils.h"
 #include "../misc/kb_cache.h"
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/scan_id.h"       /* to manage global scan_id */
@@ -514,7 +515,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
       return 1;
     }
 
-  return 0;
+  return file_utils_init (globals->scan_id);
 }
 
 /**
@@ -671,6 +672,7 @@ openvas (int argc, char *argv[], char *env[])
         }
       attack_error = attack_network (globals);
 
+      file_utils_cleanup ();
       gvm_close_sentry ();
       destroy_scan_globals (globals);
 #ifdef LOG_REFERENCES_AVAILABLE
