@@ -7,8 +7,10 @@ expression: inner
   "headers": {
     "api-version": "1",
     "authentication": "mTLS",
+    "content-length": "73",
+    "content-type": "application/json",
     "date": "[redacted]",
     "feed-version": "[redacted]",
   },
-  "body": "",
+  "body": "{\"status\":404,\"message\":\"Unknown notus product\",\"details\":\"not_a_system\"}",
 }
