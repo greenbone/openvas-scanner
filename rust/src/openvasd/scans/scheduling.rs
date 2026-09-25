@@ -642,7 +642,7 @@ pub(crate) mod tests {
 
     use super::*;
     use crate::{
-        crypt::ChaCha20Crypt,
+        crypt::Crypter,
         scans::{
             self,
             tests::{create_pool, prepare_scans},
@@ -650,23 +650,23 @@ pub(crate) mod tests {
     };
     type TR = R<()>;
 
-    async fn setup_test_env() -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
+    async fn setup_test_env() -> R<(ScanScheduler<scanner::TestScanner, Crypter>, Vec<i64>)> {
         setup_test_env_with_scanner(TestScannerBuilder::default()).await
     }
 
     async fn setup_test_env_with_scanner(
         builder: TestScannerBuilder,
-    ) -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
+    ) -> R<(ScanScheduler<scanner::TestScanner, Crypter>, Vec<i64>)> {
         setup_test_env_with_scanner_and_feed_messages(builder, Default::default()).await
     }
 
     async fn setup_test_env_with_scanner_and_feed_messages(
         builder: TestScannerBuilder,
         feed_changes: IsInProgress,
-    ) -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
+    ) -> R<(ScanScheduler<scanner::TestScanner, Crypter>, Vec<i64>)> {
         let (config, pool) = create_pool().await?;
         let scanner = Arc::new(builder.build());
-        let cryptor = Arc::new(scans::config_to_crypt(&config));
+        let cryptor = Arc::new(scans::config_to_crypt(&config, &pool).await?);
 
         let change_scan_status = ScanStateController::init(pool.clone()).await?;
         let under_test = ScanScheduler {

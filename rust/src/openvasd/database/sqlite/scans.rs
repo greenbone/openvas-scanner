@@ -63,7 +63,10 @@ where
     let mapped_id = row.last_insert_rowid().to_string();
     let auth_data = {
         let bytes = serde_json::to_vec(&scan.target.credentials)?;
-        let bytes = crypter.encrypt(bytes).await;
+        let bytes = crypter
+            .encrypt(bytes)
+            .await
+            .map_err(|_| DAOError::Corrupt)?;
         bytes.to_string()
     };
     query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
@@ -357,7 +360,10 @@ where
 
     let auth_data = scan_row.get::<String, _>("auth_data");
     let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
-    let auth_data = crypter.decrypt(encrypted).await;
+    let auth_data = crypter
+        .decrypt(encrypted)
+        .await
+        .map_err(|_| DAOError::Corrupt)?;
     let credentials = serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?;
 
     let scan = models::Scan {

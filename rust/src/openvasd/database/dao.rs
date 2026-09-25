@@ -72,7 +72,6 @@ pub enum DAOError {
     NotFound,
     #[error("Corrupt data")]
     Corrupt,
-
     #[error("DB: {0}")]
     Infrastructure(InfrastructureReason),
 }
