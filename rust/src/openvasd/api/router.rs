@@ -5,7 +5,6 @@ use axum::{
     extract::{DefaultBodyLimit, State},
     http::{Request, Response},
     middleware::{self, Next},
-    routing::{get, head},
 };
 use tower::limit::ConcurrencyLimitLayer;
 
@@ -75,6 +74,7 @@ async fn default_headers(
 /// | `GET`    | /health/alive                                     |               |
 /// | `GET`    | /health/ready                                     |               |
 /// | `GET`    | /health/started                                   |               |
+/// | `GET`    | /health/performance                               |               |
 /// | `HEAD`   | /scans                                            | ✓             |
 /// | `GET`    | /scans*                                           | ✓             |
 /// | `POST`   | /scans                                            | ✓             |
@@ -105,13 +105,9 @@ async fn default_headers(
 pub fn create_router(cfg: &ApiConfig) -> Router {
     Router::new()
         .nest(
-            // All health routes are currently NOPs
+            // All health routes are currently NOPs except for performance
             "/health",
-            Router::new()
-                .route("/", head(()))
-                .route("/alive", get(()))
-                .route("/ready", get(()))
-                .route("/started", get(())),
+            health::router(),
         )
         .nest(
             "/scans",
