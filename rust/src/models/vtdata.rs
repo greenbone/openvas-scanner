@@ -577,6 +577,15 @@ pub struct VTData {
     pub family: String,
 }
 
+impl VTData {
+    pub fn from_filename(filename: impl Into<String>) -> Self {
+        Self {
+            filename: filename.into(),
+            ..Default::default()
+        }
+    }
+}
+
 impl Display for VTData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "VT {} ({})", self.oid, self.filename)

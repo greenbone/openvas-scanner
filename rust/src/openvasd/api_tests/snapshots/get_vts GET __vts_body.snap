@@ -3,6 +3,7 @@ source: src/openvasd/api_tests/test_builder.rs
 expression: inner
 ---
 [
+  "0.0.0.0.0.0.0.0.0.0",
   "0.0.0.0.0.0.0.0.0.1",
   "0.0.0.0.0.0.0.0.0.2",
   "0.0.0.0.0.0.0.0.0.3",

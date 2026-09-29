@@ -1,13 +1,14 @@
 use tracing::error;
 
 use crate::models::{self, AliveTestMethods, Port, VT};
-use crate::nasl::utils::scan_ctx::{Ports, Target};
+use crate::nasl::utils::ctx::{Ports, Target, TargetId};
+use crate::nasl::utils::indexed_arena::IndexedArena;
 
 use super::preferences::preference::ScanPrefs;
 
 #[derive(Debug, Default)]
 pub struct Scan {
-    pub targets: Vec<Target>,
+    pub targets: IndexedArena<TargetId, Target>,
     pub ports: Ports,
     pub scan_id: String,
     pub vts: Vec<VT>,

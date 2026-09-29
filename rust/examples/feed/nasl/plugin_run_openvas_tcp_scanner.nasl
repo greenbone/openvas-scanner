@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 if (description) {
+    script_oid("0.0.0.0.0.0.0.0.0.0");
     exit(0);
 }
 

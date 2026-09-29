@@ -10,14 +10,17 @@ pub use error::ErrorKind;
 use futures::{Stream, StreamExt, stream};
 use tracing::trace;
 
+use crate::models::VTData;
 use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_executor;
 use crate::nasl::prelude::*;
 use crate::nasl::syntax::Loader;
 use crate::nasl::utils::Executor;
-use crate::nasl::utils::scan_ctx::ContextStorage;
-use crate::nasl::utils::scan_ctx::Target;
+use crate::nasl::utils::ctx::ContextStorage;
+use crate::nasl::utils::ctx::CtxTargets;
+use crate::nasl::utils::ctx::Ports;
+use crate::nasl::utils::ctx::Target;
 
 use crate::feed::verify::HashSumFileItem;
 use crate::feed::verify::check_signature;
@@ -47,35 +50,32 @@ pub struct Update<'a, S, V> {
 /// Loads the plugin_feed_info and returns the feed version
 pub async fn feed_version(
     loader: &Loader,
-    dispatcher: &dyn ContextStorage,
+    storage: &dyn ContextStorage,
 ) -> Result<String, ErrorKind> {
     let feed_info_filename = "plugin_feed_info.inc";
     let code = Code::load(loader, feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
-    let target = Target::localhost();
-    let ports = Default::default();
-    let filename = "";
+    let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
     let executor = nasl_std_executor();
-    let scan_params = ScanPrefs::new();
+    let scan_prefs = ScanPrefs::new();
     let alive_test_methods = Vec::default();
-    let ctx = ScanCtxBuilder {
-        storage: dispatcher,
-        loader,
-        executor: &executor,
-        target,
-        ports,
-        filename,
+    let ctx = ScanCtx::new(
         scan_id,
-        scan_preferences: scan_params,
+        targets,
+        storage,
+        loader,
+        &executor,
+        scan_prefs,
         alive_test_methods,
-        notus: None,
-    };
-    let ctx = ctx.build();
+        None,
+    );
+    let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(feed_info_filename));
     let mut interpreter = ForkingInterpreter::new(
         code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
         register,
         &ctx,
+        script_ctx,
     );
     interpreter.execute_all().await?;
 
@@ -150,32 +150,33 @@ where
         // anymore, since the parse_description_block function returns
         // the statements from within the if.
         let register = Register::from_global_variables(&self.initial);
-        let scan_params = ScanPrefs(Vec::default());
+        let scan_prefs = ScanPrefs(Vec::default());
         let alive_test_methods = Vec::default();
-        let target = Target::localhost();
-        let ports = Default::default();
-        let ctx = ScanCtxBuilder {
-            scan_id: ScanID(key.0.clone()),
-            target,
-            ports,
-            filename: &key.0,
-            storage: self.storage,
-            loader: &self.loader,
-            executor: &self.executor,
-            scan_preferences: scan_params,
+        let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
+        let ctx = ScanCtx::new(
+            ScanID(key.0.clone()),
+            targets,
+            self.storage,
+            &self.loader,
+            &self.executor,
+            scan_prefs,
             alive_test_methods,
-            notus: None,
-        };
-        let ctx = ctx.build();
+            None,
+        );
         let file = code.source_file();
         let ast = code
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let mut results = Box::pin(ForkingInterpreter::new(ast, register, &ctx).stream());
-        while let Some(stmt) = results.next().await {
+        let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(file.name()));
+        let mut interpreter = ForkingInterpreter::new(ast, register, &ctx, script_ctx);
+        while let Some(stmt) = interpreter.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
+                    let filename: FileName = file.name().into();
+                    let script_ctx = interpreter.take_script_ctx();
+                    let vt = script_ctx.take_vt();
+                    self.storage.dispatch(filename, vt).await?;
                     return Ok(i);
                 }
                 Ok(_) => {}
