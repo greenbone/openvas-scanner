@@ -10,7 +10,6 @@ USERNAME="${USERNAME:-dummy}"
 PASSWORD="${PASSWORD:-dummy}"
 
 IMAGES="${IMAGES:-\
-docker.io/nichtsfrei/victim:latest \
 docker.io/openeuler/openeuler:latest \
 docker.io/openeuler/openeuler:24.03-lts-sp1 \
 docker.io/openeuler/openeuler:20.03-lts-sp4\

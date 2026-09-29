@@ -561,40 +561,40 @@ mod requires_compose {
         );
     }
 
-    #[tokio::test]
-    async fn scan_victim_simple_auth_ssh() {
-        run_full_scan_test(
-            "scan_victim_simple_auth_ssh",
-            "victim-simple-auth-ssh",
-            ScanEndpoint::Default,
-            true,
-        )
-        .await;
-    }
+    // #[tokio::test]
+    // async fn scan_victim_simple_auth_ssh() {
+    //     run_full_scan_test(
+    //         "scan_victim_simple_auth_ssh",
+    //         "victim-simple-auth-ssh",
+    //         ScanEndpoint::Default,
+    //         true,
+    //     )
+    //     .await;
+    // }
 
-    #[tokio::test]
-    #[ignore = "very slow"]
-    async fn scan_victim_discovery() {
-        run_full_scan_test(
-            "scan_victim_discovery",
-            "victim-discovery",
-            ScanEndpoint::Default,
-            false,
-        )
-        .await;
-    }
+    // #[tokio::test]
+    // #[ignore = "very slow"]
+    // async fn scan_victim_discovery() {
+    //     run_full_scan_test(
+    //         "scan_victim_discovery",
+    //         "victim-discovery",
+    //         ScanEndpoint::Default,
+    //         false,
+    //     )
+    //     .await;
+    // }
 
-    #[tokio::test]
-    #[ignore = "very slow"]
-    async fn scan_victim_full_and_fast() {
-        run_full_scan_test(
-            "scan_victim_full_and_fast",
-            "victim-full-and-fast",
-            ScanEndpoint::Default,
-            false,
-        )
-        .await;
-    }
+    // #[tokio::test]
+    // #[ignore = "very slow"]
+    // async fn scan_victim_full_and_fast() {
+    //     run_full_scan_test(
+    //         "scan_victim_full_and_fast",
+    //         "victim-full-and-fast",
+    //         ScanEndpoint::Default,
+    //         false,
+    //     )
+    //     .await;
+    // }
 
     #[tokio::test]
     #[ignore = "very slow"]
@@ -620,43 +620,46 @@ mod requires_compose {
         .await;
     }
 
-    #[tokio::test]
-    #[ignore = "extremely slow"]
-    async fn container_scan_local_registry_victim() {
-        run_full_scan_test(
-            "container_scan_local_registry_victim",
-            "local-registry-victim",
-            ScanEndpoint::ContainerImage,
-            false,
-        )
-        .await;
-    }
+    // Disabling these victim tests temporarily
+    // while victim is broken
 
-    #[tokio::test]
-    async fn stop_scan_victim_simple_auth_ssh() {
-        let t = Test::new("stop_scan_victim_simple_auth_ssh")
-            .config("openvas")
-            .await;
-        t.assert_mtls().await;
-        let scan = t
-            .create_scan(read_test_scan("victim-simple-auth-ssh"))
-            .await;
+    // #[tokio::test]
+    // #[ignore = "extremely slow"]
+    // async fn container_scan_local_registry_victim() {
+    //     run_full_scan_test(
+    //         "container_scan_local_registry_victim",
+    //         "local-registry-victim",
+    //         ScanEndpoint::ContainerImage,
+    //         false,
+    //     )
+    //     .await;
+    // }
 
-        scan.start().await;
-        scan.wait_for(Phase::Running.with_timeout(Duration::from_secs(240)))
-            .await;
-
-        scan.stop().await;
-        scan.wait_for(Phase::Stopped.with_timeout(Duration::from_secs(10)))
-            .await;
-
-        scan.start().await;
-        scan.wait_for(Phase::Running.with_timeout(Duration::from_secs(60)))
-            .await;
-
-        scan.stop().await;
-        scan.wait_for(Phase::Stopped.with_timeout(Duration::from_secs(10)))
-            .await;
-        scan.delete().await;
-    }
+    // #[tokio::test]
+    // async fn stop_scan_victim_simple_auth_ssh() {
+    //     let t = Test::new("stop_scan_victim_simple_auth_ssh")
+    //         .config("openvas")
+    //         .await;
+    //     t.assert_mtls().await;
+    //     let scan = t
+    //         .create_scan(read_test_scan("victim-simple-auth-ssh"))
+    //         .await;
+    //
+    //     scan.start().await;
+    //     scan.wait_for(Phase::Running.with_timeout(Duration::from_secs(240)))
+    //         .await;
+    //
+    //     scan.stop().await;
+    //     scan.wait_for(Phase::Stopped.with_timeout(Duration::from_secs(10)))
+    //         .await;
+    //
+    //     scan.start().await;
+    //     scan.wait_for(Phase::Running.with_timeout(Duration::from_secs(60)))
+    //         .await;
+    //
+    //     scan.stop().await;
+    //     scan.wait_for(Phase::Stopped.with_timeout(Duration::from_secs(10)))
+    //         .await;
+    //     scan.delete().await;
+    // }
 }
