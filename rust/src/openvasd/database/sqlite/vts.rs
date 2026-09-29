@@ -44,7 +44,7 @@ impl From<SqlitePool> for SqlPluginStorage {
 
 impl PluginFetcher for SqlPluginStorage {
     fn get_oids(&self) -> StreamResult<String, WorkerError> {
-        let result = query("SELECT oid FROM plugins ORDER BY oid")
+        let result = query("SELECT oid FROM plugins where oid NOT LIKE '%inc' ORDER BY oid")
             .fetch(&self.pool)
             .map(|row| row.map(|e| e.get("oid")).map_err(WorkerError::Cache));
         Box::pin(result)
