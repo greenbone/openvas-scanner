@@ -25,8 +25,6 @@ use scannerlib::{
 };
 use tracing::warn;
 
-// use scannerlib::feed::{FeedReplacer, ReplaceCommand};
-
 use crate::{CliError, CliErrorKind, get_path_from_openvas, notus_update, read_openvas_config};
 
 /// Handle feed related tasks
