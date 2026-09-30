@@ -140,7 +140,11 @@ fn script_get_preference(
 
 #[nasl_function]
 fn get_preference(ctx: &ScanCtx, name: String) -> Option<NaslValue> {
-    let val = ctx.scan_params().find(|p| p.id == name)?.value.clone();
+    let val = if let Some(pref) = ctx.scan_params().find(|p| p.id == name) {
+        pref.value.clone()
+    } else {
+        return None;
+    };
 
     for p in PREFERENCES.to_vec().iter() {
         if p.id == name {
