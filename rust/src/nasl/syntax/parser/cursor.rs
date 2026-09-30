@@ -74,8 +74,6 @@ impl Cursor {
     }
 
     pub fn advance(&mut self) -> Token {
-        // TODO: If necessary, this can be sped up by
-        // mem swapping.
         self.previous = Some(self.current.clone());
         self.current = self.next.clone();
         self.next = next_token(&mut self.tokenizer, &mut self.errors);
