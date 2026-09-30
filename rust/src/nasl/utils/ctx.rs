@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
 
+use crate::models::VTData;
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
 use crate::nasl::{FromNaslValue, WithErrorInfo};
@@ -23,8 +24,6 @@ use crate::storage::items::nvt::{FeedVersion, FileName};
 use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
-//TODO: rename
-use crate::models::VTData;
 use std::collections::BTreeSet;
 use std::sync::{Arc, MutexGuard};
 

@@ -174,8 +174,6 @@ macro_rules! two_symbol_token {
 }
 
 /// Tokenizer uses a cursor to create tokens
-// TODO remove clone?
-#[derive(Clone)]
 pub struct Tokenizer {
     cursor: Cursor,
     begin_match_position: CharIndex,
