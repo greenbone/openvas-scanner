@@ -132,9 +132,6 @@ async fn get_vts_test(
     body
 }
 
-// TODO: This test is currently broken and
-// we see the plugin_feed_info.inc in the snapshot.
-// Fix this.
 #[tokio::test]
 #[tracing_test::traced_test]
 async fn get_vts() {
