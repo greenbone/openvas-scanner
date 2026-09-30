@@ -7,6 +7,11 @@ on:
         description: "Binary version"
         required: false
         type: string
+      build_rust_binaries:
+        description: "Build the amd64 and arm64 Rust binaries"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   C:
@@ -22,12 +27,14 @@ jobs:
       - name: build 
         run: ./check.sh --verbose ci-build-c
   rs-amd64:
+    if: inputs.build_rust_binaries
     uses: ./.github/workflows/rust-binaries.yaml
     with:
       arch: amd64
       runner: ubuntu-latest
       binary_version: ${{ inputs.binary_version }}
   rs-arm64:
+    if: inputs.build_rust_binaries
     uses: ./.github/workflows/rust-binaries.yaml
     with:
       arch: arm64
