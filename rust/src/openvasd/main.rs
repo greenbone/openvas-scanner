@@ -18,6 +18,7 @@ mod notus;
 mod scans;
 mod vts;
 
+
 use sqlx::migrate::Migrator;
 use std::{
     marker::{Send, Sync},
