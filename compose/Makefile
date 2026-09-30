@@ -11,8 +11,8 @@ else
 	CMD := podman-compose
 endif
 
-TEST_ENVIRONMENTS := -f base.yaml -f openvasd.yaml -f mtls.yaml -f tests/victim.yaml -f local-registry.yaml
-RUST_TEST_ENVIRONMENTS := -f base.yaml -f tests/victim.yaml -f local-registry.yaml -f tests/rust-tests.yaml -f tests/rust-tests-mtls.yaml
+TEST_ENVIRONMENTS := -f base.yaml -f openvasd.yaml -f mtls.yaml -f local-registry.yaml
+RUST_TEST_ENVIRONMENTS := -f base.yaml -f local-registry.yaml -f tests/rust-tests.yaml -f tests/rust-tests-mtls.yaml
 RUST_TEST_ARGS ?= --features requires-compose --bin openvasd api_tests::requires_compose::
 RUST_TEST_RUN_ARGS ?=
 
