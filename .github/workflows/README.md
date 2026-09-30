@@ -10,11 +10,10 @@ workflows contain only orchestration.
 
 Runs for open pull requests, pushes to `main`, and merge groups. It calls the
 reusable unit-test, lint, and build workflows. Merge groups additionally run the
-stable, testing, and oldstable container compatibility builds.
+binary builds for amd64 and arm64 and stable, testing, and oldstable container 
+compatibility builds.
 
-`Merge gate` is the single aggregate job intended for branch protection. On a
-pull request it requires tests, linting, and builds. In the merge queue it also
-requires all container compatibility builds.
+`Merge gate` is the single aggregate job intended for branch protection. 
 
 ### `container.yml` — container publishing
 

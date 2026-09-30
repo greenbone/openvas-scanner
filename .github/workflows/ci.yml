@@ -29,6 +29,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       binary_version: ${{ needs.initialize.outputs.binary_version }}
+      build_rust_binaries: ${{ github.event_name == 'merge_group' }}
 
   lint:
     name: Lint
