@@ -146,8 +146,8 @@ test_rust() {
     cd "$ROOT/rust"
     version_command cargo --version
     run make
-    run cargo test --lib --tests --workspace
-    run cargo test --lib --tests --workspace --features native-rust-ssh
+    run cargo test --lib --tests --workspace -- $@
+    run cargo test --lib --tests --workspace --features native-rust-ssh -- $@
 }
 
 test_rust_compose() {
@@ -260,7 +260,7 @@ case "$target" in
         ci_integration_build
         ;;
     test-rust)
-        test_rust
+        test_rust "${@:2}"
         ;;
     test-rust-compose)
         test_rust_compose

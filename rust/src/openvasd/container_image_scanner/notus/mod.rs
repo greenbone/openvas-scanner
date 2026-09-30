@@ -43,8 +43,8 @@ fn generate_key(architecture: &str, os: &OperatingSystem) -> String {
     match (architecture, &nos as &str) {
         // TODO: figure out if there is some kind of rule behind the _sp versioning scheme or if
         // that is really per OS.
-        (_, "openeuler") => format!("{}_{}", &nos, normalize_openeuler_version()),
-        (_, "euleros") => format!("{}_v{}", &nos, normalize_euler_version()),
+        (_, "openeuler") => format!("{}_{}", nos, normalize_openeuler_version()),
+        (_, "euleros") => format!("{}_v{}", nos, normalize_euler_version()),
         (_, name) => format!("{}_{}", name, os.version_id),
     }
 }

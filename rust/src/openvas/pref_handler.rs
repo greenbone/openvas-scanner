@@ -77,15 +77,15 @@ where
 
     async fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
-            format!("internal/{}/scanprefs", &self.scan_config.scan_id.clone()).as_str(),
-            format!("ov_maindbid|||{}", &self.redis_connector.kb_id()?),
+            format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
+            format!("ov_maindbid|||{}", self.redis_connector.kb_id()?),
         )?;
         Ok(())
     }
 
     async fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
-            format!("internal/{}", &self.scan_config.scan_id.clone()).as_str(),
+            format!("internal/{}", self.scan_config.scan_id.clone()).as_str(),
             "new",
         )?;
         self.redis_connector
