@@ -89,6 +89,7 @@ enum Action {
     #[clap(alias = "syntax")]
     Lint(LinterArgs),
     Alivetest(alivetest::AliveTestArgs),
+    /// Print the version of scannerctl
     Version,
 }
 

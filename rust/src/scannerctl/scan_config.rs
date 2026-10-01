@@ -18,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
 
 #[derive(clap::Parser)]
-/// Transforms a scan-config xml to a scan json for openvasd.
+/// Transform a scan-config xml to a scan json for openvasd
 pub struct ScanConfigArgs {
     /// Print more details while running
     #[arg(short, long, action = clap::ArgAction::Count)]
