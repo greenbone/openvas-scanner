@@ -129,7 +129,7 @@ async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError>
         Action::Syntax(args) => linter::run(args, verbose, quiet, true).await,
         Action::Alivetest(args) => alivetest::run(args).await,
         Action::Version => {
-            scannerlib::utils::version::show_version("scannerctl");
+            println!("scannerctl {}", scannerlib::utils::version::get_version());
             Ok(())
         }
     }
