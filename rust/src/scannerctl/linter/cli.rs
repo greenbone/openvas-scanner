@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use crate::error::CliError;
 use scannerlib::nasl::Loader;
 
+/// Check the syntax of the given NASL scripts and
+/// report encountered errors.
 #[derive(clap::Parser)]
 pub struct LinterArgs {
     /// Either a single NASL file or a directory of NASL files on which to run the linter.
