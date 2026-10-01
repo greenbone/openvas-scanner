@@ -16,7 +16,7 @@ use crate::{CliError, CliErrorKind};
 mod start_scan;
 
 #[derive(clap::Parser)]
-/// Transforms a osp start-scan xml to a scan json for openvasd.
+/// Transform a osp start-scan xml to a scan json for openvasd
 pub struct OspArgs {
     /// Path to the feed.
     feed_path: PathBuf,
