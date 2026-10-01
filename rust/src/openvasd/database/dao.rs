@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::{fmt::Display, time::Duration};
 
 use scannerlib::{PromiseRef, Streamer};
@@ -72,7 +76,6 @@ pub enum DAOError {
     NotFound,
     #[error("Corrupt data")]
     Corrupt,
-
     #[error("DB: {0}")]
     Infrastructure(InfrastructureReason),
 }

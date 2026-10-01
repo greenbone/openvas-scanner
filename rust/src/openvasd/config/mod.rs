@@ -268,6 +268,7 @@ impl StorageTypes {
             }
         }
     }
+
     fn set_credential_key<S: Into<String>>(&mut self, key: S) {
         let key = key.into();
         match self {
@@ -610,7 +611,7 @@ impl Config {
                     .env("STORAGE_KEY")
                     .long("storage-key")
                     .value_name("KEY")
-                    .help("the password to use for encryption when type is set to fs. If not set the files are not encrypted."),
+                    .help("the password to use for encryption when type is set to fs. If not set the data will be unencrypted."),
             )
             .arg(
                 clap::Arg::new("log-level")
@@ -763,6 +764,7 @@ impl Config {
         if let Some(mode) = cmds.get_one::<Mode>("mode") {
             config.mode = mode.clone();
         }
+
         if let Some(key) = cmds.get_one::<String>("storage_key")
             && !key.is_empty()
         {
