@@ -12,6 +12,7 @@ use std::{
 };
 
 use crate::container_image_scanner::config::{DBLocation, SqliteConfiguration};
+use anyhow::{Result, anyhow};
 use clap::{ArgAction, builder::TypedValueParser};
 use logging::SerLevel;
 use scannerlib::{
@@ -186,9 +187,8 @@ impl TypedValueParser for Mode {
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Endpoints {
-    pub enable_get_scans: bool,
     #[serde(default)]
-    pub enable_get_performance: Option<bool>,
+    pub enable_get_scans: bool,
     #[serde(default)]
     pub key: Option<String>,
 }
@@ -369,6 +369,19 @@ impl Config {
         }
     }
 
+    pub fn tls(&self) -> anyhow::Result<Tls> {
+        match (
+            self.tls.certs.is_some(),
+            self.tls.key.is_some(),
+            self.tls.client_certs.is_some(),
+        ) {
+            (true, false, _) => Err(anyhow!("missing TLS server key path")),
+            (false, true, _) => Err(anyhow!("missing TLS server certificate path")),
+            (false, false, true) => Err(anyhow!("mTLS client cert set without server certificate")),
+            _ => Ok(self.tls.clone()),
+        }
+    }
+
     pub fn from_file<P>(path: P) -> Self
     where
         P: AsRef<std::path::Path>,
@@ -497,16 +510,7 @@ impl Config {
                     .num_args(0..=1)
                     .value_parser(clap::builder::BoolValueParser::new())
                     .default_missing_value("true")
-                    .help("enable get scans endpoint. Default 'true'."),
-            )
-            .arg(
-                clap::Arg::new("enable-get-performance")
-                    .env("ENABLE_GET_PERFORMANCE")
-                    .long("enable-get-performance")
-                    .num_args(0..=1)
-                    .value_parser(clap::builder::BoolValueParser::new())
-                    .default_missing_value("false")
-                    .help("enable get performance endpoint. Default 'false'."),
+                    .help("enable get scans endpoint. Default 'false'."),
             )
             .arg(
                 clap::Arg::new("api-key")
@@ -720,9 +724,6 @@ impl Config {
         }
         if let Some(version) = cmds.get_one::<bool>("version") {
             config.version = *version;
-        }
-        if let Some(enable) = cmds.get_one::<bool>("enable-get-performance") {
-            config.endpoints.enable_get_performance = Some(*enable);
         }
         if let Some(api_key) = cmds.get_one::<String>("api-key") {
             config.endpoints.key = Some(api_key.clone());

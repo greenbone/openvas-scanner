@@ -1,5 +1,0 @@
----
-source: src/openvasd/greenbone-scanner-framework/get_scans_id_results_id.rs
-expression: resp
----
-{"id":42,"type":"log"}

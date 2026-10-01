@@ -122,9 +122,6 @@ pub enum Message {
     Stop(String),
 }
 
-// maybe we should just use AnyHow
-type R<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[derive(Debug, thiserror::Error)]
 enum LockFileError {
     #[error("Unable to open feed update lock file {path}: {source}")]
@@ -148,7 +145,7 @@ impl<T, C> ScanScheduler<T, C> {
     /// Should be called on restart if the application crashed while there were running scans.
     ///
     /// This is to safe guard against ghost scans that will never finish.
-    async fn running_to_failed(&self) -> R<()> {
+    async fn running_to_failed(&self) -> anyhow::Result<()> {
         let affected = self
             .scan_state
             .change_state_all("running", "failed")
@@ -163,7 +160,7 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    async fn scan_to_requested(&self, id: i64) -> R<()> {
+    async fn scan_to_requested(&self, id: i64) -> anyhow::Result<()> {
         self.scan_state
             .change_state(id, "stored", "requested")
             .await?;
@@ -174,7 +171,7 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    async fn scan_running_to_failed(&self, id: i64, reason: &str) -> R<()> {
+    async fn scan_running_to_failed(&self, id: i64, reason: &str) -> anyhow::Result<()> {
         let changed = self
             .scan_state
             .change_state(id, "running", "failed")
@@ -186,7 +183,11 @@ impl<T, C> ScanScheduler<T, C> {
         Ok(())
     }
 
-    async fn scan_insert_results(&self, id: i64, results: Vec<models::Result>) -> R<()> {
+    async fn scan_insert_results(
+        &self,
+        id: i64,
+        results: Vec<models::Result>,
+    ) -> anyhow::Result<()> {
         // TODO: maybe better to use i64 in the impl?
         let id: &str = &id.to_string();
         DBResults::new(&self.pool, (id, &results as &[_]))
@@ -196,7 +197,7 @@ impl<T, C> ScanScheduler<T, C> {
     }
 }
 
-fn is_file_locked(path: String) -> R<bool> {
+fn is_file_locked(path: String) -> anyhow::Result<bool> {
     let mut file = LockFile::open(&path).map_err(|source| LockFileError::Open {
         path: path.clone(),
         source,
@@ -236,7 +237,7 @@ where
         }
     }
 
-    async fn fetch_requested(&self) -> R<Vec<i64>> {
+    async fn fetch_requested(&self) -> anyhow::Result<Vec<i64>> {
         let limit: Option<i64> = if self.max_concurrent_scan > 0 {
             let running = self.scan_state.count_scans_in_state("running").await?;
             Some(if running > self.max_concurrent_scan {
@@ -262,7 +263,7 @@ where
             .is_feed_sync_in_progress()
     }
 
-    async fn set_to_running(&self, id: i64) -> R<()> {
+    async fn set_to_running(&self, id: i64) -> anyhow::Result<()> {
         let running = self
             .scan_state
             .change_state(id, "requested", "running")
@@ -284,7 +285,7 @@ where
     ///
     /// In the case that the ScanStarter implementation blocks start_scan is spawned as a
     /// background task.
-    async fn requested_to_running(&self) -> R<()> {
+    async fn requested_to_running(&self) -> anyhow::Result<()> {
         if self.is_feed_sync_in_progress().await {
             tracing::trace!("Skipping to set new scans to running because of feed sync.");
             return Ok(());
@@ -304,7 +305,7 @@ where
         Ok(())
     }
 
-    async fn scan_import_results(&self, internal_id: i64, scan_id: String) -> R<()> {
+    async fn scan_import_results(&self, internal_id: i64, scan_id: String) -> anyhow::Result<()> {
         let mut results = match self.scanner.fetch_results(scan_id.clone()).await {
             Ok(x) => x,
             Err(scannerlib::scanner::Error::ScanNotFound(scan_id)) => {
@@ -340,7 +341,7 @@ where
         Ok(())
     }
 
-    async fn import_results(&self) -> R<()> {
+    async fn import_results(&self) -> anyhow::Result<()> {
         let scans = self
             .scan_state
             .fetch_scans_in_state("running", None)
@@ -357,13 +358,13 @@ where
         Ok(())
     }
 
-    async fn scanner_delete_scan(&self, internal_id: i64, scan_id: String) -> R<()> {
+    async fn scanner_delete_scan(&self, internal_id: i64, scan_id: String) -> anyhow::Result<()> {
         tracing::debug!(internal_id, scan_id, "deleting scan from scanner");
         self.scanner.delete_scan(scan_id).await?;
         Ok(())
     }
 
-    async fn scan_stop(&self, id: i64) -> R<()> {
+    async fn scan_stop(&self, id: i64) -> anyhow::Result<()> {
         let scan_id: String = ScanDB::new(&self.pool, id).fetch().await?;
 
         let current_status = self.scan_state.scan_get_status(id).await?;
@@ -383,7 +384,7 @@ where
         Ok(())
     }
 
-    async fn on_user_action(&self, message: &Message) -> R<()> {
+    async fn on_user_action(&self, message: &Message) -> anyhow::Result<()> {
         match message {
             Message::Start(id) => self.scan_to_requested(id.parse()?).await?,
             Message::Stop(id) => self.scan_stop(id.parse()?).await?,
@@ -394,7 +395,7 @@ where
     async fn on_feed_action(
         &self,
         message: &orchestrator::FeedStatusChange,
-    ) -> R<Option<Vec<orchestrator::Allow>>> {
+    ) -> anyhow::Result<Option<Vec<orchestrator::Allow>>> {
         let msg = message.clone();
         self.feed_sync_in_progress
             .write()
@@ -452,7 +453,7 @@ where
         self.feed_sync_in_progress.write().await.approve()
     }
 
-    async fn on_schedule(&self) -> R<Vec<orchestrator::Allow>> {
+    async fn on_schedule(&self) -> anyhow::Result<Vec<orchestrator::Allow>> {
         if self.contains_need().await {
             let count_running = self.get_running_count().await;
             let filelocked = {
@@ -479,7 +480,7 @@ async fn run_scheduler<S, E>(
     check_interval: std::time::Duration,
     scheduler: ScanScheduler<S, E>,
     feed: orchestrator::Communicator,
-) -> R<mpsc::Sender<Message>>
+) -> anyhow::Result<mpsc::Sender<Message>>
 where
     S: Scanner + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
@@ -558,7 +559,7 @@ pub(super) async fn init_with_scanner<E, S>(
     config: &Config,
     scanner: S,
     feed: orchestrator::Communicator,
-) -> R<Sender<Message>>
+) -> anyhow::Result<Sender<Message>>
 where
     S: Scanner + Send + Sync + 'static,
     E: Crypt + Send + Sync + 'static,
@@ -582,7 +583,7 @@ pub async fn init<E>(
     crypter: Arc<E>,
     config: &Config,
     feed_status: orchestrator::Communicator,
-) -> R<Sender<Message>>
+) -> anyhow::Result<Sender<Message>>
 where
     E: Crypt + Send + Sync + 'static,
 {
@@ -635,7 +636,7 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use scannerlib::{
-        models::Status,
+        models::{self, Status},
         scanner::{self, ScanResults, TestScannerBuilder},
     };
     use sqlx::query_scalar;
@@ -648,22 +649,22 @@ pub(crate) mod tests {
             tests::{create_pool, prepare_scans},
         },
     };
-    type TR = R<()>;
 
-    async fn setup_test_env() -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
+    async fn setup_test_env()
+    -> anyhow::Result<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
         setup_test_env_with_scanner(TestScannerBuilder::default()).await
     }
 
     async fn setup_test_env_with_scanner(
         builder: TestScannerBuilder,
-    ) -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
+    ) -> anyhow::Result<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
         setup_test_env_with_scanner_and_feed_messages(builder, Default::default()).await
     }
 
     async fn setup_test_env_with_scanner_and_feed_messages(
         builder: TestScannerBuilder,
         feed_changes: IsInProgress,
-    ) -> R<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
+    ) -> anyhow::Result<(ScanScheduler<scanner::TestScanner, ChaCha20Crypt>, Vec<i64>)> {
         let (config, pool) = create_pool().await?;
         let scanner = Arc::new(builder.build());
         let cryptor = Arc::new(scans::config_to_crypt(&config));
@@ -683,7 +684,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn start_scan() -> TR {
+    async fn start_scan() -> anyhow::Result<()> {
         let (under_test, known_scans) = setup_test_env().await?;
 
         for id in known_scans.iter() {
@@ -704,7 +705,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn run_scans() -> TR {
+    async fn run_scans() -> anyhow::Result<()> {
         let (under_test, known_scans) = setup_test_env().await?;
         for id in known_scans.iter() {
             under_test
@@ -781,7 +782,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     // maybe create a function of that so that it can be used within scans testing
-    async fn reflect_status_phase_of_scan() -> TR {
+    async fn reflect_status_phase_of_scan() -> anyhow::Result<()> {
         let (under_test, known_scans) = setup_test_env_with_scanner(scanner_succeeded()).await?;
         for id in known_scans.iter() {
             under_test
@@ -816,7 +817,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn run_scans_failure() -> TR {
+    async fn run_scans_failure() -> anyhow::Result<()> {
         let (under_test, known_scans) = setup_test_env_with_scanner(
             TestScannerBuilder::new()
                 .with_start(|_| Err(scanner::Error::Connection("nada".to_string()))),
@@ -851,7 +852,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn do_not_start_when_scanner_cannot_start_scan() -> TR {
+    async fn do_not_start_when_scanner_cannot_start_scan() -> anyhow::Result<()> {
         let (under_test, known_scans) =
             setup_test_env_with_scanner(TestScannerBuilder::new().with_can_start(|| false)).await?;
 
@@ -873,7 +874,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn do_not_start_on_feed_sync() -> TR {
+    async fn do_not_start_on_feed_sync() -> anyhow::Result<()> {
         let iip = IsInProgress {
             need_approval_nasl: true,
             ..Default::default()

@@ -173,7 +173,7 @@ Options:
       --tls-client-certs <tls-client-certs>
           path to client tls certs. Enables mtls. [env: TLS_CLIENT_CERTS=]
       --enable-get-scans [<enable-get-scans>]
-          enable get scans endpoint. Default 'true'. [env: ENABLE_GET_SCANS=] [possible values: true, false]
+          enable get scans endpoint. Default 'false'. [env: ENABLE_GET_SCANS=] [possible values: true, false]
       --enable-get-performance [<enable-get-performance>]
           enable get performance endpoint. Default 'false'. [env: ENABLE_GET_PERFORMANCE=] [possible values: true, false]
       --api-key <api-key>
