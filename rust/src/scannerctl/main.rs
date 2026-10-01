@@ -82,6 +82,7 @@ struct Args {
 enum Action {
     ScanConfig(ScanConfigArgs),
     Osp(OspArgs),
+    #[clap(alias = "run")]
     Execute(ExecuteArgs),
     NotusUpdate(NotusUpdateArgs),
     Feed(FeedArgs),
