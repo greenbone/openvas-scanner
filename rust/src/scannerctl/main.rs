@@ -85,7 +85,7 @@ enum Action {
     Execute(ExecuteArgs),
     NotusUpdate(NotusUpdateArgs),
     Feed(FeedArgs),
-    Syntax(LinterArgs),
+    #[clap(alias = "syntax")]
     Lint(LinterArgs),
     Alivetest(alivetest::AliveTestArgs),
     Version,
@@ -126,7 +126,6 @@ async fn run(action: Action, verbose: bool, quiet: bool) -> Result<(), CliError>
         Action::NotusUpdate(args) => notus_update::scanner::run(args).await,
         Action::Feed(args) => feed::run(args).await,
         Action::Lint(args) => linter::run(args, verbose, quiet, false).await,
-        Action::Syntax(args) => linter::run(args, verbose, quiet, true).await,
         Action::Alivetest(args) => alivetest::run(args).await,
         Action::Version => {
             println!("scannerctl {}", scannerlib::utils::version::get_version());
