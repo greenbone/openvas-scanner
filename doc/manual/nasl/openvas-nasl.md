@@ -2,7 +2,7 @@
 
 ## NAME
 
-openvas-nasl - NASL Attack Scripting Language
+openvas-nasl - OpenVAS standalone NASL interpreter
 
 ## SYNOPSIS
 
