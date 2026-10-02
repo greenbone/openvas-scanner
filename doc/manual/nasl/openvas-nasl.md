@@ -82,7 +82,7 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 ## SEE ALSO
 
-**[openvas(1)](../openvas/openvas.md)**, **[openvas-nasl-lint(1)](openvas-nasl-lint.md)**
+**[openvas(8)](../openvas/openvas.md)**, **[openvas-nasl-lint(1)](openvas-nasl-lint.md)**
 
 ## HISTORY
 

@@ -40,4 +40,4 @@ included below.
 
 ## SEE ALSO
 
-**[openvas(1)](../openvas/openvas.md)**, **[openvas-nasl(1)](openvas-nasl.md)**
+**[openvas(8)](../openvas/openvas.md)**, **[openvas-nasl(1)](openvas-nasl.md)**
