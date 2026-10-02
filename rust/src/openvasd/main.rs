@@ -26,13 +26,12 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use api::Authentication;
-use config::{Config, StorageType};
-use container_image_scanner::config::{DBLocation, SqliteConfiguration};
+use config::{Config, DBLocation, SqliteConfiguration, StorageType};
 use notus::config_to_products;
 use scannerlib::{models::FeedState, utils::version::show_version};
 use sqlx::SqlitePool;
 
-use crate::api::ApiConfig;
+use crate::{api::ApiConfig, config::StorageTypes};
 
 static MIGRATOR: Migrator = sqlx::migrate!();
 
@@ -55,7 +54,7 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
             };
             sqliteconfig
         }
-        config::StorageTypes::V2(sqlite_configuration) => sqlite_configuration,
+        StorageTypes::V2(sqlite_configuration) => sqlite_configuration,
     }
     .create_pool("openvasd")
     .await?;
@@ -67,9 +66,11 @@ async fn setup_sqlite(config: &Config) -> Result<SqlitePool> {
 pub async fn init_api(config: Config) -> Result<ApiConfig> {
     let products = config_to_products(&config);
     let pool = setup_sqlite(&config).await?;
+    // TODO: tmp
+    let db = crate::database::sqlite::SqliteDatabase::init(&config).await?;
     let feed_state = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
     let (sender, feed) = vts::init(pool.clone(), &config, feed_state.clone()).await;
-    let scanner = scans::init(pool.clone(), &config, sender).await?;
+    let scanner = scans::init(db, pool.clone(), &config, sender).await?;
     let image_scanner =
         container_image_scanner::init(products.clone(), config.container_image_scanner.clone())
             .await?;
@@ -104,12 +105,20 @@ pub async fn init_api(config: Config) -> Result<ApiConfig> {
         tls_cfg,
         // TODO: make new variable?
         max_requests: config.storage.max_http_connections(),
-        api_keys: Arc::new(config.endpoints.key.map(|x| vec![x]).unwrap_or(vec![])),
+        api_keys: Arc::new(
+            config
+                .endpoints
+                .key
+                .clone()
+                .map(|x| vec![x])
+                .unwrap_or(vec![]),
+        ),
         feed,
         scanner,
         image_scanner,
         notus: products,
         enable_additional_routes: config.endpoints.enable_get_scans,
+        database: Arc::new(crate::database::sqlite::SqliteDatabase::init(&config).await?),
     })
 }
 

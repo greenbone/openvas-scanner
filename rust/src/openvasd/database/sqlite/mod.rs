@@ -1,22 +1,82 @@
-use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
-use sqlx::query::QueryAs;
+use sqlx::Transaction;
 
-use sqlx::{
-    FromRow, IntoArguments, QueryBuilder, Sqlite, SqliteConnection, SqlitePool,
-    query::{Query, QueryScalar},
-    query_builder::Separated,
-    sqlite::{SqliteQueryResult, SqliteRow},
-};
+use sqlx::{QueryBuilder, Sqlite, SqlitePool, query_builder::Separated};
 
+use futures::Stream;
+use std::pin::Pin;
+use std::sync::Arc;
+
+use crate::config::{DBLocation, SqliteConfiguration, StorageType, StorageTypes};
+use crate::crypt::Crypter;
 use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
+use crate::{MIGRATOR, config};
 
+pub mod cis;
 pub mod results;
 pub mod scan_storage;
 pub mod scans;
 pub mod state_change;
 pub mod vts;
 
+pub const SQLITE_LIMIT_VARIABLE_NUMBER: usize = 32766;
+
 pub type DataBase = SqlitePool;
+
+/// An async stream of Results used by the database.
+pub type StreamResult<T, E> = Pin<Box<dyn Stream<Item = Result<T, E>> + Send>>;
+
+#[derive(Clone)]
+pub struct SqliteDatabase {
+    pool: SqlitePool,
+    crypter: Arc<Crypter>,
+}
+
+impl SqliteDatabase {
+    // TODO: temp for testing which requires both the old and new pool
+    pub async fn init_test(config: &config::Config, pool: SqlitePool) -> anyhow::Result<Self> {
+        let crypter = Arc::new(crate::scans::config_to_crypt(config, &pool).await?);
+        Ok(Self { pool, crypter })
+    }
+
+    pub async fn init(config: &config::Config) -> anyhow::Result<Self> {
+        let pool = match config.storage.clone() {
+            StorageTypes::V1(storage_v1) => {
+                let mut sqliteconfig = SqliteConfiguration::default();
+
+                match storage_v1.storage_type {
+                    StorageType::InMemory | StorageType::Redis => {}
+                    StorageType::FileSystem if storage_v1.fs.path.is_dir() => {
+                        let mut p = storage_v1.fs.path.clone();
+                        p.push("openvasd.db");
+                        sqliteconfig.location = DBLocation::File(p);
+                    }
+                    StorageType::FileSystem => {
+                        sqliteconfig.location = DBLocation::File(storage_v1.fs.path);
+                    }
+                };
+                sqliteconfig
+            }
+            StorageTypes::V2(sqlite_configuration) => sqlite_configuration,
+        }
+        .create_pool("openvasd")
+        .await?;
+        MIGRATOR.run(&pool).await?;
+        let crypter = Arc::new(crate::scans::config_to_crypt(config, &pool).await?);
+
+        Ok(Self { pool, crypter })
+    }
+
+    pub async fn begin(&self) -> anyhow::Result<Transaction<'_, Sqlite>> {
+        self.pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(|e| e.into())
+    }
+
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct OpenVASDDB<'o, T> {
@@ -73,126 +133,6 @@ where
     }
 
     Ok(())
-}
-
-/// Contains a single connection to be used and allows replacing that connection on certain errors.
-///
-///
-/// Unfortunately we have the issue that sqlite implementation of sqlx enforces DEFERRED mode,
-/// meaning if another transaction hits the DB first it gets prioritized although another one was
-/// started previously.
-///
-/// Additionally the implementation of SqliteConnection does not have a way to enforce an order
-/// artificially and also doesn't allow cache control.
-///
-/// That's why we need to enforce for critical operations to happen on the same connection and
-/// handled mutually exclusive usually enforced by a mutex.
-///
-///
-#[derive(Debug)]
-pub struct SqliteConnectionContainer {
-    pool: SqlitePool,
-    current_connection: SqliteConnection,
-    max_retries: usize,
-}
-
-macro_rules! retry_sql_connection_call {
-    ($self:ident, $f:expr) => {{
-        let mut tries = 0;
-        loop {
-            //sqlx::query("BEGIN IMMEDIATE").execute($self.connection()).await?;
-            let result = $f($self.connection()).await;
-            //sqlx::query("COMMIT").execute($self.connection()).await?;
-
-            match result {
-                Err(sqlx::Error::Io(io)) if tries < $self.max_retries => {
-                    tracing::warn!(error=%io, "replace connection based on IO error");
-                    $self.replace_connection().await?;
-                    tries += 1;
-                }
-                other => {
-                    return other;
-                },
-            }
-
-        }
-    }};
-}
-
-impl SqliteConnectionContainer {
-    pub async fn init(pool: SqlitePool) -> Result<Self, sqlx::error::Error> {
-        let current_connection = pool.acquire().await?.detach();
-        Ok(Self {
-            pool,
-            current_connection,
-            max_retries: 3,
-        })
-    }
-
-    pub fn connection(&mut self) -> &mut SqliteConnection {
-        &mut self.current_connection
-    }
-
-    async fn replace_connection(&mut self) -> Result<(), sqlx::error::Error> {
-        self.current_connection = self.pool.acquire().await?.detach();
-        use sqlx::Connection;
-        self.current_connection.clear_cached_statements().await?;
-        Ok(())
-    }
-
-    pub async fn fetch_one<'a, F, A>(&'a mut self, q: F) -> Result<SqliteRow, sqlx::error::Error>
-    where
-        F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_one(c))
-    }
-
-    pub async fn fetch_one_scalar<'a, F, O, A>(&'a mut self, q: F) -> Result<O, sqlx::error::Error>
-    where
-        F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
-        O: Send + Unpin,
-        A: 'a + IntoArguments<'a, Sqlite>,
-        (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_one(c))
-    }
-
-    pub async fn fetch_all_scalar<'a, F, O, A>(
-        &'a mut self,
-        q: F,
-    ) -> Result<Vec<O>, sqlx::error::Error>
-    where
-        F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
-        O: Send + Unpin,
-        A: 'a + IntoArguments<'a, Sqlite>,
-        (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_all(c))
-    }
-
-    pub async fn fetch_all_rows<'a, F, O, A>(
-        &'a mut self,
-        q: F,
-    ) -> Result<Vec<O>, sqlx::error::Error>
-    where
-        F: Fn() -> QueryAs<'a, Sqlite, O, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
-        O: Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_all(c))
-    }
-
-    pub async fn execute<'a, F, A>(
-        &'a mut self,
-        q: F,
-    ) -> Result<SqliteQueryResult, sqlx::error::Error>
-    where
-        F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
-    {
-        retry_sql_connection_call!(self, |c| q().execute(c))
-    }
 }
 
 impl From<sqlx::error::ErrorKind> for DBViolation {

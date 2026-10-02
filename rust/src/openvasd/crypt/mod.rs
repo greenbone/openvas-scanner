@@ -24,6 +24,7 @@ pub trait Crypt {
 /// Unified encryption access point.
 ///
 /// Allows encryption with the latest version and backwards compatible decryption with all versions.
+#[derive(Clone)]
 pub struct Crypter {
     v1: V1Crypter,
     v2: V2Crypter,

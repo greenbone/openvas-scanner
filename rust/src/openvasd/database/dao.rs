@@ -4,7 +4,8 @@
 
 use std::{fmt::Display, time::Duration};
 
-use scannerlib::{PromiseRef, Streamer};
+use crate::database::sqlite::StreamResult;
+use scannerlib::PromiseRef;
 
 #[derive(Debug, Clone, Copy)]
 pub enum DBViolation {
@@ -99,7 +100,6 @@ impl DAOError {
 }
 
 pub type DAOPromiseRef<'a, T> = PromiseRef<'a, Result<T, DAOError>>;
-pub type DAOStreamer<T> = Streamer<Result<T, DAOError>>;
 
 pub trait DAOHandler<DB, T> {
     fn db(&self) -> DB;
@@ -115,7 +115,7 @@ pub trait Fetch<T> {
 }
 
 pub trait StreamFetch<T> {
-    fn stream_fetch(self) -> DAOStreamer<T>;
+    fn stream_fetch(self) -> StreamResult<T, DAOError>;
 }
 
 pub trait Execute<T> {

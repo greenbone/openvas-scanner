@@ -3,17 +3,383 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use futures::{StreamExt, stream};
-use scannerlib::models::{self, AliveTestMethods};
-use sqlx::{Connection, Row, Sqlite, SqlitePool, query, query_scalar, sqlite::SqliteRow};
+use scannerlib::{
+    models::{self, AliveTestMethods, Status},
+    scanner::{ScanResultKind, ScanResults},
+};
+use sqlx::{
+    Connection, Row, Sqlite, SqlitePool, Transaction, query, query_scalar, sqlite::SqliteRow,
+};
 
 use crate::{
     api::InternalIdentifier,
     crypt::{self, Crypt, Encrypted},
     database::{
-        dao::{DAOError, DAOHandler, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
-        sqlite::{DataBase, OpenVASDDB, insert_values_chunked, state_change},
+        dao::{DAOError, DAOHandler, DAOPromiseRef, Execute, Fetch, StreamFetch},
+        sqlite::{DataBase, OpenVASDDB, StreamResult, insert_values_chunked, state_change},
     },
 };
+
+impl super::SqliteDatabase {
+    pub(super) async fn encrypt<T>(&self, input: &T) -> anyhow::Result<String>
+    where
+        T: serde::Serialize,
+    {
+        let bytes = serde_json::to_vec(input)?;
+        Ok(self.crypter.encrypt(bytes).await?.to_string())
+    }
+
+    pub(super) async fn decrypt<T>(&self, input: &str) -> anyhow::Result<T>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        let encrypted: Encrypted = Encrypted::try_from(input)?;
+        let output = self.crypter.decrypt(encrypted).await?;
+        serde_json::from_slice::<T>(&output).map_err(|e| e.into())
+    }
+
+    pub async fn scan_id_to_oid(&self, scan_id: &str) -> anyhow::Result<i64> {
+        sqlx::query_scalar("SELECT id FROM scans WHERE scan_id = ?")
+            .bind(scan_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| e.into())
+    }
+
+    /// Populates tables used by both scan types
+    pub(super) async fn scan_generic_insert(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        client_id: &str,
+        scan: &models::Scan,
+    ) -> anyhow::Result<i64> {
+        let scan_oid = query("INSERT INTO scans (scan_id, client_id, auth_data) VALUES (?, ?, ?)")
+            .bind(&scan.scan_id)
+            .bind(client_id)
+            .bind(self.encrypt(&scan.target.credentials).await?)
+            .execute(&mut **tx)
+            .await?
+            .last_insert_rowid();
+
+        let mut scan_preferences = scan.scan_preferences.clone();
+        if scan.target.reverse_lookup_unify.unwrap_or_default() {
+            scan_preferences.push(models::ScanPreference {
+                id: "target_reverse_lookup_unify".to_string(),
+                value: "true".to_string(),
+            });
+        }
+
+        if scan.target.reverse_lookup_only.unwrap_or_default() {
+            scan_preferences.push(models::ScanPreference {
+                id: "target_reverse_lookup_only".to_string(),
+                value: "true".to_string(),
+            });
+        }
+
+        insert_values_chunked(
+            &mut **tx,
+            "INSERT INTO preferences (id, key, value)",
+            |mut b, pref| {
+                b.push_bind(&scan_oid)
+                    .push_bind(&pref.id)
+                    .push_bind(&pref.value);
+            },
+            &scan_preferences,
+            3,
+        )
+        .await?;
+
+        Ok(scan_oid)
+    }
+
+    pub async fn scan_insert(&self, client: &str, scan: &models::Scan) -> anyhow::Result<i64> {
+        // force a write transaction right away
+        let mut tx = self.begin().await?;
+
+        let scan_oid = self.scan_generic_insert(&mut tx, client, scan).await?;
+
+        if !scan.vts.is_empty() {
+            insert_values_chunked(
+                &mut *tx,
+                "INSERT OR REPLACE INTO vts (id, vt)",
+                |mut b, vt| {
+                    b.push_bind(&scan_oid).push_bind(&vt.oid);
+                },
+                &scan.vts,
+                2,
+            )
+            .await?;
+
+            let vt_params = scan
+                .vts
+                .iter()
+                .flat_map(|x| x.parameters.iter().map(move |p| (&x.oid, p.id, &p.value)))
+                .collect::<Vec<_>>();
+            insert_values_chunked(
+                &mut *tx,
+                "INSERT INTO vt_parameters (id, vt, param_id, param_value)",
+                |mut b, (oid, param_id, param_value)| {
+                    b.push_bind(&scan_oid)
+                        .push_bind(oid)
+                        .push_bind(*param_id as i64)
+                        .push_bind(param_value);
+                },
+                &vt_params,
+                4,
+            )
+            .await?;
+        }
+
+        insert_values_chunked(
+            &mut *tx,
+            "INSERT INTO hosts (id, host)",
+            |mut b, host| {
+                b.push_bind(&scan_oid).push_bind(host);
+            },
+            &scan.target.hosts,
+            2,
+        )
+        .await?;
+
+        insert_values_chunked(
+            &mut *tx,
+            "INSERT INTO resolved_hosts (id, original_host, resolved_host, kind, scan_status)",
+            |mut b, host| {
+                //TODO: check host if ip v4, v6, dns or oci ... for now it doesn't matter.
+                b.push_bind(&scan_oid)
+                    .push_bind(host.clone())
+                    .push_bind(host)
+                    .push_bind("dns")
+                    .push_bind("excluded");
+            },
+            &scan.target.excluded_hosts,
+            5,
+        )
+        .await?;
+
+        let ports = scan
+            .target
+            .ports
+            .iter()
+            .map(|x| (x, false))
+            .chain(scan.target.alive_test_ports.iter().map(|x| (x, true)))
+            .flat_map(|(port, alive)| {
+                port.range
+                    .iter()
+                    .map(move |r| (port.protocol.as_ref(), r, alive))
+            })
+            .collect::<Vec<_>>();
+
+        insert_values_chunked(
+            &mut *tx,
+            "INSERT INTO ports (id, protocol, start, end, alive)",
+            |mut b, (protocol, range, alive)| {
+                b.push_bind(&scan_oid)
+                    .push_bind(match protocol {
+                        None => "udp_tcp",
+                        Some(x) => x.as_ref(),
+                    })
+                    .push_bind(range.start as i64)
+                    .push_bind(range.end.map(|x| x as i64))
+                    .push_bind(alive);
+            },
+            &ports,
+            5,
+        )
+        .await?;
+
+        insert_values_chunked(
+            &mut *tx,
+            "INSERT INTO alive_methods (id, method)",
+            |mut b, method| {
+                b.push_bind(&scan_oid).push_bind(method.as_ref());
+            },
+            &scan.target.alive_test_methods,
+            2,
+        )
+        .await?;
+
+        tx.commit().await?;
+        Ok(scan_oid)
+    }
+
+    pub async fn get_scan(&self, scan_oid: i64) -> anyhow::Result<models::Scan> {
+        // begin a DEFRED transaction
+        let mut tx = self.pool.begin().await?;
+        let scan = self.get_scan_tx(&mut tx, scan_oid).await?;
+        tx.commit().await?;
+        Ok(scan)
+    }
+
+    /// Gets a scan from the database using the given transaction.
+    ///
+    /// This split is necessary because scans need to be loaded both in read and write contexts
+    pub async fn get_scan_tx(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        scan_oid: i64,
+    ) -> anyhow::Result<models::Scan> {
+        fn rows_to_ports(ports: Vec<SqliteRow>) -> Vec<models::Port> {
+            let mut tcp = Vec::with_capacity(ports.len());
+            let mut udp = Vec::with_capacity(ports.len());
+            let mut tcp_udp = Vec::with_capacity(ports.len());
+            for row in ports {
+                let protocol: String = row.get("protocol");
+                let range = models::PortRange {
+                    start: row.get::<i64, _>("start") as usize,
+                    end: row.get::<Option<i64>, _>("end").map(|x| x as usize),
+                };
+
+                match &protocol as &str {
+                    "udp" => udp.push(range),
+                    "tcp" => tcp.push(range),
+                    _ => tcp_udp.push(range),
+                }
+            }
+            vec![
+                models::Port {
+                    protocol: Some(models::Protocol::TCP),
+                    range: tcp,
+                },
+                models::Port {
+                    protocol: Some(models::Protocol::UDP),
+                    range: udp,
+                },
+                models::Port {
+                    protocol: None,
+                    range: tcp_udp,
+                },
+            ]
+        }
+
+        let scan_row = query(
+            r#"
+        SELECT scan_id, created_at, start_time, end_time, auth_data
+        FROM scans
+        WHERE id = ?
+        "#,
+        )
+        .bind(scan_oid)
+        .fetch_one(&mut **tx)
+        .await?;
+
+        let preferences: Vec<models::ScanPreference> =
+            sqlx::query_as("SELECT key as id, value FROM preferences WHERE id = ?")
+                .bind(scan_oid)
+                .fetch_all(&mut **tx)
+                .await?;
+
+        let ports = query("SELECT protocol, start, end FROM ports WHERE id = ? AND alive = 0")
+            .bind(scan_oid)
+            .fetch_all(&mut **tx)
+            .await?;
+        let ports = rows_to_ports(ports);
+
+        let alive_test_ports =
+            query("SELECT protocol, start, end FROM ports WHERE id = ? AND alive = 1")
+                .bind(scan_oid)
+                .fetch_all(&mut **tx)
+                .await?;
+        let alive_test_ports = rows_to_ports(alive_test_ports);
+
+        let reverse_lookup_unify = preferences
+            .iter()
+            .any(|x| &x.id == "target_reverse_lookup_unify" && x.value.parse().unwrap_or_default());
+        let reverse_lookup_only = preferences
+            .iter()
+            .any(|x| &x.id == "target_reverse_lookup_only" && x.value.parse().unwrap_or_default());
+
+        let hosts: Vec<String> = query_scalar(r#"SELECT host FROM hosts WHERE id = ?"#)
+            .bind(scan_oid)
+            .fetch_all(&mut **tx)
+            .await?;
+
+        let oids = query_scalar("SELECT vt FROM vts WHERE id = ?")
+            .bind(scan_oid)
+            .fetch_all(&mut **tx)
+            .await?;
+
+        let mut vts = Vec::with_capacity(oids.len());
+        for oid in oids {
+            let parameters = sqlx::query_as("SELECT param_id as id, param_value as value FROM vt_parameters WHERE id = ? AND vt = ?")
+                    .bind(scan_oid)
+                    .bind(&oid)
+                    .fetch_all(&mut **tx)
+                    .await?;
+            vts.push(models::VT { oid, parameters });
+        }
+
+        // TODO: why not keep it as an integer in the database?
+        let alive_methods: Vec<String> =
+            query_scalar("SELECT method FROM alive_methods WHERE id = ?")
+                .bind(scan_oid)
+                .fetch_all(&mut **tx)
+                .await?;
+
+        let alive_test_methods = alive_methods
+            .iter()
+            .map(|x| AliveTestMethods::from(x as &str))
+            .collect::<Vec<_>>();
+
+        let excluded_hosts = query_scalar("SELECT original_host FROM resolved_hosts WHERE id = ?")
+            .bind(scan_oid)
+            .fetch_all(&mut **tx)
+            .await?;
+
+        let scan_id = scan_row.get::<String, _>("scan_id");
+        let auth_data = scan_row.get::<String, _>("auth_data");
+        let credentials: Vec<models::Credential> = self.decrypt(&auth_data).await?;
+
+        let scan = models::Scan {
+            scan_id,
+            target: models::Target {
+                hosts,
+                ports,
+                excluded_hosts,
+                credentials,
+                alive_test_ports,
+                alive_test_methods,
+                reverse_lookup_unify: if reverse_lookup_unify {
+                    Some(true)
+                } else {
+                    None
+                },
+                reverse_lookup_only: if reverse_lookup_only {
+                    Some(true)
+                } else {
+                    None
+                },
+            },
+            scan_preferences: preferences,
+            vts,
+        };
+        Ok(scan)
+    }
+
+    pub async fn update_scan_results(
+        &self,
+        tx: &mut Transaction<'_, Sqlite>,
+        id: i64,
+        kind: ScanResultKind,
+        mut results: ScanResults,
+    ) -> anyhow::Result<Status> {
+        self.scan_insert_results(tx, id, &results.results).await?;
+
+        let previous_status = self.scan_get_status(tx, id).await?;
+        let status = match &kind {
+            ScanResultKind::StatusOverride => results.status,
+            // TODO: refactor on StatusAddition to do that within SQL directly instead of get mut
+            ScanResultKind::StatusAddition => {
+                results.status.update_with(&previous_status);
+                results.status
+            }
+        };
+
+        self.scan_update_status(tx, id, &status).await?;
+
+        Ok(status)
+    }
+}
 
 pub type ScanDB<'o, T> = OpenVASDDB<'o, T>;
 
@@ -511,7 +877,7 @@ impl<'o, T> StreamFetch<String> for T
 where
     T: DAOHandler<&'o SqlitePool, String> + Sync,
 {
-    fn stream_fetch(self) -> DAOStreamer<String> {
+    fn stream_fetch(self) -> StreamResult<String, DAOError> {
         let (db, client_id) = self.inner();
         let pool = db.clone();
         // The code below is a temporary fix for a problem we encountered where a response being
