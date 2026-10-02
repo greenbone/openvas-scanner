@@ -629,7 +629,11 @@ where
                 .url
                 .clone()
                 .map(scannerlib::nasl::utils::ctx::NotusCtx::Address);
-            let storage = ScanStorage::new(pool.clone());
+            let storage = ScanStorage::with_plugin_feed(
+                pool.clone(),
+                config.feed.path.clone(),
+                config.feed.signature_check,
+            );
             let scanner = OpenvasdScanner::new(storage, loader, executor, notus);
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }

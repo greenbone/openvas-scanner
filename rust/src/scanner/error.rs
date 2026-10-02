@@ -43,6 +43,8 @@ pub enum ScriptResultKind {
     MissingRequiredKey(String),
     /// Script did not run because of a storage error
     StorageError(StorageError),
+    /// Script did not run because its mtime is newer than the mtime stored
+    MtimeCheckFailed(String),
     /// Script did not run because of missing mandatory keys
     ///
     /// It contains the first not found key.
@@ -62,6 +64,7 @@ impl ScriptResultKind {
             ScriptResultKind::MissingRequiredKey(_) => false,
             ScriptResultKind::MissingMandatoryKey(_) => false,
             ScriptResultKind::Error(_) => false,
+            ScriptResultKind::MtimeCheckFailed(_) => false,
             ScriptResultKind::StorageError(_) => true,
         }
     }
@@ -103,6 +106,7 @@ impl ScriptResult {
                 | ScriptResultKind::MissingMandatoryKey(_)
                 | ScriptResultKind::ContainsExcludedKey(_)
                 | ScriptResultKind::MissingPort(..)
+                | ScriptResultKind::MtimeCheckFailed(_)
         )
     }
 }
