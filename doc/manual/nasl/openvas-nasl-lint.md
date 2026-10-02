@@ -6,7 +6,7 @@ openvas-nasl-lint - OpenVAS standalone NASL linter
 
 ## SYNOPSIS
 
-**openvas-nasl-lint** \[*options*\]* nasl_file*
+**openvas-nasl-lint** \[*option*...\] *nasl_file*...
 
 ## DESCRIPTION
 
