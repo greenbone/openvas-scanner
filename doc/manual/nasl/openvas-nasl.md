@@ -6,8 +6,7 @@ openvas-nasl - OpenVAS standalone NASL interpreter
 
 ## SYNOPSIS
 
-**openvas-nasl** *\<\[-Vh\] \[-T tracefile\] \[-s\] \[-t target\] \[-c
-config_file\] \[-d\] \[-sX\] \> files\...*
+**openvas-nasl** \[*option*...\] *file*\...
 
 ## DESCRIPTION
 
