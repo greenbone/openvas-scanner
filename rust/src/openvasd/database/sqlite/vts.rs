@@ -1,4 +1,6 @@
+use std::fs;
 use std::path::PathBuf;
+use std::time::UNIX_EPOCH;
 
 use crate::vts::FeedHashes;
 use crate::vts::Plugin;
@@ -34,11 +36,29 @@ pub struct FeedSynchronizer {
 #[derive(Debug, Clone)]
 pub struct SqlPluginStorage {
     pool: SqlitePool,
+    // Feed path necessary for checking the file mtime when signature is enabled
+    plugin_feed: PathBuf,
+    // Mtime is stored and later checked only if signature check is enabled.
+    signature_check: bool,
+}
+
+impl SqlPluginStorage {
+    pub fn with_plugin_feed(pool: SqlitePool, plugin_feed: PathBuf, signature_check: bool) -> Self {
+        SqlPluginStorage {
+            pool,
+            plugin_feed,
+            signature_check,
+        }
+    }
 }
 
 impl From<SqlitePool> for SqlPluginStorage {
     fn from(value: SqlitePool) -> Self {
-        SqlPluginStorage { pool: value }
+        SqlPluginStorage {
+            pool: value,
+            plugin_feed: PathBuf::new(),
+            signature_check: false,
+        }
     }
 }
 
@@ -87,14 +107,27 @@ impl PluginStorer for SqlPluginStorage {
     {
         let pool = self.pool.clone();
         let typus = hash.typus;
+        let plugin_feed = self.plugin_feed.clone();
         Box::pin(async move {
+            let hashsum: String = plugin.hashsum().into();
+            let mtime = match (typus, plugin.vulnerability_test()) {
+                (FeedType::NASL, Some(vt)) => {
+                    crate::vts::compute_mtime(&plugin_feed, &vt.filename, &hashsum)
+                }
+                _ => String::new(),
+            };
             let json = serde_json::to_vec(&plugin)?;
-            query(r#" INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)"#)
-                .bind(plugin.oid())
-                .bind(&json)
-                .bind(typus.as_ref())
-                .execute(&pool)
-                .await?;
+            query(
+                r#" INSERT INTO plugins ( oid, json_blob, feed_type, hashsum, mtime) VALUES (?, ?, ?, ?, ?)"#,
+            )
+            .bind(plugin.oid())
+            .bind(&json)
+            .bind(typus.as_ref())
+            .bind(hashsum)
+            .bind(mtime)
+            .execute(&pool)
+            .await?;
+
 
             Ok(())
         })
@@ -117,6 +150,71 @@ impl PluginStorer for SqlPluginStorage {
             .await?;
             Ok(())
         })
+    }
+}
+
+/// Error returned by [`SqlPluginStorage::check_mtime`].
+#[derive(Debug, thiserror::Error)]
+pub enum MtimeCheckError {
+    /// No hashsum/mtime has been recorded for the given file (e.g. signature checking was
+    /// disabled during the feed sync, or the file is not part of the feed at all).
+    #[error("No stored mtime for file {0}")]
+    NotFound(String),
+    /// The file's on-disk mtime is newer than the mtime recorded when its hashsum was last
+    /// verified, meaning it was modified since and can no longer be considered verified.
+    #[error(
+        "File {file} was modified since its hashsum was last verified (stored mtime {stored}, current mtime {current})"
+    )]
+    Modified {
+        file: String,
+        stored: u64,
+        current: u64,
+    },
+    /// The file's metadata could not be read from disk.
+    #[error("Could not read metadata of file {0}: {1}")]
+    Io(String, String),
+}
+
+impl SqlPluginStorage {
+    // Check that the file mtime is not newer than the value stored.
+    pub async fn check_mtime(&self, filename: &str) -> Result<(), MtimeCheckError> {
+        if !self.signature_check {
+            return Ok(());
+        }
+
+        let row = query(
+            "SELECT mtime FROM plugins WHERE json_extract(json_blob, '$.filename') = ?",
+        )
+        .bind(filename)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?;
+
+        let stored_mtime = row
+            .as_ref()
+            .map(|r| r.get::<String, _>("mtime"))
+            .filter(|s| !s.is_empty())
+            .and_then(|s| s.parse::<u64>().ok())
+            .ok_or_else(|| MtimeCheckError::NotFound(filename.to_string()))?;
+
+        let mut file = self.plugin_feed.clone();
+        file.push(filename);
+        let current_mtime = fs::metadata(&file)
+            .and_then(|m| m.modified())
+            .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?
+            .as_secs();
+
+        if current_mtime > stored_mtime {
+            return Err(MtimeCheckError::Modified {
+                file: filename.to_string(),
+                stored: stored_mtime,
+                current: current_mtime,
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -235,7 +333,11 @@ impl FeedSynchronizer {
             plugin_feed: config.feed.path.clone(),
             advisory_feed: config.notus.advisories_path.clone(),
             signature_check: config.feed.signature_check,
-            plugin_storer: SqlPluginStorage { pool },
+            plugin_storer: SqlPluginStorage {
+                pool,
+                plugin_feed: config.feed.path.clone(),
+                signature_check: config.feed.signature_check,
+            },
         }
     }
 }
