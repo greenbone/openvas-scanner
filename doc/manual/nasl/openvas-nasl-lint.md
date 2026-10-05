@@ -22,21 +22,22 @@ These programs follow the usual GNU command line syntax, with long
 options starting with two dashes (\`-\'). A summary of options is
 included below.
 
-**-h, \--help**
+**-h**, **--help**
 
 :   Show summary of options
 
-**-d, \--debug**
+**-d**, **--debug**
 
 :   Output debug log messages
 
-**-l, \--nvt-list=\<file\>**
+**-l** *file*, **--nvt-list** *file*
 
-:   Process files from **\<file\>**
+:   Process files from *file*
 
-**-i, \--include-dir=\<dir\>**
+**-i** *dir*, **--include-dir *dir*
 
-:   Search for includes in **\<dir\>**
+:   Search for includes in *dir*
+
 
 ## SEE ALSO
 

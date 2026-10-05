@@ -25,31 +25,31 @@ to be placed and from where the results can be retrieved.
 
 ## OPTIONS
 
-**-c \***\<config-file\>**_, \--config-file=_**\<config-file\>\*
+**-c** *config-file*, **--config-file** *config-file*
 
 : Use the alternate configuration file instead of _\@OPENVAS_CONF@_
 
-**-V, \--version**
+**-V**, **--version**
 
 : Prints the version number and exits
 
-**-h, \--help**
+**-h**, **--help**
 
 : Show a summary of the commands
 
-**\--scan-start=\***\<scan-uuid\>\*
+**--scan-start** *scan-uuid*
 
 : ID for a single scan task. The scanner will start the scan with the
 data already loaded in a redis KB, which will be found using the
 given scan-id.
 
-**\--scan-stop=\***\<scan-uuid\>\*
+**--scan-stop** *scan-uuid*
 
 : ID for a single scan task. The scanner will search the redis kb
 associated to the given scan_id. It takes the pid from the kb and
 sends the SIGUSR1 kill signal to stop the scan.
 
-**-u, \--update-vt-info**
+**-u**, **--update-vt-info**
 
 : Updates VT info into redis store from VT files.
 
