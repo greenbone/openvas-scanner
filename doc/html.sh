@@ -63,7 +63,7 @@ recursive_toc() {
             entry=${entry//\/index.md/""}
             recursive_toc
         # Else make an entry for the file
-        elif [[ -f $entry ]]; then
+        elif [[ -f $entry ]] && [[ $entry =~ .md$ ]]; then
             cfiles=$((cfiles + 1))
             print_progress
             filename="$(basename -- $entry)"
@@ -114,7 +114,7 @@ recursive_html() {
             recursive_html
             root_dir=${root_dir%"../"}
         # Else make an entry for the file
-        elif [[ -f $entry ]]; then
+        elif [[ -f $entry ]] && [[ $entry =~ .md$ ]]; then
             cfiles=$((cfiles + 1))
             print_progress
             filename="$(basename -- $entry)"
@@ -142,7 +142,7 @@ js_path=js/script.js
 toc=""
 
 search_dir="$base_dir"manual
-nfiles=$(find "$search_dir"/ -type f | wc -l)
+nfiles="$(find "$search_dir"/ -type f -a -name '*.md'| wc -l)"
 cfiles=0
 echo "Creating Table of Content for html pages..."
 recursive_toc
