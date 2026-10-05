@@ -30,13 +30,14 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 **-e** *iface*, **--source-iface** *iface*
 
-:   Specifies the network interface to be used as the source for
+:   Specify the network interface to be used as the source for
     established connections.
 
 **-s**, **--safe**
 
-:   Sets the return value of safe_checks() to 1. (See the OpenVAS
-    Scanner documentation to know what the safe checks are) Implies -B.
+:   Set the return value of safe_checks() to 1. (See the OpenVAS
+    Scanner documentation to know what the safe checks are) Implies
+    -B.
 
 **-D**, **--description**
 
@@ -44,7 +45,7 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 **-B**, **--both**
 
-:   Runs in description mode before running the script.
+:   Run in description mode before running the script.
 
 **-p**, **--parse**
 
