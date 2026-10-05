@@ -16,56 +16,56 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 ## OPTIONS
 
-**-T** *tracefile*
+**-T** *tracefile*, **--trace** *tracefile*
 
 :   Make nasl write verbosely what the script does in the file
     *tracefile* , ala \'set -x\' under sh.
 
-**-t** *target*
+**-t** *target*, **--target** *target*
 
 :   Apply the NASL script to *target* which may be a single host
     (127.0.0.1), a whole subnet (192.168.1.0/24) or several subnets
     (192.168.1.0/24, 192.168.243.0/24).
 
-**-e** *iface*
+**-e** *iface*, **--source-iface** *iface*
 
 :   Specifies the network interface to be used as the source for
     established connections.
 
-**-s**
+**-s**, **--safe**
 
 :   Sets the return value of safe_checks() to 1. (See the OpenVAS
     Scanner documentation to know what the safe checks are) Implies -B.
 
-**-D**
+**-D**, **--description**
 
 :   Only run the description part of the script.
 
-**-B**
+**-B**, **--both**
 
 :   Runs in description mode before running the script.
 
-**-L**
+**-L**, **--lint**
 
 :   **Lint** the script (run extended checks).
 
-**-X**
+**-X**, **--disable-signing**
 
 :   Run the script with disabled signature verification.
 
-**-h**
+**-h**, **--help**
 
 :   Show help.
 
-**-V**
+**-V**, **--version**
 
 :   Show the version of NASL.
 
-**-d**
+**-d**, **--debug**
 
 :   Output debug information to stderr.
 
-**-r** *port-range*
+**-r** *port-range*, **--port-range** *port-range*
 
 :   This is the default range of ports that the scanner plugins will
     probe. The syntax of this option is flexible, it can be a single
@@ -75,7 +75,7 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
     following range will make openvas scan UDP ports 1 to 1024 and TCP
     ports 1 to 65535 : \"T:1-65535,U:1-1024\".
 
-**-k** *key=value*
+**-k** *key=value*, **--kb** *key=value*
 
 :   Set KB *key* to *value*. Can be used multiple times.
 
