@@ -53,6 +53,14 @@ sends the SIGUSR1 kill signal to stop the scan.
 
 : Updates VT info into redis store from VT files.
 
+**-s**, **--cfg-specs**
+
+: Print configuration settings.
+
+**-y**, **--sysconfdir**
+
+: Print system configuration directory (set at compile time).
+
 ## THE CONFIGURATION FILE
 
 The default **openvas** configuration file, _\@OPENVAS_CONF@_ contains

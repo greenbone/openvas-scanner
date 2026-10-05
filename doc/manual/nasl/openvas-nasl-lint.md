@@ -38,6 +38,10 @@ included below.
 
 :   Search for includes in *dir*.
 
+**--strict-includes**
+
+:   Enable check for strict include order.
+
 
 ## SEE ALSO
 

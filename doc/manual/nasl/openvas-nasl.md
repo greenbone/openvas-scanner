@@ -45,6 +45,10 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 :   Runs in description mode before running the script.
 
+**-p**, **--parse**
+
+:   Only parse the script, don't execute it.
+
 **-L**, **--lint**
 
 :   **Lint** the script (run extended checks).
@@ -52,6 +56,10 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 **-X**, **--disable-signing**
 
 :   Run the script with disabled signature verification.
+
+**-i** *dir*, **--include-dir** *dir*
+
+:   Search for includes in *dir*.
 
 **-h**, **--help**
 
