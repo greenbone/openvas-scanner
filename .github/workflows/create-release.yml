@@ -80,7 +80,7 @@ jobs:
           export BRANCH_NAME=$(echo "${{ env.LATEST_VERSION }}" | sed 's/^\([0-9]*\).*/v\1/')
           git checkout -b "$BRANCH_NAME" && git push origin "$BRANCH_NAME" || true
       # create binaries
-      - uses: greenbone/actions/setup-pontos@v3.36.19
+      - uses: greenbone/actions/setup-pontos@v3.36.20
       - name: download rs binaries
         uses: actions/download-artifact@v8
         with:
