@@ -1,6 +1,4 @@
-use std::fs;
 use std::path::PathBuf;
-use std::time::UNIX_EPOCH;
 
 use crate::vts::FeedHashes;
 use crate::vts::Plugin;
@@ -22,6 +20,7 @@ use crate::config::Config;
 use crate::vts::FeedHash;
 use crate::vts::PluginFetcher;
 use crate::vts::PluginStorer;
+use crate::vts::mtime::{MtimeCheckError, compute_mtime};
 use crate::vts::orchestrator;
 use crate::vts::orchestrator::WorkerError;
 
@@ -112,7 +111,7 @@ impl PluginStorer for SqlPluginStorage {
             let hashsum: String = plugin.hashsum().into();
             let mtime = match (typus, plugin.vulnerability_test()) {
                 (FeedType::NASL, Some(vt)) => {
-                    crate::vts::compute_mtime(&plugin_feed, &vt.filename, &hashsum)
+                    compute_mtime(&plugin_feed, &vt.filename, Some(&hashsum))?.to_string()
                 }
                 _ => String::new(),
             };
@@ -153,28 +152,6 @@ impl PluginStorer for SqlPluginStorage {
     }
 }
 
-/// Error returned by [`SqlPluginStorage::check_mtime`].
-#[derive(Debug, thiserror::Error)]
-pub enum MtimeCheckError {
-    /// No hashsum/mtime has been recorded for the given file (e.g. signature checking was
-    /// disabled during the feed sync, or the file is not part of the feed at all).
-    #[error("No stored mtime for file {0}")]
-    NotFound(String),
-    /// The file's on-disk mtime is newer than the mtime recorded when its hashsum was last
-    /// verified, meaning it was modified since and can no longer be considered verified.
-    #[error(
-        "File {file} was modified since its hashsum was last verified (stored mtime {stored}, current mtime {current})"
-    )]
-    Modified {
-        file: String,
-        stored: u64,
-        current: u64,
-    },
-    /// The file's metadata could not be read from disk.
-    #[error("Could not read metadata of file {0}: {1}")]
-    Io(String, String),
-}
-
 impl SqlPluginStorage {
     // Check that the file mtime is not newer than the value stored.
     pub async fn check_mtime(&self, filename: &str) -> Result<(), MtimeCheckError> {
@@ -182,13 +159,12 @@ impl SqlPluginStorage {
             return Ok(());
         }
 
-        let row = query(
-            "SELECT mtime FROM plugins WHERE json_extract(json_blob, '$.filename') = ?",
-        )
-        .bind(filename)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?;
+        let row =
+            query("SELECT mtime FROM plugins WHERE json_extract(json_blob, '$.filename') = ?")
+                .bind(filename)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?;
 
         let stored_mtime = row
             .as_ref()
@@ -199,12 +175,7 @@ impl SqlPluginStorage {
 
         let mut file = self.plugin_feed.clone();
         file.push(filename);
-        let current_mtime = fs::metadata(&file)
-            .and_then(|m| m.modified())
-            .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?
-            .duration_since(UNIX_EPOCH)
-            .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?
-            .as_secs();
+        let current_mtime = compute_mtime(&self.plugin_feed, filename, None)?;
 
         if current_mtime > stored_mtime {
             return Err(MtimeCheckError::Modified {

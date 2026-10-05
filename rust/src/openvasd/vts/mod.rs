@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::fs;
 use std::io::BufReader;
 use std::sync::RwLock;
-use std::time::UNIX_EPOCH;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -23,6 +21,7 @@ use walkdir::WalkDir;
 
 use crate::api::{states::Feed, stream::StreamResult};
 use crate::config::Config;
+pub mod mtime;
 pub mod orchestrator;
 pub mod redis;
 use crate::database::sqlite::DataBase;
@@ -162,28 +161,6 @@ pub(crate) fn pending_hash(hash: &FeedHash) -> FeedHash {
     let mut pending = hash.clone();
     pending.hash.clear();
     pending
-}
-
-/// Computes the mtime (seconds since epoch) of a `.nasl`/`.inc` file within a feed directory.
-///
-/// This is used, analogous to the redis storage, to cache that a file has already been
-/// verified so that a complete signature check is not required on every single load. If
-/// `hashsum` is empty (e.g. signature checking is disabled or the verification failed) there
-/// is nothing worth caching and an empty string is returned instead.
-pub(crate) fn compute_mtime(feed_path: &Path, filename: &str, hashsum: &str) -> String {
-    if hashsum.is_empty() {
-        return String::new();
-    }
-    let mut file = feed_path.to_path_buf();
-    file.push(filename);
-    fs::metadata(&file)
-        .unwrap_or_else(|_| panic!("File Metadata {:?}", file.to_string_lossy()))
-        .modified()
-        .expect("File mtime not supported")
-        .duration_since(UNIX_EPOCH)
-        .expect("invalid duration for mtime")
-        .as_secs()
-        .to_string()
 }
 
 async fn synchronize_json<F, T, PS>(ps: &PS, hash: &FeedHash, f: F) -> Result<(), WorkerError>

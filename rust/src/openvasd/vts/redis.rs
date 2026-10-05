@@ -308,8 +308,12 @@ impl PluginStorer for RedisPluginHandler {
                                 // if the verification was successful, we calculate now the mtime
                                 // otherwise we avoid to store it
                                 let hashsum: String = plugin.hashsum().into();
-                                let mtime =
-                                    super::compute_mtime(&feed_path, &vt.filename, &hashsum);
+                                let mtime = super::mtime::compute_mtime(
+                                    &feed_path,
+                                    &vt.filename,
+                                    Some(&hashsum),
+                                )?
+                                .to_string();
                                 rctx.redis_add_nvt(vt, mtime, hashsum)
                             }
                         }
