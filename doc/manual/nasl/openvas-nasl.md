@@ -79,9 +79,9 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 :   This is the default range of ports that the scanner plugins will
     probe. The syntax of this option is flexible, it can be a single
-    range (\"1-1500\"), several ports (\"21,23,80\"), several ranges of
-    ports (\"1-1500,32000-33000\"). Note that you can specify UDP and
-    TCP ports by prefixing each range by T or U. For instance, the
+    range (\"1-1500\"), several ports (\"21,23,80\"), several ranges
+    of ports (\"1-1500,32000-33000\"). Note that you can specify UDP
+    and TCP ports by prefixing each range by T or U. For instance, the
     following range will make openvas scan UDP ports 1 to 1024 and TCP
     ports 1 to 65535 : \"T:1-65535,U:1-1024\".
 
