@@ -1,4 +1,4 @@
-# file_close
+# file_close(3)
 
 ## NAME
 

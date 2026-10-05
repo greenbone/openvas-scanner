@@ -1,4 +1,4 @@
-# wmi_connect
+# wmi_connect(3)
 
 ## NAME
 

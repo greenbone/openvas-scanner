@@ -1,4 +1,4 @@
-# rc4_encrypt
+# rc4_encrypt(3)
 
 ## NAME
 

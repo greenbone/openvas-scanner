@@ -1,4 +1,4 @@
-# max_index
+# max_index(3)
 
 ## NAME
 

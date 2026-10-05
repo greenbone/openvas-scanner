@@ -1,4 +1,4 @@
-# ftp_log_in
+# ftp_log_in(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# script_require_ports
+# script_require_ports(3)
 
 ## REQUIRE_PORTS
 

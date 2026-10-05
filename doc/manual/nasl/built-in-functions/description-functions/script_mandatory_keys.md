@@ -1,4 +1,4 @@
-# script_mandatory_keys
+# script_mandatory_keys(3)
 
 ## NAME
 

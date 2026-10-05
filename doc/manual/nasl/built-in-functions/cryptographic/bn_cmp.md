@@ -1,4 +1,4 @@
-# bn_cmp
+# bn_cmp(3)
 
 ## NAME
 

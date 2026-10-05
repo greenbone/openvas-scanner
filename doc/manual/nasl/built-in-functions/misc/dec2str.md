@@ -1,4 +1,4 @@
-# dec2str
+# dec2str(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# notus
+# notus(3)
 
 ## NAME
 

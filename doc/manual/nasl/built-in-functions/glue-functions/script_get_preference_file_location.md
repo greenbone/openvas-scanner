@@ -1,4 +1,4 @@
-# script_get_preference_file_location
+# script_get_preference_file_location(3)
 
 ## NAME
 

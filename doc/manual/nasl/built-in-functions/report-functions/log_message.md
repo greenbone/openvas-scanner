@@ -1,4 +1,4 @@
-# log_message
+# log_message(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# ssh_disconnect
+# ssh_disconnect(3)
 
 ## NAME
 

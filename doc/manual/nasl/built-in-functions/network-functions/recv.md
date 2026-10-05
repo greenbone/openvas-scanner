@@ -1,4 +1,4 @@
-# recv
+# recv(3)
 
 ## NAME
 

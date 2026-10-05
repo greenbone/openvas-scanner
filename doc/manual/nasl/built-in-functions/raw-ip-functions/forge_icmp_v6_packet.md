@@ -1,4 +1,4 @@
-# forge_icmp_v6_packet
+# forge_icmp_v6_packet(3)
 
 ## NAME
 

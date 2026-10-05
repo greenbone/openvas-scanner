@@ -1,4 +1,4 @@
-# file_stat
+# file_stat(3)
 
 ## NAME
 

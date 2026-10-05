@@ -1,4 +1,4 @@
-# sftp_enabled_check
+# sftp_enabled_check(3)
 
 ## NAME
 

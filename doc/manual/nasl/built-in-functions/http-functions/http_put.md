@@ -1,4 +1,4 @@
-# http_put
+# http_put(3)
 
 ## NAME
 

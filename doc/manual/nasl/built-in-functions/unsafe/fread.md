@@ -1,4 +1,4 @@
-# fread
+# fread(3)
 
 ## NAME
 

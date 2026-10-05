@@ -1,4 +1,4 @@
-# prf_sha384
+# prf_sha384(3)
 
 ## NAME
 

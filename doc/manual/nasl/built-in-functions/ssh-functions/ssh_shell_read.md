@@ -1,4 +1,4 @@
-# ssh_shell_read
+# ssh_shell_read(3)
 
 ## NAME
 

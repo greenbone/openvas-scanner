@@ -1,4 +1,4 @@
-# safe_checks
+# safe_checks(3)
 
 ## NAME
 

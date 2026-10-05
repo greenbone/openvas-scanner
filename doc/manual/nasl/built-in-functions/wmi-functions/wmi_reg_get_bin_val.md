@@ -1,4 +1,4 @@
-# wmi_reg_get_bin_val
+# wmi_reg_get_bin_val(3)
 
 ## NAME
 

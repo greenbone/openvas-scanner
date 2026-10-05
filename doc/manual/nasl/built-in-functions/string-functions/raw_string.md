@@ -1,4 +1,4 @@
-# raw_string
+# raw_string(3)
 
 ## NAME
 

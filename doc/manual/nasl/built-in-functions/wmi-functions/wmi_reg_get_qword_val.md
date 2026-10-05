@@ -1,4 +1,4 @@
-# wmi_reg_get_qword_val
+# wmi_reg_get_qword_val(3)
 
 ## NAME
 

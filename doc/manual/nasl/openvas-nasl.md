@@ -1,4 +1,4 @@
-# openvas-nasl
+# openvas-nasl(1)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# ssh_request_exec
+# ssh_request_exec(3)
 
 ## NAME
 

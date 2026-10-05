@@ -1,4 +1,4 @@
-# cert_open
+# cert_open(3)
 
 ## NAME
 

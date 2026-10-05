@@ -1,4 +1,4 @@
-# wmi_close
+# wmi_close(3)
 
 ## NAME
 

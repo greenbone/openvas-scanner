@@ -1,4 +1,4 @@
-# get_kb_list
+# get_kb_list(3)
 
 ## NAME
 

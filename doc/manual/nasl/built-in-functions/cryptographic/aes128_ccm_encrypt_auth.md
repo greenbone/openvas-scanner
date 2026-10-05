@@ -1,4 +1,4 @@
-# aes128_ccm_encrypt_auth
+# aes128_ccm_encrypt_auth(3)
 
 ## NAME
 

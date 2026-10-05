@@ -1,4 +1,4 @@
-# dsa_do_sign
+# dsa_do_sign(3)
 
 ## NAME
 

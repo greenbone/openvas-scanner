@@ -1,4 +1,4 @@
-# toupper
+# toupper(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# socket_get_ssl_version
+# socket_get_ssl_version(3)
 
 ## NAME
 

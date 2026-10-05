@@ -1,4 +1,4 @@
-# http_get
+# http_get(3)
 
 ## NAME
 

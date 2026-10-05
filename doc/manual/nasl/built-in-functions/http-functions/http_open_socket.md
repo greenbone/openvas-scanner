@@ -1,4 +1,4 @@
-# http_open_socket
+# http_open_socket(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# ssh_login_interactive
+# ssh_login_interactive(3)
 
 ## NAME
 

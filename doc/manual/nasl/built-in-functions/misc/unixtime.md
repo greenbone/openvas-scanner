@@ -1,4 +1,4 @@
-# unixtime
+# unixtime(3)
 
 ## NAME
 

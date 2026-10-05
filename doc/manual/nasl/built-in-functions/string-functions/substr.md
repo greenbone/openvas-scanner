@@ -1,4 +1,4 @@
-# substr
+# substr(3)
 
 ## NAME
 

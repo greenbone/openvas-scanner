@@ -1,4 +1,4 @@
-# http2_get_response_code
+# http2_get_response_code(3)
 
 ## NAME
 

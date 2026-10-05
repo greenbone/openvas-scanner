@@ -1,4 +1,4 @@
-# error_message
+# error_message(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# sort
+# sort(3)
 
 ## NAME
 

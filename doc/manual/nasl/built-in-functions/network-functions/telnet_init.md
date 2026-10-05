@@ -1,4 +1,4 @@
-# telnet_init
+# telnet_init(3)
 
 ## NAME
 

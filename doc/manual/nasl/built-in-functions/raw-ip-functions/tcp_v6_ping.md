@@ -1,4 +1,4 @@
-# tcp_v6_ping
+# tcp_v6_ping(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# dump_icmp_packet
+# dump_icmp_packet(3)
 
 ## NAME
 

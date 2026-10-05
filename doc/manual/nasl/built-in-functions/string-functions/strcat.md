@@ -1,4 +1,4 @@
-# strcat
+# strcat(3)
 
 ## NAME
 

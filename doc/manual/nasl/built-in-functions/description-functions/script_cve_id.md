@@ -1,4 +1,4 @@
-# script_cve_id
+# script_cve_id(3)
 
 ## NAME
 

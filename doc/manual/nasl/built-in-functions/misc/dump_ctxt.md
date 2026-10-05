@@ -1,4 +1,4 @@
-# dump_ctxt
+# dump_ctxt(3)
 
 ## NAME
 

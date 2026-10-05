@@ -1,4 +1,4 @@
-# pem_to_dsa
+# pem_to_dsa(3)
 
 ## NAME
 

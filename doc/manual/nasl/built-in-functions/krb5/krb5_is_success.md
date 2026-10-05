@@ -1,4 +1,4 @@
-# krb5_is_success
+# krb5_is_success(3)
 
 ## NAME
 

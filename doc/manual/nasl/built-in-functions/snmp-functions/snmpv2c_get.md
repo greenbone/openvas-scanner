@@ -1,4 +1,4 @@
-# snmpv2c_get
+# snmpv2c_get(3)
 
 ## NAME
 

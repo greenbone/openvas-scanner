@@ -1,4 +1,4 @@
-# socket_ssl_do_handshake
+# socket_ssl_do_handshake(3)
 
 ## NAME
 

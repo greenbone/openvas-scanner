@@ -1,4 +1,4 @@
-# dump_icmp_v6_packet
+# dump_icmp_v6_packet(3)
 
 ## NAME
 

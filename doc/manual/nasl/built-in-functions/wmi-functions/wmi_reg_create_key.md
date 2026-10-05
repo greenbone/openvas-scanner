@@ -1,4 +1,4 @@
-# wmi_reg_create_key
+# wmi_reg_create_key(3)
 
 ## NAME
 

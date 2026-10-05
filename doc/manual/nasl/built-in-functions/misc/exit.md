@@ -1,4 +1,4 @@
-# exit
+# exit(3)
 
 ## NAME
 

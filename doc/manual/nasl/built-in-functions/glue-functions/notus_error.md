@@ -1,4 +1,4 @@
-# notus_error
+# notus_error(3)
 
 ## NAME
 

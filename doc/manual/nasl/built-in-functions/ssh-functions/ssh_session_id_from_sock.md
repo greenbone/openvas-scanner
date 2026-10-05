@@ -1,4 +1,4 @@
-# ssh_session_id_from_sock
+# ssh_session_id_from_sock(3)
 
 ## NAME
 

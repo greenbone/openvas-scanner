@@ -1,4 +1,4 @@
-# ssh_get_host_key
+# ssh_get_host_key(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# lm_owf_gen
+# lm_owf_gen(3)
 
 ## NAME
 

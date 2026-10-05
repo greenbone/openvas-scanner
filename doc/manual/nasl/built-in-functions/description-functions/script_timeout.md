@@ -1,4 +1,4 @@
-# script_timeout
+# script_timeout(3)
 
 ## NAME
 

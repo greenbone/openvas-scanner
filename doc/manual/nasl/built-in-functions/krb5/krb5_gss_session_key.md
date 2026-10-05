@@ -1,4 +1,4 @@
-# krb5_gss_session_key
+# krb5_gss_session_key(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# ssh_shell_write
+# ssh_shell_write(3)
 
 ## NAME
 

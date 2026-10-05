@@ -1,4 +1,4 @@
-# http2_handle
+# http2_handle(3)
 
 ## NAME
 

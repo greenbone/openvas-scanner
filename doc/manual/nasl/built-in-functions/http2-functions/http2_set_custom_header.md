@@ -1,4 +1,4 @@
-# http2_set_custom_header
+# http2_set_custom_header(3)
 
 ## NAME
 

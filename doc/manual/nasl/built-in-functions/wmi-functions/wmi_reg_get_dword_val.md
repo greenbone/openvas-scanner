@@ -1,4 +1,4 @@
-# wmi_reg_get_dword_val
+# wmi_reg_get_dword_val(3)
 
 ## NAME
 

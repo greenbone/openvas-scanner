@@ -1,4 +1,4 @@
-# http_delete
+# http_delete(3)
 
 ## NAME
 

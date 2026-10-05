@@ -1,4 +1,4 @@
-# chomp
+# chomp(3)
 
 ## NAME
 

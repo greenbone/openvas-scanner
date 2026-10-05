@@ -1,4 +1,4 @@
-# HMAC_MD2
+# HMAC_MD2(3)
 
 ## NAME
 

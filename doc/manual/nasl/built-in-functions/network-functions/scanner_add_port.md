@@ -1,4 +1,4 @@
-# scanner_add_port
+# scanner_add_port(3)
 
 ## NAME
 

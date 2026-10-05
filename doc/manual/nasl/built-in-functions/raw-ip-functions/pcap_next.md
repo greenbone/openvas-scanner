@@ -1,4 +1,4 @@
-# pcap_next
+# pcap_next(3)
 
 ## NAME
 

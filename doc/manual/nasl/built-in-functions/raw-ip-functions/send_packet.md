@@ -1,4 +1,4 @@
-# send_packet
+# send_packet(3)
 
 ## NAME
 

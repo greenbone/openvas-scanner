@@ -1,4 +1,4 @@
-# close_stream_cipher
+# close_stream_cipher(3)
 
 ## NAME
 

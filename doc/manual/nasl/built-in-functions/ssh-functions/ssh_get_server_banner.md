@@ -1,4 +1,4 @@
-# ssh_get_server_banner
+# ssh_get_server_banner(3)
 
 ## NAME
 

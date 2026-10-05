@@ -1,4 +1,4 @@
-# same_host
+# same_host(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# pem_to_rsa
+# pem_to_rsa(3)
 
 ## NAME
 

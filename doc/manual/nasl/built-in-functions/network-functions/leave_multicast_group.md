@@ -1,4 +1,4 @@
-# leave_multicast_group
+# leave_multicast_group(3)
 
 ## NAME
 

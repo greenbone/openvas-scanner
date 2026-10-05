@@ -1,4 +1,4 @@
-# end_denial
+# end_denial(3)
 
 ## NAME
 

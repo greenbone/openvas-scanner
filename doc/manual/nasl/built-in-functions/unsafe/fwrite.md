@@ -1,4 +1,4 @@
-# fwrite
+# fwrite(3)
 
 ## NAME
 

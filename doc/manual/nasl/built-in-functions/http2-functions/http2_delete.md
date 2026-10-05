@@ -1,4 +1,4 @@
-# http2_delete
+# http2_delete(3)
 
 ## NAME
 

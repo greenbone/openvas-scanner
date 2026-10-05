@@ -1,4 +1,4 @@
-# get_tmp_dir
+# get_tmp_dir(3)
 
 ## NAME
 

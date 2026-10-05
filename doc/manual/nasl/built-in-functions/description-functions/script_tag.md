@@ -1,4 +1,4 @@
-# script_tag
+# script_tag(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# forge_ip_packet
+# forge_ip_packet(3)
 
 ## NAME
 

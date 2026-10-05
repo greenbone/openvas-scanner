@@ -1,4 +1,4 @@
-# ssh_shell_close
+# ssh_shell_close(3)
 
 ## NAME
 

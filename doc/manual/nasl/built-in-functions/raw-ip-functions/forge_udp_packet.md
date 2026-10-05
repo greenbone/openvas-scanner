@@ -1,4 +1,4 @@
-# forge_udp_packet
+# forge_udp_packet(3)
 
 ## NAME
 

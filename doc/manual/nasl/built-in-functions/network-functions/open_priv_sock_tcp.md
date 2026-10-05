@@ -1,4 +1,4 @@
-# open_priv_sock_tcp
+# open_priv_sock_tcp(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# smb_close
+# smb_close(3)
 
 ## NAME
 

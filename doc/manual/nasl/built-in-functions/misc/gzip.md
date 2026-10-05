@@ -1,4 +1,4 @@
-# gzip
+# gzip(3)
 
 ## NAME
 

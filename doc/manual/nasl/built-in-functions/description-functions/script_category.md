@@ -1,4 +1,4 @@
-# script_category
+# script_category(3)
 
 ## NAME
 

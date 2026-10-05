@@ -1,4 +1,4 @@
-# script_family
+# script_family(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# http2_head
+# http2_head(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# script_get_preference_file_content
+# script_get_preference_file_content(3)
 
 ## NAME
 

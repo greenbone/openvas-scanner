@@ -1,4 +1,4 @@
-# script_add_preference
+# script_add_preference(3)
 
 ## NAME
 

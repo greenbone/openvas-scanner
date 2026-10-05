@@ -1,4 +1,4 @@
-# aes128_ctr_encrypt
+# aes128_ctr_encrypt(3)
 
 ## NAME
 

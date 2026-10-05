@@ -1,4 +1,4 @@
-# snmpv3_get
+# snmpv3_get(3)
 
 ## NAME
 

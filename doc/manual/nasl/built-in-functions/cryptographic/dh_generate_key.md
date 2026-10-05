@@ -1,4 +1,4 @@
-# dh_generate_key
+# dh_generate_key(3)
 
 ## NAME
 

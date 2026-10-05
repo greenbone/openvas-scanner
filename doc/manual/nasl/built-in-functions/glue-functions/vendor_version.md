@@ -1,4 +1,4 @@
-# vendor_version
+# vendor_version(3)
 
 ## NAME
 

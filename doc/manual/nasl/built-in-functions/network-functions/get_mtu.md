@@ -1,4 +1,4 @@
-# get_mtu
+# get_mtu(3)
 
 ## NAME
 

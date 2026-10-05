@@ -1,4 +1,4 @@
-# recv_line
+# recv_line(3)
 
 ## NAME
 

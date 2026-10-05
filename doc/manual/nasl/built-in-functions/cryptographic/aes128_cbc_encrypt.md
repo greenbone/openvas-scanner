@@ -1,4 +1,4 @@
-# aes128_cbc_encrypt
+# aes128_cbc_encrypt(3)
 
 ## NAME
 

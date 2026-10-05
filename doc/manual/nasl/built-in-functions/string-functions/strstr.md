@@ -1,4 +1,4 @@
-# strstr
+# strstr(3)
 
 ## NAME
 

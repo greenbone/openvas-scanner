@@ -1,4 +1,4 @@
-# gunzip
+# gunzip(3)
 
 ## NAME
 

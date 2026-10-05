@@ -1,4 +1,4 @@
-# get_host_kb_index
+# get_host_kb_index(3)
 
 ## NAME
 

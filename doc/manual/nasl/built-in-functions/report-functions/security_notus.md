@@ -1,4 +1,4 @@
-# security_notus
+# security_notus(3)
 
 ## NAME
 

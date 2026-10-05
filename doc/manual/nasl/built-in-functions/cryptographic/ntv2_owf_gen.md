@@ -1,4 +1,4 @@
-# ntv2_owf_gen
+# ntv2_owf_gen(3)
 
 ## NAME
 

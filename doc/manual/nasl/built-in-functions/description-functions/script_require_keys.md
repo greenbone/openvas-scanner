@@ -1,4 +1,4 @@
-# script_require_keys
+# script_require_keys(3)
 
 ## REQUIRE_KEYS
 

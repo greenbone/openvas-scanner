@@ -1,4 +1,4 @@
-# file_write
+# file_write(3)
 
 ## NAME
 

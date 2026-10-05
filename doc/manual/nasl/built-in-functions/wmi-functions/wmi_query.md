@@ -1,4 +1,4 @@
-# wmi_query
+# wmi_query(3)
 
 ## NAME
 

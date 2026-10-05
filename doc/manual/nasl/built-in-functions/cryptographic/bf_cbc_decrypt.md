@@ -1,4 +1,4 @@
-# bf_cbc_decrypt
+# bf_cbc_decrypt(3)
 
 ## NAME
 

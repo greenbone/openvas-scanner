@@ -1,4 +1,4 @@
-# wmi_connect_rsop
+# wmi_connect_rsop(3)
 
 ## NAME
 

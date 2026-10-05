@@ -1,4 +1,4 @@
-# find_in_path
+# find_in_path(3)
 
 ## NAME
 

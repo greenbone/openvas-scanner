@@ -1,4 +1,4 @@
-# dump_ip_packet
+# dump_ip_packet(3)
 
 ## NAME
 

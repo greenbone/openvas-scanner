@@ -1,4 +1,4 @@
-# make_list
+# make_list(3)
 
 ## NAME
 

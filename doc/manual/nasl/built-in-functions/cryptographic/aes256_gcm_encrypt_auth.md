@@ -1,4 +1,4 @@
-# aes256_gcm_encrypt_auth
+# aes256_gcm_encrypt_auth(3)
 
 ## NAME
 

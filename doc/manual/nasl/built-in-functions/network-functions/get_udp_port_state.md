@@ -1,4 +1,4 @@
-# get_udp_port_state
+# get_udp_port_state(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# islocalnet
+# islocalnet(3)
 
 ## NAME
 

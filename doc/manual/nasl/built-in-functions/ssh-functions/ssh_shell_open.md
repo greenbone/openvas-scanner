@@ -1,4 +1,4 @@
-# ssh_shell_open
+# ssh_shell_open(3)
 
 ## NAME
 

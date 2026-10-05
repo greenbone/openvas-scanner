@@ -1,4 +1,4 @@
-# tls1_prf
+# tls1_prf(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# ip_reverse_lookup
+# ip_reverse_lookup(3)
 
 ## NAME
 

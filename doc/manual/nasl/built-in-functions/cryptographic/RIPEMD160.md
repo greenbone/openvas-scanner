@@ -1,4 +1,4 @@
-# RIPEMD160
+# RIPEMD160(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# ssh_set_login
+# ssh_set_login(3)
 
 ## NAME
 

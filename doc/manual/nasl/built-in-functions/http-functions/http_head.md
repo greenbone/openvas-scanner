@@ -1,4 +1,4 @@
-# http_head
+# http_head(3)
 
 ## NAME
 

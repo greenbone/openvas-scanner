@@ -1,4 +1,4 @@
-# set_kb_item
+# set_kb_item(3)
 
 ## NAME
 

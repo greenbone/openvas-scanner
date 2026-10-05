@@ -1,4 +1,4 @@
-# get_host_names
+# get_host_names(3)
 
 ## NAME
 

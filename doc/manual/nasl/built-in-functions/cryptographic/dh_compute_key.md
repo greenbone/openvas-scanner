@@ -1,4 +1,4 @@
-# dh_compute_key
+# dh_compute_key(3)
 
 ## NAME
 

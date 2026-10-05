@@ -1,4 +1,4 @@
-# aes_mac_gcm
+# aes_mac_gcm(3)
 
 ## NAME
 

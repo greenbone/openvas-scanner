@@ -1,4 +1,4 @@
-# send
+# send(3)
 
 ## NAME
 

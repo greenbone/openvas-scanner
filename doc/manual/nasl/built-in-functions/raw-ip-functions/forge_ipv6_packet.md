@@ -1,4 +1,4 @@
-# forge_ipv6_packet
+# forge_ipv6_packet(3)
 
 ## NAME
 

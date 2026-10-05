@@ -1,4 +1,4 @@
-# rand
+# rand(3)
 
 ## NAME
 

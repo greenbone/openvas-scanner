@@ -1,4 +1,4 @@
-# HMAC_MD5
+# HMAC_MD5(3)
 
 ## NAME
 

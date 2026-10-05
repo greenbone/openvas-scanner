@@ -1,4 +1,4 @@
-# HMAC_SHA384
+# HMAC_SHA384(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# smb_file_trustee_rights
+# smb_file_trustee_rights(3)
 
 ## NAME
 

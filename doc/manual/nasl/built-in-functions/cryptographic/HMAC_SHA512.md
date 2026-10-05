@@ -1,4 +1,4 @@
-# HMAC_SHA512
+# HMAC_SHA512(3)
 
 ## NAME
 

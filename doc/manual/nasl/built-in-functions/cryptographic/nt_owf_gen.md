@@ -1,4 +1,4 @@
-# nt_owf_gen
+# nt_owf_gen(3)
 
 ## NAME
 

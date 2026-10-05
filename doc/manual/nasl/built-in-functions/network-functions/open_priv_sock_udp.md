@@ -1,4 +1,4 @@
-# open_priv_sock_udp
+# open_priv_sock_udp(3)
 
 ## NAME
 

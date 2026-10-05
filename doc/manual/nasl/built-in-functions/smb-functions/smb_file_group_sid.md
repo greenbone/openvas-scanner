@@ -1,4 +1,4 @@
-# smb_file_group_sid
+# smb_file_group_sid(3)
 
 ## NAME
 

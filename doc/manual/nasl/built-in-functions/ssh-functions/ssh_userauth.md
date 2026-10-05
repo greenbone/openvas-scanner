@@ -1,4 +1,4 @@
-# ssh_userauth
+# ssh_userauth(3)
 
 ## NAME
 

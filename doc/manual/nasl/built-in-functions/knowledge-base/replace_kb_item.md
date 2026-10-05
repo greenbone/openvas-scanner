@@ -1,4 +1,4 @@
-# replace_kb_item
+# replace_kb_item(3)
 
 ## NAME
 

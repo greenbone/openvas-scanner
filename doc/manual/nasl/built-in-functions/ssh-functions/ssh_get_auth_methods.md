@@ -1,4 +1,4 @@
-# ssh_get_auth_methods
+# ssh_get_auth_methods(3)
 
 ## NAME
 

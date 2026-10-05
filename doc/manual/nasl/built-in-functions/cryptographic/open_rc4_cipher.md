@@ -1,4 +1,4 @@
-# open_rc4_cipher
+# open_rc4_cipher(3)
 
 ## NAME
 

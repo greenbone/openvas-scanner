@@ -1,4 +1,4 @@
-# notus_type
+# notus_type(3)
 
 ## NAME
 

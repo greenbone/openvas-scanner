@@ -1,4 +1,4 @@
-# islocalhost
+# islocalhost(3)
 
 ## NAME
 

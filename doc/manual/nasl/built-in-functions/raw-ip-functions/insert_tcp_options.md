@@ -1,4 +1,4 @@
-# insert_tcp_options
+# insert_tcp_options(3)
 
 ## NAME
 

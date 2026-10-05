@@ -1,4 +1,4 @@
-# pread
+# pread(3)
 
 ## NAME
 

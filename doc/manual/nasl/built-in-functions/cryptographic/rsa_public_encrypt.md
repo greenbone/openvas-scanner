@@ -1,4 +1,4 @@
-# rsa_public_encrypt
+# rsa_public_encrypt(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# script_require_udp_ports
+# script_require_udp_ports(3)
 
 ## REQUIRE_UDP_PORTS
 

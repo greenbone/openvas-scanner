@@ -1,4 +1,4 @@
-# smb_connect
+# smb_connect(3)
 
 ## NAME
 

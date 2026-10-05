@@ -1,4 +1,4 @@
-# keys
+# keys(3)
 
 ## NAME
 

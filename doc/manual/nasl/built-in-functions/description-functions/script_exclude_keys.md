@@ -1,4 +1,4 @@
-# script_exclude_keys
+# script_exclude_keys(3)
 
 ## NAME
 

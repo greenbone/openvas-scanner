@@ -1,4 +1,4 @@
-# script_version
+# script_version(3)
 
 ## NAME
 

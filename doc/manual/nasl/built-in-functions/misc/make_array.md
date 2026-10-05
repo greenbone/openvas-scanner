@@ -1,4 +1,4 @@
-# make_array
+# make_array(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# str_replace
+# str_replace(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# get_tcp_port_state
+# get_tcp_port_state(3)
 
 ## NAME
 

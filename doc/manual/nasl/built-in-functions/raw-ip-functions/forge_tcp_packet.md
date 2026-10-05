@@ -1,4 +1,4 @@
-# forge_tcp_packet
+# forge_tcp_packet(3)
 
 ## NAME
 

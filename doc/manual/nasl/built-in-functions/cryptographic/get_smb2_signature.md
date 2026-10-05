@@ -1,4 +1,4 @@
-# get_smb2_signature
+# get_smb2_signature(3)
 
 ## NAME
 

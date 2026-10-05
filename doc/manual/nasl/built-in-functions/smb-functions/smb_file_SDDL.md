@@ -1,4 +1,4 @@
-# smb_file_SDDL
+# smb_file_SDDL(3)
 
 ## NAME
 

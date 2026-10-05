@@ -1,4 +1,4 @@
-# bn_random
+# bn_random(3)
 
 ## NAME
 

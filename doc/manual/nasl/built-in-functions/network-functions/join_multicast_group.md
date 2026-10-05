@@ -1,4 +1,4 @@
-# join_multicast_group
+# join_multicast_group(3)
 
 ## NAME
 

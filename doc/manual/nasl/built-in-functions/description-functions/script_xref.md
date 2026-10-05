@@ -1,4 +1,4 @@
-# script_xref
+# script_xref(3)
 
 ## NAME
 

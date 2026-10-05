@@ -1,4 +1,4 @@
-# wmi_reg_set_string_val
+# wmi_reg_set_string_val(3)
 
 ## NAME
 

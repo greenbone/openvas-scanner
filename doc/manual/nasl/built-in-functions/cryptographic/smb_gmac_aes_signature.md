@@ -1,4 +1,4 @@
-# smb_gmac_aes_signature
+# smb_gmac_aes_signature(3)
 
 ## NAME
 

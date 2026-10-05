@@ -1,4 +1,4 @@
-# script_name
+# script_name(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# usleep
+# usleep(3)
 
 ## NAME
 

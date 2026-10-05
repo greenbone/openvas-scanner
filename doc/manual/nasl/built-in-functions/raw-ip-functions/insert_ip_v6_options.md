@@ -1,4 +1,4 @@
-# insert_ip_v6_options
+# insert_ip_v6_options(3)
 
 ## NAME
 

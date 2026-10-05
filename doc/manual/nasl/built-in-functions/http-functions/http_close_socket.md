@@ -1,4 +1,4 @@
-# http_close_socket
+# http_close_socket(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# rsa_sign
+# rsa_sign(3)
 
 ## NAME
 

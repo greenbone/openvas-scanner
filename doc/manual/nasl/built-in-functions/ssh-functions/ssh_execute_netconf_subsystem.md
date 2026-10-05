@@ -1,4 +1,4 @@
-# ssh_execute_netconf_subsytem
+# ssh_execute_netconf_subsytem(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# get_tcp_v6_option
+# get_tcp_v6_option(3)
 
 ## NAME
 

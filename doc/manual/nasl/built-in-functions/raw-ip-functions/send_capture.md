@@ -1,4 +1,4 @@
-# send_capture
+# send_capture(3)
 
 ## NAME
 

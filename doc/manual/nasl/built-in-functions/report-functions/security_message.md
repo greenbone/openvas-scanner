@@ -1,4 +1,4 @@
-# security_message
+# security_message(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# unlink
+# unlink(3)
 
 ## NAME
 

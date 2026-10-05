@@ -1,4 +1,4 @@
-# egrep
+# egrep(3)
 
 ## NAME
 

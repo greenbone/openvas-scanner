@@ -1,4 +1,4 @@
-# ssh_connect
+# ssh_connect(3)
 
 ## NAME
 

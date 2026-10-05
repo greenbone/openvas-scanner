@@ -1,4 +1,4 @@
-# wmi_reg_get_sz
+# wmi_reg_get_sz(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# wmi_reg_delete_key
+# wmi_reg_delete_key(3)
 
 ## NAME
 

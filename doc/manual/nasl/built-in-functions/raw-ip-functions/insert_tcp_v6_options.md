@@ -1,4 +1,4 @@
-# insert_tcp_v6_options
+# insert_tcp_v6_options(3)
 
 ## NAME
 

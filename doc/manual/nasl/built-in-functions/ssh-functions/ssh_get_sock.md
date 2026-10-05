@@ -1,4 +1,4 @@
-# ssh_get_sock
+# ssh_get_sock(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# bf_cbc_encrypt
+# bf_cbc_encrypt(3)
 
 ## NAME
 

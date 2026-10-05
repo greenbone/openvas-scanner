@@ -1,4 +1,4 @@
-# dump_tcp_v6_packet
+# dump_tcp_v6_packet(3)
 
 ## NAME
 

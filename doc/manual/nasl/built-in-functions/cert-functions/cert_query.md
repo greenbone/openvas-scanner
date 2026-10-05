@@ -1,4 +1,4 @@
-# cert_query
+# cert_query(3)
 
 ## NAME
 

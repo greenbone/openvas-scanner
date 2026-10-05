@@ -1,4 +1,4 @@
-# dsa_do_verify
+# dsa_do_verify(3)
 
 ## NAME
 

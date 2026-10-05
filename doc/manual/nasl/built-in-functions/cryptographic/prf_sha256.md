@@ -1,4 +1,4 @@
-# prf_sha256
+# prf_sha256(3)
 
 ## NAME
 

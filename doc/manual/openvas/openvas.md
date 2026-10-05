@@ -1,4 +1,4 @@
-# openvas
+# openvas(8)
 
 ## NAME
 

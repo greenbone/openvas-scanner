@@ -1,4 +1,4 @@
-# rsa_private_decrypt
+# rsa_private_decrypt(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# smb_file_owner_sid
+# smb_file_owner_sid(3)
 
 ## NAME
 

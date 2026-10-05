@@ -1,4 +1,4 @@
-# dump_udp_packet
+# dump_udp_packet(3)
 
 ## NAME
 

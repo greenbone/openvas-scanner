@@ -1,4 +1,4 @@
-# ntlm_response
+# ntlm_response(3)
 
 ## NAME
 

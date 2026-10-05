@@ -1,4 +1,4 @@
-# script_oid
+# script_oid(3)
 
 ## NAME
 

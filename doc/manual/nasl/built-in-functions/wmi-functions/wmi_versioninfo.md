@@ -1,4 +1,4 @@
-# wmi_versioninfo
+# wmi_versioninfo(3)
 
 ## NAME
 

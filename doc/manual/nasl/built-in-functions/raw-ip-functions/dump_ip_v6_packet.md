@@ -1,4 +1,4 @@
-# dump_ip_v6_packet
+# dump_ip_v6_packet(3)
 
 ## NAME
 

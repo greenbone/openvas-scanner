@@ -1,4 +1,4 @@
-# cgibin
+# cgibin(3)
 
 ## NAME
 

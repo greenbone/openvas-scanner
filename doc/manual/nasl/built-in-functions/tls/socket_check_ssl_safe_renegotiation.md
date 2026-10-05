@@ -1,4 +1,4 @@
-# socket_check_ssl_safe_renegotiation
+# socket_check_ssl_safe_renegotiation(3)
 
 ## NAME
 

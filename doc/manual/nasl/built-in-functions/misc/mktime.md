@@ -1,4 +1,4 @@
-# mktime
+# mktime(3)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# get_sock_info
+# get_sock_info(3)
 
 ## NAME
 

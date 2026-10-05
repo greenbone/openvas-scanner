@@ -1,4 +1,4 @@
-# localtime
+# localtime(3)
 
 ## NAME
 

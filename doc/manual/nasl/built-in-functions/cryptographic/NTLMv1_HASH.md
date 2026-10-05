@@ -1,4 +1,4 @@
-# NTLMv1_HASH
+# NTLMv1_HASH(3)
 
 ## NAME
 

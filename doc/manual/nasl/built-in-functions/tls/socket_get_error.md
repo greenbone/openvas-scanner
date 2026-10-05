@@ -1,4 +1,4 @@
-# socket_get_error
+# socket_get_error(3)
 
 ## NAME
 

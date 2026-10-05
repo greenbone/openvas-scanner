@@ -1,4 +1,4 @@
-# ssh_get_issue_banner
+# ssh_get_issue_banner(3)
 
 ## NAME
 

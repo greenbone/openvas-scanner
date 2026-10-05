@@ -1,4 +1,4 @@
-# get_icmp_element
+# get_icmp_element(3)
 
 ## NAME
 

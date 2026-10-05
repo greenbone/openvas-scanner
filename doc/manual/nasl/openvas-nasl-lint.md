@@ -1,4 +1,4 @@
-# openvas-nasl-lint
+# openvas-nasl-lint(1)
 
 ## NAME
 

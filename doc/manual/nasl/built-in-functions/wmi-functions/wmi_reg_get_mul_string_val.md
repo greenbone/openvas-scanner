@@ -1,4 +1,4 @@
-# wmi_reg_get_mul_string_val
+# wmi_reg_get_mul_string_val(3)
 
 ## NAME
 

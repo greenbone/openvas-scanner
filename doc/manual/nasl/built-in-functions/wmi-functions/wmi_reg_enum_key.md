@@ -1,4 +1,4 @@
-# wmi_reg_enum_key
+# wmi_reg_enum_key(3)
 
 ## NAME
 

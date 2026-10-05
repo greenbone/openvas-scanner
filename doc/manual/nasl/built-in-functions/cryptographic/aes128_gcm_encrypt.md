@@ -1,4 +1,4 @@
-# aes128_gcm_encrypt
+# aes128_gcm_encrypt(3)
 
 ## NAME
 
