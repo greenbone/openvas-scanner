@@ -19,7 +19,8 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 **-T** *tracefile*, **--trace** *tracefile*
 
 :   Make nasl write verbosely what the script does in the file
-    *tracefile* , ala \'set -x\' under sh.
+    *tracefile* , ala \'set -x\' under sh, pass '-' to send the output
+    to stderr.
 
 **-t** *target*, **--target** *target*
 
