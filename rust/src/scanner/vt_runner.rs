@@ -2,8 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::collections::HashSet;
+
 use crate::models::{Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
+use crate::nasl::syntax::grammar::Ast;
 use crate::nasl::utils::Register;
 use crate::nasl::utils::ctx::TargetId;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
@@ -152,6 +155,31 @@ impl<'a> VTRunner<'a> {
         Ok(())
     }
 
+    /// Check if include file mtime is valid. This is done at interpretation, since
+    /// we need to parse the nasl file and later look into includes and nested includes.
+    async fn check_include_mtimes(&self, ast: &Ast) -> Result<(), ScriptResultKind> {
+        let mut visited = HashSet::new();
+        let mut pending: Vec<String> = ast.iter_includes().map(|i| i.path.clone()).collect();
+
+        while let Some(path) = pending.pop() {
+            if !visited.insert(path.clone()) {
+                continue;
+            }
+            if let Err(reason) = self.scan_ctx.storage().check_mtime(&path).await {
+                return Err(ScriptResultKind::MtimeCheckFailed(reason));
+            }
+            // Recurse into the included file to discover any further nested includes. If it
+            // can't be loaded or parsed, the real error will surface when the interpreter
+            // actually resolves the include, so we don't fail the mtime check here.
+            if let Ok(code) = Code::load(self.scan_ctx.loader(), &path)
+                && let Ok(included_ast) = code.parse().result()
+            {
+                pending.extend(included_ast.iter_includes().map(|i| i.path.clone()));
+            }
+        }
+        Ok(())
+    }
+
     // TODO: probably better to enhance ContextKey::Scan to contain target and scan_id?
     fn generate_key(&self) -> KbContext {
         let original_target_str = self
@@ -174,6 +202,10 @@ impl<'a> VTRunner<'a> {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));
         }
         let ast = ast.unwrap();
+
+        if let Err(e) = self.check_include_mtimes(&ast).await {
+            return e;
+        }
 
         let mut interpreter = ForkingInterpreter::new(ast, register, self.scan_ctx, script_ctx);
         while let Some(r) = interpreter.next().await {
