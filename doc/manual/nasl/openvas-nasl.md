@@ -18,14 +18,14 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 **-T** *tracefile*
 
-:   Makes nasl write verbosely what the script does in the file
-    *tracefile* , ala \'set -x\' under sh
+:   Make nasl write verbosely what the script does in the file
+    *tracefile* , ala \'set -x\' under sh.
 
 **-t** *target*
 
 :   Apply the NASL script to *target* which may be a single host
     (127.0.0.1), a whole subnet (192.168.1.0/24) or several subnets
-    (192.168.1.0/24, 192.168.243.0/24)
+    (192.168.1.0/24, 192.168.243.0/24).
 
 **-e** *iface*
 
@@ -55,7 +55,7 @@ errors by running it in parse (**-p**) or lint (**-L**) mode.
 
 **-h**
 
-:   Show help
+:   Show help.
 
 **-V**
 

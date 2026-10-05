@@ -24,19 +24,19 @@ included below.
 
 **-h**, **--help**
 
-:   Show summary of options
+:   Show summary of options.
 
 **-d**, **--debug**
 
-:   Output debug log messages
+:   Output debug log messages.
 
 **-l** *file*, **--nvt-list** *file*
 
-:   Process files from *file*
+:   Process files from *file*.
 
 **-i** *dir*, **--include-dir *dir*
 
-:   Search for includes in *dir*
+:   Search for includes in *dir*.
 
 
 ## SEE ALSO

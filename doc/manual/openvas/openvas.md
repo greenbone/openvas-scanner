@@ -27,15 +27,15 @@ to be placed and from where the results can be retrieved.
 
 **-c** *config-file*, **--config-file** *config-file*
 
-: Use the alternate configuration file instead of _\@OPENVAS_CONF@_
+: Use the alternate configuration file instead of _\@OPENVAS_CONF@_.
 
 **-V**, **--version**
 
-: Prints the version number and exits
+: Print the version number and exits.
 
 **-h**, **--help**
 
-: Show a summary of the commands
+: Show a summary of the commands.
 
 **--scan-start** *scan-uuid*
 
