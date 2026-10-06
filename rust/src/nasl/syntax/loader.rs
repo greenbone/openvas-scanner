@@ -319,8 +319,7 @@ impl TestLoader {
         self
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_root(mut self, root: PathBuf) -> Self {
+    pub fn with_root(mut self, root: PathBuf) -> Self {
         self.root = Some(root);
         self
     }

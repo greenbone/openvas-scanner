@@ -68,3 +68,11 @@ macro_rules! linter_test_multi {
         }
     };
 }
+
+linter_test_multi!(
+    included_parse_error_uses_included_source,
+    files: {
+        "root.nasl" => "include(\"broken.inc\");",
+        "broken.inc" => "function foo(",
+    },
+);

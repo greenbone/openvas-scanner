@@ -94,12 +94,16 @@ impl Linter {
                 };
                 let include_path = loaded.path().to_owned();
                 let code = Code::from(loaded);
+                let included_file = code.file();
                 match self.parse_file(code) {
                     Ok(ast) => {
                         self.cache.insert(&include_path, CachedFile::new(&ast));
                     }
-                    Err(_) => {
-                        todo!()
+                    Err(msgs) => {
+                        return Ok(LintMsgs {
+                            file: included_file,
+                            msgs,
+                        });
                     }
                 }
             }
