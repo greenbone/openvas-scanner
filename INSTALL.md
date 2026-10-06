@@ -43,6 +43,7 @@ Recommended to have WMI support:
 
 Recommended for extended Windows support (e.g. automatically start the remote registry service):
 * impacket-wmiexec of python-impacket >= 0.9.15 found within your PATH
+* [pypsrp-cli](https://github.com/greenbone/pypsrp-cli) found within your PATH
 
 Recommended to have improved SNMP support:
 * netsnmp libraries or alternatively the snmpget binary.
