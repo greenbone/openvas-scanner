@@ -184,6 +184,8 @@ set (OPENVAS_VERSION "${PROJECT_VERSION_STRING}")
 
 # Configure Doxyfile with version number
 configure_file (doc/man/openvas.8.in doc/man/openvas.8 @ONLY)
+configure_file (doc/man/openvas-nasl.1 doc/man/openvas-nasl.1 COPYONLY)
+configure_file (doc/man/openvas-nasl-lint.1 doc/man/openvas-nasl-lint.1 COPYONLY)
 configure_file (doc/manual/openvas/openvas.md.in doc/manual/openvas/openvas.md @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (src/openvas_log_conf.cmake_in src/openvas_log.conf)
