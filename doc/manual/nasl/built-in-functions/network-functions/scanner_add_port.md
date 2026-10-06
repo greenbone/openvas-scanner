@@ -1,4 +1,4 @@
-# scanner_add_port(3)
+# scanner_add_port(3nasl)
 
 ## NAME
 

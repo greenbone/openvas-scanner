@@ -1,4 +1,4 @@
-# ssh_request_exec(3)
+# ssh_request_exec(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 The function opens a channel to the remote end and ask it to execute a command.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 The command itself is expected as string in the named argument *cmd*.
 
@@ -37,4 +37,4 @@ Memory issues
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**

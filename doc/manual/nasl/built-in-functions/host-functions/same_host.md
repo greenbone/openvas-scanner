@@ -1,4 +1,4 @@
-# same_host(3)
+# same_host(3nasl)
 
 ## NAME
 

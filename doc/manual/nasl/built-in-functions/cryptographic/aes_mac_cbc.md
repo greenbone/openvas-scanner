@@ -1,4 +1,4 @@
-# aes_mac_cbc(3)
+# aes_mac_cbc(3nasl)
 
 ## NAME
 
@@ -26,4 +26,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[aes_mac_gcm(3)](aes_mac_gcm.md)**,
+**[aes_mac_gcm(3nasl)](aes_mac_gcm.md)**,

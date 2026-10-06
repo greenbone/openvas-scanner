@@ -1,4 +1,4 @@
-# crap(3)
+# crap(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# error_message(3)
+# error_message(3nasl)
 
 ## NAME
 
@@ -27,4 +27,4 @@ This function returns nothing.
 
 ## SEE ALSO
 
-**[security_message(3)](security_message.md)**, **[log_message(3)](log_message.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**
+**[security_message(3nasl)](security_message.md)**, **[log_message(3nasl)](log_message.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**

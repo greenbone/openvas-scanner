@@ -1,4 +1,4 @@
-# get_signature(3)
+# get_signature(3nasl)
 
 ## NAME
 
@@ -25,8 +25,8 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[NTLMv1_HASH(3)](NTLMv1_HASH.md)**,
-**[NTLMv2_HASH(3)](NTLMv2_HASH.md)**,
-**[ntlm2_response(3)](ntlm2_response.md)**,
-**[ntlm_response(3)](ntlm_response.md)**,
-**[ntlmv2_response(3)](ntlmv2_response.md)**,
+**[NTLMv1_HASH(3nasl)](NTLMv1_HASH.md)**,
+**[NTLMv2_HASH(3nasl)](NTLMv2_HASH.md)**,
+**[ntlm2_response(3nasl)](ntlm2_response.md)**,
+**[ntlm_response(3nasl)](ntlm_response.md)**,
+**[ntlmv2_response(3nasl)](ntlmv2_response.md)**,

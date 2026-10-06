@@ -1,4 +1,4 @@
-# get_preference(3)
+# get_preference(3nasl)
 
 ## NAME
 

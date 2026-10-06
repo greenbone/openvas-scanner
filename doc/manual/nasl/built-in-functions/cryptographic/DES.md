@@ -1,4 +1,4 @@
-# DES(3)
+# DES(3nasl)
 
 ## NAME
 

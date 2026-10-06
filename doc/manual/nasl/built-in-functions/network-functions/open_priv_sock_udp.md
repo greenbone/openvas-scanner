@@ -1,4 +1,4 @@
-# open_priv_sock_udp(3)
+# open_priv_sock_udp(3nasl)
 
 ## NAME
 
@@ -36,4 +36,4 @@ close(soc);
 
 ## SEE ALSO
 
-**[close(3)](close.md)**
+**[close(3nasl)](close.md)**

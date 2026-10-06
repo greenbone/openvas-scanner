@@ -1,4 +1,4 @@
-# telnet_init(3)
+# telnet_init(3nasl)
 
 ## NAME
 
@@ -34,4 +34,4 @@ close(soc);
 
 ## SEE ALSO
 
-**[close(3)](close.md)**, **[open_sock_tcp(3)](open_sock_tcp.md)**, **[display(3)](../string-functions/display.md)**
+**[close(3nasl)](close.md)**, **[open_sock_tcp(3nasl)](open_sock_tcp.md)**, **[display(3nasl)](../string-functions/display.md)**

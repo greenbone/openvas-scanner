@@ -1,4 +1,4 @@
-# defined_func(3)
+# defined_func(3nasl)
 
 ## NAME
 

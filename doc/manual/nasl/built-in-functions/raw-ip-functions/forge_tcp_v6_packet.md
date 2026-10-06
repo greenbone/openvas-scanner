@@ -1,4 +1,4 @@
-# forge_tcp_v6_packet(3)
+# forge_tcp_v6_packet(3nasl)
 
 ## NAME
 

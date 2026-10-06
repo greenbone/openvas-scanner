@@ -1,4 +1,4 @@
-# isotime_add(3)
+# isotime_add(3nasl)
 
 ## NAME
 

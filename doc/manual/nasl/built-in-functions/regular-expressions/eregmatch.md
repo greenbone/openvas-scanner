@@ -1,4 +1,4 @@
-# eregmatch(3)
+# eregmatch(3nasl)
 
 ## NAME
 

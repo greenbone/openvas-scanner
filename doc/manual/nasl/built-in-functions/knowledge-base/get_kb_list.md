@@ -1,4 +1,4 @@
-# get_kb_list(3)
+# get_kb_list(3nasl)
 
 ## NAME
 
@@ -39,4 +39,4 @@ display(get_kb_list("hosts"));
 
 ## SEE ALSO
 
-**[set_kb_item(3)](set_kb_item.md)**, **[get_kb_item(3)](get_kb_item.md)**, **[replace_kb_item(3)](replace_kb_item.md)**, **[get_host_kb_index(3)](get_host_kb_index.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**
+**[set_kb_item(3nasl)](set_kb_item.md)**, **[get_kb_item(3nasl)](get_kb_item.md)**, **[replace_kb_item(3nasl)](replace_kb_item.md)**, **[get_host_kb_index(3nasl)](get_host_kb_index.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**

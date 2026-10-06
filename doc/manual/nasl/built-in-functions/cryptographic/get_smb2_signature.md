@@ -1,4 +1,4 @@
-# get_smb2_signature(3)
+# get_smb2_signature(3nasl)
 
 ## NAME
 
@@ -25,6 +25,6 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[smb3kdf(3)](smb3kdf.md)**,
-**[smb_cmac_aes_signature(3)](smb_cmac_aes_signature.md)**,
-**[smb_gmac_aes_signature(3)](smb_gmac_aes_signature.md)**,
+**[smb3kdf(3nasl)](smb3kdf.md)**,
+**[smb_cmac_aes_signature(3nasl)](smb_cmac_aes_signature.md)**,
+**[smb_gmac_aes_signature(3nasl)](smb_gmac_aes_signature.md)**,

@@ -1,4 +1,4 @@
-# get_port_transport(3)
+# get_port_transport(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# set_ip_elements(3)
+# set_ip_elements(3nasl)
 
 ## NAME
 

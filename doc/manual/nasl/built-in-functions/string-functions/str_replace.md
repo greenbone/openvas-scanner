@@ -1,4 +1,4 @@
-# str_replace(3)
+# str_replace(3nasl)
 
 ## NAME
 

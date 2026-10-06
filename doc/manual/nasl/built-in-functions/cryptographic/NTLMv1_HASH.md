@@ -1,4 +1,4 @@
-# NTLMv1_HASH(3)
+# NTLMv1_HASH(3nasl)
 
 ## NAME
 
@@ -13,7 +13,7 @@ _str_ **NTLMv1_HASH**(cryptkey: str, passhash: str);
 ## DESCRIPTION
 
 NTLMv1_HASH generates the NTLMv1_HASH based on the given arguments. To generate the passhash,
-**[nt_owf_gen(3)](nt_owf_gen.md)** and **[lm_owf_gen(3)](lm_owf_gen.md)** should be used.
+**[nt_owf_gen(3nasl)](nt_owf_gen.md)** and **[lm_owf_gen(3nasl)](lm_owf_gen.md)** should be used.
 
 ## RETURN VALUE
 
@@ -25,4 +25,4 @@ Returns NULL when a given parameter is null or the passhash does not have a leng
 
 ## SEE ALSO
 
-**[nt_owf_gen(3)](nt_owf_gen.md)**, **[lm_owf_gen(3)](lm_owf_gen.md)**, **[NTLMv2_HASH(3)](NTLMv2_HASH.md)**
+**[nt_owf_gen(3nasl)](nt_owf_gen.md)**, **[lm_owf_gen(3nasl)](lm_owf_gen.md)**, **[NTLMv2_HASH(3nasl)](NTLMv2_HASH.md)**

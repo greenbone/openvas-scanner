@@ -1,4 +1,4 @@
-# dsa_do_verify(3)
+# dsa_do_verify(3nasl)
 
 ## NAME
 
@@ -25,4 +25,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[dsa_do_sign(3)](dsa_do_sign.md)**
+**[dsa_do_sign(3nasl)](dsa_do_sign.md)**

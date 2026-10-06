@@ -1,4 +1,4 @@
-# ssh_get_sock(3)
+# ssh_get_sock(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 The socket is either a native file descriptor or a NASL connection socket, if a open socket was passed to ssh_connect. The NASL network code handles both of them.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 ## RETURN VALUE
 
@@ -22,4 +22,4 @@ An *int* representing the socket or or *NULL* on an invalid SSH session ID.
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**

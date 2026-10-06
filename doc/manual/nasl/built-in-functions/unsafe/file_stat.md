@@ -1,4 +1,4 @@
-# file_stat(3)
+# file_stat(3nasl)
 
 ## NAME
 
@@ -30,4 +30,4 @@ Currently it is not possible to get the cause of the failure
 
 ## SEE ALSO
 
-**[file_open(3)](file_open.md)**
+**[file_open(3nasl)](file_open.md)**

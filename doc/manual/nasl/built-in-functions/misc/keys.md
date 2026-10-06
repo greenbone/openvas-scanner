@@ -1,4 +1,4 @@
-# keys(3)
+# keys(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# forge_icmp_packet(3)
+# forge_icmp_packet(3nasl)
 
 ## NAME
 
@@ -57,4 +57,4 @@ dump_icmp_packet (icmp_packet);
 
 ## SEE ALSO
 
-**[forge_ip_packet(3)](forge_ip_packet.md)**, **[dump_icmp_packet(3)](dump_icmp_packet.md)**
+**[forge_ip_packet(3nasl)](forge_ip_packet.md)**, **[dump_icmp_packet(3nasl)](dump_icmp_packet.md)**

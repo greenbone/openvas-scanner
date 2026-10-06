@@ -1,4 +1,4 @@
-# raw_string(3)
+# raw_string(3nasl)
 
 ## NAME
 
@@ -22,7 +22,7 @@ This function takes any number of arguments of any time and transforms them into
 
 The created string can have a maximum size of 32768. If, during any conversion, the string would become larger than this, the further processing is stopped, an error message is printed and the string, generated at this point, is returned.
 
-This function is similar to **[strcat(3)](strcat.md)** and **[string(3)](string.md)**.
+This function is similar to **[strcat(3nasl)](strcat.md)** and **[string(3nasl)](string.md)**.
 
 ## RETURN VALUE
 
@@ -31,4 +31,4 @@ All given arguments are converted to *string* and concatenated in their given or
 
 ## SEE ALSO
 
-**[strcat(3)](strcat.md)**, **[string(3)](string.md)**
+**[strcat(3nasl)](strcat.md)**, **[string(3nasl)](string.md)**

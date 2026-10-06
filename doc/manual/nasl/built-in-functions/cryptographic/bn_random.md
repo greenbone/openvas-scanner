@@ -1,4 +1,4 @@
-# bn_random(3)
+# bn_random(3nasl)
 
 ## NAME
 
@@ -31,4 +31,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[bn_cmp(3)](bn_cmp.md)**,
+**[bn_cmp(3nasl)](bn_cmp.md)**,

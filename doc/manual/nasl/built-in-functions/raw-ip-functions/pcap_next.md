@@ -1,4 +1,4 @@
-# pcap_next(3)
+# pcap_next(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function is the same as **[send_capture(3)](send_capture.md)**.
+This function is the same as **[send_capture(3nasl)](send_capture.md)**.
 
 - interface: network interface name, by default NASL will try to find the best one
 - pcap_filter: BPF filter, by default it listens to everything
@@ -24,4 +24,4 @@ Packet which was captured
 
 ## SEE ALSO
 
-**[send_capture(3)](send_capture.md)**
+**[send_capture(3nasl)](send_capture.md)**

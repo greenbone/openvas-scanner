@@ -1,4 +1,4 @@
-# prf_sha384(3)
+# prf_sha384(3nasl)
 
 ## NAME
 
@@ -34,5 +34,5 @@ hash = prf_sha384(secret: "my_secret", seed: "a", label: "very secure", outlenL 
 
 ## SEE ALSO
 
-**[prf_sha256(3)](prf_sha256.md)**,
-**[tls1_prf(3)](tls1_prf.md)**,
+**[prf_sha256(3nasl)](prf_sha256.md)**,
+**[tls1_prf(3nasl)](tls1_prf.md)**,

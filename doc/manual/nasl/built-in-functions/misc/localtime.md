@@ -1,4 +1,4 @@
-# localtime(3)
+# localtime(3nasl)
 
 ## NAME
 
@@ -38,6 +38,6 @@ display(localtime());
 
 ## SEE ALSO
 
-**[gettimeofday(3)](gettimeofday.md)**,
-**[mktime(3)](mktime.md)**,
-**[unixtime(3)](unixtime.md)**,
+**[gettimeofday(3nasl)](gettimeofday.md)**,
+**[mktime(3nasl)](mktime.md)**,
+**[unixtime(3nasl)](unixtime.md)**,

@@ -1,4 +1,4 @@
-# des_ede_cbc_encrypt(3)
+# des_ede_cbc_encrypt(3nasl)
 
 ## NAME
 

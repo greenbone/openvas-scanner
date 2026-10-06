@@ -1,4 +1,4 @@
-# get_ip_element(3)
+# get_ip_element(3nasl)
 
 ## NAME
 

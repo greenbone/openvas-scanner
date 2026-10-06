@@ -1,4 +1,4 @@
-# forge_tcp_packet(3)
+# forge_tcp_packet(3nasl)
 
 ## NAME
 
@@ -72,4 +72,4 @@ dump_tcp_packet (ip_packet);
 
 ## SEE ALSO
 
-**[forge_ip_packet(3)](forge_ip_packet.md)**, **[dump_tcp_packet(3)](dump_tcp_packet.md)**
+**[forge_ip_packet(3nasl)](forge_ip_packet.md)**, **[dump_tcp_packet(3nasl)](dump_tcp_packet.md)**

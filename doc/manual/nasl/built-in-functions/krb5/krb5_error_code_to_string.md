@@ -1,4 +1,4 @@
-# krb5_error_code_to_string(3)
+# krb5_error_code_to_string(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# gettimeofday(3)
+# gettimeofday(3nasl)
 
 ## NAME
 

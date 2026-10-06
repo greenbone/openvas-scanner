@@ -1,4 +1,4 @@
-# dump_icmp_v6_packet(3)
+# dump_icmp_v6_packet(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 Receive a list of IPv6 datagrams and print their ICMP part in a readable format in the screen.
 
-A datagram can be created with **[forge_icmp_v6_packet(3)](forge_icmp_v6_packet.md)**.
+A datagram can be created with **[forge_icmp_v6_packet(3nasl)](forge_icmp_v6_packet.md)**.
 
 ## RETURN VALUE
 
@@ -22,4 +22,4 @@ None
 
 ## SEE ALSO
 
-**[forge_icmp_packet(3)](forge_icmp_v6_packet.md)**
+**[forge_icmp_packet(3nasl)](forge_icmp_v6_packet.md)**

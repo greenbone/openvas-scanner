@@ -1,4 +1,4 @@
-# get_host_name_source(3)
+# get_host_name_source(3nasl)
 
 ## NAME
 
@@ -26,4 +26,4 @@ Source of detection of a given hostname as *string* or *NULL* if hostname unknow
 
 ## SEE ALSO
 
-**[add_host_name(3)](add_host_name.md)**
+**[add_host_name(3nasl)](add_host_name.md)**

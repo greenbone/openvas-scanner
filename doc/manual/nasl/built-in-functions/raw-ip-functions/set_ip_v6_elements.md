@@ -1,4 +1,4 @@
-# set_ip_v6_elements(3)
+# set_ip_v6_elements(3nasl)
 
 ## NAME
 
@@ -13,7 +13,7 @@
 
 ## DESCRIPTION
 
-Set element from a IPv6 datagram. This function is the same as **[set_ipv6_elements(3)](set_ipv6_elements.md)**.
+Set element from a IPv6 datagram. This function is the same as **[set_ipv6_elements(3nasl)](set_ipv6_elements.md)**.
 
 Its arguments are:
 - ip6: IPv6 datagram to set fields on
@@ -28,4 +28,4 @@ Returns the modified IPv6 datagram
 
 ## SEE ALSO
 
-**[set_ipv6_elements(3)](set_ipv6_elements.md)**
+**[set_ipv6_elements(3nasl)](set_ipv6_elements.md)**

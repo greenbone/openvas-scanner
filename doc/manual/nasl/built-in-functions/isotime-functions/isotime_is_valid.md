@@ -1,4 +1,4 @@
-# isotime_is_valid(3)
+# isotime_is_valid(3nasl)
 
 ## NAME
 

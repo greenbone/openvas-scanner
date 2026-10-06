@@ -1,4 +1,4 @@
-# script_get_preference(3)
+# script_get_preference(3nasl)
 
 ## NAME
 

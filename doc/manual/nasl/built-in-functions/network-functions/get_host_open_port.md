@@ -1,4 +1,4 @@
-# get_host_open_port(3)
+# get_host_open_port(3nasl)
 
 ## NAME
 

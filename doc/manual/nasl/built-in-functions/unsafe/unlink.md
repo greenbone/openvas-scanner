@@ -1,4 +1,4 @@
-# unlink(3)
+# unlink(3nasl)
 
 ## NAME
 

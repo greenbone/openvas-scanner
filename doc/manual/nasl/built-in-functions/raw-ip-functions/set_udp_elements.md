@@ -1,4 +1,4 @@
-# set_udp_elements(3)
+# set_udp_elements(3nasl)
 
 ## NAME
 

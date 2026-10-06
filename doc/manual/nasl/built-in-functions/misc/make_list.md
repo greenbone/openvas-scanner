@@ -1,4 +1,4 @@
-# make_list(3)
+# make_list(3nasl)
 
 ## NAME
 
@@ -34,4 +34,4 @@ a = make_list('a', 1, arr);
 
 ## SEE ALSO
 
-**[make_array(3)](make_array.md)**,
+**[make_array(3nasl)](make_array.md)**,

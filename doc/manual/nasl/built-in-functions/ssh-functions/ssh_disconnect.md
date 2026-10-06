@@ -1,4 +1,4 @@
-# ssh_disconnect(3)
+# ssh_disconnect(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function takes the SSH session ID returned by **[ssh_connect(3)](ssh_connect.md)** and closes it. Passing 0 as session ID is explicitly allowed and does nothing. If there are any open channels, they are closed as well and their IDs will be marked as invalid.
+This function takes the SSH session ID returned by **[ssh_connect(3nasl)](ssh_connect.md)** and closes it. Passing 0 as session ID is explicitly allowed and does nothing. If there are any open channels, they are closed as well and their IDs will be marked as invalid.
 
 The first unnamed parameter is the session ID as an *int*.
 
@@ -22,4 +22,4 @@ Nothing
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**

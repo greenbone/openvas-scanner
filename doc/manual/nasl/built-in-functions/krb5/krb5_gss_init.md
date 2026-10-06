@@ -1,4 +1,4 @@
-# krb5_gss_init(3)
+# krb5_gss_init(3nasl)
 
 ## NAME
 

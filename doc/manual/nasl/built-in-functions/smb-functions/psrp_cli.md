@@ -1,4 +1,4 @@
-# psrp_cli(3)
+# psrp_cli(3nasl)
 
 ## NAME
 

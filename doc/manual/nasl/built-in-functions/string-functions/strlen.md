@@ -1,4 +1,4 @@
-# strlen(3)
+# strlen(3nasl)
 
 ## NAME
 

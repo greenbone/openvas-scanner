@@ -1,4 +1,4 @@
-# set_udp_v6_elements(3)
+# set_udp_v6_elements(3nasl)
 
 ## NAME
 

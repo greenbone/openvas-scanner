@@ -1,4 +1,4 @@
-# get_port_state(3)
+# get_port_state(3nasl)
 
 ## NAME
 

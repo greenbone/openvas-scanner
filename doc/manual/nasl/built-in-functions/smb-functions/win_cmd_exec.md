@@ -1,4 +1,4 @@
-# win_cmd_exec(3)
+# win_cmd_exec(3nasl)
 
 ## NAME
 

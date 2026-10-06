@@ -1,4 +1,4 @@
-# ssh_shell_write(3)
+# ssh_shell_write(3nasl)
 
 ## NAME
 
@@ -12,13 +12,13 @@
 
 ## DESCRIPTION
 
-This function write to an already opened SSH shell. Before using an SSH connection has to be established and a shell has to be opened with **[ssh_shell_open(3)](ssh_shell_open.md)** before.
+This function write to an already opened SSH shell. Before using an SSH connection has to be established and a shell has to be opened with **[ssh_shell_open(3nasl)](ssh_shell_open.md)** before.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
-Be aware that the given session ID by **[ssh_shell_open(3)](ssh_shell_open.md)** is not used here!
+Be aware that the given session ID by **[ssh_shell_open(3nasl)](ssh_shell_open.md)** is not used here!
 
-The named argument *cmd* is given as string. It is written into the shell. The result of the command can be extracted by **[ssh_shell_read(3)](ssh_shell_read.md)**.
+The named argument *cmd* is given as string. It is written into the shell. The result of the command can be extracted by **[ssh_shell_read(3nasl)](ssh_shell_read.md)**.
 
 ## RETURN VALUE
 
@@ -36,4 +36,4 @@ Unable to write to the shell
 
 ## SEE ALSO
 
-**[ssh_shell_open(3)](ssh_shell_open.md)**, **[ssh_shell_read(3)](ssh_shell_read.md)**, **[ssh_connect(3)](ssh_connect.md)**
+**[ssh_shell_open(3nasl)](ssh_shell_open.md)**, **[ssh_shell_read(3nasl)](ssh_shell_read.md)**, **[ssh_connect(3nasl)](ssh_connect.md)**

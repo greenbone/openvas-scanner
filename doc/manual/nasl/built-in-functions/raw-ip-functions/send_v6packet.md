@@ -1,4 +1,4 @@
-# send_v6packet(3)
+# send_v6packet(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# strstr(3)
+# strstr(3nasl)
 
 ## NAME
 
@@ -17,7 +17,7 @@ This function finds the first occurrence of a sub-string within a string.
 The first positional argument is the *string* to search through.
 
 The second positional argument is a *string* containing the sub-string to be searched for.
-This function will return a sub-string of the original. If just the position is needed **[stridx(3)](stridx.md)** can be used instead.
+This function will return a sub-string of the original. If just the position is needed **[stridx(3nasl)](stridx.md)** can be used instead.
 
 ## RETURN VALUE
 
@@ -25,4 +25,4 @@ A sub-string of the original string, beginning at the first occurrence of the fo
 
 ## SEE ALSO
 
-**[stridx(3)](stridx.md)**
+**[stridx(3nasl)](stridx.md)**

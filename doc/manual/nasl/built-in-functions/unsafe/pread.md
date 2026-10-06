@@ -1,4 +1,4 @@
-# pread(3)
+# pread(3nasl)
 
 ## NAME
 
@@ -60,4 +60,4 @@ if ( find_in_path("foo") ) {
 
 ## SEE ALSO
 
-**[find_in_path(3)](find_in_path.md)**
+**[find_in_path(3nasl)](find_in_path.md)**

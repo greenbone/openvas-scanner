@@ -1,4 +1,4 @@
-# forge_ipv6_packet(3)
+# forge_ipv6_packet(3nasl)
 
 ## NAME
 
@@ -12,8 +12,8 @@
 
 ## DESCRIPTION
 
-For more details see **[forge_ip_v6_packet(3)](forge_ip_v6_packet.md)**.
+For more details see **[forge_ip_v6_packet(3nasl)](forge_ip_v6_packet.md)**.
 
 ## SEE ALSO
 
-**[forge_ip_v6_packet(3)](forge_ip_v6_packet.md)**
+**[forge_ip_v6_packet(3nasl)](forge_ip_v6_packet.md)**

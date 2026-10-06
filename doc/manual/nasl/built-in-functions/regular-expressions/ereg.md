@@ -1,4 +1,4 @@
-# ereg(3)
+# ereg(3nasl)
 
 ## NAME
 

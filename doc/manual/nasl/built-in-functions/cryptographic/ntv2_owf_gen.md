@@ -1,4 +1,4 @@
-# ntv2_owf_gen(3)
+# ntv2_owf_gen(3nasl)
 
 ## NAME
 
@@ -25,5 +25,5 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[lm_owf_gen(3)](lm_owf_gen.md)**,
-**[nt_owf_gen(3)](nt_owf_gen.md)**,
+**[lm_owf_gen(3nasl)](lm_owf_gen.md)**,
+**[nt_owf_gen(3nasl)](nt_owf_gen.md)**,

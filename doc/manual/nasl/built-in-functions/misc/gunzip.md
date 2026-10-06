@@ -1,4 +1,4 @@
-# gunzip(3)
+# gunzip(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# ssh_connect(3)
+# ssh_connect(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function is used to either establish a new TCP connection or use a socket, that is already in use to setup a new SSH connection. [ssh_disconnect(3)](ssh_disconnect.md) hast to be called to close the connection.
+This function is used to either establish a new TCP connection or use a socket, that is already in use to setup a new SSH connection. [ssh_disconnect(3nasl)](ssh_disconnect.md) hast to be called to close the connection.
 
 If the optional *socket* parameter is set, it is used instead of creating a new TCP connection. It contains *int* corresponding to an active socket.
 
@@ -55,4 +55,4 @@ No space left in SSH session table, internal error
 
 ## SEE ALSO
 
-**[ssh_disconnect(3)](ssh_disconnect.md)**
+**[ssh_disconnect(3nasl)](ssh_disconnect.md)**

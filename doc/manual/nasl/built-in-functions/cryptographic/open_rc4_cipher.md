@@ -1,4 +1,4 @@
-# open_rc4_cipher(3)
+# open_rc4_cipher(3nasl)
 
 ## NAME
 
@@ -29,5 +29,5 @@ Returns a negative number on failure.
 
 ## SEE ALSO
 
-**[close_stream_cipher(3)](close_stream_cipher.md)**,
-**[rc4_encrypt(3)](rc4_encrypt.md)**,
+**[close_stream_cipher(3nasl)](close_stream_cipher.md)**,
+**[rc4_encrypt(3nasl)](rc4_encrypt.md)**,

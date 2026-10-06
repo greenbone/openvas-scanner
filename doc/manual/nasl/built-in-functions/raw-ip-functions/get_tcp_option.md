@@ -1,4 +1,4 @@
-# get_tcp_option(3)
+# get_tcp_option(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# hex(3)
+# hex(3nasl)
 
 ## NAME
 

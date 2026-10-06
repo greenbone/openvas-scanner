@@ -1,4 +1,4 @@
-# http_open_socket(3)
+# http_open_socket(3nasl)
 
 ## NAME
 
@@ -35,4 +35,4 @@ http_close_socket(soc);
 
 ## SEE ALSO
 
-**[cgibin(3)](cgibin.md)**, **[http_delete(3)](http_delete.md)**, **[http_get(3)](http_get.md)**, **[http_close_socket(3)](http_close_socket.md)**, **[http_head(3)](http_head.md)**, **[http_open_socket(3)](http_open_socket.md)**, **[http_post(3)](http_post.md)**, **[http_put(3)](http_put.md)**
+**[cgibin(3nasl)](cgibin.md)**, **[http_delete(3nasl)](http_delete.md)**, **[http_get(3nasl)](http_get.md)**, **[http_close_socket(3nasl)](http_close_socket.md)**, **[http_head(3nasl)](http_head.md)**, **[http_open_socket(3nasl)](http_open_socket.md)**, **[http_post(3nasl)](http_post.md)**, **[http_put(3nasl)](http_put.md)**

@@ -1,4 +1,4 @@
-# ssh_get_auth_methods(3)
+# ssh_get_auth_methods(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 ## RETURN VALUE
 
@@ -30,4 +30,4 @@ Bad SSH session ID
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**

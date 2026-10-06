@@ -1,4 +1,4 @@
-# notus_type(3)
+# notus_type(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function yields the type of the notus result after calling the **[notus(3)](notus.md)** function.
+This function yields the type of the notus result after calling the **[notus(3nasl)](notus.md)** function.
 
 ## RETURN VALUE
 
@@ -38,4 +38,4 @@ if (type == 0)
 
 ## SEE ALSO
 
-**[notus(3)](notus.md)**
+**[notus(3nasl)](notus.md)**

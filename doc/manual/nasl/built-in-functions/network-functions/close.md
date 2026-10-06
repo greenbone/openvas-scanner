@@ -1,4 +1,4 @@
-# close(3)
+# close(3nasl)
 
 ## NAME
 
@@ -33,4 +33,4 @@ close(soc);
 
 ## SEE ALSO
 
-**[open_sock_tcp(3)](open_sock_tcp.md)**
+**[open_sock_tcp(3nasl)](open_sock_tcp.md)**

@@ -1,4 +1,4 @@
-# get_host_kb_index(3)
+# get_host_kb_index(3nasl)
 
 ## NAME
 
@@ -23,4 +23,4 @@ KB index, *int* or None, when redis index cannot be determined
 
 ## SEE ALSO
 
-**[get_kb_item(3)](get_kb_item.md)**, **[get_kb_list(3)](get_kb_list.md)**, **[replace_kb_item(3)](replace_kb_item.md)**, **[set_kb_item(3)](set_kb_item.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**
+**[get_kb_item(3nasl)](get_kb_item.md)**, **[get_kb_list(3nasl)](get_kb_list.md)**, **[replace_kb_item(3nasl)](replace_kb_item.md)**, **[set_kb_item(3nasl)](set_kb_item.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**

@@ -1,4 +1,4 @@
-# replace_kb_item(3)
+# replace_kb_item(3nasl)
 
 ## NAME
 
@@ -15,9 +15,9 @@
 
 This function is used to create new entries within the KB or replace existing ones. It is mainly used for inter-plugin communication, so data can be transferred between scripts. If this function is called multiple times with the same *name*, the old value is replaced.
 
-The *name* parameter sets the name of the entry. It is used to retrieve the item again with [get_kb_item(3)](get_kb_item.md).
+The *name* parameter sets the name of the entry. It is used to retrieve the item again with [get_kb_item(3nasl)](get_kb_item.md).
 
-The *value* parameter sets the value of the entry. It can store any information provided and can be retrieved again with [get_kb_item(3)](get_kb_item.md). The type of the value can be either an integer or a string. If the value is of type integer, it is not possible to set it to -1.
+The *value* parameter sets the value of the entry. It can store any information provided and can be retrieved again with [get_kb_item(3nasl)](get_kb_item.md). The type of the value can be either an integer or a string. If the value is of type integer, it is not possible to set it to -1.
 
 ## RETURN VALUE
 
@@ -46,4 +46,4 @@ replace_kb_item(name: "foo", value: "baz");
 
 ## SEE ALSO
 
-**[get_kb_item(3)](get_kb_item.md)**, **[get_kb_list(3)](get_kb_list.md)**, **[set_kb_item(3)](set_kb_item.md)**, **[get_host_kb_index(3)](get_host_kb_index.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**
+**[get_kb_item(3nasl)](get_kb_item.md)**, **[get_kb_list(3nasl)](get_kb_list.md)**, **[set_kb_item(3nasl)](set_kb_item.md)**, **[get_host_kb_index(3nasl)](get_host_kb_index.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**

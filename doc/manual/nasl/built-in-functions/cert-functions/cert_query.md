@@ -1,4 +1,4 @@
-# cert_query(3)
+# cert_query(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 This function runs a command on a given certificate object.
 
-The first unnamed argument is an *int* containing the certificate ID, given by **[cert_open(3)](cert_open.md)**.
+The first unnamed argument is an *int* containing the certificate ID, given by **[cert_open(3nasl)](cert_open.md)**.
 
 The second unnamed argument is a *string* containing the command to run on the certificate object. Available commands are:
 - *serial* - get the serial number of the certificate as a hex string
@@ -52,4 +52,4 @@ Unable to run given command
 
 ## SEE ALSO
 
-**[cert_open(3)](cert_open.md)**
+**[cert_open(3nasl)](cert_open.md)**

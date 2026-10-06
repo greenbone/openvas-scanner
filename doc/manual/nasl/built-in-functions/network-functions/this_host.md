@@ -1,4 +1,4 @@
-# this_host(3)
+# this_host(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# split(3)
+# split(3nasl)
 
 ## NAME
 

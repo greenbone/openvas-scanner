@@ -1,4 +1,4 @@
-# krb5_find_kdc(3)
+# krb5_find_kdc(3nasl)
 
 ## NAME
 

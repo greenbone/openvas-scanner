@@ -1,4 +1,4 @@
-# insert_tcp_v6_options(3)
+# insert_tcp_v6_options(3nasl)
 
 ## NAME
 
@@ -65,4 +65,4 @@ ip_packet = insert_tcp_v6_options(tcp: ip_packet, 2, 1234, 8, 20, 25);
 
 ## SEE ALSO
 
-**[forge_ip_v6_packet(3)](forge_ip_v6_packet.md)**
+**[forge_ip_v6_packet(3nasl)](forge_ip_v6_packet.md)**

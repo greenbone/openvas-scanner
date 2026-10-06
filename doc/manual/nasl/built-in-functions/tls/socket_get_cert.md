@@ -1,4 +1,4 @@
-# socket_get_cert(3)
+# socket_get_cert(3nasl)
 
 ## NAME
 

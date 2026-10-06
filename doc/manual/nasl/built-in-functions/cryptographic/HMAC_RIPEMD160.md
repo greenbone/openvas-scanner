@@ -1,4 +1,4 @@
-# HMAC_RIPEMD160(3)
+# HMAC_RIPEMD160(3nasl)
 
 ## NAME
 
@@ -33,9 +33,9 @@ hash = HMAC_RIPEMD160(key: "my_shared?key", data: "so much wow");
 
 ## SEE ALSO
 
-**[HMAC_MD2(3)](HMAC_MD2.md)**,
-**[HMAC_MD5(3)](HMAC_MD5.md)**,
-**[HMAC_SHA1(3)](HMAC_SHA1.md)**,
-**[HMAC_SHA256(3)](HMAC_SHA256.md)**,
-**[HMAC_SHA384(3)](HMAC_SHA384.md)**,
-**[HMAC_SHA512(3)](HMAC_SHA512.md)**,
+**[HMAC_MD2(3nasl)](HMAC_MD2.md)**,
+**[HMAC_MD5(3nasl)](HMAC_MD5.md)**,
+**[HMAC_SHA1(3nasl)](HMAC_SHA1.md)**,
+**[HMAC_SHA256(3nasl)](HMAC_SHA256.md)**,
+**[HMAC_SHA384(3nasl)](HMAC_SHA384.md)**,
+**[HMAC_SHA512(3nasl)](HMAC_SHA512.md)**,

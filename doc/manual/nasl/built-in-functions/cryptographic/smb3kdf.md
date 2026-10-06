@@ -1,4 +1,4 @@
-# smb3kdf(3)
+# smb3kdf(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# get_source_port(3)
+# get_source_port(3nasl)
 
 ## NAME
 

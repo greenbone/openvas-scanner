@@ -1,4 +1,4 @@
-# send(3)
+# send(3nasl)
 
 ## NAME
 
@@ -38,4 +38,4 @@ n = send(socket:soc, data: data);
 
 ## SEE ALSO
 
-**[open_sock_tcp(3)](open_sock_tcp.md)**
+**[open_sock_tcp(3nasl)](open_sock_tcp.md)**

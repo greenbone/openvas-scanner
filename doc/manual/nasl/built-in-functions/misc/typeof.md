@@ -1,4 +1,4 @@
-# typeof(3)
+# typeof(3nasl)
 
 ## NAME
 

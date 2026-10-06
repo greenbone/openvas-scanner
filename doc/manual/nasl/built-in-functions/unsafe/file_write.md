@@ -1,4 +1,4 @@
-# file_write(3)
+# file_write(3nasl)
 
 ## NAME
 
@@ -10,7 +10,7 @@
 
 ## DESCRIPTION
 
-This function writes to a opened file. In order to be able to write to a file it has to be opened with **[file_open(3)](file_open.md)** before.
+This function writes to a opened file. In order to be able to write to a file it has to be opened with **[file_open(3nasl)](file_open.md)** before.
 
 *fp* is an *int* parameter. It is the file descriptor for the file to write into
 
@@ -37,4 +37,4 @@ file_close(fd);
 
 ## SEE ALSO
 
-**[file_open(3)](file_open.md)**
+**[file_open(3nasl)](file_open.md)**

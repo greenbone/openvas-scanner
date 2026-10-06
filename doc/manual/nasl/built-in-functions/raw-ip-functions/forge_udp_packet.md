@@ -1,4 +1,4 @@
-# forge_udp_packet(3)
+# forge_udp_packet(3nasl)
 
 ## NAME
 
@@ -62,4 +62,4 @@ dump_udp_packet (udpip);
 
 ## SEE ALSO
 
-**[forge_ip_packet(3)](forge_ip_packet.md)**, **[dump_udp_packet(3)](dump_udp_packet.md)**
+**[forge_ip_packet(3nasl)](forge_ip_packet.md)**, **[dump_udp_packet(3nasl)](dump_udp_packet.md)**

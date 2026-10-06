@@ -1,4 +1,4 @@
-# cert_open(3)
+# cert_open(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-Takes a string/data as unnamed argument and returns an identifier used with the other cert functions. The data is usually the BER encoded certificate but the function will also try a PEM encoding on failure to parse BER encoded one. An opened certificate object must be closed with **[cert_close(3)](cert_close.md)**.
+Takes a string/data as unnamed argument and returns an identifier used with the other cert functions. The data is usually the BER encoded certificate but the function will also try a PEM encoding on failure to parse BER encoded one. An opened certificate object must be closed with **[cert_close(3nasl)](cert_close.md)**.
 
 The first unnamed argument is either *string* or a data object containing the certificate. It is either Binary or PEM encoded.
 
@@ -28,4 +28,4 @@ Unable to create certificate object.
 
 ## SEE ALSO
 
-**[cert_close(3)](cert_close.md)**
+**[cert_close(3nasl)](cert_close.md)**

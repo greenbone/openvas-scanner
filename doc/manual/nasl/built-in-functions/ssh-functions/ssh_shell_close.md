@@ -1,4 +1,4 @@
-# ssh_shell_close(3)
+# ssh_shell_close(3nasl)
 
 ## NAME
 
@@ -14,9 +14,9 @@
 
 This function closes an opened SSH shell.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
-The shell has to be opened with **[ssh_shell_open(3)](ssh_shell_open.md)** for the SSH session before.
+The shell has to be opened with **[ssh_shell_open(3nasl)](ssh_shell_open.md)** for the SSH session before.
 
 ## RETURN VALUE
 
@@ -24,4 +24,4 @@ The shell has to be opened with **[ssh_shell_open(3)](ssh_shell_open.md)** for t
 
 ## SEE ALSO
 
-*[ssh_connect(3)](ssh_connect.md)**, **[ssh_shell_open(3)](ssh_shell_open.md)**
+*[ssh_connect(3nasl)](ssh_connect.md)**, **[ssh_shell_open(3nasl)](ssh_shell_open.md)**

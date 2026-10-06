@@ -1,4 +1,4 @@
-# add_host_name(3)
+# add_host_name(3nasl)
 
 ## NAME
 

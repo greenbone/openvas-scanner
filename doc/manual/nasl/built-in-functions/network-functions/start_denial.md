@@ -1,4 +1,4 @@
-# start_denial(3)
+# start_denial(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-Initializes some internal data structure for **[end_denial(3)](end_denial.md)**.
+Initializes some internal data structure for **[end_denial(3nasl)](end_denial.md)**.
 
 ## RETURN VALUE
 
@@ -20,4 +20,4 @@ None
 
 ## SEE ALSO
 
-**[end_denial(3)](end_denial.md)**
+**[end_denial(3nasl)](end_denial.md)**

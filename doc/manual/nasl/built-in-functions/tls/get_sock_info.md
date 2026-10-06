@@ -1,4 +1,4 @@
-# get_sock_info(3)
+# get_sock_info(3nasl)
 
 ## NAME
 
@@ -47,4 +47,4 @@ When either the given socket is not valid or when it was not possible to get the
 
 ## SEE ALSO
 
-**[open_sock_tcp(3)](../network-functions/open_sock_tcp.md)**
+**[open_sock_tcp(3nasl)](../network-functions/open_sock_tcp.md)**

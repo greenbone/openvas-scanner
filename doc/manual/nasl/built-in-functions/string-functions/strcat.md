@@ -1,4 +1,4 @@
-# strcat(3)
+# strcat(3nasl)
 
 ## NAME
 
@@ -20,7 +20,7 @@ This function takes any argument of any type, converts them into strings and con
 - *bool*: *TRUE* is converted into "1" and *FALSE* into "0"
 - undefined variables are just ignored
 
-This function works similar to **[raw_string(3)](raw_string.md)** and the same as **[string(3)](string.md)**.
+This function works similar to **[raw_string(3nasl)](raw_string.md)** and the same as **[string(3nasl)](string.md)**.
 
 ## RETURN VALUE
 
@@ -28,4 +28,4 @@ All given arguments are converted to *string* and concatenated in their given or
 
 ## SEE ALSO
 
-**[raw_string(3)](raw_string.md)**, **[string(3)](string.md)**
+**[raw_string(3nasl)](raw_string.md)**, **[string(3nasl)](string.md)**

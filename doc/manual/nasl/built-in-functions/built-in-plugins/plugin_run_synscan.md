@@ -1,4 +1,4 @@
-# plugin_run_synscan(3)
+# plugin_run_synscan(3nasl)
 
 ## NAME
 

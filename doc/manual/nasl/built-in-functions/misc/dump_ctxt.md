@@ -1,4 +1,4 @@
-# dump_ctxt(3)
+# dump_ctxt(3nasl)
 
 ## NAME
 

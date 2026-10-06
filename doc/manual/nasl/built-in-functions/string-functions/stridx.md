@@ -1,4 +1,4 @@
-# stridx(3)
+# stridx(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# scanner_status(3)
+# scanner_status(3nasl)
 
 ## NAME
 

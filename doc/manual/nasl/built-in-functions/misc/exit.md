@@ -1,4 +1,4 @@
-# exit(3)
+# exit(3nasl)
 
 ## NAME
 

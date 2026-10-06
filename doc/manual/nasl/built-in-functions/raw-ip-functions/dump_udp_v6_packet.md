@@ -1,4 +1,4 @@
-# dump_udp_v6_packet(3)
+# dump_udp_v6_packet(3nasl)
 
 ## NAME
 

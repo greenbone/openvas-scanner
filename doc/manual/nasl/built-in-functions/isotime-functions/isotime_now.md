@@ -1,4 +1,4 @@
-# isotime_now(3)
+# isotime_now(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# send_packet(3)
+# send_packet(3nasl)
 
 ## NAME
 

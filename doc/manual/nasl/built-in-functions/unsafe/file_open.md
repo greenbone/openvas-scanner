@@ -1,4 +1,4 @@
-# file_open(3)
+# file_open(3nasl)
 
 ## NAME
 
@@ -23,7 +23,7 @@ This function is used to open a file descriptor to be able to either read or wri
 - a: write only + append + create
 - a+: read and write + append + create
 
-After done with the file, the descriptor hast to be closed with **[file_close(3)](file_close.md)**.
+After done with the file, the descriptor hast to be closed with **[file_close(3nasl)](file_close.md)**.
 
 ## RETURN VALUE
 
@@ -41,4 +41,4 @@ unable to retrieve file stats, see **stat(2)** for further information
 
 ## SEE ALSO
 
-**[file_close(3)](file_close.md)**
+**[file_close(3nasl)](file_close.md)**

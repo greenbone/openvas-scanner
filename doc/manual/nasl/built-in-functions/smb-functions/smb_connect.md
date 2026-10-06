@@ -1,4 +1,4 @@
-# smb_connect(3)
+# smb_connect(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function opens a connection to a SMB service. A opened handler must be closed by calling **[smb_close(3)](smb_close.md)**.
+This function opens a connection to a SMB service. A opened handler must be closed by calling **[smb_close(3nasl)](smb_close.md)**.
 
 The named argument *username* is a *string* containing the user to login onto the windows machine.
 
@@ -32,4 +32,4 @@ Unable to connect to SMB service.
 
 ## SEE ALSO
 
-**[smb_close(3)](smb_close.md)**
+**[smb_close(3nasl)](smb_close.md)**

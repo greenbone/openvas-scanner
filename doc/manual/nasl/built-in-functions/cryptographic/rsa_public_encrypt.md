@@ -1,4 +1,4 @@
-# rsa_public_encrypt(3)
+# rsa_public_encrypt(3nasl)
 
 ## NAME
 
@@ -28,6 +28,6 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[rsa_private_decrypt(3)](rsa_private_decrypt.md)**,
-**[rsa_public_decrypt(3)](rsa_public_decrypt.md)**,
-**[rsa_sign(3)](rsa_sign.md)**,
+**[rsa_private_decrypt(3nasl)](rsa_private_decrypt.md)**,
+**[rsa_public_decrypt(3nasl)](rsa_public_decrypt.md)**,
+**[rsa_sign(3nasl)](rsa_sign.md)**,

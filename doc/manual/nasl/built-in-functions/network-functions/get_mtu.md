@@ -1,4 +1,4 @@
-# get_mtu(3)
+# get_mtu(3nasl)
 
 ## NAME
 

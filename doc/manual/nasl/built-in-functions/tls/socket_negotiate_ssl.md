@@ -1,4 +1,4 @@
-# socket_negotiate_ssl(3)
+# socket_negotiate_ssl(3nasl)
 
 ## NAME
 

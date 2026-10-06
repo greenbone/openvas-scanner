@@ -1,4 +1,4 @@
-# socket_get_ssl_session_id(3)
+# socket_get_ssl_session_id(3nasl)
 
 ## NAME
 

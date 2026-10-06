@@ -1,4 +1,4 @@
-# http2_get_response_code(3)
+# http2_get_response_code(3nasl)
 
 ## NAME
 
@@ -31,4 +31,4 @@ display("return code: ", rc);
 
 ## SEE ALSO
 
-**[http2_delete(3)](http2_delete.md)**, **[http2_get(3)](http2_get.md)**, **[http2_close_handle(3)](http2_close_handle.md)**, **[http2_head(3)](http2_head.md)**, **[http2_handle(3)](http2_handle.md)**, **[http2_post(3)](http2_post.md)**, **[http2_put(3)](http2_put.md)**, **[http2_get_response_code(3)](http2_get_response_code.md)**, **[http2_set_custom_header(3)](http2_set_custom_header.md)**
+**[http2_delete(3nasl)](http2_delete.md)**, **[http2_get(3nasl)](http2_get.md)**, **[http2_close_handle(3nasl)](http2_close_handle.md)**, **[http2_head(3nasl)](http2_head.md)**, **[http2_handle(3nasl)](http2_handle.md)**, **[http2_post(3nasl)](http2_post.md)**, **[http2_put(3nasl)](http2_put.md)**, **[http2_get_response_code(3nasl)](http2_get_response_code.md)**, **[http2_set_custom_header(3nasl)](http2_set_custom_header.md)**

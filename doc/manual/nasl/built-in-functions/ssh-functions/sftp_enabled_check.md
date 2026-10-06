@@ -1,4 +1,4 @@
-# sftp_enabled_check(3)
+# sftp_enabled_check(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 SFTP stands for SSH/Secure File Transfer Protocol. This function checks, if this protocol is enabled on the target system.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 ## RETURN VALUE
 
@@ -26,4 +26,4 @@ The reason for failure can be extracted from the return value.
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**

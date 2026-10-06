@@ -1,4 +1,4 @@
-# ssh_session_id_from_sock(3)
+# ssh_session_id_from_sock(3nasl)
 
 ## NAME
 
@@ -22,4 +22,4 @@ An *int* corresponding to an active SSH session ID or 0 if no session ID is know
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**

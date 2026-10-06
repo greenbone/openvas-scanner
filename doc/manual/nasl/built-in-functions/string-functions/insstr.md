@@ -1,4 +1,4 @@
-# insstr(3)
+# insstr(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# vendor_version(3)
+# vendor_version(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# smb_close(3)
+# smb_close(3nasl)
 
 ## NAME
 
@@ -12,9 +12,9 @@
 
 ## DESCRIPTION
 
-Closes an opened SMB service handle. A service handle can be opened with **[smb_connect(3)](smb_connect.md)**.
+Closes an opened SMB service handle. A service handle can be opened with **[smb_connect(3nasl)](smb_connect.md)**.
 
-The named argument *smb_handle* is an *int* representing a connection to a SMB service. This connection can be opened with the **[smb_connect(3)](smb_connect.md)** functions.
+The named argument *smb_handle* is an *int* representing a connection to a SMB service. This connection can be opened with the **[smb_connect(3nasl)](smb_connect.md)** functions.
 
 ## RETURN VALUE
 
@@ -26,4 +26,4 @@ The named argument *smb_handle* is either missing or invalid.
 
 ## SEE ALSO
 
-**[smb_connect(3)](smb_connect.md)**
+**[smb_connect(3nasl)](smb_connect.md)**

@@ -1,4 +1,4 @@
-# dump_ip_v6_packet(3)
+# dump_ip_v6_packet(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 This function takes any number of IPv6 header and prints them in a readable format.
 
-This function is exactly the same as **[dump_ipv6_packet(3)](dump_ipv6_packet.md)**
+This function is exactly the same as **[dump_ipv6_packet(3nasl)](dump_ipv6_packet.md)**
 
 ## RETURN VALUE
 
@@ -22,4 +22,4 @@ None
 
 ## SEE ALSO
 
-**[dump_ipv6_packet(3)](dump_ipv6_packet.md)**
+**[dump_ipv6_packet(3nasl)](dump_ipv6_packet.md)**

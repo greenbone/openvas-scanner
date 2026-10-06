@@ -1,4 +1,4 @@
-# snmpv2c_get(3)
+# snmpv2c_get(3nasl)
 
 ## NAME
 
@@ -129,4 +129,4 @@ for (i = 0; i< 5; i++)
 
 ## SEE ALSO
 
-**[snmpv1_get(3)](snmpv1_get.md)**, **[snmpv1_getnext(3)](snmpv1_getnext.md)**, **[snmpv2c_getnext(3)](snmpv2c_getnext.md)**, **[snmpv3_get(3)](snmpv3_get.md)**, **[snmpv3_getnext(3)](snmpv3_getnext.md)** 
+**[snmpv1_get(3nasl)](snmpv1_get.md)**, **[snmpv1_getnext(3nasl)](snmpv1_getnext.md)**, **[snmpv2c_getnext(3nasl)](snmpv2c_getnext.md)**, **[snmpv3_get(3nasl)](snmpv3_get.md)**, **[snmpv3_getnext(3nasl)](snmpv3_getnext.md)** 

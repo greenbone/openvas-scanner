@@ -1,4 +1,4 @@
-# safe_checks(3)
+# safe_checks(3nasl)
 
 ## NAME
 
@@ -29,4 +29,4 @@ if (safe_checks())
 
 ## SEE ALSO
 
-**[exit(3)](../misc/exit.md)**,
+**[exit(3nasl)](../misc/exit.md)**,

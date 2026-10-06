@@ -1,4 +1,4 @@
-# ssh_set_login(3)
+# ssh_set_login(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 This function is optional and usually not required. However, if you want to get the banner, like in **[ssh_get_issue_banner](ssh_get_issue_banner.md)**, before starting the authentication you need to tell libssh the user because it is often not possible to change the user after the first call to an authentication method - getting the banner uses an authentication function.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 The optional named argument *login* is an *string* parameter. It is used for the login name. It should contain the user name to login.
 
@@ -32,4 +32,4 @@ Failed to get SSH username
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**, **[ssh_get_issue_banner](ssh_get_issue_banner.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**, **[ssh_get_issue_banner](ssh_get_issue_banner.md)**

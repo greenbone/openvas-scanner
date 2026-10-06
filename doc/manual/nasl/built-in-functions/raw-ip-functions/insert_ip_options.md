@@ -1,4 +1,4 @@
-# insert_ip_options(3)
+# insert_ip_options(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# get_udp_port_state(3)
+# get_udp_port_state(3nasl)
 
 ## NAME
 
@@ -33,4 +33,4 @@ display(st);
 
 ## SEE ALSO
 
-**[display(3)](../string-functions/display.md)**
+**[display(3nasl)](../string-functions/display.md)**

@@ -1,4 +1,4 @@
-# islocalhost(3)
+# islocalhost(3nasl)
 
 ## NAME
 
