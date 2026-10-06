@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::error::CliError;
 use scannerlib::nasl::Loader;
@@ -7,23 +7,26 @@ use scannerlib::nasl::Loader;
 /// report encountered errors.
 #[derive(clap::Parser)]
 pub struct LinterArgs {
-    /// Either a single NASL file or a directory of NASL files on which to run the linter.
+    /// Path of the feed to lint.
     pub path: PathBuf,
+    /// Optional filter, a list of `.nasl` files to run the linter on.
+    #[clap(short, long)]
+    pub files: Option<Vec<PathBuf>>,
 }
 
-pub(super) fn get_files_and_loader(root: &Path) -> Result<(Loader, Vec<PathBuf>), CliError> {
-    let mut files = vec![];
-    let loader = if root.is_file() {
-        files.push(Path::new(root.file_name().unwrap()).into());
-        Loader::from_feed_path(root.parent().unwrap())
+pub(super) fn get_files_and_loader(args: &LinterArgs) -> Result<(Loader, Vec<PathBuf>), CliError> {
+    let files = if let Some(ref files) = args.files {
+        files.clone()
     } else {
-        for e in walkdir::WalkDir::new(root) {
+        let mut files = vec![];
+        for e in walkdir::WalkDir::new(&args.path) {
             let e = e.map_err(std::io::Error::from)?;
             if let Some("nasl") | Some("inc") = e.path().extension().and_then(|ext| ext.to_str()) {
-                files.push(e.path().strip_prefix(root).unwrap().to_owned());
+                files.push(e.path().strip_prefix(&args.path).unwrap().to_owned());
             }
         }
-        Loader::from_feed_path(root)
+        files
     };
+    let loader = Loader::from_feed_path(&args.path);
     Ok((loader, files))
 }

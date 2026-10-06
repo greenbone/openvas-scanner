@@ -148,7 +148,7 @@ pub(crate) async fn run(
     quiet: bool,
     only_syntax: bool,
 ) -> Result<(), CliError> {
-    let (loader, files) = get_files_and_loader(&args.path)?;
+    let (loader, files) = get_files_and_loader(&args)?;
     let lints = all_lints();
     let mut linter = Linter {
         verbose,
