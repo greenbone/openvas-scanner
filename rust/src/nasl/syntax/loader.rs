@@ -314,7 +314,7 @@ impl TestLoader {
         }
     }
 
-    pub(crate) fn with_file(mut self, file_name: &str, contents: String) -> Self {
+    pub(crate) fn with_file(mut self, file_name: impl Into<PathBuf>, contents: String) -> Self {
         self.files.insert(file_name.into(), contents);
         self
     }
