@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::{env, path::Path};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     feed::{HashSumNameLoader, Update},
@@ -22,13 +25,13 @@ fn verify_hashsums() {
     let files = verifier
         .filter_map(|x| x.ok())
         .map(|x| x.get_filename())
-        .collect::<Vec<String>>();
+        .collect::<Vec<PathBuf>>();
     assert_eq!(
         &files,
         &[
-            "plugin_feed_info.inc".to_owned(),
-            "test.inc".to_owned(),
-            "test.nasl".to_owned()
+            PathBuf::from("plugin_feed_info.inc"),
+            PathBuf::from("test.inc"),
+            PathBuf::from("test.nasl")
         ]
     );
 }

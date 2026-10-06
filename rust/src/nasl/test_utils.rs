@@ -128,6 +128,7 @@ enum TestResult {
 pub struct TestBuilder<S: ContextStorage> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
+    filename: String,
     scan_id: ScanID,
     target: String,
     variables: Vec<(String, NaslValue)>,
@@ -146,6 +147,7 @@ impl Default for TestBuilder<InMemoryStorage> {
         Self {
             lines: vec![],
             results: vec![],
+            filename: String::new(),
             scan_id: Default::default(),
             target: Default::default(),
             variables: vec![],
@@ -168,6 +170,7 @@ impl TestBuilder<InMemoryStorage> {
         Self {
             lines: vec![],
             results: vec![],
+            filename: String::new(),
             scan_id: Default::default(),
             target: Default::default(),
             variables: vec![],
@@ -198,6 +201,7 @@ impl TestBuilder<InMemoryStorage> {
         Self {
             lines: vec![],
             results: vec![],
+            filename: String::new(),
             scan_id: Default::default(),
             target: Default::default(),
             variables: vec![],
@@ -315,7 +319,8 @@ where
             .collect();
         let register = Register::from_global_variables(&variables);
         let ast = Code::from_string(code).parse().emit_errors().unwrap();
-        let script_ctx = ScriptCtx::new(ctx, self.target_id(), VTData::from_filename(""));
+        let script_ctx =
+            ScriptCtx::new(ctx, self.target_id(), VTData::from_filename(&self.filename));
         ForkingInterpreter::new(ast, register, ctx, script_ctx).with_version(self.version)
     }
 
@@ -456,6 +461,11 @@ where
     /// Return a new `TestBuilder` with the given `Executor`.
     pub fn with_executor(mut self, executor: Executor) -> Self {
         self.executor = executor;
+        self
+    }
+
+    pub fn with_filename(mut self, filename: impl Into<String>) -> Self {
+        self.filename = filename.into();
         self
     }
 

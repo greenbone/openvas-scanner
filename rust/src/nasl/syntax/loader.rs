@@ -15,42 +15,64 @@ use thiserror::Error;
 
 /// Defines abstract Loader error cases
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
-pub enum LoadError {
-    /// Informs the caller to retry the call
-    #[error("There was a temporary issue while reading {0}.")]
-    Retry(String),
-    /// The given key was not found
-    #[error("{0} not found.")]
-    NotFound(String),
-    /// Not allowed to read data of key
-    #[error("Insufficient rights to read {0}.")]
-    PermissionDenied(String),
-    /// There is a deeper problem with the underlying DataBase
-    #[error("Unexpected issue while trying to read {0}")]
-    Dirty(String),
+#[error("Failed to load {path}. {kind}")]
+pub struct LoadError {
+    kind: LoadErrorKind,
+    path: PathBuf,
 }
 
-impl From<(&str, std::io::Error)> for LoadError {
-    fn from(value: (&str, std::io::Error)) -> Self {
-        let (pstr, value) = value;
-        match value.kind() {
-            std::io::ErrorKind::NotFound => LoadError::NotFound(pstr.to_owned()),
-            std::io::ErrorKind::PermissionDenied => LoadError::PermissionDenied(pstr.to_owned()),
-            std::io::ErrorKind::TimedOut => LoadError::Retry(format!("{pstr} timed out.")),
-            std::io::ErrorKind::Interrupted => LoadError::Retry(format!("{pstr} interrupted.")),
-            _ => LoadError::Dirty(format!("{pstr}: {value:?}")),
+/// Defines abstract Loader error cases
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
+pub enum LoadErrorKind {
+    #[error("Timed out.")]
+    Timeout,
+    #[error("Not found.")]
+    NotFound,
+    #[error("Permission denied")]
+    PermissionDenied,
+    #[error("Unknown error")]
+    Unknown,
+    #[error("Not a file.")]
+    NotAFile,
+}
+
+impl LoadError {
+    pub fn from_io(path: impl Into<PathBuf>, value: io::Error) -> Self {
+        use LoadErrorKind::*;
+        let kind = match value.kind() {
+            io::ErrorKind::NotFound => NotFound,
+            io::ErrorKind::PermissionDenied => PermissionDenied,
+            io::ErrorKind::TimedOut | io::ErrorKind::Interrupted => Timeout,
+            _ => Unknown,
+        };
+        Self {
+            path: path.into(),
+            kind,
+        }
+    }
+
+    pub fn not_a_file(path: impl Into<PathBuf>) -> LoadError {
+        Self {
+            path: path.into(),
+            kind: LoadErrorKind::NotAFile,
+        }
+    }
+
+    pub fn not_found(path: impl Into<PathBuf>) -> LoadError {
+        Self {
+            path: path.into(),
+            kind: LoadErrorKind::NotFound,
         }
     }
 }
 
 impl LoadError {
-    pub fn filename(&self) -> &str {
-        match self {
-            LoadError::Retry(x) => x,
-            LoadError::NotFound(x) => x,
-            LoadError::PermissionDenied(x) => x,
-            LoadError::Dirty(x) => x,
-        }
+    pub fn kind(&self) -> &LoadErrorKind {
+        &self.kind
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 }
 
@@ -89,7 +111,7 @@ where
     let result = fs::read(path).map(|bs| bs.iter().map(|&b| b as char).collect());
     match result {
         Ok(result) => Ok(result),
-        Err(err) => Err((path.as_ref().to_str().unwrap_or_default(), err).into()),
+        Err(err) => Err(LoadError::from_io(path.as_ref(), err)),
     }
 }
 
@@ -97,13 +119,12 @@ where
 /// from files (during normal operation) and from hardcoded strings
 /// (in some tests).
 trait NaslLoader: Sync + Send + NaslLoaderClone {
-    /// Resolves the given filename to NASL code
-    fn load(&self, filename: &str) -> Result<String, LoadError>;
+    fn load(&self, path: &Path) -> Result<String, LoadError>;
 
     /// Return the root plugins folder
     fn root_path(&self) -> &Path;
 
-    fn as_bufreader(&self, filename: &str) -> Result<Box<dyn BufRead>, LoadError>;
+    fn as_bufreader(&self, path: &Path) -> Result<Box<dyn BufRead>, LoadError>;
 }
 
 #[derive(Clone)]
@@ -145,19 +166,25 @@ impl Loader {
     pub fn test() -> TestLoader {
         TestLoader {
             files: HashMap::new(),
+            root: None,
         }
     }
 
-    pub fn load(&self, filename: &str) -> Result<String, LoadError> {
-        self.loader.load(filename)
+    pub fn load(&self, file: impl AsRef<Path>) -> Result<String, LoadError> {
+        let path = file.as_ref();
+        self.loader.load(path)
     }
 
     pub fn root_path(&self) -> &Path {
         self.loader.root_path()
     }
 
-    pub(crate) fn as_bufreader(&self, filename: &str) -> Result<Box<dyn BufRead>, LoadError> {
-        self.loader.as_bufreader(filename)
+    pub(crate) fn as_bufreader(
+        &self,
+        file: impl AsRef<Path>,
+    ) -> Result<Box<dyn BufRead>, LoadError> {
+        let path = file.as_ref();
+        self.loader.as_bufreader(path)
     }
 }
 
@@ -172,13 +199,10 @@ struct FileSystemLoader {
 }
 
 impl NaslLoader for FileSystemLoader {
-    fn load(&self, filename: &str) -> Result<String, LoadError> {
+    fn load(&self, filename: &Path) -> Result<String, LoadError> {
         let path = self.root.join(filename);
         if !path.is_file() {
-            return Err(LoadError::NotFound(format!(
-                "{} does not exist or is not accessible.",
-                path.as_os_str().to_str().unwrap_or_default()
-            )));
+            return Err(LoadError::not_a_file(path));
         }
         // unfortunately nasl is still in iso-8859-1
         read_utf8_or_non_utf8_path(path.as_path())
@@ -189,9 +213,12 @@ impl NaslLoader for FileSystemLoader {
         &self.root
     }
 
-    fn as_bufreader(&self, filename: &str) -> Result<Box<dyn BufRead>, LoadError> {
+    fn as_bufreader(&self, filename: &Path) -> Result<Box<dyn BufRead>, LoadError> {
         let path = self.root.join(filename);
-        match File::open(path).map_err(|e| LoadError::from((filename, e))) {
+        if !path.is_file() {
+            return Err(LoadError::not_a_file(path));
+        }
+        match File::open(&path).map_err(|e| LoadError::from_io(path, e)) {
             Ok(file) => Ok(Box::new(io::BufReader::new(file))),
             Err(e) => Err(e),
         }
@@ -200,24 +227,25 @@ impl NaslLoader for FileSystemLoader {
 
 #[derive(Clone)]
 pub struct TestLoader {
-    files: HashMap<String, String>,
+    files: HashMap<PathBuf, String>,
+    root: Option<PathBuf>,
 }
 
 impl NaslLoader for TestLoader {
-    fn load(&self, filename: &str) -> Result<String, LoadError> {
+    fn load(&self, path: &Path) -> Result<String, LoadError> {
         Ok(self
             .files
-            .get(filename)
-            .ok_or_else(|| LoadError::NotFound(filename.into()))?
+            .get(path)
+            .ok_or_else(|| LoadError::not_found(path))?
             .clone())
     }
 
     fn root_path(&self) -> &Path {
-        todo!()
+        self.root.as_ref().unwrap()
     }
 
-    fn as_bufreader(&self, _: &str) -> Result<Box<dyn BufRead>, LoadError> {
-        todo!()
+    fn as_bufreader(&self, _: &Path) -> Result<Box<dyn BufRead>, LoadError> {
+        unimplemented!()
     }
 }
 
@@ -230,6 +258,12 @@ impl TestLoader {
 
     pub fn with_file(mut self, file_name: &str, contents: String) -> Self {
         self.files.insert(file_name.into(), contents);
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_root(mut self, root: PathBuf) -> Self {
+        self.root = Some(root);
         self
     }
 }

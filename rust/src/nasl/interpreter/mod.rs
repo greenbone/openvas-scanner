@@ -534,19 +534,20 @@ impl<'ctx> Interpreter<'ctx> {
 
     async fn resolve_include(&mut self, include: &Include) -> Result {
         let loader = self.scan_ctx.loader();
-        let code = Code::load(loader, &include.path)
+        let path = include
+            .path
+            .resolve_to_path(loader.root_path(), self.script_ctx.cwd());
+        let code = Code::load(loader, &path)
             .map_err(|e| ErrorKind::LoadError(e).with_span(&include.span))?
             .parse();
         let file = code.file().clone();
         let ast = code
             .result()
             .map_err(|errs| Error::include_syntax_error(errs, file))?;
-        let mut inter = ForkingInterpreter::new(
-            ast,
-            self.register.clone(),
-            self.scan_ctx,
-            self.script_ctx.clone_shallow(),
-        );
+        let mut script_ctx = self.script_ctx.clone_shallow();
+        script_ctx.vt_mut().filename = path.to_string_lossy().into_owned();
+        let mut inter =
+            ForkingInterpreter::new(ast, self.register.clone(), self.scan_ctx, script_ctx);
         Box::pin(inter.execute_all()).await?;
         self.register = inter.register().clone();
         Ok(NaslValue::Null)

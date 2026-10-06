@@ -5,7 +5,7 @@
 use codespan_reporting::files::SimpleFile;
 
 use crate::nasl::error::emit_errors_str;
-use crate::nasl::{NaslResult, test_utils::TestBuilder};
+use crate::nasl::{NaslResult, syntax::Loader, test_utils::TestBuilder};
 
 mod control_flow;
 mod local_var;
@@ -14,6 +14,27 @@ mod retry;
 pub fn interpret(code: &str, version: NaslVersion) -> Vec<NaslResult> {
     let mut t = TestBuilder::default().with_nasl_version(version);
     t.run_all(code);
+    t.results()
+}
+
+pub fn interpret_multi(
+    entrypoint: (&str, &str),
+    files: &[(&str, &str)],
+    version: NaslVersion,
+) -> Vec<NaslResult> {
+    let root = tempfile::tempdir().unwrap();
+    let mut loader = Loader::test().with_root(root.path().to_owned());
+    for (filename, contents) in std::iter::once(entrypoint).chain(files.iter().copied()) {
+        let path = root.path().join(filename);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, contents).unwrap();
+        loader = loader.with_file(path.to_string_lossy().as_ref(), contents.to_string());
+    }
+
+    let mut t = TestBuilder::from_loader(loader.build())
+        .with_nasl_version(version)
+        .with_filename(entrypoint.0);
+    t.run_all(entrypoint.1);
     t.results()
 }
 
@@ -61,6 +82,36 @@ macro_rules! interpreter_test_ok_v2 {
 macro_rules! interpreter_test_ok {
     ($name: ident, $code: literal, $($expected: expr),* $(,)?) => {
         $crate::interpreter_test_ok_internal!($crate::nasl::prelude::NaslVersion::V1, $name, $code, $($expected), *);
+    };
+}
+
+#[macro_export]
+macro_rules! interpreter_test_multi {
+    (
+        $name: ident,
+        {
+            $entrypoint: literal => $code: literal
+            $(, $filename: literal => $contents: literal)*
+            $(,)?
+        },
+        $($expected: expr),* $(,)?
+    ) => {
+        #[test]
+        fn $name() {
+            let mut results = $crate::nasl::interpreter::tests::interpret_multi(
+                ($entrypoint, $code),
+                &[$(($filename, $contents)),*],
+                $crate::nasl::prelude::NaslVersion::V1,
+            );
+            let mut count = 0;
+            $(
+                count += 1;
+                let result = results.remove(0).unwrap();
+                let expected = $expected.to_nasl_result().unwrap();
+                assert_eq!(expected, result, "mismatch in result #{count}. Expected: {expected:?}, found {result:?}.");
+            )*
+            assert_eq!(results.len(), 0);
+        }
     };
 }
 

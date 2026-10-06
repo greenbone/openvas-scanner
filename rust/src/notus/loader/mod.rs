@@ -4,9 +4,11 @@
 
 // Maybe move products to notus so they are the same as advisories
 
+use std::path::PathBuf;
+
 use crate::models::Product;
 
-use crate::nasl::syntax::{LoadError, Loader};
+use crate::nasl::syntax::{LoadErrorKind, Loader};
 
 use crate::feed::{HashSumFileItem, HashSumNameLoader, VerifyError};
 use crate::feed::{NoVerifier, check_signature};
@@ -33,7 +35,8 @@ impl ProductLoader {
         let fmap = |entry: Result<HashSumFileItem<'_>, VerifyError>| match entry {
             Ok(x) => x
                 .get_filename()
-                .strip_suffix(".notus")
+                .to_str()
+                .and_then(|x| x.strip_suffix(".notus"))
                 .map(|x| x.to_string()),
             Err(error) => {
                 tracing::warn!(%error, "Unable to load product");
@@ -57,7 +60,7 @@ impl ProductLoader {
             os =?os,
             "Loading notus product",
         );
-        let file_name = format!("{os}.notus");
+        let file_name = PathBuf::from(format!("{os}.notus"));
         if self.feed_integrity_check {
             let mut loader =
                 HashSumNameLoader::sha256(&self.loader).map_err(Error::HashsumLoadError)?;
@@ -74,8 +77,8 @@ impl ProductLoader {
             file_item.verify().map_err(Error::HashsumLoadError)?;
         }
 
-        let file = self.loader.load(&file_name).map_err(|e| {
-            if let LoadError::NotFound(_) = e {
+        let file = self.loader.load(file_name.as_path()).map_err(|e| {
+            if matches!(e.kind(), LoadErrorKind::NotFound | LoadErrorKind::NotAFile) {
                 Error::UnknownProduct(os.to_string())
             } else {
                 Error::LoadProductError(os.to_string(), LoadProductErrorKind::LoadError(e))
@@ -91,7 +94,7 @@ impl ProductLoader {
 
 #[derive(Debug)]
 pub struct ProductsAdvisoriesContainer {
-    pub filename: String,
+    pub filename: PathBuf,
     pub advisories: ProductsAdvisories,
 }
 
@@ -158,14 +161,20 @@ impl<'a> HashsumAdvisoryLoader<NoVerifier<'a>> {
         let entry = entry.map_err(Error::HashsumLoadError)?;
         let filename = entry.get_filename();
         let file = self.loader.load(&filename).map_err(|e| {
-            Error::LoadProductError(filename.clone(), LoadProductErrorKind::LoadError(e))
+            Error::LoadProductError(
+                filename.to_string_lossy().into_owned(),
+                LoadProductErrorKind::LoadError(e),
+            )
         })?;
         match serde_json::from_str(&file) {
             Ok(advisories) => Ok(ProductsAdvisoriesContainer {
                 filename,
                 advisories,
             }),
-            Err(err) => Err(Error::JSONParseError(filename, err)),
+            Err(err) => Err(Error::JSONParseError(
+                filename.to_string_lossy().into_owned(),
+                err,
+            )),
         }
     }
 }
@@ -189,14 +198,20 @@ impl<'a> HashsumAdvisoryLoader<HashSumNameLoader<'a>> {
         entry.verify().map_err(Error::HashsumLoadError)?;
         let filename = entry.get_filename();
         let file = self.loader.load(&filename).map_err(|e| {
-            Error::LoadProductError(filename.clone(), LoadProductErrorKind::LoadError(e))
+            Error::LoadProductError(
+                filename.to_string_lossy().into_owned(),
+                LoadProductErrorKind::LoadError(e),
+            )
         })?;
         match serde_json::from_str(&file) {
             Ok(advisories) => Ok(ProductsAdvisoriesContainer {
                 filename,
                 advisories,
             }),
-            Err(err) => Err(Error::JSONParseError(filename, err)),
+            Err(err) => Err(Error::JSONParseError(
+                filename.to_string_lossy().into_owned(),
+                err,
+            )),
         }
     }
 }

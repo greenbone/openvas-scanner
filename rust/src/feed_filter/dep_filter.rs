@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use scannerlib::nasl::Code;
 use scannerlib::nasl::syntax::Loader;
+use scannerlib::nasl::syntax::grammar::IncludeString;
 
 use crate::script::ScriptPath;
 use crate::utils::oid_from_ast;
@@ -76,18 +77,22 @@ impl DepReader {
     fn read_one(&mut self, path: &Path) -> Option<ScriptDepsInfo> {
         let code = Code::load(&self.loader, path).ok()?;
         let ast = code.parse().emit_errors().ok()?;
-        Some(extract_deps(&ast, &self.feed_path))
+        Some(extract_deps(&ast, &self.feed_path, path))
     }
 }
 
-fn extract_deps(ast: &scannerlib::nasl::syntax::grammar::Ast, feed_path: &Path) -> ScriptDepsInfo {
-    let sp = search_path::SearchPath::from(feed_path.to_path_buf());
-
+fn extract_deps(
+    ast: &scannerlib::nasl::syntax::grammar::Ast,
+    feed_path: &Path,
+    file_path: &Path,
+) -> ScriptDepsInfo {
     let includes = ast
         .iter_includes()
-        .filter_map(|inc| {
-            sp.find_file(&PathBuf::from(&inc.path))
-                .map(|p| ScriptPath::new(feed_path, &p))
+        .map(|inc| {
+            let path = inc
+                .path
+                .resolve_to_path(feed_path, file_path.parent().unwrap());
+            ScriptPath::new(feed_path, &path)
         })
         .collect();
 
@@ -103,8 +108,14 @@ fn extract_deps(ast: &scannerlib::nasl::syntax::grammar::Ast, feed_path: &Path) 
                 } else {
                     return None;
                 };
-                sp.find_file(&PathBuf::from(&name))
-                    .map(|p| ScriptPath::new(feed_path, &p))
+
+                let path = IncludeString::new(name)
+                    .resolve_to_path(feed_path, file_path.parent().unwrap());
+                if path.is_file() {
+                    Some(ScriptPath::new(feed_path, &path))
+                } else {
+                    None
+                }
             })
         })
         .collect();

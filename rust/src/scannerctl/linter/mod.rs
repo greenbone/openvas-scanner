@@ -4,7 +4,7 @@ mod lints;
 #[cfg(test)]
 pub(crate) mod tests;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub use cli::LinterArgs;
 use cli::get_files_and_loader;
@@ -53,7 +53,7 @@ impl Linter {
                 println!("Linting file: {:?}", file);
             }
             self.stats.checked += 1;
-            let msgs = self.lint_file(&file.to_string_lossy())?;
+            let msgs = self.lint_file(file)?;
             self.handle_msgs(msgs);
         }
         if self.verbose {
@@ -69,7 +69,7 @@ impl Linter {
         }
     }
 
-    fn lint_file(&mut self, rel_path: &str) -> Result<LintMsgs, LoadError> {
+    fn lint_file(&mut self, rel_path: &Path) -> Result<LintMsgs, LoadError> {
         let code = self.load(rel_path)?;
         let file = code.file();
         let ast = match self.parse_file(code) {
@@ -80,7 +80,11 @@ impl Linter {
             vec![]
         } else {
             for include in ast.iter_includes() {
-                let code = match self.load(&include.path) {
+                // TODO
+                let include_path = include
+                    .path
+                    .resolve_to_path(self.loader.root_path(), rel_path);
+                let code = match self.load(&include_path) {
                     Ok(code) => code,
                     Err(_) => {
                         // TODO report multiple errors here if multiple files
@@ -93,7 +97,7 @@ impl Linter {
                 };
                 match self.parse_file(code) {
                     Ok(ast) => {
-                        self.cache.insert(&include.path, CachedFile::new(&ast));
+                        self.cache.insert(&include_path, CachedFile::new(&ast));
                     }
                     Err(_) => {
                         todo!()
@@ -119,7 +123,7 @@ impl Linter {
         })
     }
 
-    fn load(&mut self, rel_path: &str) -> Result<Code, LoadError> {
+    fn load(&mut self, rel_path: &Path) -> Result<Code, LoadError> {
         Code::load(&self.loader, rel_path)
     }
 

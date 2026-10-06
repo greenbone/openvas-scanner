@@ -116,7 +116,7 @@ impl<'a> ScriptReader<'a> {
 
     fn script_from_path(&mut self, path: &Path) -> Option<Script> {
         let ast = self.ast_from_path(path)?;
-        let script = self.script_from_ast(ast);
+        let script = self.script_from_ast(ast, path);
         Some(script)
     }
 
@@ -126,9 +126,9 @@ impl<'a> ScriptReader<'a> {
         Some(ast)
     }
 
-    fn script_from_ast(&mut self, ast: Ast) -> Script {
+    fn script_from_ast(&mut self, ast: Ast, path: &Path) -> Script {
         let is_runnable = self.builtins.script_is_runnable(&ast);
-        let dependencies = self.get_dependencies(&ast);
+        let dependencies = self.get_dependencies(&ast, path);
         if !is_runnable {
             Script::not_runnable(ast)
         } else if dependencies.is_empty() {
@@ -138,13 +138,12 @@ impl<'a> ScriptReader<'a> {
         }
     }
 
-    fn get_dependencies(&self, ast: &Ast) -> Vec<ScriptPath> {
+    fn get_dependencies(&self, ast: &Ast, path: &Path) -> Vec<ScriptPath> {
         ast.iter_stmts()
             .filter_map(|stmt| {
                 if let Statement::Include(include) = stmt {
-                    let sp = search_path::SearchPath::from(self.feed_path.clone());
-                    sp.find_file(&PathBuf::from(include.path.as_str()))
-                        .map(|i| ScriptPath::new(&self.feed_path, &i))
+                    let path = include.path.resolve_to_path(&self.feed_path, path);
+                    Some(ScriptPath::new(&self.feed_path, &path))
                 } else {
                     None
                 }

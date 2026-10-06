@@ -139,7 +139,7 @@ impl From<notus::NotusError> for CliError {
 impl From<VerifyError> for CliError {
     fn from(error: VerifyError) -> Self {
         let filename = match &error {
-            VerifyError::SumsFileCorrupt(e) => Some(Path::new(e.sum_file()).to_owned()),
+            VerifyError::SumsFileCorrupt(e) => Some(e.sum_file().to_owned()),
             _ => None,
         };
         Self {
@@ -176,7 +176,7 @@ impl From<StorageError> for CliErrorKind {
 impl From<LoadError> for CliError {
     fn from(value: LoadError) -> Self {
         Self {
-            filename: Some(Path::new(value.filename()).to_owned()),
+            filename: Some(value.path().to_owned()),
             kind: value.into(),
         }
     }
@@ -188,7 +188,7 @@ impl From<feed::UpdateError> for CliError {
             feed::UpdateErrorKind::InterpretError(e) => CliErrorKind::InterpretError(e),
             feed::UpdateErrorKind::SyntaxError(e) => CliErrorKind::SyntaxError(e),
             feed::UpdateErrorKind::StorageError(e) => CliErrorKind::StorageError(e),
-            feed::UpdateErrorKind::LoadError(e) => CliErrorKind::Corrupt(load_error_to_string(&e)),
+            feed::UpdateErrorKind::LoadError(e) => CliErrorKind::Corrupt(e.to_string()),
             feed::UpdateErrorKind::MissingExit(_) => {
                 CliErrorKind::Corrupt("description run without exit.".to_string())
             }
@@ -196,14 +196,4 @@ impl From<feed::UpdateError> for CliError {
         };
         kind.into()
     }
-}
-
-fn load_error_to_string(le: &LoadError) -> String {
-    match le {
-        LoadError::Retry(f) => f,
-        LoadError::NotFound(f) => f,
-        LoadError::PermissionDenied(f) => f,
-        LoadError::Dirty(f) => f,
-    }
-    .to_owned()
 }
