@@ -5,7 +5,6 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use clap::Subcommand;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::utils::ctx::NotusCtx;
 use scannerlib::notus::{Notus, ProductLoader};
@@ -14,19 +13,9 @@ use scannerlib::scanner::preferences::preference::ScanPrefs;
 use crate::utils::NotusArgs;
 use crate::{CliError, Db, interpret};
 
+/// Execute the given NASL script
 #[derive(clap::Parser)]
 pub struct ExecuteArgs {
-    #[command(subcommand)]
-    action: Action,
-}
-
-#[derive(Subcommand)]
-enum Action {
-    Script(ScriptArgs),
-}
-
-#[derive(clap::Parser)]
-struct ScriptArgs {
     script: PathBuf,
     /// The path to the feed.
     #[clap(short, long)]
@@ -56,12 +45,6 @@ struct ScriptArgs {
 
 pub async fn run(args: ExecuteArgs) -> Result<(), CliError> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-    match args.action {
-        Action::Script(args) => script(args).await,
-    }
-}
-
-async fn script(args: ScriptArgs) -> Result<(), CliError> {
     let notus = args.notus_url.map(|x| match x {
         NotusArgs::Address(addr) => NotusCtx::Address(addr),
         NotusArgs::Internal(path) => NotusCtx::Direct(Arc::new(Mutex::new(Notus::new(
