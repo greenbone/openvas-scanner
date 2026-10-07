@@ -239,14 +239,14 @@ impl CtxTarget {
 pub trait MtimeCheck: Sync + Send {
     /// Checks whether vt script file mtime is newer than the mtime recorded in the storage
     /// It doesn't apply for redis storage.
-    async fn check_mtime(&self, _filename: &str) -> Result<(), String> {
+    async fn check_mtime(&self, _filename: &Path) -> Result<(), String> {
         Ok(())
     }
 }
 
 #[async_trait]
 impl<T: MtimeCheck> MtimeCheck for Arc<T> {
-    async fn check_mtime(&self, filename: &str) -> Result<(), String> {
+    async fn check_mtime(&self, filename: &Path) -> Result<(), String> {
         (**self).check_mtime(filename).await
     }
 }

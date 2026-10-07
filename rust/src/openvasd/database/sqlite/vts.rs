@@ -97,7 +97,7 @@ impl PluginFetcher for SqlPluginStorage {
         Box::pin(result)
     }
 }
-// TODO: verify before loading the plugin
+
 impl PluginStorer for SqlPluginStorage {
     fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
         let pending = crate::vts::pending_hash(hash);
@@ -130,7 +130,6 @@ impl PluginStorer for SqlPluginStorage {
             .bind(mtime)
             .execute(&pool)
             .await?;
-
 
             Ok(())
         })

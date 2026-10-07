@@ -100,7 +100,7 @@ impl SchedulerStorage for InMemoryStorage {}
 impl SchedulerStorage for RedisStorage {}
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> where Arc<T>: Sync {}
 
-// TODO: implement MtimeCheck trait for InMemoryStorage
+// TODO: implement MtimeCheck trait for InMemoryStorage ??
 impl MtimeCheck for InMemoryStorage {}
 // Redis storage doesn't requires, since the mtime check is performed by openvas-scanner
 impl MtimeCheck for RedisStorage {}
