@@ -25,6 +25,7 @@ use crate::storage::items::result::{ResultContextKeySingle, ResultItem};
 use crate::storage::{self, ScanID};
 use crate::storage::{Dispatcher, Remover, Retriever};
 use std::collections::BTreeSet;
+use std::path::Path;
 use std::sync::{Arc, MutexGuard};
 
 use super::error::ReturnBehavior;
@@ -703,6 +704,11 @@ impl<'a> ScriptCtx<'a> {
             target_id: self.target_id,
             vt: self.vt.clone(),
         }
+    }
+
+    pub(crate) fn cwd(&self) -> &Path {
+        let path = Path::new(&self.vt.filename);
+        path.parent().unwrap_or(Path::new("."))
     }
 }
 

@@ -252,7 +252,7 @@ where
                         let data = VulnerabilityData {
                             adv,
                             family: x.advisories.family.clone(),
-                            filename: x.filename.to_owned(),
+                            filename: x.filename.to_string_lossy().into_owned(),
                         };
 
                         if sender.send(data).is_err() {
@@ -298,7 +298,7 @@ where
                 sumsfile.insert(item.file_name.clone(), item);
             }
 
-            if let Some(jsonfile) = sumsfile.get("vt-metadata.json") {
+            if let Some(jsonfile) = sumsfile.get(Path::new("vt-metadata.json")) {
                 jsonfile.verify()?;
             }
         };
@@ -377,12 +377,12 @@ where
 // Sends a VTdatamessage struct to be loaded
 fn verify_signature_and_send(
     sender: &std::sync::mpsc::Sender<VTDataMessage>,
-    sumsfile: &HashMap<String, HashSumFileItem<'_>>,
+    sumsfile: &HashMap<PathBuf, HashSumFileItem<'_>>,
     item: VTData,
     signature_check: bool,
 ) -> Result<(), String> {
     let hashsum = if signature_check {
-        let Some(checker) = sumsfile.get(&item.filename) else {
+        let Some(checker) = sumsfile.get(Path::new(&item.filename)) else {
             return Err(format!("File not present in sumsfile: {:?}", item.filename));
         };
         checker

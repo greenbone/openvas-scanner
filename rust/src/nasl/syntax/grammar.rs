@@ -1,4 +1,8 @@
-use std::vec;
+use std::{
+    fmt::Formatter,
+    path::{Path, PathBuf},
+    vec,
+};
 
 use super::{
     parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind},
@@ -195,8 +199,36 @@ pub struct If {
 }
 
 #[derive(Clone, Debug)]
+pub struct IncludeString(String);
+
+// This is not the most beautiful place for such impls
+// but in order to keep this impl private and disallow anyone
+// accessing the `.0` field without going through the proper
+// `.inc` file resolution logic, we do it here.
+impl IncludeString {
+    pub fn new(val: String) -> Self {
+        Self(val)
+    }
+
+    pub fn resolve_to_path(&self, feed_root: &Path, dir_of_including_file: &Path) -> PathBuf {
+        let relative_path = feed_root.join(dir_of_including_file).join(&self.0);
+        if relative_path.is_file() {
+            relative_path
+        } else {
+            feed_root.join(&self.0)
+        }
+    }
+}
+
+impl std::fmt::Display for IncludeString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Include {
-    pub path: String,
+    pub path: IncludeString,
     pub span: Span,
 }
 

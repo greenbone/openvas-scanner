@@ -95,7 +95,6 @@ ripemd = "0.2.0"
 rsa = { version = "0.9.10", features = ["hazmat"] }
 russh = "0.61"
 rustls-native-certs = "0.8.4"
-search_path = "0.1.4"
 sequoia-ipc = "0.36.1"
 sequoia-openpgp = { version = "2.3.0", default-features = false, features = [
     "crypto-openssl",

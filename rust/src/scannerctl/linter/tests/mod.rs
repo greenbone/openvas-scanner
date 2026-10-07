@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use scannerlib::nasl::{Code, error::emit_errors_str};
 
 use crate::linter::{
@@ -15,6 +17,7 @@ pub fn lint(file_name: &str, code: &str) -> String {
         }
     };
     let mut cache = Cache::default();
+    let file_name = Path::new(file_name);
     cache.insert(file_name, CachedFile::new(&ast));
     let ctx = LintCtx::new(&ast, &mut cache);
     let msgs: Vec<_> = all_lints()

@@ -5069,7 +5069,6 @@ dependencies = [
  "rustls",
  "rustls-native-certs",
  "rustls-pki-types",
- "search_path",
  "sequoia-ipc",
  "sequoia-openpgp",
  "serde",
@@ -5140,12 +5139,6 @@ dependencies = [
  "salsa20 0.11.0",
  "sha2 0.11.0",
 ]
-
-[[package]]
-name = "search_path"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5145b2263bec888224d054d1c820ceffa7d4a23723a2a822f970fcf1c5b64770"
 
 [[package]]
 name = "sec1"

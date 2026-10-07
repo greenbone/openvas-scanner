@@ -14,7 +14,6 @@ use std::{
 use clap::Subcommand;
 use scannerlib::{
     models::VTData,
-    nasl::syntax::LoadError,
     storage::{
         Retriever,
         error::StorageError,
@@ -103,9 +102,9 @@ async fn update_notus(
     let path = match notus_path {
         Some(p) => p,
         None => {
-            return Err(CliErrorKind::LoadError(LoadError::Dirty(
+            return Err(CliErrorKind::InvalidCmdOpt(
                 "Path to the notus advisories is mandatory".to_string(),
-            ))
+            )
             .into());
         }
     };
@@ -140,9 +139,9 @@ async fn update(args: UpdateArgs) -> Result<(), CliError> {
     });
 
     match (args.notus_only, args.vts_only) {
-        (true, true) => Err(CliErrorKind::LoadError(LoadError::Dirty(
+        (true, true) => Err(CliErrorKind::InvalidCmdOpt(
             "--notus-only and --vts-only not allowed at the same time".to_string(),
-        ))
+        )
         .into()),
         (false, true) => update_vts(&redis, args.vts_path, args.signature_check).await,
         (true, false) => update_notus(&redis, args.notus_path, args.signature_check).await,

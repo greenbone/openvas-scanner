@@ -11,7 +11,7 @@ use std::{
 use scannerlib::nasl::{
     NaslValue, ScriptCtx, WithErrorInfo,
     interpreter::InterpreterErrorKind,
-    syntax::{LoadError, Loader, read_non_utf8_path},
+    syntax::{LoadError, LoadErrorKind, Loader, read_non_utf8_path},
     utils::ctx::{NotusCtx, TargetId},
 };
 use scannerlib::{
@@ -40,14 +40,14 @@ use crate::{CliError, CliErrorKind, Db, Filename};
 async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> {
     match read_non_utf8_path(&script) {
         Ok(x) => Ok(x),
-        Err(LoadError::NotFound(_)) => {
+        Err(e) if matches!(e.kind(), LoadErrorKind::NotFound) => {
             match ctx
                 .storage()
                 .retrieve(&Oid(script.to_string_lossy().to_string()))
                 .await?
             {
-                Some(vt) => Ok(ctx.loader().load(&vt.filename)?),
-                _ => Err(LoadError::NotFound(script.to_string_lossy().to_string()).into()),
+                Some(vt) => Ok(ctx.loader().load(Path::new(&vt.filename))?),
+                _ => Err(LoadError::not_found(script).into()),
             }
         }
         Err(e) => Err(e.into()),
@@ -116,7 +116,7 @@ where
 fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliError> {
     tracing::info!(path=?path, "loading feed via json. This may take a while.");
     let buf = fs::read_to_string(path).map_err(|e| {
-        CliErrorKind::LoadError(LoadError::Dirty(format!("{e}"))).with(Filename(path))
+        CliErrorKind::LoadError(LoadError::from_io(path.to_owned(), e)).with(Filename(path))
     })?;
     let vts: Vec<VTData> = serde_json::from_str(&buf)?;
     let all_vts = vts.into_iter().map(|v| (v.filename.clone(), v)).collect();

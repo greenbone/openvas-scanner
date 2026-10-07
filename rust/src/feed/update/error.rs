@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::path::Path;
+use std::path::PathBuf;
+
 use crate::nasl::interpreter::InterpreterError;
 use crate::nasl::syntax::LoadError;
 use crate::nasl::syntax::ParseError;
@@ -34,11 +37,11 @@ pub enum ErrorKind {
 }
 
 #[derive(Debug, Error)]
-#[error("Error with key '{key}': {kind}")]
+#[error("Error with path '{path}': {kind}")]
 /// ErrorKind and key of error
 pub struct Error {
-    /// Used key for the operation
-    pub key: String,
+    /// Used path for the operation
+    pub path: PathBuf,
     /// The kind of the error
     #[source]
     pub kind: ErrorKind,
@@ -46,19 +49,19 @@ pub struct Error {
 
 impl From<verify::Error> for Error {
     fn from(value: verify::Error) -> Self {
-        let key = match &value {
+        let path = match &value {
             VerifyError::SumsFileCorrupt(x) => x.sum_file(),
-            VerifyError::LoadError(_) => "",
+            VerifyError::LoadError(e) => e.path(),
             VerifyError::HashInvalid {
                 expected: _,
                 actual: _,
-                key,
-            } => key,
-            VerifyError::BadSignature(e) => e,
-            VerifyError::MissingKeyring => "",
+                path,
+            } => path,
+            VerifyError::BadSignature(e) => Path::new(e),
+            VerifyError::MissingKeyring => Path::new(""),
         };
         Self {
-            key: key.to_string(),
+            path: path.to_owned(),
             kind: ErrorKind::VerifyError(value),
         }
     }

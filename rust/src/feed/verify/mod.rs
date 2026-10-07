@@ -42,15 +42,15 @@ pub enum Error {
     #[error("Unable to load file: {0}")]
     /// Unable to load the file
     LoadError(#[from] LoadError),
-    #[error("Invalid hash for file with key '{key}'. Expected '{expected}', found '{actual}'.")]
+    #[error("Invalid hash for file with path '{path}'. Expected '{expected}', found '{actual}'.")]
     /// Invalid hash.
     HashInvalid {
         /// The hash within the sums file
         expected: String,
         /// The calculated hash
         actual: String,
-        /// The key of the file
-        key: String,
+        /// The path of the file
+        path: PathBuf,
     },
     #[error("Bad signature: {0}")]
     /// Bad Signature
@@ -255,14 +255,14 @@ pub enum Hasher {
 fn compute_hash_with<H>(
     reader: &mut dyn BufRead,
     hasher: &dyn Fn() -> H,
-    key: &str,
+    key: &Path,
 ) -> Result<String, Error>
 where
     H: Digest,
 {
     let mut buffer = [0; 1024];
     let mut hasher = hasher();
-    let ioma = |e| LoadError::from((key, e));
+    let ioma = |e| LoadError::from_io(key, e);
 
     loop {
         let count = reader.read(&mut buffer).map_err(ioma)?;
@@ -278,14 +278,14 @@ where
 
 impl Hasher {
     /// Returns the name of the used sums file
-    pub fn sum_file(&self) -> &str {
+    pub fn sum_file(&self) -> &Path {
         match self {
-            Hasher::Sha256 => "sha256sums",
+            Hasher::Sha256 => Path::new("sha256sums"),
         }
     }
 
     /// Returns the hash of a given reader and key
-    fn hash(&self, reader: &mut dyn BufRead, key: &str) -> Result<String, Error> {
+    fn hash(&self, reader: &mut dyn BufRead, key: &Path) -> Result<String, Error> {
         let hasher = match self {
             Hasher::Sha256 => &Sha256::new,
         };
@@ -332,7 +332,7 @@ impl<'a> HashSumNameLoader<'a> {
         self.reader.root_path()
     }
 
-    pub fn load(&self, file: &str) -> Result<String, LoadError> {
+    pub fn load(&self, file: &Path) -> Result<String, LoadError> {
         self.reader.load(file)
     }
 }
@@ -349,7 +349,7 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
                 };
 
                 Some(Ok(HashSumFileItem {
-                    file_name: file_name.to_string(),
+                    file_name: file_name.into(),
                     hashsum: hashsum.to_string(),
                     hasher: Some(self.hasher.clone()),
                     reader: self.reader,
@@ -362,7 +362,7 @@ impl<'a> Iterator for HashSumNameLoader<'a> {
 
 /// Contains all information  necessary to do a hash sum check
 pub struct HashSumFileItem<'a> {
-    pub file_name: String,
+    pub file_name: PathBuf,
     pub hashsum: String,
     pub hasher: Option<Hasher>,
     pub reader: &'a Loader,
@@ -373,14 +373,14 @@ impl HashSumFileItem<'_> {
     pub fn verify(&self) -> Result<(), Error> {
         if let Some(hasher) = &self.hasher {
             let hashsum = hasher.hash(
-                &mut self.reader.as_bufreader(&self.file_name)?,
+                &mut self.reader.as_bufreader(self.file_name.as_path())?,
                 &self.file_name,
             )?;
             if self.hashsum != hashsum {
                 return Err(Error::HashInvalid {
                     expected: self.hashsum.clone(),
                     actual: hashsum,
-                    key: self.file_name.clone(),
+                    path: self.file_name.clone(),
                 });
             }
         }
@@ -388,7 +388,7 @@ impl HashSumFileItem<'_> {
     }
 
     /// returns file name
-    pub fn get_filename(&self) -> String {
+    pub fn get_filename(&self) -> PathBuf {
         self.file_name.clone()
     }
 
@@ -431,7 +431,7 @@ impl<'a> NoVerifier<'a> {
         Self::init("notus", loader)
     }
 
-    pub fn load(&self, filename: &str) -> Result<String, LoadError> {
+    pub fn load(&self, filename: &Path) -> Result<String, LoadError> {
         self.loader.load(filename)
     }
 }
@@ -443,9 +443,8 @@ impl<'a> Iterator for NoVerifier<'a> {
         self.files.pop().map(|file| {
             // Compute the hash sum in advance so that the
             // check will always succeed.
-            let file_name = file.as_path().to_str().unwrap().to_owned();
             Ok(HashSumFileItem {
-                file_name,
+                file_name: file,
                 hashsum: String::new(),
                 hasher: None,
                 reader: self.loader,

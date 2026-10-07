@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use scannerlib::nasl::{
     nasl_std_executor,
@@ -28,7 +31,7 @@ impl CachedFile {
 pub struct BuiltinFn;
 
 pub(crate) struct Cache {
-    files: HashMap<String, CachedFile>,
+    files: HashMap<PathBuf, CachedFile>,
     builtin_fns: HashMap<String, BuiltinFn>,
 }
 
@@ -46,7 +49,7 @@ impl Default for Cache {
 }
 
 impl Cache {
-    pub(crate) fn insert(&mut self, rel_path: &str, file: CachedFile) {
+    pub(crate) fn insert(&mut self, rel_path: &Path, file: CachedFile) {
         self.files.insert(rel_path.to_owned(), file);
     }
 }

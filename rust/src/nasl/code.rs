@@ -82,7 +82,7 @@ pub struct Code {
 impl Code {
     pub fn load(loader: &Loader, path: impl AsRef<Path>) -> Result<Self, LoadError> {
         Ok(Self {
-            code: loader.load(&path.as_ref().to_string_lossy())?,
+            code: loader.load(path.as_ref())?,
             path: Some(path.as_ref().to_owned()),
         })
     }

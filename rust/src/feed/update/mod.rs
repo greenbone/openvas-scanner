@@ -4,6 +4,8 @@
 
 mod error;
 
+use std::path::PathBuf;
+
 pub use error::Error;
 pub use error::ErrorKind;
 
@@ -213,7 +215,11 @@ where
     async fn next(&mut self) -> Option<Result<String, Error>> {
         match self.verifier.find(|x| {
             x.as_ref()
-                .map(|x| x.get_filename().ends_with(".nasl"))
+                .map(|x| {
+                    x.get_filename()
+                        .extension()
+                        .is_some_and(|ext| ext == "nasl")
+                })
                 .unwrap_or(true)
         }) {
             Some(Ok(k)) => {
@@ -221,19 +227,18 @@ where
                     return Some(Err(e.into()));
                 }
 
-                let mut filename = k.get_filename();
-                if filename.starts_with("./") {
-                    // sha256sums may start with ./ so we have to remove those as dependencies
-                    // within nasl scripts usually don't entail them.
-                    filename = filename[2..].to_string();
-                }
-                let k = FileName(filename.clone());
+                let filename = k.get_filename();
+                let filename = filename.file_name().unwrap();
+                // TODO: Decide what to do with FileName, either turn its `.0`
+                // into `Path` as well or if we decide a string is fine, maybe
+                // convert `HashSumFileItem::filename` into a String too
+                let k = FileName(filename.to_string_lossy().into_owned());
                 self.single(&k)
                     .await
                     .map(|_| k.0.clone())
                     .map_err(|kind| Error {
                         kind,
-                        key: k.0.clone(),
+                        path: k.0.into(),
                     })
                     .into()
             }
@@ -241,7 +246,7 @@ where
             None if !self.feed_version_set => {
                 let result = self.dispatch_feed_info().await.map_err(|kind| Error {
                     kind,
-                    key: "plugin_feed_info.inc".to_string(),
+                    path: PathBuf::from("plugin_feed_info.inc"),
                 });
                 self.feed_version_set = true;
                 Some(result)

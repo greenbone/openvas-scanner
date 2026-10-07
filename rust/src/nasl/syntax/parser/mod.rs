@@ -37,6 +37,7 @@ use super::token::LiteralKind;
 use super::{Ident, Keyword, Token, TokenKind, Tokenizer, token::Literal};
 use crate::nasl::error::Span;
 use crate::nasl::error::Spanned;
+use crate::nasl::syntax::grammar::IncludeString;
 use crate::nasl::syntax::grammar::UnaryPrefixOperatorKind;
 use cursor::Cursor;
 use cursor::Peek;
@@ -368,7 +369,10 @@ impl Parse for Include {
         }
         let path = path.into_string().unwrap();
         parser.consume(TokenKind::RightParen)?;
-        Ok(Include { path, span })
+        Ok(Include {
+            path: IncludeString::new(path),
+            span,
+        })
     }
 }
 
