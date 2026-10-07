@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"root.nasl\"], &\n[(\"root.nasl\", \"include(\\\"helper.inc\\\");\"),\n(\"helper.inc\", \"function helper() {}\")],)"
+---
+warning: Included file 'helper.inc' is never used
+  ┌─ root.nasl:1:9
+  │
+1 │ include("helper.inc");
+  │         ^^^^^^^^^^^^ unused include

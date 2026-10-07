@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/undeclared_variable.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (function_local_does_not_leak),\n\"function foo() { local_var scoped; } display(scoped);\",)"
+---
+error: Variable `scoped` is not declared
+  ┌─ function_local_does_not_leak:1:46
+  │
+1 │ function foo() { local_var scoped; } display(scoped);
+  │                                              ^^^^^^ undeclared variable

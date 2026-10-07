@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (defined_func_does_not_declare_function),\n\"if (defined_func(\\\"optional\\\")) { optional(); }\",)"
+---
+error: Undefined function 'optional'
+  ┌─ defined_func_does_not_declare_function:1:33
+  │
+1 │ if (defined_func("optional")) { optional(); }
+  │                                 ^^^^^^^^ undefined function

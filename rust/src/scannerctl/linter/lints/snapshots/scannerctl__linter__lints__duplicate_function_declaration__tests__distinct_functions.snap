@@ -1,0 +1,4 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function_declaration.rs
+expression: "$crate :: linter :: tests ::\nlint(stringify! (distinct_functions), \"function foo() {} function bar() {}\",)"
+---

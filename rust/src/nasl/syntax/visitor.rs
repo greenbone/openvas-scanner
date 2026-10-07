@@ -7,10 +7,14 @@ pub trait Visitor<'ast> {
     fn visit_statement(&mut self, _stmt: &'ast Statement) {}
     fn visit_var_scope_decl(&mut self, _decl: &'ast VarScopeDecl) {}
     fn visit_fn_decl(&mut self, _decl: &'ast FnDecl) {}
+    fn should_walk_fn_body(&self, _decl: &'ast FnDecl) -> bool {
+        true
+    }
     fn visit_block(&mut self, _block: &'ast Block<Statement>) {}
     fn visit_while(&mut self, _while_stmt: &'ast While) {}
     fn visit_repeat(&mut self, _repeat: &'ast Repeat) {}
     fn visit_for_each(&mut self, _for_each: &'ast ForEach) {}
+    fn visit_for_each_binding(&mut self, _for_each: &'ast ForEach) {}
     fn visit_for(&mut self, _for_stmt: &'ast For) {}
     fn visit_if(&mut self, _if_stmt: &'ast If) {}
     fn visit_include(&mut self, _include: &'ast Include) {}
@@ -22,13 +26,16 @@ pub trait Visitor<'ast> {
     fn visit_binary(&mut self, _binary: &'ast Binary) {}
     fn visit_unary(&mut self, _unary: &'ast Unary) {}
     fn visit_assignment(&mut self, _assignment: &'ast Assignment) {}
+    fn leave_assignment(&mut self, _assignment: &'ast Assignment) {}
 
     // Atom visitors
     fn visit_atom(&mut self, _atom: &'ast Atom) {}
     fn visit_array(&mut self, _array: &'ast Array) {}
     fn visit_array_access(&mut self, _access: &'ast ArrayAccess) {}
     fn visit_fn_call(&mut self, _call: &'ast FnCall) {}
+    fn leave_fn_call(&mut self, _call: &'ast FnCall) {}
     fn visit_increment(&mut self, _inc: &'ast Increment) {}
+    fn leave_increment(&mut self, _inc: &'ast Increment) {}
     fn visit_literal(&mut self, _literal: &'ast super::super::syntax::token::Literal) {}
     fn visit_ident(&mut self, _ident: &'ast super::super::syntax::token::Ident) {}
 
@@ -63,7 +70,7 @@ fn walk_statement<'ast, V: Visitor<'ast>>(visitor: &mut V, stmt: &'ast Statement
     }
 }
 
-fn walk_block<'ast, V: Visitor<'ast>>(visitor: &mut V, block: &'ast Block<Statement>) {
+pub fn walk_block<'ast, V: Visitor<'ast>>(visitor: &mut V, block: &'ast Block<Statement>) {
     visitor.visit_block(block);
     for stmt in &block.items {
         walk_statement(visitor, stmt);
@@ -86,6 +93,7 @@ fn walk_for_each<'ast, V: Visitor<'ast>>(visitor: &mut V, for_each: &'ast ForEac
     visitor.visit_for_each(for_each);
     visitor.visit_ident(&for_each.var);
     walk_expr(visitor, &for_each.array);
+    visitor.visit_for_each_binding(for_each);
     walk_block(visitor, &for_each.block);
 }
 
@@ -130,7 +138,9 @@ fn walk_fn_decl<'ast, V: Visitor<'ast>>(visitor: &mut V, fn_decl: &'ast FnDecl) 
     for arg in &fn_decl.args.items {
         visitor.visit_ident(arg);
     }
-    walk_block(visitor, &fn_decl.block);
+    if visitor.should_walk_fn_body(fn_decl) {
+        walk_block(visitor, &fn_decl.block);
+    }
 }
 
 fn walk_var_scope_decl<'ast, V: Visitor<'ast>>(visitor: &mut V, var_decl: &'ast VarScopeDecl) {
@@ -169,6 +179,7 @@ fn walk_assignment<'ast, V: Visitor<'ast>>(visitor: &mut V, assignment: &'ast As
     visitor.visit_assignment(assignment);
     walk_place_expr(visitor, &assignment.lhs);
     walk_expr(visitor, &assignment.rhs);
+    visitor.leave_assignment(assignment);
 }
 
 fn walk_place_expr<'ast, V: Visitor<'ast>>(visitor: &mut V, place: &'ast PlaceExpr) {
@@ -213,6 +224,7 @@ fn walk_fn_call<'ast, V: Visitor<'ast>>(visitor: &mut V, call: &'ast FnCall) {
     for arg in &call.args.items {
         walk_fn_arg(visitor, arg);
     }
+    visitor.leave_fn_call(call);
 }
 
 fn walk_fn_arg<'ast, V: Visitor<'ast>>(visitor: &mut V, arg: &'ast FnArg) {
@@ -229,4 +241,5 @@ fn walk_fn_arg<'ast, V: Visitor<'ast>>(visitor: &mut V, arg: &'ast FnArg) {
 fn walk_increment<'ast, V: Visitor<'ast>>(visitor: &mut V, inc: &'ast Increment) {
     visitor.visit_increment(inc);
     walk_place_expr(visitor, &inc.expr);
+    visitor.leave_increment(inc);
 }

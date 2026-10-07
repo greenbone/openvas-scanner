@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+expression: "$crate :: linter :: tests ::\nlint_files(& [\"first.nasl\", \"second.nasl\"], &\n[(\"first.nasl\", \"function leaked() {}\"), (\"second.nasl\", \"leaked();\")],)"
+---
+error: Undefined function 'leaked'
+  ┌─ second.nasl:1:1
+  │
+1 │ leaked();
+  │ ^^^^^^ undefined function

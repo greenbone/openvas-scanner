@@ -126,12 +126,31 @@ pub fn script_tag(
     Ok(())
 }
 
-#[nasl_function(named(name, value))]
-pub fn script_xref(script_ctx: &mut ScriptCtx, name: String, value: String) {
-    script_ctx.vt_mut().references.push(NvtRef {
-        class: name,
-        id: value,
-    });
+#[nasl_function(named(name, value, csv))]
+pub fn script_xref(
+    script_ctx: &mut ScriptCtx,
+    name: String,
+    value: Option<String>,
+    csv: Option<String>,
+) -> Result<(), FnError> {
+    if value.is_none() && csv.is_none() {
+        return Err(FnError::missing_argument("value or csv"));
+    }
+
+    let references = &mut script_ctx.vt_mut().references;
+    if let Some(csv) = csv {
+        references.extend(csv.split(',').map(|id| NvtRef {
+            class: name.clone(),
+            id: id.to_owned(),
+        }));
+    }
+    if let Some(value) = value {
+        references.push(NvtRef {
+            class: name,
+            id: value,
+        });
+    }
+    Ok(())
 }
 
 #[nasl_function(named(name, value, id, r#type))]
