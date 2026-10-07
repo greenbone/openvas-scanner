@@ -141,6 +141,7 @@ zstd = "0"
 rustls-pki-types = { version = "1.14.1", features = ["std"] }
 cidr = "0.3.2"
 fslock = "0.2.1"
+async-stream = "0.3.6"
 
 [workspace]
 members = ["crates/nasl-function-proc-macro"]

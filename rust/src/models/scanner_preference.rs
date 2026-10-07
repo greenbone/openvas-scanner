@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 /// Configuration preference for the scanner
-#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::FromRow,
+)]
 pub struct ScanPreference {
     /// The ID of a scan preference.
     pub id: String,

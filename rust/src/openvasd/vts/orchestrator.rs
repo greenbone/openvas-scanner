@@ -159,7 +159,7 @@ pub trait Worker {
             Ok((nasl_hash, advisories_hash))
         })
     }
-    fn update_feed(&self, kind: FeedType, new_hash: String) -> Promise<Result<(), WorkerError>>;
+    fn update_feed(&self, kind: FeedType, new_hash: String) -> Result<(), WorkerError>;
 
     fn calculate_hash(
         signature_check: bool,
@@ -296,7 +296,7 @@ where
                         let worker = self.worker.clone();
                         let calc_nasl = calc_nasl.clone();
                         nasl_handle = Some(tokio::task::spawn(async move {
-                            worker.update_feed(FeedType::NASL, calc_nasl).await
+                            worker.update_feed(FeedType::NASL, calc_nasl)
                         }));
                     }
                     FeedType::Advisories if sync_advisories => {
@@ -306,9 +306,7 @@ where
                         let worker = self.worker.clone();
                         let calc_advisories = calc_advisories.clone();
                         advisory_handle = Some(tokio::task::spawn(async move {
-                            worker
-                                .update_feed(FeedType::Advisories, calc_advisories)
-                                .await
+                            worker.update_feed(FeedType::Advisories, calc_advisories)
                         }))
                     }
                     msg => {

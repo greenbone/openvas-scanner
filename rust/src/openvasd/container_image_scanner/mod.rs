@@ -1,15 +1,13 @@
 pub mod config;
 mod detection;
-mod image;
+pub mod image;
 mod messages;
 mod notus;
 mod scheduling;
 mod timings;
 
 pub use config::Config;
-#[cfg(test)]
-pub(crate) use image::DockerRegistryV2Mock;
-pub(crate) use scannerlib::{ExternalError, PromiseRef, Streamer};
+pub(crate) use scannerlib::{ExternalError, PromiseRef};
 pub use scheduling::db::scan::DBScan;
 
 use std::sync::Arc;
@@ -46,9 +44,9 @@ pub mod scans_utils {
 
     use crate::{
         api::states::ScannerBridge,
+        config::DBLocation,
         container_image_scanner::{
             Config, MIGRATOR,
-            config::DBLocation,
             image::{DockerRegistryV2Mock, RegistryPreference},
             scheduling::{Scheduler, db::DataBase},
         },

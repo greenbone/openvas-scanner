@@ -12,12 +12,14 @@ use serde::Deserialize;
 
 use std::sync::Arc;
 
-use crate::api::{
-    Authentication,
-    auth::{AuthLayer, ClientId},
-    error::ApiError,
-    states::ScannerBridge,
-    stream::into_json_stream,
+use crate::{
+    api::{
+        Authentication,
+        auth::{AuthLayer, ClientId},
+        error::ApiError,
+        stream::into_json_stream,
+    },
+    database::sqlite::SqliteDatabase,
 };
 use scannerlib::models::{self, PreferenceValue, ScanPreferenceInformation};
 
@@ -39,7 +41,7 @@ const PREFERENCES: [ScanPreferenceInformation; 2] = [
 
 /// Access point for all `/container-image-scanner` prefixed routes.
 pub fn router(
-    scanner: ScannerBridge,
+    database: Arc<SqliteDatabase>,
     auth_method: Authentication,
     api_keys: Arc<Vec<String>>,
     enable_additional_routes: bool,
@@ -65,7 +67,7 @@ pub fn router(
         .route("/{id}/status", get(get_scans_id_status))
         // enable authentication for all routes
         .layer(AuthLayer::new(auth_method, api_keys))
-        .with_state(scanner)
+        .with_state(database)
 }
 
 /// `GET /container-image-scanner/scans/preferences` route handler
@@ -94,9 +96,9 @@ async fn get_scans_preferences() -> impl IntoResponse {
 /// * 500: internal error
 async fn get_scans(
     client_id: Extension<ClientId>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
 ) -> impl IntoResponse {
-    let scans_stream = scanner.get_scans(client_id.to_string()).await;
+    let scans_stream = db.get_cis_scans(client_id.to_string());
     into_json_stream(scans_stream).await.into_response()
 }
 
@@ -113,7 +115,7 @@ async fn get_scans(
 /// * 409: a scan with the same `id` already exists
 async fn post_scans(
     client_id: Extension<ClientId>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
     scan: Result<Json<models::Scan>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     let mut scan = scan?;
@@ -123,7 +125,7 @@ async fn post_scans(
         scan.scan_id = uuid::Uuid::new_v4().into();
     }
 
-    scanner.post_scan(&client_id, &scan).await?;
+    db.insert_cis_scan(&client_id, &scan).await?;
     Ok((StatusCode::CREATED, Json(scan.scan_id.clone())).into_response())
 }
 
@@ -140,9 +142,9 @@ async fn post_scans(
 async fn get_scans_id(
     client_id: Extension<ClientId>,
     Path(scan_id): Path<String>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let mut scan = scanner.get_scan(&client_id, &scan_id).await?;
+    let mut scan = db.get_cis_scan(&client_id, &scan_id).await?;
 
     // hide passwords from the credentials
     scan.target.credentials = scan
@@ -177,11 +179,10 @@ async fn get_scans_id(
 async fn post_scans_id(
     client_id: Extension<ClientId>,
     Path(scan_id): Path<String>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
     action: Result<Json<models::ScanAction>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
-    scanner
-        .schedule_scan(&client_id, &scan_id, action?.action)
+    db.schedule_scan((client_id.to_string(), scan_id), action?.action)
         .await?;
 
     Ok(StatusCode::NO_CONTENT)
@@ -204,13 +205,13 @@ async fn post_scans_id(
 async fn delete_scans_id(
     client_id: Extension<ClientId>,
     Path(scan_id): Path<String>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let status = scanner.get_scan_status(&client_id, &scan_id).await?;
+    let status = db.get_scan_status((client_id.to_string(), scan_id)).await?;
 
     // scan is not running
     if !status.is_running() {
-        scanner.delete_scan(&client_id, &scan_id).await?;
+        db.delete_scan((client_id.to_string(), scan_id)).await?;
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(ApiError::ScanRunning)
@@ -241,7 +242,7 @@ async fn get_scans_id_results(
     client_id: Extension<ClientId>,
     Path(scan_id): Path<String>,
     Query(params): Query<Params>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let range = params
         .range
@@ -252,8 +253,8 @@ async fn get_scans_id_results(
         .transpose()?
         .unwrap_or((None, None));
 
-    let results_stream = scanner
-        .get_scan_results(&client_id, &scan_id, range.0, range.1)
+    let results_stream = db
+        .get_scan_results((client_id.to_string(), scan_id), range.0, range.1)
         .await?;
 
     Ok(into_json_stream(results_stream).await)
@@ -272,10 +273,10 @@ async fn get_scans_id_results(
 pub async fn get_scans_id_results_rid(
     client_id: Extension<ClientId>,
     Path((scan_id, result_id)): Path<(String, usize)>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let result = scanner
-        .get_scan_result(&client_id, &scan_id, result_id)
+    let result = db
+        .get_scan_result((client_id.to_string(), scan_id), result_id)
         .await?;
     Ok(Json(result))
 }
@@ -310,9 +311,11 @@ pub async fn get_scans_id_results_rid(
 async fn get_scans_id_status(
     client_id: Extension<ClientId>,
     Path(scan_id): Path<String>,
-    State(scanner): State<ScannerBridge>,
+    State(db): State<Arc<SqliteDatabase>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    Ok(Json(scanner.get_scan_status(&client_id, &scan_id).await?))
+    Ok(Json(
+        db.get_scan_status((client_id.to_string(), scan_id)).await?,
+    ))
 }
 
 #[cfg(test)]

@@ -5,7 +5,16 @@
 use std::fmt::Display;
 
 #[derive(
-    Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+    sqlx::FromRow,
 )]
 /// Represents a parameter for a VTS configuration.
 pub struct Parameter {

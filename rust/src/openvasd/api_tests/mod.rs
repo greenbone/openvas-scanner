@@ -7,13 +7,12 @@ use std::{
     time::Duration,
 };
 
+use crate::container_image_scanner::image::DockerRegistryV2Mock;
 use futures::StreamExt;
 use http::{Method, StatusCode};
 use scannerlib::models::{self, Phase, Scan, Status, Target};
 use serde_json::Value;
 use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
-
-use crate::container_image_scanner::DockerRegistryV2Mock;
 
 mod test_builder;
 mod test_scan;

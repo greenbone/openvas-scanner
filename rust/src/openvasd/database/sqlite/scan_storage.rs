@@ -22,8 +22,6 @@ use scannerlib::{
     },
 };
 
-use super::vts::SqlPluginStorage;
-
 #[derive(Clone)]
 pub struct ScanStorage {
     vts: SqlPluginStorage,
