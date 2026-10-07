@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// Expand table of contents for the open part of the manual.
+
 $(function () {
     var title = document.title.split(" - ")[1];
 
