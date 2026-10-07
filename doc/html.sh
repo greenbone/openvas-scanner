@@ -94,7 +94,8 @@ create_html_dict() {
 }
 
 make_html() {
-    content=$(pandoc -f markdown -t html $entry)
+    content=$(pandoc --lua-filter "${base_dir}verify-links.lua" \
+                     -f markdown -t html $entry)
     content=${content//.md/.html}
 
     head_name=$(head -n 1 $entry)
