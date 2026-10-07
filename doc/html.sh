@@ -3,6 +3,10 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+# Do not substitute matching portion of pattern for every & character
+# in the replacement text when doing pattern substitution.
+shopt -u patsub_replacement
+
 print_progress() {
     # echo -ne "\033[2K"
     terminal_width=$(tput cols)
