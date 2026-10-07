@@ -1,6 +1,6 @@
 ---
 source: src/nasl/interpreter/tests/mod.rs
-expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (function_instead_of_variable),\n\"function foo() { } a = foo;\")"
+expression: "$crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (function_instead_of_variable),\n\"function foo() { } a = foo;\",\n$crate :: nasl :: prelude :: NaslVersion :: default(),)"
 ---
 error: Expected a value but got a function.
   ┌─ function_instead_of_variable:1:24

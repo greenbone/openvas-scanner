@@ -1,6 +1,6 @@
 ---
 source: src/nasl/interpreter/tests/mod.rs
-expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (negative_array_index), \"a = [1, 2, 3]; a[-3];\")"
+expression: "$crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (negative_array_index), \"a = [1, 2, 3]; a[-3];\",\n$crate :: nasl :: prelude :: NaslVersion :: default(),)"
 ---
 error: Negative index into array: -3
   ┌─ negative_array_index:1:18
