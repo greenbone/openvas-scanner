@@ -86,17 +86,12 @@ where
 {
     match fs::read_to_string(path) {
         Ok(x) => Ok(x),
-        Err(err) => {
+        Err(err) if err.kind() == io::ErrorKind::InvalidData => {
             // `InvalidData` means the file could be read but is not valid UTF-8
             // (some VTs are still stored as latin-1).
-            if err.kind() == io::ErrorKind::InvalidData {
-                tracing::warn!(
-                    file = %path.as_ref().display(),
-                    "File is not valid UTF-8; falling back to latin-1 decoding."
-                );
-            }
             read_non_utf8_path(path)
         }
+        Err(err) => Err(LoadError::from_io(path.as_ref(), err)),
     }
 }
 
