@@ -127,6 +127,7 @@ rm -rf html
 mkdir html
 mkdir html/css
 mkdir html/js
+mkdir html/images
 
 first=0
 base_dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )/
@@ -138,6 +139,7 @@ cp templates/style.css html/css/
 css_path=css/style.css
 cp templates/script.js html/js/
 js_path=js/script.js
+cp images/*.svg html/images/
 
 toc=""
 

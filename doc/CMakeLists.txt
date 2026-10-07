@@ -47,6 +47,7 @@ else (NOT PANDOC)
   configure_file(man.sh man.sh COPYONLY)
   configure_file(man-touchup.lua man-touchup.lua COPYONLY)
   configure_file(html.sh html.sh @ONLY)
+  configure_file(images/scanner_run_loop.svg images/scanner_run_loop.svg COPYONLY)
   file(COPY manual DESTINATION .)
   file(COPY templates DESTINATION .)
 
