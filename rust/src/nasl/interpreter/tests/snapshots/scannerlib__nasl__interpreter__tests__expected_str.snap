@@ -1,6 +1,6 @@
 ---
 source: src/nasl/interpreter/tests/mod.rs
-expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (expected_str), \"a =~ 5;\")"
+expression: "$crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (expected_str), \"a =~ 5;\",\n$crate :: nasl :: prelude :: NaslVersion :: default(),)"
 ---
 error: Expected a string.
   ┌─ expected_str:1:6

@@ -1,6 +1,6 @@
 ---
 source: src/nasl/interpreter/tests/mod.rs
-expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (array_out_of_range), \"a = [1, 2, 3]; a[3];\")"
+expression: "$crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (array_out_of_range), \"a = [1, 2, 3]; a[3];\",\n$crate :: nasl :: prelude :: NaslVersion :: default(),)"
 ---
 error: Array out of range for index: 3
   ┌─ array_out_of_range:1:16

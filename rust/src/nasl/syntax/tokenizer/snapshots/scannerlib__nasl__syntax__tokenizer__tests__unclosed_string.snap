@@ -1,7 +1,6 @@
 ---
 source: src/nasl/syntax/tokenizer/tests.rs
 expression: "tokenize_err(stringify! (unclosed_string), \"\\\"hello I am a unclosed string\\\\\")"
-snapshot_kind: text
 ---
 error: Unclosed string literal.
   ┌─ unclosed_string:1:1

@@ -1,6 +1,6 @@
 ---
 source: src/nasl/interpreter/tests/mod.rs
-expression: "crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (invalid_regex), r#\"a = \"hello world\"; a =~ \"[\";\"#)"
+expression: "$crate :: nasl :: interpreter :: tests ::\ninterpret_err(stringify! (invalid_regex), r#\"a = \"hello world\"; a =~ \"[\";\"#,\n$crate :: nasl :: prelude :: NaslVersion :: default(),)"
 ---
 error: Invalid regular expression: [
   ┌─ invalid_regex:1:25

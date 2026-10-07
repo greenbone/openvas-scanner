@@ -1,6 +1,6 @@
 ---
 source: src/nasl/syntax/parser/tests.rs
-expression: "crate :: nasl :: syntax :: parser :: tests :: parse_err :: < Stmt >\n(stringify! (multiple_increments), \"x++ ++\")"
+expression: "crate :: nasl :: syntax :: parser :: tests :: parse_err :: < Statement >\n(stringify! (multiple_increments), \"x++ ++\")"
 ---
 error: Not a valid assignment target.
   ┌─ multiple_increments:1:1
