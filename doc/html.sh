@@ -38,6 +38,14 @@ make_entry() {
     line=$(head -n 1 "$entry")
     title=${line:2}
 
+    case "${title}" in
+        *" - "*)
+            echo "Don't use space minus space ( - ) in titles, that will trip up toc expansion" >&2
+            echo "Bailing on $entry"
+            exit 65
+            ;;
+    esac
+
     link=$entry
     link=${link//manual/html}
     link=${link//.md/.html}
