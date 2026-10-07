@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 use crate::models::{Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
-use crate::nasl::syntax::grammar::Ast;
+use crate::nasl::syntax::grammar::{Ast, IncludeString};
 use crate::nasl::utils::Register;
 use crate::nasl::utils::ctx::TargetId;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
@@ -159,13 +159,13 @@ impl<'a> VTRunner<'a> {
     /// we need to parse the nasl file and later look into includes and nested includes.
     async fn check_include_mtimes(&self, ast: &Ast) -> Result<(), ScriptResultKind> {
         let mut visited = HashSet::new();
-        let mut pending: Vec<String> = ast.iter_includes().map(|i| i.path.clone()).collect();
+        let mut pending: Vec<IncludeString> = ast.iter_includes().map(|i| i.path.clone()).collect();
 
         while let Some(path) = pending.pop() {
             if !visited.insert(path.clone()) {
                 continue;
             }
-            if let Err(reason) = self.scan_ctx.storage().check_mtime(&path).await {
+            if let Err(reason) = self.scan_ctx.storage().check_mtime(&path.as_ref()).await {
                 return Err(ScriptResultKind::MtimeCheckFailed(reason));
             }
             // Recurse into the included file to discover any further nested includes. If it

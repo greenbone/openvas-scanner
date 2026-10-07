@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::VecDeque;
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::models::HostInfo;
@@ -96,7 +97,11 @@ impl<'a> ScanRunner<'a> {
                     if let Some(pos) = queue.pop_front() {
                         let (stage, vts) = &concurrent_vts[pos.stage];
                         let (vt, param) = &vts[pos.vt];
-                        let result = match scan_ctx.storage().check_mtime(&vt.filename).await {
+                        let result = match scan_ctx
+                            .storage()
+                            .check_mtime(Path::new(&vt.filename))
+                            .await
+                        {
                             Ok(()) => {
                                 VTRunner::run(pos.target, vt, *stage, param.as_ref(), scan_ctx)
                                     .await

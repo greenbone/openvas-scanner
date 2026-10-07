@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -50,9 +50,9 @@ impl ScanStorage {
 
 #[async_trait]
 impl MtimeCheck for ScanStorage {
-    async fn check_mtime(&self, filename: &str) -> Result<(), String> {
+    async fn check_mtime(&self, filename: &Path) -> Result<(), String> {
         self.vts
-            .check_mtime(filename)
+            .check_mtime(&filename.to_string_lossy())
             .await
             .map_err(|e| e.to_string())
     }
