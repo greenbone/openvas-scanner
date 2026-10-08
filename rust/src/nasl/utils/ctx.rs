@@ -239,9 +239,7 @@ impl CtxTarget {
 pub trait MtimeCheck: Sync + Send {
     /// Checks whether vt script file mtime is newer than the mtime recorded in the storage
     /// It doesn't apply for redis storage.
-    async fn check_mtime(&self, _filename: &Path) -> Result<(), String> {
-        Ok(())
-    }
+    async fn check_mtime(&self, _filename: &Path) -> Result<(), String>;
 }
 
 #[async_trait]
