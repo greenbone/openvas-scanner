@@ -5,8 +5,6 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
-use std::{collections::HashMap, fmt::Display, path::Path, sync::Arc};
-use async_trait::async_trait;
 use crate::storage::{
     Retriever,
     error::StorageError,
@@ -14,6 +12,8 @@ use crate::storage::{
     items::nvt::{ACT, FileName, Oid},
     redis::RedisStorage,
 };
+use async_trait::async_trait;
+use std::{collections::HashMap, fmt::Display, path::Path, sync::Arc};
 
 use crate::models::{Parameter, VT, VTData};
 use crate::nasl::utils::ctx::MtimeCheck;
