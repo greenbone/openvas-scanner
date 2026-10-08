@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
 /// Error returned by [`SqlPluginStorage::check_mtime`].
@@ -31,8 +31,7 @@ pub enum MtimeCheckError {
 /// `hashsum` is empty (e.g. signature checking is disabled or the verification failed) there
 /// is nothing worth caching and an empty string is returned instead.
 pub(crate) fn compute_mtime(
-    feed_path: &Path,
-    filename: &str,
+    filename: &PathBuf,
     hashsum: Option<&str>,
 ) -> Result<i64, MtimeCheckError> {
     if let Some(hashsum) = hashsum
@@ -41,12 +40,10 @@ pub(crate) fn compute_mtime(
         return Ok(0);
     }
 
-    let mut file = feed_path.to_path_buf();
-    file.push(filename);
-    Ok(fs::metadata(&file)
+    Ok(fs::metadata(filename)
         .and_then(|m| m.modified())
-        .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?
+        .map_err(|e| MtimeCheckError::Io(filename.clone().into_string().unwrap(), e.to_string()))?
         .duration_since(UNIX_EPOCH)
-        .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?
-        .as_secs() as i64)
+        .map_err(|e| MtimeCheckError::Io(filename.clone().into_string().unwrap(), e.to_string()))?
+        .as_secs() as i64) // safe to convert UNIX_EPOCH duration to i64
 }

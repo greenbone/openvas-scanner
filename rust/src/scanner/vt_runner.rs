@@ -165,7 +165,7 @@ impl<'a> VTRunner<'a> {
             if !visited.insert(path.clone()) {
                 continue;
             }
-            if let Err(reason) = self.scan_ctx.storage().check_mtime(&path.as_ref()).await {
+            if let Err(reason) = self.scan_ctx.storage().check_mtime(path.as_ref()).await {
                 return Err(ScriptResultKind::MtimeCheckFailed(reason));
             }
             // Recurse into the included file to discover any further nested includes. If it

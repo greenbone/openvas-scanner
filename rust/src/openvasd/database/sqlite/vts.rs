@@ -101,7 +101,7 @@ impl PluginStorer for SqlPluginStorage {
             let hashsum: String = plugin.hashsum().into();
             let mtime = match (typus, plugin.vulnerability_test()) {
                 (FeedType::NASL, Some(vt)) => {
-                    compute_mtime(&plugin_feed, &vt.filename, Some(&hashsum))?
+                    compute_mtime(&plugin_feed.join(&vt.filename), Some(&hashsum))?
                 }
                 _ => 0,
             };
@@ -161,13 +161,12 @@ impl SqlPluginStorage {
             .filter(|s| *s != 0)
             .ok_or_else(|| MtimeCheckError::NotFound(filename.to_string()))?;
 
-        let mut file = self.feed_root.clone();
-        file.push(filename);
-        let current_mtime = compute_mtime(&self.feed_root, filename, None)?;
+        let filename = self.feed_root.join(filename);
+        let current_mtime = compute_mtime(&self.feed_root.join(&filename), None)?;
 
         if current_mtime > stored_mtime {
             return Err(MtimeCheckError::Modified {
-                file: filename.to_string(),
+                file: filename.clone().into_string().unwrap(),
                 stored: stored_mtime,
                 current: current_mtime,
             });
