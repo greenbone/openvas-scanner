@@ -101,9 +101,9 @@ impl PluginStorer for SqlPluginStorage {
             let hashsum: String = plugin.hashsum().into();
             let mtime = match (typus, plugin.vulnerability_test()) {
                 (FeedType::NASL, Some(vt)) => {
-                    compute_mtime(&plugin_feed, &vt.filename, Some(&hashsum))?.to_string()
+                    compute_mtime(&plugin_feed, &vt.filename, Some(&hashsum))?
                 }
-                _ => String::new(),
+                _ => 0,
             };
             let json = serde_json::to_vec(&plugin)?;
             query(
@@ -157,9 +157,8 @@ impl SqlPluginStorage {
 
         let stored_mtime = row
             .as_ref()
-            .map(|r| r.get::<String, _>("mtime"))
-            .filter(|s| !s.is_empty())
-            .and_then(|s| s.parse::<u64>().ok())
+            .map(|r| r.get::<i64, _>("mtime"))
+            .filter(|s| *s != 0)
             .ok_or_else(|| MtimeCheckError::NotFound(filename.to_string()))?;
 
         let mut file = self.feed_root.clone();
