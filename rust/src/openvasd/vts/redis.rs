@@ -309,8 +309,7 @@ impl PluginStorer for RedisPluginHandler {
                                 // otherwise we avoid to store it
                                 let hashsum: String = plugin.hashsum().into();
                                 let mtime = super::mtime::compute_mtime(
-                                    &feed_path,
-                                    &vt.filename,
+                                    &feed_path.clone().join(&vt.filename),
                                     Some(&hashsum),
                                 )?
                                 .to_string();
