@@ -5,8 +5,8 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
-use std::{collections::HashMap, fmt::Display, sync::Arc};
-
+use std::{collections::HashMap, fmt::Display, path::Path, sync::Arc};
+use async_trait::async_trait;
 use crate::storage::{
     Retriever,
     error::StorageError,
@@ -101,9 +101,19 @@ impl SchedulerStorage for RedisStorage {}
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> where Arc<T>: Sync {}
 
 // TODO: implement MtimeCheck trait for InMemoryStorage ??
-impl MtimeCheck for InMemoryStorage {}
+#[async_trait]
+impl MtimeCheck for InMemoryStorage {
+    async fn check_mtime(&self, _filename: &Path) -> Result<(), String> {
+        Ok(())
+    }
+}
 // Redis storage doesn't requires, since the mtime check is performed by openvas-scanner
-impl MtimeCheck for RedisStorage {}
+#[async_trait]
+impl MtimeCheck for RedisStorage {
+    async fn check_mtime(&self, _filename: &Path) -> Result<(), String> {
+        Ok(())
+    }
+}
 
 pub struct Scheduler<S> {
     storage: S,
