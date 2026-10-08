@@ -51,16 +51,6 @@ impl SqlPluginStorage {
     }
 }
 
-impl From<SqlitePool> for SqlPluginStorage {
-    fn from(value: SqlitePool) -> Self {
-        SqlPluginStorage {
-            pool: value,
-            feed_root: PathBuf::new(),
-            signature_check: false,
-        }
-    }
-}
-
 impl PluginFetcher for SqlPluginStorage {
     fn get_oids(&self) -> StreamResult<String, WorkerError> {
         let result = query("SELECT oid FROM plugins where oid NOT LIKE '%inc' ORDER BY oid")
@@ -325,6 +315,16 @@ mod tests {
     use crate::setup_sqlite;
 
     use super::*;
+
+    impl From<SqlitePool> for SqlPluginStorage {
+        fn from(value: SqlitePool) -> Self {
+            SqlPluginStorage {
+                pool: value,
+                feed_root: PathBuf::new(),
+                signature_check: false,
+            }
+        }
+    }
 
     async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();

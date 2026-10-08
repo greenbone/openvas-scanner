@@ -141,7 +141,11 @@ pub async fn init(
         // For OSPD we actually don't need a communicator at all, however as we are facing out OSPD
         // altogether the effort of getting rid of that seems not worth it.
         ScannerType::Openvasd => {
-            let fetcher = crate::database::sqlite::vts::SqlPluginStorage::from(pool.clone());
+            let fetcher = crate::database::sqlite::vts::SqlPluginStorage::with_plugin_feed(
+                pool.clone(),
+                config.feed.path.clone(),
+                config.feed.signature_check,
+            );
             let worker = crate::database::sqlite::vts::FeedSynchronizer::new(pool, config);
             _init(config, fetcher, worker, snapshot).await
         }
