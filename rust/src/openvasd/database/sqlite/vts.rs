@@ -36,16 +36,16 @@ pub struct FeedSynchronizer {
 pub struct SqlPluginStorage {
     pool: SqlitePool,
     // Feed path necessary for checking the file mtime when signature is enabled
-    plugin_feed: PathBuf,
+    feed_root: PathBuf,
     // Mtime is stored and later checked only if signature check is enabled.
     signature_check: bool,
 }
 
 impl SqlPluginStorage {
-    pub fn with_plugin_feed(pool: SqlitePool, plugin_feed: PathBuf, signature_check: bool) -> Self {
+    pub fn with_plugin_feed(pool: SqlitePool, feed_root: PathBuf, signature_check: bool) -> Self {
         SqlPluginStorage {
             pool,
-            plugin_feed,
+            feed_root,
             signature_check,
         }
     }
@@ -55,7 +55,7 @@ impl From<SqlitePool> for SqlPluginStorage {
     fn from(value: SqlitePool) -> Self {
         SqlPluginStorage {
             pool: value,
-            plugin_feed: PathBuf::new(),
+            feed_root: PathBuf::new(),
             signature_check: false,
         }
     }
@@ -106,7 +106,7 @@ impl PluginStorer for SqlPluginStorage {
     {
         let pool = self.pool.clone();
         let typus = hash.typus;
-        let plugin_feed = self.plugin_feed.clone();
+        let plugin_feed = self.feed_root.clone();
         Box::pin(async move {
             let hashsum: String = plugin.hashsum().into();
             let mtime = match (typus, plugin.vulnerability_test()) {
@@ -172,9 +172,9 @@ impl SqlPluginStorage {
             .and_then(|s| s.parse::<u64>().ok())
             .ok_or_else(|| MtimeCheckError::NotFound(filename.to_string()))?;
 
-        let mut file = self.plugin_feed.clone();
+        let mut file = self.feed_root.clone();
         file.push(filename);
-        let current_mtime = compute_mtime(&self.plugin_feed, filename, None)?;
+        let current_mtime = compute_mtime(&self.feed_root, filename, None)?;
 
         if current_mtime > stored_mtime {
             return Err(MtimeCheckError::Modified {
@@ -305,7 +305,7 @@ impl FeedSynchronizer {
             signature_check: config.feed.signature_check,
             plugin_storer: SqlPluginStorage {
                 pool,
-                plugin_feed: config.feed.path.clone(),
+                feed_root: config.feed.path.clone(),
                 signature_check: config.feed.signature_check,
             },
         }
