@@ -1,4 +1,4 @@
-# forge_udp_v6_packet
+# forge_udp_v6_packet(3nasl)
 
 ## NAME
 

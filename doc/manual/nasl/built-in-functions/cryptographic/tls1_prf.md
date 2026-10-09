@@ -1,4 +1,4 @@
-# tls1_prf
+# tls1_prf(3nasl)
 
 ## NAME
 
@@ -19,7 +19,7 @@ It uses given seed and label as a basis for the pseudo random generator while th
 
 ## DEPRECATED
 
-This function is deprecated and **[prf_sha256(3)](prf_sha256.md)** or **[prf_sha384(3)](prf_sha384.md)** should be used instead.
+This function is deprecated and **[prf_sha256(3nasl)](prf_sha256.md)** or **[prf_sha384(3nasl)](prf_sha384.md)** should be used instead.
 
 ## RETURN VALUE
 
@@ -37,5 +37,5 @@ hash = tls1_prf(secret: "my_secret", seed: "a", label: "very secure", outlenL 48
 
 ## SEE ALSO
 
-**[prf_sha256(3)](prf_sha256.md)**,
-**[prf_sha384(3)](prf_sha384.md)**,
+**[prf_sha256(3nasl)](prf_sha256.md)**,
+**[prf_sha384(3nasl)](prf_sha384.md)**,

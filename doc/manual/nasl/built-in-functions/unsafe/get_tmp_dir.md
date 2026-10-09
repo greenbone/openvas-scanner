@@ -1,4 +1,4 @@
-# get_tmp_dir
+# get_tmp_dir(3nasl)
 
 ## NAME
 
@@ -40,4 +40,4 @@ if(path) {
 
 ## SEE ALSO
 
-**[file_open(3)](file_open.md)**, **[file_close(3)](file_close.md)**
+**[file_open(3nasl)](file_open.md)**, **[file_close(3nasl)](file_close.md)**

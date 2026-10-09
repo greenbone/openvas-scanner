@@ -1,4 +1,4 @@
-# get_kb_item
+# get_kb_item(3nasl)
 
 ## NAME
 
@@ -44,8 +44,8 @@ display(get_kb_item("hosts"));
 
 ## NOTES
 
-To avoid forking use [get_kb_list(3)](get_kb_list.md) instead
+To avoid forking use [get_kb_list(3nasl)](get_kb_list.md) instead
 
 ## SEE ALSO
 
-**[set_kb_item(3)](set_kb_item.md)**, **[get_kb_list(3)](get_kb_list.md)**, **[replace_kb_item(3)](replace_kb_item.md)**, **[get_host_kb_index(3)](get_host_kb_index.md)**, **[display(3)](../string-functions/display.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**
+**[set_kb_item(3nasl)](set_kb_item.md)**, **[get_kb_list(3nasl)](get_kb_list.md)**, **[replace_kb_item(3nasl)](replace_kb_item.md)**, **[get_host_kb_index(3nasl)](get_host_kb_index.md)**, **[display(3nasl)](../string-functions/display.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**

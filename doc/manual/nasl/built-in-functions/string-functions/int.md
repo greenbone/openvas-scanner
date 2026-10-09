@@ -1,4 +1,4 @@
-# int
+# int(3nasl)
 
 ## NAME
 

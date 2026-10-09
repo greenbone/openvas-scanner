@@ -1,4 +1,4 @@
-# match
+# match(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function matches a string against a simple shell-like pattern and returns *TRUE* or *FALSE*. This function is less powerful than **[ereg(3)](../regular-expressions/ereg.md** but it is quicker and its interface is simple.
+This function matches a string against a simple shell-like pattern and returns *TRUE* or *FALSE*. This function is less powerful than **[ereg(3nasl)](../regular-expressions/ereg.md** but it is quicker and its interface is simple.
 
 The named argument *string* is a *string* containing the string to be searched.
 
@@ -30,4 +30,4 @@ One of the named arguments *string* or *pattern* are missing.
 
 ## SEE ALSO
 
-**[ereg(3)](../regular-expressions/ereg.md)**
+**[ereg(3nasl)](../regular-expressions/ereg.md)**

@@ -1,4 +1,4 @@
-# mktime
+# mktime(3nasl)
 
 ## NAME
 
@@ -40,6 +40,6 @@ ut = mktime(sec: 10, min: 10, hour: 10, mday: 10, mon: 10, year: 2022, isdst: fa
 
 ## SEE ALSO
 
-**[gettimeofday(3)](gettimeofday.md)**,
-**[localtime(3)](localtime.md)**,
-**[unixtime(3)](unixtime.md)**,
+**[gettimeofday(3nasl)](gettimeofday.md)**,
+**[localtime(3nasl)](localtime.md)**,
+**[unixtime(3nasl)](unixtime.md)**,

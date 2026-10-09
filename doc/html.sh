@@ -3,6 +3,10 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+# Do not substitute matching portion of pattern for every & character
+# in the replacement text when doing pattern substitution.
+shopt -u patsub_replacement
+
 print_progress() {
     # echo -ne "\033[2K"
     terminal_width=$(tput cols)
@@ -34,6 +38,14 @@ make_entry() {
     line=$(head -n 1 "$entry")
     title=${line:2}
 
+    case "${title}" in
+        *" - "*)
+            echo "Don't use space minus space ( - ) in titles, that will trip up toc expansion" >&2
+            echo "Bailing on $entry"
+            exit 65
+            ;;
+    esac
+
     link=$entry
     link=${link//manual/html}
     link=${link//.md/.html}
@@ -63,7 +75,7 @@ recursive_toc() {
             entry=${entry//\/index.md/""}
             recursive_toc
         # Else make an entry for the file
-        elif [[ -f $entry ]]; then
+        elif [[ -f $entry ]] && [[ $entry =~ .md$ ]]; then
             cfiles=$((cfiles + 1))
             print_progress
             filename="$(basename -- $entry)"
@@ -82,7 +94,8 @@ create_html_dict() {
 }
 
 make_html() {
-    content=$(pandoc -f markdown -t html $entry)
+    content=$(pandoc --lua-filter "${base_dir}verify-links.lua" \
+                     -f markdown -t html $entry)
     content=${content//.md/.html}
 
     head_name=$(head -n 1 $entry)
@@ -114,7 +127,7 @@ recursive_html() {
             recursive_html
             root_dir=${root_dir%"../"}
         # Else make an entry for the file
-        elif [[ -f $entry ]]; then
+        elif [[ -f $entry ]] && [[ $entry =~ .md$ ]]; then
             cfiles=$((cfiles + 1))
             print_progress
             filename="$(basename -- $entry)"
@@ -127,6 +140,7 @@ rm -rf html
 mkdir html
 mkdir html/css
 mkdir html/js
+mkdir html/images
 
 first=0
 base_dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )/
@@ -138,11 +152,12 @@ cp templates/style.css html/css/
 css_path=css/style.css
 cp templates/script.js html/js/
 js_path=js/script.js
+cp images/*.svg html/images/
 
 toc=""
 
 search_dir="$base_dir"manual
-nfiles=$(find "$search_dir"/ -type f | wc -l)
+nfiles="$(find "$search_dir"/ -type f -a -name '*.md'| wc -l)"
 cfiles=0
 echo "Creating Table of Content for html pages..."
 recursive_toc

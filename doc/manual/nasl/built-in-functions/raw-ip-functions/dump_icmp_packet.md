@@ -1,4 +1,4 @@
-# dump_icmp_packet
+# dump_icmp_packet(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 Receive a list of IPv4 ICMP packets and print them in a readable format in the screen.
 
-A packet can be created with **[forge_icmp_packet(3)](forge_icmp_packet.md)**.
+A packet can be created with **[forge_icmp_packet(3nasl)](forge_icmp_packet.md)**.
 
 ## RETURN VALUE
 
@@ -47,4 +47,4 @@ dump_icmp_packet (icmp_packet);
 
 ## SEE ALSO
 
-**[forge_icmp_packet(3)](forge_icmp_packet.md)**, **[forge_ip_packet(3)](forge_ip_packet.md)**
+**[forge_icmp_packet(3nasl)](forge_icmp_packet.md)**, **[forge_ip_packet(3nasl)](forge_ip_packet.md)**

@@ -1,4 +1,4 @@
-# ssh_shell_open
+# ssh_shell_open(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 Open an SSH shell. This shell can be either interactive or non-interactive. A session for the shell is created and saved for the SSH session.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 The optional named argument *pty* contains an *int*. If set to 1 the shell will become interactive, for all other values it will be non-interactive. The default is 1.
 
@@ -32,4 +32,4 @@ Unable to request a SSH shell
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**, **[ssh_shell_close](ssh_shell_close.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**, **[ssh_shell_close](ssh_shell_close.md)**

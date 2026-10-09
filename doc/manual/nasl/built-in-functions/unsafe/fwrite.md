@@ -1,4 +1,4 @@
-# fwrite
+# fwrite(3nasl)
 
 ## NAME
 
@@ -32,4 +32,4 @@ unable to write file, see *G_FILE_ERROR* for more information
 
 ## SEE ALSO
 
-**[fread(3)](fread.md)**
+**[fread(3nasl)](fread.md)**

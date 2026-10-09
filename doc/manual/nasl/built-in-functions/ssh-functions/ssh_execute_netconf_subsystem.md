@@ -1,4 +1,4 @@
-# ssh_execute_netconf_subsytem
+# ssh_execute_netconf_subsytem(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 Execute the NETCONF subsystem on the ssh channel
 
-The positional argument contains a valid SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The positional argument contains a valid SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 ## RETURN VALUE
 
@@ -28,4 +28,4 @@ Unable to execute netconf subsystem
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**

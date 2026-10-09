@@ -1,4 +1,4 @@
-# NTLMv2_HASH
+# NTLMv2_HASH(3nasl)
 
 ## NAME
 
@@ -24,4 +24,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[NTLMv1_HASH(3)](NTLMv1_HASH.md)**,
+**[NTLMv1_HASH(3nasl)](NTLMv1_HASH.md)**,

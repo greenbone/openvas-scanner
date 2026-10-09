@@ -1,4 +1,4 @@
-# file_read
+# file_read(3nasl)
 
 ## NAME
 
@@ -14,11 +14,11 @@
 
 This function is used to read data from a file.
 
-*fp* is an *int* parameter. It is the file descriptor for the file to read from. It is returned by **[file_open(3)](file_open.md)**.
+*fp* is an *int* parameter. It is the file descriptor for the file to read from. It is returned by **[file_open(3nasl)](file_open.md)**.
 
 *length* is an *int* parameter. It determines the length of the data to read from the file
 
-With the function **[file_seek(3)](file_seek.md)** an offset can be set from where to start reading the file.
+With the function **[file_seek(3nasl)](file_seek.md)** an offset can be set from where to start reading the file.
 
 ## RETURN VALUE
 
@@ -40,4 +40,4 @@ file_close(fd);
 
 ## SEE ALSO
 
-**[file_open(3)](file_open.md)**, **[file_seek(3)](file_seek.md)**
+**[file_open(3nasl)](file_open.md)**, **[file_seek(3nasl)](file_seek.md)**

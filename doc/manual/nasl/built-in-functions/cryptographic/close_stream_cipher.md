@@ -1,4 +1,4 @@
-# close_stream_cipher
+# close_stream_cipher(3nasl)
 
 ## NAME
 
@@ -22,4 +22,4 @@ Returns NULL when the handler given by the hd index was not found.
 
 ## SEE ALSO
 
-**[rc4_encrypt(3)](rc4_encrypt.md)**,
+**[rc4_encrypt(3nasl)](rc4_encrypt.md)**,

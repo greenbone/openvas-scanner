@@ -1,4 +1,4 @@
-# file_seek
+# file_seek(3nasl)
 
 ## Name
 
@@ -14,7 +14,7 @@
 
 This function takes a file descriptor and applies an offset for operations on the file.
 
-*fp* is an *int* parameter. It is the file descriptor for the file to read from. It is returned by **[file_open(3)](file_open.md)**.
+*fp* is an *int* parameter. It is the file descriptor for the file to read from. It is returned by **[file_open(3nasl)](file_open.md)**.
 
 *offset* is an *int* parameter. It determines the offset
 
@@ -30,4 +30,4 @@ unable to apply the offset, see **lseek(2)** for more information
 
 ## SEE ALSO
 
-**[file_open(3)](file_open.md)**
+**[file_open(3nasl)](file_open.md)**

@@ -1,4 +1,4 @@
-# krb5_gss_update_context_out
+# krb5_gss_update_context_out(3nasl)
 
 ## NAME
 

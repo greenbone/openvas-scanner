@@ -1,4 +1,4 @@
-# recv
+# recv(3nasl)
 
 ## NAME
 
@@ -35,4 +35,4 @@ display(data);
 
 ## SEE ALSO
 
-**[close(3)](close.md)**, **[open_sock_tcp(3)](open_sock_tcp.md)**, **[display(3)](../string-functions/display.md)**
+**[close(3nasl)](close.md)**, **[open_sock_tcp(3nasl)](open_sock_tcp.md)**, **[display(3nasl)](../string-functions/display.md)**

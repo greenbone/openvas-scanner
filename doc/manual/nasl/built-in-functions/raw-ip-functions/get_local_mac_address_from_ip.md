@@ -1,4 +1,4 @@
-# get_local_mac_address_from_ip
+# get_local_mac_address_from_ip(3nasl)
 
 ## NAME
 

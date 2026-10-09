@@ -1,4 +1,4 @@
-# get_tcp_element
+# get_tcp_element(3nasl)
 
 ## NAME
 
@@ -31,7 +31,7 @@ Valid IP elements to get are:
 - th_urp
 - data
 
-For more information of these fields look into **[forge_tcp_packet(3)](forge_tcp_packet.md)**.
+For more information of these fields look into **[forge_tcp_packet(3nasl)](forge_tcp_packet.md)**.
 
 ## RETURN VALUE
 
@@ -45,4 +45,4 @@ Returns an TCP element from a IP datagram.
 
 ## SEE ALSO
 
-**[forge_tcp_packet(3)](forge_tcp_packet.md)**
+**[forge_tcp_packet(3nasl)](forge_tcp_packet.md)**

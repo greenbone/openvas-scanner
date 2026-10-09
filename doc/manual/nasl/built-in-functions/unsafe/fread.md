@@ -1,4 +1,4 @@
-# fread
+# fread(3nasl)
 
 ## NAME
 
@@ -28,4 +28,4 @@ unable to read file, see *G_FILE_ERROR* for more information
 
 ## SEE ALSO
 
-**[fwrite(3)](fwrite.md)**
+**[fwrite(3nasl)](fwrite.md)**

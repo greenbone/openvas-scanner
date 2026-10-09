@@ -1,4 +1,4 @@
-# display
+# display(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function displays any number of NASL values. Internally it calls **[string(3)](string.md)** to concatenate them.
+This function displays any number of NASL values. Internally it calls **[string(3nasl)](string.md)** to concatenate them.
 
 ## RETURN VALUE
 

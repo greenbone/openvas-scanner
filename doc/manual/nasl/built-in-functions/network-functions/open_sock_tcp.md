@@ -1,4 +1,4 @@
-# open_sock_tcp
+# open_sock_tcp(3nasl)
 
 ## NAME
 
@@ -38,4 +38,4 @@ close(soc);
 
 ## SEE ALSO
 
-**[close(3)](close.md)**
+**[close(3nasl)](close.md)**

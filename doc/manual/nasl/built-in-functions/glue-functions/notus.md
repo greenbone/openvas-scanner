@@ -1,4 +1,4 @@
-# notus
+# notus(3nasl)
 
 ## NAME
 
@@ -16,10 +16,10 @@ This function takes the given information and starts a notus scan. Its arguments
 pkg_list: comma separated list of installed packages of the target system
 product: identifier for the notus scanner to get list of vulnerable packages
 
-In contrast to **[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**
+In contrast to **[update_table_driven_lsc_data(3nasl)](update_table_driven_lsc_data.md)**
 this function does not publish results by itself, but returns a json like structure,
 so information can be adjusted and must be published using
-**[security_notus(3)](../report-functions/security_notus.md)**. The json like format depends
+**[security_notus(3nasl)](../report-functions/security_notus.md)**. The json like format depends
 one the scanner that is used. There are currently 2 scanner types available: Notus and
 Skiron. Their response have different formats and also will be parsed differently. The
 format for Notus has the following structure:
@@ -67,10 +67,10 @@ The format for Skiron has the following structure:
 ```
 It is a list of dictionaries. Each dictionary has the key `oid` and `message`.
 
-To determine which format is used, the builtin function **[notus_type(3)](notus_type.md)** can be used.
+To determine which format is used, the builtin function **[notus_type(3nasl)](notus_type.md)** can be used.
 
 In case of an Error a NULL value is returned and an Error is set. The error can be gathered using the
-**[notus_error(3)](notus_error.md)** function, which yields the last occurred error.
+**[notus_error(3nasl)](notus_error.md)** function, which yields the last occurred error.
 
 ## RETURN VALUE
 
@@ -139,4 +139,4 @@ if (type == 0) {
 
 ## SEE ALSO
 
-**[update_table_driven_lsc_data(3)](update_table_driven_lsc_data.md)**, **[security_notus(3)](../report-functions/security_notus.md)**, **[notus_error(3)](notus_error.md)**, **[notus_type(3)](notus_type.md)**
+**[update_table_driven_lsc_data(3nasl)](update_table_driven_lsc_data.md)**, **[security_notus(3nasl)](../report-functions/security_notus.md)**, **[notus_error(3nasl)](notus_error.md)**, **[notus_type(3nasl)](notus_type.md)**

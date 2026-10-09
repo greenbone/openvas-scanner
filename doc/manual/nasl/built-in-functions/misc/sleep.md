@@ -1,4 +1,4 @@
-# sleep
+# sleep(3nasl)
 
 ## NAME
 
@@ -22,4 +22,4 @@ sleep(1);
 
 ## SEE ALSO
 
-**[usleep(3)](usleep.md)**,
+**[usleep(3nasl)](usleep.md)**,

@@ -1,4 +1,4 @@
-# hexstr
+# hexstr(3nasl)
 
 ## NAME
 

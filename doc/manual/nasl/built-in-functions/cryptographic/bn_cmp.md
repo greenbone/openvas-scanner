@@ -1,4 +1,4 @@
-# bn_cmp
+# bn_cmp(3nasl)
 
 ## NAME
 
@@ -20,4 +20,4 @@ Compares two big numbers given as Bytes interpreted in big endian.
 
 ## SEE ALSO
 
-**[bn_random(3)](bn_random.md)**,
+**[bn_random(3nasl)](bn_random.md)**,

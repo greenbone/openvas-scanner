@@ -1,4 +1,4 @@
-# send_arp_request
+# send_arp_request(3nasl)
 
 ## NAME
 

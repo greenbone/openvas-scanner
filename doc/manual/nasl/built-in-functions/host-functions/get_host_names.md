@@ -1,4 +1,4 @@
-# get_host_names
+# get_host_names(3nasl)
 
 ## NAME
 
@@ -20,4 +20,4 @@ An *array* containing all found hostnames as *string*. The return type is always
 
 ## SEE ALSO
 
-**[add_host_name(3)](add_host_name.md)**
+**[add_host_name(3nasl)](add_host_name.md)**

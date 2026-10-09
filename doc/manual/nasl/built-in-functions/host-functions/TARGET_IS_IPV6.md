@@ -1,4 +1,4 @@
-# TARGET_IS_IPV6
+# TARGET_IS_IPV6(3nasl)
 
 ## NAME
 

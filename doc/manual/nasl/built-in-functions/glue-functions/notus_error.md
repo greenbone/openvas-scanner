@@ -1,4 +1,4 @@
-# notus_error
+# notus_error(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-This function yields the last occurred error produced by the **[notus(3)](notus.md)** function.
+This function yields the last occurred error produced by the **[notus(3nasl)](notus.md)** function.
 
 ## RETURN VALUE
 
@@ -35,4 +35,4 @@ if (!ret)
 
 ## SEE ALSO
 
-**[notus(3)](notus.md)**
+**[notus(3nasl)](notus.md)**

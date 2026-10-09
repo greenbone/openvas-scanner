@@ -1,4 +1,4 @@
-# resolve_hostname_to_multiple_ips
+# resolve_hostname_to_multiple_ips(3nasl)
 
 ## NAME
 

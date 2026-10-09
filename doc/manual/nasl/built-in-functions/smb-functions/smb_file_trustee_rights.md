@@ -1,4 +1,4 @@
-# smb_file_trustee_rights
+# smb_file_trustee_rights(3nasl)
 
 ## NAME
 
@@ -17,7 +17,7 @@ For more information see:
 - access masks: [https://learn.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks]
 - trustees SID: [https://learn.microsoft.com/en-us/windows/win32/secauthz/trustees]
 
-The named argument *smb_handle* is an *int* representing a connection to a SMB service. This connection can be opened with the **[smb_connect(3)](smb_connect.md)** functions.
+The named argument *smb_handle* is an *int* representing a connection to a SMB service. This connection can be opened with the **[smb_connect(3nasl)](smb_connect.md)** functions.
 
 The named argument *filename* is a *string* containing the filename to get the permissions from.
 
@@ -33,4 +33,4 @@ File does not exist.
 
 ## SEE ALSO
 
-**[smb_connect(3)](smb_connect.md)**
+**[smb_connect(3nasl)](smb_connect.md)**

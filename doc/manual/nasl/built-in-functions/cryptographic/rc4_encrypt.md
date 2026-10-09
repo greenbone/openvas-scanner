@@ -1,4 +1,4 @@
-# rc4_encrypt
+# rc4_encrypt(3nasl)
 
 ## NAME
 
@@ -31,5 +31,5 @@ Returns NULL when there is no handler or no key and iv is provided.
 
 ## SEE ALSO
 
-**[close_stream_cipher(3)](close_stream_cipher.md)**,
-**[open_rc4_cipher(3)](open_rc4_cipher.md)**,
+**[close_stream_cipher(3nasl)](close_stream_cipher.md)**,
+**[open_rc4_cipher(3nasl)](open_rc4_cipher.md)**,

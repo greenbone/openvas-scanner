@@ -1,4 +1,4 @@
-# ssh_get_server_banner
+# ssh_get_server_banner(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 This is usually the first data sent by the SSH server.
 
-The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3)](ssh_connect.md)**.
+The first positional argument contains the SSH session ID as *int* returned by **[ssh_connect(3nasl)](ssh_connect.md)**.
 
 ## RETURN VALUE
 
@@ -22,4 +22,4 @@ The SSH server banner as *string* or *NULL* on an invalid SSH session ID.
 
 ## SEE ALSO
 
-**[ssh_connect(3)](ssh_connect.md)**, **[ssh_get_issue_banner(3)](ssh_get_issue_banner.md)**
+**[ssh_connect(3nasl)](ssh_connect.md)**, **[ssh_get_issue_banner(3nasl)](ssh_get_issue_banner.md)**

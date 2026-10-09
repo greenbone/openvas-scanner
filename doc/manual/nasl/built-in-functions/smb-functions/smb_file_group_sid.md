@@ -1,4 +1,4 @@
-# smb_file_group_sid
+# smb_file_group_sid(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 This function checks the group SID of a specified file.
 
-The named argument *smb_handle* is an *int* representing a connection to a SMB service. This connection can be opened with the **[smb_connect(3)](smb_connect.md)** functions.
+The named argument *smb_handle* is an *int* representing a connection to a SMB service. This connection can be opened with the **[smb_connect(3nasl)](smb_connect.md)** functions.
 
 The named argument *filename* is a *string* containing the filename.
 
@@ -30,4 +30,4 @@ File does not exist.
 
 ## SEE ALSO
 
-**[smb_connect(3)](smb_connect.md)**
+**[smb_connect(3nasl)](smb_connect.md)**

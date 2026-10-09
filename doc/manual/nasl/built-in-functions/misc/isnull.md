@@ -1,4 +1,4 @@
-# isnull
+# isnull(3nasl)
 
 ## NAME
 

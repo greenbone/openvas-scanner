@@ -1,4 +1,4 @@
-# plugin_run_openvas_tcp_scanner
+# plugin_run_openvas_tcp_scanner(3nasl)
 
 ## NAME
 

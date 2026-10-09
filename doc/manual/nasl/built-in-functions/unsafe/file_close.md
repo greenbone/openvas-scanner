@@ -1,4 +1,4 @@
-# file_close
+# file_close(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 This function is used to close an opened file descriptor.
 
-The first positional argument contains the file descriptor as an *int* returned by **[file_open(3)](file_open.md)**.
+The first positional argument contains the file descriptor as an *int* returned by **[file_open(3nasl)](file_open.md)**.
 
 ## RETURN VALUE
 
@@ -28,4 +28,4 @@ closing the file descriptor failed
 
 ## SEE ALSO
 
-**[file_open(3)](file_open.md)**
+**[file_open(3nasl)](file_open.md)**

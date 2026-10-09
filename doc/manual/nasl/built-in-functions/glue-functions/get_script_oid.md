@@ -1,4 +1,4 @@
-# get_script_oid
+# get_script_oid(3nasl)
 
 ## NAME
 

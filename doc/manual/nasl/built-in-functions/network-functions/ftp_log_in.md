@@ -1,4 +1,4 @@
-# ftp_log_in
+# ftp_log_in(3nasl)
 
 ## NAME
 
@@ -34,4 +34,4 @@ ftp_log_in(socket: soc, user: "foo", pass: "bar");
 
 ## SEE ALSO
 
-**[open_sock_tcp(3)](open_sock_tcp.md)**
+**[open_sock_tcp(3nasl)](open_sock_tcp.md)**

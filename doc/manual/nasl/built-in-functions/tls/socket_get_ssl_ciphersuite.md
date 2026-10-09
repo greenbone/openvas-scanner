@@ -1,4 +1,4 @@
-# socket_get_ssl_ciphersuite
+# socket_get_ssl_ciphersuite(3nasl)
 
 ## NAME
 
