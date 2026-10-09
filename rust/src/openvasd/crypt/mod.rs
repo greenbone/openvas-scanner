@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use async_trait::async_trait;
 use std::fmt::Display;
 
@@ -8,6 +9,8 @@ use sqlx::Sqlite;
 
 use v1::V1Crypter;
 use v2::V2Crypter;
+
+use crate::{config::Config, database::sqlite::DataBase};
 
 mod v1;
 mod v2;
@@ -35,6 +38,25 @@ impl Crypter {
             v1: V1Crypter::new(keyphrase)?,
             v2: V2Crypter::new(keyphrase, salt)?,
         })
+    }
+
+    pub async fn from_config(config: &Config, pool: &DataBase) -> anyhow::Result<Crypter> {
+        // fallback keyphrase and salt in case they are not set in the config
+        //
+        // WARNING: the fallback does not create any security and purely functions acts as a way to
+        // be able to use a single logic for the storage. The security is the same as storing the data
+        // unencrypted
+        let keyphrase = config.storage.credential_key().unwrap_or_else(|| {
+            // actually they are encrypted but with a static fallback passphrase which is essentially the
+            // same but this wording carries more weight.
+            tracing::warn!(
+                "WARNING: no credential_key set. Credentials will be stored unencrypted."
+            );
+            "insecure_key"
+        });
+
+        let salt = get_salt(pool).await?;
+        Crypter::new(keyphrase.as_bytes(), &salt)
     }
 }
 

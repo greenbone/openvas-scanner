@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use sqlx::SqlitePool;
 
 use crate::database::dao::DAOHandler;
@@ -41,7 +45,8 @@ mod tests {
     use sqlx::{SqlitePool, query, query_scalar};
 
     use crate::{
-        container_image_scanner::{MIGRATOR, config::DBLocation, scheduling::db::scan::DBScan},
+        config::DBLocation,
+        container_image_scanner::{MIGRATOR, scheduling::db::scan::DBScan},
         database::dao::RetryExec,
     };
 

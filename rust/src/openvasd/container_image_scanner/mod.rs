@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 pub mod config;
 mod detection;
 mod image;
@@ -25,10 +29,8 @@ pub async fn init(
     products: Arc<tokio::sync::RwLock<Notus>>,
     config: Config,
 ) -> anyhow::Result<ScannerBridge> {
-    let pool = config
-        .database
-        .create_pool("container-image-scanner")
-        .await?;
+    let pool =
+        crate::database::sqlite::create_pool(&config.database, "container-image-scanner").await?;
     MIGRATOR.run(&pool).await?;
 
     let scheduler = Scheduler::init(config.into(), pool.clone(), products);
@@ -46,9 +48,9 @@ pub mod scans_utils {
 
     use crate::{
         api::states::ScannerBridge,
+        config::DBLocation,
         container_image_scanner::{
             Config, MIGRATOR,
-            config::DBLocation,
             image::{DockerRegistryV2Mock, RegistryPreference},
             scheduling::{Scheduler, db::DataBase},
         },
