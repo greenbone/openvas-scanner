@@ -6,7 +6,7 @@ openvas - The Scanner of the Greenbone Vulnerability Management
 
 ## SYNOPSIS
 
-**openvas** \[-V\] \[-h\] \[-c _config-file_\] \[\--scan-start _scan-uuid_\] \[-u\] \[-s\] \[-y\]
+**openvas** \[**-V**\] \[**-h**\] \[**-c** _config-file_\] \[\**--scan-start** _scan-uuid_\] \[**-u**\] \[**-s**\] \[**-y**\]
 
 ## DESCRIPTION
 
