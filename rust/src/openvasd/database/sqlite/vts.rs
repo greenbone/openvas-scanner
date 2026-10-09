@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::path::PathBuf;
 
 use crate::vts::FeedHashes;
@@ -250,7 +254,7 @@ mod tests {
 
     use futures_util::StreamExt;
 
-    use crate::setup_sqlite;
+    use crate::database::sqlite;
 
     use super::*;
 
@@ -276,7 +280,7 @@ mod tests {
             notus,
             ..Default::default()
         };
-        let pool = setup_sqlite(&config).await?;
+        let pool = sqlite::init(&config).await?;
 
         Ok((config, pool))
     }

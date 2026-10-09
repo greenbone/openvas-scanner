@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 //! Scanner HTTP REST API.
 //!
 //! This module contains all logic required to run an `axum` based HTTP API and communicate with the
