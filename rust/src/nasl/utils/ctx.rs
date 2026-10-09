@@ -236,9 +236,24 @@ impl CtxTarget {
 }
 
 #[async_trait]
+pub trait MtimeCheck: Sync + Send {
+    /// Checks whether vt script file mtime is newer than the mtime recorded in the storage
+    /// It doesn't apply for redis storage.
+    async fn check_mtime(&self, _filename: &Path) -> Result<(), String>;
+}
+
+#[async_trait]
+impl<T: MtimeCheck> MtimeCheck for Arc<T> {
+    async fn check_mtime(&self, filename: &Path) -> Result<(), String> {
+        (**self).check_mtime(filename).await
+    }
+}
+
+#[async_trait]
 pub trait ContextStorage:
     Sync
     + Send
+    + MtimeCheck
     // kb
     + Dispatcher<KbContextKey, Item = KbItem>
     + Retriever<KbContextKey, Item = Vec<KbItem>>
@@ -260,12 +275,12 @@ pub trait ContextStorage:
         self.remove(&key).await?;
         self.dispatch(key, item).await
     }
-
 }
 
 impl<T> ContextStorage for T where
     T: Sync
         + Send
+        + MtimeCheck
         // kb
         + Dispatcher<KbContextKey, Item = KbItem>
         + Retriever<KbContextKey, Item = Vec<KbItem>>

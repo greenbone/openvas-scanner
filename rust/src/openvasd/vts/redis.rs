@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, task::Poll, time::UNIX_EPOCH};
+use std::{path::PathBuf, task::Poll};
 
 use crate::api::stream::StreamResult;
 use futures::Stream;
@@ -308,22 +308,11 @@ impl PluginStorer for RedisPluginHandler {
                                 // if the verification was successful, we calculate now the mtime
                                 // otherwise we avoid to store it
                                 let hashsum: String = plugin.hashsum().into();
-                                let mtime = if !hashsum.is_empty() {
-                                    let mut file = feed_path;
-                                    file.push(vt.filename.clone());
-                                    fs::metadata(&file)
-                                        .unwrap_or_else(|_| {
-                                            panic!("File Metadata {:?}", file.to_string_lossy())
-                                        })
-                                        .modified()
-                                        .expect("File mtime not supported")
-                                        .duration_since(UNIX_EPOCH)
-                                        .expect("invalid duration for mtime")
-                                        .as_secs()
-                                        .to_string()
-                                } else {
-                                    String::new()
-                                };
+                                let mtime = super::mtime::compute_mtime(
+                                    &feed_path.clone().join(&vt.filename),
+                                    Some(&hashsum),
+                                )?
+                                .to_string();
                                 rctx.redis_add_nvt(vt, mtime, hashsum)
                             }
                         }

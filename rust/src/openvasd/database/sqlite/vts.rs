@@ -20,6 +20,7 @@ use crate::config::Config;
 use crate::vts::FeedHash;
 use crate::vts::PluginFetcher;
 use crate::vts::PluginStorer;
+use crate::vts::mtime::{MtimeCheckError, compute_mtime};
 use crate::vts::orchestrator;
 use crate::vts::orchestrator::WorkerError;
 
@@ -34,11 +35,19 @@ pub struct FeedSynchronizer {
 #[derive(Debug, Clone)]
 pub struct SqlPluginStorage {
     pool: SqlitePool,
+    // Feed path necessary for checking the file mtime when signature is enabled
+    feed_root: PathBuf,
+    // Mtime is stored and later checked only if signature check is enabled.
+    signature_check: bool,
 }
 
-impl From<SqlitePool> for SqlPluginStorage {
-    fn from(value: SqlitePool) -> Self {
-        SqlPluginStorage { pool: value }
+impl SqlPluginStorage {
+    pub fn with_plugin_feed(pool: SqlitePool, feed_root: PathBuf, signature_check: bool) -> Self {
+        SqlPluginStorage {
+            pool,
+            feed_root,
+            signature_check,
+        }
     }
 }
 
@@ -74,7 +83,7 @@ impl PluginFetcher for SqlPluginStorage {
         Box::pin(result)
     }
 }
-// TODO: verify before loading the plugin
+
 impl PluginStorer for SqlPluginStorage {
     fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
         let pending = crate::vts::pending_hash(hash);
@@ -87,14 +96,26 @@ impl PluginStorer for SqlPluginStorage {
     {
         let pool = self.pool.clone();
         let typus = hash.typus;
+        let plugin_feed = self.feed_root.clone();
         Box::pin(async move {
+            let hashsum: String = plugin.hashsum().into();
+            let mtime = match (typus, plugin.vulnerability_test()) {
+                (FeedType::NASL, Some(vt)) => {
+                    compute_mtime(&plugin_feed.join(&vt.filename), Some(&hashsum))?
+                }
+                _ => 0,
+            };
             let json = serde_json::to_vec(&plugin)?;
-            query(r#" INSERT INTO plugins ( oid, json_blob, feed_type) VALUES (?, ?, ?)"#)
-                .bind(plugin.oid())
-                .bind(&json)
-                .bind(typus.as_ref())
-                .execute(&pool)
-                .await?;
+            query(
+                r#" INSERT INTO plugins ( oid, json_blob, feed_type, hashsum, mtime) VALUES (?, ?, ?, ?, ?)"#,
+            )
+            .bind(plugin.oid())
+            .bind(&json)
+            .bind(typus.as_ref())
+            .bind(hashsum)
+            .bind(mtime)
+            .execute(&pool)
+            .await?;
 
             Ok(())
         })
@@ -117,6 +138,41 @@ impl PluginStorer for SqlPluginStorage {
             .await?;
             Ok(())
         })
+    }
+}
+
+impl SqlPluginStorage {
+    // Check that the file mtime is not newer than the value stored.
+    pub async fn check_mtime(&self, filename: &str) -> Result<(), MtimeCheckError> {
+        if !self.signature_check {
+            return Ok(());
+        }
+
+        let row =
+            query("SELECT mtime FROM plugins WHERE json_extract(json_blob, '$.filename') = ?")
+                .bind(filename)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| MtimeCheckError::Io(filename.to_string(), e.to_string()))?;
+
+        let stored_mtime = row
+            .as_ref()
+            .map(|r| r.get::<i64, _>("mtime"))
+            .filter(|s| *s != 0)
+            .ok_or_else(|| MtimeCheckError::NotFound(filename.to_string()))?;
+
+        let filename = self.feed_root.join(filename);
+        let current_mtime = compute_mtime(&self.feed_root.join(&filename), None)?;
+
+        if current_mtime > stored_mtime {
+            return Err(MtimeCheckError::Modified {
+                file: filename.clone().into_string().unwrap(),
+                stored: stored_mtime,
+                current: current_mtime,
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -235,7 +291,11 @@ impl FeedSynchronizer {
             plugin_feed: config.feed.path.clone(),
             advisory_feed: config.notus.advisories_path.clone(),
             signature_check: config.feed.signature_check,
-            plugin_storer: SqlPluginStorage { pool },
+            plugin_storer: SqlPluginStorage {
+                pool,
+                feed_root: config.feed.path.clone(),
+                signature_check: config.feed.signature_check,
+            },
         }
     }
 }
@@ -253,6 +313,16 @@ mod tests {
     use crate::setup_sqlite;
 
     use super::*;
+
+    impl From<SqlitePool> for SqlPluginStorage {
+        fn from(value: SqlitePool) -> Self {
+            SqlPluginStorage {
+                pool: value,
+                feed_root: PathBuf::new(),
+                signature_check: false,
+            }
+        }
+    }
 
     async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
