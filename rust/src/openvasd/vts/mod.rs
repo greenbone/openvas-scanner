@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::BufReader;
@@ -117,11 +121,8 @@ where
 }
 
 /// Initializes endpoints, spawns background task for feed verification.
-pub async fn init(
-    pool: DataBase,
-    config: &Config,
-    snapshot: Arc<RwLock<FeedState>>,
-) -> (orchestrator::Communicator, Feed) {
+pub async fn init(pool: DataBase, config: &Config) -> (orchestrator::Communicator, Feed) {
+    let snapshot = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
     match config.scanner.scanner_type {
         ScannerType::Openvas => {
             let socket = get_redis_socket().await;
