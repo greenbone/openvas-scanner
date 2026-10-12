@@ -548,6 +548,62 @@ async fn container_image_scan_registry_subrepository() {
     scan.delete().await;
 }
 
+#[tokio::test]
+#[ignore = "requires docker-v2-registry/test.bash"]
+async fn container_image_scan_docker_v2_subrepository() {
+    const SUBREPOSITORY: &str = "openvas-subrepository";
+    const IMAGES: &[&str] = &[
+        "openvas-subrepository/image-a:latest",
+        "openvas-subrepository/image-a:v1",
+        "openvas-subrepository/nested/image-b:latest",
+    ];
+
+    let registry_address = std::env::var("OPENVAS_TEST_DOCKER_V2_REGISTRY")
+        .expect("run docker-v2-registry/test.bash to provide a live registry");
+    let expected_images = IMAGES
+        .iter()
+        .map(|image| format!("oci://{registry_address}/{image}"))
+        .collect::<BTreeSet<_>>();
+
+    let t = Test::new("container_image_scan_docker_v2_subrepository")
+        .config("notus")
+        .await;
+    let scan = Scan {
+        scan_id: "container-image-docker-v2-subrepository".into(),
+        target: Target {
+            hosts: vec![format!("oci://{registry_address}/{SUBREPOSITORY}")],
+            ..Default::default()
+        },
+        scan_preferences: vec![("registry_allow_insecure", "true").into()],
+        ..Default::default()
+    };
+
+    let scan = t.create_container_image_scan(scan).await;
+    scan.start().await;
+    let status = scan
+        .wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(60)))
+        .await
+        .body::<Status>();
+    let host_info = status
+        .host_info
+        .as_ref()
+        .expect("successful scan should include host information");
+    let expected_image_count = expected_images.len() as u64;
+    assert_eq!(host_info.all, expected_image_count);
+    assert_eq!(host_info.finished, expected_image_count);
+    assert_eq!(host_info.dead, 0);
+
+    let discovered_images = scan
+        .get_results()
+        .await
+        .body::<Vec<models::Result>>()
+        .iter()
+        .filter_map(|result| result.hostname.clone())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(discovered_images, expected_images);
+    scan.delete().await;
+}
+
 // This tests against a specific bug in which
 // a streamed response would own its own database
 // connection, which led to problems if only a single
