@@ -648,10 +648,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::{
         crypt::Crypter,
-        scans::{
-            self,
-            tests::{create_pool, prepare_scans},
-        },
+        scans::tests::{create_pool, prepare_scans},
     };
 
     async fn setup_test_env()
@@ -671,7 +668,7 @@ pub(crate) mod tests {
     ) -> anyhow::Result<(ScanScheduler<scanner::TestScanner, Crypter>, Vec<i64>)> {
         let (config, pool) = create_pool().await?;
         let scanner = Arc::new(builder.build());
-        let cryptor = Arc::new(scans::config_to_crypt(&config, &pool).await?);
+        let cryptor = Arc::new(Crypter::from_config(&config, &pool).await?);
 
         let change_scan_status = ScanStateController::init(pool.clone()).await?;
         let under_test = ScanScheduler {

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use std::sync::Arc;
 
 use crate::api::states::ScannerBridge;
@@ -6,29 +10,12 @@ use crate::database::sqlite::DataBase;
 use crate::{config::Config, crypt::Crypter, vts::orchestrator};
 pub(crate) mod scheduling;
 
-pub(crate) async fn config_to_crypt(config: &Config, pool: &DataBase) -> anyhow::Result<Crypter> {
-    // fallback keyphrase and salt in case they are not set in the config
-    //
-    // WARNING: the fallback does not create any security and purely functions acts as a way to
-    // be able to use a single logic for the storage. The security is the same as storing the data
-    // unencrypted
-    let keyphrase = config.storage.credential_key().unwrap_or_else(|| {
-        // actually they are encrypted but with a static fallback passphrase which is essentially the
-        // same but this wording carries more weight.
-        tracing::warn!("WARNING: no credential_key set. Credentials will be stored unencrypted.");
-        "insecure_key"
-    });
-
-    let salt = crate::crypt::get_salt(pool).await?;
-    Crypter::new(keyphrase.as_bytes(), &salt)
-}
-
 pub async fn init(
     pool: DataBase,
     config: &Config,
     feed_status: orchestrator::Communicator,
 ) -> anyhow::Result<ScannerBridge> {
-    let crypter = Arc::new(config_to_crypt(config, &pool).await?);
+    let crypter = Arc::new(Crypter::from_config(config, &pool).await?);
     let scheduler = scheduling::init(pool.clone(), crypter.clone(), config, feed_status).await?;
     Ok(ScannerBridge::new(pool, Some(crypter), Some(scheduler)))
 }
@@ -51,8 +38,8 @@ pub mod tests {
     use tower::ServiceExt;
 
     use crate::api::{error::ApiError, routes};
-    use crate::database::{dao::Execute, sqlite::scans::ScanDB};
-    use crate::{config::Config, scans::config_to_crypt};
+    use crate::config::Config;
+    use crate::database::{dao::Execute, sqlite, sqlite::scans::ScanDB};
 
     async fn init(pool: SqlitePool, config: &Config) -> anyhow::Result<ScannerBridge> {
         let ignored = Default::default();
@@ -310,7 +297,7 @@ pub mod tests {
             ..Default::default()
         };
 
-        let pool = crate::setup_sqlite(&config).await?;
+        let pool = sqlite::init(&config).await?;
 
         Ok((config, pool))
     }
@@ -318,7 +305,7 @@ pub mod tests {
     pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
         let client_id = "moep".to_string();
         let scans = generate_scan();
-        let crypter = config_to_crypt(config, &pool).await.unwrap();
+        let crypter = Crypter::from_config(config, &pool).await.unwrap();
         for scan in scans {
             ScanDB::new(&pool, (&crypter, &client_id as &str, &scan))
                 .exec()
@@ -436,7 +423,7 @@ pub mod tests {
     async fn get_scan_id_status() -> anyhow::Result<()> {
         let (config, pool) = create_pool().await?;
 
-        let crypter = Arc::new(config_to_crypt(&config, &pool).await?);
+        let crypter = Arc::new(Crypter::from_config(&config, &pool).await?);
         let (_, _, communicator) = orchestrator::Communicator::init();
         let scheduler = scheduling::init_with_scanner(
             pool.clone(),
