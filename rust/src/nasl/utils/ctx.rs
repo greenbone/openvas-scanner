@@ -306,6 +306,25 @@ impl ArenaIndex for TargetId {
     }
 }
 
+// This shared is for keeping the borrow for tests, feed update
+// and scannerctl, but shares objects ownership and can be moved into
+// tokio::spawn
+pub enum Shared<'a, T: ?Sized> {
+    Borrowed(&'a T),
+    Owned(Arc<T>),
+}
+
+impl<T: ?Sized> std::ops::Deref for Shared<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        match self {
+            Shared::Borrowed(x) => x,
+            Shared::Owned(x) => x,
+        }
+    }
+}
+
 /// NASL execution context.
 pub struct ScanCtx<'a> {
     /// The key for this context.
@@ -313,12 +332,14 @@ pub struct ScanCtx<'a> {
     /// Targets against which the scan is run.
     targets: CtxTargets,
     /// Storage
-    storage: &'a dyn ContextStorage,
+    storage: Shared<'a, dyn ContextStorage + 'a>,
     /// Loader
-    loader: &'a Loader,
+    loader: Shared<'a, Loader>,
     /// Function executor.
-    executor: &'a Executor,
-    sockets: RwLock<NaslSockets>,
+    executor: Shared<'a, Executor>,
+    /// Socket state is per target and indexed by TargetId, so that
+    /// hosts scanned in parallel don't share the lock
+    sockets: Vec<RwLock<NaslSockets>>,
     /// Scanner preferences
     pub scan_preferences: ScanPrefs,
     /// Alive test methods
@@ -327,8 +348,37 @@ pub struct ScanCtx<'a> {
     pub notus: Option<NotusCtx>,
 }
 
+impl ScanCtx<'static> {
+    // the context shares ownership of its
+    // storage, loader and executor, so it does not borrow from anything
+    // and can be moved into `tokio::spawn`ed tasks.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_shared(
+        scan: ScanID,
+        targets: CtxTargets,
+        storage: Arc<dyn ContextStorage>,
+        loader: Arc<Loader>,
+        executor: Arc<Executor>,
+        scan_preferences: ScanPrefs,
+        alive_test_methods: Vec<AliveTestMethods>,
+        notus: Option<NotusCtx>,
+    ) -> Self {
+        Self::from_parts(
+            scan,
+            targets,
+            Shared::Owned(storage),
+            Shared::Owned(loader),
+            Shared::Owned(executor),
+            scan_preferences,
+            alive_test_methods,
+            notus,
+        )
+    }
+}
+
 impl<'a> ScanCtx<'a> {
     #[allow(clippy::too_many_arguments)]
+    // the context borrows its storage, loader and executor
     pub fn new(
         scan: ScanID,
         targets: CtxTargets,
@@ -339,8 +389,39 @@ impl<'a> ScanCtx<'a> {
         alive_test_methods: Vec<AliveTestMethods>,
         notus: Option<NotusCtx>,
     ) -> Self {
-        let mut sockets = NaslSockets::default();
-        sockets.with_recv_timeout(scan_preferences.get_preference_int("checks_read_timeout"));
+        Self::from_parts(
+            scan,
+            targets,
+            Shared::Borrowed(storage),
+            Shared::Borrowed(loader),
+            Shared::Borrowed(executor),
+            scan_preferences,
+            alive_test_methods,
+            notus,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn from_parts(
+        scan: ScanID,
+        targets: CtxTargets,
+        storage: Shared<'a, dyn ContextStorage + 'a>,
+        loader: Shared<'a, Loader>,
+        executor: Shared<'a, Executor>,
+        scan_preferences: ScanPrefs,
+        alive_test_methods: Vec<AliveTestMethods>,
+        notus: Option<NotusCtx>,
+    ) -> Self {
+        let recv_timeout = scan_preferences.get_preference_int("checks_read_timeout");
+        // At least one entry, so contexts without targets (e.g. in tests)
+        // still have socket state for `TargetId(0)`.
+        let sockets = (0..targets.iter().count().max(1))
+            .map(|_| {
+                let mut sockets = NaslSockets::default();
+                sockets.with_recv_timeout(recv_timeout);
+                RwLock::new(sockets)
+            })
+            .collect();
 
         Self {
             scan,
@@ -348,7 +429,7 @@ impl<'a> ScanCtx<'a> {
             storage,
             loader,
             executor,
-            sockets: RwLock::new(sockets),
+            sockets,
             scan_preferences,
             alive_test_methods,
             notus,
@@ -392,12 +473,12 @@ impl<'a> ScanCtx<'a> {
 
     /// Get the storage
     pub fn storage(&self) -> &dyn ContextStorage {
-        self.storage
+        &*self.storage
     }
 
     /// Get the loader
     pub fn loader(&self) -> &Loader {
-        self.loader
+        &*self.loader
     }
 
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {
@@ -413,12 +494,18 @@ impl<'a> ScanCtx<'a> {
         pref_is_true(prefs, key)
     }
 
-    pub async fn read_sockets(&self) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
-        self.sockets.read().await
+    pub async fn read_sockets(
+        &self,
+        target: TargetId,
+    ) -> tokio::sync::RwLockReadGuard<'_, NaslSockets> {
+        self.sockets[target.to_index()].read().await
     }
 
-    pub async fn write_sockets(&self) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
-        self.sockets.write().await
+    pub async fn write_sockets(
+        &self,
+        target: TargetId,
+    ) -> tokio::sync::RwLockWriteGuard<'_, NaslSockets> {
+        self.sockets[target.to_index()].write().await
     }
 
     pub(crate) fn add_fn_global_vars(&self, register: &mut Register) {
@@ -468,6 +555,10 @@ impl<'a> ScriptCtx<'a> {
             target_id,
             vt,
         }
+    }
+
+    pub(crate) fn target_id(&self) -> TargetId {
+        self.target_id
     }
 
     pub(crate) fn target(&self) -> &CtxTarget {
