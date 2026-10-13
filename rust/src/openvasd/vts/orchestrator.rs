@@ -4,10 +4,11 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 
 use scannerlib::models::{FeedState, FeedType};
+use scannerlib::nasl::utils::mtime;
 use scannerlib::{Promise, feed};
 use tokio::sync::mpsc;
 
-use crate::vts::{FeedHashes, mtime};
+use crate::vts::FeedHashes;
 
 pub type Allow = FeedType;
 

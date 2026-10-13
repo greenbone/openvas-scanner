@@ -6,6 +6,7 @@
 
 use crate::models::{AliveTestMethods, Port, Protocol, ScanPreference};
 use crate::nasl::utils::indexed_arena::{ArenaIndex, IndexedArena};
+use crate::nasl::utils::mtime::MtimeCheck;
 use async_trait::async_trait;
 use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
@@ -232,20 +233,6 @@ impl CtxTarget {
 
     pub fn configured_tcp_ports(&self) -> Vec<u16> {
         self.ports_tcp.iter().cloned().collect()
-    }
-}
-
-#[async_trait]
-pub trait MtimeCheck: Sync + Send {
-    /// Checks whether vt script file mtime is newer than the mtime recorded in the storage
-    /// It doesn't apply for redis storage.
-    async fn check_mtime(&self, _filename: &Path) -> Result<(), String>;
-}
-
-#[async_trait]
-impl<T: MtimeCheck> MtimeCheck for Arc<T> {
-    async fn check_mtime(&self, filename: &Path) -> Result<(), String> {
-        (**self).check_mtime(filename).await
     }
 }
 

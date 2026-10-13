@@ -25,7 +25,6 @@ use walkdir::WalkDir;
 
 use crate::api::{states::Feed, stream::StreamResult};
 use crate::config::Config;
-pub mod mtime;
 pub mod orchestrator;
 pub mod redis;
 use crate::database::sqlite::DataBase;

@@ -1,5 +1,7 @@
+use async_trait::async_trait;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
 /// Error returned by [`SqlPluginStorage::check_mtime`].
@@ -9,19 +11,19 @@ pub enum MtimeCheckError {
     /// disabled during the feed sync, or the file is not part of the feed at all).
     #[error("No stored mtime for file {0}")]
     NotFound(String),
-    /// The file's on-disk mtime is newer than the mtime recorded when its hashsum was last
-    /// verified, meaning it was modified since and can no longer be considered verified.
-    #[error(
-        "File {file} was modified since its hashsum was last verified (stored mtime {stored}, current mtime {current})"
-    )]
+    /// The file's metadata could not be read from disk.
+    #[error("Could not read metadata of file {0}: {1}")]
+    Io(String, String),
+}
+
+/// Mtime return type. UpToDate is also expected when the signature check is disabled.
+pub enum MtimeStatus {
+    UpToDate,
     Modified {
         file: String,
         stored: i64,
         current: i64,
     },
-    /// The file's metadata could not be read from disk.
-    #[error("Could not read metadata of file {0}: {1}")]
-    Io(String, String),
 }
 
 /// Computes the mtime (seconds since epoch) of a `.nasl`/`.inc` file within a feed directory.
@@ -30,10 +32,7 @@ pub enum MtimeCheckError {
 /// verified so that a complete signature check is not required on every single load. If
 /// `hashsum` is empty (e.g. signature checking is disabled or the verification failed) there
 /// is nothing worth caching and an empty string is returned instead.
-pub(crate) fn compute_mtime(
-    filename: &PathBuf,
-    hashsum: Option<&str>,
-) -> Result<i64, MtimeCheckError> {
+pub fn compute_mtime(filename: &PathBuf, hashsum: Option<&str>) -> Result<i64, MtimeCheckError> {
     if let Some(hashsum) = hashsum
         && hashsum.is_empty()
     {
@@ -46,4 +45,18 @@ pub(crate) fn compute_mtime(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| MtimeCheckError::Io(filename.clone().into_string().unwrap(), e.to_string()))?
         .as_secs() as i64) // safe to convert UNIX_EPOCH duration to i64
+}
+
+#[async_trait]
+pub trait MtimeCheck: Sync + Send {
+    /// Checks whether vt script file mtime is newer than the mtime recorded in the storage
+    /// It doesn't apply for redis storage.
+    async fn check_mtime(&self, _filename: &Path) -> Result<MtimeStatus, String>;
+}
+
+#[async_trait]
+impl<T: MtimeCheck> MtimeCheck for Arc<T> {
+    async fn check_mtime(&self, filename: &Path) -> Result<MtimeStatus, String> {
+        (**self).check_mtime(filename).await
+    }
 }

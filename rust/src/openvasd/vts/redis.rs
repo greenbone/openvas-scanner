@@ -4,6 +4,7 @@ use crate::api::stream::StreamResult;
 use futures::Stream;
 use scannerlib::{
     models::{FeedType, VTData},
+    nasl::utils::mtime,
     storage::redis::{CACHE_KEY, DbError, NOTUS_KEY, RedisCtx},
 };
 
@@ -308,7 +309,7 @@ impl PluginStorer for RedisPluginHandler {
                                 // if the verification was successful, we calculate now the mtime
                                 // otherwise we avoid to store it
                                 let hashsum: String = plugin.hashsum().into();
-                                let mtime = super::mtime::compute_mtime(
+                                let mtime = mtime::compute_mtime(
                                     &feed_path.clone().join(&vt.filename),
                                     Some(&hashsum),
                                 )?

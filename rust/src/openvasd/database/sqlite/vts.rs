@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Greenbone AG
+// Spdx-FileCopyrightText: 2026 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use scannerlib::Promise;
 use scannerlib::models::{FeedType, VTData};
+use scannerlib::nasl::utils::mtime::{MtimeCheckError, MtimeStatus, compute_mtime};
 use scannerlib::notus::advisories::VulnerabilityData;
 use scannerlib::storage::Retriever;
 use scannerlib::storage::error::StorageError;
@@ -24,7 +25,7 @@ use crate::config::Config;
 use crate::vts::FeedHash;
 use crate::vts::PluginFetcher;
 use crate::vts::PluginStorer;
-use crate::vts::mtime::{MtimeCheckError, compute_mtime};
+
 use crate::vts::orchestrator;
 use crate::vts::orchestrator::WorkerError;
 
@@ -147,9 +148,9 @@ impl PluginStorer for SqlPluginStorage {
 
 impl SqlPluginStorage {
     // Check that the file mtime is not newer than the value stored.
-    pub async fn check_mtime(&self, filename: &str) -> Result<(), MtimeCheckError> {
+    pub async fn check_mtime(&self, filename: &str) -> Result<MtimeStatus, MtimeCheckError> {
         if !self.signature_check {
-            return Ok(());
+            return Ok(MtimeStatus::UpToDate);
         }
 
         let row =
@@ -169,14 +170,14 @@ impl SqlPluginStorage {
         let current_mtime = compute_mtime(&self.feed_root.join(&filename), None)?;
 
         if current_mtime > stored_mtime {
-            return Err(MtimeCheckError::Modified {
+            return Ok(MtimeStatus::Modified {
                 file: filename.clone().into_string().unwrap(),
                 stored: stored_mtime,
                 current: current_mtime,
             });
         }
 
-        Ok(())
+        Ok(MtimeStatus::UpToDate)
     }
 }
 

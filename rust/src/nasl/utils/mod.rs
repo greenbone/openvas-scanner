@@ -146,6 +146,7 @@ pub mod function;
 pub mod hosts;
 pub mod indexed_arena;
 pub mod lookup_keys;
+pub mod mtime;
 
 pub use super::interpreter::Register;
 pub use ctx::ScanCtx;

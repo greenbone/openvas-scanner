@@ -10,7 +10,7 @@ use sqlx::SqlitePool;
 
 use scannerlib::{
     models::VTData,
-    nasl::utils::ctx::MtimeCheck,
+    nasl::utils::mtime::{MtimeCheck, MtimeStatus},
     scheduling::SchedulerStorage,
     storage::{
         Dispatcher, Remover, Retriever, ScanID,
@@ -50,7 +50,7 @@ impl ScanStorage {
 
 #[async_trait]
 impl MtimeCheck for ScanStorage {
-    async fn check_mtime(&self, filename: &Path) -> Result<(), String> {
+    async fn check_mtime(&self, filename: &Path) -> Result<MtimeStatus, String> {
         self.vts
             .check_mtime(&filename.to_string_lossy())
             .await
