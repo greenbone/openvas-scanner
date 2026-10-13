@@ -28,7 +28,7 @@ impl client::Handler for Client {
     #[allow(clippy::manual_async_fn)]
     fn check_server_key(
         &mut self,
-        _server_public_key: &russh::keys::PublicKey,
+        _server_public_key: &russh::keys::PublicKeyOrCertificate,
     ) -> impl Future<Output = Result<bool, Self::Error>> + Send {
         async { Ok(true) }
     }
