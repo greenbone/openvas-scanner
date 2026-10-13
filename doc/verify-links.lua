@@ -30,7 +30,7 @@ function Link (el)
             el.content))
    end
    local target
-   anchoridx = el.target:find("#", 1, true)
+   local anchoridx = el.target:find("#", 1, true)
    if anchoridx then
       target = el.target:sub(1, anchoridx - 1)
    else
