@@ -25,6 +25,10 @@ xformman() {
         exit 65
     fi
     read -r name section < <(printf "%s\n" "${namesection}")
+    if ! [[ -v sectionheadbysection["${section}"] ]]; then
+        printf "Unexpected section in name/section header of %s: %s\n" "${sourcepath}" "${section}" >&2
+        exit 65
+    fi
     sectionhead="${sectionheadbysection[${section}]}"
 
     sourcefilestem="$(basename -- "${sourcepath}" .md)"
