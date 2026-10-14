@@ -629,7 +629,7 @@ where
                 .url
                 .clone()
                 .map(scannerlib::nasl::utils::ctx::NotusCtx::Address);
-            let storage = ScanStorage::with_plugin_feed(
+            let storage = ScanStorage::new(
                 pool.clone(),
                 config.feed.path.clone(),
                 config.feed.signature_check,

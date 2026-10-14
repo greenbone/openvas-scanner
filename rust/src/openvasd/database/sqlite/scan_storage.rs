@@ -27,20 +27,15 @@ use scannerlib::{
 use super::vts::SqlPluginStorage;
 
 #[derive(Clone)]
+/// ScanStorage is no only for accessing the database but also for
+/// performing the feed integrity check during running scans
 pub struct ScanStorage {
     vts: SqlPluginStorage,
     memory: Arc<InMemoryStorage>,
 }
 
 impl ScanStorage {
-    /// Creates a `ScanStorage` that resolves on-disk VT file mtimes relative to `plugin_feed`
-    /// (the directory the NASL feed is loaded from), so that [`MtimeCheck::check_mtime`] can
-    /// detect files that were modified since their hashsum was last verified.
-    ///
-    /// `signature_check` must match the feed's configured signature checking setting: mtimes
-    /// are only ever recorded while signature checking is enabled, so the check is only
-    /// meaningful (and only performed) in that case.
-    pub fn with_plugin_feed(pool: SqlitePool, plugin_feed: PathBuf, signature_check: bool) -> Self {
+    pub fn new(pool: SqlitePool, plugin_feed: PathBuf, signature_check: bool) -> Self {
         Self {
             vts: SqlPluginStorage::with_plugin_feed(pool, plugin_feed, signature_check),
             memory: Arc::new(InMemoryStorage::new()),
