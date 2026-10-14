@@ -3,7 +3,7 @@ use tokio::process::Command;
 
 use axum::{
     Json, Router,
-    extract::Query,
+    extract::{Query, State},
     response::IntoResponse,
     routing::{get, head},
 };
@@ -15,14 +15,26 @@ use crate::api::error::ApiError;
 const PERFORMANCE_TITLES: &str = r"(cpu-.*)|(proc)|(mem)|(swap)|(load)|(df-.*)|(disk-sd[a-z][0-9]-rw)|(disk-sd[a-z][0-9]-load)|(disk-sd[a-z][0-9]-io-load)|(interface-eth.*-traffic)|(interface-eth.*-err-rate)|(interface-eth.*-err)|(sensors-.*_temperature-.*)|(sensors-.*_fanspeed-.*)|(sensors-.*_voltage-.*)|(titles)";
 const PERFORMANCE_TITLES_FORBIDDEN: &str = r"^[^|&;]+$";
 
+#[derive(Debug, Clone)]
+struct RegState {
+    titles: Regex,
+    forbidden: Regex,
+}
+
 /// Access point for `/performance` prefixed route.
 pub fn router() -> Router {
+    let state = RegState {
+        titles: Regex::new(PERFORMANCE_TITLES).unwrap(),
+        forbidden: Regex::new(PERFORMANCE_TITLES_FORBIDDEN).unwrap(),
+    };
+
     Router::new()
         .route("/", head(()))
         .route("/alive", get(()))
         .route("/ready", get(()))
         .route("/started", get(()))
         .route("/performance", get(get_performance))
+        .with_state(state)
 }
 
 /// URL query parameter for `/health/performance`
@@ -42,12 +54,13 @@ struct Titles {
 /// ## Errors
 /// * 400: Bad Bogus request
 /// * 500: Command not found or invalid permission
-async fn get_performance(Query(query): Query<Titles>) -> Result<impl IntoResponse, ApiError> {
+async fn get_performance(
+    Query(query): Query<Titles>,
+    State(state): State<RegState>,
+) -> Result<impl IntoResponse, ApiError> {
     let mut child = Command::new("gvmcg");
-    let re_titles = Regex::new(PERFORMANCE_TITLES).unwrap();
-    let re_forbidden = Regex::new(PERFORMANCE_TITLES_FORBIDDEN).unwrap();
 
-    if !re_titles.is_match(&query.titles) || !re_forbidden.is_match(&query.titles) {
+    if !state.titles.is_match(&query.titles) || !state.forbidden.is_match(&query.titles) {
         return Err(ApiError::InvalidInput(
             "Bogus GET performance format. Argument not allowed".to_string(),
         ));
