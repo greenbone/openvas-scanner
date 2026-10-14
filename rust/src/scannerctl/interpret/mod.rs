@@ -46,7 +46,7 @@ async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> 
                 .retrieve(&Oid(script.to_string_lossy().to_string()))
                 .await?
             {
-                Some(vt) => Ok(ctx.loader().load(Path::new(&vt.filename))?),
+                Some(vt) => Ok(ctx.loader().load(Path::new(&vt.filename))?.into_contents()),
                 _ => Err(LoadError::not_found(script).into()),
             }
         }
