@@ -548,6 +548,54 @@ async fn container_image_scan_registry_subrepository() {
     scan.delete().await;
 }
 
+#[tokio::test]
+#[ignore = "requires docker-v2-registry/test.bash"]
+async fn container_image_scan_docker_v2_subrepository() {
+    let registry_address = std::env::var("OPENVAS_TEST_DOCKER_V2_REGISTRY")
+        .expect("run docker-v2-registry/test.bash to provide a live registry");
+
+    let t = Test::new("container_image_scan_docker_v2_subrepository")
+        .config("notus")
+        .await;
+    let scan = Scan {
+        scan_id: "container-image-docker-v2-subrepository".into(),
+        target: Target {
+            hosts: vec![format!("oci://{registry_address}/openvas-subrepository")],
+            credentials: vec![models::Credential {
+                service: models::Service::Generic,
+                port: None,
+                credential_type: models::CredentialType::UP {
+                    username: "openvas-test".into(),
+                    password: "openvas-test".into(),
+                    privilege: None,
+                },
+            }],
+            ..Default::default()
+        },
+        scan_preferences: vec![("registry_allow_insecure", "true").into()],
+        ..Default::default()
+    };
+
+    let scan = t.create_container_image_scan(scan).await;
+    scan.start().await;
+    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(30)))
+        .await;
+    let images = scan
+        .get_results()
+        .await
+        .body::<Vec<models::Result>>()
+        .iter()
+        .filter_map(|result| result.hostname.clone())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        images,
+        BTreeSet::from([format!(
+            "oci://{registry_address}/openvas-subrepository/image:latest"
+        )])
+    );
+    scan.delete().await;
+}
+
 // This tests against a specific bug in which
 // a streamed response would own its own database
 // connection, which led to problems if only a single
