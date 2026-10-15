@@ -3,17 +3,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use std::collections::VecDeque;
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::models::HostInfo;
 use crate::nasl::ScanCtx;
 use crate::nasl::utils::ctx::TargetId;
+use crate::nasl::utils::mtime::MtimeStatus;
 use futures::{Stream, stream};
 use tokio::sync::mpsc::Receiver;
 
 use crate::scheduling::{ConcurrentVT, ConcurrentVTResult, VTError};
 
-use super::error::{ExecuteError, ScriptResult};
+use super::error::{ExecuteError, ScriptResult, ScriptResultKind};
 use super::vt_runner::VTRunner;
 
 #[derive(Debug, Clone)]
@@ -96,8 +98,42 @@ impl<'a> ScanRunner<'a> {
                     if let Some(pos) = queue.pop_front() {
                         let (stage, vts) = &concurrent_vts[pos.stage];
                         let (vt, param) = &vts[pos.vt];
-                        let result =
-                            VTRunner::run(pos.target, vt, *stage, param.as_ref(), scan_ctx).await;
+                        let result = match scan_ctx
+                            .storage()
+                            .check_mtime(Path::new(&vt.filename))
+                            .await
+                        {
+                            Ok(MtimeStatus::UpToDate) => {
+                                VTRunner::run(pos.target, vt, *stage, param.as_ref(), scan_ctx)
+                                    .await
+                            }
+                            Ok(MtimeStatus::Modified {
+                                file,
+                                stored,
+                                current,
+                            }) => Ok(ScriptResult {
+                                oid: vt.oid.clone(),
+                                filename: vt.filename.clone(),
+                                stage: *stage,
+                                kind: ScriptResultKind::MtimeCheckFailed(format!(
+                                    "The VT {file} has been modified since it has mtime {current} newer than the stored {stored}"
+                                )),
+                                target: scan_ctx
+                                    .target_by_id(pos.target)
+                                    .original_target_str()
+                                    .into(),
+                            }),
+                            Err(reason) => Ok(ScriptResult {
+                                oid: vt.oid.clone(),
+                                filename: vt.filename.clone(),
+                                stage: *stage,
+                                kind: ScriptResultKind::MtimeCheckFailed(reason),
+                                target: scan_ctx
+                                    .target_by_id(pos.target)
+                                    .original_target_str()
+                                    .into(),
+                            }),
+                        };
                         return Some((result, (host_feed, queue)));
                     }
                 }

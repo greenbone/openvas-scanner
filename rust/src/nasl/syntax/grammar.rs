@@ -198,7 +198,7 @@ pub struct If {
     pub else_branch: Option<Block<Statement>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct IncludeString(String);
 
 // This is not the most beautiful place for such impls
@@ -223,6 +223,12 @@ impl IncludeString {
 impl std::fmt::Display for IncludeString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl AsRef<Path> for IncludeString {
+    fn as_ref(&self) -> &Path {
+        Path::new(&self.0)
     }
 }
 

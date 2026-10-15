@@ -5,18 +5,21 @@
 //! This module contains traits and implementations for scheduling a scan.
 mod wave;
 
-use std::{collections::HashMap, fmt::Display, sync::Arc};
-
-use crate::storage::{
-    Retriever,
-    error::StorageError,
-    inmemory::InMemoryStorage,
-    items::nvt::{ACT, FileName, Oid},
-    redis::RedisStorage,
+use crate::{
+    nasl::utils::mtime::MtimeStatus,
+    storage::{
+        Retriever,
+        error::StorageError,
+        inmemory::InMemoryStorage,
+        items::nvt::{ACT, FileName, Oid},
+        redis::RedisStorage,
+    },
 };
+use async_trait::async_trait;
+use std::{collections::HashMap, fmt::Display, path::Path, sync::Arc};
 
 use crate::models::{Parameter, VT, VTData};
-
+use crate::nasl::utils::mtime::MtimeCheck;
 use thiserror::Error;
 
 use wave::WaveExecutionPlan;
@@ -99,6 +102,21 @@ pub trait SchedulerStorage:
 impl SchedulerStorage for InMemoryStorage {}
 impl SchedulerStorage for RedisStorage {}
 impl<T: SchedulerStorage> SchedulerStorage for Arc<T> where Arc<T>: Sync {}
+
+// TODO: implement MtimeCheck trait for InMemoryStorage ??
+#[async_trait]
+impl MtimeCheck for InMemoryStorage {
+    async fn check_mtime(&self, _filename: &Path) -> Result<MtimeStatus, String> {
+        Ok(MtimeStatus::UpToDate)
+    }
+}
+// Redis storage doesn't requires, since the mtime check is performed by openvas-scanner
+#[async_trait]
+impl MtimeCheck for RedisStorage {
+    async fn check_mtime(&self, _filename: &Path) -> Result<MtimeStatus, String> {
+        Ok(MtimeStatus::UpToDate)
+    }
+}
 
 pub struct Scheduler<S> {
     storage: S,

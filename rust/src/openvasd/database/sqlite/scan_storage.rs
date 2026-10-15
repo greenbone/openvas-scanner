@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -9,6 +10,7 @@ use sqlx::SqlitePool;
 
 use scannerlib::{
     models::VTData,
+    nasl::utils::mtime::{MtimeCheck, MtimeStatus},
     scheduling::SchedulerStorage,
     storage::{
         Dispatcher, Remover, Retriever, ScanID,
@@ -25,17 +27,29 @@ use scannerlib::{
 use super::vts::SqlPluginStorage;
 
 #[derive(Clone)]
+/// ScanStorage is no only for accessing the database but also for
+/// performing the feed integrity check during running scans
 pub struct ScanStorage {
     vts: SqlPluginStorage,
     memory: Arc<InMemoryStorage>,
 }
 
 impl ScanStorage {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: SqlitePool, plugin_feed: PathBuf, signature_check: bool) -> Self {
         Self {
-            vts: SqlPluginStorage::from(pool),
+            vts: SqlPluginStorage::with_plugin_feed(pool, plugin_feed, signature_check),
             memory: Arc::new(InMemoryStorage::new()),
         }
+    }
+}
+
+#[async_trait]
+impl MtimeCheck for ScanStorage {
+    async fn check_mtime(&self, filename: &Path) -> Result<MtimeStatus, String> {
+        self.vts
+            .check_mtime(&filename.to_string_lossy())
+            .await
+            .map_err(|e| e.to_string())
     }
 }
 

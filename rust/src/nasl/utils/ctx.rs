@@ -6,6 +6,7 @@
 
 use crate::models::{AliveTestMethods, Port, Protocol, ScanPreference};
 use crate::nasl::utils::indexed_arena::{ArenaIndex, IndexedArena};
+use crate::nasl::utils::mtime::MtimeCheck;
 use async_trait::async_trait;
 use rand::seq::IndexedRandom;
 use tokio::sync::RwLock;
@@ -239,6 +240,7 @@ impl CtxTarget {
 pub trait ContextStorage:
     Sync
     + Send
+    + MtimeCheck
     // kb
     + Dispatcher<KbContextKey, Item = KbItem>
     + Retriever<KbContextKey, Item = Vec<KbItem>>
@@ -260,12 +262,12 @@ pub trait ContextStorage:
         self.remove(&key).await?;
         self.dispatch(key, item).await
     }
-
 }
 
 impl<T> ContextStorage for T where
     T: Sync
         + Send
+        + MtimeCheck
         // kb
         + Dispatcher<KbContextKey, Item = KbItem>
         + Retriever<KbContextKey, Item = Vec<KbItem>>
