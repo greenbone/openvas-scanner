@@ -132,12 +132,12 @@ pub struct Loader {
 }
 
 #[derive(Clone, Debug)]
-pub struct LoadedFile {
+pub struct NaslFile {
     path: PathBuf,
     contents: String,
 }
 
-impl LoadedFile {
+impl NaslFile {
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -186,12 +186,18 @@ impl Loader {
         }
     }
 
-    pub fn load(&self, file: impl AsRef<Path>) -> Result<LoadedFile, LoadError> {
+    /// Load a NASL source file
+    pub fn load_nasl(&self, file: impl AsRef<Path>) -> Result<NaslFile, LoadError> {
         let path = file.as_ref();
-        Ok(LoadedFile {
+        Ok(NaslFile {
             path: path.to_owned(),
             contents: self.loader.load(path)?,
         })
+    }
+
+    /// Load a non-NASL feed file as text
+    pub fn load_file(&self, file: impl AsRef<Path>) -> Result<String, LoadError> {
+        self.loader.load(file.as_ref())
     }
 
     /// Resolve the `include(include_name)` statement from `including_file`,
@@ -200,7 +206,7 @@ impl Loader {
         &self,
         including_file: impl AsRef<Path>,
         include_name: &IncludeString,
-    ) -> Result<LoadedFile, LoadError> {
+    ) -> Result<NaslFile, LoadError> {
         self.load_include_path(including_file, include_name.as_path())
     }
 
@@ -208,7 +214,7 @@ impl Loader {
         &self,
         including_file: impl AsRef<Path>,
         include_name: impl AsRef<Path>,
-    ) -> Result<LoadedFile, LoadError> {
+    ) -> Result<NaslFile, LoadError> {
         // Includes are weirdly defined - we first look at
         // a file in the same directory and use it if it
         // exists, otherwise we check from the feed root
@@ -218,11 +224,11 @@ impl Loader {
             .parent()
             .unwrap_or(Path::new(""))
             .join(include_name);
-        match self.load(&in_same_directory) {
+        match self.load_nasl(&in_same_directory) {
             Err(err)
                 if err.kind() == &LoadErrorKind::NotFound && in_same_directory != include_name =>
             {
-                self.load(include_name)
+                self.load_nasl(include_name)
             }
             result => result,
         }

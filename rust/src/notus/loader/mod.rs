@@ -77,7 +77,7 @@ impl ProductLoader {
             file_item.verify().map_err(Error::HashsumLoadError)?;
         }
 
-        let file = self.loader.load(file_name.as_path()).map_err(|e| {
+        let file = self.loader.load_file(file_name.as_path()).map_err(|e| {
             if matches!(e.kind(), LoadErrorKind::NotFound | LoadErrorKind::NotAFile) {
                 Error::UnknownProduct(os.to_string())
             } else {
@@ -85,7 +85,7 @@ impl ProductLoader {
             }
         })?;
 
-        match serde_json::from_str(file.contents()) {
+        match serde_json::from_str(&file) {
             Ok(adv) => Ok(adv),
             Err(err) => Err(Error::JSONParseError(os.to_string(), err)),
         }
@@ -160,13 +160,13 @@ impl<'a> HashsumAdvisoryLoader<NoVerifier<'a>> {
     ) -> Result<ProductsAdvisoriesContainer, Error> {
         let entry = entry.map_err(Error::HashsumLoadError)?;
         let filename = entry.get_filename();
-        let file = self.loader.load(&filename).map_err(|e| {
+        let file = self.loader.load_file(&filename).map_err(|e| {
             Error::LoadProductError(
                 filename.to_string_lossy().into_owned(),
                 LoadProductErrorKind::LoadError(e),
             )
         })?;
-        match serde_json::from_str(file.contents()) {
+        match serde_json::from_str(&file) {
             Ok(advisories) => Ok(ProductsAdvisoriesContainer {
                 filename,
                 advisories,
@@ -197,13 +197,13 @@ impl<'a> HashsumAdvisoryLoader<HashSumNameLoader<'a>> {
         let entry = entry.map_err(Error::HashsumLoadError)?;
         entry.verify().map_err(Error::HashsumLoadError)?;
         let filename = entry.get_filename();
-        let file = self.loader.load(&filename).map_err(|e| {
+        let file = self.loader.load_file(&filename).map_err(|e| {
             Error::LoadProductError(
                 filename.to_string_lossy().into_owned(),
                 LoadProductErrorKind::LoadError(e),
             )
         })?;
-        match serde_json::from_str(file.contents()) {
+        match serde_json::from_str(&file) {
             Ok(advisories) => Ok(ProductsAdvisoriesContainer {
                 filename,
                 advisories,

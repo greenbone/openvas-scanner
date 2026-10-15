@@ -1,7 +1,7 @@
 use std::{fmt::Formatter, path::Path, vec};
 
 use super::{
-    LoadError, LoadedFile, Loader,
+    LoadError, Loader, NaslFile,
     parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind},
     traversal::{ExprIterator, StmtIterator},
 };
@@ -215,7 +215,7 @@ impl IncludeString {
         &self,
         loader: &Loader,
         including_file: impl AsRef<Path>,
-    ) -> Result<LoadedFile, LoadError> {
+    ) -> Result<NaslFile, LoadError> {
         loader.load_include(including_file, self)
     }
 }

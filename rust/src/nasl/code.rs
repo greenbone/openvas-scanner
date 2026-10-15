@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    LoadedFile, Loader,
+    Loader, NaslFile,
     syntax::{DescriptionBlock, LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
@@ -79,8 +79,8 @@ pub struct Code {
     path: Option<PathBuf>,
 }
 
-impl From<LoadedFile> for Code {
-    fn from(file: LoadedFile) -> Self {
+impl From<NaslFile> for Code {
+    fn from(file: NaslFile) -> Self {
         let (path, code) = file.parts();
         Self {
             code,
@@ -91,7 +91,7 @@ impl From<LoadedFile> for Code {
 
 impl Code {
     pub fn load(loader: &Loader, path: impl AsRef<Path>) -> Result<Self, LoadError> {
-        loader.load(path).map(Self::from)
+        loader.load_nasl(path).map(Self::from)
     }
 
     #[cfg(test)]
