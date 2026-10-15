@@ -94,7 +94,8 @@ impl Code {
         loader.load(path).map(Self::from)
     }
 
-    pub fn from_string(code: &str) -> Self {
+    #[cfg(test)]
+    pub(crate) fn from_string(code: &str) -> Self {
         Self {
             path: None,
             code: code.to_string(),
@@ -142,7 +143,7 @@ impl Code {
         )
     }
 
-    pub fn parse_description_block(self) -> ParseResult {
+    pub(crate) fn parse_description_block(self) -> ParseResult {
         let path = self.path.unwrap_or(Path::new("").to_owned());
         ParseResult::new_with_parse_fn(&self.code, &path, parse_description_block)
     }

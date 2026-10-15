@@ -1,3 +1,4 @@
+#[cfg(test)]
 use futures::{Stream, stream};
 
 #[cfg(test)]
@@ -33,7 +34,8 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         }
     }
 
-    pub fn stream(self) -> impl Stream<Item = Result> + use<'ctx> {
+    #[cfg(test)]
+    pub(crate) fn stream(self) -> impl Stream<Item = Result> + use<'ctx> {
         Box::pin(stream::unfold(self, |mut s| async move {
             s.next().await.map(|x| (x, s))
         }))
