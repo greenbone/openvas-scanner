@@ -12,7 +12,7 @@ use codespan_reporting::diagnostic::{Diagnostic, Label};
 use ctx::{Cache, CachedFile, LintCtx};
 use lints::{Lint, LintMsg, all_lints};
 use scannerlib::nasl::{
-    Code, Loader, SourceFile,
+    FileId, Loader, NaslFile,
     error::{IntoDiagnostic, emit_errors},
     syntax::{
         LoadError, ParseError,
@@ -42,7 +42,7 @@ struct Linter {
 }
 
 struct LintMsgs {
-    file: SourceFile,
+    file: FileId,
     msgs: Vec<LintMsg>,
 }
 
@@ -70,11 +70,15 @@ impl Linter {
     }
 
     fn lint_file(&mut self, rel_path: &Path) -> Result<LintMsgs, LoadError> {
-        let code = self.load(rel_path)?;
-        let file = code.file();
-        let ast = match self.parse_file(code) {
+        let file = self.loader.load_nasl(rel_path)?;
+        let ast = match self.parse_file(file) {
             Ok(ast) => ast,
-            Err(msgs) => return Ok(LintMsgs { file, msgs }),
+            Err(msgs) => {
+                return Ok(LintMsgs {
+                    file: file.id(),
+                    msgs,
+                });
+            }
         };
         let msgs = if self.only_syntax {
             vec![]
@@ -87,14 +91,13 @@ impl Linter {
                         // TODO report multiple errors here if multiple files
                         // cannot be found.
                         return Ok(LintMsgs {
-                            file,
+                            file: file.id(),
                             msgs: vec![make_load_error_msg(include)],
                         });
                     }
                 };
-                let include_path = loaded.path().to_owned();
-                let code = Code::from(loaded);
-                match self.parse_file(code) {
+                let include_path = loaded.source().path().to_owned();
+                match self.parse_file(loaded) {
                     Ok(ast) => {
                         self.cache.insert(&include_path, CachedFile::new(&ast));
                     }
@@ -108,12 +111,14 @@ impl Linter {
             let ctx = LintCtx::new(&ast, &mut self.cache);
             self.lints.iter().flat_map(|lint| lint.lint(&ctx)).collect()
         };
-        Ok(LintMsgs { file, msgs })
+        Ok(LintMsgs {
+            file: file.id(),
+            msgs,
+        })
     }
 
-    fn parse_file(&self, code: Code) -> Result<Ast, Vec<LintMsg>> {
-        let parsed = code.parse();
-        let result = parsed.result();
+    fn parse_file(&self, file: NaslFile<'_>) -> Result<Ast, Vec<LintMsg>> {
+        let result = file.parse().result();
         result.map_err(|e| {
             e.into_iter()
                 .map(ParseError::into_diagnostic)
@@ -122,14 +127,11 @@ impl Linter {
         })
     }
 
-    fn load(&mut self, rel_path: &Path) -> Result<Code, LoadError> {
-        Code::load(&self.loader, rel_path)
-    }
-
     fn handle_msgs(&mut self, msgs: LintMsgs) {
         self.stats.errors += msgs.msgs.len();
         if !self.quiet {
-            emit_errors(&msgs.file, msgs.msgs.into_iter());
+            let sources = self.loader.source_files();
+            emit_errors(sources.get(msgs.file).unwrap(), msgs.msgs.into_iter());
         }
     }
 }

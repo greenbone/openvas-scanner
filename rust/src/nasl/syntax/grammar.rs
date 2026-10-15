@@ -1,11 +1,12 @@
 use std::{fmt::Formatter, path::Path, vec};
 
 use super::{
-    LoadError, Loader, NaslFile,
+    LoadError, Loader,
     parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind},
     traversal::{ExprIterator, StmtIterator},
 };
 use crate::nasl::{
+    NaslFile,
     error::{Span, Spanned},
     syntax::token::{Ident, Literal, TokenKind},
 };
@@ -211,11 +212,11 @@ impl IncludeString {
         Path::new(&self.0)
     }
 
-    pub fn load(
+    pub fn load<'a>(
         &self,
-        loader: &Loader,
+        loader: &'a Loader,
         including_file: impl AsRef<Path>,
-    ) -> Result<NaslFile, LoadError> {
+    ) -> Result<NaslFile<'a>, LoadError> {
         loader.load_include(including_file, self)
     }
 }
@@ -223,12 +224,6 @@ impl IncludeString {
 impl std::fmt::Display for IncludeString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl AsRef<Path> for IncludeString {
-    fn as_ref(&self) -> &Path {
-        Path::new(&self.0)
     }
 }
 

@@ -14,7 +14,6 @@ mod tests;
 use std::collections::{HashMap, VecDeque};
 
 use crate::nasl::{
-    Code,
     error::Span,
     syntax::{
         Ident,
@@ -534,16 +533,15 @@ impl<'ctx> Interpreter<'ctx> {
 
     async fn resolve_include(&mut self, include: &Include) -> Result {
         let loader = self.scan_ctx.loader();
-        let loaded = include
+        let file = include
             .path
             .load(loader, &self.script_ctx.vt().filename)
             .map_err(|e| ErrorKind::LoadError(e).with_span(&include.span))?;
-        let filename = loaded.path().to_string_lossy().into_owned();
-        let code = Code::from(loaded).parse();
-        let file = code.file().clone();
-        let ast = code
+        let filename = file.source().path().to_string_lossy().into_owned();
+        let ast = file
+            .parse()
             .result()
-            .map_err(|errs| Error::include_syntax_error(errs, file))?;
+            .map_err(|errs| Error::include_syntax_error(errs, file.source().clone()))?;
         let mut script_ctx = self.script_ctx.clone_shallow();
         script_ctx.vt_mut().filename = filename;
         let mut inter =

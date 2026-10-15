@@ -1,9 +1,7 @@
 use std::fmt::Debug;
 
-use codespan_reporting::files::SimpleFile;
-
 use crate::nasl::{
-    Code,
+    SourceFile,
     error::{self, emit_errors},
     syntax::{
         Tokenizer,
@@ -13,25 +11,20 @@ use crate::nasl::{
 
 use super::{super::grammar::Statement, Parse, Parser, error::SpannedError};
 
-// TODO incorporate into `Code` eventually.
-fn parse<T: Parse>(file_name: &str, code: &str) -> Result<T, SpannedError> {
-    let code = Code::from_string_filename(code, file_name)
-        .code()
-        .to_string();
-    let tokenizer = Tokenizer::tokenize(&code);
+// TODO incorporate into `NaslFile` eventually.
+fn parse<T: Parse>(code: &str) -> Result<T, SpannedError> {
+    let tokenizer = Tokenizer::tokenize(code);
     Parser::new(tokenizer)
         .parse_span::<T>()
         .map_err(|e| e.unwrap_as_spanned())
 }
 
 fn parse_program_ok(file_name: &str, code: &str) -> Vec<Statement> {
-    let code = Code::from_string_filename(code, file_name);
-    let code_str = code.code().to_string();
-    let tokens = Tokenizer::tokenize(&code_str);
+    let tokens = Tokenizer::tokenize(code);
     let results = Parser::new(tokens).parse_program();
     match results {
         Err(errs) => {
-            let file = SimpleFile::new(file_name.to_string(), code_str);
+            let file = SourceFile::new(file_name, code.to_owned());
             emit_errors(&file, errs.into_iter());
             panic!("Errors during parsing");
         }
@@ -40,24 +33,21 @@ fn parse_program_ok(file_name: &str, code: &str) -> Vec<Statement> {
 }
 
 fn parse_program_err(file_name: &str, code: &str) -> String {
-    let code = Code::from_string_filename(code, file_name)
-        .code()
-        .to_string();
-    let tokens = Tokenizer::tokenize(&code);
+    let tokens = Tokenizer::tokenize(code);
     error::emit_errors_str(
-        &SimpleFile::new(file_name.to_string(), code.to_string()),
+        &SourceFile::new(file_name, code.to_string()),
         Parser::new(tokens).parse_program().unwrap_err().into_iter(),
     )
 }
 
-fn parse_ok<T: Parse>(file_name: &str, code: &str) -> T {
-    parse::<T>(file_name, code).unwrap()
+fn parse_ok<T: Parse>(_file_name: &str, code: &str) -> T {
+    parse::<T>(code).unwrap()
 }
 
 fn parse_err<T: Parse + Debug>(file_name: &str, code: &str) -> String {
     error::emit_errors_str(
-        &SimpleFile::new(file_name.to_string(), code.to_string()),
-        vec![parse::<T>(file_name, code).unwrap_err()].into_iter(),
+        &SourceFile::new(file_name, code.to_string()),
+        vec![parse::<T>(code).unwrap_err()].into_iter(),
     )
 }
 

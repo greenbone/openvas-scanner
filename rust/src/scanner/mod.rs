@@ -49,7 +49,7 @@ use running_scan::{RunningScan, RunningScanHandle};
 pub struct OpenvasdScanner<S> {
     running: Arc<RwLock<HashMap<String, RunningScanHandle>>>,
     storage: Arc<S>,
-    loader: Arc<Loader>,
+    loader: RwLock<Loader>,
     function_executor: Arc<Executor>,
     notus: Option<NotusCtx>,
 }
@@ -62,7 +62,7 @@ where
         Self {
             running: Arc::new(RwLock::new(HashMap::default())),
             storage: Arc::new(storage),
-            loader: Arc::new(loader),
+            loader: RwLock::new(loader),
             function_executor: Arc::new(executor),
             notus,
         }
@@ -70,7 +70,7 @@ where
 
     async fn start_scan_internal(&self, scan: Scan) -> Result<(), Error> {
         let storage = self.storage.clone();
-        let loader = self.loader.clone();
+        let loader = Arc::new(self.loader.read().await.clone());
         let function_executor = self.function_executor.clone();
         let id = scan.scan_id.clone();
         let handle =
@@ -88,6 +88,10 @@ where
 {
     fn scanner_type(&self) -> scanner_types::ScannerType {
         scanner_types::ScannerType::Openvasd
+    }
+
+    async fn feed_updated(&self) {
+        self.loader.write().await.reset();
     }
 
     async fn start_scan(&self, scan: models::Scan) -> Result<(), Error> {
@@ -145,5 +149,35 @@ where
             status,
             results,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{nasl::nasl_std_executor, storage::inmemory::InMemoryStorage};
+
+    #[tokio::test]
+    async fn feed_update_resets_cached_sources_and_parses() {
+        let feed = tempfile::tempdir().unwrap();
+        let path = feed.path().join("main.nasl");
+        std::fs::write(&path, "broken(").unwrap();
+        let scanner = OpenvasdScanner::new(
+            Arc::new(InMemoryStorage::new()),
+            Loader::from_feed_path(feed.path()),
+            nasl_std_executor(),
+            None,
+        );
+        let previous = scanner.loader.read().await.clone();
+        let file = previous.load_nasl("main.nasl").unwrap();
+        assert!(file.parse().result().is_err());
+
+        std::fs::write(&path, "exit(0);").unwrap();
+        scanner.feed_updated().await;
+        let loader = scanner.loader.read().await;
+        let updated = loader.load_nasl("main.nasl").unwrap();
+        assert_eq!(updated.source().source(), "exit(0);");
+        assert!(updated.parse().result().is_ok());
+        assert!(file.parse().result().is_err());
     }
 }

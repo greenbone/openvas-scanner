@@ -7,7 +7,7 @@ use codespan_reporting::term::termcolor::Buffer;
 use codespan_reporting::term::termcolor::ColorChoice;
 use codespan_reporting::term::termcolor::StandardStream;
 
-use super::code::SourceFile;
+use super::SourceFile;
 use super::syntax::CharIndex;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

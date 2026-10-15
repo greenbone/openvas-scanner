@@ -8,14 +8,15 @@ use std::{
     fs::{self, File},
     io::{self, BufRead},
     path::{Path, PathBuf},
+    sync::{Arc, RwLock, RwLockReadGuard},
 };
 
-#[cfg(test)]
 use std::collections::HashMap;
 
 use thiserror::Error;
 
 use super::grammar::IncludeString;
+use crate::nasl::source::{NaslFile, SourceFiles};
 
 /// Defines abstract Loader error cases
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
@@ -126,33 +127,11 @@ trait NaslLoader: Sync + Send + NaslLoaderClone {
     fn as_bufreader(&self, path: &Path) -> Result<Box<dyn BufRead>, LoadError>;
 }
 
+/// Clones share a cached snapshot of each loaded NASL source.
 #[derive(Clone)]
 pub struct Loader {
     loader: Box<dyn NaslLoader>,
-}
-
-#[derive(Clone, Debug)]
-pub struct NaslFile {
-    path: PathBuf,
-    contents: String,
-}
-
-impl NaslFile {
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    pub fn contents(&self) -> &str {
-        &self.contents
-    }
-
-    pub fn into_contents(self) -> String {
-        self.contents
-    }
-
-    pub(crate) fn parts(self) -> (PathBuf, String) {
-        (self.path, self.contents)
-    }
+    source_files: Arc<RwLock<SourceFiles>>,
 }
 
 impl Loader {
@@ -165,21 +144,19 @@ impl Loader {
                     root: path.as_ref().to_owned(),
                 }
             }),
+            source_files: Arc::default(),
         }
     }
 
-    /// Create an empty loader that returns a `LoadError::NotFound`
-    /// for any given filename.
-    #[cfg(test)]
-    pub(crate) fn test_empty() -> Self {
-        Self::test().build()
+    /// Discard cached sources and parses. Existing clones retain their registry.
+    pub fn reset(&mut self) {
+        self.source_files = Arc::default();
     }
 
     /// Create a test loader. Test files can be added with the
     /// `.with_file` method and the result turned into a `Loader`
     /// with `.build()`.
-    #[cfg(test)]
-    pub(crate) fn test() -> TestLoader {
+    pub fn test() -> TestLoader {
         TestLoader {
             files: HashMap::new(),
             root: None,
@@ -187,12 +164,22 @@ impl Loader {
     }
 
     /// Load a NASL source file
-    pub fn load_nasl(&self, file: impl AsRef<Path>) -> Result<NaslFile, LoadError> {
+    pub fn load_nasl(&self, file: impl AsRef<Path>) -> Result<NaslFile<'_>, LoadError> {
         let path = file.as_ref();
-        Ok(NaslFile {
-            path: path.to_owned(),
-            contents: self.loader.load(path)?,
-        })
+        if let Some(id) = self.source_files().id(path) {
+            return Ok(NaslFile::new(id, self));
+        }
+        let id = self
+            .source_files
+            .write()
+            .unwrap()
+            .get_or_load(path, || self.loader.load(path))?;
+        Ok(NaslFile::new(id, self))
+    }
+
+    /// Borrow the registry. Release this guard before loading more NASL sources.
+    pub fn source_files(&self) -> RwLockReadGuard<'_, SourceFiles> {
+        self.source_files.read().unwrap()
     }
 
     /// Load a non-NASL feed file as text
@@ -206,7 +193,7 @@ impl Loader {
         &self,
         including_file: impl AsRef<Path>,
         include_name: &IncludeString,
-    ) -> Result<NaslFile, LoadError> {
+    ) -> Result<NaslFile<'_>, LoadError> {
         self.load_include_path(including_file, include_name.as_path())
     }
 
@@ -214,7 +201,7 @@ impl Loader {
         &self,
         including_file: impl AsRef<Path>,
         include_name: impl AsRef<Path>,
-    ) -> Result<NaslFile, LoadError> {
+    ) -> Result<NaslFile<'_>, LoadError> {
         // Includes are weirdly defined - we first look at
         // a file in the same directory and use it if it
         // exists, otherwise we check from the feed root
@@ -286,14 +273,13 @@ impl NaslLoader for FileSystemLoader {
     }
 }
 
-#[cfg(test)]
+/// In-memory NASL sources for tests.
 #[derive(Clone)]
-pub(crate) struct TestLoader {
+pub struct TestLoader {
     files: HashMap<PathBuf, String>,
     root: Option<PathBuf>,
 }
 
-#[cfg(test)]
 impl NaslLoader for TestLoader {
     fn load(&self, path: &Path) -> Result<String, LoadError> {
         Ok(self
@@ -312,21 +298,20 @@ impl NaslLoader for TestLoader {
     }
 }
 
-#[cfg(test)]
 impl TestLoader {
-    pub(crate) fn build(self) -> Loader {
+    pub fn build(self) -> Loader {
         Loader {
             loader: Box::new(self),
+            source_files: Arc::default(),
         }
     }
 
-    pub(crate) fn with_file(mut self, file_name: &str, contents: String) -> Self {
+    pub fn with_file(mut self, file_name: &str, contents: String) -> Self {
         self.files.insert(file_name.into(), contents);
         self
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_root(mut self, root: PathBuf) -> Self {
+    pub fn with_root(mut self, root: PathBuf) -> Self {
         self.root = Some(root);
         self
     }
@@ -370,14 +355,17 @@ mod tests {
 
         let include = IncludeString::new("helper.inc".into());
         let local = loader.load_include("sub/main.nasl", &include).unwrap();
-        assert_eq!(local.path(), Path::new("sub/helper.inc"));
-        assert_eq!(local.contents(), "local");
 
         let root = loader
             .load_include_path("other/main.nasl", "helper.inc")
             .unwrap();
-        assert_eq!(root.path(), Path::new("helper.inc"));
-        assert_eq!(root.contents(), "root");
+        assert_ne!(local.id(), root.id());
+        assert_eq!(local.id(), loader.load_nasl("sub/helper.inc").unwrap().id());
+        assert_eq!(root.id(), loader.load_nasl("helper.inc").unwrap().id());
+        assert_eq!(local.source().path(), Path::new("sub/helper.inc"));
+        assert_eq!(local.source().source(), "local");
+        assert_eq!(root.source().path(), Path::new("helper.inc"));
+        assert_eq!(root.source().source(), "root");
     }
 
     #[test]
@@ -390,11 +378,11 @@ mod tests {
             .load_include_path("sub/main.nasl", "lib/first.inc")
             .unwrap();
 
-        let second = loader
-            .load_include_path(first.path(), "second.inc")
-            .unwrap();
+        let first_path = first.source().path().to_owned();
+        let second = loader.load_include_path(first_path, "second.inc").unwrap();
+        let second = second.source();
         assert_eq!(second.path(), Path::new("lib/second.inc"));
-        assert_eq!(second.contents(), "nested");
+        assert_eq!(second.source(), "nested");
     }
 
     #[test]

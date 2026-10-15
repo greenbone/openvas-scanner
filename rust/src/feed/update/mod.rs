@@ -13,7 +13,6 @@ use futures::{Stream, StreamExt, stream};
 use tracing::trace;
 
 use crate::models::VTData;
-use crate::nasl::error::emit_errors;
 use crate::nasl::interpreter::ForkingInterpreter;
 use crate::nasl::nasl_std_executor;
 use crate::nasl::prelude::*;
@@ -55,7 +54,7 @@ pub async fn feed_version(
     storage: &dyn ContextStorage,
 ) -> Result<String, ErrorKind> {
     let feed_info_filename = "plugin_feed_info.inc";
-    let code = Code::load(loader, feed_info_filename)?;
+    let file = loader.load_nasl(feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
     let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
@@ -73,12 +72,8 @@ pub async fn feed_version(
         None,
     );
     let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(feed_info_filename));
-    let mut interpreter = ForkingInterpreter::new(
-        code.parse().emit_errors().map_err(ErrorKind::SyntaxError)?,
-        register,
-        &ctx,
-        script_ctx,
-    );
+    let ast = file.parse().emit_errors().map_err(ErrorKind::SyntaxError)?;
+    let mut interpreter = ForkingInterpreter::new(ast, register, &ctx, script_ctx);
     interpreter.execute_all().await?;
 
     let feed_version = interpreter
@@ -146,7 +141,7 @@ where
 
     /// Runs a single plugin in description mode.
     async fn single(&self, key: &FileName) -> Result<i64, ErrorKind> {
-        let code = Code::load(&self.loader, &key.0)?;
+        let file = self.loader.load_nasl(&key.0)?;
 
         // Technically, we don't need to set the "description" variable
         // anymore, since the parse_description_block function returns
@@ -165,17 +160,16 @@ where
             alive_test_methods,
             None,
         );
-        let file = code.source_file();
-        let ast = code
+        let ast = file
             .parse_description_block()
             .emit_errors()
             .map_err(ErrorKind::SyntaxError)?;
-        let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(file.name()));
+        let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(&key.0));
         let mut interpreter = ForkingInterpreter::new(ast, register, &ctx, script_ctx);
         while let Some(stmt) = interpreter.next().await {
             match stmt {
                 Ok(NaslValue::Exit(i)) => {
-                    let filename: FileName = file.name().into();
+                    let filename: FileName = (&key.0).into();
                     let script_ctx = interpreter.take_script_ctx();
                     let vt = script_ctx.take_vt();
                     self.storage.dispatch(filename, vt).await?;
@@ -183,7 +177,7 @@ where
                 }
                 Ok(_) => {}
                 Err(e) => {
-                    emit_errors(&file, std::iter::once(&e));
+                    file.emit_errors(std::iter::once(&e));
                     return Err(e.into());
                 }
             }

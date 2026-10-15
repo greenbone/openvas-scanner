@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use codespan_reporting::files::SimpleFile;
-
 use crate::nasl::error::emit_errors_str;
-use crate::nasl::{NaslResult, syntax::Loader, test_utils::TestBuilder};
+use crate::nasl::{NaslResult, SourceFile, syntax::Loader, test_utils::TestBuilder};
 
 mod control_flow;
 mod local_var;
@@ -27,7 +25,7 @@ pub fn interpret_multi(
         loader = loader.with_file(filename, contents.to_string());
     }
 
-    let mut t = TestBuilder::from_loader(loader.build())
+    let mut t = TestBuilder::from_loader(loader)
         .with_nasl_version(version)
         .with_filename(entrypoint.0);
     t.run_all(entrypoint.1);
@@ -44,7 +42,7 @@ fn interpret_err(file_name: &str, code: &str, version: NaslVersion) -> String {
         .unwrap()
         .unwrap_err();
     emit_errors_str(
-        &SimpleFile::new(file_name.to_string(), code.to_string()),
+        &SourceFile::new(file_name, code.to_string()),
         std::iter::once(&err),
     )
 }

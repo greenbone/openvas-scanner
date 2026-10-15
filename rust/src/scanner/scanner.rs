@@ -40,6 +40,9 @@ pub trait Scanner {
         true
     }
 
+    /// Called after NASL feed synchronization, before new scans are allowed to start.
+    async fn feed_updated(&self) {}
+
     async fn stop_scan<I>(&self, id: I) -> Result<(), Error>
     where
         I: AsRef<str> + Send + 'static;
