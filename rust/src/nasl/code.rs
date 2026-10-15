@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use codespan_reporting::files::SimpleFile;
 
 use super::{
-    Loader,
+    LoadedFile, Loader,
     syntax::{DescriptionBlock, LoadError, ParseError, Parser, Tokenizer, grammar::Ast},
 };
 
@@ -79,12 +79,19 @@ pub struct Code {
     path: Option<PathBuf>,
 }
 
+impl From<LoadedFile> for Code {
+    fn from(file: LoadedFile) -> Self {
+        let (path, code) = file.parts();
+        Self {
+            code,
+            path: Some(path),
+        }
+    }
+}
+
 impl Code {
     pub fn load(loader: &Loader, path: impl AsRef<Path>) -> Result<Self, LoadError> {
-        Ok(Self {
-            code: loader.load(path.as_ref())?,
-            path: Some(path.as_ref().to_owned()),
-        })
+        loader.load(path).map(Self::from)
     }
 
     pub fn from_string(code: &str) -> Self {
@@ -94,9 +101,9 @@ impl Code {
         }
     }
 
-    pub fn from_string_filename(code: &str, filename: impl AsRef<Path>) -> Self {
+    pub fn from_string_filename(code: impl Into<String>, filename: impl AsRef<Path>) -> Self {
         Self {
-            code: code.to_string(),
+            code: code.into(),
             path: Some(filename.as_ref().to_owned()),
         }
     }

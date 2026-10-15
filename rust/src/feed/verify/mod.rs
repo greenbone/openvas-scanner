@@ -17,7 +17,7 @@ use std::{
     sync::OnceLock,
 };
 
-use crate::nasl::syntax::{LoadError, Loader};
+use crate::nasl::syntax::{LoadError, LoadedFile, Loader};
 use hex::encode;
 use sha2::{Digest, Sha256};
 
@@ -332,7 +332,7 @@ impl<'a> HashSumNameLoader<'a> {
         self.reader.root_path()
     }
 
-    pub fn load(&self, file: &Path) -> Result<String, LoadError> {
+    pub fn load(&self, file: &Path) -> Result<LoadedFile, LoadError> {
         self.reader.load(file)
     }
 }
@@ -431,7 +431,7 @@ impl<'a> NoVerifier<'a> {
         Self::init("notus", loader)
     }
 
-    pub fn load(&self, filename: &Path) -> Result<String, LoadError> {
+    pub fn load(&self, filename: &Path) -> Result<LoadedFile, LoadError> {
         self.loader.load(filename)
     }
 }

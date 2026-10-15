@@ -115,6 +115,7 @@ impl<'a> ScriptReader<'a> {
     }
 
     fn script_from_path(&mut self, path: &Path) -> Option<Script> {
+        let path = path.strip_prefix(&self.feed_path).unwrap();
         let ast = self.ast_from_path(path)?;
         let script = self.script_from_ast(ast, path);
         Some(script)
@@ -142,7 +143,11 @@ impl<'a> ScriptReader<'a> {
         ast.iter_stmts()
             .filter_map(|stmt| {
                 if let Statement::Include(include) = stmt {
-                    let path = include.path.resolve_to_path(&self.feed_path, path);
+                    let path = include
+                        .path
+                        .load(&self.loader, path)
+                        .map(|file| self.feed_path.join(file.path()))
+                        .unwrap_or_else(|err| err.path().to_owned());
                     Some(ScriptPath::new(&self.feed_path, &path))
                 } else {
                     None

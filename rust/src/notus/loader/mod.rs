@@ -85,7 +85,7 @@ impl ProductLoader {
             }
         })?;
 
-        match serde_json::from_str(&file) {
+        match serde_json::from_str(file.contents()) {
             Ok(adv) => Ok(adv),
             Err(err) => Err(Error::JSONParseError(os.to_string(), err)),
         }
@@ -166,7 +166,7 @@ impl<'a> HashsumAdvisoryLoader<NoVerifier<'a>> {
                 LoadProductErrorKind::LoadError(e),
             )
         })?;
-        match serde_json::from_str(&file) {
+        match serde_json::from_str(file.contents()) {
             Ok(advisories) => Ok(ProductsAdvisoriesContainer {
                 filename,
                 advisories,
@@ -203,7 +203,7 @@ impl<'a> HashsumAdvisoryLoader<HashSumNameLoader<'a>> {
                 LoadProductErrorKind::LoadError(e),
             )
         })?;
-        match serde_json::from_str(&file) {
+        match serde_json::from_str(file.contents()) {
             Ok(advisories) => Ok(ProductsAdvisoriesContainer {
                 filename,
                 advisories,
