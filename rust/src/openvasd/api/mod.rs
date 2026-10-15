@@ -9,6 +9,8 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use crate::config;
+use crate::database::sqlite::DbGuard;
+
 use axum_server::{
     Handle,
     tls_rustls::{RustlsAcceptor, RustlsConfig},
@@ -60,6 +62,8 @@ pub struct ApiConfig {
     pub notus: Arc<RwLock<scannerlib::notus::Notus>>,
     /// Enables the `GET /scans` and `GET /container-image-scanner` routes.
     pub enable_additional_routes: bool,
+    /// Drop guard to guarantee inmemory database deletion
+    pub _guard: Option<DbGuard>,
 }
 
 /// Main API entry point.
@@ -128,6 +132,10 @@ pub async fn run(cfg: &ApiConfig) -> anyhow::Result<i32> {
             panic!("both a server cert and key file are required");
         }
     };
+
+    // Gracefully shutdown the database pools
+    cfg.scanner.pool.close().await;
+    cfg.image_scanner.pool.close().await;
 
     // A non-error termination of axum_serve::serve can only be triggered by a signal
     signal_rx
