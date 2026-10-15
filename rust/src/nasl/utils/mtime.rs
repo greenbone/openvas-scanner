@@ -17,6 +17,7 @@ pub enum MtimeCheckError {
 }
 
 /// Mtime return type. UpToDate is also expected when the signature check is disabled.
+#[must_use]
 pub enum MtimeStatus {
     UpToDate,
     Modified {

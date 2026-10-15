@@ -10,6 +10,7 @@ use crate::nasl::syntax::grammar::{Ast, IncludeString};
 use crate::nasl::utils::Register;
 use crate::nasl::utils::ctx::TargetId;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
+use crate::nasl::utils::mtime::MtimeStatus;
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
@@ -165,8 +166,18 @@ impl<'a> VTRunner<'a> {
             if !visited.insert(path.clone()) {
                 continue;
             }
-            if let Err(reason) = self.scan_ctx.storage().check_mtime(path.as_ref()).await {
-                return Err(ScriptResultKind::MtimeCheckFailed(reason));
+            match self.scan_ctx.storage().check_mtime(path.as_ref()).await {
+                Ok(MtimeStatus::UpToDate) => {}
+                Ok(MtimeStatus::Modified {
+                    file,
+                    stored,
+                    current,
+                }) => {
+                    return Err(ScriptResultKind::MtimeCheckFailed(format!(
+                        "The include {file} has been modified since it has mtime {current} newer than the stored {stored}"
+                    )));
+                }
+                Err(reason) => return Err(ScriptResultKind::MtimeCheckFailed(reason)),
             }
             // Recurse into the included file to discover any further nested includes. If it
             // can't be loaded or parsed, the real error will surface when the interpreter
