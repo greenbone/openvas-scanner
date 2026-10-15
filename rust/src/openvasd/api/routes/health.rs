@@ -1,4 +1,6 @@
 //! `/health` routes.
+use std::sync::Arc;
+
 use tokio::process::Command;
 
 use axum::{
@@ -10,7 +12,7 @@ use axum::{
 use regex::Regex;
 use serde::Deserialize;
 
-use crate::api::error::ApiError;
+use crate::api::{Authentication, auth::AuthLayer, error::ApiError};
 
 const PERFORMANCE_TITLES: &str = r"(cpu-.*)|(proc)|(mem)|(swap)|(load)|(df-.*)|(disk-sd[a-z][0-9]-rw)|(disk-sd[a-z][0-9]-load)|(disk-sd[a-z][0-9]-io-load)|(interface-eth.*-traffic)|(interface-eth.*-err-rate)|(interface-eth.*-err)|(sensors-.*_temperature-.*)|(sensors-.*_fanspeed-.*)|(sensors-.*_voltage-.*)|(titles)";
 const PERFORMANCE_TITLES_FORBIDDEN: &str = r"^[^|&;]+$";
@@ -22,19 +24,24 @@ struct RegState {
 }
 
 /// Access point for `/performance` prefixed route.
-pub fn router() -> Router {
+pub fn router(auth_method: Authentication, api_keys: Arc<Vec<String>>) -> Router {
     let state = RegState {
         titles: Regex::new(PERFORMANCE_TITLES).unwrap(),
         forbidden: Regex::new(PERFORMANCE_TITLES_FORBIDDEN).unwrap(),
     };
+
+    // only the performance route requires authentication
+    let performance = Router::new()
+        .route("/performance", get(get_performance))
+        .layer(AuthLayer::new(auth_method, api_keys))
+        .with_state(state);
 
     Router::new()
         .route("/", head(()))
         .route("/alive", get(()))
         .route("/ready", get(()))
         .route("/started", get(()))
-        .route("/performance", get(get_performance))
-        .with_state(state)
+        .merge(performance)
 }
 
 /// URL query parameter for `/health/performance`
@@ -47,7 +54,7 @@ struct Titles {
 
 /// `GET /health/performance` route handler.
 ///
-/// Authenticated: no
+/// Authenticated: yes
 ///
 /// Returns a streamed response containing a `JSON` encoded array of `OIDs`.
 ///

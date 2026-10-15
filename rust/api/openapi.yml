@@ -105,7 +105,7 @@ paths:
           description: "Service Unavailable"
   /health/performance:
     get:
-      description: "Get performance graphs. The response is a JSON array with the base64 encoded output of the command."
+      description: "Get performance graphs. Requires authentication. The response is a JSON array with the base64 encoded output of the command."
       operationId: "get_health_performance"
       tags:
       - "health"
@@ -143,6 +143,8 @@ paths:
                   description: "Base64 encoded output of gvmcg"
         "400":
           description: "Invalid or missing query parameters, or gvmcg reported an error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           description: "The gvmcg command was not found or cannot be executed"
 
