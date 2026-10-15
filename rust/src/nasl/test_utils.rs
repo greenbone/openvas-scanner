@@ -25,7 +25,7 @@ use futures::{Stream, StreamExt};
 use super::{
     interpreter::{ForkingInterpreter, InterpreterError, InterpreterErrorKind},
     nasl_std_executor,
-    syntax::Loader,
+    syntax::{Loader, TestLoader},
     utils::{
         Executor, ScanCtx,
         ctx::{ContextStorage, Ports, Target},
@@ -134,6 +134,7 @@ pub struct TestBuilder<S: ContextStorage> {
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
     loader: Loader,
+    fixtures: TestLoader,
     storage: S,
     executor: Executor,
     version: NaslVersion,
@@ -144,6 +145,7 @@ pub type DefaultTestBuilder = TestBuilder<InMemoryStorage>;
 
 impl Default for TestBuilder<InMemoryStorage> {
     fn default() -> Self {
+        let fixtures = Loader::test();
         Self {
             lines: vec![],
             results: vec![],
@@ -152,7 +154,8 @@ impl Default for TestBuilder<InMemoryStorage> {
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader: Loader::test_empty(),
+            loader: fixtures.clone().with_file("", String::new()).build(),
+            fixtures,
             storage: InMemoryStorage::default(),
             executor: nasl_std_executor(),
             version: NaslVersion::default(),
@@ -162,7 +165,7 @@ impl Default for TestBuilder<InMemoryStorage> {
 }
 
 impl TestBuilder<InMemoryStorage> {
-    pub fn from_loader(loader: Loader) -> Self {
+    pub fn from_loader(loader: TestLoader) -> Self {
         // Unfortunately, we can't really get rid of all this duplication here, since
         // struct update syntax won't work due to different generics.
         // We also can't provide a with_loader method, since there is no way to clone
@@ -175,7 +178,8 @@ impl TestBuilder<InMemoryStorage> {
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader,
+            loader: loader.clone().with_file("", String::new()).build(),
+            fixtures: loader,
             storage: InMemoryStorage::default(),
             executor: nasl_std_executor(),
             version: NaslVersion::default(),
@@ -198,6 +202,7 @@ impl TestBuilder<InMemoryStorage> {
     }
 
     pub fn from_notus(notus: Arc<Mutex<Notus>>) -> Self {
+        let fixtures = Loader::test();
         Self {
             lines: vec![],
             results: vec![],
@@ -206,7 +211,8 @@ impl TestBuilder<InMemoryStorage> {
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader: Loader::test_empty(),
+            loader: fixtures.clone().with_file("", String::new()).build(),
+            fixtures,
             storage: InMemoryStorage::default(),
             executor: nasl_std_executor(),
             version: NaslVersion::default(),
@@ -222,6 +228,7 @@ where
     #[track_caller]
     fn add_line(&mut self, line: impl Into<String>, val: TestResult) -> &mut Self {
         self.lines.push(line.into());
+        self.rebuild_loader();
         self.results.push(val.into());
         self
     }
@@ -274,6 +281,7 @@ where
     /// by the code.
     pub fn run_all(&mut self, arg: impl Into<String>) {
         self.lines.push(arg.into());
+        self.rebuild_loader();
         self.should_verify = false;
     }
 
@@ -292,7 +300,7 @@ where
     pub fn results_and_ctx(&self) -> (Vec<NaslResult>, ScanCtx<'_>) {
         futures::executor::block_on(async {
             let ctx = self.ctx_inner();
-            (self.results_stream(&self.code(), &ctx).collect().await, ctx)
+            (self.results_stream(&ctx).collect().await, ctx)
         })
     }
 
@@ -300,7 +308,7 @@ where
     /// code, panics on any occurring error.
     pub fn values(&self) -> Vec<NaslValue> {
         futures::executor::block_on(async {
-            self.results_stream(&self.code(), &self.ctx_inner())
+            self.results_stream(&self.ctx_inner())
                 .map(|x| x.unwrap())
                 .collect()
                 .await
@@ -311,32 +319,41 @@ where
         self.lines.join("\n")
     }
 
-    fn interpreter<'ctx>(&self, code: &str, ctx: &'ctx ScanCtx) -> ForkingInterpreter<'ctx> {
+    fn rebuild_loader(&mut self) {
+        self.loader = self
+            .fixtures
+            .clone()
+            .with_file(&self.filename, self.code())
+            .build();
+    }
+
+    fn interpreter<'ctx>(&self, ctx: &'ctx ScanCtx) -> ForkingInterpreter<'ctx> {
         let variables: Vec<_> = self
             .variables
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
         let register = Register::from_global_variables(&variables);
-        let ast = Code::from_string(code).parse().emit_errors().unwrap();
+        let ast = ctx
+            .loader()
+            .load_nasl(&self.filename)
+            .unwrap()
+            .parse()
+            .emit_errors()
+            .unwrap();
         let script_ctx =
             ScriptCtx::new(ctx, self.target_id(), VTData::from_filename(&self.filename));
         ForkingInterpreter::new(ast, register, ctx, script_ctx).with_version(self.version)
     }
 
     pub fn interpreter_results(&self) -> Vec<Result<NaslValue, InterpreterError>> {
-        let code = self.code();
         let ctx = self.ctx_inner();
-        let interpreter = self.interpreter(&code, &ctx);
+        let interpreter = self.interpreter(&ctx);
         futures::executor::block_on(async { interpreter.stream().collect().await })
     }
 
-    fn results_stream<'a>(
-        &'a self,
-        code: &'a str,
-        ctx: &'a ScanCtx,
-    ) -> impl Stream<Item = NaslResult> + 'a {
-        let interpreter = self.interpreter(code, ctx);
+    fn results_stream<'a>(&'a self, ctx: &'a ScanCtx) -> impl Stream<Item = NaslResult> + 'a {
+        let interpreter = self.interpreter(ctx);
         interpreter.stream().map(|res| {
             res.map_err(|e| match e.kind {
                 InterpreterErrorKind::FunctionCallError(f) => f.kind,
@@ -377,9 +394,8 @@ where
     async fn verify(&mut self) -> Result<(), String> {
         if self.should_verify {
             let mut references_iter = self.results.iter().enumerate();
-            let code = self.code();
             let ctx = self.ctx_inner();
-            let mut results = self.results_stream(&code, &ctx);
+            let mut results = self.results_stream(&ctx);
             while let Some(result) = results.next().await {
                 let (line_count, reference) = references_iter.next().unwrap();
                 self.check_result(&result, reference, line_count)?;
@@ -466,6 +482,7 @@ where
 
     pub fn with_filename(mut self, filename: impl Into<String>) -> Self {
         self.filename = filename.into();
+        self.rebuild_loader();
         self
     }
 

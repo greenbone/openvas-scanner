@@ -5,7 +5,6 @@
 use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 
-use scannerlib::nasl::Code;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::syntax::grammar::IncludeString;
 
@@ -74,8 +73,8 @@ impl DepReader {
     }
 
     fn read_one(&mut self, path: &Path) -> Option<ScriptDepsInfo> {
-        let code = Code::load(&self.loader, path).ok()?;
-        let ast = code.parse().emit_errors().ok()?;
+        let file = self.loader.load_nasl(path).ok()?;
+        let ast = file.parse().emit_errors().ok()?;
         Some(extract_deps(&ast, &self.loader, &self.feed_path, path))
     }
 }
@@ -92,7 +91,7 @@ fn extract_deps(
             let path = inc
                 .path
                 .load(loader, file_path)
-                .map(|file| feed_path.join(file.path()))
+                .map(|file| feed_path.join(file.source().path()))
                 .unwrap_or_else(|err| err.path().to_owned());
             ScriptPath::new(feed_path, &path)
         })
@@ -112,7 +111,10 @@ fn extract_deps(
                 };
 
                 let file = IncludeString::new(name).load(loader, file_path).ok()?;
-                Some(ScriptPath::new(feed_path, &feed_path.join(file.path())))
+                Some(ScriptPath::new(
+                    feed_path,
+                    &feed_path.join(file.source().path()),
+                ))
             })
         })
         .collect();
