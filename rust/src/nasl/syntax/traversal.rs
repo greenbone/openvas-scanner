@@ -97,11 +97,11 @@ impl<'a> Iterator for StmtIterator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::nasl::Code;
+    use crate::nasl::syntax::{Parser, Tokenizer};
 
     #[test]
     fn iter_exprs() {
-        let ast = Code::from_string(
+        let ast = Parser::new(Tokenizer::tokenize(
             r#"
 function foo() {
     a += 1;
@@ -115,9 +115,8 @@ else {
     b += 1;
 }
             "#,
-        )
-        .parse()
-        .emit_errors()
+        ))
+        .parse_program()
         .unwrap();
 
         let collected: Vec<_> = ast.iter_exprs().collect();
@@ -126,7 +125,7 @@ else {
 
     #[test]
     fn iter_stmts() {
-        let ast = Code::from_string(
+        let ast = Parser::new(Tokenizer::tokenize(
             r#"
 function foo() {
     a += 1;
@@ -140,9 +139,8 @@ else {
     b += 1;
 }
             "#,
-        )
-        .parse()
-        .emit_errors()
+        ))
+        .parse_program()
         .unwrap();
 
         let collected: Vec<_> = ast.iter_stmts().collect();

@@ -400,6 +400,9 @@ where
         &self,
         message: &orchestrator::FeedStatusChange,
     ) -> anyhow::Result<Option<Vec<orchestrator::Allow>>> {
+        if matches!(message, FeedStatusChange::Synced(FeedType::NASL)) {
+            self.scanner.feed_updated().await;
+        }
         let msg = message.clone();
         self.feed_sync_in_progress
             .write()

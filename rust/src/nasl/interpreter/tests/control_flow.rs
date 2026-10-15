@@ -1,5 +1,18 @@
 use crate::nasl::test_prelude::*;
 
+crate::interpreter_test_multi!(
+    nested_and_repeated_includes,
+    {
+        "main.nasl" => r#"n = 0; include("lib/first.inc"); include("lib/first.inc"); n;"#,
+        "lib/first.inc" => r#"include("second.inc");"#,
+        "lib/second.inc" => "n += 1;",
+    },
+    0,
+    NaslValue::Null,
+    NaslValue::Null,
+    2,
+);
+
 #[test]
 fn break_loop() {
     let mut t = TestBuilder::default();

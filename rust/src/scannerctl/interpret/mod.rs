@@ -9,16 +9,15 @@ use std::{
 };
 
 use scannerlib::nasl::{
-    NaslValue, ScriptCtx, WithErrorInfo,
+    NaslFile, NaslValue, ScriptCtx, WithErrorInfo,
     interpreter::InterpreterErrorKind,
-    syntax::{LoadError, LoadErrorKind, Loader, read_non_utf8_path},
+    syntax::{LoadError, LoadErrorKind, Loader},
     utils::ctx::{NotusCtx, TargetId},
 };
 use scannerlib::{
     feed,
     nasl::{
-        Code, Register, ScanCtx,
-        error::emit_errors,
+        Register, ScanCtx,
         interpreter::ForkingInterpreter,
         nasl_std_executor,
         utils::{
@@ -37,16 +36,20 @@ use scannerlib::{nasl::utils::ctx::ContextStorage, storage::inmemory::InMemorySt
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 
-async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> {
-    match read_non_utf8_path(&script) {
-        Ok(x) => Ok(x),
+async fn load_from_feed<'a>(
+    loader: &'a Loader,
+    storage: &impl ContextStorage,
+    script: &Path,
+) -> Result<NaslFile<'a>, CliErrorKind> {
+    let path = std::path::absolute(script).map_err(|error| LoadError::from_io(script, error))?;
+    match loader.load_nasl(path) {
+        Ok(file) => Ok(file),
         Err(e) if matches!(e.kind(), LoadErrorKind::NotFound) => {
-            match ctx
-                .storage()
+            match storage
                 .retrieve(&Oid(script.to_string_lossy().to_string()))
                 .await?
             {
-                Some(vt) => Ok(ctx.loader().load(Path::new(&vt.filename))?.into_contents()),
+                Some(vt) => Ok(loader.load_nasl(&vt.filename)?),
                 _ => Err(LoadError::not_found(script).into()),
             }
         }
@@ -56,16 +59,15 @@ async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> 
 
 async fn run_with_context(
     ctx: ScanCtx<'_>,
-    script: &Path,
+    file: NaslFile<'_>,
     target_id: TargetId,
 ) -> Result<(), CliErrorKind> {
     let register = Register::default();
-    let code = Code::from_string_filename(&load(&ctx, script).await?, script);
-    let (ast, file) = code
+    let ast = file
         .parse()
-        .emit_errors_get_ast_and_file()
+        .emit_errors()
         .map_err(CliErrorKind::SyntaxError)?;
-    let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(file.name()));
+    let script_ctx = ScriptCtx::new(&ctx, target_id, VTData::from_filename(file.source().name()));
     let mut interpreter = ForkingInterpreter::new(ast, register, &ctx, script_ctx);
     while let Some(result) = interpreter.next().await {
         let r = match result {
@@ -74,16 +76,16 @@ async fn run_with_context(
                 if let InterpreterErrorKind::FunctionCallError(ref fe) = e.kind {
                     match fe.kind.return_behavior() {
                         ReturnBehavior::ExitScript => {
-                            emit_errors(&file, std::iter::once(&e));
+                            file.emit_errors(std::iter::once(&e));
                             return Err(e.into());
                         }
                         ReturnBehavior::ReturnValue(val) => {
-                            emit_errors(&file, std::iter::once(&e));
+                            file.emit_errors(std::iter::once(&e));
                             val.clone()
                         }
                     }
                 } else {
-                    emit_errors(&file, std::iter::once(&e));
+                    file.emit_errors(std::iter::once(&e));
                     return Err(e.into());
                 }
             }
@@ -132,15 +134,15 @@ fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliE
 #[allow(clippy::too_many_arguments)]
 async fn run_on_storage<S: ContextStorage>(
     storage: S,
-    loader: Loader,
+    loader: &Loader,
     target: Target,
     kb: Vec<String>,
     ports: Ports,
-    script: &Path,
+    file: NaslFile<'_>,
     scan_preferences: ScanPrefs,
     notus: Option<NotusCtx>,
 ) -> Result<(), CliErrorKind> {
-    let scan_id = ScanID(format!("scannerctl-{}", script.to_string_lossy()));
+    let scan_id = ScanID(format!("scannerctl-{}", file.source().name()));
     let kbctx = (
         scan_id.clone(),
         scannerlib::storage::Target(target.ip_addr().to_string()),
@@ -164,13 +166,13 @@ async fn run_on_storage<S: ContextStorage>(
         scan_id,
         targets,
         &storage,
-        &loader,
+        loader,
         &executor,
         scan_preferences,
         Vec::new(),
         notus,
     );
-    run_with_context(ctx, script, target_id).await
+    run_with_context(ctx, file, target_id).await
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -198,13 +200,20 @@ pub async fn run(
 
     let result = match (db, feed) {
         (Db::InMemory, None) => {
+            let filename = script
+                .file_name()
+                .ok_or_else(|| LoadError::not_a_file(script))?;
+            let loader = Loader::from_feed_path(script.parent().unwrap());
+            let file = loader
+                .load_nasl(filename)
+                .map_err(|error| CliErrorKind::from(error).with(Filename(script)))?;
             run_on_storage(
                 InMemoryStorage::default(),
-                Loader::from_feed_path(script.parent().unwrap()),
+                &loader,
                 target,
                 kb,
                 ports,
-                script,
+                file,
                 scan_preferences,
                 notus,
             )
@@ -219,13 +228,16 @@ pub async fn run(
             } else {
                 load_feed_by_exec(&storage, &loader).await?
             }
+            let file = load_from_feed(&loader, &storage, script)
+                .await
+                .map_err(|error| error.with(Filename(script)))?;
             run_on_storage(
                 storage,
-                loader,
+                &loader,
                 target,
                 kb,
                 ports,
-                script,
+                file,
                 scan_preferences,
                 notus,
             )
@@ -237,4 +249,59 @@ pub async fn run(
         filename: Some(script.to_owned()),
         kind: e,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn standalone_script_uses_its_parent_for_includes() {
+        let cwd = std::env::current_dir().unwrap();
+        let dir = tempfile::tempdir_in(&cwd).unwrap();
+        std::fs::write(
+            dir.path().join("main.nasl"),
+            r#"include("value.inc"); if (value != 42) { unknown_function(); }"#,
+        )
+        .unwrap();
+        std::fs::write(dir.path().join("value.inc"), "value = 42;").unwrap();
+        let script = dir.path().join("main.nasl");
+
+        run(
+            &Db::InMemory,
+            None,
+            script.strip_prefix(&cwd).unwrap(),
+            None,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            ScanPrefs::new(),
+            None,
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn feed_loading_accepts_filesystem_paths_and_oids() {
+        let direct = std::path::absolute("local.nasl").unwrap();
+        let loader = Loader::test()
+            .with_file(direct.to_str().unwrap(), String::new())
+            .with_file("plugins/main.nasl", String::new())
+            .build();
+        let storage = InMemoryStorage::new();
+        let mut vt = VTData::from_filename("plugins/main.nasl");
+        vt.oid = "1.2.3.4".into();
+        storage
+            .set_vts(std::collections::HashMap::from([(vt.filename.clone(), vt)]))
+            .unwrap();
+
+        for (script, expected) in [
+            (Path::new("local.nasl"), direct.as_path()),
+            (Path::new("1.2.3.4"), Path::new("plugins/main.nasl")),
+        ] {
+            let file = load_from_feed(&loader, &storage, script).await.unwrap();
+            assert_eq!(file.source().path(), expected);
+        }
+    }
 }

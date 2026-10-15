@@ -6,10 +6,11 @@ use std::collections::HashSet;
 
 use crate::models::{Parameter, Protocol, VTData};
 use crate::nasl::interpreter::{ForkingInterpreter, InterpreterError};
-use crate::nasl::syntax::grammar::{Ast, IncludeString};
+use crate::nasl::syntax::grammar::Ast;
 use crate::nasl::utils::Register;
 use crate::nasl::utils::ctx::TargetId;
 use crate::nasl::utils::lookup_keys::SCRIPT_PARAMS;
+use crate::nasl::utils::mtime::MtimeStatus;
 use crate::scheduling::Stage;
 use crate::storage::error::StorageError;
 use crate::storage::items::kb::{self, KbContext, KbContextKey, KbItem, KbKey};
@@ -159,22 +160,42 @@ impl<'a> VTRunner<'a> {
     /// we need to parse the nasl file and later look into includes and nested includes.
     async fn check_include_mtimes(&self, ast: &Ast) -> Result<(), ScriptResultKind> {
         let mut visited = HashSet::new();
-        let mut pending: Vec<IncludeString> = ast.iter_includes().map(|i| i.path.clone()).collect();
+        let filename = std::path::PathBuf::from(&self.vt.filename);
+        let mut pending: Vec<_> = ast
+            .iter_includes()
+            .map(|i| (filename.clone(), i.path.clone()))
+            .collect();
 
-        while let Some(path) = pending.pop() {
-            if !visited.insert(path.clone()) {
-                continue;
-            }
-            if let Err(reason) = self.scan_ctx.storage().check_mtime(path.as_ref()).await {
-                return Err(ScriptResultKind::MtimeCheckFailed(reason));
-            }
+        while let Some((including_file, include)) = pending.pop() {
             // Recurse into the included file to discover any further nested includes. If it
             // can't be loaded or parsed, the real error will surface when the interpreter
             // actually resolves the include, so we don't fail the mtime check here.
-            if let Ok(code) = Code::load(self.scan_ctx.loader(), &path)
-                && let Ok(included_ast) = code.parse().result()
-            {
-                pending.extend(included_ast.iter_includes().map(|i| i.path.clone()));
+            let Ok(file) = include.load(self.scan_ctx.loader(), &including_file) else {
+                continue;
+            };
+            if !visited.insert(file.id()) {
+                continue;
+            }
+            let path = file.source().path().to_owned();
+            match self.scan_ctx.storage().check_mtime(&path).await {
+                Ok(MtimeStatus::UpToDate) => {}
+                Ok(MtimeStatus::Modified {
+                    file,
+                    stored,
+                    current,
+                }) => {
+                    return Err(ScriptResultKind::MtimeCheckFailed(format!(
+                        "The VT {file} has been modified since it has mtime {current} newer than the stored {stored}"
+                    )));
+                }
+                Err(reason) => return Err(ScriptResultKind::MtimeCheckFailed(reason)),
+            }
+            if let Ok(included_ast) = file.parse().result() {
+                pending.extend(
+                    included_ast
+                        .iter_includes()
+                        .map(|i| (path.clone(), i.path.clone())),
+                );
             }
         }
         Ok(())
@@ -192,12 +213,12 @@ impl<'a> VTRunner<'a> {
         )
     }
 
-    async fn execute_inner(&self, code: Code, register: Register) -> ScriptResultKind {
+    async fn execute_inner(&self, file: NaslFile<'_>, register: Register) -> ScriptResultKind {
         if let Err(e) = self.check_keys(self.vt).await {
             return e;
         }
         let script_ctx = ScriptCtx::new(self.scan_ctx, self.target, self.vt.clone());
-        let ast = code.parse().emit_errors();
+        let ast = file.parse().emit_errors();
         if let Err(errs) = ast {
             return ScriptResultKind::Error(InterpreterError::syntax_error(errs));
         }
@@ -221,13 +242,13 @@ impl<'a> VTRunner<'a> {
     }
 
     async fn execute(mut self) -> Result<ScriptResult, ExecuteError> {
-        let code = Code::load(self.scan_ctx.loader(), &self.vt.filename)?;
+        let file = self.scan_ctx.loader().load_nasl(&self.vt.filename)?;
         let mut register = Register::default();
         self.set_parameters(&mut register)?;
 
         // currently scans are limited to the target as well as the id.
         tracing::debug!("running");
-        let kind = self.execute_inner(code, register).await;
+        let kind = self.execute_inner(file, register).await;
         tracing::debug!(result=?kind, "finished");
         Ok(ScriptResult {
             oid: self.vt.oid.clone(),
@@ -240,5 +261,67 @@ impl<'a> VTRunner<'a> {
                 .original_target_str()
                 .into(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        nasl::{
+            nasl_std_executor,
+            utils::ctx::{CtxTargets, Ports, Target},
+        },
+        scanner::preferences::preference::ScanPrefs,
+        storage::{ScanID, inmemory::InMemoryStorage},
+    };
+    use std::path::Path;
+
+    #[tokio::test]
+    async fn include_checks_resolve_nested_files_relative_to_their_parent() {
+        let loader = Loader::test()
+            .with_file(
+                "plugins/main.nasl",
+                r#"include("a/first.inc"); include("b/first.inc");"#.into(),
+            )
+            .with_file("a/first.inc", r#"include("second.inc");"#.into())
+            .with_file("b/first.inc", r#"include("second.inc");"#.into())
+            .with_file("a/second.inc", r#"include("first.inc");"#.into())
+            .with_file("b/second.inc", String::new())
+            .build();
+        let storage = InMemoryStorage::new();
+        let executor = nasl_std_executor();
+        let (targets, target) = CtxTargets::single(Target::localhost(), Ports::default());
+        let ctx = ScanCtx::new(
+            ScanID::default(),
+            targets,
+            &storage,
+            &loader,
+            &executor,
+            ScanPrefs::new(),
+            Vec::new(),
+            None,
+        );
+        let vt = VTData::from_filename("plugins/main.nasl");
+        let ast = ctx
+            .loader()
+            .load_nasl(&vt.filename)
+            .unwrap()
+            .parse()
+            .result()
+            .unwrap();
+        let runner = VTRunner {
+            target,
+            vt: &vt,
+            stage: Stage::NonEvasive,
+            param: None,
+            scan_ctx: &ctx,
+        };
+
+        assert!(runner.check_include_mtimes(&ast).await.is_ok());
+        let sources = ctx.loader().source_files();
+        for path in ["a/first.inc", "a/second.inc", "b/first.inc", "b/second.inc"] {
+            assert!(sources.id(Path::new(path)).is_some(), "{path}");
+        }
     }
 }

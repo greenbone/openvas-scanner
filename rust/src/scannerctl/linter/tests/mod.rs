@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use scannerlib::nasl::{Code, error::emit_errors_str};
+use scannerlib::nasl::{Loader, error::emit_errors_str};
 
 use crate::linter::{
     ctx::{Cache, CachedFile, LintCtx},
@@ -8,12 +8,12 @@ use crate::linter::{
 };
 
 pub fn lint(file_name: &str, code: &str) -> String {
-    let parsed = Code::from_string_filename(code, file_name).parse();
-    let file = parsed.file().clone();
-    let ast = match parsed.result() {
+    let loader = Loader::test().with_file(file_name, code.into()).build();
+    let file = loader.load_nasl(file_name).unwrap();
+    let ast = match file.parse().result() {
         Ok(ast) => ast,
         Err(errs) => {
-            return emit_errors_str(&file, errs.into_iter());
+            return emit_errors_str(&file.source(), errs.into_iter());
         }
     };
     let mut cache = Cache::default();
@@ -24,7 +24,7 @@ pub fn lint(file_name: &str, code: &str) -> String {
         .iter()
         .flat_map(|lint| lint.lint(&ctx))
         .collect();
-    emit_errors_str(&file, msgs.into_iter())
+    emit_errors_str(&file.source(), msgs.into_iter())
 }
 
 #[macro_export]

@@ -3,14 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use crate::nasl::NaslValue;
-use crate::nasl::code::SourceFile;
+use crate::nasl::SourceFile;
 use crate::nasl::error::{IntoDiagnostic, Span, Spanned, basic_error_diagnostic, emit_errors};
 use crate::nasl::syntax::grammar::Expr;
 use crate::nasl::syntax::{CharIndex, ParseError};
 use crate::nasl::syntax::{Ident, LoadError};
 use crate::nasl::utils::error::FnError;
 use codespan_reporting::diagnostic::Diagnostic;
-use codespan_reporting::files::SimpleFile;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -121,10 +120,7 @@ impl InterpreterError {
         }
     }
 
-    pub(crate) fn include_syntax_error(
-        errs: Vec<ParseError>,
-        file: SimpleFile<String, String>,
-    ) -> Self {
+    pub(crate) fn include_syntax_error(errs: Vec<ParseError>, file: SourceFile) -> Self {
         Self {
             // fake value since we don't need the span in this case
             span: Span::new(CharIndex(usize::MAX - 1), CharIndex(usize::MAX)),

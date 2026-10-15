@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
-use scannerlib::nasl::Code;
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::nasl::syntax::grammar::{Ast, Statement};
 use std::collections::HashMap;
@@ -122,8 +121,8 @@ impl<'a> ScriptReader<'a> {
     }
 
     fn ast_from_path(&mut self, path: &Path) -> Option<Ast> {
-        let code = Code::load(&self.loader, path).unwrap();
-        let ast = code.parse().emit_errors().unwrap();
+        let file = self.loader.load_nasl(path).unwrap();
+        let ast = file.parse().emit_errors().unwrap();
         Some(ast)
     }
 
@@ -146,7 +145,7 @@ impl<'a> ScriptReader<'a> {
                     let path = include
                         .path
                         .load(&self.loader, path)
-                        .map(|file| self.feed_path.join(file.path()))
+                        .map(|file| self.feed_path.join(file.source().path()))
                         .unwrap_or_else(|err| err.path().to_owned());
                     Some(ScriptPath::new(&self.feed_path, &path))
                 } else {

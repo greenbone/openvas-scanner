@@ -1,15 +1,41 @@
-use crate::nasl::Code;
+use itertools::{Either, Itertools};
+
+use crate::nasl::{
+    SourceFile,
+    error::{emit_errors, emit_errors_str},
+};
 
 use super::*;
 
+fn tokenize(code: &str) -> Result<Vec<Token>, Vec<TokenizerError>> {
+    let (tokens, errors): (Vec<_>, Vec<_>) =
+        Tokenizer::tokenize(code).partition_map(|result| match result {
+            Ok(token) => Either::Left(token),
+            Err(error) => Either::Right(error),
+        });
+    if errors.is_empty() {
+        Ok(tokens)
+    } else {
+        Err(errors)
+    }
+}
+
 fn tokenize_ok(file_name: &str, code: &str) -> Vec<Token> {
-    let results = Code::from_string_filename(code, file_name).tokenize();
-    results.emit_errors().unwrap()
+    tokenize(code)
+        .inspect_err(|errors| {
+            emit_errors(
+                &SourceFile::new(file_name, code.into()),
+                errors.iter().cloned(),
+            )
+        })
+        .unwrap()
 }
 
 fn tokenize_err(file_name: &str, code: &str) -> String {
-    let results = Code::from_string_filename(code, file_name).tokenize();
-    results.unwrap_errors_str()
+    emit_errors_str(
+        &SourceFile::new(file_name, code.into()),
+        tokenize(code).unwrap_err().into_iter(),
+    )
 }
 
 macro_rules! test_ok {
