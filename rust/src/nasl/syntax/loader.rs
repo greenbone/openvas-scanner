@@ -5,11 +5,13 @@
 //! This crate is used to load NASL code based on a name.
 
 use std::{
-    collections::HashMap,
     fs::{self, File},
     io::{self, BufRead},
     path::{Path, PathBuf},
 };
+
+#[cfg(test)]
+use std::collections::HashMap;
 
 use thiserror::Error;
 
@@ -168,23 +170,16 @@ impl Loader {
 
     /// Create an empty loader that returns a `LoadError::NotFound`
     /// for any given filename.
-    pub fn test_empty() -> Self {
+    #[cfg(test)]
+    pub(crate) fn test_empty() -> Self {
         Self::test().build()
     }
 
     /// Create a test loader. Test files can be added with the
     /// `.with_file` method and the result turned into a `Loader`
     /// with `.build()`.
-    ///
-    /// Example:
-    ///
-    /// ```
-    /// # use scannerlib::nasl::Loader;
-    /// Loader::test()
-    ///     .with_file("foo.nasl", "display('hello world')".into())
-    ///     .build();
-    /// ```
-    pub fn test() -> TestLoader {
+    #[cfg(test)]
+    pub(crate) fn test() -> TestLoader {
         TestLoader {
             files: HashMap::new(),
             root: None,
@@ -285,12 +280,14 @@ impl NaslLoader for FileSystemLoader {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone)]
-pub struct TestLoader {
+pub(crate) struct TestLoader {
     files: HashMap<PathBuf, String>,
     root: Option<PathBuf>,
 }
 
+#[cfg(test)]
 impl NaslLoader for TestLoader {
     fn load(&self, path: &Path) -> Result<String, LoadError> {
         Ok(self
@@ -309,14 +306,15 @@ impl NaslLoader for TestLoader {
     }
 }
 
+#[cfg(test)]
 impl TestLoader {
-    pub fn build(self) -> Loader {
+    pub(crate) fn build(self) -> Loader {
         Loader {
             loader: Box::new(self),
         }
     }
 
-    pub fn with_file(mut self, file_name: &str, contents: String) -> Self {
+    pub(crate) fn with_file(mut self, file_name: &str, contents: String) -> Self {
         self.files.insert(file_name.into(), contents);
         self
     }
