@@ -215,7 +215,7 @@ pub const PREFERENCES: [ScanPreferenceInformation; 23] = [
     },
     ScanPreferenceInformation {
         id: "max_mem_kb",
-        name: "Maximum Script KB Memory",
+        name: "Maximum Script Knowledge Base Memory",
         default: PreferenceValue::Int(0),
         description: "Maximum amount of memory (in MB) allowed to use for a single script. \
         If this value is set, the amount of memory put into redis is tracked \
