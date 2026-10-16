@@ -123,11 +123,11 @@ where
     fn call(&mut self, mut req: http::Request<B>) -> Self::Future {
         if self.cert_hash.0.is_some() {
             tracing::debug!("client cert: {}", self.cert_hash);
+
+            // insert the client hash, used by the AuthService
+            req.extensions_mut().insert(self.cert_hash.clone());
         }
 
-        // insert the client hash
-        // used by the AuthService
-        req.extensions_mut().insert(self.cert_hash.clone());
         self.inner.call(req)
     }
 }
@@ -151,4 +151,34 @@ pub fn create_verifier(client_certs_path: &Path) -> anyhow::Result<Arc<dyn Clien
         .allow_unauthenticated()
         .build()
         .map_err(|e| e.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{body::Body, http::Request, response::Response};
+    use std::convert::Infallible;
+    use tower::service_fn;
+
+    use super::{MtlsCertHash, MtlsService};
+    use crate::api::tests::send_request;
+
+    #[tokio::test]
+    async fn mtls_dont_pass_unknown_id() -> anyhow::Result<()> {
+        // simulates a route handler
+        let inner = service_fn(|req: Request<Body>| async move {
+            assert!(req.extensions().get::<MtlsCertHash>().is_none());
+            Ok::<Response, Infallible>(Response::new(Body::empty()))
+        });
+
+        let mut service = MtlsService {
+            inner,
+            cert_hash: MtlsCertHash(None),
+        };
+
+        let req = Request::new(Body::empty());
+        let resp = send_request(&mut service, req).await;
+        assert!(resp.status().is_success());
+
+        Ok(())
+    }
 }
