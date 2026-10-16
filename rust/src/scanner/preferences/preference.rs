@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::fmt::Display;
+
 use crate::models::{PreferenceValue, ScanPreference, ScanPreferenceInformation};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -215,7 +217,7 @@ pub const PREFERENCES: [ScanPreferenceInformation; 23] = [
     },
     ScanPreferenceInformation {
         id: "max_mem_kb",
-        name: "Maximum Script KB Memory",
+        name: "Maximum Script Knowledge Base Memory",
         default: PreferenceValue::Int(0),
         description: "Maximum amount of memory (in MB) allowed to use for a single script. \
         If this value is set, the amount of memory put into redis is tracked \
@@ -260,6 +262,16 @@ impl From<PreferenceValue> for ScanPrefValue {
 impl Default for ScanPrefValue {
     fn default() -> Self {
         Self::Int(0)
+    }
+}
+
+impl Display for ScanPrefValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ScanPrefValue::Bool(b) => f.write_str(if *b { "yes" } else { "no" }),
+            ScanPrefValue::Int(i) => f.write_str(&i.to_string()),
+            ScanPrefValue::String(s) => f.write_str(s),
+        }
     }
 }
 

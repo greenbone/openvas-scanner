@@ -11,6 +11,7 @@ use super::{
     result_collector::ResultHelper,
 };
 use crate::models::{self, HostInfo, Phase, Scan, Status};
+use crate::scanner::preferences::preference::ScanPrefValue;
 use tokio::process::Child;
 
 use crate::storage::redis::{NameSpaceSelector, RedisCtx};
@@ -30,7 +31,7 @@ pub struct OpenvasScanner {
     sudo: bool,
     redis_socket: String,
     resource_checker: Option<Checker>,
-    default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
+    default_scanner_preferences: HashMap<String, ScanPrefValue>,
 }
 use crate::scanner::{Error as ScanError, ScanResultKind, ScanResults, Scanner};
 
@@ -94,7 +95,7 @@ impl OpenvasScanner {
         cpu: Option<f32>,
         sudo: bool,
         url: String,
-        default_scanner_preferences: Vec<models::ScanPreferenceInformation>,
+        default_scanner_preferences: HashMap<String, ScanPrefValue>,
     ) -> Self {
         Self {
             running: Default::default(),
@@ -103,6 +104,10 @@ impl OpenvasScanner {
             resource_checker: Some(Checker::new(memory, cpu)),
             default_scanner_preferences,
         }
+    }
+
+    pub fn scan_preferences(&self) -> &HashMap<String, ScanPrefValue> {
+        &self.default_scanner_preferences
     }
 
     /// Removes a scan from init and add it to the list of running scans
