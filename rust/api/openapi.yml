@@ -103,6 +103,50 @@ paths:
           description: "Ok"
         "503":
           description: "Service Unavailable"
+  /health/performance:
+    get:
+      description: "Get performance graphs. Requires authentication. The response is a JSON array with the base64 encoded output of the command."
+      operationId: "get_health_performance"
+      tags:
+      - "health"
+      parameters:
+      - name: titles
+        in: query
+        required: true
+        description: "Name of the performance metric to retrieve."
+        schema:
+          type: string
+          example: "cpu-0"
+      - name: start
+        in: query
+        required: false
+        description: "Start of the time range as a Unix timestamp (seconds)."
+        schema:
+          type: integer
+          format: int64
+      - name: end
+        in: query
+        required: false
+        description: "End of the time range as a Unix timestamp (seconds)."
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: "Performance data"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: "Base64 encoded output of gvmcg"
+        "400":
+          description: "Invalid or missing query parameters, or gvmcg reported an error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: "The gvmcg command was not found or cannot be executed"
 
   /notus:
     head:

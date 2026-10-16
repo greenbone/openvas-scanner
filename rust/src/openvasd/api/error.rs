@@ -39,6 +39,8 @@ pub enum ApiError {
     VtsError(WorkerError),
     #[error("tokio error: {0}")]
     JoinError(#[from] tokio::task::JoinError),
+    #[error("Command not found: {0}")]
+    UnavailableCmd(String),
 }
 
 impl ApiError {
@@ -65,6 +67,7 @@ impl ApiError {
             ApiError::InvalidInput(_) => StatusCode::BAD_REQUEST,
             ApiError::VtsError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::JoinError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::UnavailableCmd(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -110,6 +113,7 @@ impl From<ApiError> for ErrorJson {
             ),
             ApiError::Json(err) => ("Failed to process JSON".to_string(), Some(err.to_string())),
             ApiError::InvalidInput(err) => ("Invalid query".to_string(), Some(err)),
+            ApiError::UnavailableCmd(err) => ("Internal server error".to_string(), Some(err)),
         };
 
         Self {
