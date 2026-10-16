@@ -1,4 +1,4 @@
-# NASL - NASL Attack Scripting Language
+# NASL Attack Scripting Language
 
 ## GENERAL
 

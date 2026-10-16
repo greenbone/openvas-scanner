@@ -1,4 +1,4 @@
-# nt_owf_gen
+# nt_owf_gen(3nasl)
 
 ## NAME
 
@@ -13,8 +13,8 @@ _str_ **nt_owf_gen**(str);
 ## DESCRIPTION
 
 nt_owf_gen is a type of hash function. It produces the NT Hash (part of NTLM) for the
-**[NTLMv1_HASH(3)](NTLMv1_HASH.md)** function. This is the counterpart to the
-**[lm_owf_gen(3)](lm_owf_gen.md)** function.
+**[NTLMv1_HASH(3nasl)](NTLMv1_HASH.md)** function. This is the counterpart to the
+**[lm_owf_gen(3nasl)](lm_owf_gen.md)** function.
 
 NT - New Technology
 OWF - one way function
@@ -36,6 +36,6 @@ hash = nt_owf_gen("test");
 
 ## SEE ALSO
 
-**[NTLMv1_HASH(3)](NTLMv1_HASH.md)**
-**[lm_owf_gen(3)](lm_owf_gen.md)**,
-**[ntv2_owf_gen(3)](ntv2_owf_gen.md)**,
+**[NTLMv1_HASH(3nasl)](NTLMv1_HASH.md)**
+**[lm_owf_gen(3nasl)](lm_owf_gen.md)**,
+**[ntv2_owf_gen(3nasl)](ntv2_owf_gen.md)**,

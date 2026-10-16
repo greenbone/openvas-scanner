@@ -1,4 +1,4 @@
-# insert_ipv6_options
+# insert_ipv6_options(3nasl)
 
 ## NAME
 
@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-Add a option to a specified IPv6 datagram. This function is the same as **[insert_ip_v6_options(3)](insert_ip_v6_options.md)**.
+Add a option to a specified IPv6 datagram. This function is the same as **[insert_ip_v6_options(3nasl)](insert_ip_v6_options.md)**.
 
 - ip: is the IP datagram
 - code: is the identifier of the option to add
@@ -25,4 +25,4 @@ A new IPv6 datagram with the given option set.
 
 ## SEE ALSO
 
-**[insert_ip_v6_options(3)](insert_ip_v6_options.md)**
+**[insert_ip_v6_options(3nasl)](insert_ip_v6_options.md)**

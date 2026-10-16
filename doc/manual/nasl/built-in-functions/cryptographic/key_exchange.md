@@ -1,4 +1,4 @@
-# key_exchange
+# key_exchange(3nasl)
 
 ## NAME
 
@@ -25,10 +25,10 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[NTLMv1_HASH(3)](NTLMv1_HASH.md)**,
-**[NTLMv2_HASH(3)](NTLMv2_HASH.md)**,
-**[nt_owf_gen(3)](nt_owf_gen.md)**,
-**[ntlm2_response(3)](ntlm2_response.md)**,
-**[ntlm_response(3)](ntlm_response.md)**,
-**[ntlmv2_response(3)](ntlmv2_response.md)**,
-**[ntv2_owf_gen(3)](ntv2_owf_gen.md)**,
+**[NTLMv1_HASH(3nasl)](NTLMv1_HASH.md)**,
+**[NTLMv2_HASH(3nasl)](NTLMv2_HASH.md)**,
+**[nt_owf_gen(3nasl)](nt_owf_gen.md)**,
+**[ntlm2_response(3nasl)](ntlm2_response.md)**,
+**[ntlm_response(3nasl)](ntlm_response.md)**,
+**[ntlmv2_response(3nasl)](ntlmv2_response.md)**,
+**[ntv2_owf_gen(3nasl)](ntv2_owf_gen.md)**,

@@ -1,4 +1,4 @@
-# set_kb_item
+# set_kb_item(3nasl)
 
 ## NAME
 
@@ -67,4 +67,4 @@ used for keys which are only needed for a short amount of time.
 
 ## SEE ALSO
 
-**[get_kb_item(3)](get_kb_item.md)**, **[get_kb_list(3)](get_kb_list.md)**, **[replace_kb_item(3)](replace_kb_item.md)**, **[get_host_kb_index(3)](get_host_kb_index.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**
+**[get_kb_item(3nasl)](get_kb_item.md)**, **[get_kb_list(3nasl)](get_kb_list.md)**, **[replace_kb_item(3nasl)](replace_kb_item.md)**, **[get_host_kb_index(3nasl)](get_host_kb_index.md)**, **[openvas-nasl(1)](../../openvas-nasl.md)**

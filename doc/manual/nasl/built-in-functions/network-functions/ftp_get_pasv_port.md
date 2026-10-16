@@ -1,4 +1,4 @@
-# ftp_get_pasv_port
+# ftp_get_pasv_port(3nasl)
 
 ## NAME
 

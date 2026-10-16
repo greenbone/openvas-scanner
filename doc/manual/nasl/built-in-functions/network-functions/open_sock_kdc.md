@@ -1,4 +1,4 @@
-# open_sock_kdc
+# open_sock_kdc(3nasl)
 
 ## NAME
 

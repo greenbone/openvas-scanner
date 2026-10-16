@@ -1,4 +1,4 @@
-# smb_versioninfo
+# smb_versioninfo(3nasl)
 
 ## NAME
 

@@ -1,4 +1,4 @@
-# max_index
+# max_index(3nasl)
 
 ## NAME
 

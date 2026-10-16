@@ -103,7 +103,7 @@ Thereafter, the following commands are useful:
     make doxygen-full   # build more developer-oriented documentation
     make doxygen-xml    # build the documentation (XML)
     make manual         # build a HTML manual
-    make nasl-man       # build man pages for NASL built-in functions
+    make man            # (re)build man pages
     make tests          # build tests
     make install        # install the build
     make rebuild_cache  # rebuild the cmake cache

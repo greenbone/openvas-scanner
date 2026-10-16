@@ -1,4 +1,4 @@
-# get_byte_order
+# get_byte_order(3nasl)
 
 ## NAME
 

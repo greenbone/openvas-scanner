@@ -1,4 +1,4 @@
-# set_tcp_v6_elements
+# set_tcp_v6_elements(3nasl)
 
 ## NAME
 

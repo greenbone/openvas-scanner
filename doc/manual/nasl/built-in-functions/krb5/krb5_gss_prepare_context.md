@@ -1,4 +1,4 @@
-# krb5_gss_prepare_context
+# krb5_gss_prepare_context(3nasl)
 
 ## NAME
 

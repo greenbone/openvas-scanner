@@ -1,4 +1,4 @@
-# isotime_print
+# isotime_print(3nasl)
 
 ## NAME
 

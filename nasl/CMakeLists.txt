@@ -202,9 +202,9 @@ install (TARGETS openvas_nasl_shared openvas-nasl openvas-nasl-lint
          ARCHIVE DESTINATION ${LIBDIR})
 
 
-install (FILES ${CMAKE_SOURCE_DIR}/doc/man/openvas-nasl.1
+install (FILES ${CMAKE_BINARY_DIR}/doc/man/openvas-nasl.1
          DESTINATION ${DATADIR}/man/man1 )
 
-install (FILES ${CMAKE_SOURCE_DIR}/doc/man/openvas-nasl-lint.1
+install (FILES ${CMAKE_BINARY_DIR}/doc/man/openvas-nasl-lint.1
          DESTINATION ${DATADIR}/man/man1 )
 ## End

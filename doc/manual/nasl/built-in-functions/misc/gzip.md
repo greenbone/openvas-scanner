@@ -1,4 +1,4 @@
-# gzip
+# gzip(3nasl)
 
 ## NAME
 
@@ -26,4 +26,4 @@ compressed = gzip("very large", headformat: "gzip");
 
 ## SEE ALSO
 
-**[gunzip(3)](gunzip.md)**,
+**[gunzip(3nasl)](gunzip.md)**,

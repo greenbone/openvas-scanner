@@ -1,4 +1,4 @@
-# sort
+# sort(3nasl)
 
 ## NAME
 
@@ -43,4 +43,4 @@ display(sort(a));
 
 ## SEE ALSO
 
-**[make_list(3)](make_list.md)**,
+**[make_list(3nasl)](make_list.md)**,

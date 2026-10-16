@@ -1,4 +1,4 @@
-# ereg_replace
+# ereg_replace(3nasl)
 
 ## NAME
 

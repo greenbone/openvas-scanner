@@ -1,4 +1,4 @@
-# insert_hexzeros
+# insert_hexzeros(3nasl)
 
 ## NAME
 

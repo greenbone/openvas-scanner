@@ -1,4 +1,4 @@
-## Predefined Constants
+# Predefined Constants
 
 These constants are actually variables, i.e., their value can be modified in a script.
 

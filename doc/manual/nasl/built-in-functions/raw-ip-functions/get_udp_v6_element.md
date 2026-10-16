@@ -1,4 +1,4 @@
-# get_udp_v6_element
+# get_udp_v6_element(3nasl)
 
 ## NAME
 
@@ -25,7 +25,7 @@ Valid IP elements to get are:
 - uh_sum
 - data
 
-For more information of these fields look into **[forge_udp_v6_packet(3)](forge_udp_v6_packet.md)**.
+For more information of these fields look into **[forge_udp_v6_packet(3nasl)](forge_udp_v6_packet.md)**.
 
 ## RETURN VALUE
 
@@ -39,4 +39,4 @@ Returns an UDP element from a IPv6 datagram.
 
 ## SEE ALSO
 
-**[forge_udp_v6_packet(3)](forge_udp_v6_packet.md)**
+**[forge_udp_v6_packet(3nasl)](forge_udp_v6_packet.md)**

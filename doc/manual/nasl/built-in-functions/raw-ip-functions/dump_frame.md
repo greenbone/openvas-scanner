@@ -1,4 +1,4 @@
-# dump_frame
+# dump_frame(3nasl)
 
 ## NAME
 
@@ -14,7 +14,7 @@
 
 Print a datalink layer frame in its hexadecimal representation.
 
-The named argument *frame* is a *string* representing the datalink layer frame. A frame can be created with **[forge_frame(3)](forge_frame.md)**.
+The named argument *frame* is a *string* representing the datalink layer frame. A frame can be created with **[forge_frame(3nasl)](forge_frame.md)**.
 
 This function is meant to be used for debugging.
 
@@ -24,4 +24,4 @@ None
 
 ## SEE ALSO
 
-**[forge_frame(3)](forge_frame.md)**
+**[forge_frame(3nasl)](forge_frame.md)**

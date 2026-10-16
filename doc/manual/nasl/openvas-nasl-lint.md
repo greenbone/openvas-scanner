@@ -1,4 +1,4 @@
-# openvas-nasl-lint
+# openvas-nasl-lint(1)
 
 ## NAME
 
@@ -6,7 +6,7 @@ openvas-nasl-lint - OpenVAS standalone NASL linter
 
 ## SYNOPSIS
 
-**openvas-nasl-lint** \[*options*\]* nasl_file*
+**openvas-nasl-lint** \[*option*...\] *nasl_file*...
 
 ## DESCRIPTION
 
@@ -22,22 +22,27 @@ These programs follow the usual GNU command line syntax, with long
 options starting with two dashes (\`-\'). A summary of options is
 included below.
 
-**-h, \--help**
+**-h**, **--help**
 
-:   Show summary of options
+:   Show summary of options.
 
-**-d, \--debug**
+**-d**, **--debug**
 
-:   Output debug log messages
+:   Output debug log messages.
 
-**-l, \--nvt-list=\<file\>**
+**-l** *file*, **--nvt-list** *file*
 
-:   Process files from **\<file\>**
+:   Process files from *file*.
 
-**-i, \--include-dir=\<dir\>**
+**-i** *dir*, **--include-dir *dir*
 
-:   Search for includes in **\<dir\>**
+:   Search for includes in *dir*.
+
+**--strict-includes**
+
+:   Enable check for strict include order.
+
 
 ## SEE ALSO
 
-**[openvas(1)](../openvas/openvas.md)**, **[openvas-nasl(1)](openvas-nasl.md)**
+**[openvas(8)](../openvas/openvas.md)**, **[openvas-nasl(1)](openvas-nasl.md)**

@@ -10,7 +10,7 @@
 
 ## Presentation
 
-[Redis](http://redis.io) is used to store and access the KB (Knowledge Base).
+[Redis](https://redis.io/) is used to store and access the KB (Knowledge Base).
 Scans won't run if they cannot access the server and might be significantly
 slowed down if redis is not properly configured.
 

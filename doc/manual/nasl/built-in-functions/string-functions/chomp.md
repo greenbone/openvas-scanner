@@ -1,4 +1,4 @@
-# chomp
+# chomp(3nasl)
 
 ## NAME
 

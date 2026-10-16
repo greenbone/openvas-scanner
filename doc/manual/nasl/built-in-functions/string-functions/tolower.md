@@ -1,4 +1,4 @@
-# tolower
+# tolower(3nasl)
 
 ## NAME
 

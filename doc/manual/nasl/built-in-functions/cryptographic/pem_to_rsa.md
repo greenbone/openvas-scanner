@@ -1,4 +1,4 @@
-# pem_to_rsa
+# pem_to_rsa(3nasl)
 
 ## NAME
 
@@ -27,4 +27,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[pem_to_dsa(3)](pem_to_dsa.md)**,
+**[pem_to_dsa(3nasl)](pem_to_dsa.md)**,

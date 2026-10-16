@@ -1,4 +1,4 @@
-# bf_cbc_encrypt
+# bf_cbc_encrypt(3nasl)
 
 ## NAME
 
@@ -26,4 +26,4 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[bf_cbc_decrypt(3)](bf_cbc_decrypt.md)**,
+**[bf_cbc_decrypt(3nasl)](bf_cbc_decrypt.md)**,

@@ -1,4 +1,4 @@
-# wmi_connect
+# wmi_connect(3nasl)
 
 ## NAME
 
@@ -18,7 +18,7 @@
 
 **wmi_connect_reg** connects to a WMI service on the current target system into the registry namespace.
 
-A WMI handler is returned, which is used to run commands on the target system. A opened handler must be closed by calling **[wmi_close(3)](wmi_close.md)**.
+A WMI handler is returned, which is used to run commands on the target system. A opened handler must be closed by calling **[wmi_close(3nasl)](wmi_close.md)**.
 
 The named argument *username* contains the user login.
 
@@ -82,4 +82,4 @@ In order to be able to use the WMI client of the openvas-scanner, **[openvas-smb
 
 ## SEE ALSO
 
-**[wmi_close(3)](wmi_close.md)**
+**[wmi_close(3nasl)](wmi_close.md)**

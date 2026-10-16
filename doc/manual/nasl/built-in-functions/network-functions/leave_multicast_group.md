@@ -1,4 +1,4 @@
-# leave_multicast_group
+# leave_multicast_group(3nasl)
 
 ## NAME
 
@@ -37,4 +37,4 @@ leave_multicast_group("224.0.0.1");
 
 ## SEE ALSO
 
-**[join_multicast_group(3)](join_multicast_group.md)**
+**[join_multicast_group(3nasl)](join_multicast_group.md)**

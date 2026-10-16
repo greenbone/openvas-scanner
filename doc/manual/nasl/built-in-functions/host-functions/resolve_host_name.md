@@ -1,4 +1,4 @@
-# resolve_host_name
+# resolve_host_name(3nasl)
 
 ## NAME
 

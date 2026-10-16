@@ -1,4 +1,4 @@
-# get_icmp_v6_element
+# get_icmp_v6_element(3nasl)
 
 ## NAME
 

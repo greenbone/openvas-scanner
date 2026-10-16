@@ -1,4 +1,4 @@
-# tcp_ping
+# tcp_ping(3nasl)
 
 ## NAME
 

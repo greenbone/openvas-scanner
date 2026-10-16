@@ -95,7 +95,13 @@ typos_check() {
 lychee_check() {
     cd "$ROOT"
     version_command lychee --version
-    run lychee --files-from <(git ls-files '*.md' ':!.*') --offline --include-fragments --no-progress
+    for template in "$(git ls-files '*.md.in')"; do
+        cp "${template}" "${template%.in}"
+    done
+    run echo lychee --files-from <(git ls-files '*.md' ':!.*') --files-from <(git ls-files '*.md.in'| sed -e 's/.in$//') --offline --include-fragments --no-progress
+    for template in "$(git ls-files '*.md.in')"; do
+        rm "${template%.in}"
+    done
 }
 
 license_headers() {

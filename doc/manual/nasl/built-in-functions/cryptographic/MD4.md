@@ -1,4 +1,4 @@
-# MD4
+# MD4(3nasl)
 
 ## NAME
 
@@ -30,11 +30,11 @@ hash = MD4("test");
 
 ## SEE ALSO
 
-**[MD2(3)](MD2.md)**,
-**[MD5(3)](MD5.md)**,
-**[NTLMv1_HASH(3)](NTLMv1_HASH.md)**,
-**[NTLMv2_HASH(3)](NTLMv2_HASH.md)**,
-**[RIPEMD160(3)](RIPEMD160.md)**,
-**[SHA1(3)](SHA1.md)**,
-**[SHA256(3)](SHA256.md)**,
-**[SHA512(3)](SHA512.md)**,
+**[MD2(3nasl)](MD2.md)**,
+**[MD5(3nasl)](MD5.md)**,
+**[NTLMv1_HASH(3nasl)](NTLMv1_HASH.md)**,
+**[NTLMv2_HASH(3nasl)](NTLMv2_HASH.md)**,
+**[RIPEMD160(3nasl)](RIPEMD160.md)**,
+**[SHA1(3nasl)](SHA1.md)**,
+**[SHA256(3nasl)](SHA256.md)**,
+**[SHA512(3nasl)](SHA512.md)**,

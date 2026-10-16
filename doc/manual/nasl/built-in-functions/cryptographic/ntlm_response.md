@@ -1,4 +1,4 @@
-# ntlm_response
+# ntlm_response(3nasl)
 
 ## NAME
 
@@ -27,5 +27,5 @@ Returns NULL when a given parameter is null.
 
 ## SEE ALSO
 
-**[ntlm2_response(3)](ntlm2_response.md)**,
-**[ntlmv2_response(3)](ntlmv2_response.md)**,
+**[ntlm2_response(3nasl)](ntlm2_response.md)**,
+**[ntlmv2_response(3nasl)](ntlmv2_response.md)**,

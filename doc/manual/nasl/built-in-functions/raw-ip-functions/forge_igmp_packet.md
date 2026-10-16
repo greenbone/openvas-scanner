@@ -1,4 +1,4 @@
-# forge_igmp_packet
+# forge_igmp_packet(3nasl)
 
 ## NAME
 
@@ -55,4 +55,4 @@ igmp2 = forge_igmp_packet(ip    : ip_packet,
 
 ## SEE ALSO
 
-**[forge_ip_packet(3)](forge_ip_packet.md)**
+**[forge_ip_packet(3nasl)](forge_ip_packet.md)**
