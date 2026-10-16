@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 Greenbone AG
+// SPDX-FileCopyrightText: 2026 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -30,16 +30,29 @@ pub enum DBLocation {
 }
 
 impl DBLocation {
-    pub fn sqlite_address(&self, name: &str) -> String {
-        match &self {
-            Self::InMemory => "sqlite::memory:".to_owned(),
-            Self::File(path_buf) => {
-                format!(
-                    "sqlite:{}",
-                    path_buf.join(format!("{name}.sql")).to_string_lossy()
-                )
-            }
-        }
+    pub fn sqlite_address(&self, name: &str) -> anyhow::Result<String> {
+        Ok(format!("sqlite:{}", self.path(name)?.to_string_lossy()))
+    }
+
+    pub fn path(&self, name: &str) -> anyhow::Result<PathBuf> {
+        let path = match &self {
+            #[cfg(not(test))]
+            Self::InMemory => PathBuf::from_str(&format!(
+                "/dev/shm/openvasd-{:?}/{name}.sql",
+                std::process::id()
+            ))?,
+            // Add the test name to the database path during testing.
+            // This is required because cargo test runs tests in parallel on multiple threads.
+            #[cfg(test)]
+            Self::InMemory => PathBuf::from_str(&format!(
+                "/dev/shm/openvasd-{:?}-{}/{name}.sql",
+                std::process::id(),
+                std::thread::current().name().unwrap_or("default"),
+            ))?,
+            Self::File(path_buf) => path_buf.join(format!("{name}.sql")),
+        };
+
+        Ok(path)
     }
 
     fn default_file_location(name: &str) -> Self {
@@ -395,6 +408,17 @@ impl StorageTypes {
         // requests onto one writer connection and turn load spikes into long waits.
         const HTTP_CONNECTION_MULTIPLIER: usize = 4;
         self.max_db_connections() * HTTP_CONNECTION_MULTIPLIER
+    }
+
+    pub fn is_inmemory(&self) -> bool {
+        match self {
+            StorageTypes::V1(cfg) => {
+                matches!(cfg.storage_type, StorageType::InMemory)
+            }
+            StorageTypes::V2(cfg) => {
+                matches!(cfg.location, DBLocation::InMemory)
+            }
+        }
     }
 }
 impl Default for StorageTypes {

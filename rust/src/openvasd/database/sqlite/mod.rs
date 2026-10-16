@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::fs::Permissions;
+use std::os::unix::fs::PermissionsExt;
 use std::str::FromStr;
 
 use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
@@ -62,14 +64,15 @@ pub async fn create_pool(
         pool::PoolOptions,
         sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
     };
-    if let DBLocation::File(path) = &config.location
-        && !path.exists()
-    {
-        std::fs::create_dir_all(path)
-            .map_err(|_| anyhow::anyhow!("Failed to create dir at {path:?}"))?
+
+    if let Some(parent) = config.location.path(name)?.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|_| anyhow::anyhow!("Failed to create dir at {parent:?}"))?;
+        // Prevent access for anyone but the user
+        std::fs::set_permissions(parent, Permissions::from_mode(0o700))?;
     }
 
-    let options = SqliteConnectOptions::from_str(&config.location.sqlite_address(name))?
+    let options = SqliteConnectOptions::from_str(&config.location.sqlite_address(name)?)?
         .journal_mode(SqliteJournalMode::Wal)
         .busy_timeout(config.busy_timeout)
         // Although this can lead to data loss in the case that the application crashes, we usually
@@ -314,6 +317,33 @@ impl From<sqlx::Error> for DAOError {
             error => {
                 tracing::warn!(%error, "Unexpected sqlx::Error.");
                 DAOError::Infrastructure(InfrastructureReason::Error(value.to_string()))
+            }
+        }
+    }
+}
+
+pub struct DbGuard {
+    pool: SqlitePool,
+}
+
+impl DbGuard {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+}
+
+impl Drop for DbGuard {
+    fn drop(&mut self) {
+        if (!std::thread::panicking() || std::env::var("KEEP_TEST_DB").is_ok_and(|x| x == "true"))
+            && let Some(path) = self.pool.connect_options().get_filename().parent()
+        {
+            let active_connections = self.pool.size().saturating_sub(self.pool.num_idle() as u32);
+            if active_connections > 0 {
+                tracing::debug!(active_connections, "DB connections active at shutdown");
+            }
+
+            if let Err(e) = std::fs::remove_dir_all(path) {
+                tracing::warn!("failed to cleanup database: {e}");
             }
         }
     }
