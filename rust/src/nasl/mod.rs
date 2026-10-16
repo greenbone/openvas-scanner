@@ -25,7 +25,7 @@ pub mod prelude {
     pub use super::code::SourceFile;
     pub use super::interpreter::NaslValue;
     pub use super::interpreter::Register;
-    pub use super::syntax::Loader;
+    pub use super::syntax::{LoadedFile, Loader};
     pub use super::utils::ArgumentError;
     pub use super::utils::FnError;
     pub use super::utils::NaslResult;
