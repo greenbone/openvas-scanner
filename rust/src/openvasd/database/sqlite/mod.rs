@@ -69,6 +69,23 @@ pub async fn create_pool(
             .map_err(|_| anyhow::anyhow!("Failed to create dir at {path:?}"))?
     }
 
+    if config.max_connections.is_some() {
+        tracing::warn!("The max_connections option has been deprecated");
+    }
+
+    // This setup supports 1 WRITE and N READ operations at the same time.
+    // With WAL (Write-Ahead Logging) active each WRITE transaction is first written into a `-wal`
+    // file before being transferred into the database at a checkout (which is not the commit).
+    // This means that READ transactions can run at the same time and get the previous state of
+    // the database.
+    // If a second WRITE operation is trying to start it will wait for `busy_timeout` before failing.
+    //
+    // WARNING: The `busy_timeout` can be ignored by sqlite in situations when it is impossible to wait.
+    // Instead the operation will fail immediately with an `SQLITE_BUSY` error.
+    // This most importantly affects `DEFERRED` transactions that start with a READ statement and later
+    // have to upgrade to a WRITE transaction.
+    //
+    // IF A TRANSACTION HAS TO WRITE DATA ALWAYS START AN IMMEDIATE TRANSACTION TO UTILIZE THE BUSY_TIMEOUT.
     let options = SqliteConnectOptions::from_str(&config.location.sqlite_address(name))?
         .journal_mode(SqliteJournalMode::Wal)
         .busy_timeout(config.busy_timeout)
@@ -82,8 +99,8 @@ pub async fn create_pool(
         // connection being open.
         .max_lifetime(None)
         .idle_timeout(None)
-        // To prevent exhausting of the DB we limit the connections.
-        .max_connections(config.max_connections)
+        // scheduler + HTTP api
+        .min_connections(2)
         .connect_with(options)
         .await
         .map_err(|e| e.into())
