@@ -536,6 +536,26 @@ impl OpenvasdInstance {
             wait_for: None,
         }
     }
+
+    #[cfg(feature = "requires-compose")]
+    pub fn request_with_client(
+        &self,
+        method: Method,
+        path: impl Into<String>,
+        client: reqwest::Client,
+    ) -> Request<()> {
+        let path = path.into();
+        Request {
+            method,
+            path,
+            test_name: self.test_name.clone(),
+            address: self.address,
+            client,
+            scheme: self.request_client.scheme,
+            json: None,
+            wait_for: None,
+        }
+    }
 }
 
 #[derive(Clone)]

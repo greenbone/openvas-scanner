@@ -33,6 +33,17 @@ impl OpenvasdInstance {
             .assert_header_exists("feed-version")
             .assert_header_exists("date");
     }
+
+    #[cfg(feature = "requires-compose")]
+    async fn assert_mtls_auth(&self) {
+        let client = reqwest::Client::builder()
+            .tls_danger_accept_invalid_certs(true)
+            .build()
+            .unwrap();
+        self.request_with_client(GET, "/scans", client)
+            .await
+            .assert_status(StatusCode::UNAUTHORIZED);
+    }
 }
 
 async fn check_head_endpoints(t: &OpenvasdInstance, write_snapshots: bool) {
@@ -731,6 +742,12 @@ mod requires_compose {
     async fn mtls_head_scans() {
         let t = Test::new("compose_mtls_head_scans").config("openvas").await;
         t.assert_mtls().await;
+    }
+
+    #[tokio::test]
+    async fn mtls_auth() {
+        let t = Test::new("compose_mtls_auth").config("openvas").await;
+        t.assert_mtls_auth().await;
     }
 
     // TODO: This test is currently broken and
