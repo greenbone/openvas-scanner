@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-
+Closes the given socket.
 
 ## RETURN VALUE
 
