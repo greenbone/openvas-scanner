@@ -3,6 +3,7 @@
 ## NAME
 
 **prf_sha256** - takes four named arguments secret, seed, label, outlen
+
 ## SYNOPSIS
 
 *str* **prf_sha256**(secret: str, seed: str, label: str, outlen: int);

@@ -3,6 +3,7 @@
 ## NAME
 
 **HMAC_SHA1** - takes named parameter data and key to return HMAC SHA1 string.
+
 ## SYNOPSIS
 
 *str* **HMAC_SHA1**(key: str, data: str);

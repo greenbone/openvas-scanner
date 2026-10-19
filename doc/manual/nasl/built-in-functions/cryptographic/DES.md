@@ -3,6 +3,7 @@
 ## NAME
 
 **DES** - takes a unnamed parameter and return DES hash.
+
 ## SYNOPSIS
 
 *str* **DES**(str);
