@@ -5,6 +5,7 @@
 DEPRECATED
 
 **tls1_prf** - takes four named arguments secret, seed, label, outlen. This function is deprecated and will not longer be supported!
+
 ## SYNOPSIS
 
 *str* **tls1_prf**(secret: str, seed: str, label: str, outlen: int);

@@ -3,6 +3,7 @@
 ## NAME
 
 **ntlm_response** - takes four named arguments cryptkey, password, nt_hash, neg_flags
+
 ## SYNOPSIS
 
 *str* **ntlm_response**(cryptkey: str, password: str, nt_hash: str, neg_flags: int);
