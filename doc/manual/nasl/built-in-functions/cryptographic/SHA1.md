@@ -14,7 +14,6 @@
 
 SHA1 is a type of hash function.
 
-
 ## RETURN VALUE
 
 SHA1 hash

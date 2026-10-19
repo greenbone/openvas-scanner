@@ -11,9 +11,11 @@
 **http_set_custom_header** takes two arguments.
 
 ## DESCRIPTION
+
 Adds a new element to initialized handle header.
 
 ## RETURN VALUE
+
 It returns an integer or NULL on error.
 
 ## EXAMPLES

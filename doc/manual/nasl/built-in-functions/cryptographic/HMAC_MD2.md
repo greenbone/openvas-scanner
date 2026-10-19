@@ -17,7 +17,6 @@
 
 HMAC_MD2 is a type of message authentication code involving MD2 hash function and a secret cryptographic key.
 
-
 ## RETURN VALUE
 
 HMAC MD2 string.

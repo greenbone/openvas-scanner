@@ -20,7 +20,6 @@ As this method returns an error code the caller must get the data for the applic
 
 To verify if the process requires further step the caller must call `krb5_gss_update_context_needs_more()`.
 
-
 ## RETURN VALUE
 
 Returns 0 on success otherwise it is an failure.

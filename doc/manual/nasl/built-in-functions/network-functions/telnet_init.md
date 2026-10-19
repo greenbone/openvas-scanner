@@ -21,7 +21,7 @@ Return FAKE_CELL, or Null on error
 ## ERRORS
 
 - Invalid socket value
- 
+
 ## EXAMPLES
 
 Open a socket and print the telnet banner.

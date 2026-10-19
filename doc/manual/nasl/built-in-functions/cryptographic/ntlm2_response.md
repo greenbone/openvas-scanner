@@ -16,7 +16,6 @@ The nt_hash is the `nt_owf_gen` response of the password given in password.
 
 ntlm2_response generates the ntlm2_response based on the given arguments.
 
-
 ## RETURN VALUE
 
 ntlm2_response

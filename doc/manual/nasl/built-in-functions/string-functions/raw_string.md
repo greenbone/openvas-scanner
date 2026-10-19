@@ -28,7 +28,6 @@ This function is similar to **[strcat(3nasl)](strcat.md)** and **[string(3nasl)]
 
 All given arguments are converted to *string* and concatenated in their given order.
 
-
 ## SEE ALSO
 
 **[strcat(3nasl)](strcat.md)**, **[string(3nasl)](string.md)**

@@ -11,6 +11,7 @@
 **rsa_private_decrypt** decrypts provided data with the public RSA key given by e, n and d. Returns the decrypted data.
 
 ## DESCRIPTION
+
 Encrypts provided data with the private RSA key given by e and n. Returns the encrypted data.
 
 - pad: when true it is using padding\
@@ -19,10 +20,10 @@ Encrypts provided data with the private RSA key given by e and n. Returns the en
 - n: part of the private rsa key
 - d: part of the private rsa key
 
-
 ## RETURN VALUE
 
 Decrypted data
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

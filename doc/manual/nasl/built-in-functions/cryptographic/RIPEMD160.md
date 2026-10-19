@@ -14,7 +14,6 @@
 
 RIPEMD160 is a type of hash function.
 
-
 ## RETURN VALUE
 
 RIPEMD160 hash

@@ -14,7 +14,6 @@
 
 DES is a type of hash function.
 
-
 ## RETURN VALUE
 
 DES hash

@@ -10,7 +10,6 @@
 
 **dump_ip_packet** takes any number of unnamed arguments.
 
-
 ## DESCRIPTION
 
 Receive a list of IP packets and print them in a readable format in the screen.

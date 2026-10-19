@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-Sets the list of “KB items” that must be set to run this script. This only applies if the option “optimize_test” is "yes". 
+Sets the list of “KB items” that must be set to run this script. This only applies if the option “optimize_test” is "yes".
 
 ## RETURN VALUE
 

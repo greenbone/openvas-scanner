@@ -34,7 +34,6 @@ Returns nothing.
 
 ```cpp
 script_category(<category>);
-
 ```
 
 ## SEE ALSO

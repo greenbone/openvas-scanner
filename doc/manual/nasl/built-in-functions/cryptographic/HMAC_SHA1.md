@@ -17,7 +17,6 @@
 
 HMAC_SHA1 is a type of message authentication code involving SHA1 hash function and a secret cryptographic key.
 
-
 ## RETURN VALUE
 
 HMAC SHA1 string.

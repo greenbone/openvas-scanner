@@ -9,7 +9,6 @@
 *string* **wmi_query**(wmi_handle: *int*, query: *string*);
 *string* **wmi_query_rsop**(wmi_handle: *int*, query: *string*);
 
-
 ## DESCRIPTION
 
 **wmi_query** performs a WQL query on a WMI connection. WQL is the WMI Query Language.

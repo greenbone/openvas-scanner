@@ -19,6 +19,7 @@
 Receives data from a TCP or UDP socket and stops as soon as a line feed character has been read, length bytes have been read or the default timeout has been triggered. 
 
 ## RETURN VALUE
+
 String with the received data or NULL on error.
 
 ## ERRORS

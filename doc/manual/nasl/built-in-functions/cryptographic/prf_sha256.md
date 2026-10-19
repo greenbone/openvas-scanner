@@ -18,7 +18,6 @@ It uses given seed and label as a basis for the pseudo random generator while th
 
 The outlen is the length of the returned value in bytes.
 
-
 ## RETURN VALUE
 
 prf_sha256 hash

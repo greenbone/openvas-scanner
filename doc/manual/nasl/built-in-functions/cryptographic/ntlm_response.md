@@ -17,7 +17,6 @@ The neg_flags must be a positive number and is used to determine if it is using 
 
 ntlm_response generates the ntlm_response based on the given arguments.
 
-
 ## RETURN VALUE
 
 ntlm_response

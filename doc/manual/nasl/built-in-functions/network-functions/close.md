@@ -21,14 +21,13 @@ Return FAKE_CELL, or Null on error
 ## ERRORS
 
 - Invalid socket value
- 
+
 ## EXAMPLES
 
 Open and close a socket
 ```cpp
 soc = open_sock_tcp(port);
 close(soc);
-
 ```
 
 ## SEE ALSO

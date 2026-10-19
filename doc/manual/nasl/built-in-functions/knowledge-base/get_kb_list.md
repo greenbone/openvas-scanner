@@ -10,13 +10,11 @@
 
 **get_kb_list** takes 1 positional argument.
 
-
 ## DESCRIPTION
 
 This function is used to retrieve entries from the KB in a list. It is mainly used for inter-plugin communication, so data can be transferred between scripts.
 
 The first positional argument determines the name of the entry, which should be retrieved. Alternatively a mask can be given to match multiple KB entries
-
 
 ## RETURN VALUE
 

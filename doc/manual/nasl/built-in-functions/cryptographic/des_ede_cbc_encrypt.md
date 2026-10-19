@@ -11,6 +11,7 @@
 **des_ede_cbc_encrypt** encrypts given data with triple DES EDE CBC mode.
 
 ## DESCRIPTION
+
 Encrypt the given data using the triple DES EDE algorithm in CBC mode.
 
 ## RETURN VALUE

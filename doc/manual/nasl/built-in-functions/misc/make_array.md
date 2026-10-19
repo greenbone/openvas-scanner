@@ -20,7 +20,6 @@ necessarily return contiguous memory addresses because of how dynamic memory all
 works in C and how the operating system manages memory. Therefore, key-value tuples
 do not necessarily keep the order in which they were stored.
 
-
 ## RETURN VALUE
 
 Returns a dictionary made out of the arguments.

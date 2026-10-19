@@ -17,7 +17,6 @@
 
 HMAC_RIPEMD160 is a type of message authentication code involving RIPEMD160 hash function and a secret cryptographic key.
 
-
 ## RETURN VALUE
 
 HMAC RIPEMD160 string.

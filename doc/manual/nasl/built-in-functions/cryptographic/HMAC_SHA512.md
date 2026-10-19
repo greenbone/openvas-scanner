@@ -17,7 +17,6 @@
 
 HMAC_SHA512 is a type of message authentication code involving SHA512 hash function and a secret cryptographic key.
 
-
 ## RETURN VALUE
 
 HMAC SHA512 string.

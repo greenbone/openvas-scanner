@@ -10,14 +10,13 @@
 
 **get_icmp_element** It takes two named.
 
-
 ## DESCRIPTION
 
 Get an ICMP element from a IP datagram. It returns a data block or an integer, according to the type of the element. Its arguments are:
 
 - icmp: is the IP datagram (not the ICMP part only).
 - element: is the name of the field to get
-  
+
 Valid ICMP elements to get are:
 
 - icmp_id
@@ -26,7 +25,6 @@ Valid ICMP elements to get are:
 - icmp_seq
 - icmp_chsum
 - icmp_data
-
 
 ## RETURN VALUE
 

@@ -10,7 +10,6 @@
 
 **dump_udp_packet** It takes any number of unnamed arguments.
 
-
 ## DESCRIPTION
 
 Receive a list of IPv4 datagrams and print their UDP part in a readable format in the screen.

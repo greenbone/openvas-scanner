@@ -17,7 +17,6 @@
 
 HMAC_SHA384 is a type of message authentication code involving SHA384 hash function and a secret cryptographic key.
 
-
 ## RETURN VALUE
 
 HMAC SHA384 string.

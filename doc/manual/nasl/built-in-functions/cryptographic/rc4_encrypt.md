@@ -21,6 +21,7 @@ If there is no open handler than the key and iv parameter must be set.
   -hd: the handler index. (mandatory if not key and iv is given)
   -iv: string Initialization vector (mandatory if no handler is given).
   -key: string key (mandatory if no handler is given).
+
 ## RETURN VALUE
 
 The return value is the encrypted data.
