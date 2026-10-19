@@ -28,7 +28,7 @@ first positional argument is not given
 
 ## EXAMPLES
 
-**1**: Create a list with expiring keys and display it
+Create a list with expiring keys and display it
 ```cpp
 set_kb_item(name: "hosts", value: "foo", expire: 600);
 set_kb_item(name: "hosts", value: "bar", expire: 600);

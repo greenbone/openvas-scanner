@@ -23,7 +23,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_exclude_keys("Settings/disable_cgi_scanning");
 ```

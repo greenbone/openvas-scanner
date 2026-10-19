@@ -23,7 +23,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_require_udp_ports("Services/udp/sip", 5060);
 ```

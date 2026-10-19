@@ -35,7 +35,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_category(<category>);
 

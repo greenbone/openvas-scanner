@@ -27,7 +27,7 @@ Return FAKE_CELL, or NULL on error
 
 ## EXAMPLES
 
-**1**: Leave a multicast group
+Leave a multicast group
 ```cpp
 join_multicast_group("224.0.0.1");
 join_multicast_group("224.0.0.1");

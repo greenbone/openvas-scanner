@@ -24,7 +24,7 @@ Return FAKE_CELL, or Null on error
  
 ## EXAMPLES
 
-**1**: Open a socket and print the telnet banner. 
+Open a socket and print the telnet banner.
 ```cpp
 soc = open_sock_tcp(21);
 banner = telnet_init(soc);

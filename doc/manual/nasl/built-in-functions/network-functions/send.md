@@ -28,7 +28,7 @@ Return the amount of bytes sent on success. NULL on error.
  
 ## EXAMPLES
 
-**1**: Open and send data on socket.
+Open and send data on socket.
 ```cpp
 data = "foo bar";
 soc = open_sock_tcp(port);

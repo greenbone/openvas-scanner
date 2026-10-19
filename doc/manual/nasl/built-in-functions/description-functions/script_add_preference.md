@@ -42,7 +42,6 @@ KB items as a list of key-value pairs or None if array size is 0
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_add_preference(name:"Service scan", type:"checkbox", value:"no", id:2);
 

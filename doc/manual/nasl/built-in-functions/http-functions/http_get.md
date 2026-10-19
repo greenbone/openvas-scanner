@@ -19,7 +19,7 @@ It returns a string (the formatted request). Null on error
 
 ## EXAMPLES
 
-**1** Get and display the delete request: 
+Get and display the delete request:
 ```cpp
 url = "http://localhost/";
 file = url + "index.html";

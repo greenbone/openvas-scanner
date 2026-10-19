@@ -23,7 +23,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_cve_id("CVE-2016-8650", "CVE-2016-9793", "CVE-2017-2618", "CVE-2017-2636");
 

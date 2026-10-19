@@ -23,7 +23,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_mandatory_keys("ssh/login/centos", "ssh/login/rpms", re:"ssh/login/release=CentOS7");
 ```

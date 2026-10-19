@@ -19,7 +19,7 @@ It returns a string (the formatted request). Null on error
 
 ## EXAMPLES
 
-**1** Get and display the formatted put request: 
+Get and display the formatted put request:
 ```cpp
 data = "some data";
 req = http_put(port: 80, item: "http://localhost/index.html", data: data);

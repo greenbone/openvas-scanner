@@ -18,7 +18,7 @@ String containing the path.
 
 ## EXAMPLES
 
-**1** Get and display the path: 
+Get and display the path:
 ```cpp
 path = cgibin();
 display (path);

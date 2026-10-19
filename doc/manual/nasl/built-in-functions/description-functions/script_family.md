@@ -23,7 +23,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_family("Ubuntu Local Security Checks");
 ```

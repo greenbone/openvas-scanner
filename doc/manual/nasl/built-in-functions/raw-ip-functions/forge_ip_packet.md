@@ -37,7 +37,7 @@ The IP datagram or NULL on error.
 
 ## EXAMPLES
 
-**1** Forge the forged ip packet for later fill it with IGMP paget:
+Forge the forged ip packet for later fill it with IGMP paget:
 ```cpp
 ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,

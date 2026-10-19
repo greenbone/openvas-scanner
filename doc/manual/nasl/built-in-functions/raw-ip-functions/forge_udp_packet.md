@@ -35,7 +35,7 @@ The modified IP datagram or NULL on error.
 
 ## EXAMPLES
 
-**1** Dump the forged udp packet:
+Dump the forged udp packet:
 ```cpp
 data = "some data";
 

@@ -26,7 +26,7 @@ Returns TRUE if it could login successfully, FALSE otherwise (e.g. wrong passwor
  
 ## EXAMPLES
 
-**1**: Performs an ftp login.
+Performs an ftp login.
 ```cpp
 soc = open_sock_tcp(23);
 ftp_log_in(socket: soc, user: "foo", pass: "bar");
