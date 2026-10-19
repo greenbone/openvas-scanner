@@ -14,7 +14,7 @@
 
 Returns the byte order of the system. True when little-endian and false when big-endian.
 
-## Returns
+## RETURN VALUE
 
 1 when little-endian
 
