@@ -1020,7 +1020,7 @@ fn set_tcp_elements(
 ) -> Result<NaslValue, FnError> {
     let ip = tcp.to_immutable();
     let iph_len = tcp.get_header_length() as usize * 4; // the header length is given in 32-bits words
-    let ori_tcp_buf = <&[u8]>::clone(&ip.payload()).to_owned();
+    let ori_tcp_buf = ip.payload().to_owned();
 
     let mut tcp_buf: Vec<u8> = vec![0u8; 0];
     let mut ori_tcp = set_elements_tcp(
@@ -2557,7 +2557,7 @@ fn set_tcp_v6_elements(
 ) -> Result<NaslValue, FnError> {
     let ip = tcp.to_immutable();
     let payload_len = tcp.get_payload_length() as usize * 4; // the tcp segment length is given in 32-bits words
-    let ori_tcp_buf = <&[u8]>::clone(&ip.payload()).to_owned();
+    let ori_tcp_buf = ip.payload().to_owned();
 
     let mut tcp_buf: Vec<u8> = vec![0u8; 0];
     let mut ori_tcp = set_elements_tcp(
