@@ -2,7 +2,7 @@
 
 ## NAME
 
-**HMAC_SHA256** - takes named paramaeter data and key to return HMAC SHA256 string.
+**HMAC_SHA256** - takes named parameter data and key to return HMAC SHA256 string.
 ## SYNOPSIS
 
 *str* **HMAC_SHA256**(key: str, data: str);
