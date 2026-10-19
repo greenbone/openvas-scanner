@@ -12,7 +12,7 @@
 
 Decrypts provided sig with the public RSA key given by e and n. Returns the decrypted data.
 
-- sign: the data to encrypt
+- sig: the data to encrypt
 - e: part of the public rsa key
 - n: part of the public rsa key
 
