@@ -19,9 +19,6 @@ The name can be change once the GVM versions older than GVM 11 (using VT name ba
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp

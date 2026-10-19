@@ -20,8 +20,6 @@ Note that UDP port scanning may be unreliable.
 
 Returns TRUE if it is open and FALSE otherwise.
 
-## ERRORS
- 
 ## EXAMPLES
 
 Get and display the state of the given port.

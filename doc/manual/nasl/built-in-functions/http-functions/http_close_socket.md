@@ -13,9 +13,6 @@
 ## DESCRIPTION
 It is identical to close but this may change in the future. 
 
-## RETURN VALUE
-
-
 ## EXAMPLES
 
 Open and close a socket. Use the socket to send a get request:

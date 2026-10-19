@@ -18,9 +18,6 @@ The CVEs are stored as NVT references.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp

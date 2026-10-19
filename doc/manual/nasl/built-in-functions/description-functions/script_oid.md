@@ -18,9 +18,6 @@ Sets the plugin's oid.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp

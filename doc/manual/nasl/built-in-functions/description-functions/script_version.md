@@ -18,9 +18,6 @@ Sets the plugin's version.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp
