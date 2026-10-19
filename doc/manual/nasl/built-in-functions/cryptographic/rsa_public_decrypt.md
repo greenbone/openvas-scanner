@@ -2,13 +2,11 @@
 
 ## NAME
 
-**rsa_public_decrypt** - decrypts provided data with the public RSA key given by e and d. Returns the decrypted data.
+**rsa_public_decrypt** - decrypts provided data with the public RSA key given by e and d.
 
 ## SYNOPSIS
 
 *str* **rsa_public_decrypt**(sig: str, e: str, n: str);
-
-**rsa_public_decrypt** decrypts provided data with the public RSA key given by e and n. Returns the decrypted data.
 
 ## DESCRIPTION
 

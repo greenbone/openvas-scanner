@@ -2,13 +2,11 @@
 
 ## NAME
 
-**rsa_public_encrypt** - encrypts provided data with the public RSA key given by e and n. Returns the encrypted data.
+**rsa_public_encrypt** - encrypts provided data with the public RSA key given by e and n.
 
 ## SYNOPSIS
 
 *str* **rsa_public_encrypt**(pad: bool, data: str, e: str, n: str);
-
-**rsa_public_encrypt** encrypts provided data with the public RSA key given by e and n. Returns the encrypted data.
 
 ## DESCRIPTION
 
