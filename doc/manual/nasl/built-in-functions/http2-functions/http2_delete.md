@@ -21,7 +21,7 @@ It returns a string (the http response). Null on error
 
 ## EXAMPLES
 
-Delete and display the formatted delete request:
+Delete and display the formated delete request:
 ```cpp
 h = http2_handle();
 display(h);
