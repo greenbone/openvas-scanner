@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-decrypt the given data using the AES 128 bit algorithm in GCM mode.
+Decrypt the given data using the AES 128 bit algorithm in GCM mode.
 
 ## RETURN VALUE
 
