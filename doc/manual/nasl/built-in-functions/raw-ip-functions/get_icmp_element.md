@@ -8,7 +8,7 @@
 
 *int* **get_icmp_element**(icmp: *string*, element: *string*);
 
-**get_icmp_element** It takes two named.
+**get_icmp_element** takes two named parameters.
 
 ## DESCRIPTION
 
