@@ -61,25 +61,25 @@ where
     }
 
     pub async fn prepare_preferences_for_openvas(&mut self) -> RedisStorageResult<()> {
-        self.prepare_scan_id_for_openvas().await?;
-        self.prepare_target_for_openvas().await?;
-        self.prepare_ports_for_openvas().await?;
-        self.prepare_credentials_for_openvas().await?;
-        self.prepare_plugins_for_openvas().await?;
-        self.prepare_main_kbindex_for_openvas().await?;
-        self.prepare_host_options_for_openvas().await?;
-        self.prepare_scan_params_for_openvas().await?;
-        self.prepare_reverse_lookup_opt_for_openvas().await?;
-        self.prepare_alive_test_option_for_openvas().await?;
+        self.prepare_scan_id_for_openvas()?;
+        self.prepare_target_for_openvas()?;
+        self.prepare_ports_for_openvas()?;
+        self.prepare_credentials_for_openvas()?;
+        self.prepare_plugins_for_openvas()?;
+        self.prepare_main_kbindex_for_openvas()?;
+        self.prepare_host_options_for_openvas()?;
+        self.prepare_scan_params_for_openvas()?;
+        self.prepare_reverse_lookup_opt_for_openvas()?;
+        self.prepare_alive_test_option_for_openvas()?;
 
         // VT preferences are stored after all preferences have been processed,
         // since alive tests preferences have to be able to overwrite default
         // preferences of ping_host.nasl for the classic method.
-        self.prepare_nvt_preferences().await?;
+        self.prepare_nvt_preferences()?;
         self.prepare_boreas_alive_test().await
     }
 
-    async fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             format!("ov_maindbid|||{}", self.redis_connector.kb_id()?),
@@ -87,7 +87,7 @@ where
         Ok(())
     }
 
-    async fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!("internal/{}", self.scan_config.scan_id.clone()).as_str(),
             "new",
@@ -98,7 +98,7 @@ where
         Ok(())
     }
 
-    async fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, String>) {
+    fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, String>) {
         let mut vts_list: Vec<String> = vec![];
         let mut pref_list: HashMap<String, String> = HashMap::new();
 
@@ -164,13 +164,13 @@ where
         (vts_list, pref_list)
     }
 
-    async fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
         let nvts = &self.scan_config.vts;
         if nvts.is_empty() {
             return Ok(());
         }
 
-        let (nvts, prefs) = self.process_vts(nvts).await;
+        let (nvts, prefs) = self.process_vts(nvts);
         // update list of preferences
         self.nvt_params.extend(prefs);
 
@@ -181,7 +181,7 @@ where
         )
     }
 
-    async fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
+    fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
         let mut items: Vec<String> = vec![];
         for (k, v) in self.nvt_params.iter() {
             items.push(format!("{k}|||{v}"))
@@ -197,7 +197,7 @@ where
         )
     }
 
-    async fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut prefs: HashMap<String, String> = HashMap::new();
         let mut alive_test = ALIVE_TEST_SCAN_CONFIG_DEFAULT;
         let mut value: &str = "no";
@@ -320,7 +320,7 @@ where
         Ok(())
     }
 
-    async fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut lookup_opts: Vec<String> = vec![];
 
         if self
@@ -350,7 +350,7 @@ where
         )
     }
 
-    async fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
         let target = self.scan_config.target.hosts.join(",");
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
@@ -358,7 +358,7 @@ where
         )
     }
 
-    async fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
         let ports = self.scan_config.target.ports.clone();
         if let Some(ports) = ports_to_openvas_port_list(ports) {
             self.redis_connector.push_kb_item(
@@ -370,7 +370,7 @@ where
         Ok(())
     }
 
-    async fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
         let excluded_hosts = self.scan_config.target.excluded_hosts.join(",");
         if excluded_hosts.is_empty() {
             return Ok(());
@@ -382,7 +382,7 @@ where
         )
     }
 
-    async fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut options = Vec::with_capacity(self.scan_params_defaults.len());
         for (id, default) in &self.scan_params_defaults {
             let set_by_client = self
@@ -419,7 +419,8 @@ where
             options,
         )
     }
-    async fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
+
+    fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
         let credentials = self.scan_config.target.credentials.clone();
 
         let mut credential_preferences: Vec<String> = vec![];
@@ -642,8 +643,8 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn test_scan_params_bool_values() {
+    #[test]
+    fn test_scan_params_bool_values() {
         let mut scan = scan_config();
         scan.scan_preferences = vec![
             models::ScanPreference {
@@ -662,7 +663,7 @@ mod tests {
 
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
-        assert!(prefh.prepare_scan_params_for_openvas().await.is_ok());
+        assert!(prefh.prepare_scan_params_for_openvas().is_ok());
 
         assert!(
             prefh
@@ -686,7 +687,7 @@ mod tests {
         );
     }
 
-    async fn prepare_vt_params(checkbox_value: &str) -> FakeRedis {
+    fn prepare_vt_params(checkbox_value: &str) -> FakeRedis {
         let mut scan = scan_config();
         scan.vts = vec![models::VT {
             oid: "123".to_string(),
@@ -705,16 +706,16 @@ mod tests {
         let mut rc = fake_redis();
         {
             let mut prefh = handler(scan, &mut rc);
-            assert!(prefh.prepare_plugins_for_openvas().await.is_ok());
-            assert!(prefh.prepare_nvt_preferences().await.is_ok());
+            assert!(prefh.prepare_plugins_for_openvas().is_ok());
+            assert!(prefh.prepare_nvt_preferences().is_ok());
         }
         rc
     }
 
-    #[tokio::test]
-    async fn test_vt_checkbox_bool_values() {
+    #[test]
+    fn test_vt_checkbox_bool_values() {
         for (value, expected) in [("TRUE", "yes"), ("0", "no")] {
-            let rc = prepare_vt_params(value).await;
+            let rc = prepare_vt_params(value);
             assert!(
                 rc.item_exists(
                     "internal/123-456/scanprefs",
@@ -726,19 +727,19 @@ mod tests {
         }
 
         // An unparsable checkbox value is dropped instead of being coerced
-        let rc = prepare_vt_params("nope").await;
+        let rc = prepare_vt_params("nope");
         assert!(!rc.item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||yes"));
         assert!(!rc.item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||no"));
         // Non-checkbox parameters are unaffected
         assert!(rc.item_exists("internal/123-456/scanprefs", "123:2:entry:test2|||abc"));
     }
 
-    #[tokio::test]
-    async fn test_scan_id() {
+    #[test]
+    fn test_scan_id() {
         let mut rc = fake_redis();
         let mut prefh = handler(scan_config(), &mut rc);
 
-        assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
+        assert!(prefh.prepare_scan_id_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -746,14 +747,14 @@ mod tests {
         );
         assert!(prefh.redis_connector.item_exists("internal/123-456", "new"));
     }
-    #[tokio::test]
-    async fn test_target() {
+    #[test]
+    fn test_target() {
         let mut scan = scan_config();
         scan.target.hosts = vec!["127.0.0.1".to_string(), "10.0.0.1".to_string()];
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
-        assert!(prefh.prepare_target_for_openvas().await.is_ok());
+        assert!(prefh.prepare_target_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -761,8 +762,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_ports() {
+    #[test]
+    fn test_ports() {
         let mut scan = scan_config();
         scan.target.ports = vec![Port {
             protocol: Some(Protocol::TCP),
@@ -780,7 +781,7 @@ mod tests {
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
-        assert!(prefh.prepare_ports_for_openvas().await.is_ok());
+        assert!(prefh.prepare_ports_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -788,8 +789,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_credentials() {
+    #[test]
+    fn test_credentials() {
         let mut scan = scan_config();
         scan.target.credentials = vec![
             Credential {
@@ -815,7 +816,7 @@ mod tests {
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
-        assert!(prefh.prepare_credentials_for_openvas().await.is_ok());
+        assert!(prefh.prepare_credentials_for_openvas().is_ok());
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||user"
@@ -839,8 +840,8 @@ mod tests {
         ));
     }
 
-    #[tokio::test]
-    async fn test_plugins() {
+    #[test]
+    fn test_plugins() {
         let mut scan = scan_config();
         scan.vts = vec![models::VT {
             oid: "123".to_string(),
@@ -849,7 +850,7 @@ mod tests {
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
-        assert!(prefh.prepare_plugins_for_openvas().await.is_ok());
+        assert!(prefh.prepare_plugins_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -857,13 +858,13 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_main_kbindex() {
+    #[test]
+    fn test_main_kbindex() {
         let mut rc = fake_redis();
         let mut prefh = handler(scan_config(), &mut rc);
         assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
 
-        assert!(prefh.prepare_main_kbindex_for_openvas().await.is_ok());
+        assert!(prefh.prepare_main_kbindex_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -871,14 +872,14 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_host_options() {
+    #[test]
+    fn test_host_options() {
         let mut scan = scan_config();
         scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
-        assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
+        assert!(prefh.prepare_host_options_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -886,8 +887,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_scan_params() {
+    #[test]
+    fn test_scan_params() {
         let mut scan = scan_config();
         scan.scan_preferences = vec![
             models::ScanPreference {
@@ -906,7 +907,7 @@ mod tests {
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
-        assert!(prefh.prepare_scan_params_for_openvas().await.is_ok());
+        assert!(prefh.prepare_scan_params_for_openvas().is_ok());
         // Check overwrite bool
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
@@ -942,8 +943,8 @@ mod tests {
         ));
     }
 
-    #[tokio::test]
-    async fn test_configured_defaults() {
+    #[test]
+    fn test_configured_defaults() {
         let defaults = HashMap::from([
             ("safe_checks".to_string(), ScanPrefValue::Bool(false)),
             (
@@ -955,7 +956,7 @@ mod tests {
         let mut rc = fake_redis();
         let mut prefh = PreferenceHandler::new(scan_config(), &mut rc, defaults);
 
-        assert!(prefh.prepare_scan_params_for_openvas().await.is_ok());
+        assert!(prefh.prepare_scan_params_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -973,12 +974,12 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_reverse_lookup_options() {
+    #[test]
+    fn test_reverse_lookup_options() {
         let mut rc = fake_redis();
         let mut prefh = handler(scan_config(), &mut rc);
 
-        assert!(prefh.prepare_reverse_lookup_opt_for_openvas().await.is_ok());
+        assert!(prefh.prepare_reverse_lookup_opt_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -991,16 +992,16 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_alive_test_options() {
+    #[test]
+    fn test_alive_test_options() {
         let mut scan = scan_config();
         scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
         // The options only end up in the KB once the VT preferences are stored
-        assert!(prefh.prepare_alive_test_option_for_openvas().await.is_ok());
-        assert!(prefh.prepare_nvt_preferences().await.is_ok());
+        assert!(prefh.prepare_alive_test_option_for_openvas().is_ok());
+        assert!(prefh.prepare_nvt_preferences().is_ok());
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.100315:1:checkbox:Do a TCP ping|||yes"
@@ -1027,15 +1028,15 @@ mod tests {
         ));
     }
 
-    #[tokio::test]
-    async fn test_alive_test_options_tcp_syn_and_ack() {
+    #[test]
+    fn test_alive_test_options_tcp_syn_and_ack() {
         let mut scan = scan_config();
         scan.target.alive_test_methods = vec![AliveTestMethods::TcpSyn, AliveTestMethods::TcpAck];
         let mut rc = fake_redis();
         let mut prefh = handler(scan, &mut rc);
 
-        assert!(prefh.prepare_alive_test_option_for_openvas().await.is_ok());
-        assert!(prefh.prepare_nvt_preferences().await.is_ok());
+        assert!(prefh.prepare_alive_test_option_for_openvas().is_ok());
+        assert!(prefh.prepare_nvt_preferences().is_ok());
 
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
