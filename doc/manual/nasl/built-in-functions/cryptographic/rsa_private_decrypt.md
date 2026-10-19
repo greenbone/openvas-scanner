@@ -12,7 +12,7 @@
 
 Decrypts provided data with the public RSA key given by e, n and d. Return the decrypted data.
 
-- pad: when true it is using padding\
+- pad: when true it is using padding
 - data: the data to decrypt
 - e: part of the private rsa key
 - n: part of the private rsa key
