@@ -4,6 +4,8 @@
 
 **isotime_now** - get the current time in the standard ISO format
 
+## SYNOPSIS
+
 *string* **isotime_now**();
 
 **isotime_now** takes no arguments
