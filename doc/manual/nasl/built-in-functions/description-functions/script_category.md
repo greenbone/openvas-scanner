@@ -30,9 +30,6 @@ Sets the plugin's category. The valid categories are the following:
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp

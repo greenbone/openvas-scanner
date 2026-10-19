@@ -20,9 +20,6 @@ It is stored in redis as a plugin preference with the reserved preference ID 0.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp

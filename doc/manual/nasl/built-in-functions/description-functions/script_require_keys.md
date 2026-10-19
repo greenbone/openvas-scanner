@@ -18,9 +18,6 @@ Sets the list of “KB items” that must be set to run this script. This only a
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp

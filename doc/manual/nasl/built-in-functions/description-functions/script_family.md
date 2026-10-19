@@ -18,9 +18,6 @@ Sets the plugin's family.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp

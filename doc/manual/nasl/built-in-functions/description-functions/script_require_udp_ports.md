@@ -18,9 +18,6 @@ Sets the list of UDP ports that must be open to run this script in “optimize m
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
 ```cpp
