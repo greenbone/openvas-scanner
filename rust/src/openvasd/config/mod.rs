@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 Greenbone AG
+// SPDX-FileCopyrightText: 2026 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -98,7 +98,7 @@ pub struct SqliteConfiguration {
         serialize_with = "scannerlib::utils::duration::serialize"
     )]
     pub busy_timeout: Duration,
-    pub max_connections: u32,
+    pub max_connections: Option<u32>,
     pub credential_key: Option<String>,
 }
 
@@ -107,7 +107,7 @@ impl Default for SqliteConfiguration {
         Self {
             location: Default::default(),
             busy_timeout: Duration::from_secs(10),
-            max_connections: 1,
+            max_connections: None,
             credential_key: None,
         }
     }
@@ -233,14 +233,18 @@ impl Default for Notus {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(default)]
 pub struct Listener {
     pub address: SocketAddr,
+    pub max_requests: usize,
 }
 
 impl Default for Listener {
     fn default() -> Self {
         Self {
             address: ([127, 0, 0, 1], 3000).into(),
+            // best guess since most requests are read-only
+            max_requests: 4,
         }
     }
 }
@@ -377,26 +381,8 @@ impl StorageTypes {
             }
         }
     }
-
-    pub fn max_db_connections(&self) -> usize {
-        let result = match self {
-            StorageTypes::V1(_) => SqliteConfiguration::default().max_connections,
-            StorageTypes::V2(sqlite_configuration) => sqlite_configuration.max_connections,
-        };
-        if result > 0 { result as usize } else { 1 }
-    }
-
-    pub fn max_http_connections(&self) -> usize {
-        // This is only a guess until HTTP concurrency becomes a dedicated config value.
-        // A single request usually does more than a DB operation and often spends time outside
-        // of SQLite, so allowing somewhat more in-flight HTTP requests than DB connections makes
-        // sense. We keep the factor conservative because openvasd uses SQLite with a small pool
-        // and a long busy timeout; a much higher multiplier would make it easy to pile many
-        // requests onto one writer connection and turn load spikes into long waits.
-        const HTTP_CONNECTION_MULTIPLIER: usize = 4;
-        self.max_db_connections() * HTTP_CONNECTION_MULTIPLIER
-    }
 }
+
 impl Default for StorageTypes {
     fn default() -> Self {
         Self::V2(Default::default())

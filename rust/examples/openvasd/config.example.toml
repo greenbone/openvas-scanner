@@ -49,6 +49,8 @@ type = "openvas"
 [listener]
 # ip address and port to listen to
 address = "127.0.0.1:3000"
+# concurrent HTTP requests
+max_requests = 4
 
 [logging]
 level = 'INFO'
@@ -63,7 +65,6 @@ sqlx = 'WARN'
 # the directory must be writable.
 location = 'in-memory'
 busy_timeout = '2s'
-max_connections = 1
 # Keyphrase for the encryption of credential data. Removing this option results in the
 # storage of unencrypted credential data.
 credential_key = "verysecretive"
@@ -94,7 +95,6 @@ max_scans = 5
 # SQLite database in it, so the directory must be writable.
 location = 'in-memory'
 busy_timeout = '2s'
-max_connections = 1
 
 [container_image_scanner.image]
 # Directory used to extract temporary image contents. Must be writable.

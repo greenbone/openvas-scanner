@@ -64,8 +64,7 @@ pub async fn init_api(config: Config) -> Result<ApiConfig> {
         address: config.listener.address,
         auth_method,
         tls_cfg,
-        // TODO: make new variable?
-        max_requests: config.storage.max_http_connections(),
+        max_requests: config.listener.max_requests,
         api_keys: Arc::new(config.endpoints.key.map(|x| vec![x]).unwrap_or(vec![])),
         feed,
         scanner,
