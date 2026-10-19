@@ -2,7 +2,7 @@
 
 ## NAME
 
-**rsa_private_decrypt** - decrypts provided data with the public RSA key given by e, n and d.
+**rsa_private_decrypt** - decrypt provided data with the public RSA key given by e, n and d.
 
 ## SYNOPSIS
 
@@ -10,7 +10,7 @@
 
 ## DESCRIPTION
 
-Decrypts provided data with the public RSA key given by e, n and d. Return the decrypted data.
+Decrypt provided data with the public RSA key given by e, n and d. Return the decrypted data.
 
 - pad: when true it is using padding
 - data: the data to decrypt
