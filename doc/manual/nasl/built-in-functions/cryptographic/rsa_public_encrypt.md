@@ -2,7 +2,7 @@
 
 ## NAME
 
-**rsa_public_encrypt** - encrypts provided data with the public RSA key given by e and n.
+**rsa_public_encrypt** - encrypt provided data with the public RSA key given by e and n.
 
 ## SYNOPSIS
 
@@ -10,7 +10,7 @@
 
 ## DESCRIPTION
 
-Encrypts provided data with the public RSA key given by e and n. Returns the encrypted data.
+Encrypt provided data with the public RSA key given by e and n. Return the encrypted data.
 
 - pad: when true it is using padding
 - data: the data to encrypt

@@ -2,7 +2,7 @@
 
 ## NAME
 
-**rsa_public_decrypt** - decrypts provided data with the public RSA key given by e and d.
+**rsa_public_decrypt** - decrypt provided data with the public RSA key given by e and d.
 
 ## SYNOPSIS
 
@@ -10,7 +10,7 @@
 
 ## DESCRIPTION
 
-Decrypts provided sig with the public RSA key given by e and n. Returns the decrypted data.
+Decrypt provided sig with the public RSA key given by e and n. Return the decrypted data.
 
 - sig: the data to encrypt
 - e: part of the public rsa key
