@@ -11,7 +11,8 @@
 **http_close_socket** takes one unnamed argument
 
 ## DESCRIPTION
-It is identical to close but this may change in the future. 
+
+It is identical to close but this may change in the future.
 
 ## EXAMPLES
 

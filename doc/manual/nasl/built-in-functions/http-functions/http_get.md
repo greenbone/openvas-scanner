@@ -11,10 +11,12 @@
 **http_get** takes three named arguments.
 
 ## DESCRIPTION
+
 Formats an HTTP DELETE request for the server on the port.
 It will automatically handle the HTTP version and the basic or cookie based authentication. The arguments are port and item (the URL). `data` argument is not compulsory and probably useless in this function.
 
 ## RETURN VALUE
+
 It returns a string (the formatted request). Null on error
 
 ## EXAMPLES

@@ -26,7 +26,6 @@ Get and display the state of the given port.
 ```cpp
 st = get_udp_port_state(port);
 display(st);
-
 ```
 
 ## SEE ALSO

@@ -10,16 +10,13 @@
 
 **get_host_kb_index** takes no arguments
 
-
 ## DESCRIPTION
 
 This function will return the index number of the currently used Redis Database. This index belongs to the host, which is currently scanned.
 
-
 ## RETURN VALUE
 
 KB index, *int* or None, when redis index cannot be determined
-
 
 ## SEE ALSO
 

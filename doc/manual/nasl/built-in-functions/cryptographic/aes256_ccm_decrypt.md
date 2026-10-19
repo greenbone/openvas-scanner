@@ -11,11 +11,13 @@
 **aes256_ccm_decrypt** decrypts given data with AES 256 CCM mode.
 
 ## DESCRIPTION
+
 decrypt the given data using the AES 256 bit algorithm in CCM mode.
 
 ## RETURN VALUE
 
 The return value is the decrypted data.
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

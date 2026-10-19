@@ -53,7 +53,6 @@
 
 Sets additional information. The severity tags can be used just once.
 
-
 ## RETURN VALUE
 
 Returns nothing.

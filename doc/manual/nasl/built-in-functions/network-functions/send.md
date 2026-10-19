@@ -25,7 +25,7 @@ Return the amount of bytes sent on success. NULL on error.
 ## ERRORS
 
 - Syntax error with the send() function with invalid socket or empty data.
- 
+
 ## EXAMPLES
 
 Open and send data on socket.
@@ -33,7 +33,6 @@ Open and send data on socket.
 data = "foo bar";
 soc = open_sock_tcp(port);
 n = send(socket:soc, data: data);
-
 ```
 
 ## SEE ALSO

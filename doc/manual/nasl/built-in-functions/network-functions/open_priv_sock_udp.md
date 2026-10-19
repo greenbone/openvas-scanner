@@ -31,7 +31,6 @@ Open and close a socket
 ```cpp
 soc = open_priv_sock_udp(dport: 443, sport: 1000);
 close(soc);
-
 ```
 
 ## SEE ALSO

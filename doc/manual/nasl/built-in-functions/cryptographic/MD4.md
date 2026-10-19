@@ -14,7 +14,6 @@
 
 MD4 is a type of hash function.
 
-
 ## RETURN VALUE
 
 MD4 hash

@@ -16,7 +16,6 @@ Reads the private key from the `priv` which contains a private DSA key in PEM fo
 
 `passphrase` is the password needed to decrypt the private key. 
 
-
 ## RETURN VALUE
 
 Returns the parameter `x` of the DSA key as an MPI.

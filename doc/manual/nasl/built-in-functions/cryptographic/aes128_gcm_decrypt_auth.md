@@ -11,12 +11,13 @@
 **aes128_gcm_decrypt_auth** decrypts given data including a authentication token with AES 128 GCM mode.
 
 ## DESCRIPTION
-decrypt the given data using the AES 128 bit algorithm in GCM mode including an authentication token given via aad.
 
+decrypt the given data using the AES 128 bit algorithm in GCM mode including an authentication token given via aad.
 
 ## RETURN VALUE
 
 The return value is the decrypted data.
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

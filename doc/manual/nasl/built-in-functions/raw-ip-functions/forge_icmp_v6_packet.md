@@ -10,8 +10,8 @@
 
 **forge_icmp_v6_packet** It takes up to 10 named arguments.
 
-
 ## DESCRIPTION
+
 Fills an IPv6 datagram with ICMP data. Note that the ip_p field is not updated. It returns the modified IPv6 datagram. Its arguments are:
 - *ip6*: IPv6 datagram that is updated.
 - *data*: Payload.

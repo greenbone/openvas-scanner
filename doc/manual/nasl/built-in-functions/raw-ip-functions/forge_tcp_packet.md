@@ -10,7 +10,6 @@
 
 **forge_tcp_packet** It takes many named arguments, someones are optionals. For details, seethe description below.
 
-
 ## DESCRIPTION
 
 Fills an IP datagram with TCP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:
@@ -29,7 +28,6 @@ Fills an IP datagram with TCP data. Note that the ip_p field is not updated. It 
 - th_x2: is a reserved field and should probably be left unchanged. 0 by default.
 - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
 
-
 ## RETURN VALUE
 
 The modified IP datagram or NULL on error.
@@ -37,7 +35,6 @@ The modified IP datagram or NULL on error.
 ## ERRORS
 
 - You must supply the *ip* argument: You get this error if you don't provide the named argument *ip*.
-
 
 ## EXAMPLES
 
@@ -53,7 +50,6 @@ ip_packet = forge_ip_packet(ip_v : 4,
                      ip_off : 0,
                      ip_src : 192.168.0.1,
                      ip_dst : 192.168.0.12);
-
 
 tcp_packet = forge_tcp_packet(ip:       ip_packet,
                               th_sport: 5080,

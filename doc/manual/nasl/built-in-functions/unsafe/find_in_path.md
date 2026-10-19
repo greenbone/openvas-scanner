@@ -10,18 +10,15 @@
 
 **find_in_path** takes 1 positional argument.
 
-
 ## DESCRIPTION
 
 This function is used to check if a command exists in $PATH on the scanner host system. If the command exists, this function returns a *TRUE* value, if not it return a *FALSE* value.
 
 The first positional argument is the command which is searched for.
 
-
 ## RETURN VALUE
 
 *TRUE* if the command exists in $PATH, or *FALSE* if not
-
 
 ## EXAMPLES
 

@@ -10,7 +10,6 @@
 
 **script timeout**  It takes an unnamed integer argument. If it is 0 or (-1), the timeout is infinite.sets the plugin's timeout.
 
-
 ## DESCRIPTION
 
 sets the default timeout of the plugin. It takes an unnamed integer argument. If it is 0 or (-1), the timeout is infinite.

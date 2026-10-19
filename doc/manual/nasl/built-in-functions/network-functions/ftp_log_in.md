@@ -22,8 +22,9 @@ Performs a FTP identification / authentication on an open socket.
 Returns TRUE if it could login successfully, FALSE otherwise (e.g. wrong password, or any network problem).
 
 ## ERRORS
+
 - Invalid socket value
- 
+
 ## EXAMPLES
 
 Performs an ftp login.

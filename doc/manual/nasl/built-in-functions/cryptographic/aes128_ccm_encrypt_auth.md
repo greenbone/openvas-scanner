@@ -11,12 +11,13 @@
 **aes128_ccm_encrypt_auth** encrypts given data including a authentication token with AES 128 CCM mode.
 
 ## DESCRIPTION
-Encrypt the given data using the AES 128 bit algorithm in CCM mode including an authentication token given via aad.
 
+Encrypt the given data using the AES 128 bit algorithm in CCM mode including an authentication token given via aad.
 
 ## RETURN VALUE
 
 The return value is the encrypted data.
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

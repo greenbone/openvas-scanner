@@ -17,7 +17,6 @@
 *bool* **wmi_reg_set_qword_val**(wmi_handle: *int*, hive: *int*, key: *string*, val_name: *string*);
 *bool* **wmi_reg_set_string**(wmi_handle: *int*, hive: *int*, key: *string*, val_name: *string*);
 
-
 ## DESCRIPTION
 
 All function described here get or set different values in the registry:

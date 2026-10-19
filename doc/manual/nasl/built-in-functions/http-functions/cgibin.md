@@ -11,9 +11,11 @@
 **cgibin** takes no argument.
 
 ## DESCRIPTION
+
 Returns the cgi-bin path elements. In fact the NASL interpreter forks and each process gets one value.
 
 ## RETURN VALUE
+
 String containing the path.
 
 ## EXAMPLES

@@ -16,7 +16,6 @@ The ntlmv2_hash is usually the output of `ntv2_owf_gen`.
 
 smb3kdf is a key derivation function for SMB3 based on SP800-108 §5.1.
 
-
 ## RETURN VALUE
 
 The deviated key.

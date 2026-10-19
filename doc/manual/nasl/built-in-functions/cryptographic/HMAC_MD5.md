@@ -17,7 +17,6 @@
 
 HMAC_MD5 is a type of message authentication code involving MD5 hash function and a secret cryptographic key.
 
-
 ## RETURN VALUE
 
 HMAC MD5 string.

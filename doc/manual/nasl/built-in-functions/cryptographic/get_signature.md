@@ -14,7 +14,6 @@
 
 get_signature gets the ntlmssp signature based on the given arguments.
 
-
 ## RETURN VALUE
 
 get_signature

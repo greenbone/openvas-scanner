@@ -11,16 +11,17 @@
 **rsa_public_decrypt** decrypts provided data with the public RSA key given by e and n. Returns the decrypted data.
 
 ## DESCRIPTION
+
 Decrypts provided sig with the public RSA key given by e and n. Returns the decrypted data.
 
 - sign: the data to encrypt
 - e: part of the public rsa key
 - n: part of the public rsa key
 
-
 ## RETURN VALUE
 
 Decrypted data
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

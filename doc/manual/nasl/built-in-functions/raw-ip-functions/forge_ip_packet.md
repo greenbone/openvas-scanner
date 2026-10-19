@@ -10,8 +10,8 @@
 
 **forge_ip_packet** It takes named arguments.
 
-
 ## DESCRIPTION
+
 Forge an IP datagram inside the block of data. It takes following arguments:
 
 - data: is the payload.
@@ -50,14 +50,12 @@ ip_packet = forge_ip_packet(ip_v : 4,
                      ip_src : 192.168.0.1,
                      ip_dst : 192.168.0.12);
 
-
 igmp2 = forge_igmp_packet(ip    : ip_packet,
                           type  : 0x11,
                           code  : 0x00,
                           group : 0.0.0.0,
                           data  : "haha",
                           update_ip_len : FALSE);
-
 ```
 
 ## SEE ALSO

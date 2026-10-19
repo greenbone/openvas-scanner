@@ -11,6 +11,7 @@
 **rsa_public_encrypt** encrypts provided data with the public RSA key given by e and n. Returns the encrypted data.
 
 ## DESCRIPTION
+
 Encrypts provided data with the public RSA key given by e and n. Returns the encrypted data.
 
 - pad: when true it is using padding\
@@ -22,6 +23,7 @@ Encrypts provided data with the public RSA key given by e and n. Returns the enc
 ## RETURN VALUE
 
 Encrypted data
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.
