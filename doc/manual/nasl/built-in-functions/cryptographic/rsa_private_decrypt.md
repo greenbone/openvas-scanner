@@ -8,14 +8,12 @@
 
 *str* **rsa_private_decrypt**(pad: bool, data: str, e: str, n: str, d: str);
 
-**rsa_private_decrypt** decrypts provided data with the public RSA key given by e, n and d. Returns the decrypted data.
-
 ## DESCRIPTION
 
-Encrypts provided data with the private RSA key given by e and n. Returns the encrypted data.
+Decrypts provided data with the public RSA key given by e, n and d. Return the decrypted data.
 
 - pad: when true it is using padding\
-- data: the data to encrypt
+- data: the data to decrypt
 - e: part of the private rsa key
 - n: part of the private rsa key
 - d: part of the private rsa key
