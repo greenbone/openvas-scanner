@@ -18,7 +18,7 @@ Returns the byte order of the system. True when little-endian and false when big
 
 1 when little-endian
 
-0 when bid-endian
+0 when big-endian
 
 ## EXAMPLES
 
