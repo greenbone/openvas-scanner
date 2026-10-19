@@ -63,7 +63,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_tag(name:"summary", value:"The remote host is missing one or more known mitigation(s) on Linux Kernel side for the referenced 'Meltdown' hardware vulnerabilities.");
 

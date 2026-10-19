@@ -19,7 +19,7 @@ It returns a string (the formatted request). Null on error
 
 ## EXAMPLES
 
-**1** Get and display the head request: 
+Get and display the head request:
 ```cpp
 req = http_head(port: 80, item: "/~root");
 display (req);

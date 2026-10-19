@@ -18,7 +18,7 @@ It returns an integer or NULL on error.
 
 ## EXAMPLES
 
-**1** Get the handle identifier
+Get the handle identifier
 ```cpp
 h = http2_handle();
 display(h);

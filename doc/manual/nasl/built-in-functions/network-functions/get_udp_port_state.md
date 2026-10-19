@@ -24,7 +24,7 @@ Returns TRUE if it is open and FALSE otherwise.
  
 ## EXAMPLES
 
-**1**: Get and display the state of the given port.
+Get and display the state of the given port.
 ```cpp
 st = get_udp_port_state(port);
 display(st);

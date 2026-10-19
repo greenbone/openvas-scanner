@@ -18,7 +18,7 @@ It returns an integer or NULL on error.
 
 ## EXAMPLES
 
-**1** Set a new element in the header
+Set a new element in the header
 ```cpp
 h = http2_handle();
 display(h);

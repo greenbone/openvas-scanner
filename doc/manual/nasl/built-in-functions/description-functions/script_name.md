@@ -24,7 +24,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_name("Nmap (NASL wrapper)");
 ```

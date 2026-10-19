@@ -25,7 +25,7 @@ The first positional argument is the command which is searched for.
 
 ## EXAMPLES
 
-**1**: Search for a command and run it
+Search for a command and run it
 ```cpp
 if ( find_in_path("foo") ) {
     out = pread(cmd: "foo", argv: NULL, cd: FALSE, drop_privileges_user: NULL);

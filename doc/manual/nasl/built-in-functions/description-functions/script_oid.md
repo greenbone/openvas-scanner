@@ -23,7 +23,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_oid("1.3.6.1.4.1.25623.1.0.14259");
 ```

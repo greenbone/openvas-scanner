@@ -18,7 +18,7 @@ An integer value, the socket
 
 ## EXAMPLES
 
-**1** Open and close a socket. Use the socket to send a get request: 
+Open and close a socket. Use the socket to send a get request:
 ```cpp
 soc = http_open_socket (port: 80);
 

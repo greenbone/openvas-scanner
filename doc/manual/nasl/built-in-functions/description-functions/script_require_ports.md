@@ -25,7 +25,6 @@ Returns nothing.
  
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_require_ports("Services/www", 443);
 ```

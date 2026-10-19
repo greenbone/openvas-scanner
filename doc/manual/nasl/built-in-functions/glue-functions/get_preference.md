@@ -25,7 +25,7 @@ Value of the preference or *NULL* on error.
 
 ## EXAMPLES
 
-1. Get the preference port_range:
+Get the preference port_range:
 ```c#
 p = get_preference(’port_range’); # returns something like 1-65535
 ```

@@ -21,7 +21,7 @@ It returns a string (the http response). Null on error
 
 ## EXAMPLES
 
-**1** Get and display the formatted head request:
+Get and display the formatted head request:
 ```cpp
 h = http2_handle();
 display(h);

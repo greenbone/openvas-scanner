@@ -21,7 +21,6 @@ None
 
 ## EXAMPLES
 
-**1** :
 ```cpp
 ip_packet = forge_ip_packet(ip_hl:  5,
                             ip_v:   4,
