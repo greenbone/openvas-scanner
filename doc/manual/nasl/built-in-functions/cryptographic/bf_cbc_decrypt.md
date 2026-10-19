@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-decrypt the given data using the blowfish algorithm in CBC mode.
+Decrypt the given data using the blowfish algorithm in CBC mode.
 
 The key must be 16 bytes long. 
 The iv must be at least 8 bytes long. 

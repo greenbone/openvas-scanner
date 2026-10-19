@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-decrypt the given data using the AES 256 bit algorithm in GCM mode including an authentication token given via aad.
+Decrypt the given data using the AES 256 bit algorithm in GCM mode including an authentication token given via aad.
 
 ## RETURN VALUE
 
