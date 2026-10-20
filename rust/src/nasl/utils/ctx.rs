@@ -407,7 +407,7 @@ impl ScanCtx {
 
     /// Get the loader
     pub fn loader(&self) -> &Loader {
-        &*self.loader
+        &self.loader
     }
 
     pub fn scan_params(&self) -> impl Iterator<Item = &ScanPreference> {

@@ -63,7 +63,11 @@ async fn run_vt_checked(
             target: scan_ctx.target_by_id(target).original_target_str().into(),
         })
     };
-    match scan_ctx.storage().check_mtime(Path::new(&vt.filename)).await {
+    match scan_ctx
+        .storage()
+        .check_mtime(Path::new(&vt.filename))
+        .await
+    {
         Ok(MtimeStatus::UpToDate) => VTRunner::run(target, vt, stage, param, scan_ctx).await,
         Ok(MtimeStatus::Modified {
             file,

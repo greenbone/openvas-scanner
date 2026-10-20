@@ -192,6 +192,8 @@ where
     }
 
     async fn run_to_completion(&self, runner: ScanRunner) -> Phase {
+        // TODO: improve logic here. Replace Phase with a better type to
+        // represent the possible state.
         let end_phase = Arc::new(std::sync::Mutex::new(Phase::Succeeded));
         let (status, phase) = (self.status.clone(), end_phase.clone());
         // One task per host; each result updates the shared status.
