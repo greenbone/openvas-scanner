@@ -1,3 +1,4 @@
+<!--
 **IMPORTANT**
 Please read [the contributing guidelines](https://github.com/greenbone/openvas-scanner/blob/main/README.md#Contributing).
 
@@ -8,3 +9,4 @@ IMPORTANT: If you have encountered a bug or have a specific feature request, ple
 3. Disclose any use of generative AI in your pull request.
 
 Failure to stick to these requirements will get the PR closed IMMEDIATELY.
+-->
