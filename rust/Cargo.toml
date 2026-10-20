@@ -33,6 +33,7 @@ aes-gcm = { version = "0.10.3" }
 argon2 = { version = "0.6.0" }
 async-trait = "0.1.92"
 axum = { version = "0.8", features = ["json", "macros"] }
+axum-streams = { version = "0.30", features = ["json"] }
 axum-server = { version = "0.8", features = ["tls-rustls"] }
 tower = { version = "0.5.3", features = ["limit", "util"] }
 base64 = "0.22.1"
@@ -115,7 +116,7 @@ futures = { workspace = true }
 http-body-util = { workspace = true }
 rustls = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
+serde_json = { workspace = true, features = ["raw_value"] }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 time = { workspace = true }

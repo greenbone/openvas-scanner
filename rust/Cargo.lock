@@ -492,6 +492,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-streams"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9b66f2abe33091551386fc6e6cfdab662c4266400225ac6d36a2ca81794447a"
+dependencies = [
+ "axum",
+ "bytes",
+ "futures",
+ "http",
+ "http-body",
+ "http-body-util",
+ "http-streams-core",
+ "serde",
+ "serde_json",
+ "tokio-stream",
+]
+
+[[package]]
 name = "base16ct"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2447,6 +2465,20 @@ dependencies = [
  "http",
  "http-body",
  "pin-project-lite",
+]
+
+[[package]]
+name = "http-streams-core"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37538773bd47b4727fc0e2849acaf987804edd54fc978f6c85b4347198890f1b"
+dependencies = [
+ "bytes",
+ "futures",
+ "http",
+ "serde",
+ "serde_json",
+ "tokio-util",
 ]
 
 [[package]]
@@ -5082,6 +5114,7 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-server",
+ "axum-streams",
  "base64 0.22.1",
  "blowfish 0.9.1",
  "bzip2",
