@@ -62,7 +62,7 @@ pub struct Register {
 
 impl Register {
     /// Creates a global scope based on the given initial values
-    pub fn from_global_variables(initial: &[(String, NaslValue)]) -> Self {
+    pub(crate) fn from_global_variables(initial: &[(String, NaslValue)]) -> Self {
         let defined = initial
             .iter()
             .cloned()
