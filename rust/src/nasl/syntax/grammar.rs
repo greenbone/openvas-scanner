@@ -1,10 +1,7 @@
-use std::{
-    fmt::Formatter,
-    path::{Path, PathBuf},
-    vec,
-};
+use std::{fmt::Formatter, path::Path, vec};
 
 use super::{
+    LoadError, LoadedFile, Loader,
     parser::{Error, FromPeek, Parser, cursor::Peek, error::ErrorKind},
     traversal::{ExprIterator, StmtIterator},
 };
@@ -210,13 +207,16 @@ impl IncludeString {
         Self(val)
     }
 
-    pub fn resolve_to_path(&self, feed_root: &Path, dir_of_including_file: &Path) -> PathBuf {
-        let relative_path = feed_root.join(dir_of_including_file).join(&self.0);
-        if relative_path.is_file() {
-            relative_path
-        } else {
-            feed_root.join(&self.0)
-        }
+    pub(super) fn as_path(&self) -> &Path {
+        Path::new(&self.0)
+    }
+
+    pub fn load(
+        &self,
+        loader: &Loader,
+        including_file: impl AsRef<Path>,
+    ) -> Result<LoadedFile, LoadError> {
+        loader.load_include(including_file, self)
     }
 }
 

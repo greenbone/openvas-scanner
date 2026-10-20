@@ -55,8 +55,7 @@ impl DepReader {
             if map.contains_key(&path) {
                 continue;
             }
-            let full_path = self.feed_path.join(&path.0);
-            match self.read_one(&full_path) {
+            match self.read_one(Path::new(&path.0)) {
                 Some(info) => {
                     for dep in info.all_deps() {
                         if !map.contains_key(dep) {
@@ -77,12 +76,13 @@ impl DepReader {
     fn read_one(&mut self, path: &Path) -> Option<ScriptDepsInfo> {
         let code = Code::load(&self.loader, path).ok()?;
         let ast = code.parse().emit_errors().ok()?;
-        Some(extract_deps(&ast, &self.feed_path, path))
+        Some(extract_deps(&ast, &self.loader, &self.feed_path, path))
     }
 }
 
 fn extract_deps(
     ast: &scannerlib::nasl::syntax::grammar::Ast,
+    loader: &Loader,
     feed_path: &Path,
     file_path: &Path,
 ) -> ScriptDepsInfo {
@@ -91,7 +91,9 @@ fn extract_deps(
         .map(|inc| {
             let path = inc
                 .path
-                .resolve_to_path(feed_path, file_path.parent().unwrap());
+                .load(loader, file_path)
+                .map(|file| feed_path.join(file.path()))
+                .unwrap_or_else(|err| err.path().to_owned());
             ScriptPath::new(feed_path, &path)
         })
         .collect();
@@ -109,13 +111,8 @@ fn extract_deps(
                     return None;
                 };
 
-                let path = IncludeString::new(name)
-                    .resolve_to_path(feed_path, file_path.parent().unwrap());
-                if path.is_file() {
-                    Some(ScriptPath::new(feed_path, &path))
-                } else {
-                    None
-                }
+                let file = IncludeString::new(name).load(loader, file_path).ok()?;
+                Some(ScriptPath::new(feed_path, &feed_path.join(file.path())))
             })
         })
         .collect();

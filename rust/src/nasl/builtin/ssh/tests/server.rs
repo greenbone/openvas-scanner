@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use russh::server::{Handle, Msg, Session};
+use russh::server::{ChannelOpenHandle, Handle, Msg, Session};
 use russh::*;
 use server::Auth;
 use tokio::sync::Mutex;
@@ -59,12 +59,14 @@ impl server::Handler for TestServer {
     fn channel_open_session(
         &mut self,
         channel: Channel<Msg>,
+        reply: ChannelOpenHandle,
         session: &mut Session,
-    ) -> impl Future<Output = Result<bool, Self::Error>> {
+    ) -> impl Future<Output = Result<(), Self::Error>> {
         async move {
             let mut clients = self.clients.lock().await;
             clients.insert(channel.id(), session.handle());
-            Ok(true)
+            reply.accept().await;
+            Ok(())
         }
     }
 
