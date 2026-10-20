@@ -22,13 +22,9 @@ pub fn interpret_multi(
     files: &[(&str, &str)],
     version: NaslVersion,
 ) -> Vec<NaslResult> {
-    let root = tempfile::tempdir().unwrap();
-    let mut loader = Loader::test().with_root(root.path().to_owned());
+    let mut loader = Loader::test().with_root(Default::default());
     for (filename, contents) in std::iter::once(entrypoint).chain(files.iter().copied()) {
-        let path = root.path().join(filename);
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, contents).unwrap();
-        loader = loader.with_file(path.to_string_lossy().as_ref(), contents.to_string());
+        loader = loader.with_file(filename, contents.to_string());
     }
 
     let mut t = TestBuilder::from_loader(loader.build())

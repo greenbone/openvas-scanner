@@ -81,11 +81,8 @@ impl Linter {
         } else {
             for include in ast.iter_includes() {
                 // TODO
-                let include_path = include
-                    .path
-                    .resolve_to_path(self.loader.root_path(), rel_path);
-                let code = match self.load(&include_path) {
-                    Ok(code) => code,
+                let loaded = match include.path.load(&self.loader, rel_path) {
+                    Ok(loaded) => loaded,
                     Err(_) => {
                         // TODO report multiple errors here if multiple files
                         // cannot be found.
@@ -95,6 +92,8 @@ impl Linter {
                         });
                     }
                 };
+                let include_path = loaded.path().to_owned();
+                let code = Code::from(loaded);
                 match self.parse_file(code) {
                     Ok(ast) => {
                         self.cache.insert(&include_path, CachedFile::new(&ast));
