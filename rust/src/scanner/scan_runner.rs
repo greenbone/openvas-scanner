@@ -52,7 +52,7 @@ async fn run_vt_checked(
     vt: &crate::models::VTData,
     stage: crate::scheduling::Stage,
     param: Option<&Vec<crate::models::Parameter>>,
-    scan_ctx: &ScanCtx<'_>,
+    scan_ctx: &ScanCtx,
 ) -> Result<ScriptResult, ExecuteError> {
     let failed = |msg: String| {
         Ok(ScriptResult {
@@ -90,7 +90,7 @@ fn max_parallel_hosts(preference: Option<i64>) -> usize {
 pub struct ScanRunner {
     concurrent_vts: Arc<Vec<ConcurrentVT>>,
     host_feed: Receiver<TargetId>,
-    scan_ctx: Arc<ScanCtx<'static>>,
+    scan_ctx: Arc<ScanCtx>,
     max_hosts: usize,
 }
 
@@ -98,7 +98,7 @@ impl ScanRunner {
     pub fn new<Sched>(
         schedule: Sched,
         host_feed: Receiver<TargetId>,
-        scan_ctx: Arc<ScanCtx<'static>>,
+        scan_ctx: Arc<ScanCtx>,
     ) -> Result<Self, VTError>
     where
         Sched: Iterator<Item = ConcurrentVTResult>,
@@ -146,11 +146,6 @@ impl ScanRunner {
     /// becomes false no further VT or host is started; a VT that is
     /// already running is not interrupted. Dropping the returned future
     /// aborts the host tasks.
-    ///
-    /// The parallelism comes from the runtime's worker threads. NASL
-    /// network functions use blocking sockets, so a VT waiting on the
-    /// network occupies a worker thread and the number of hosts actually
-    /// progressing at once is bounded by the number of worker threads.
     ///
     /// Returns the number of host tasks that panicked.
     pub async fn run<F, Fut>(self, keep_running: Arc<AtomicBool>, on_result: F) -> usize

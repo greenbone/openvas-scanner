@@ -144,9 +144,7 @@ where
             .iter()
             .map(|target| CtxTarget::new(target.clone(), self.scan.ports.clone()))
             .collect();
-        // The context owns (shares) everything it needs, so that it can be
-        // moved into the tasks scanning the individual hosts.
-        let scan_ctx = Arc::new(ScanCtx::new_shared(
+        let scan_ctx = Arc::new(ScanCtx::new(
             ScanID(self.scan.scan_id.clone()),
             targets,
             self.storage.clone(),
@@ -173,7 +171,7 @@ where
     async fn make_runner(
         &self,
         host_feed: Receiver<TargetId>,
-        scan_ctx: Arc<ScanCtx<'static>>,
+        scan_ctx: Arc<ScanCtx>,
     ) -> Result<ScanRunner, Error> {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
@@ -198,8 +196,8 @@ where
         let (status, phase) = (self.status.clone(), end_phase.clone());
         // One task per host; each result updates the shared status.
         let panicked = runner
-            .run(self.keep_running.clone(), move |it| {
-                handle_result(status.clone(), phase.clone(), it)
+            .run(self.keep_running.clone(), move |res| {
+                handle_result(status.clone(), phase.clone(), res)
             })
             .await;
 
@@ -235,14 +233,14 @@ where
 async fn handle_result(
     status: Arc<RwLock<Status>>,
     end_phase: Arc<std::sync::Mutex<Phase>>,
-    it: Result<ScriptResult, ExecuteError>,
+    result: Result<ScriptResult, ExecuteError>,
 ) {
     let fail = || {
         if let Ok(mut phase) = end_phase.lock() {
             *phase = Phase::Failed;
         }
     };
-    match it {
+    match result {
         Ok(result) => {
             trace!(target = result.target);
             let mut status = status.write().await;

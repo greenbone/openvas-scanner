@@ -306,37 +306,18 @@ impl ArenaIndex for TargetId {
     }
 }
 
-// This shared is for keeping the borrow for tests, feed update
-// and scannerctl, but shares objects ownership and can be moved into
-// tokio::spawn
-pub enum Shared<'a, T: ?Sized> {
-    Borrowed(&'a T),
-    Owned(Arc<T>),
-}
-
-impl<T: ?Sized> std::ops::Deref for Shared<'_, T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        match self {
-            Shared::Borrowed(x) => x,
-            Shared::Owned(x) => x,
-        }
-    }
-}
-
 /// NASL execution context.
-pub struct ScanCtx<'a> {
+pub struct ScanCtx {
     /// The key for this context.
     scan: ScanID,
     /// Targets against which the scan is run.
     targets: CtxTargets,
     /// Storage
-    storage: Shared<'a, dyn ContextStorage + 'a>,
+    storage: Arc<dyn ContextStorage>,
     /// Loader
-    loader: Shared<'a, Loader>,
+    loader: Arc<Loader>,
     /// Function executor.
-    executor: Shared<'a, Executor>,
+    executor: Arc<Executor>,
     /// Socket state is per target and indexed by TargetId, so that
     /// hosts scanned in parallel don't share the lock
     sockets: Vec<RwLock<NaslSockets>>,
@@ -348,66 +329,14 @@ pub struct ScanCtx<'a> {
     pub notus: Option<NotusCtx>,
 }
 
-impl ScanCtx<'static> {
-    // the context shares ownership of its
-    // storage, loader and executor, so it does not borrow from anything
-    // and can be moved into `tokio::spawn`ed tasks.
+impl ScanCtx {
     #[allow(clippy::too_many_arguments)]
-    pub fn new_shared(
+    pub fn new(
         scan: ScanID,
         targets: CtxTargets,
         storage: Arc<dyn ContextStorage>,
         loader: Arc<Loader>,
         executor: Arc<Executor>,
-        scan_preferences: ScanPrefs,
-        alive_test_methods: Vec<AliveTestMethods>,
-        notus: Option<NotusCtx>,
-    ) -> Self {
-        Self::from_parts(
-            scan,
-            targets,
-            Shared::Owned(storage),
-            Shared::Owned(loader),
-            Shared::Owned(executor),
-            scan_preferences,
-            alive_test_methods,
-            notus,
-        )
-    }
-}
-
-impl<'a> ScanCtx<'a> {
-    #[allow(clippy::too_many_arguments)]
-    // the context borrows its storage, loader and executor
-    pub fn new(
-        scan: ScanID,
-        targets: CtxTargets,
-        storage: &'a dyn ContextStorage,
-        loader: &'a Loader,
-        executor: &'a Executor,
-        scan_preferences: ScanPrefs,
-        alive_test_methods: Vec<AliveTestMethods>,
-        notus: Option<NotusCtx>,
-    ) -> Self {
-        Self::from_parts(
-            scan,
-            targets,
-            Shared::Borrowed(storage),
-            Shared::Borrowed(loader),
-            Shared::Borrowed(executor),
-            scan_preferences,
-            alive_test_methods,
-            notus,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn from_parts(
-        scan: ScanID,
-        targets: CtxTargets,
-        storage: Shared<'a, dyn ContextStorage + 'a>,
-        loader: Shared<'a, Loader>,
-        executor: Shared<'a, Executor>,
         scan_preferences: ScanPrefs,
         alive_test_methods: Vec<AliveTestMethods>,
         notus: Option<NotusCtx>,
@@ -539,7 +468,7 @@ pub struct ScriptCtx<'a> {
     pub denial_port: Option<u16>,
     pub multicast_groups: Vec<JmpDesc>,
     pub snmp_next: Option<String>,
-    scan_ctx: &'a ScanCtx<'a>,
+    scan_ctx: &'a ScanCtx,
     target_id: TargetId,
     vt: VTData,
 }

@@ -6,6 +6,7 @@ use std::{
     collections::BTreeSet,
     fs::{self},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use scannerlib::nasl::{
@@ -37,7 +38,7 @@ use scannerlib::{nasl::utils::ctx::ContextStorage, storage::inmemory::InMemorySt
 
 use crate::{CliError, CliErrorKind, Db, Filename};
 
-async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> {
+async fn load(ctx: &ScanCtx, script: &Path) -> Result<String, CliErrorKind> {
     match read_non_utf8_path(&script) {
         Ok(x) => Ok(x),
         Err(e) if matches!(e.kind(), LoadErrorKind::NotFound) => {
@@ -55,7 +56,7 @@ async fn load(ctx: &ScanCtx<'_>, script: &Path) -> Result<String, CliErrorKind> 
 }
 
 async fn run_with_context(
-    ctx: ScanCtx<'_>,
+    ctx: ScanCtx,
     script: &Path,
     target_id: TargetId,
 ) -> Result<(), CliErrorKind> {
@@ -99,9 +100,9 @@ async fn run_with_context(
     Ok(())
 }
 
-async fn load_feed_by_exec<S>(storage: &S, pl: &Loader) -> Result<(), CliError>
+async fn load_feed_by_exec<S>(storage: Arc<S>, pl: &Loader) -> Result<(), CliError>
 where
-    S: ContextStorage,
+    S: ContextStorage + 'static,
 {
     // update feed with storage
 
@@ -130,8 +131,8 @@ fn load_feed_by_json(store: &InMemoryStorage, path: &PathBuf) -> Result<(), CliE
 
 // TODO: Redesign
 #[allow(clippy::too_many_arguments)]
-async fn run_on_storage<S: ContextStorage>(
-    storage: S,
+async fn run_on_storage<S: ContextStorage + 'static>(
+    storage: Arc<S>,
     loader: Loader,
     target: Target,
     kb: Vec<String>,
@@ -158,14 +159,14 @@ async fn run_on_storage<S: ContextStorage>(
         }
     }
 
-    let executor = nasl_std_executor();
+    let executor = Arc::new(nasl_std_executor());
     let (targets, target_id) = CtxTargets::single(target, ports);
     let ctx = ScanCtx::new(
         scan_id,
         targets,
-        &storage,
-        &loader,
-        &executor,
+        storage,
+        Arc::new(loader),
+        executor,
         scan_preferences,
         Vec::new(),
         notus,
@@ -199,7 +200,7 @@ pub async fn run(
     let result = match (db, feed) {
         (Db::InMemory, None) => {
             run_on_storage(
-                InMemoryStorage::default(),
+                Arc::new(InMemoryStorage::default()),
                 Loader::from_feed_path(script.parent().unwrap()),
                 target,
                 kb,
@@ -211,13 +212,13 @@ pub async fn run(
             .await
         }
         (Db::InMemory, Some(path)) => {
-            let storage = InMemoryStorage::new();
+            let storage = Arc::new(InMemoryStorage::new());
             let guessed_feed_json = path.join("feed.json");
             let loader = Loader::from_feed_path(path.clone());
             if guessed_feed_json.exists() {
                 load_feed_by_json(&storage, &guessed_feed_json)?
             } else {
-                load_feed_by_exec(&storage, &loader).await?
+                load_feed_by_exec(storage.clone(), &loader).await?
             }
             run_on_storage(
                 storage,

@@ -245,7 +245,7 @@ impl<'a> ArgsStruct<'a> {
         let inputs = quote! {
             #self_arg
             _register: &crate::nasl::Register,
-            _scan_ctx: &crate::nasl::ScanCtx<'_>,
+            _scan_ctx: &crate::nasl::ScanCtx,
             _script_ctx: &mut crate::nasl::ScriptCtx<'_>,
         };
         let output_ty = match output {

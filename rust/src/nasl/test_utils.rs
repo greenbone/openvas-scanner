@@ -125,7 +125,7 @@ enum TestResult {
 /// If the `TestBuilder` is dropped, it will automatically verify that
 /// the given code fulfill the requirements (such as producing the right
 /// values or the right errors).
-pub struct TestBuilder<S: ContextStorage> {
+pub struct TestBuilder<S: ContextStorage + 'static> {
     lines: Vec<String>,
     results: Vec<TracedTestResult>,
     filename: String,
@@ -133,9 +133,9 @@ pub struct TestBuilder<S: ContextStorage> {
     target: String,
     variables: Vec<(String, NaslValue)>,
     should_verify: bool,
-    loader: Loader,
-    storage: S,
-    executor: Executor,
+    loader: Arc<Loader>,
+    storage: Arc<S>,
+    executor: Arc<Executor>,
     version: NaslVersion,
     notus: Option<Arc<Mutex<Notus>>>,
 }
@@ -152,9 +152,9 @@ impl Default for TestBuilder<InMemoryStorage> {
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader: Loader::test_empty(),
-            storage: InMemoryStorage::default(),
-            executor: nasl_std_executor(),
+            loader: Arc::new(Loader::test_empty()),
+            storage: Arc::new(InMemoryStorage::default()),
+            executor: Arc::new(nasl_std_executor()),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -175,9 +175,9 @@ impl TestBuilder<InMemoryStorage> {
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader,
-            storage: InMemoryStorage::default(),
-            executor: nasl_std_executor(),
+            loader: Arc::new(loader),
+            storage: Arc::new(InMemoryStorage::default()),
+            executor: Arc::new(nasl_std_executor()),
             version: NaslVersion::default(),
             notus: None,
         }
@@ -206,9 +206,9 @@ impl TestBuilder<InMemoryStorage> {
             target: Default::default(),
             variables: vec![],
             should_verify: true,
-            loader: Loader::test_empty(),
-            storage: InMemoryStorage::default(),
-            executor: nasl_std_executor(),
+            loader: Arc::new(Loader::test_empty()),
+            storage: Arc::new(InMemoryStorage::default()),
+            executor: Arc::new(nasl_std_executor()),
             version: NaslVersion::default(),
             notus: Some(notus),
         }
@@ -217,7 +217,7 @@ impl TestBuilder<InMemoryStorage> {
 
 impl<S> TestBuilder<S>
 where
-    S: ContextStorage,
+    S: ContextStorage + 'static,
 {
     #[track_caller]
     fn add_line(&mut self, line: impl Into<String>, val: TestResult) -> &mut Self {
@@ -283,13 +283,13 @@ where
     }
 
     /// Runs the given lines of code and returns the `ScanCtx`.
-    pub fn ctx(&self) -> ScanCtx<'_> {
+    pub fn ctx(&self) -> ScanCtx {
         self.results_and_ctx().1
     }
 
     /// Runs the given lines of code and returns the list of results
     /// along with the `ScanCtx` used for evaluating them.
-    pub fn results_and_ctx(&self) -> (Vec<NaslResult>, ScanCtx<'_>) {
+    pub fn results_and_ctx(&self) -> (Vec<NaslResult>, ScanCtx) {
         futures::executor::block_on(async {
             let ctx = self.ctx_inner();
             (self.results_stream(&self.code(), &ctx).collect().await, ctx)
@@ -350,14 +350,14 @@ where
         CtxTargets::single(target, Ports::default())
     }
 
-    fn ctx_inner(&self) -> ScanCtx<'_> {
+    fn ctx_inner(&self) -> ScanCtx {
         let (targets, _) = self.targets();
         ScanCtx::new(
             self.scan_id.clone(),
             targets,
-            &self.storage,
-            &self.loader,
-            &self.executor,
+            self.storage.clone(),
+            self.loader.clone(),
+            self.executor.clone(),
             ScanPrefs::new(),
             Vec::default(),
             self.notus.as_ref().map(|x| NotusCtx::Direct(x.clone())),
@@ -460,7 +460,7 @@ where
 
     /// Return a new `TestBuilder` with the given `Executor`.
     pub fn with_executor(mut self, executor: Executor) -> Self {
-        self.executor = executor;
+        self.executor = Arc::new(executor);
         self
     }
 
@@ -480,7 +480,7 @@ where
     }
 }
 
-impl<S: ContextStorage> Drop for TestBuilder<S> {
+impl<S: ContextStorage + 'static> Drop for TestBuilder<S> {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
             panic!("To use TestBuilder in an asynchronous context, explicitly call async_verify()");
