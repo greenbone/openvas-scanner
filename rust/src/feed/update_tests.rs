@@ -31,7 +31,8 @@ fn verify_hashsums() {
         &[
             PathBuf::from("plugin_feed_info.inc"),
             PathBuf::from("test.inc"),
-            PathBuf::from("test.nasl")
+            PathBuf::from("test.nasl"),
+            PathBuf::from("subdir/test_subdir.nasl")
         ]
     );
 }
@@ -50,6 +51,10 @@ async fn verify_feed() {
     // feed version and filename of script
     assert_eq!(
         &files,
-        &["test.nasl".to_owned(), "plugin_feed_info.inc".to_owned()]
+        &[
+            "test.nasl".to_owned(),
+            "subdir/test_subdir.nasl".to_owned(),
+            "plugin_feed_info.inc".to_owned()
+        ]
     );
 }
