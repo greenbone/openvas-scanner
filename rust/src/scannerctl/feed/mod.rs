@@ -88,9 +88,9 @@ async fn update_vts(
     });
     let redis_storage = make_redis_storage(redis, FEEDUPDATE_SELECTOR)?;
     if signature_check {
-        update::run(redis_storage, &path, signature_check).await
+        update::run(Arc::new(redis_storage), &path, signature_check).await
     } else {
-        update::run_no_verifier(redis_storage, &path).await
+        update::run_no_verifier(Arc::new(redis_storage), &path).await
     }
 }
 

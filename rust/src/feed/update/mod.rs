@@ -9,6 +9,8 @@ use std::path::PathBuf;
 pub use error::Error;
 pub use error::ErrorKind;
 
+use std::sync::Arc;
+
 use futures::{Stream, StreamExt, stream};
 use tracing::trace;
 
@@ -35,31 +37,31 @@ use super::verify;
 
 /// Updates runs nasl plugin with description true and uses given storage to store the descriptive
 /// information
-pub struct Update<'a, S, V> {
+pub struct Update<S, V> {
     /// Is used to store data
-    storage: &'a S,
+    storage: Arc<S>,
     /// Is used to load nasl plugins by a relative path
-    loader: Loader,
+    loader: Arc<Loader>,
     /// Initial data, usually set in new.
     initial: Vec<(String, NaslValue)>,
     /// How often loader or storage should retry before giving up when a retryable error occurs.
     max_retry: usize,
     verifier: V,
     feed_version_set: bool,
-    executor: Executor,
+    executor: Arc<Executor>,
 }
 
 /// Loads the plugin_feed_info and returns the feed version
 pub async fn feed_version(
-    loader: &Loader,
-    storage: &dyn ContextStorage,
+    loader: Arc<Loader>,
+    storage: Arc<dyn ContextStorage>,
 ) -> Result<String, ErrorKind> {
     let feed_info_filename = "plugin_feed_info.inc";
-    let code = Code::load(loader, feed_info_filename)?;
+    let code = Code::load(&loader, feed_info_filename)?;
     let register = Register::default();
     let scan_id = ScanID("".to_string());
     let (targets, target_id) = CtxTargets::single(Target::localhost(), Ports::default());
-    let executor = nasl_std_executor();
+    let executor = Arc::new(nasl_std_executor());
     let scan_prefs = ScanPrefs::new();
     let alive_test_methods = Vec::default();
     let ctx = ScanCtx::new(
@@ -67,7 +69,7 @@ pub async fn feed_version(
         targets,
         storage,
         loader,
-        &executor,
+        executor,
         scan_prefs,
         alive_test_methods,
         None,
@@ -89,9 +91,9 @@ pub async fn feed_version(
     Ok(feed_version)
 }
 
-impl<'a, S, V> Update<'a, S, V>
+impl<'a, S, V> Update<S, V>
 where
-    S: Sync + Send + ContextStorage,
+    S: Sync + Send + ContextStorage + 'static,
     V: Iterator<Item = Result<HashSumFileItem<'a>, verify::Error>> + 'a,
 {
     /// Creates an updater. This updater is implemented as a iterator.
@@ -105,7 +107,7 @@ where
         openvas_version: &str,
         max_retry: usize,
         loader: Loader,
-        storage: &'a S,
+        storage: Arc<S>,
         verifier: V,
     ) -> Self {
         let initial = vec![
@@ -115,17 +117,17 @@ where
         Self {
             initial,
             max_retry,
-            loader,
+            loader: Arc::new(loader),
             storage,
             verifier,
             feed_version_set: false,
-            executor: nasl_std_executor(),
+            executor: Arc::new(nasl_std_executor()),
         }
     }
 
     /// Loads the plugin_feed_info and returns the feed version
     async fn feed_version(&self) -> Result<String, ErrorKind> {
-        feed_version(&self.loader, self.storage).await
+        feed_version(self.loader.clone(), self.storage.clone()).await
     }
 
     /// plugin_feed_info must be handled differently.
@@ -158,9 +160,9 @@ where
         let ctx = ScanCtx::new(
             ScanID(key.0.clone()),
             targets,
-            self.storage,
-            &self.loader,
-            &self.executor,
+            self.storage.clone(),
+            self.loader.clone(),
+            self.executor.clone(),
             scan_prefs,
             alive_test_methods,
             None,

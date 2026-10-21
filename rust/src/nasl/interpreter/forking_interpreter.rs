@@ -22,7 +22,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
     pub fn new(
         ast: Ast,
         mut register: Register,
-        ctx: &'ctx ScanCtx<'ctx>,
+        ctx: &'ctx ScanCtx,
         script_ctx: ScriptCtx<'ctx>,
     ) -> Self {
         ctx.add_fn_global_vars(&mut register);

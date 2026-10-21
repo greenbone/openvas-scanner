@@ -6,7 +6,7 @@ use crate::models::Result;
 
 use crate::nasl::test_prelude::*;
 
-async fn get_result(ctx: &ScanCtx<'_>, index: usize) -> Result {
+async fn get_result(ctx: &ScanCtx, index: usize) -> Result {
     ctx.storage()
         .retrieve(&(ctx.scan().clone(), index))
         .await

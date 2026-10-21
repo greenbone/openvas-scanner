@@ -5,6 +5,7 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use crate::{
@@ -39,9 +40,9 @@ fn verify_hashsums() {
 #[tokio::test]
 async fn verify_feed() {
     let loader = loader();
-    let storage: InMemoryStorage = InMemoryStorage::new();
+    let storage = Arc::new(InMemoryStorage::new());
     let mut verifier = HashSumNameLoader::sha256(&loader).expect("sha256sums should be available");
-    let updater = Update::init("1", 1, loader.clone(), &storage, &mut verifier);
+    let updater = Update::init("1", 1, loader.clone(), storage, &mut verifier);
     let files = updater
         .stream()
         .filter_map(|x| async { x.ok() })

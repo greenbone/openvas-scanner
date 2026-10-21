@@ -656,7 +656,7 @@ pub async fn open_sock_tcp_vhost(
 }
 
 pub async fn open_sock_tcp_shared(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
@@ -726,7 +726,7 @@ pub async fn open_sock_tcp_shared(
 ///   encapsulation.
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_sock_tcp(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     nasl_sockets: &mut NaslSockets,
     port: Port,
@@ -1228,7 +1228,7 @@ async fn ftp_get_pasv_port(sockets: &mut NaslSockets, socket: usize) -> Result<u
 /// - socket: an open socket.
 #[nasl_function]
 async fn telnet_init(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     sockets: &mut NaslSockets,
     socket: usize,
 ) -> Result<NaslValue, SocketError> {

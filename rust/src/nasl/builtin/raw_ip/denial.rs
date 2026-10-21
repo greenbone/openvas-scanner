@@ -23,10 +23,7 @@ fn get_timeout(ctx: &ScanCtx) -> u8 {
 }
 
 #[nasl_function]
-async fn start_denial(
-    ctx: &ScanCtx<'_>,
-    script_ctx: &mut ScriptCtx<'_>,
-) -> Result<NaslValue, FnError> {
+async fn start_denial(ctx: &ScanCtx, script_ctx: &mut ScriptCtx<'_>) -> Result<NaslValue, FnError> {
     let retry = get_timeout(ctx);
 
     let port = script_ctx
@@ -48,7 +45,7 @@ async fn start_denial(
 
 #[nasl_function]
 async fn end_denial(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     register: &Register,
 ) -> Result<NaslValue, FnError> {

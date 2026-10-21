@@ -29,11 +29,11 @@ use crate::{
     scanner::scan_runner::ScanRunner,
     scheduling::{Scheduler, SchedulerStorage, VTError},
 };
-use futures::StreamExt;
 use tokio::sync::mpsc::{self, Receiver};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{debug, trace, warn};
 
+use super::error::{ExecuteError, ScriptResult};
 use super::scan::Scan;
 
 /// Takes care of running a single scan to completion.
@@ -130,7 +130,6 @@ where
                     status: status.clone(),
                     notus,
                 }
-                // TODO run per target
                 .run(rx_target),
             ),
             keep_running,
@@ -145,17 +144,17 @@ where
             .iter()
             .map(|target| CtxTarget::new(target.clone(), self.scan.ports.clone()))
             .collect();
-        let scan_ctx = ScanCtx::new(
+        let scan_ctx = Arc::new(ScanCtx::new(
             ScanID(self.scan.scan_id.clone()),
             targets,
-            &*self.storage,
-            &self.loader,
-            &self.function_executor,
+            self.storage.clone(),
+            self.loader.clone(),
+            self.function_executor.clone(),
             self.scan.scan_preferences.clone(),
             self.scan.alive_test_methods.clone(),
             self.notus.clone(),
-        );
-        let runner = match self.make_runner(host_feed, &scan_ctx).await {
+        ));
+        let runner = match self.make_runner(host_feed, scan_ctx).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("{}", e);
@@ -169,11 +168,11 @@ where
         Ok(())
     }
 
-    async fn make_runner<'ctx>(
-        &'ctx self,
+    async fn make_runner(
+        &self,
         host_feed: Receiver<TargetId>,
-        scan_ctx: &'ctx ScanCtx<'ctx>,
-    ) -> Result<ScanRunner<'ctx>, Error> {
+        scan_ctx: Arc<ScanCtx>,
+    ) -> Result<ScanRunner, Error> {
         // TODO: This will become unnecessary once we merge crates
         // and can simply implement From<VTError> on scanner::Error;
         let make_scheduling_error = |e: VTError| Error::SchedulingError {
@@ -192,34 +191,25 @@ where
             .map_err(make_scheduling_error)
     }
 
-    async fn run_to_completion(&self, runner: ScanRunner<'_>) -> Phase {
-        let mut end_phase = Phase::Succeeded;
-        let mut stream = Box::pin(runner.stream());
-        while let Some(it) = stream.next().await {
-            match it {
-                Ok(result) => {
-                    trace!(target = result.target, targets=?self.scan.targets);
-                    let mut status = self.status.write().await;
-                    if let Some(host_info) = status.host_info.as_mut() {
-                        host_info.register_finished_script(&result.target);
-                    }
-                    debug!(result=?result, "script finished");
+    async fn run_to_completion(&self, runner: ScanRunner) -> Phase {
+        // TODO: improve logic here. Replace Phase with a better type to
+        // represent the possible state.
+        let end_phase = Arc::new(std::sync::Mutex::new(Phase::Succeeded));
+        let (status, phase) = (self.status.clone(), end_phase.clone());
+        // One task per host; each result updates the shared status.
+        let panicked = runner
+            .run(self.keep_running.clone(), move |res| {
+                handle_result(status.clone(), phase.clone(), res)
+            })
+            .await;
 
-                    if result.kind.is_fatal() {
-                        end_phase = Phase::Failed;
-                    }
-                }
-                Err(x) => {
-                    warn!(error=?x, "unrecoverable error, aborting whole run");
-                    end_phase = Phase::Failed;
-                }
-            }
-            if !self.keep_running.load(Ordering::SeqCst) {
-                end_phase = Phase::Stopped;
-                break;
-            }
+        if !self.keep_running.load(Ordering::SeqCst) {
+            return Phase::Stopped;
         }
-        end_phase
+        if panicked > 0 {
+            return Phase::Failed;
+        }
+        end_phase.lock().map(|p| p.clone()).unwrap_or(Phase::Failed)
     }
 
     async fn update_status_at_beginning_of_run(&self, host_info: HostInfo) {
@@ -236,6 +226,38 @@ where
 
         if let Some(host_info) = status.host_info.as_mut() {
             host_info.finish();
+        }
+    }
+}
+
+/// Records the result of a single VT in `status` and updates `end_phase`
+/// if the result means that the scan failed.
+async fn handle_result(
+    status: Arc<RwLock<Status>>,
+    end_phase: Arc<std::sync::Mutex<Phase>>,
+    result: Result<ScriptResult, ExecuteError>,
+) {
+    let fail = || {
+        if let Ok(mut phase) = end_phase.lock() {
+            *phase = Phase::Failed;
+        }
+    };
+    match result {
+        Ok(result) => {
+            trace!(target = result.target);
+            let mut status = status.write().await;
+            if let Some(host_info) = status.host_info.as_mut() {
+                host_info.register_finished_script(&result.target);
+            }
+            debug!(result=?result, "script finished");
+
+            if result.kind.is_fatal() {
+                fail();
+            }
+        }
+        Err(x) => {
+            warn!(error=?x, "unrecoverable error, aborting whole run");
+            fail();
         }
     }
 }

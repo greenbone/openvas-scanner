@@ -523,7 +523,7 @@ async fn set_rtt_stats(
 
 #[nasl_function]
 async fn plugin_run_openvas_tcp_scanner(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
 ) -> Result<(), FnError> {
     let target_ip = script_ctx.target().ip_addr();

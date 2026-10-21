@@ -72,7 +72,7 @@ where
     F: for<'a, 'b> AsyncQuadrupleArgFn<
             &'a State,
             &'a Register,
-            &'a ScanCtx<'a>,
+            &'a ScanCtx,
             &'a mut ScriptCtx<'b>,
             Output = NaslResult,
         > + 'static,
@@ -110,7 +110,7 @@ where
     F: for<'a, 'b> AsyncQuadrupleArgFn<
             &'a mut State,
             &'a Register,
-            &'a ScanCtx<'a>,
+            &'a ScanCtx,
             &'a mut ScriptCtx<'b>,
             Output = NaslResult,
         > + 'static,
@@ -145,7 +145,7 @@ impl<F> StatelessCallable for F
 where
     F: for<'a, 'b> AsyncTripleArgFn<
             &'a Register,
-            &'a ScanCtx<'a>,
+            &'a ScanCtx,
             &'a mut ScriptCtx<'b>,
             Output = NaslResult,
         > + 'static,

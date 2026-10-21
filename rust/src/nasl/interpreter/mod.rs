@@ -278,7 +278,7 @@ fn expand_fork_at(
 
 struct Interpreter<'ctx> {
     pub(super) register: Register,
-    pub(super) scan_ctx: &'ctx ScanCtx<'ctx>,
+    pub(super) scan_ctx: &'ctx ScanCtx,
     pub(super) script_ctx: ScriptCtx<'ctx>,
     pub(super) fork_reentry_data: ForkReentryData,
     fork_history: ForkHistory,
