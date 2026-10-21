@@ -10,7 +10,6 @@
 
 **forge_tcp_v6_packet** It takes many named arguments, someones are optionals. For details, seethe description below.
 
-
 ## DESCRIPTION
 
 Fills an IPv6 datagram with TCP data. Note that the ip_p field is not updated. It returns the modified IPv6 datagram. Its arguments are:
@@ -27,7 +26,6 @@ Fills an IPv6 datagram with TCP data. Note that the ip_p field is not updated. I
 - th_win: is the TCP window size. NASL will convert it into network order if necessary. 0 by default.
 - th_sum: is the TCP checksum. By default, the right value is computed.
 - th_urp: is the urgent pointer. 0 by default.
-
 
 ## RETURN VALUE
 

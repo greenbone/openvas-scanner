@@ -18,12 +18,8 @@ Sets the list of UDP ports that must be open to run this script in “optimize m
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_require_udp_ports("Services/udp/sip", 5060);
 ```

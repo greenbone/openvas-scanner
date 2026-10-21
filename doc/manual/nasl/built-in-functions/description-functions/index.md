@@ -4,7 +4,6 @@
 
 All those functions but script_get_preference are only used in the "description part" of the plugin, i.e. the block that is run when the description variable is 1. They have no effect when the plugin is run with the standalone NASL interpreter.
 
-
 ## TABLE OF CONTENT
 
 - **[script_add_preference](script_add_preference.md)** - adds an option to the plugin. 

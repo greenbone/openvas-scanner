@@ -2,7 +2,8 @@
 
 ## NAME
 
-**MD2** - takes a unnamed paramaeter and return MD2 hash.
+**MD2** - takes a unnamed parameter and return MD2 hash.
+
 ## SYNOPSIS
 
 *str* **MD2**(str);

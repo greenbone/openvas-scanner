@@ -10,7 +10,6 @@
 
 **get_kb_item** takes 1 positional argument.
 
-
 ## DESCRIPTION
 
 This function is used to retrieve entries from the KB. It is mainly used for inter-plugin communication, so data can be transferred between scripts.
@@ -18,7 +17,6 @@ This function is used to retrieve entries from the KB. It is mainly used for int
 If the item is a list, the plugin will fork and each child process will use a different value. The openvas-scanner does NOT remember which child got which value: reading the same item a second time will fork again! You should not call this function when some connections are open if you do not want to see several processes fighting to read or write on the same socket. Although it is internally based on forking, execution of a script is NOT parallel.
 
 The first positional argument determines the name of the entry, which should be retrieved.
-
 
 ## RETURN VALUE
 
@@ -40,7 +38,6 @@ set_kb_item(name: "hosts", value: "bar");
 display(get_kb_item("hosts"));
 # should print two lines, one with foo and one with bar
 ```
-
 
 ## NOTES
 

@@ -4,6 +4,8 @@
 
 **isotime_scan** - convert a string into an ISO time string
 
+## SYNOPSIS
+
 *string* **isotime_scan**(0: *string*);
 
 **isotime_scan** takes 1 positional argument.

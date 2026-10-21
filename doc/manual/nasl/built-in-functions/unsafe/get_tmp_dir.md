@@ -28,7 +28,7 @@ no access to the temporary directory
 
 ## EXAMPLES
 
-**1**: Get path to tmp directory and create file
+Get path to tmp directory and create file
 ```cpp
 path = get_tmp_dir();
 if(path) {

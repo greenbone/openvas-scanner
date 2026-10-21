@@ -11,11 +11,13 @@
 **aes256_ctr_encrypt** encrypts given data with AES 256 CTR mode.
 
 ## DESCRIPTION
+
 Encrypt the given data using the AES 256 bit algorithm in CTR mode.
 
 ## RETURN VALUE
 
 The return value is the encrypted data.
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

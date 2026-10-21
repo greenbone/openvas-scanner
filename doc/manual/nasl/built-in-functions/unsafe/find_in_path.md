@@ -10,22 +10,19 @@
 
 **find_in_path** takes 1 positional argument.
 
-
 ## DESCRIPTION
 
 This function is used to check if a command exists in $PATH on the scanner host system. If the command exists, this function returns a *TRUE* value, if not it return a *FALSE* value.
 
 The first positional argument is the command which is searched for.
 
-
 ## RETURN VALUE
 
 *TRUE* if the command exists in $PATH, or *FALSE* if not
 
-
 ## EXAMPLES
 
-**1**: Search for a command and run it
+Search for a command and run it
 ```cpp
 if ( find_in_path("foo") ) {
     out = pread(cmd: "foo", argv: NULL, cd: FALSE, drop_privileges_user: NULL);

@@ -14,17 +14,12 @@
 
 The name can be change once the GVM versions older than GVM 11 (using VT name based preferences) reach the End of Life.
 
-
 ## RETURN VALUE
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_name("Nmap (NASL wrapper)");
 ```

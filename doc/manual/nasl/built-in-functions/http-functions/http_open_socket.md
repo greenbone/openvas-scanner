@@ -11,14 +11,16 @@
 **http_open_socket** takes one unnamed argument
 
 ## DESCRIPTION
+
 Opens a socket to the given port. It sets a 64K buffer for IO.
 
 ## RETURN VALUE
+
 An integer value, the socket
 
 ## EXAMPLES
 
-**1** Open and close a socket. Use the socket to send a get request: 
+Open and close a socket. Use the socket to send a get request:
 ```cpp
 soc = http_open_socket (port: 80);
 

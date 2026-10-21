@@ -8,8 +8,7 @@
 
 *int* **get_icmp_element**(icmp: *string*, element: *string*);
 
-**get_icmp_element** It takes two named.
-
+**get_icmp_element** takes two named parameters.
 
 ## DESCRIPTION
 
@@ -17,7 +16,7 @@ Get an ICMP element from a IP datagram. It returns a data block or an integer, a
 
 - icmp: is the IP datagram (not the ICMP part only).
 - element: is the name of the field to get
-  
+
 Valid ICMP elements to get are:
 
 - icmp_id
@@ -26,7 +25,6 @@ Valid ICMP elements to get are:
 - icmp_seq
 - icmp_chsum
 - icmp_data
-
 
 ## RETURN VALUE
 
@@ -40,7 +38,7 @@ Returns an ICMP element from a IP datagram.
 
 ## EXAMPLES
 
-**1** Dump the forged udp packet:
+Dump the forged udp packet:
 ```cpp
 data = "some data";
 

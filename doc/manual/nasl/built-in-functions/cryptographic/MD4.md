@@ -2,7 +2,8 @@
 
 ## NAME
 
-**MD4** - takes a unnamed paramaeter and return MD4 hash.
+**MD4** - takes a unnamed parameter and return MD4 hash.
+
 ## SYNOPSIS
 
 *str* **MD4**(str);
@@ -12,7 +13,6 @@
 ## DESCRIPTION
 
 MD4 is a type of hash function.
-
 
 ## RETURN VALUE
 

@@ -2,7 +2,8 @@
 
 ## NAME
 
-**DES** - takes a unnamed paramaeter and return DES hash.
+**DES** - takes a unnamed parameter and return DES hash.
+
 ## SYNOPSIS
 
 *str* **DES**(str);
@@ -12,7 +13,6 @@
 ## DESCRIPTION
 
 DES is a type of hash function.
-
 
 ## RETURN VALUE
 

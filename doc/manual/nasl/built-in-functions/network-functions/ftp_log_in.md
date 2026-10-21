@@ -22,11 +22,12 @@ Performs a FTP identification / authentication on an open socket.
 Returns TRUE if it could login successfully, FALSE otherwise (e.g. wrong password, or any network problem).
 
 ## ERRORS
+
 - Invalid socket value
- 
+
 ## EXAMPLES
 
-**1**: Performs an ftp login.
+Performs an ftp login.
 ```cpp
 soc = open_sock_tcp(23);
 ftp_log_in(socket: soc, user: "foo", pass: "bar");

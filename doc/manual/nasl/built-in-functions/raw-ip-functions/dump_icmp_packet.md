@@ -22,7 +22,7 @@ None
 
 ## EXAMPLES
 
-**1** Dump the forged icmp packet:
+Dump the forged icmp packet:
 ```cpp
 ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,

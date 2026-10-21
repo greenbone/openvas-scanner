@@ -15,7 +15,6 @@
 smb_cmac_aes_signature gets the cmac aes signature based on the given arguments.
 This function is basically the same as **[aes_mac_cbc(3nasl)](aes_mac_cbc.md)**
 
-
 ## RETURN VALUE
 
 smb_cmac_aes_signature

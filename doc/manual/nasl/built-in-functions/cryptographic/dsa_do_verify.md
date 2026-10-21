@@ -14,7 +14,6 @@
 
 Verifies that the DSA signature given by r and s matches the hash given in data based on the public DSA key by p, g q and pub. 
 
-
 ## RETURN VALUE
 
 Returns 1 if the signature is valid otherwise 0.

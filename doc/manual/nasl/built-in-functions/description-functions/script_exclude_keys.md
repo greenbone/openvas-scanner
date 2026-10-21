@@ -18,12 +18,8 @@ Sets the list of “KB items” that must not be set to run this script in “op
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_exclude_keys("Settings/disable_cgi_scanning");
 ```

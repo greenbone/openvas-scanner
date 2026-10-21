@@ -12,10 +12,9 @@
 
 ## DESCRIPTION
 
-Reads the private key from the `priv` which contains a private RSA key in PEM format. 
+Reads the private key from the `priv` which contains a private RSA key in PEM format.
 
 `passphrase` is the password needed to decrypt the private key. 
-
 
 ## RETURN VALUE
 

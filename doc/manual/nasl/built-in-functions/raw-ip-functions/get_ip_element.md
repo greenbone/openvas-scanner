@@ -10,7 +10,6 @@
 
 **get_ip_element** It takes two named parameters.
 
-
 ## DESCRIPTION
 
 Get an ICMP element from a IP datagram. It returns a data block or an integer, according to the type of the element. Its arguments are:
@@ -35,8 +34,8 @@ Valid IP elements to get are:
 For more information look into **[forge_ip_packet](forge_ip_packet.md)**
 
 ## RETURN VALUE
-Returns an IP element from a IP datagram.
 
+Returns an IP element from a IP datagram.
 
 ## ERRORS
 

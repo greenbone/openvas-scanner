@@ -20,12 +20,8 @@ Note: Please see the *non_simult_ports* option of [openvas(8)](../../../openvas/
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_require_ports("Services/www", 443);
 ```
