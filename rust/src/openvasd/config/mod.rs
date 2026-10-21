@@ -381,6 +381,27 @@ impl StorageTypes {
             }
         }
     }
+
+    pub fn to_sqlite_cfg(&self) -> SqliteConfiguration {
+        match self {
+            StorageTypes::V1(storage_v1) => {
+                let mut sqliteconfig = SqliteConfiguration::default();
+                match storage_v1.storage_type {
+                    StorageType::InMemory | StorageType::Redis => {}
+                    StorageType::FileSystem if storage_v1.fs.path.is_dir() => {
+                        let mut p = storage_v1.fs.path.clone();
+                        p.push("openvasd.db");
+                        sqliteconfig.location = DBLocation::File(p);
+                    }
+                    StorageType::FileSystem => {
+                        sqliteconfig.location = DBLocation::File(storage_v1.fs.path.clone());
+                    }
+                };
+                sqliteconfig
+            }
+            StorageTypes::V2(sqlite_configuration) => sqlite_configuration.clone(),
+        }
+    }
 }
 
 impl Default for StorageTypes {

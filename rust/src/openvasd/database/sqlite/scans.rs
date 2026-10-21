@@ -459,19 +459,6 @@ impl<'o> Fetch<String> for ScanDB<'o, i64> {
     }
 }
 
-// match query_scalar("SELECT count(id) FROM scans WHERE status = 'running'")
-//     .fetch_one(&self.pool)
-//     .await
-// {
-//     Ok(x) => x,
-//     Err(error) => {
-//         tracing::warn!(
-//             %error,
-//             "Unable to count running scans, still preventing start of new scans"
-//         );
-//         1
-//     }
-// }
 impl<'o> Fetch<i64> for ScanDB<'o, models::Phase> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, i64>
     where

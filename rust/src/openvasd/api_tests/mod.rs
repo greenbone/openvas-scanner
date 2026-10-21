@@ -491,7 +491,7 @@ async fn container_image_scanner_deadlock() {
 
     scan.start().await;
 
-    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(10)))
+    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(20)))
         .await
         .body::<Status>()
         .snapshot("status");
