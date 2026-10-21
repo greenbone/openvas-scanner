@@ -10,7 +10,7 @@ use sqlx::Sqlite;
 use v1::V1Crypter;
 use v2::V2Crypter;
 
-use crate::{config::Config, database::sqlite::DataBase};
+use crate::{config::SqliteConfiguration, database::sqlite::DataBase};
 
 mod v1;
 mod v2;
@@ -40,19 +40,22 @@ impl Crypter {
         })
     }
 
-    pub async fn from_config(config: &Config, pool: &DataBase) -> anyhow::Result<Crypter> {
+    pub async fn from_config(
+        config: &SqliteConfiguration,
+        pool: &DataBase,
+    ) -> anyhow::Result<Crypter> {
         // fallback keyphrase and salt in case they are not set in the config
         //
         // WARNING: the fallback does not create any security and purely functions acts as a way to
         // be able to use a single logic for the storage. The security is the same as storing the data
         // unencrypted
-        let keyphrase = config.storage.credential_key().unwrap_or_else(|| {
+        let keyphrase = config.credential_key.clone().unwrap_or_else(|| {
             // actually they are encrypted but with a static fallback passphrase which is essentially the
             // same but this wording carries more weight.
             tracing::warn!(
                 "WARNING: no credential_key set. Credentials will be stored unencrypted."
             );
-            "insecure_key"
+            "insecure_key".to_string()
         });
 
         let salt = get_salt(pool).await?;
@@ -71,6 +74,7 @@ impl Crypt for Crypter {
     /// Decrypts data using the encryption method embedded in the metadata.
     async fn decrypt(&self, encrypted: Encrypted) -> anyhow::Result<Vec<u8>> {
         match encrypted.version {
+            0 => Ok(encrypted.data.clone()),
             1 => {
                 let key = self.v1.key;
                 tokio::task::spawn_blocking(move || V1Crypter::decrypt_sync(&key, &encrypted))
@@ -149,7 +153,7 @@ impl TryFrom<&str> for Encrypted {
                 x.parse::<u8>()
                     .map_err(|_| ParseError::InvalidVersion)
                     .and_then(|x| {
-                        if (1..=VERSION).contains(&x) {
+                        if (0..=VERSION).contains(&x) {
                             Ok(x)
                         } else {
                             Err(ParseError::InvalidVersion)
@@ -166,7 +170,14 @@ impl TryFrom<&str> for Encrypted {
 
         let data = parts
             .next()
-            .map(|nonce| decode(nonce, ParseError::InvalidData))
+            .map(|data| {
+                // version 0 pure json from the cis
+                if version == 0 {
+                    Ok(data.as_bytes().to_vec())
+                } else {
+                    decode(data, ParseError::InvalidData)
+                }
+            })
             .ok_or(ParseError::MissingData)??;
 
         Ok(Encrypted {
