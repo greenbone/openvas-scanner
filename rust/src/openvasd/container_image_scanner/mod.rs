@@ -18,7 +18,7 @@ pub use scheduling::db::scan::DBScan;
 
 use std::sync::Arc;
 
-use crate::api::states::ScannerBridge;
+use crate::{api::states::ScannerBridge, crypt::Crypter};
 use scannerlib::notus::Notus;
 use scheduling::Scheduler;
 use sqlx::migrate::Migrator;
@@ -33,10 +33,11 @@ pub async fn init(
         crate::database::sqlite::create_pool(&config.database, "container-image-scanner").await?;
     MIGRATOR.run(&pool).await?;
 
-    let scheduler = Scheduler::init(config.into(), pool.clone(), products);
+    let crypter = Arc::new(Crypter::from_config(&config.database, &pool).await?);
+    let scheduler = Scheduler::init(config.into(), crypter.clone(), pool.clone(), products);
     tokio::spawn(scheduler.run());
 
-    Ok(ScannerBridge::new(pool, None, None))
+    Ok(ScannerBridge::new(pool, crypter, None))
 }
 
 #[cfg(test)]
@@ -55,6 +56,7 @@ pub mod scans_utils {
             image::{DockerRegistryV2Mock, RegistryPreference},
             scheduling::{Scheduler, db::DataBase},
         },
+        crypt::Crypter,
         database::sqlite::DbGuard,
     };
     use scannerlib::models;
@@ -97,14 +99,20 @@ pub mod scans_utils {
         let products_path: &str =
             concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
+        let crypter = Arc::new(
+            Crypter::from_config(&config.database, &pool)
+                .await
+                .expect("crypter must be available"),
+        );
         let scheduler = Scheduler::init(
             config.into(),
+            crypter.clone(),
             pool.clone(),
             products_loader(products_path, false),
         );
         let scans = ScannerBridge {
             pool: pool.clone(),
-            crypter: None,
+            crypter,
             scheduler: None,
         };
         (scheduler, scans, guard)
@@ -192,6 +200,7 @@ pub mod scans_utils {
             for _ in 0..rounds {
                 Scheduler::start_scans(
                     self.scheduler.config(),
+                    self.entry.crypter.clone(),
                     conn.clone(),
                     self.scheduler.products(),
                 )
@@ -487,7 +496,7 @@ mod test {
             Err(ApiError::Database(crate::database::dao::DAOError::NotFound))
         ));
 
-        let count: i64 = query_scalar("SELECT count(id) FROM client_scan_map WHERE id = ?")
+        let count: i64 = query_scalar("SELECT count(id) FROM scans WHERE id = ?")
             .bind(scan_id)
             .fetch_one(&fakes.entry.pool)
             .await

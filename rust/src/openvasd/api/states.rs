@@ -76,7 +76,7 @@ impl Feed {
 #[derive(Clone)]
 pub struct ScannerBridge {
     /// Crypter used to encrypt credentials. Not used by the container image scanner.
-    pub crypter: Option<Arc<Crypter>>,
+    pub crypter: Arc<Crypter>,
     /// Database to save scan data into.
     pub pool: DataBase,
     /// Scheduler to start or stop scans. Not used by the container image scanner.
@@ -84,11 +84,7 @@ pub struct ScannerBridge {
 }
 
 impl ScannerBridge {
-    pub fn new(
-        pool: DataBase,
-        crypter: Option<Arc<Crypter>>,
-        scheduler: Option<Sender<Message>>,
-    ) -> Self {
+    pub fn new(pool: DataBase, crypter: Arc<Crypter>, scheduler: Option<Sender<Message>>) -> Self {
         Self {
             crypter,
             pool,
@@ -98,20 +94,22 @@ impl ScannerBridge {
 
     /// Posts a given scan without starting it.
     pub async fn post_scan(&self, client_id: &str, scan: &models::Scan) -> Result<(), DAOError> {
-        if let Some(ref crypter) = self.crypter {
-            ScanDB::new(&self.pool, (crypter.as_ref(), client_id, scan))
+        if self.scheduler.is_some() {
+            ScanDB::new(&self.pool, (self.crypter.as_ref(), client_id, scan))
                 .exec()
                 .await
                 .map(|_| ())
         } else {
-            DBScan::new(&self.pool, (client_id, scan)).exec().await
+            DBScan::new(&self.pool, (self.crypter.as_ref(), client_id, scan))
+                .exec()
+                .await
         }
     }
 
     /// Gets all scans owned by the `client_id` and returns a streamed list of their ids.
     pub async fn get_scans(&self, client_id: String) -> StreamResult<String, ApiError> {
         Box::pin(
-            if self.crypter.is_some() {
+            if self.scheduler.is_some() {
                 ScanDB::new(&self.pool, client_id).stream_fetch()
             } else {
                 DBScan::new(&self.pool, client_id).stream_fetch()
@@ -124,12 +122,14 @@ impl ScannerBridge {
     pub async fn get_scan(&self, client_id: &str, scan_id: &str) -> Result<models::Scan, ApiError> {
         let id = self.get_scan_id(client_id, scan_id).await?;
 
-        if let Some(ref crypter) = self.crypter {
-            ScanDB::new(&self.pool, (crypter.as_ref(), id))
+        if self.scheduler.is_some() {
+            ScanDB::new(&self.pool, (self.crypter.as_ref(), id))
                 .fetch()
                 .await
         } else {
-            DBScan::new(&self.pool, id.to_string()).fetch().await
+            DBScan::new(&self.pool, (self.crypter.as_ref(), id))
+                .fetch()
+                .await
         }
         .map_err(|e| e.into())
     }
@@ -142,7 +142,7 @@ impl ScannerBridge {
     ) -> Result<models::Status, ApiError> {
         let id = self.get_scan_id(client_id, scan_id).await?;
 
-        if self.crypter.is_some() {
+        if self.scheduler.is_some() {
             ScanDB::new(&self.pool, id).fetch().await
         } else {
             DBScan::new(&self.pool, id.to_string()).fetch().await
@@ -156,7 +156,7 @@ impl ScannerBridge {
         let status = self.get_scan_status(client_id, scan_id).await?;
 
         if !status.is_running() {
-            if self.crypter.is_some() {
+            if self.scheduler.is_some() {
                 ScanDB::new(&self.pool, id).exec().await?;
             } else {
                 DBScan::new(&self.pool, id).retry_exec().await?;
