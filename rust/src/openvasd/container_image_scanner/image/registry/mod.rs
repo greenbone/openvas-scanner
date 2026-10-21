@@ -2,6 +2,13 @@ pub(crate) mod docker_v2_registry;
 use std::fmt::Display;
 
 use futures::{Stream, StreamExt};
+use sqlx::{Row, sqlite::SqliteRow};
+
+use crate::{
+    crypt::{Crypt, Encrypted},
+    database::dao::DAOError,
+};
+use scannerlib::models;
 
 pub(crate) use super::PackedLayer;
 
@@ -9,6 +16,31 @@ pub(crate) use super::PackedLayer;
 pub struct Credential {
     pub username: String,
     pub password: String,
+}
+
+impl Credential {
+    pub async fn from_sqlrow<C: Crypt>(
+        row: &SqliteRow,
+        crypter: &C,
+    ) -> anyhow::Result<Option<Credential>> {
+        let auth_data: String = row.get("auth_data");
+        let encrypted = Encrypted::try_from(auth_data)?;
+        let auth_data = crypter
+            .decrypt(encrypted)
+            .await
+            .map_err(|_| DAOError::Corrupt)?;
+        Ok(
+            match serde_json::from_slice::<models::Credential>(&auth_data)?.credential_type {
+                models::CredentialType::UP {
+                    username,
+                    password,
+                    #[allow(unused_variables)]
+                    privilege,
+                } => Some(Credential { username, password }),
+                _ => None,
+            },
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
