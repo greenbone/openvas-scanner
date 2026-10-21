@@ -10,7 +10,7 @@
 
 ## DESCRIPTION
 
-Decrypt provided data with the public RSA key given by e, n and d. Return the decrypted data.
+Decrypt provided data with the private RSA key given by e, n and d. Return the decrypted data.
 
 - pad: when true it is using padding
 - data: the data to decrypt
