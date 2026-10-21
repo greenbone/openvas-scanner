@@ -689,7 +689,7 @@ pub(crate) mod tests {
     )> {
         let (config, pool, guard) = create_pool().await?;
         let scanner = Arc::new(builder.build());
-        let cryptor = Arc::new(Crypter::from_config(&config, &pool).await?);
+        let cryptor = Arc::new(Crypter::from_config(&config.storage.to_sqlite_cfg(), &pool).await?);
 
         let change_scan_status = ScanStateController::init(pool.clone()).await?;
         let under_test = ScanScheduler {
