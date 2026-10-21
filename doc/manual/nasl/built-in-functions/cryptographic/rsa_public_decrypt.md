@@ -2,7 +2,7 @@
 
 ## NAME
 
-**rsa_public_decrypt** - decrypt provided data with the public RSA key given by e and d.
+**rsa_public_decrypt** - decrypt provided data with the public RSA key given by e and n.
 
 ## SYNOPSIS
 
