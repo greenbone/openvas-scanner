@@ -15,5 +15,6 @@ fn set_version() {
 }
 
 fn main() {
+    println!("cargo:rerun-if-changed=migrations");
     set_version();
 }

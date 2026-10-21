@@ -60,22 +60,13 @@ mod tests {
 
         let scan_id = "itsamemario";
         let client_id = "Roehrich";
-        let row = query(
-            r#"
-            INSERT INTO client_scan_map(scan_id, client_id) VALUES (?, ?)
-            "#,
-        )
-        .bind(scan_id)
-        .bind(client_id)
-        .execute(&pool)
-        .await
-        .unwrap();
-        let id = row.last_insert_rowid();
-        let _ = query("INSERT INTO scans(id, status, host_all, host_queued, host_alive, host_dead) VALUES (?, 'running', 3, 0, 2, 1)")
-            .bind(id)
+        let id = query("INSERT INTO scans(scan_id, client_id, status, auth_data, host_all, host_queued, host_alive, host_dead) VALUES (?, ?, 'running', '', 3, 0, 2, 1)")
+            .bind(scan_id)
+            .bind(client_id)
             .execute(&pool)
             .await
-            .unwrap();
+            .unwrap()
+            .last_insert_rowid();
 
         DBScan::new(&pool, Phase::Succeeded)
             .retry_exec()

@@ -58,13 +58,6 @@ where
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
 
-    let row = query("INSERT INTO client_scan_map(client_id, scan_id) VALUES (?, ?)")
-        .bind(client.to_string())
-        .bind(&scan.scan_id)
-        .execute(&mut *tx)
-        .await?;
-
-    let mapped_id = row.last_insert_rowid().to_string();
     let auth_data = {
         let bytes = serde_json::to_vec(&scan.target.credentials)?;
         let bytes = crypter
@@ -73,17 +66,19 @@ where
             .map_err(|_| DAOError::Corrupt)?;
         bytes.to_string()
     };
-    query("INSERT INTO scans (id, auth_data) VALUES (?, ?)")
-        .bind(&mapped_id)
+    let mapped_id = query("INSERT INTO scans (client_id, scan_id, auth_data) VALUES (?, ?, ?)")
+        .bind(client.to_string())
+        .bind(&scan.scan_id)
         .bind(auth_data)
         .execute(&mut *tx)
-        .await?;
+        .await?
+        .last_insert_rowid();
     if !scan.vts.is_empty() {
         insert_values_chunked(
             &mut *tx,
             "INSERT OR REPLACE INTO vts (id, vt)",
             |mut b, vt| {
-                b.push_bind(&mapped_id).push_bind(&vt.oid);
+                b.push_bind(mapped_id).push_bind(&vt.oid);
             },
             &scan.vts,
             2,
@@ -98,7 +93,7 @@ where
             &mut *tx,
             "INSERT INTO vt_parameters (id, vt, param_id, param_value)",
             |mut b, (oid, param_id, param_value)| {
-                b.push_bind(&mapped_id)
+                b.push_bind(mapped_id)
                     .push_bind(oid)
                     .push_bind(*param_id as i64)
                     .push_bind(param_value);
@@ -113,7 +108,7 @@ where
         &mut *tx,
         "INSERT INTO hosts (id, host)",
         |mut b, host| {
-            b.push_bind(&mapped_id).push_bind(host);
+            b.push_bind(mapped_id).push_bind(host);
         },
         &scan.target.hosts,
         2,
@@ -125,7 +120,7 @@ where
         "INSERT INTO resolved_hosts (id, original_host, resolved_host, kind, scan_status)",
         |mut b, host| {
             //TODO: check host if ip v4, v6, dns or oci ... for now it doesn't matter.
-            b.push_bind(&mapped_id)
+            b.push_bind(mapped_id)
                 .push_bind(host.clone())
                 .push_bind(host)
                 .push_bind("dns")
@@ -151,7 +146,7 @@ where
         &mut *tx,
         "INSERT INTO ports (id, protocol, start, end)",
         |mut b, (protocol, range)| {
-            b.push_bind(&mapped_id)
+            b.push_bind(mapped_id)
                 .push_bind(match protocol {
                     None => "udp_tcp",
                     Some(x) => x.as_ref(),
@@ -178,7 +173,7 @@ where
         &mut *tx,
         "INSERT INTO ports (id, protocol, start, end, alive)",
         |mut b, (protocol, range)| {
-            b.push_bind(&mapped_id)
+            b.push_bind(mapped_id)
                 .push_bind(match protocol {
                     None => "udp_tcp",
                     Some(x) => x.as_ref(),
@@ -196,7 +191,7 @@ where
         &mut *tx,
         "INSERT INTO alive_methods (id, method)",
         |mut b, method| {
-            b.push_bind(&mapped_id).push_bind(method.as_ref());
+            b.push_bind(mapped_id).push_bind(method.as_ref());
         },
         &scan.target.alive_test_methods,
         2,
@@ -221,7 +216,7 @@ where
         &mut *tx,
         "INSERT INTO preferences (id, key, value)",
         |mut b, pref| {
-            b.push_bind(&mapped_id)
+            b.push_bind(mapped_id)
                 .push_bind(&pref.id)
                 .push_bind(&pref.value);
         },
@@ -352,7 +347,7 @@ where
         .iter()
         .map(|x| AliveTestMethods::from(x as &str))
         .collect::<Vec<_>>();
-    let scan_id: String = query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
+    let scan_id: String = query_scalar("SELECT scan_id FROM scans WHERE id = ?")
         .bind(id)
         .fetch_one(&mut *tx)
         .await?;
@@ -450,7 +445,7 @@ impl<'o> Fetch<String> for ScanDB<'o, i64> {
         'a: 'b,
     {
         Box::pin(async move {
-            query_scalar("SELECT scan_id FROM client_scan_map WHERE id = ?")
+            query_scalar("SELECT scan_id FROM scans WHERE id = ?")
                 .bind(self.input)
                 .fetch_one(self.pool)
                 .await
@@ -459,19 +454,6 @@ impl<'o> Fetch<String> for ScanDB<'o, i64> {
     }
 }
 
-// match query_scalar("SELECT count(id) FROM scans WHERE status = 'running'")
-//     .fetch_one(&self.pool)
-//     .await
-// {
-//     Ok(x) => x,
-//     Err(error) => {
-//         tracing::warn!(
-//             %error,
-//             "Unable to count running scans, still preventing start of new scans"
-//         );
-//         1
-//     }
-// }
 impl<'o> Fetch<i64> for ScanDB<'o, models::Phase> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, i64>
     where
@@ -497,7 +479,7 @@ where
     {
         Box::pin(async move {
             let (client_id, scan) = self.input();
-            let x = query("SELECT id FROM client_scan_map WHERE client_id = ? AND scan_id = ?")
+            let x = query("SELECT id FROM scans WHERE client_id = ? AND scan_id = ?")
                 .bind(client_id)
                 .bind(scan)
                 .fetch_optional(self.db())
@@ -524,7 +506,7 @@ where
         let result = stream::once(async move {
             match query_scalar::<_, String>(
                 r#"
-                SELECT scan_id FROM client_scan_map WHERE client_id = ?
+                SELECT scan_id FROM scans WHERE client_id = ?
             "#,
             )
             .bind(client_id)
@@ -548,7 +530,7 @@ where
     where
         'a: 'b,
     {
-        const DELETE_SQL: &str = "DELETE FROM client_scan_map WHERE id = ?";
+        const DELETE_SQL: &str = "DELETE FROM scans WHERE id = ?";
         Box::pin(async move {
             query(DELETE_SQL)
                 .bind(self.input())
