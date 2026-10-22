@@ -973,17 +973,22 @@ set_tcp_v6_elements (lex_ctxt *lexic)
 
   tcp = (struct tcphdr *) (pkt + 40);
 
-  if (pktsz < UNFIX (ip6->ip6_plen))
+  if (pktsz < (size_t) (UNFIX (ip6->ip6_plen) + 40)
+      || UNFIX (ip6->ip6_plen) < tcp->th_off * 4)
     return NULL;
 
   if (data_len == 0)
     {
-      data_len = UNFIX (ip6->ip6_plen) - (tcp->th_off * 4);
+      data_len = UNFIX (ip6->ip6_plen) - tcp->th_off * 4;
       data = (char *) ((char *) tcp + tcp->th_off * 4);
     }
 
-  npkt = g_malloc0 (40 + tcp->th_off * 4 + data_len);
-  bcopy (pkt, npkt, UNFIX (ip6->ip6_plen) + 40);
+  size_t alloc_sz = 40 + tcp->th_off * 4 + data_len;
+  size_t copy_sz = UNFIX (ip6->ip6_plen) + 40;
+  if (copy_sz > alloc_sz)
+    copy_sz = alloc_sz;
+  npkt = g_malloc0 (alloc_sz);
+  bcopy (pkt, npkt, copy_sz);
 
   ip6 = (struct ip6_hdr *) (npkt);
   tcp = (struct tcphdr *) (npkt + 40);
@@ -1236,7 +1241,8 @@ insert_tcp_v6_options (lex_ctxt *lexic)
 
   tcp = (struct tcphdr *) (pkt + 40);
 
-  if (pktsz < UNFIX (ip6->ip6_plen))
+  if (pktsz < (size_t) (UNFIX (ip6->ip6_plen) + 40)
+      || UNFIX (ip6->ip6_plen) < (tcp->th_off * 4))
     {
       g_free (opts);
       return NULL;
@@ -1249,8 +1255,13 @@ insert_tcp_v6_options (lex_ctxt *lexic)
     }
 
   // Alloc enough memory to hold the options
-  npkt = g_malloc0 (40 + tcp->th_off * 4 + opt_size_allocated + data_len);
-  memcpy (npkt, pkt, UNFIX (ip6->ip6_plen) + 40);
+  size_t alloc_sz = 40 + tcp->th_off * 4 + opt_size_allocated + data_len;
+  size_t copy_sz = UNFIX (ip6->ip6_plen) + 40;
+  if (copy_sz > alloc_sz)
+    copy_sz = alloc_sz;
+  npkt = g_malloc0 (alloc_sz);
+  memcpy (npkt, pkt, copy_sz);
+
   ip6 = (struct ip6_hdr *) (npkt);
   tcp = (struct tcphdr *) (npkt + 40);
 
