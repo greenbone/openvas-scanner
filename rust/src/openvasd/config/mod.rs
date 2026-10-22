@@ -491,6 +491,14 @@ impl Config {
     }
 
     pub fn load() -> Self {
+        Self::load_from(std::env::args_os())
+    }
+
+    fn load_from<I, T>(args: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<std::ffi::OsString> + Clone,
+    {
         let mut cmds = clap::Command::new("openvasd")
             .arg(
                 clap::Arg::new("config")
@@ -734,7 +742,7 @@ impl Config {
             cmds = cmds.arg(arg);
         }
 
-        let cmds = cmds.get_matches();
+        let cmds = cmds.get_matches_from(args);
         let mut config = match cmds.get_one::<String>("config") {
             Some(path) => Self::from_file(path),
             None => {
@@ -903,7 +911,7 @@ mod tests {
 
     use crate::{config::StorageTypes, container_image_scanner::config::ImageExtractionLocation};
     use insta::assert_toml_snapshot;
-    use scannerlib::scanner::preferences::preference::ScanPrefValue;
+    use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
 
     #[test]
     fn current_example_parseable() {
@@ -942,5 +950,89 @@ mod tests {
             ImageExtractionLocation::File("/tmp/openvasd/cis".into());
 
         assert_toml_snapshot!(config);
+    }
+
+    /// Writes a config file and loads it the same way the binary would, without
+    /// relying on the environment of the test machine.
+    fn load_with_args(toml: &str, args: &[&str]) -> (super::Config, tempfile::TempDir) {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("openvasd.toml");
+        std::fs::write(&path, toml).unwrap();
+
+        let mut argv = vec!["openvasd".to_string(), "-c".to_string()];
+        argv.push(path.to_string_lossy().to_string());
+        argv.extend(args.iter().map(|x| x.to_string()));
+
+        (super::Config::load_from(argv), dir)
+    }
+
+    #[test]
+    fn scan_preferences_from_file() {
+        let (config, _dir) = load_with_args(
+            r#"
+            [scanner.preferences]
+            safe_checks = false
+            cgi_path = "/custom"
+            plugins_timeout = 11
+            "#,
+            &[],
+        );
+        let prefs = &config.scanner.preferences;
+
+        assert_eq!(prefs.get("safe_checks"), Some(&ScanPrefValue::Bool(false)));
+        assert_eq!(
+            prefs.get("cgi_path"),
+            Some(&ScanPrefValue::String("/custom".to_string()))
+        );
+        assert_eq!(prefs.get("plugins_timeout"), Some(&ScanPrefValue::Int(11)));
+        // Preferences that are not configured keep their built-in default
+        assert_eq!(prefs.get("dry_run"), Some(&ScanPrefValue::Bool(false)));
+        assert_eq!(prefs.get("optimize_test"), Some(&ScanPrefValue::Bool(true)));
+        assert_eq!(prefs.len(), PREFERENCES.len());
+    }
+
+    #[test]
+    fn scan_preferences_from_arguments() {
+        let (config, _dir) = load_with_args(
+            r#"
+            [scanner.preferences]
+            safe_checks = false
+            cgi_path = "/custom"
+            "#,
+            &[
+                "--safe_checks",
+                "true",
+                "--plugins_timeout",
+                "22",
+                "--non_simult_ports",
+                "139",
+            ],
+        );
+        let prefs = &config.scanner.preferences;
+
+        // Arguments take precedence over the config file
+        assert_eq!(prefs.get("safe_checks"), Some(&ScanPrefValue::Bool(true)));
+        assert_eq!(prefs.get("plugins_timeout"), Some(&ScanPrefValue::Int(22)));
+        assert_eq!(
+            prefs.get("non_simult_ports"),
+            Some(&ScanPrefValue::String("139".to_string()))
+        );
+        // The file still wins over the built-in default
+        assert_eq!(
+            prefs.get("cgi_path"),
+            Some(&ScanPrefValue::String("/custom".to_string()))
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Wrong value type")]
+    fn scan_preference_with_wrong_type_panics() {
+        load_with_args(
+            r#"
+            [scanner.preferences]
+            safe_checks = 12
+            "#,
+            &[],
+        );
     }
 }
