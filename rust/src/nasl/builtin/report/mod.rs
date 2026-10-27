@@ -40,7 +40,7 @@ impl Reporting {
             .local_nasl_value("port")
             .ok()
             .map(|x| x.convert_to_number())
-            .map(|x: i64| x as i16);
+            .map(|x: i64| x as u16);
 
         let protocol = match register
             .local_nasl_value("proto")

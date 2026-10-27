@@ -45,7 +45,7 @@ fn row_to_result(row: SqliteRow) -> models::Result {
             .unwrap_or(None),
         hostname: row.try_get::<Option<String>, _>("hostname").unwrap_or(None),
         oid: row.try_get::<Option<String>, _>("oid").unwrap_or(None),
-        port: row.try_get::<Option<i16>, _>("port").unwrap_or(None),
+        port: row.try_get::<Option<u16>, _>("port").unwrap_or(None),
         protocol: row
             .try_get::<Option<String>, _>("protocol")
             .unwrap_or(None)
