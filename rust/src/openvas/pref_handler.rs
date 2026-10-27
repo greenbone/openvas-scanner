@@ -5,9 +5,9 @@
 use std::collections::HashMap;
 
 use crate::models::{
-    AliveTestMethods, CredentialType, PreferenceValue, Scan, ScanPreferenceInformation, Service,
-    VT, ports_to_openvas_port_list,
+    AliveTestMethods, CredentialType, Scan, Service, VT, ports_to_openvas_port_list,
 };
+use crate::scanner::preferences::{checkbox_bool::CheckboxBool, preference::ScanPrefValue};
 use crate::storage::redis::RedisStorageResult;
 
 use super::cmd;
@@ -24,19 +24,12 @@ const BOREAS_ALIVE_TEST: &str = "ALIVE_TEST";
 const BOREAS_ALIVE_TEST_PORTS: &str = "ALIVE_TEST_PORTS";
 const ALIVE_TEST_SCAN_CONFIG_DEFAULT: u8 = 0x00;
 
-fn bool_to_str(value: &str) -> String {
-    if value == "0" {
-        return "no".to_string();
-    }
-    "yes".to_string()
-}
-
 #[derive(Debug)]
 pub struct PreferenceHandler<'a, H> {
     scan_config: Scan,
     redis_connector: &'a mut H,
-    nvt_params: HashMap<String, String>,
-    scan_params_defaults: Vec<ScanPreferenceInformation>,
+    nvt_params: HashMap<String, ScanPrefValue>,
+    scan_params_defaults: HashMap<String, ScanPrefValue>,
 }
 
 impl<'a, H> PreferenceHandler<'a, H>
@@ -46,7 +39,7 @@ where
     pub fn new(
         scan_config: Scan,
         redis_connector: &'a mut H,
-        scan_params_defaults: Vec<ScanPreferenceInformation>,
+        scan_params_defaults: HashMap<String, ScanPrefValue>,
     ) -> Self {
         Self {
             scan_config,
@@ -57,25 +50,25 @@ where
     }
 
     pub async fn prepare_preferences_for_openvas(&mut self) -> RedisStorageResult<()> {
-        self.prepare_scan_id_for_openvas().await?;
-        self.prepare_target_for_openvas().await?;
-        self.prepare_ports_for_openvas().await?;
-        self.prepare_credentials_for_openvas().await?;
-        self.prepare_plugins_for_openvas().await?;
-        self.prepare_main_kbindex_for_openvas().await?;
-        self.prepare_host_options_for_openvas().await?;
-        self.prepare_scan_params_for_openvas().await?;
-        self.prepare_reverse_lookup_opt_for_openvas().await?;
-        self.prepare_alive_test_option_for_openvas().await?;
+        self.prepare_scan_id_for_openvas()?;
+        self.prepare_target_for_openvas()?;
+        self.prepare_ports_for_openvas()?;
+        self.prepare_credentials_for_openvas()?;
+        self.prepare_plugins_for_openvas()?;
+        self.prepare_main_kbindex_for_openvas()?;
+        self.prepare_host_options_for_openvas()?;
+        self.prepare_scan_params_for_openvas()?;
+        self.prepare_reverse_lookup_opt_for_openvas()?;
+        self.prepare_alive_test_option_for_openvas()?;
 
         // VT preferences are stored after all preferences have been processed,
         // since alive tests preferences have to be able to overwrite default
         // preferences of ping_host.nasl for the classic method.
-        self.prepare_nvt_preferences().await?;
+        self.prepare_nvt_preferences()?;
         self.prepare_boreas_alive_test().await
     }
 
-    async fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_main_kbindex_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
             format!("ov_maindbid|||{}", self.redis_connector.kb_id()?),
@@ -83,7 +76,7 @@ where
         Ok(())
     }
 
-    async fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_scan_id_for_openvas(&mut self) -> RedisStorageResult<()> {
         self.redis_connector.push_kb_item(
             format!("internal/{}", self.scan_config.scan_id.clone()).as_str(),
             "new",
@@ -94,9 +87,9 @@ where
         Ok(())
     }
 
-    async fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, String>) {
+    fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, ScanPrefValue>) {
         let mut vts_list: Vec<String> = vec![];
-        let mut pref_list: HashMap<String, String> = HashMap::new();
+        let mut pref_list = HashMap::new();
 
         for vt in vts {
             let nvt_opt = match self.redis_connector.get_nasl_vt(&vt.oid) {
@@ -127,16 +120,25 @@ where
                             None
                         }
                     }) {
-                        let value_aux: String = if class == *"checkbox" {
-                            bool_to_str(&pref.value)
+                        let value = if class == *"checkbox" {
+                            match pref.value.parse::<CheckboxBool>() {
+                                Ok(value) => ScanPrefValue::Bool(value),
+                                Err(_) => {
+                                    tracing::warn!(
+                                        oid = vt.oid,
+                                        pref = pref.id,
+                                        value = pref.value,
+                                        "invalid boolean value for checkbox preference, skipping"
+                                    );
+                                    continue;
+                                }
+                            }
                         } else {
-                            pref.value.to_string()
+                            ScanPrefValue::String(pref.value.clone())
                         };
 
-                        pref_list.insert(
-                            format!("{}:{}:{}:{}", vt.oid, prefid, class, name),
-                            value_aux,
-                        );
+                        pref_list
+                            .insert(format!("{}:{}:{}:{}", vt.oid, prefid, class, name), value);
                     } else {
                         tracing::debug!(oid = vt.oid, pref = pref.id, "set preference not found");
                     }
@@ -149,13 +151,13 @@ where
         (vts_list, pref_list)
     }
 
-    async fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_plugins_for_openvas(&mut self) -> RedisStorageResult<()> {
         let nvts = &self.scan_config.vts;
         if nvts.is_empty() {
             return Ok(());
         }
 
-        let (nvts, prefs) = self.process_vts(nvts).await;
+        let (nvts, prefs) = self.process_vts(nvts);
         // update list of preferences
         self.nvt_params.extend(prefs);
 
@@ -166,7 +168,7 @@ where
         )
     }
 
-    async fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
+    fn prepare_nvt_preferences(&mut self) -> RedisStorageResult<()> {
         let mut items: Vec<String> = vec![];
         for (k, v) in self.nvt_params.iter() {
             items.push(format!("{k}|||{v}"))
@@ -182,84 +184,27 @@ where
         )
     }
 
-    async fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
-        let mut prefs: HashMap<String, String> = HashMap::new();
-        let mut alive_test = ALIVE_TEST_SCAN_CONFIG_DEFAULT;
-        let mut value: &str = "no";
-
-        let methods = self.scan_config.target.alive_test_methods.clone();
-        for m in methods {
-            alive_test |= m as u8;
+    fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
+        let enabled = |method| self.scan_config.target.alive_test_methods.contains(&method);
+        let syn = enabled(AliveTestMethods::TcpSyn);
+        let ack = enabled(AliveTestMethods::TcpAck);
+        for (id, name, value) in [
+            (1, "Do a TCP ping", syn || ack),
+            (2, "TCP ping tries also TCP-SYN ping", syn && ack),
+            (7, "TCP ping tries only TCP-SYN ping", syn && !ack),
+            (3, "Do an ICMP ping", enabled(AliveTestMethods::Icmp)),
+            (4, "Use ARP", enabled(AliveTestMethods::Arp)),
+            (
+                5,
+                "Mark unreachable Hosts as dead (not scanning)",
+                !enabled(AliveTestMethods::ConsiderAlive),
+            ),
+        ] {
+            self.nvt_params.insert(
+                format!("{OID_PING_HOST}:{id}:checkbox:{name}"),
+                ScanPrefValue::Bool(value.into()),
+            );
         }
-
-        //Preference 1
-        if (alive_test & AliveTestMethods::TcpAck as u8) != 0
-            || (alive_test & AliveTestMethods::TcpSyn as u8) != 0
-        {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:1:checkbox:Do a TCP ping"),
-            value.to_string(),
-        );
-
-        //Preference 2
-        value = "no";
-        if (alive_test & AliveTestMethods::TcpAck as u8) != 0
-            && (alive_test & AliveTestMethods::TcpSyn as u8) != 0
-        {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:2:checkbox:TCP ping tries also TCP-SYN ping"),
-            value.to_string(),
-        );
-
-        //Preference 7
-        value = "no";
-        if (alive_test & AliveTestMethods::TcpSyn as u8) != 0
-            && !(alive_test & AliveTestMethods::TcpAck as u8) != 0
-        {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:7:checkbox:TCP ping tries only TCP-SYN ping"),
-            value.to_string(),
-        );
-
-        //Preference 3
-        value = "no";
-        if (alive_test & AliveTestMethods::Icmp as u8) != 0 {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:3:checkbox:Do an ICMP ping"),
-            value.to_string(),
-        );
-
-        //Preference 4
-        value = "no";
-        if (alive_test & AliveTestMethods::Arp as u8) != 0 {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:4:checkbox:Use ARP"),
-            value.to_string(),
-        );
-
-        //Preference 5. This preference is confusing. Since the method name and the preference name have different logics
-        value = "yes"; // consider hosts as dead
-        if (alive_test & AliveTestMethods::ConsiderAlive as u8) != 0 {
-            value = "no" // NO, means that hosts are not considered as dead.
-        }
-
-        prefs.insert(
-            format!("{OID_PING_HOST}:5:checkbox:Mark unreachable Hosts as dead (not scanning)"),
-            value.to_string(),
-        );
-
-        // It will replace the defaults with the values sent by the client
-        self.nvt_params.extend(prefs);
         Ok(())
     }
 
@@ -305,7 +250,7 @@ where
         Ok(())
     }
 
-    async fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_reverse_lookup_opt_for_openvas(&mut self) -> RedisStorageResult<()> {
         let mut lookup_opts: Vec<String> = vec![];
 
         if self
@@ -335,7 +280,7 @@ where
         )
     }
 
-    async fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_target_for_openvas(&mut self) -> RedisStorageResult<()> {
         let target = self.scan_config.target.hosts.join(",");
         self.redis_connector.push_kb_item(
             format!("internal/{}/scanprefs", self.scan_config.scan_id.clone()).as_str(),
@@ -343,7 +288,7 @@ where
         )
     }
 
-    async fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_ports_for_openvas(&mut self) -> RedisStorageResult<()> {
         let ports = self.scan_config.target.ports.clone();
         if let Some(ports) = ports_to_openvas_port_list(ports) {
             self.redis_connector.push_kb_item(
@@ -355,7 +300,7 @@ where
         Ok(())
     }
 
-    async fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
+    fn prepare_host_options_for_openvas(&mut self) -> RedisStorageResult<()> {
         let excluded_hosts = self.scan_config.target.excluded_hosts.join(",");
         if excluded_hosts.is_empty() {
             return Ok(());
@@ -367,34 +312,34 @@ where
         )
     }
 
-    async fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
-        let options = self
-            .scan_params_defaults
-            .iter()
-            .map(|x| {
-                if let Some(pref) = self
-                    .scan_config
-                    .scan_preferences
-                    .iter()
-                    .find(|p| p.id == x.id)
-                {
-                    match x.default {
-                        PreferenceValue::Bool(_) => {
-                            format!("{}|||{}", x.id, bool_to_str(&pref.value))
-                        }
-                        _ => format!("{}|||{}", x.id, pref.value),
-                    }
-                } else {
-                    match x.default {
-                        PreferenceValue::Bool(b) => {
-                            format!("{}|||{}", x.id, bool_to_str(&b.to_string()))
-                        }
-                        PreferenceValue::Int(i) => format!("{}|||{}", x.id, i),
-                        PreferenceValue::String(s) => format!("{}|||{}", x.id, s),
-                    }
-                }
-            })
-            .collect::<Vec<String>>();
+    fn prepare_scan_params_for_openvas(&mut self) -> RedisStorageResult<()> {
+        let mut options = Vec::with_capacity(self.scan_params_defaults.len());
+        for (id, default) in &self.scan_params_defaults {
+            let set_by_client = self
+                .scan_config
+                .scan_preferences
+                .iter()
+                .find(|p| &p.id == id);
+
+            let value = match set_by_client {
+                Some(pref) if matches!(default, ScanPrefValue::Bool(_)) => pref
+                    .value
+                    .parse::<CheckboxBool>()
+                    .map(ScanPrefValue::Bool)
+                    .unwrap_or_else(|_| {
+                        tracing::warn!(
+                            pref = id,
+                            value = pref.value,
+                            "invalid boolean value, falling back to the default"
+                        );
+                        default.clone()
+                    }),
+                Some(pref) => ScanPrefValue::String(pref.value.clone()),
+                None => default.clone(),
+            };
+
+            options.push(format!("{id}|||{value}"));
+        }
 
         if options.is_empty() {
             return Ok(());
@@ -405,7 +350,8 @@ where
             options,
         )
     }
-    async fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
+
+    fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
         let credentials = self.scan_config.target.credentials.clone();
 
         let mut credential_preferences: Vec<String> = vec![];
@@ -527,19 +473,31 @@ where
                         privacy_algorithm,
                     } = credential.credential_type
                     {
-                        // if there is a privacy password, a valid privacy algorithm must be provided.
-                        if privacy_algorithm.is_empty()
-                            && (!privacy_password.is_empty()
-                                || (privacy_algorithm != "aes" && privacy_algorithm != "des"))
-                        {
+                        if privacy_algorithm.is_empty() {
+                            if !privacy_password.is_empty() {
+                                tracing::warn!(
+                                    "SNMP privacy password is set without a privacy algorithm, ignoring credentials"
+                                );
+                                continue;
+                            }
+                        } else if privacy_algorithm != "aes" && privacy_algorithm != "des" {
+                            tracing::warn!(
+                                "SNMP privacy algorithm must be 'aes' or 'des', ignoring credentials"
+                            );
                             continue;
-                        };
+                        }
 
-                        if auth_algorithm.is_empty()
-                            || (auth_algorithm != "md5" && auth_algorithm != "sha1")
-                        {
+                        if auth_algorithm.is_empty() {
+                            tracing::warn!(
+                                "SNMP authentication algorithm is missing but must be 'md5' or 'sha1', ignoring credentials"
+                            );
                             continue;
-                        };
+                        } else if auth_algorithm != "md5" && auth_algorithm != "sha1" {
+                            tracing::warn!(
+                                "SNMP authentication algorithm must be 'md5' or 'sha1', ignoring credentials"
+                            );
+                            continue;
+                        }
 
                         credential_preferences.push(format!(
                             "{OID_SNMP_AUTH}:1:password:SNMP Community:|||{community}"
@@ -591,17 +549,179 @@ mod tests {
         scanner::preferences::preference::PREFERENCES,
     };
 
-    use super::PreferenceHandler;
+    use super::{PreferenceHandler, ScanPrefValue};
     use crate::openvas::openvas_redis::{KbAccess, test::FakeRedis};
 
-    #[tokio::test]
-    async fn test_prefs() {
-        let mut scan = Scan {
+    fn scan_config() -> Scan {
+        Scan {
             scan_id: "123-456".to_string(),
             ..Default::default()
-        };
+        }
+    }
+
+    fn fake_redis() -> FakeRedis {
+        FakeRedis {
+            data: HashMap::new(),
+        }
+    }
+
+    fn handler(scan: Scan, redis: &mut FakeRedis) -> PreferenceHandler<'_, FakeRedis> {
+        let defaults = PREFERENCES
+            .iter()
+            .map(|p| (p.id.to_string(), p.default.clone().into()))
+            .collect();
+        PreferenceHandler::new(scan, redis, defaults)
+    }
+
+    #[test]
+    fn test_scan_params_bool_values() {
+        let mut scan = scan_config();
+        scan.scan_preferences = vec![
+            models::ScanPreference {
+                id: "optimize_test".to_string(),
+                value: "False".to_string(),
+            },
+            models::ScanPreference {
+                id: "test_empty_vhost".to_string(),
+                value: "1".to_string(),
+            },
+            models::ScanPreference {
+                id: "safe_checks".to_string(),
+                value: "maybe".to_string(),
+            },
+        ];
+
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+        assert!(prefh.prepare_scan_params_for_openvas().is_ok());
+
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "optimize_test|||no")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "test_empty_vhost|||yes")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "safe_checks|||yes")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "dry_run|||no")
+        );
+    }
+
+    fn prepare_vt_params(checkbox_value: &str) -> FakeRedis {
+        let mut scan = scan_config();
+        scan.vts = vec![models::VT {
+            oid: "123".to_string(),
+            parameters: vec![
+                models::Parameter {
+                    id: 1,
+                    value: checkbox_value.to_string(),
+                },
+                models::Parameter {
+                    id: 2,
+                    value: "abc".to_string(),
+                },
+            ],
+        }];
+
+        let mut rc = fake_redis();
+        {
+            let mut prefh = handler(scan, &mut rc);
+            assert!(prefh.prepare_plugins_for_openvas().is_ok());
+            assert!(prefh.prepare_nvt_preferences().is_ok());
+        }
+        rc
+    }
+
+    #[test]
+    fn test_vt_checkbox_bool_values() {
+        for (value, expected) in [("TRUE", "yes"), ("0", "no")] {
+            let rc = prepare_vt_params(value);
+            assert!(
+                rc.item_exists(
+                    "internal/123-456/scanprefs",
+                    &format!("123:1:checkbox:test1|||{expected}")
+                ),
+                "{value}"
+            );
+            assert!(rc.item_exists("internal/123-456/scanprefs", "123:2:entry:test2|||abc"));
+        }
+
+        // An unparsable checkbox value is dropped instead of being coerced
+        let rc = prepare_vt_params("nope");
+        assert!(!rc.item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||yes"));
+        assert!(!rc.item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||no"));
+        // Non-checkbox parameters are unaffected
+        assert!(rc.item_exists("internal/123-456/scanprefs", "123:2:entry:test2|||abc"));
+    }
+
+    #[test]
+    fn test_scan_id() {
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan_config(), &mut rc);
+
+        assert!(prefh.prepare_scan_id_for_openvas().is_ok());
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/scanid", "123-456")
+        );
+        assert!(prefh.redis_connector.item_exists("internal/123-456", "new"));
+    }
+    #[test]
+    fn test_target() {
+        let mut scan = scan_config();
         scan.target.hosts = vec!["127.0.0.1".to_string(), "10.0.0.1".to_string()];
-        scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
+        assert!(prefh.prepare_target_for_openvas().is_ok());
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "TARGET|||127.0.0.1,10.0.0.1")
+        );
+    }
+
+    #[test]
+    fn test_ports() {
+        let mut scan = scan_config();
+        scan.target.ports = vec![Port {
+            protocol: Some(Protocol::TCP),
+            range: vec![
+                PortRange {
+                    start: 22,
+                    end: Some(25),
+                },
+                PortRange {
+                    start: 80,
+                    end: None,
+                },
+            ],
+        }];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
+        assert!(prefh.prepare_ports_for_openvas().is_ok());
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "port_range|||T:22-25,80")
+        );
+    }
+
+    #[test]
+    fn test_credentials() {
+        let mut scan = scan_config();
         scan.target.credentials = vec![
             Credential {
                 service: Service::SSH,
@@ -623,85 +743,10 @@ mod tests {
                 },
             },
         ];
-        scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];
-        scan.target.ports = vec![Port {
-            protocol: Some(Protocol::TCP),
-            range: vec![
-                PortRange {
-                    start: 22,
-                    end: Some(25),
-                },
-                PortRange {
-                    start: 80,
-                    end: None,
-                },
-            ],
-        }];
-        scan.scan_preferences = vec![
-            models::ScanPreference {
-                id: "auto_enable_dependencies".to_string(),
-                value: "0".to_string(),
-            },
-            models::ScanPreference {
-                id: "cgi_path".to_string(),
-                value: "abc".to_string(),
-            },
-            models::ScanPreference {
-                id: "checks_read_timeout".to_string(),
-                value: "10".to_string(),
-            },
-        ];
-        scan.vts = vec![models::VT {
-            oid: "123".to_string(),
-            parameters: vec![
-                models::Parameter {
-                    id: 1,
-                    value: "yes".to_string(),
-                },
-                models::Parameter {
-                    id: 2,
-                    value: "abc".to_string(),
-                },
-            ],
-        }];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
 
-        let mut rc = FakeRedis {
-            data: HashMap::new(),
-        };
-
-        let mut prefh = PreferenceHandler::new(scan, &mut rc, PREFERENCES.to_vec());
-        assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
-        // Prepare and test Scan ID
-        assert!(prefh.prepare_scan_id_for_openvas().await.is_ok());
-        assert!(
-            prefh
-                .redis_connector
-                .item_exists("internal/scanid", "123-456")
-        );
-        assert!(prefh.redis_connector.item_exists("internal/123-456", "new"));
-
-        // Prepare and test Target
-        assert!(prefh.prepare_target_for_openvas().await.is_ok());
-        assert!(
-            prefh
-                .redis_connector
-                .item_exists("internal/123-456/scanprefs", "TARGET|||127.0.0.1,10.0.0.1")
-        );
-
-        // Prepare and test Ports
-        assert!(prefh.prepare_ports_for_openvas().await.is_ok());
-        assert!(
-            prefh
-                .redis_connector
-                .item_exists("internal/123-456/scanprefs", "port_range|||T:22-25,80")
-        );
-
-        // Prepare and test Credentials
-        assert!(prefh.prepare_credentials_for_openvas().await.is_ok());
-        assert!(prefh.redis_connector.item_exists(
-            "internal/123-456/scanprefs",
-            "1.3.6.1.4.1.25623.1.0.103591:3:password:SSH password (unsafe!):|||pass"
-        ));
+        assert!(prefh.prepare_credentials_for_openvas().is_ok());
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||user"
@@ -723,33 +768,76 @@ mod tests {
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.102114:4:entry::|||kdc"
         ));
+    }
 
-        // Prepare and test Plugins
-        assert!(prefh.prepare_plugins_for_openvas().await.is_ok());
+    #[test]
+    fn test_plugins() {
+        let mut scan = scan_config();
+        scan.vts = vec![models::VT {
+            oid: "123".to_string(),
+            parameters: vec![],
+        }];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
+        assert!(prefh.prepare_plugins_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
                 .item_exists("internal/123-456/scanprefs", "plugin_set|||123")
         );
+    }
 
-        // Prepare and test Main KB Index
-        assert!(prefh.prepare_main_kbindex_for_openvas().await.is_ok());
+    #[test]
+    fn test_main_kbindex() {
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan_config(), &mut rc);
+        assert_eq!(prefh.redis_connector.kb_id().unwrap(), 3);
+
+        assert!(prefh.prepare_main_kbindex_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
                 .item_exists("internal/123-456/scanprefs", "ov_maindbid|||3")
         );
+    }
 
-        // Prepare and test Host Options
-        assert!(prefh.prepare_host_options_for_openvas().await.is_ok());
+    #[test]
+    fn test_host_options() {
+        let mut scan = scan_config();
+        scan.target.excluded_hosts = vec!["127.0.0.1".to_string()];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
+        assert!(prefh.prepare_host_options_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
                 .item_exists("internal/123-456/scanprefs", "exclude_hosts|||127.0.0.1")
         );
+    }
 
-        // Prepare and test Scan Params
-        assert!(prefh.prepare_scan_params_for_openvas().await.is_ok());
+    #[test]
+    fn test_scan_params() {
+        let mut scan = scan_config();
+        scan.scan_preferences = vec![
+            models::ScanPreference {
+                id: "auto_enable_dependencies".to_string(),
+                value: "0".to_string(),
+            },
+            models::ScanPreference {
+                id: "cgi_path".to_string(),
+                value: "abc".to_string(),
+            },
+            models::ScanPreference {
+                id: "checks_read_timeout".to_string(),
+                value: "10".to_string(),
+            },
+        ];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
+        assert!(prefh.prepare_scan_params_for_openvas().is_ok());
         // Check overwrite bool
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
@@ -783,9 +871,45 @@ mod tests {
             "internal/123-456/scanprefs",
             "scanner_plugins_timeout|||36000"
         ));
+    }
 
-        // Prepare and test Reverse Lookup Options
-        assert!(prefh.prepare_reverse_lookup_opt_for_openvas().await.is_ok());
+    #[test]
+    fn test_configured_defaults() {
+        let defaults = HashMap::from([
+            ("safe_checks".to_string(), ScanPrefValue::Bool(false.into())),
+            (
+                "cgi_path".to_string(),
+                ScanPrefValue::String("/custom".to_string()),
+            ),
+            ("plugins_timeout".to_string(), ScanPrefValue::Int(42)),
+        ]);
+        let mut rc = fake_redis();
+        let mut prefh = PreferenceHandler::new(scan_config(), &mut rc, defaults);
+
+        assert!(prefh.prepare_scan_params_for_openvas().is_ok());
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "safe_checks|||no")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "cgi_path|||/custom")
+        );
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", "plugins_timeout|||42")
+        );
+    }
+
+    #[test]
+    fn test_reverse_lookup_options() {
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan_config(), &mut rc);
+
+        assert!(prefh.prepare_reverse_lookup_opt_for_openvas().is_ok());
         assert!(
             prefh
                 .redis_connector
@@ -796,15 +920,18 @@ mod tests {
                 .redis_connector
                 .item_exists("internal/123-456/scanprefs", "reverse_lookup_unify|||no")
         );
+    }
 
-        // Prepare Alive Test Options
-        // To test this options we have to call prepare_nvt_preferences first
-        assert!(prefh.prepare_alive_test_option_for_openvas().await.is_ok());
+    #[test]
+    fn test_alive_test_options() {
+        let mut scan = scan_config();
+        scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
 
-        // Prepare NVT Preferences
-        assert!(prefh.prepare_nvt_preferences().await.is_ok());
-
-        // Test Alive Test Options
+        // The options only end up in the KB once the VT preferences are stored
+        assert!(prefh.prepare_alive_test_option_for_openvas().is_ok());
+        assert!(prefh.prepare_nvt_preferences().is_ok());
         assert!(prefh.redis_connector.item_exists(
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.100315:1:checkbox:Do a TCP ping|||yes"
@@ -829,20 +956,36 @@ mod tests {
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.100315:5:checkbox:Mark unreachable Hosts as dead (not scanning)|||yes"
         ));
+    }
 
-        // Test NVT Preferences
-        assert!(
-            prefh
-                .redis_connector
-                .item_exists("internal/123-456/scanprefs", "123:1:checkbox:test1|||yes")
-        );
-        assert!(
-            prefh
-                .redis_connector
-                .item_exists("internal/123-456/scanprefs", "123:2:entry:test2|||abc")
-        );
+    #[test]
+    fn test_alive_test_options_tcp_syn_and_ack() {
+        let mut scan = scan_config();
+        scan.target.alive_test_methods = vec![AliveTestMethods::TcpSyn, AliveTestMethods::TcpAck];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
 
-        // Prepare Boreas Alive Test
+        assert!(prefh.prepare_alive_test_option_for_openvas().is_ok());
+        assert!(prefh.prepare_nvt_preferences().is_ok());
+
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.0.100315:2:checkbox:TCP ping tries also TCP-SYN ping|||yes"
+        ));
+        // Requesting TCP-ACK as well means the test is not TCP-SYN only
+        assert!(prefh.redis_connector.item_exists(
+            "internal/123-456/scanprefs",
+            "1.3.6.1.4.1.25623.1.0.100315:7:checkbox:TCP ping tries only TCP-SYN ping|||no"
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_boreas_alive_test() {
+        let mut scan = scan_config();
+        scan.target.alive_test_methods = vec![AliveTestMethods::Icmp, AliveTestMethods::TcpSyn];
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
         assert!(prefh.prepare_boreas_alive_test().await.is_ok());
         assert!(
             prefh
