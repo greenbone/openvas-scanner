@@ -12,7 +12,7 @@ use scannerlib::{
     nasl::{builtin::nasl_std_executor, syntax::Loader},
     openvas::{self, cmd},
     osp,
-    scanner::{OpenvasdScanner, ScanResultKind, Scanner, preferences},
+    scanner::{OpenvasdScanner, ScanResultKind, Scanner},
     utils::scanner_types::{self, ScannerType},
 };
 
@@ -582,6 +582,16 @@ where
     run_scheduler(config.scheduler.check_interval, scheduler, feed).await
 }
 
+fn openvas_scanner(config: &Config, sudo: bool, redis_url: String) -> openvas::OpenvasScanner {
+    openvas::OpenvasScanner::new(
+        config.scheduler.min_free_mem,
+        None, // cpu_option are not available currently
+        sudo,
+        redis_url,
+        config.scanner.preferences.clone(),
+    )
+}
+
 pub async fn init<E>(
     pool: DataBase,
     crypter: Arc<E>,
@@ -610,14 +620,7 @@ where
         }
         scanner_types::ScannerType::Openvas => {
             let redis_url = cmd::get_redis_socket().await;
-
-            let scanner = openvas::OpenvasScanner::new(
-                config.scheduler.min_free_mem,
-                None, // cpu_option are not available currently
-                cmd::check_sudo(),
-                redis_url.clone(),
-                preferences::preference::PREFERENCES.to_vec(),
-            );
+            let scanner = openvas_scanner(config, cmd::check_sudo(), redis_url);
 
             init_with_scanner(pool, crypter, config, scanner, feed_status).await
         }
@@ -643,9 +646,11 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::collections::HashMap;
+
     use scannerlib::{
         models::{self, Status},
-        scanner::{self, ScanResults, TestScannerBuilder},
+        scanner::{self, ScanResults, TestScannerBuilder, preferences::preference::ScanPrefValue},
     };
     use sqlx::query_scalar;
 
@@ -686,6 +691,19 @@ pub(crate) mod tests {
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
         Ok((under_test, known_scans))
+    }
+
+    #[test]
+    fn openvas_scanner_uses_configured_preferences() {
+        let mut config = Config::default();
+        config.scanner.preferences = HashMap::from([
+            ("safe_checks".to_string(), ScanPrefValue::Bool(false.into())),
+            ("plugins_timeout".to_string(), ScanPrefValue::Int(11)),
+        ]);
+
+        let scanner = openvas_scanner(&config, false, "redis://localhost".to_string());
+
+        assert_eq!(scanner.scan_preferences(), &config.scanner.preferences);
     }
 
     #[tokio::test]
