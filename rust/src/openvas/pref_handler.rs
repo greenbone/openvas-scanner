@@ -527,19 +527,31 @@ where
                         privacy_algorithm,
                     } = credential.credential_type
                     {
-                        // if there is a privacy password, a valid privacy algorithm must be provided.
-                        if privacy_algorithm.is_empty()
-                            && (!privacy_password.is_empty()
-                                || (privacy_algorithm != "aes" && privacy_algorithm != "des"))
-                        {
+                        if privacy_algorithm.is_empty() {
+                            if !privacy_password.is_empty() {
+                                tracing::warn!(
+                                    "SNMP privacy password is set without a privacy algorithm, ignoring credentials"
+                                );
+                                continue;
+                            }
+                        } else if privacy_algorithm != "aes" && privacy_algorithm != "des" {
+                            tracing::warn!(
+                                "SNMP privacy algorithm must be 'aes' or 'des', ignoring credentials"
+                            );
                             continue;
-                        };
+                        }
 
-                        if auth_algorithm.is_empty()
-                            || (auth_algorithm != "md5" && auth_algorithm != "sha1")
-                        {
+                        if auth_algorithm.is_empty() {
+                            tracing::warn!(
+                                "SNMP authentication algorithm is missing but must be 'md5' or 'sha1', ignoring credentials"
+                            );
                             continue;
-                        };
+                        } else if auth_algorithm != "md5" && auth_algorithm != "sha1" {
+                            tracing::warn!(
+                                "SNMP authentication algorithm must be 'md5' or 'sha1', ignoring credentials"
+                            );
+                            continue;
+                        }
 
                         credential_preferences.push(format!(
                             "{OID_SNMP_AUTH}:1:password:SNMP Community:|||{community}"
