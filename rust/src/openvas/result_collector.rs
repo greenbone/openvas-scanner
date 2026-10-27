@@ -284,7 +284,7 @@ mod tests {
             ip_address: Some("127.0.0.1".to_string()),
             hostname: Some("example.com".to_string()),
             oid: Some("12.11.10.9.8.7".to_string()),
-            port: Some(22i16),
+            port: Some(22u16),
             protocol: Some(Protocol::TCP),
             message: Some("Something wrong".to_string()),
             detail: None,
