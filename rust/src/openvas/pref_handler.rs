@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use crate::models::{
     AliveTestMethods, CredentialType, Scan, Service, VT, ports_to_openvas_port_list,
 };
-use crate::scanner::preferences::preference::ScanPrefValue;
+use crate::scanner::preferences::{checkbox_bool::CheckboxBool, preference::ScanPrefValue};
 use crate::storage::redis::RedisStorageResult;
 
 use super::cmd;
@@ -24,22 +24,11 @@ const BOREAS_ALIVE_TEST: &str = "ALIVE_TEST";
 const BOREAS_ALIVE_TEST_PORTS: &str = "ALIVE_TEST_PORTS";
 const ALIVE_TEST_SCAN_CONFIG_DEFAULT: u8 = 0x00;
 
-fn normalize_bool_str(value: &str) -> Option<String> {
-    let value = value.to_lowercase();
-    if value == "0" || value == "false" || value == "no" {
-        return Some("no".to_string());
-    }
-    if value == "1" || value == "true" || value == "yes" {
-        return Some("yes".to_string());
-    }
-    None
-}
-
 #[derive(Debug)]
 pub struct PreferenceHandler<'a, H> {
     scan_config: Scan,
     redis_connector: &'a mut H,
-    nvt_params: HashMap<String, String>,
+    nvt_params: HashMap<String, ScanPrefValue>,
     scan_params_defaults: HashMap<String, ScanPrefValue>,
 }
 
@@ -98,9 +87,9 @@ where
         Ok(())
     }
 
-    fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, String>) {
+    fn process_vts(&self, vts: &Vec<VT>) -> (Vec<String>, HashMap<String, ScanPrefValue>) {
         let mut vts_list: Vec<String> = vec![];
-        let mut pref_list: HashMap<String, String> = HashMap::new();
+        let mut pref_list = HashMap::new();
 
         for vt in vts {
             let nvt_opt = match self.redis_connector.get_nasl_vt(&vt.oid) {
@@ -131,10 +120,10 @@ where
                             None
                         }
                     }) {
-                        let value_aux: String = if class == *"checkbox" {
-                            match normalize_bool_str(&pref.value) {
-                                Some(value) => value,
-                                None => {
+                        let value = if class == *"checkbox" {
+                            match pref.value.parse::<CheckboxBool>() {
+                                Ok(value) => ScanPrefValue::Bool(value),
+                                Err(_) => {
                                     tracing::warn!(
                                         oid = vt.oid,
                                         pref = pref.id,
@@ -145,13 +134,11 @@ where
                                 }
                             }
                         } else {
-                            pref.value.to_string()
+                            ScanPrefValue::String(pref.value.clone())
                         };
 
-                        pref_list.insert(
-                            format!("{}:{}:{}:{}", vt.oid, prefid, class, name),
-                            value_aux,
-                        );
+                        pref_list
+                            .insert(format!("{}:{}:{}:{}", vt.oid, prefid, class, name), value);
                     } else {
                         tracing::debug!(oid = vt.oid, pref = pref.id, "set preference not found");
                     }
@@ -198,83 +185,26 @@ where
     }
 
     fn prepare_alive_test_option_for_openvas(&mut self) -> RedisStorageResult<()> {
-        let mut prefs: HashMap<String, String> = HashMap::new();
-        let mut alive_test = ALIVE_TEST_SCAN_CONFIG_DEFAULT;
-        let mut value: &str = "no";
-
-        let methods = self.scan_config.target.alive_test_methods.clone();
-        for m in methods {
-            alive_test |= m as u8;
+        let enabled = |method| self.scan_config.target.alive_test_methods.contains(&method);
+        let syn = enabled(AliveTestMethods::TcpSyn);
+        let ack = enabled(AliveTestMethods::TcpAck);
+        for (id, name, value) in [
+            (1, "Do a TCP ping", syn || ack),
+            (2, "TCP ping tries also TCP-SYN ping", syn && ack),
+            (7, "TCP ping tries only TCP-SYN ping", syn && !ack),
+            (3, "Do an ICMP ping", enabled(AliveTestMethods::Icmp)),
+            (4, "Use ARP", enabled(AliveTestMethods::Arp)),
+            (
+                5,
+                "Mark unreachable Hosts as dead (not scanning)",
+                !enabled(AliveTestMethods::ConsiderAlive),
+            ),
+        ] {
+            self.nvt_params.insert(
+                format!("{OID_PING_HOST}:{id}:checkbox:{name}"),
+                ScanPrefValue::Bool(value.into()),
+            );
         }
-
-        //Preference 1
-        if (alive_test & AliveTestMethods::TcpAck as u8) != 0
-            || (alive_test & AliveTestMethods::TcpSyn as u8) != 0
-        {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:1:checkbox:Do a TCP ping"),
-            value.to_string(),
-        );
-
-        //Preference 2
-        value = "no";
-        if (alive_test & AliveTestMethods::TcpAck as u8) != 0
-            && (alive_test & AliveTestMethods::TcpSyn as u8) != 0
-        {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:2:checkbox:TCP ping tries also TCP-SYN ping"),
-            value.to_string(),
-        );
-
-        //Preference 7
-        value = "no";
-        if (alive_test & AliveTestMethods::TcpSyn as u8) != 0
-            && (alive_test & AliveTestMethods::TcpAck as u8) == 0
-        {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:7:checkbox:TCP ping tries only TCP-SYN ping"),
-            value.to_string(),
-        );
-
-        //Preference 3
-        value = "no";
-        if (alive_test & AliveTestMethods::Icmp as u8) != 0 {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:3:checkbox:Do an ICMP ping"),
-            value.to_string(),
-        );
-
-        //Preference 4
-        value = "no";
-        if (alive_test & AliveTestMethods::Arp as u8) != 0 {
-            value = "yes"
-        }
-        prefs.insert(
-            format!("{OID_PING_HOST}:4:checkbox:Use ARP"),
-            value.to_string(),
-        );
-
-        //Preference 5. This preference is confusing. Since the method name and the preference name have different logics
-        value = "yes"; // consider hosts as dead
-        if (alive_test & AliveTestMethods::ConsiderAlive as u8) != 0 {
-            value = "no" // NO, means that hosts are not considered as dead.
-        }
-
-        prefs.insert(
-            format!("{OID_PING_HOST}:5:checkbox:Mark unreachable Hosts as dead (not scanning)"),
-            value.to_string(),
-        );
-
-        // It will replace the defaults with the values sent by the client
-        self.nvt_params.extend(prefs);
         Ok(())
     }
 
@@ -392,19 +322,20 @@ where
                 .find(|p| &p.id == id);
 
             let value = match set_by_client {
-                // Booleans have to reach openvas as yes or no.
-                Some(pref) if matches!(default, ScanPrefValue::Bool(_)) => {
-                    normalize_bool_str(&pref.value).unwrap_or_else(|| {
+                Some(pref) if matches!(default, ScanPrefValue::Bool(_)) => pref
+                    .value
+                    .parse::<CheckboxBool>()
+                    .map(ScanPrefValue::Bool)
+                    .unwrap_or_else(|_| {
                         tracing::warn!(
                             pref = id,
                             value = pref.value,
                             "invalid boolean value, falling back to the default"
                         );
-                        default.to_string()
-                    })
-                }
-                Some(pref) => pref.value.clone(),
-                None => default.to_string(),
+                        default.clone()
+                    }),
+                Some(pref) => ScanPrefValue::String(pref.value.clone()),
+                None => default.clone(),
             };
 
             options.push(format!("{id}|||{value}"));
@@ -606,7 +537,7 @@ mod tests {
         scanner::preferences::preference::PREFERENCES,
     };
 
-    use super::{PreferenceHandler, ScanPrefValue, normalize_bool_str};
+    use super::{PreferenceHandler, ScanPrefValue};
     use crate::openvas::openvas_redis::{KbAccess, test::FakeRedis};
 
     fn scan_config() -> Scan {
@@ -628,19 +559,6 @@ mod tests {
             .map(|p| (p.id.to_string(), p.default.clone().into()))
             .collect();
         PreferenceHandler::new(scan, redis, defaults)
-    }
-
-    #[test]
-    fn test_bool_to_str() {
-        for value in ["1", "true", "True", "TRUE", "yes", "Yes", "YES"] {
-            assert_eq!(normalize_bool_str(value).as_deref(), Some("yes"), "{value}");
-        }
-        for value in ["0", "false", "False", "FALSE", "no", "No", "NO"] {
-            assert_eq!(normalize_bool_str(value).as_deref(), Some("no"), "{value}");
-        }
-        for value in ["", " ", " yes ", "2", "-1", "on", "off", "nein", "truthy"] {
-            assert_eq!(normalize_bool_str(value), None, "{value}");
-        }
     }
 
     #[test]
@@ -946,7 +864,7 @@ mod tests {
     #[test]
     fn test_configured_defaults() {
         let defaults = HashMap::from([
-            ("safe_checks".to_string(), ScanPrefValue::Bool(false)),
+            ("safe_checks".to_string(), ScanPrefValue::Bool(false.into())),
             (
                 "cgi_path".to_string(),
                 ScanPrefValue::String("/custom".to_string()),

@@ -871,7 +871,7 @@ impl Config {
                 let val = match pref.default {
                     PreferenceValue::Bool(_) => {
                         if let Some(p) = cmds.get_one::<bool>(pref.id) {
-                            ScanPrefValue::Bool(*p)
+                            ScanPrefValue::Bool((*p).into())
                         } else if let Some(p) = config.scanner.preferences.get(pref.id) {
                             Self::ret_pref_value_or_panic_with_wrong_type(p, "bool", pref.id)
                         } else {
@@ -942,7 +942,7 @@ mod tests {
         config
             .scanner
             .preferences
-            .insert("aaa".to_string(), ScanPrefValue::Bool(false));
+            .insert("aaa".to_string(), ScanPrefValue::Bool(false.into()));
 
         // we hardcode that here, otherwise the test may fail on machines that have different
         // XDG_PATHs set.
@@ -979,15 +979,24 @@ mod tests {
         );
         let prefs = &config.scanner.preferences;
 
-        assert_eq!(prefs.get("safe_checks"), Some(&ScanPrefValue::Bool(false)));
+        assert_eq!(
+            prefs.get("safe_checks"),
+            Some(&ScanPrefValue::Bool(false.into()))
+        );
         assert_eq!(
             prefs.get("cgi_path"),
             Some(&ScanPrefValue::String("/custom".to_string()))
         );
         assert_eq!(prefs.get("plugins_timeout"), Some(&ScanPrefValue::Int(11)));
         // Preferences that are not configured keep their built-in default
-        assert_eq!(prefs.get("dry_run"), Some(&ScanPrefValue::Bool(false)));
-        assert_eq!(prefs.get("optimize_test"), Some(&ScanPrefValue::Bool(true)));
+        assert_eq!(
+            prefs.get("dry_run"),
+            Some(&ScanPrefValue::Bool(false.into()))
+        );
+        assert_eq!(
+            prefs.get("optimize_test"),
+            Some(&ScanPrefValue::Bool(true.into()))
+        );
         assert_eq!(prefs.len(), PREFERENCES.len());
     }
 
@@ -1011,7 +1020,10 @@ mod tests {
         let prefs = &config.scanner.preferences;
 
         // Arguments take precedence over the config file
-        assert_eq!(prefs.get("safe_checks"), Some(&ScanPrefValue::Bool(true)));
+        assert_eq!(
+            prefs.get("safe_checks"),
+            Some(&ScanPrefValue::Bool(true.into()))
+        );
         assert_eq!(prefs.get("plugins_timeout"), Some(&ScanPrefValue::Int(22)));
         assert_eq!(
             prefs.get("non_simult_ports"),

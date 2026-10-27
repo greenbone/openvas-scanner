@@ -8,6 +8,8 @@ use crate::models::{PreferenceValue, ScanPreference, ScanPreferenceInformation};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
+use super::checkbox_bool::CheckboxBool;
+
 pub const PREFERENCES: [ScanPreferenceInformation; 23] = [
     ScanPreferenceInformation {
         id: "auto_enable_dependencies",
@@ -244,7 +246,14 @@ pub fn pref_is_true(prefs: &ScanPrefs, key: &str) -> Option<bool> {
 #[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ScanPrefValue {
-    Bool(bool),
+    // Configuration files use native booleans; the scanner protocol uses yes/no.
+    Bool(
+        #[serde(
+            serialize_with = "CheckboxBool::serialize_bool",
+            deserialize_with = "CheckboxBool::deserialize_bool"
+        )]
+        CheckboxBool,
+    ),
     Int(i64),
     String(String),
 }
@@ -252,7 +261,7 @@ pub enum ScanPrefValue {
 impl From<PreferenceValue> for ScanPrefValue {
     fn from(value: PreferenceValue) -> Self {
         match value {
-            PreferenceValue::Bool(v) => ScanPrefValue::Bool(v),
+            PreferenceValue::Bool(v) => ScanPrefValue::Bool(v.into()),
             PreferenceValue::String(v) => ScanPrefValue::String(v.to_string()),
             PreferenceValue::Int(v) => ScanPrefValue::Int(v),
         }
@@ -268,7 +277,7 @@ impl Default for ScanPrefValue {
 impl Display for ScanPrefValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ScanPrefValue::Bool(b) => f.write_str(if *b { "yes" } else { "no" }),
+            ScanPrefValue::Bool(b) => b.fmt(f),
             ScanPrefValue::Int(i) => f.write_str(&i.to_string()),
             ScanPrefValue::String(s) => f.write_str(s),
         }
@@ -293,11 +302,7 @@ impl From<&ScanPreferenceInformation> for FullScanPreference {
         Self {
             id: value.id.to_string(),
             name: value.name.to_string(),
-            default: match value.default {
-                PreferenceValue::Bool(v) => ScanPrefValue::Bool(v),
-                PreferenceValue::String(v) => ScanPrefValue::String(v.to_string()),
-                PreferenceValue::Int(v) => ScanPrefValue::Int(v),
-            },
+            default: value.default.clone().into(),
             description: value.description.to_string(),
         }
     }
@@ -307,11 +312,7 @@ impl From<&FullScanPreference> for ScanPreference {
     fn from(value: &FullScanPreference) -> Self {
         Self {
             id: value.id.to_string(),
-            value: match &value.default {
-                ScanPrefValue::Bool(v) => v.to_string(),
-                ScanPrefValue::String(v) => v.to_string(),
-                ScanPrefValue::Int(v) => v.to_string(),
-            },
+            value: value.default.to_string(),
         }
     }
 }

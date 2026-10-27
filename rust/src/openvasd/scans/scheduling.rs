@@ -697,7 +697,7 @@ pub(crate) mod tests {
     fn openvas_scanner_uses_configured_preferences() {
         let mut config = Config::default();
         config.scanner.preferences = HashMap::from([
-            ("safe_checks".to_string(), ScanPrefValue::Bool(false)),
+            ("safe_checks".to_string(), ScanPrefValue::Bool(false.into())),
             ("plugins_timeout".to_string(), ScanPrefValue::Int(11)),
         ]);
 
