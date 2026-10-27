@@ -1302,7 +1302,7 @@ insert_tcp_options (lex_ctxt *lexic)
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
   if (pktsz < UNFIX (ip->ip_len)
-      || ip->ip_hl * 4 + tcp->th_off * 4 >= ip->ip_len)
+      || UNFIX (ip->ip_len) < ip->ip_hl * 4 + tcp->th_off * 4)
     {
       g_free (opts);
       return NULL;
