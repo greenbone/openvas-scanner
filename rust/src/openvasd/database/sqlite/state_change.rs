@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
+
 use crate::database::{dao::DAOError, sqlite::SqliteConnectionContainer};
 use sqlx::{Row, query::QueryAs};
 use std::{collections::HashMap, sync::Arc};
@@ -244,7 +248,7 @@ mod tests {
 
     #[tokio::test]
     async fn set_single_state() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let under_test = ScanStateController::init(pool.clone()).await?;
 
         let scans = prepare_scans(pool, &config).await;
@@ -256,7 +260,7 @@ mod tests {
 
     #[tokio::test]
     async fn set_all_scans() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let under_test = ScanStateController::init(pool.clone()).await?;
         let scans = prepare_scans(pool, &config).await;
         let affected = under_test.change_state_all("stored", "failed").await?;

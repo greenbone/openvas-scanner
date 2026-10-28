@@ -39,6 +39,7 @@ pub mod tests {
 
     use crate::api::{error::ApiError, routes};
     use crate::config::Config;
+    use crate::database::sqlite::DbGuard;
     use crate::database::{dao::Execute, sqlite, sqlite::scans::ScanDB};
 
     async fn init(pool: SqlitePool, config: &Config) -> anyhow::Result<ScannerBridge> {
@@ -261,7 +262,7 @@ pub mod tests {
         results
     }
 
-    pub async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
+    pub async fn create_pool() -> anyhow::Result<(Config, SqlitePool, DbGuard)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let advisories_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -298,8 +299,8 @@ pub mod tests {
         };
 
         let pool = sqlite::init(&config).await?;
-
-        Ok((config, pool))
+        let guard = DbGuard::new(pool.clone());
+        Ok((config, pool, guard))
     }
 
     pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
@@ -320,7 +321,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn post_scan() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
 
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
@@ -333,7 +334,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn post_scan_duplicate_id() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
@@ -355,7 +356,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn map_id() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
@@ -373,7 +374,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_scan_id() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
@@ -395,7 +396,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_scans_preferences() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
 
         let router = routes::scans::router(
@@ -421,7 +422,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_scan_id_status() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
 
         let crypter = Arc::new(Crypter::from_config(&config, &pool).await?);
         let (_, _, communicator) = orchestrator::Communicator::init();
@@ -517,7 +518,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_scans() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
