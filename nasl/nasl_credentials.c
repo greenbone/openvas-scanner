@@ -17,6 +17,7 @@
 #include "nasl_smb.h"
 #include "nasl_snmp.h"
 #include "nasl_tree.h"
+#include "util/kb.h"
 
 #include <cjson/cJSON.h>
 #include <curl/curl.h>
@@ -653,8 +654,6 @@ leave:
   return retc_val;
 }
 
-// TODO: get the port from the kb if the port was not provided. Default
-// to 22 in last case.
 static int
 try_ssh_credential (struct script_infos *args, credential_t *credential,
                     const char *host_target)
@@ -676,6 +675,17 @@ try_ssh_credential (struct script_infos *args, credential_t *credential,
     exit (-1);
 
   int port = get_ssh_credential_port (credential);
+  if (!port)
+    {
+      struct kb_item *res = NULL;
+      res = kb_item_get_single (args->key, "Service/ssh", KB_TYPE_INT);
+      if (res != NULL && res->v_int)
+        port = res->v_int;
+      else
+        port = 22;
+      kb_item_free (res);
+    }
+
   ssh_options_set (session, SSH_OPTIONS_HOST, host_target);
   ssh_options_set (session, SSH_OPTIONS_PORT, &port);
   ssh_options_set (session, SSH_OPTIONS_USER,
