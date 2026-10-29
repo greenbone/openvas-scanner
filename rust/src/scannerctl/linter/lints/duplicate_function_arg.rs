@@ -59,9 +59,20 @@ pub fn duplicate_function_args(ast: &Ast) -> Vec<LintMsg> {
 
 #[cfg(test)]
 mod tests {
-    use crate::linter_test;
+    use std::path::Path;
+
+    use crate::{linter_test, linter_test_multi};
 
     linter_test!(duplicate_arg, "foo(a: 1, a: 2);");
     linter_test!(duplicate_arg_triple, "foo(x: 1, y: 2, x: 3);");
     linter_test!(no_duplicate_args, "foo(a: 1, b: 2);");
+
+    linter_test_multi!(
+        shared_include_reported_once,
+        files: {
+            "first.nasl" => "include(\"shared.inc\");",
+            "second.nasl" => "include(\"shared.inc\");",
+            "shared.inc" => "foo(a: 1, a: 2); function foo(a) {}",
+        },
+    );
 }

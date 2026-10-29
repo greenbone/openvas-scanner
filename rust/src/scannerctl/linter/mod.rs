@@ -13,7 +13,7 @@ pub use cli::LinterArgs;
 use cli::get_files_and_loader;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use ctx::{Cache, CachedFile, LintCtx};
-use lints::{Lint, LintMsg, all_lints};
+use lints::{Lint, LintMsg, LintScope, all_lints};
 use scannerlib::nasl::{
     Code, Loader, SourceFile,
     error::{IntoDiagnostic, emit_errors},
@@ -63,12 +63,27 @@ impl Linter {
     ) -> Result<(), CliError> {
         self.populate_cache(files, &mut emit);
         if self.stats.errors == 0 && !self.only_syntax {
+            for path in self.cache.paths() {
+                let cached = self.cache.get(&path);
+                let ctx = LintCtx::new(&cached.ast, vec![]);
+                let msgs = LintMsgs {
+                    file: cached.file.clone(),
+                    msgs: self
+                        .lints
+                        .iter()
+                        .filter(|lint| lint.scope() == LintScope::File)
+                        .flat_map(|lint| lint.lint(&ctx))
+                        .collect(),
+                };
+                self.handle_msgs(msgs, &mut emit);
+            }
             for file in files {
                 if self.verbose {
                     println!("Linting file: {:?}", file);
                 }
-                let msgs = self.lint_file(file);
-                self.handle_msgs(msgs, &mut emit);
+                for msgs in self.lint_file(file) {
+                    self.handle_msgs(msgs, &mut emit);
+                }
             }
         }
         if self.verbose {
@@ -154,24 +169,41 @@ impl Linter {
         }
     }
 
-    fn lint_file(&self, path: &Path) -> LintMsgs {
+    fn lint_file(&self, path: &Path) -> Vec<LintMsgs> {
         let root = self.cache.get(path);
         let mut pending: Vec<_> = root.includes.iter().rev().collect();
         let mut visited = HashSet::from([path]);
-        let mut includes = vec![];
+        let mut files = vec![root];
         while let Some(path) = pending.pop() {
             if !visited.insert(path.as_path()) {
                 continue;
             }
             let cached = self.cache.get(path);
-            includes.push(&cached.ast);
+            files.push(cached);
             pending.extend(cached.includes.iter().rev());
         }
-        let ctx = LintCtx::new(&root.ast, includes);
-        LintMsgs {
-            file: root.file.clone(),
-            msgs: self.lints.iter().flat_map(|lint| lint.lint(&ctx)).collect(),
-        }
+        files
+            .iter()
+            .enumerate()
+            .map(|(index, file)| {
+                let includes = files
+                    .iter()
+                    .enumerate()
+                    .filter(|(other, _)| *other != index)
+                    .map(|(_, file)| &file.ast)
+                    .collect();
+                let ctx = LintCtx::new(&file.ast, includes);
+                LintMsgs {
+                    file: file.file.clone(),
+                    msgs: self
+                        .lints
+                        .iter()
+                        .filter(|lint| lint.scope() == LintScope::Root)
+                        .flat_map(|lint| lint.lint(&ctx))
+                        .collect(),
+                }
+            })
+            .collect()
     }
 
     fn handle_msgs(&mut self, msgs: LintMsgs, emit: &mut impl FnMut(LintMsgs)) {

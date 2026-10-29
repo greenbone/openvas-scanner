@@ -24,6 +24,12 @@ impl Cache {
     pub(crate) fn get(&self, path: &Path) -> &CachedFile {
         &self.files[path]
     }
+
+    pub(crate) fn paths(&self) -> Vec<PathBuf> {
+        let mut paths: Vec<_> = self.files.keys().cloned().collect();
+        paths.sort();
+        paths
+    }
 }
 
 pub(crate) struct LintCtx<'a> {

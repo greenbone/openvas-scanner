@@ -75,4 +75,14 @@ mod tests {
             "shared.inc" => "include(\"left.inc\"); function shared() {}",
         },
     );
+
+    linter_test_multi!(
+        undefined_include_call_reported_for_each_root,
+        files: {
+            "first.nasl" => "include(\"outer.inc\");",
+            "second.nasl" => "include(\"outer.inc\");",
+            "outer.inc" => "include(\"inner.inc\");",
+            "inner.inc" => "missing();",
+        },
+    );
 }

@@ -23,7 +23,22 @@ impl IntoDiagnostic for LintMsg {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum LintScope {
+    /// A file-local lint, which checks something that can be
+    /// done without looking at the context of how that file
+    /// is included. Examples: duplicate_function_args
+    File,
+    /// A lint that only makes sense in the context of a given
+    /// NASL root. Examples: `fn_undefined`, (because the NASL
+    /// include semantics are horrifying and `a.inc` using a
+    /// function which is defined in `b.inc` works, even if
+    /// `b.inc` is included by the top level NASL file, not `a.inc`.)
+    Root,
+}
+
 pub(super) trait Lint {
+    fn scope(&self) -> LintScope;
     fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg>;
 }
 
@@ -33,6 +48,10 @@ impl<T> Lint for AstLint<T>
 where
     T: Fn(&Ast) -> Vec<LintMsg>,
 {
+    fn scope(&self) -> LintScope {
+        LintScope::File
+    }
+
     fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg> {
         (self.0)(ctx.ast)
     }
@@ -44,6 +63,10 @@ impl<T> Lint for FnLint<T>
 where
     T: Fn(&LintCtx) -> Vec<LintMsg>,
 {
+    fn scope(&self) -> LintScope {
+        LintScope::Root
+    }
+
     fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg> {
         (self.0)(ctx)
     }
