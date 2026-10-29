@@ -359,7 +359,11 @@ where
             };
 
             if let Err(e) = verify_signature_and_send(&sender, &sumsfile, inc_f, signature_check) {
-                tracing::warn!(e);
+                if e.is::<std::sync::mpsc::SendError<VTDataMessage>>() {
+                    // The channel is closed, we are in a shutdown
+                    return Ok(());
+                }
+                tracing::warn!("failed to verify vt signature: {e}");
             }
         }
 
@@ -370,7 +374,11 @@ where
         for element in json_stream::iter_json_array::<VTData, _>(reader).filter_map(|x| x.ok()) {
             if let Err(e) = verify_signature_and_send(&sender, &sumsfile, element, signature_check)
             {
-                tracing::warn!(e);
+                if e.is::<std::sync::mpsc::SendError<VTDataMessage>>() {
+                    // The channel is closed, we are in a shutdown
+                    return Ok(());
+                }
+                tracing::warn!("failed to verify nasl signature: {e}");
             }
         }
 
@@ -385,21 +393,24 @@ fn verify_signature_and_send(
     sumsfile: &HashMap<PathBuf, HashSumFileItem<'_>>,
     item: VTData,
     signature_check: bool,
-) -> Result<(), String> {
+) -> anyhow::Result<()> {
     let hashsum = if signature_check {
         let Some(checker) = sumsfile.get(Path::new(&item.filename)) else {
-            return Err(format!("File not present in sumsfile: {:?}", item.filename));
+            return Err(anyhow::anyhow!(
+                "File not present in sumsfile: {:?}",
+                item.filename
+            ));
         };
         checker
             .verify()
-            .map_err(|e| format!("Wrong hashsum for file: {e:?}"))?;
+            .map_err(|e| anyhow::anyhow!("Wrong hashsum for file: {e:?}"))?;
         checker.get_hashsum()
     } else {
         "".into()
     };
     sender
         .send(VTDataMessage { item, hashsum })
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.into())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
