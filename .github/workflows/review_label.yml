@@ -1,0 +1,47 @@
+name: Review label
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: review-label-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  label:
+    if: >-
+      github.event.pull_request.state == 'open' &&
+      !github.event.pull_request.draft &&
+      (github.event_name == 'pull_request_target' ||
+       (github.event.review.user.type != 'Bot' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]'))
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Add review label
+        if: github.event_name == 'pull_request_target'
+        run: |
+          labels=$(gh api --paginate "repos/$GH_REPO/labels" --jq '.[].name')
+          if ! grep -Fx needs_review <<< "$labels" > /dev/null; then
+            gh label create needs_review --color FBCA04 --description 'Ready for a human review'
+          fi
+          gh api --method POST "repos/$GH_REPO/issues/$PR_NUMBER/labels" -f 'labels[]=needs_review'
+
+      - name: Remove review label
+        if: github.event_name == 'pull_request_review'
+        run: |
+          labels=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/labels" --jq '.[].name')
+          if grep -Fx needs_review <<< "$labels" > /dev/null; then
+            gh api --method DELETE "repos/$GH_REPO/issues/$PR_NUMBER/labels/needs_review"
+          fi
