@@ -1,0 +1,27 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (missing_arguments)),\n\"script_xref(); script_xref(value:\\\"a\\\"); script_xref(name:\\\"URL\\\"); script_xref(\\\"URL\\\", \\\"a\\\");\",)"
+---
+error: script_xref requires name and at least one of value or csv
+  ┌─ missing_arguments.nasl:1:1
+  │
+1 │ script_xref(); script_xref(value:"a"); script_xref(name:"URL"); script_xref("URL", "a");
+  │ ^^^^^^^^^^^ missing name and value or csv
+
+error: script_xref requires name and at least one of value or csv
+  ┌─ missing_arguments.nasl:1:16
+  │
+1 │ script_xref(); script_xref(value:"a"); script_xref(name:"URL"); script_xref("URL", "a");
+  │                ^^^^^^^^^^^ missing name
+
+error: script_xref requires name and at least one of value or csv
+  ┌─ missing_arguments.nasl:1:40
+  │
+1 │ script_xref(); script_xref(value:"a"); script_xref(name:"URL"); script_xref("URL", "a");
+  │                                        ^^^^^^^^^^^ missing value or csv
+
+error: script_xref requires name and at least one of value or csv
+  ┌─ missing_arguments.nasl:1:65
+  │
+1 │ script_xref(); script_xref(value:"a"); script_xref(name:"URL"); script_xref("URL", "a");
+  │                                                                 ^^^^^^^^^^^ missing name and value or csv

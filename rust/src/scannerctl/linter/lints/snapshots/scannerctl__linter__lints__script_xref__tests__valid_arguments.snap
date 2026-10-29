@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (valid_arguments)),\n\"script_xref(name:\\\"URL\\\", value:\\\"a\\\"); script_xref(name:\\\"URL\\\", csv:\\\"a,b\\\"); script_xref(name:\\\"URL\\\", value:\\\"a\\\", csv:\\\"b,c\\\");\",)"
+---
+

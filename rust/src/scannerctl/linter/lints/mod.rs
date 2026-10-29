@@ -2,6 +2,7 @@ mod builtins;
 mod duplicate_function;
 mod duplicate_function_arg;
 mod fn_undefined;
+mod script_xref;
 
 use codespan_reporting::diagnostic::Diagnostic;
 use scannerlib::nasl::error::IntoDiagnostic;
@@ -41,6 +42,7 @@ pub(super) enum Lint {
 pub fn all_lints() -> Vec<Lint> {
     vec![
         Lint::File(duplicate_function_arg::duplicate_function_args),
+        Lint::File(script_xref::required_arguments),
         Lint::Root(fn_undefined::fn_undefined),
         Lint::Root(duplicate_function::duplicate_functions),
     ]
