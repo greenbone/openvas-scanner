@@ -7,6 +7,7 @@ pub trait Visitor<'ast> {
     fn visit_statement(&mut self, _stmt: &'ast Statement) {}
     fn visit_var_scope_decl(&mut self, _decl: &'ast VarScopeDecl) {}
     fn visit_fn_decl(&mut self, _decl: &'ast FnDecl) {}
+    fn leave_fn_decl(&mut self, _decl: &'ast FnDecl) {}
     fn visit_block(&mut self, _block: &'ast Block<Statement>) {}
     fn visit_while(&mut self, _while_stmt: &'ast While) {}
     fn visit_repeat(&mut self, _repeat: &'ast Repeat) {}
@@ -131,6 +132,7 @@ fn walk_fn_decl<'ast, V: Visitor<'ast>>(visitor: &mut V, fn_decl: &'ast FnDecl) 
         visitor.visit_ident(arg);
     }
     walk_block(visitor, &fn_decl.block);
+    visitor.leave_fn_decl(fn_decl);
 }
 
 fn walk_var_scope_decl<'ast, V: Visitor<'ast>>(visitor: &mut V, var_decl: &'ast VarScopeDecl) {

@@ -1,3 +1,4 @@
+mod calls;
 mod cli;
 mod ctx;
 mod lints;
@@ -9,11 +10,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use calls::{FileCalls, RootCalls};
 pub use cli::LinterArgs;
 use cli::get_files_and_loader;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use ctx::{Cache, CachedFile, LintCtx};
-use lints::{Lint, LintMsg, LintScope, all_lints};
+use ctx::{Cache, CachedFile};
+use lints::{Lint, LintMsg, all_lints};
 use scannerlib::nasl::{
     Code, Loader, SourceFile,
     error::{IntoDiagnostic, emit_errors},
@@ -36,7 +38,7 @@ struct Linter {
     loader: Loader,
 
     stats: Statistics,
-    lints: Vec<Box<dyn Lint>>,
+    lints: Vec<Lint>,
 
     cache: Cache,
 }
@@ -65,14 +67,16 @@ impl Linter {
         if self.stats.errors == 0 && !self.only_syntax {
             for path in self.cache.paths() {
                 let cached = self.cache.get(&path);
-                let ctx = LintCtx::new(&cached.ast, vec![]);
                 let msgs = LintMsgs {
                     file: cached.file.clone(),
                     msgs: self
                         .lints
                         .iter()
-                        .filter(|lint| lint.scope() == LintScope::File)
-                        .flat_map(|lint| lint.lint(&ctx))
+                        .filter_map(|lint| match lint {
+                            Lint::File(lint) => Some(lint),
+                            Lint::Root(_) => None,
+                        })
+                        .flat_map(|lint| lint(&cached.ast))
                         .collect(),
                 };
                 self.handle_msgs(msgs, &mut emit);
@@ -161,6 +165,7 @@ impl Linter {
                 path,
                 CachedFile {
                     file,
+                    calls: FileCalls::new(&ast),
                     ast,
                     includes,
                 },
@@ -182,27 +187,14 @@ impl Linter {
             files.push(cached);
             pending.extend(cached.includes.iter().rev());
         }
-        files
+        let calls = RootCalls::new(files);
+        self.lints
             .iter()
-            .enumerate()
-            .map(|(index, file)| {
-                let includes = files
-                    .iter()
-                    .enumerate()
-                    .filter(|(other, _)| *other != index)
-                    .map(|(_, file)| &file.ast)
-                    .collect();
-                let ctx = LintCtx::new(&file.ast, includes);
-                LintMsgs {
-                    file: file.file.clone(),
-                    msgs: self
-                        .lints
-                        .iter()
-                        .filter(|lint| lint.scope() == LintScope::Root)
-                        .flat_map(|lint| lint.lint(&ctx))
-                        .collect(),
-                }
+            .filter_map(|lint| match lint {
+                Lint::Root(lint) => Some(lint),
+                Lint::File(_) => None,
             })
+            .flat_map(|lint| lint(&calls))
             .collect()
     }
 

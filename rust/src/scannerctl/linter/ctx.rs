@@ -5,10 +5,13 @@ use std::{
 
 use scannerlib::nasl::{SourceFile, syntax::grammar::Ast};
 
+use super::calls::FileCalls;
+
 pub(crate) struct CachedFile {
     pub file: SourceFile,
     pub ast: Ast,
     pub includes: Vec<PathBuf>,
+    pub calls: FileCalls,
 }
 
 #[derive(Default)]
@@ -29,16 +32,5 @@ impl Cache {
         let mut paths: Vec<_> = self.files.keys().cloned().collect();
         paths.sort();
         paths
-    }
-}
-
-pub(crate) struct LintCtx<'a> {
-    pub ast: &'a Ast,
-    pub includes: Vec<&'a Ast>,
-}
-
-impl<'a> LintCtx<'a> {
-    pub fn new(ast: &'a Ast, includes: Vec<&'a Ast>) -> Self {
-        Self { ast, includes }
     }
 }

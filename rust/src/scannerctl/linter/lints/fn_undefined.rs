@@ -1,29 +1,35 @@
 use std::collections::HashSet;
 
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use scannerlib::nasl::{error::Spanned, nasl_std_executor, syntax::grammar::Statement};
+use scannerlib::nasl::nasl_std_executor;
 
-use crate::linter::{LintMsg, ctx::LintCtx};
+use crate::linter::{LintMsgs, calls::RootCalls};
 
-pub fn fn_undefined(ctx: &LintCtx) -> Vec<LintMsg> {
-    let mut functions: HashSet<String> = nasl_std_executor().iter().map(str::to_owned).collect();
-    for ast in std::iter::once(ctx.ast).chain(ctx.includes.iter().copied()) {
-        for stmt in ast.iter_stmts() {
-            if let Statement::FnDecl(decl) = stmt {
-                functions.insert(decl.fn_name.to_string());
+pub fn fn_undefined(root: &RootCalls) -> Vec<LintMsgs> {
+    let builtins: HashSet<String> = nasl_std_executor().iter().map(str::to_owned).collect();
+    root.files
+        .iter()
+        .enumerate()
+        .map(|(index, file)| {
+            let msgs = root
+                .calls_in(index)
+                .filter(|call| {
+                    !root.definitions.contains_key(call.name.as_str())
+                        && !builtins.contains(&call.name)
+                })
+                .map(|call| {
+                    Diagnostic::error()
+                        .with_message(format!("Undefined function '{}'", call.name))
+                        .with_labels(vec![
+                            Label::primary((), call.span).with_message("undefined function"),
+                        ])
+                        .into()
+                })
+                .collect();
+            LintMsgs {
+                file: file.file.clone(),
+                msgs,
             }
-        }
-    }
-    ctx.ast
-        .iter_fn_calls()
-        .filter(|call| !functions.contains(&call.fn_name.to_string()))
-        .map(|call| {
-            Diagnostic::error()
-                .with_message(format!("Undefined function '{}'", call.fn_name))
-                .with_labels(vec![
-                    Label::primary((), call.fn_name.span()).with_message("undefined function"),
-                ])
-                .into()
         })
         .collect()
 }
@@ -37,6 +43,43 @@ mod tests {
     linter_test!(undefined_fn, "foo();");
     linter_test!(defined_fn, "function foo() {} foo();");
     linter_test!(builtin_fn, "display(\"hello\");");
+
+    linter_test!(
+        unused_functions,
+        "function unused() { missing(); } function recursive() { recursive(); missing(); }"
+    );
+
+    linter_test!(
+        recursive_calls,
+        "function a() { b(); } function b() { a(); missing(); } a();"
+    );
+
+    linter_test!(
+        nested_function_calls,
+        "function outer() { function inner() { nested_missing(); } outer_missing(); } outer(); top_missing();"
+    );
+
+    linter_test!(
+        duplicate_definitions_keep_both_bodies,
+        "function foo() { missing_a(); } function foo() { missing_b(); } foo();"
+    );
+
+    linter_test_multi!(
+        reachable_calls_are_root_specific,
+        files: {
+            "unused.nasl" => "include(\"shared.inc\");",
+            "used.nasl" => "include(\"shared.inc\"); start();",
+            "shared.inc" => "function start() { helper(); } function helper() { display(missing()); missing(); } function unused() { ignored(); }",
+        },
+    );
+
+    linter_test_multi!(
+        included_top_level_calls_seed_reachability,
+        files: {
+            "root.nasl" => "include(\"shared.inc\");",
+            "shared.inc" => "if (0) { start(); } function start() { missing(); }",
+        },
+    );
 
     linter_test_multi!(
         included_fn,

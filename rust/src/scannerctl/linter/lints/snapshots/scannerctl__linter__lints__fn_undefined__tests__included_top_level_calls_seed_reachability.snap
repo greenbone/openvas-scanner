@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"shared.inc\"),\n\"if (0) { start(); } function start() { missing(); }\")],)"
+---
+error: Undefined function 'missing'
+  ┌─ shared.inc:1:40
+  │
+1 │ if (0) { start(); } function start() { missing(); }
+  │                                        ^^^^^^^ undefined function
