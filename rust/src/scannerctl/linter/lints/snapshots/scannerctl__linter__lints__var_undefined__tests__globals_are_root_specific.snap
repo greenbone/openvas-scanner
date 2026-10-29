@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"one.nasl\"), \"include(\\\"shared.inc\\\"); provided = 1; check();\"),\n(Path :: new(\"two.nasl\"), \"include(\\\"shared.inc\\\"); check();\"),\n(Path :: new(\"shared.inc\"), \"function check() { display(provided); }\")],)"
+---
+error: Undeclared variable 'provided'
+  ┌─ shared.inc:1:28
+  │
+1 │ function check() { display(provided); }
+  │                            ^^^^^^^^ undeclared variable

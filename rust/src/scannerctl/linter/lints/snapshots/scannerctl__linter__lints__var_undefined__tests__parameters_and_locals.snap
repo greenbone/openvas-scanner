@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (parameters_and_locals)),\n\"function f(arg) { local_var local; display(arg, local); } f(arg:1);\",)"
+---
+

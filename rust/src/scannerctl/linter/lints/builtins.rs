@@ -54,3 +54,26 @@ pub(super) fn builtin_functions() -> HashSet<String> {
         .map(str::to_owned)
         .collect()
 }
+
+pub fn builtin_variables() -> HashSet<String> {
+    nasl_std_executor()
+        .iter_fn_global_vars()
+        .map(|(name, _)| name.to_string())
+        .chain(
+            [
+                "ACT_UNKNOWN",
+                "description",
+                "SCRIPT_NAME",
+                "COMMAND_LINE",
+                "OPENVAS_VERSION",
+                "NOERR",
+                "ETIMEDOUT",
+                "ECONNRESET",
+                "EUNREACH",
+                "EUNKNOWN",
+            ]
+            .into_iter()
+            .map(str::to_string),
+        )
+        .collect()
+}

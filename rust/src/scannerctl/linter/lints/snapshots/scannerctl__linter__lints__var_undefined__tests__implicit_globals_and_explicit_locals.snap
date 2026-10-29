@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (implicit_globals_and_explicit_locals)),\n\"function f(parameter) { local_var private; parameter = 1; private = 2; shared = 3; if (!optional) display(optional); } f(); display(shared, optional, parameter, private);\",)"
+---
+error: Undeclared variable 'parameter'
+  ┌─ implicit_globals_and_explicit_locals.nasl:1:151
+  │
+1 │ function f(parameter) { local_var private; parameter = 1; private = 2; shared = 3; if (!optional) display(optional); } f(); display(shared, optional, parameter, private);
+  │                                                                                                                                                       ^^^^^^^^^ undeclared variable
+
+error: Undeclared variable 'private'
+  ┌─ implicit_globals_and_explicit_locals.nasl:1:162
+  │
+1 │ function f(parameter) { local_var private; parameter = 1; private = 2; shared = 3; if (!optional) display(optional); } f(); display(shared, optional, parameter, private);
+  │                                                                                                                                                                  ^^^^^^^ undeclared variable

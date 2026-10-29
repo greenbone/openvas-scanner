@@ -1,0 +1,21 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (reads_and_writes)),\n\"value = missing; array[index] = value; foreach item (array) display(item); display(array[other]);\",)"
+---
+error: Undeclared variable 'missing'
+  ┌─ reads_and_writes.nasl:1:9
+  │
+1 │ value = missing; array[index] = value; foreach item (array) display(item); display(array[other]);
+  │         ^^^^^^^ undeclared variable
+
+error: Undeclared variable 'index'
+  ┌─ reads_and_writes.nasl:1:24
+  │
+1 │ value = missing; array[index] = value; foreach item (array) display(item); display(array[other]);
+  │                        ^^^^^ undeclared variable
+
+error: Undeclared variable 'other'
+  ┌─ reads_and_writes.nasl:1:90
+  │
+1 │ value = missing; array[index] = value; foreach item (array) display(item); display(array[other]);
+  │                                                                                          ^^^^^ undeclared variable

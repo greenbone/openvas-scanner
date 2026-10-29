@@ -3,6 +3,7 @@ mod duplicate_function;
 mod duplicate_function_arg;
 mod fn_undefined;
 mod script_xref;
+mod var_undefined;
 
 use codespan_reporting::diagnostic::Diagnostic;
 use scannerlib::nasl::error::IntoDiagnostic;
@@ -45,6 +46,7 @@ pub fn all_lints() -> Vec<Lint> {
         Lint::File(script_xref::required_arguments),
         Lint::File(script_xref::comma_spacing),
         Lint::Root(fn_undefined::fn_undefined),
+        Lint::Root(var_undefined::var_undefined),
         Lint::Root(duplicate_function::duplicate_functions),
     ]
 }

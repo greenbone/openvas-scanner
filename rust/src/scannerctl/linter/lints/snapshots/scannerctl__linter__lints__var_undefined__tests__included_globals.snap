@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"),\n\"include(\\\"shared.inc\\\"); initialize(); display(shared, explicit);\"),\n(Path :: new(\"shared.inc\"),\n\"shared = 1; function initialize() { global_var explicit; explicit = 2; }\")],)"
+---
+
