@@ -1,3 +1,5 @@
+mod builtins;
+mod duplicate_function;
 mod duplicate_function_arg;
 mod fn_undefined;
 
@@ -40,5 +42,6 @@ pub fn all_lints() -> Vec<Lint> {
     vec![
         Lint::File(duplicate_function_arg::duplicate_function_args),
         Lint::Root(fn_undefined::fn_undefined),
+        Lint::Root(duplicate_function::duplicate_functions),
     ]
 }

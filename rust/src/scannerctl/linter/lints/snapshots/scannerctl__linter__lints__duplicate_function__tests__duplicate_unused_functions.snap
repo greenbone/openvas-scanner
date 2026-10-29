@@ -1,0 +1,19 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (duplicate_unused_functions)),\n\"function foo() {} function foo() {} function foo() {}\",)"
+---
+error: Function 'foo' is defined multiple times
+  ┌─ duplicate_unused_functions.nasl:1:28
+  │
+1 │ function foo() {} function foo() {} function foo() {}
+  │          ---               ^^^ duplicate definition
+  │          │                  
+  │          first definition
+
+error: Function 'foo' is defined multiple times
+  ┌─ duplicate_unused_functions.nasl:1:46
+  │
+1 │ function foo() {} function foo() {} function foo() {}
+  │          ---                                 ^^^ duplicate definition
+  │          │                                    
+  │          first definition

@@ -13,3 +13,11 @@ error: Undefined function 'missing_b'
   │
 1 │ function foo() { missing_a(); } function foo() { missing_b(); } foo();
   │                                                  ^^^^^^^^^ undefined function
+
+error: Function 'foo' is defined multiple times
+  ┌─ duplicate_definitions_keep_both_bodies.nasl:1:42
+  │
+1 │ function foo() { missing_a(); } function foo() { missing_b(); } foo();
+  │          ---                             ^^^ duplicate definition
+  │          │                                
+  │          first definition

@@ -18,6 +18,7 @@ pub(super) struct Call {
 
 pub(super) struct FunctionCalls {
     pub name: String,
+    pub span: Span,
     pub calls: Vec<Call>,
 }
 
@@ -46,6 +47,7 @@ impl<'ast> Visitor<'ast> for CallCollector {
         self.functions.push(self.calls.functions.len());
         self.calls.functions.push(FunctionCalls {
             name: decl.fn_name.to_string(),
+            span: decl.fn_name.span(),
             calls: vec![],
         });
     }

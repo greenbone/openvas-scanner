@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"), \"include(\\\"a.inc\\\"); include(\\\"b.inc\\\");\"),\n(Path :: new(\"a.inc\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"b.inc\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"shared.inc\"), \"function foo() {}\")],)"
+---
+
