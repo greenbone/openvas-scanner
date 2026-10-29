@@ -1,0 +1,21 @@
+---
+source: src/scannerctl/linter/lints/script_xref_spacing.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (bad_spacing)),\n\"if (description) { script_xref(name:\\\"A, B\\\", value:\\\"1, 2\\\", csv:\\\"3, 4\\\"); }\",)"
+---
+error: Spaces after commas are not allowed in script_xref strings
+  ┌─ bad_spacing.nasl:1:37
+  │
+1 │ if (description) { script_xref(name:"A, B", value:"1, 2", csv:"3, 4"); }
+  │                                     ^^^^^^ remove the space after the comma
+
+error: Spaces after commas are not allowed in script_xref strings
+  ┌─ bad_spacing.nasl:1:51
+  │
+1 │ if (description) { script_xref(name:"A, B", value:"1, 2", csv:"3, 4"); }
+  │                                                   ^^^^^^ remove the space after the comma
+
+error: Spaces after commas are not allowed in script_xref strings
+  ┌─ bad_spacing.nasl:1:63
+  │
+1 │ if (description) { script_xref(name:"A, B", value:"1, 2", csv:"3, 4"); }
+  │                                                               ^^^^^^ remove the space after the comma

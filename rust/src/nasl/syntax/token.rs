@@ -158,6 +158,13 @@ impl LiteralKind {
 }
 
 impl Literal {
+    pub fn as_str(&self) -> Option<&str> {
+        match &self.kind {
+            LiteralKind::String(s) => Some(s),
+            _ => None,
+        }
+    }
+
     pub fn into_string(self) -> Option<String> {
         match self.kind {
             LiteralKind::String(s) => Some(s),
