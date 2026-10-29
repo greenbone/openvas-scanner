@@ -783,6 +783,11 @@ nasl_init_host_ssh_credential (lex_ctxt *lexic)
   char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
+  // Only try credentials if there are more than one. Otherwise
+  // there nothing to check or there is only one which is the default one
+  if (get_ssh_credential_count () <= 1)
+    return NULL;
+
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
   set_host_credentials (lexic->script_infos, credentials, ip_str, SSH);
   return NULL;
@@ -793,6 +798,11 @@ nasl_init_host_smb_credential (lex_ctxt *lexic)
 {
   char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
+
+  // Only try credentials if there are more than one. Otherwise
+  // there nothing to check or there is only one which is the default one
+  if (get_smb_credential_count () <= 1)
+    return NULL;
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
   set_host_credentials (lexic->script_infos, credentials, ip_str, SMB);
@@ -805,6 +815,11 @@ nasl_init_host_snmp_credential (lex_ctxt *lexic)
   char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
+  // Only try credentials if there are more than one. Otherwise
+  // there nothing to check or there is only one which is the default one
+  if (get_snmp_credential_count () <= 1)
+    return NULL;
+
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
   set_host_credentials (lexic->script_infos, credentials, ip_str, SNMP);
   return NULL;
@@ -816,6 +831,11 @@ nasl_init_host_krb5_credential (lex_ctxt *lexic)
   char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
 
+  // Only try credentials if there are more than one. Otherwise
+  // there nothing to check or there is only one which is the default one
+  if (get_krb5_credential_count () <= 1)
+    return NULL;
+
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
   set_host_credentials (lexic->script_infos, credentials, ip_str, KRB5);
   return NULL;
@@ -826,6 +846,11 @@ nasl_init_host_esxi_credential (lex_ctxt *lexic)
 {
   char ip_str[INET6_ADDRSTRLEN];
   GSList *credentials = lexic->script_infos->globals->credentials;
+
+  // Only try credentials if there are more than one. Otherwise
+  // there nothing to check or there is only one which is the default one
+  if (get_esxi_credential_count () <= 1)
+    return NULL;
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
   set_host_credentials (lexic->script_infos, credentials, ip_str, ESXi);

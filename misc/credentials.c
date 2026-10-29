@@ -26,6 +26,12 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
+int ssh_credential_count = 0;
+int smb_credential_count = 0;
+int snmp_credential_count = 0;
+int krb5_credential_count = 0;
+int esxi_credential_count = 0;
+
 struct ssh_credential_type
 {
   int port;
@@ -105,6 +111,8 @@ credential_ssh_new (cJSON *service, credential_t **credential)
     }
   (*credential)->type = SSH;
   (*credential)->ssh_credential = cred;
+  ssh_credential_count++;
+
   return 0;
 }
 
@@ -128,6 +136,8 @@ credential_smb_new (cJSON *service, credential_t **credential)
 
   (*credential)->type = SMB;
   (*credential)->smb_credential = cred;
+  smb_credential_count++;
+
   return 0;
 }
 
@@ -151,6 +161,8 @@ credential_esxi_new (cJSON *service, credential_t **credential)
 
   (*credential)->type = ESXi;
   (*credential)->esxi_credential = cred;
+  esxi_credential_count++;
+
   return 0;
 }
 
@@ -180,6 +192,7 @@ credential_snmp_new (cJSON *service, credential_t **credential)
 
   (*credential)->type = SNMP;
   (*credential)->snmp_credential = cred;
+  snmp_credential_count++;
   return 0;
 }
 
@@ -204,7 +217,49 @@ credential_krb5_new (cJSON *service, credential_t **credential)
     }
   (*credential)->type = KRB5;
   (*credential)->krb5_credential = cred;
+  krb5_credential_count++;
+
   return 0;
+}
+
+static void
+reset_credential_counters (void)
+{
+  ssh_credential_count = 0;
+  smb_credential_count = 0;
+  snmp_credential_count = 0;
+  krb5_credential_count = 0;
+  esxi_credential_count = 0;
+}
+
+int
+get_ssh_credential_count (void)
+{
+  return ssh_credential_count;
+}
+
+int
+get_smb_credential_count (void)
+{
+  return smb_credential_count;
+}
+
+int
+get_snmp_credential_count (void)
+{
+  return snmp_credential_count;
+}
+
+int
+get_krb5_credential_count (void)
+{
+  return krb5_credential_count;
+}
+
+int
+get_esxi_credential_count (void)
+{
+  return esxi_credential_count;
 }
 
 int
@@ -214,6 +269,8 @@ process_credentials_json (const char *json_credentials,
   cJSON *parser;
   cJSON *service_obj = NULL;
   int ret = 0;
+
+  reset_credential_counters ();
 
   parser = cJSON_Parse (json_credentials);
   if (parser == NULL || !cJSON_IsArray (parser))

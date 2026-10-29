@@ -70,11 +70,15 @@ char *
 get_ssh_credential_privilege_username (credential_t *);
 char *
 get_ssh_credential_privilege_password (credential_t *);
+int
+get_ssh_credential_count (void);
 
 char *
 get_smb_credential_username (credential_t *);
 char *
 get_smb_credential_password (credential_t *);
+int
+get_smb_credential_count (void);
 
 char *
 get_krb5_credential_username (credential_t *);
@@ -84,6 +88,8 @@ char *
 get_krb5_credential_realm (credential_t *);
 char *
 get_krb5_credential_kdc (credential_t *);
+int
+get_krb5_credential_count (void);
 
 char *
 get_snmp_credential_username (credential_t *);
@@ -97,10 +103,14 @@ char *
 get_snmp_credential_auth_proto (credential_t *);
 char *
 get_snmp_credential_privacy_proto (credential_t *);
+int
+get_snmp_credential_count (void);
 
 char *
 get_esxi_credential_username (credential_t *);
 char *
 get_esxi_credential_password (credential_t *);
+int
+get_esxi_credential_count (void);
 
 #endif // MISC_CREDENTIALS_H
