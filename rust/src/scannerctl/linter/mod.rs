@@ -9,15 +9,12 @@ use std::path::{Path, PathBuf};
 pub use cli::LinterArgs;
 use cli::get_files_and_loader;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use ctx::{Cache, CachedFile, LintCtx};
+use ctx::{Cache, LintCtx};
 use lints::{Lint, LintMsg, all_lints};
 use scannerlib::nasl::{
     Code, Loader, SourceFile,
     error::{IntoDiagnostic, emit_errors},
-    syntax::{
-        LoadError, ParseError,
-        grammar::{Ast, Include},
-    },
+    syntax::{LoadError, ParseError, grammar::Include},
 };
 
 use crate::error::{CliError, CliErrorKind};
@@ -70,16 +67,20 @@ impl Linter {
     }
 
     fn lint_file(&mut self, rel_path: &Path) -> Result<LintMsgs, LoadError> {
-        let code = self.load(rel_path)?;
-        let file = code.file();
-        let ast = match self.parse_file(code) {
+        let parsed = self
+            .cache
+            .parse(rel_path, || Code::load(&self.loader, rel_path))?;
+        let file = parsed.file.clone();
+        let ast = match &parsed.ast {
             Ok(ast) => ast,
-            Err(msgs) => return Ok(LintMsgs { file, msgs }),
+            Err(errors) => return Ok(parse_error_msgs(file, errors)),
         };
         let msgs = if self.only_syntax {
             vec![]
         } else {
-            for include in ast.iter_includes() {
+            let includes: Vec<_> = ast.iter_includes().cloned().collect();
+            let mut include_paths = vec![];
+            for include in includes {
                 // TODO
                 let loaded = match include.path.load(&self.loader, rel_path) {
                     Ok(loaded) => loaded,
@@ -88,46 +89,27 @@ impl Linter {
                         // cannot be found.
                         return Ok(LintMsgs {
                             file,
-                            msgs: vec![make_load_error_msg(include)],
+                            msgs: vec![make_load_error_msg(&include)],
                         });
                     }
                 };
                 let include_path = loaded.path().to_owned();
-                let code = Code::from(loaded);
-                let included_file = code.file();
-                match self.parse_file(code) {
-                    Ok(ast) => {
-                        self.cache.insert(&include_path, CachedFile::new(&ast));
-                    }
-                    Err(msgs) => {
-                        return Ok(LintMsgs {
-                            file: included_file,
-                            msgs,
-                        });
-                    }
+                let included = self.cache.parse(&include_path, || Ok(Code::from(loaded)))?;
+                if let Err(errors) = &included.ast {
+                    return Ok(parse_error_msgs(included.file.clone(), errors));
                 }
+                include_paths.push(include_path);
             }
-            self.cache.insert(rel_path, CachedFile::new(&ast));
 
-            let ctx = LintCtx::new(&ast, &mut self.cache);
+            let ast = self.cache.get(rel_path).ast.as_ref().unwrap();
+            let includes = include_paths
+                .iter()
+                .map(|path| self.cache.get(path).ast.as_ref().unwrap())
+                .collect();
+            let ctx = LintCtx::new(ast, includes);
             self.lints.iter().flat_map(|lint| lint.lint(&ctx)).collect()
         };
         Ok(LintMsgs { file, msgs })
-    }
-
-    fn parse_file(&self, code: Code) -> Result<Ast, Vec<LintMsg>> {
-        let parsed = code.parse();
-        let result = parsed.result();
-        result.map_err(|e| {
-            e.into_iter()
-                .map(ParseError::into_diagnostic)
-                .map(|diagnostic| diagnostic.into())
-                .collect()
-        })
-    }
-
-    fn load(&mut self, rel_path: &Path) -> Result<Code, LoadError> {
-        Code::load(&self.loader, rel_path)
     }
 
     fn handle_msgs(&mut self, msgs: LintMsgs) {
@@ -135,6 +117,18 @@ impl Linter {
         if !self.quiet {
             emit_errors(&msgs.file, msgs.msgs.into_iter());
         }
+    }
+}
+
+fn parse_error_msgs(file: SourceFile, errors: &[ParseError]) -> LintMsgs {
+    LintMsgs {
+        file,
+        msgs: errors
+            .iter()
+            .cloned()
+            .map(ParseError::into_diagnostic)
+            .map(Into::into)
+            .collect(),
     }
 }
 
