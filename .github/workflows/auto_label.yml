@@ -1,11 +1,15 @@
 name: Labeler
 
 on:
-  pull_request:
+  pull_request_target:
 
 permissions:
   pull-requests: write
   contents: read
+
+concurrency:
+  group: review-label-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 
 jobs:
   label:
