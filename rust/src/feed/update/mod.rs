@@ -230,7 +230,7 @@ where
                 }
 
                 let filename = k.get_filename();
-                let filename = filename.file_name().unwrap();
+                let filename = filename.strip_prefix(".").unwrap_or(&filename);
                 // TODO: Decide what to do with FileName, either turn its `.0`
                 // into `Path` as well or if we decide a string is fine, maybe
                 // convert `HashSumFileItem::filename` into a String too
