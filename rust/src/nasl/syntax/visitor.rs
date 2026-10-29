@@ -205,8 +205,8 @@ fn walk_array<'ast, V: Visitor<'ast>>(visitor: &mut V, array: &'ast Array) {
 
 fn walk_array_access<'ast, V: Visitor<'ast>>(visitor: &mut V, access: &'ast ArrayAccess) {
     visitor.visit_array_access(access);
-    walk_expr(visitor, &access.index_expr);
     walk_expr(visitor, &access.lhs_expr);
+    walk_expr(visitor, &access.index_expr);
 }
 
 fn walk_fn_call<'ast, V: Visitor<'ast>>(visitor: &mut V, call: &'ast FnCall) {

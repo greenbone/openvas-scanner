@@ -1,0 +1,39 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (other_negated_expressions)),\n\"if (!(first && second)) display(first); if (!(other == 1)) display(other); if (!0) display(later);\",)"
+---
+error: Undeclared variable 'first'
+  ┌─ other_negated_expressions.nasl:1:7
+  │
+1 │ if (!(first && second)) display(first); if (!(other == 1)) display(other); if (!0) display(later);
+  │       ^^^^^ undeclared variable
+
+error: Undeclared variable 'second'
+  ┌─ other_negated_expressions.nasl:1:16
+  │
+1 │ if (!(first && second)) display(first); if (!(other == 1)) display(other); if (!0) display(later);
+  │                ^^^^^^ undeclared variable
+
+error: Undeclared variable 'first'
+  ┌─ other_negated_expressions.nasl:1:33
+  │
+1 │ if (!(first && second)) display(first); if (!(other == 1)) display(other); if (!0) display(later);
+  │                                 ^^^^^ undeclared variable
+
+error: Undeclared variable 'other'
+  ┌─ other_negated_expressions.nasl:1:47
+  │
+1 │ if (!(first && second)) display(first); if (!(other == 1)) display(other); if (!0) display(later);
+  │                                               ^^^^^ undeclared variable
+
+error: Undeclared variable 'other'
+  ┌─ other_negated_expressions.nasl:1:68
+  │
+1 │ if (!(first && second)) display(first); if (!(other == 1)) display(other); if (!0) display(later);
+  │                                                                    ^^^^^ undeclared variable
+
+error: Undeclared variable 'later'
+  ┌─ other_negated_expressions.nasl:1:92
+  │
+1 │ if (!(first && second)) display(first); if (!(other == 1)) display(other); if (!0) display(later);
+  │                                                                                            ^^^^^ undeclared variable
