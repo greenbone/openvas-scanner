@@ -158,7 +158,7 @@ impl LiteralKind {
 }
 
 impl Literal {
-    pub(crate) fn into_string(self) -> Option<String> {
+    pub fn into_string(self) -> Option<String> {
         match self.kind {
             LiteralKind::String(s) => Some(s),
             LiteralKind::Data(bytes) => String::from_utf8(bytes).ok(),

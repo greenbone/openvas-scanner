@@ -1,7 +1,11 @@
 use std::collections::HashSet;
 
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use scannerlib::nasl::nasl_std_executor;
+use scannerlib::nasl::{
+    error::Spanned,
+    nasl_std_executor,
+    syntax::grammar::{Atom, Expr, FnArg},
+};
 
 use crate::linter::{LintMsgs, calls::RootCalls};
 
@@ -51,11 +55,36 @@ const C_ONLY_BUILTINS: &[&str] = &[
 ];
 
 pub fn fn_undefined(root: &RootCalls) -> Vec<LintMsgs> {
-    let builtins: HashSet<String> = nasl_std_executor()
+    let mut known_functions: HashSet<String> = nasl_std_executor()
         .iter()
         .chain(C_ONLY_BUILTINS.iter().copied())
         .map(str::to_owned)
         .collect();
+    for (index, file) in root.files.iter().enumerate() {
+        let checks: Vec<_> = root
+            .calls_in(index)
+            .filter(|call| call.name == "defined_func")
+            .map(|call| call.span)
+            .collect();
+        if checks.is_empty() {
+            continue;
+        }
+        for call in file
+            .ast
+            .iter_fn_calls()
+            .filter(|call| checks.contains(&call.fn_name.span()))
+        {
+            let argument = call.args.items.iter().find_map(|arg| match arg {
+                FnArg::Anonymous(arg) => Some(arg.expr.as_ref()),
+                FnArg::Named(_) => None,
+            });
+            if let Some(Expr::Atom(Atom::Literal(literal))) = argument
+                && let Some(name) = literal.clone().into_string()
+            {
+                known_functions.insert(name);
+            }
+        }
+    }
     root.files
         .iter()
         .enumerate()
@@ -64,7 +93,7 @@ pub fn fn_undefined(root: &RootCalls) -> Vec<LintMsgs> {
                 .calls_in(index)
                 .filter(|call| {
                     !root.definitions.contains_key(call.name.as_str())
-                        && !builtins.contains(&call.name)
+                        && !known_functions.contains(&call.name)
                 })
                 .map(|call| {
                     Diagnostic::error()
@@ -92,6 +121,22 @@ mod tests {
     linter_test!(undefined_fn, "foo();");
     linter_test!(defined_fn, "function foo() {} foo();");
     linter_test!(builtin_fn, "display(\"hello\");");
+    linter_test!(
+        optional_functions,
+        "if (defined_func(\"optional\")) optional(); if (!defined_func('another')) exit(0); another();"
+    );
+    linter_test!(
+        unused_or_dynamic_checks,
+        "function unused() { defined_func(\"missing\"); } name = \"dynamic\"; defined_func(name); missing(); dynamic();"
+    );
+    linter_test_multi!(
+        optional_function_is_root_specific,
+        files: {
+            "checked.nasl" => "include(\"shared.inc\"); probe(); optional();",
+            "unchecked.nasl" => "include(\"shared.inc\"); optional();",
+            "shared.inc" => "function probe() { defined_func(\"optional\"); }",
+        },
+    );
     linter_test!(
         c_only_builtins,
         "win_cmd_exec(); wmi_connect(); smb_file_SDDL(); socket_ssl_do_handshake(); update_table_driven_lsc_data();"
