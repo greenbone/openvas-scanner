@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/strict_include_order.rs
+expression: "$crate :: linter :: tests ::\nlint_files_with_lints(&\n[(Path :: new(\"root.nasl\"),\n\"include(\\\"callee.inc\\\"); include(\\\"caller.inc\\\"); start(); function root_helper() {}\"),\n(Path :: new(\"caller.inc\"),\n\"function start() { helper(); local_helper(); root_helper(); display(1); } function local_helper() {}\"),\n(Path :: new(\"callee.inc\"), \"function helper() {}\")],\nvec![Lint::Root(strict_include_order)],)"
+---
+

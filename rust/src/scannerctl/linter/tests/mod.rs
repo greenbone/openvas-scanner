@@ -2,13 +2,21 @@ use std::path::Path;
 
 use scannerlib::nasl::{Loader, error::emit_errors_str};
 
-use crate::linter::{Linter, Statistics, ctx::Cache, lints::all_lints};
+use crate::linter::{
+    Linter, Statistics,
+    ctx::Cache,
+    lints::{Lint, all_lints},
+};
 
 pub fn lint(file_name: &str, code: &str) -> String {
     lint_files(&[(Path::new(file_name), code)])
 }
 
 pub fn lint_files(files: &[(&Path, &str)]) -> String {
+    lint_files_with_lints(files, all_lints())
+}
+
+pub(super) fn lint_files_with_lints(files: &[(&Path, &str)], lints: Vec<Lint>) -> String {
     let feed = tempfile::tempdir().unwrap();
     for (name, code) in files {
         let path = feed.path().join(name);
@@ -22,7 +30,7 @@ pub fn lint_files(files: &[(&Path, &str)]) -> String {
         only_syntax: false,
         loader,
         stats: Statistics::default(),
-        lints: all_lints(),
+        lints,
         cache: Cache::default(),
     };
 
@@ -58,6 +66,19 @@ macro_rules! linter_test {
 
 #[macro_export]
 macro_rules! linter_test_multi {
+    (
+        $name:ident,
+        lints: $lints:expr,
+        files: {$($file:literal => $code:literal),+ $(,)?} $(,)?
+    ) => {
+        #[test]
+        fn $name() {
+            insta::assert_snapshot!($crate::linter::tests::lint_files_with_lints(
+                &[$((Path::new($file), $code)),+],
+                $lints,
+            ));
+        }
+    };
     (
         $name:ident,
         files: {$($file:literal => $code:literal),+ $(,)?} $(,)?

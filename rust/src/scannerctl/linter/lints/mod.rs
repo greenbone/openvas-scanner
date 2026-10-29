@@ -3,6 +3,7 @@ mod duplicate_function;
 mod duplicate_function_arg;
 mod fn_undefined;
 mod script_xref;
+mod strict_include_order;
 mod unused_include;
 mod var_undefined;
 
