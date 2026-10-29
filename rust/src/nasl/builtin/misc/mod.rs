@@ -278,7 +278,7 @@ fn dump_ctxt(register: &Register) {
 /// Is a debug function to print the keys available within the called context. It does not take any
 /// nor returns any arguments.
 #[nasl_function]
-fn vendor_version(ctx: &ScanCtx<'_>) -> Result<NaslValue, MiscError> {
+fn vendor_version(ctx: &ScanCtx) -> Result<NaslValue, MiscError> {
     match ctx.scan_preferences.get_preference_string("vendor_version") {
         Some(v) => Ok(NaslValue::String(v)),
         None => Ok(NaslValue::Null),
@@ -287,7 +287,7 @@ fn vendor_version(ctx: &ScanCtx<'_>) -> Result<NaslValue, MiscError> {
 
 /// Are safe checks enabled ?
 #[nasl_function]
-fn safe_checks(ctx: &ScanCtx<'_>) -> bool {
+fn safe_checks(ctx: &ScanCtx) -> bool {
     ctx.scan_preferences
         .get_preference_bool("safe_checks")
         .unwrap_or(false)

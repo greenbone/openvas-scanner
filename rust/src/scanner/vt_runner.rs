@@ -28,7 +28,7 @@ pub struct VTRunner<'a> {
     stage: Stage,
     param: Option<&'a Vec<Parameter>>,
 
-    scan_ctx: &'a ScanCtx<'a>,
+    scan_ctx: &'a ScanCtx,
 }
 
 impl<'a> VTRunner<'a> {
@@ -38,7 +38,7 @@ impl<'a> VTRunner<'a> {
         vt: &'a VTData,
         stage: Stage,
         param: Option<&'a Vec<Parameter>>,
-        scan_ctx: &'a ScanCtx<'a>,
+        scan_ctx: &'a ScanCtx,
     ) -> Result<ScriptResult, ExecuteError> {
         let s = Self {
             target,

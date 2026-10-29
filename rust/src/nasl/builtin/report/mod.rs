@@ -29,7 +29,7 @@ impl Reporting {
         &self,
         typus: ResultType,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         let data = register
@@ -40,7 +40,7 @@ impl Reporting {
             .local_nasl_value("port")
             .ok()
             .map(|x| x.convert_to_number())
-            .map(|x: i64| x as i16);
+            .map(|x: i64| x as u16);
 
         let protocol = match register
             .local_nasl_value("proto")
@@ -84,7 +84,7 @@ impl Reporting {
     async fn log_message(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Log, register, ctx, script_ctx)
@@ -102,7 +102,7 @@ impl Reporting {
     async fn security_message(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Alarm, register, ctx, script_ctx)
@@ -120,7 +120,7 @@ impl Reporting {
     async fn error_message(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.store_result(ResultType::Error, register, ctx, script_ctx)
@@ -130,7 +130,7 @@ impl Reporting {
     #[nasl_function(named(result))]
     async fn security_notus(
         &self,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
         result: NaslValue,
     ) -> Result<(), FnError> {

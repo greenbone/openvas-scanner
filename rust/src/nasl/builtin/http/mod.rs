@@ -35,7 +35,7 @@ use super::{
     },
 };
 
-async fn get_user_agent(ctx: &ScanCtx<'_>, script_ctx: &ScriptCtx<'_>) -> Result<String, FnError> {
+async fn get_user_agent(ctx: &ScanCtx, script_ctx: &ScriptCtx<'_>) -> Result<String, FnError> {
     match script_ctx
         .get_single_kb_item(&KbKey::GlobalSettings(GlobalSettings::HttpUserAgent))
         .await
@@ -167,7 +167,7 @@ impl NaslHttp2 {
     #[allow(clippy::too_many_arguments)]
     async fn request(
         &self,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
         ip_str: &str,
         port: u16,
@@ -257,7 +257,7 @@ impl NaslHttp2 {
     async fn http2_req(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
         method: Method,
     ) -> Result<NaslValue, FnError> {
@@ -336,7 +336,7 @@ impl NaslHttp2 {
     async fn get(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, script_ctx, Method::GET).await
@@ -347,7 +347,7 @@ impl NaslHttp2 {
     async fn post(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, script_ctx, Method::POST)
@@ -359,7 +359,7 @@ impl NaslHttp2 {
     async fn put(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, script_ctx, Method::PUT).await
@@ -370,7 +370,7 @@ impl NaslHttp2 {
     async fn head(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, script_ctx, Method::HEAD)
@@ -382,7 +382,7 @@ impl NaslHttp2 {
     async fn delete(
         &self,
         register: &Register,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         script_ctx: &ScriptCtx<'_>,
     ) -> Result<NaslValue, FnError> {
         self.http2_req(register, ctx, script_ctx, Method::DELETE)
@@ -521,7 +521,7 @@ async fn close_socket(sockets: &mut NaslSockets, socket_fd: usize) -> Result<(),
 
 #[nasl_function(named(timeout, transport, bufsz))]
 async fn open_socket(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     sockets: &mut NaslSockets,
     port: Port,
@@ -546,7 +546,7 @@ fn build_encode_url(keyword: Method, item: String, httpver: &str) -> String {
 }
 
 async fn http_req_shared(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     keyword: Method,
     port: Port,
@@ -604,7 +604,7 @@ async fn http_req_shared(
 
 #[nasl_function(named(port, item))]
 async fn get(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
@@ -614,7 +614,7 @@ async fn get(
 
 #[nasl_function]
 async fn head(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
@@ -625,7 +625,7 @@ async fn head(
 
 #[nasl_function]
 async fn post(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
@@ -636,7 +636,7 @@ async fn post(
 
 #[nasl_function]
 async fn delete(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,
@@ -647,7 +647,7 @@ async fn delete(
 
 #[nasl_function]
 async fn put(
-    ctx: &ScanCtx<'_>,
+    ctx: &ScanCtx,
     script_ctx: &ScriptCtx<'_>,
     port: Port,
     item: String,

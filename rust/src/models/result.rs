@@ -26,7 +26,7 @@ pub struct Result {
     pub oid: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Port
-    pub port: Option<i16>,
+    pub port: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Protocol the port corresponds to
     pub protocol: Option<Protocol>,

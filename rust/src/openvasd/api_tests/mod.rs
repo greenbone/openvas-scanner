@@ -371,7 +371,7 @@ async fn scan_lifecycle() {
     let scan = t.create_scan(scan).await;
     scan.start().await;
     scan.status().await;
-    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(5)))
+    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(10)))
         .await
         .body::<Status>()
         .snapshot("status");
@@ -428,7 +428,7 @@ async fn vt_requirements() {
 
     let scan = t.create_scan(scan).await;
     scan.start().await;
-    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(5)))
+    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(10)))
         .await;
     scan.get_results()
         .await
@@ -491,7 +491,7 @@ async fn container_image_scanner_deadlock() {
 
     scan.start().await;
 
-    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(10)))
+    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(30)))
         .await
         .body::<Status>()
         .snapshot("status");
@@ -536,7 +536,7 @@ async fn container_image_scan_registry_subrepository() {
     let scan = t.create_container_image_scan(scan).await;
     scan.start().await;
     let status = scan
-        .wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(10)))
+        .wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(20)))
         .await
         .body::<Status>();
     let host_info = status

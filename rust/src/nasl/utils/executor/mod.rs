@@ -63,7 +63,7 @@ impl Executor {
     pub async fn exec(
         &self,
         k: &str,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         register: &Register,
         script_ctx: &mut ScriptCtx<'_>,
     ) -> Option<NaslResult> {
@@ -149,7 +149,7 @@ trait FunctionSet {
         &'a self,
         k: &'a str,
         register: &'a Register,
-        ctx: &'a ScanCtx<'_>,
+        ctx: &'a ScanCtx,
         script_ctx: &'a mut ScriptCtx,
     ) -> NaslResult;
 
@@ -164,7 +164,7 @@ impl<State: Sync + Send> FunctionSet for StoredFunctionSet<State> {
         &'a self,
         k: &'a str,
         register: &'a Register,
-        ctx: &'a ScanCtx<'_>,
+        ctx: &'a ScanCtx,
         script_ctx: &'a mut ScriptCtx,
     ) -> NaslResult {
         let f = &self.fns[k];

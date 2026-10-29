@@ -142,7 +142,7 @@ impl NaslNotus {
     #[nasl_function(named(pkg_list, product))]
     async fn notus(
         &mut self,
-        ctx: &ScanCtx<'_>,
+        ctx: &ScanCtx,
         pkg_list: NaslValue,
         product: &str,
     ) -> Result<NaslValue, FnError> {

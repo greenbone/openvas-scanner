@@ -1025,7 +1025,8 @@ set_tcp_elements (lex_ctxt *lexic)
   else
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
-  if (pktsz < UNFIX (ip->ip_len))
+  if (pktsz < UNFIX (ip->ip_len)
+      || UNFIX (ip->ip_len) < (ip->ip_hl * 4) + (tcp->th_off * 4))
     return NULL;
 
   if (data_len == 0)
@@ -1034,8 +1035,12 @@ set_tcp_elements (lex_ctxt *lexic)
       data = (char *) ((char *) tcp + tcp->th_off * 4);
     }
 
-  npkt = g_malloc0 (ip->ip_hl * 4 + tcp->th_off * 4 + data_len);
-  bcopy (pkt, npkt, UNFIX (ip->ip_len));
+  size_t alloc_sz = ip->ip_hl * 4 + tcp->th_off * 4 + data_len;
+  size_t copy_sz = UNFIX (ip->ip_len);
+  if (copy_sz > alloc_sz)
+    copy_sz = alloc_sz;
+  npkt = g_malloc0 (alloc_sz);
+  bcopy (pkt, npkt, copy_sz);
 
   ip = (struct ip *) (npkt);
   tcp = (struct tcphdr *) (npkt + ip->ip_hl * 4);
@@ -1296,7 +1301,8 @@ insert_tcp_options (lex_ctxt *lexic)
   else
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
-  if (pktsz < UNFIX (ip->ip_len))
+  if (pktsz < UNFIX (ip->ip_len)
+      || UNFIX (ip->ip_len) < ip->ip_hl * 4 + tcp->th_off * 4)
     {
       g_free (opts);
       return NULL;
@@ -1309,9 +1315,14 @@ insert_tcp_options (lex_ctxt *lexic)
     }
 
   // Alloc enough memory to hold the options
-  npkt =
-    g_malloc0 (ip->ip_hl * 4 + tcp->th_off * 4 + opt_size_allocated + data_len);
-  memcpy (npkt, pkt, UNFIX (ip->ip_len));
+  size_t alloc_sz =
+    ip->ip_hl * 4 + tcp->th_off * 4 + opt_size_allocated + data_len;
+  size_t copy_sz = UNFIX (ip->ip_len);
+  if (copy_sz > alloc_sz)
+    copy_sz = alloc_sz;
+  npkt = g_malloc0 (alloc_sz);
+  memcpy (npkt, pkt, copy_sz);
+
   ip = (struct ip *) (npkt);
   tcp = (struct tcphdr *) (npkt + ip->ip_hl * 4);
 

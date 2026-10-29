@@ -1,3 +1,4 @@
+#[cfg(test)]
 use futures::{Stream, stream};
 
 #[cfg(test)]
@@ -21,7 +22,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
     pub fn new(
         ast: Ast,
         mut register: Register,
-        ctx: &'ctx ScanCtx<'ctx>,
+        ctx: &'ctx ScanCtx,
         script_ctx: ScriptCtx<'ctx>,
     ) -> Self {
         ctx.add_fn_global_vars(&mut register);
@@ -33,7 +34,8 @@ impl<'ctx> ForkingInterpreter<'ctx> {
         }
     }
 
-    pub fn stream(self) -> impl Stream<Item = Result> + use<'ctx> {
+    #[cfg(test)]
+    pub(crate) fn stream(self) -> impl Stream<Item = Result> + use<'ctx> {
         Box::pin(stream::unfold(self, |mut s| async move {
             s.next().await.map(|x| (x, s))
         }))
