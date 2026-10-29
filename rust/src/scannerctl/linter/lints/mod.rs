@@ -3,6 +3,7 @@ mod duplicate_function;
 mod duplicate_function_arg;
 mod fn_undefined;
 mod script_xref;
+mod unused_include;
 mod var_undefined;
 
 use codespan_reporting::diagnostic::Diagnostic;
@@ -48,5 +49,6 @@ pub fn all_lints() -> Vec<Lint> {
         Lint::Root(fn_undefined::fn_undefined),
         Lint::Root(var_undefined::var_undefined),
         Lint::Root(duplicate_function::duplicate_functions),
+        Lint::Root(unused_include::unused_includes),
     ]
 }

@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"used.nasl\"), \"include(\\\"library.inc\\\"); exported();\"),\n(Path :: new(\"unused.nasl\"), \"include(\\\"library.inc\\\");\"),\n(Path :: new(\"library.inc\"), \"function exported() { exported(); }\")],)"
+---
+error: The included file 'library.inc' is never used
+  ┌─ unused.nasl:1:9
+  │
+1 │ include("library.inc");
+  │         ^^^^^^^^^^^^^

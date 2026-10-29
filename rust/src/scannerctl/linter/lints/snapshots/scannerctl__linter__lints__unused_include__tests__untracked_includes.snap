@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"),\n\"include(\\\"definitions.inc\\\"); include(\\\"constants.inc\\\");\"),\n(Path :: new(\"definitions.inc\"), \"function never_called() {}\"),\n(Path :: new(\"constants.inc\"), \"constant = 1;\")],)"
+---
+
