@@ -21,7 +21,9 @@ pub(super) fn get_files_and_loader(args: &LinterArgs) -> Result<(Loader, Vec<Pat
         let mut files = vec![];
         for e in walkdir::WalkDir::new(&args.path) {
             let e = e.map_err(std::io::Error::from)?;
-            if let Some("nasl") | Some("inc") = e.path().extension().and_then(|ext| ext.to_str()) {
+            if e.file_type().is_file()
+                && e.path().extension().and_then(|ext| ext.to_str()) == Some("nasl")
+            {
                 files.push(e.path().strip_prefix(&args.path).unwrap().to_owned());
             }
         }
