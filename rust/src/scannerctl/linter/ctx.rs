@@ -1,16 +1,14 @@
 use std::{
-    collections::{HashMap, hash_map::Entry},
+    collections::HashMap,
     path::{Path, PathBuf},
 };
 
-use scannerlib::nasl::{
-    Code, SourceFile,
-    syntax::{LoadError, ParseError, grammar::Ast},
-};
+use scannerlib::nasl::{SourceFile, syntax::grammar::Ast};
 
 pub(crate) struct CachedFile {
     pub file: SourceFile,
-    pub ast: Result<Ast, Vec<ParseError>>,
+    pub ast: Ast,
+    pub includes: Vec<PathBuf>,
 }
 
 #[derive(Default)]
@@ -19,21 +17,8 @@ pub(crate) struct Cache {
 }
 
 impl Cache {
-    pub(crate) fn parse(
-        &mut self,
-        path: &Path,
-        load: impl FnOnce() -> Result<Code, LoadError>,
-    ) -> Result<&CachedFile, LoadError> {
-        match self.files.entry(path.to_owned()) {
-            Entry::Occupied(entry) => Ok(entry.into_mut()),
-            Entry::Vacant(entry) => {
-                let parsed = load()?.parse();
-                Ok(entry.insert(CachedFile {
-                    file: parsed.file().clone(),
-                    ast: parsed.result(),
-                }))
-            }
-        }
+    pub(crate) fn insert(&mut self, path: PathBuf, file: CachedFile) {
+        self.files.insert(path, file);
     }
 
     pub(crate) fn get(&self, path: &Path) -> &CachedFile {

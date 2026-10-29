@@ -55,4 +55,24 @@ mod tests {
             "second.nasl" => "shared();",
         },
     );
+
+    linter_test_multi!(
+        transitive_fn,
+        files: {
+            "first.nasl" => "include(\"lib/outer.inc\"); shared();",
+            "second.nasl" => "include(\"lib/outer.inc\"); shared();",
+            "lib/outer.inc" => "if (0) { include(\"inner.inc\"); }",
+            "lib/inner.inc" => "function shared() {}",
+        },
+    );
+
+    linter_test_multi!(
+        shared_and_cyclic_includes,
+        files: {
+            "root.nasl" => "include(\"left.inc\"); include(\"right.inc\"); shared();",
+            "left.inc" => "include(\"shared.inc\");",
+            "right.inc" => "include(\"shared.inc\");",
+            "shared.inc" => "include(\"left.inc\"); function shared() {}",
+        },
+    );
 }

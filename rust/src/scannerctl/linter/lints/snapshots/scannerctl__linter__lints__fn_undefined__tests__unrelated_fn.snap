@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"first.nasl\"), \"include(\\\"shared.inc\\\"); shared();\"),\n(Path :: new(\"shared.inc\"), \"function shared() {}\"),\n(Path :: new(\"second.nasl\"), \"shared();\")],)"
+---
+error: Undefined function 'shared'
+  ┌─ second.nasl:1:1
+  │
+1 │ shared();
+  │ ^^^^^^ undefined function

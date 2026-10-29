@@ -26,7 +26,7 @@ pub fn lint_files(files: &[(&Path, &str)]) -> String {
         cache: Cache::default(),
     };
 
-    files
+    let roots: Vec<_> = files
         .iter()
         .filter(|(name, _)| {
             Path::new(name)
@@ -34,11 +34,13 @@ pub fn lint_files(files: &[(&Path, &str)]) -> String {
                 .map(|x| x.to_string_lossy() == "nasl")
                 .unwrap_or(false)
         })
-        .map(|(root, _)| {
-            let result = linter.lint_file(root).unwrap();
-            emit_errors_str(&result.file, result.msgs.into_iter())
-        })
-        .collect()
+        .map(|(root, _)| root.to_path_buf())
+        .collect();
+    let mut output = String::new();
+    let _ = linter.run_with_emit(&roots, |result| {
+        output.push_str(&emit_errors_str(&result.file, result.msgs.into_iter()));
+    });
+    output
 }
 
 #[macro_export]
@@ -73,6 +75,31 @@ linter_test_multi!(
     included_parse_error_uses_included_source,
     files: {
         "root.nasl" => "include(\"broken.inc\");",
+        "broken.inc" => "function foo(",
+    },
+);
+
+linter_test_multi!(
+    transitive_parse_error_uses_included_source,
+    files: {
+        "root.nasl" => "include(\"outer.inc\");",
+        "outer.inc" => "include(\"broken.inc\");",
+        "broken.inc" => "function foo(",
+    },
+);
+
+linter_test_multi!(
+    transitive_load_error_uses_including_source,
+    files: {
+        "root.nasl" => "include(\"outer.inc\");",
+        "outer.inc" => "include(\"missing.inc\");",
+    },
+);
+
+linter_test_multi!(
+    load_errors_continue_discovery,
+    files: {
+        "root.nasl" => "include(\"missing.inc\"); include(\"broken.inc\");",
         "broken.inc" => "function foo(",
     },
 );
