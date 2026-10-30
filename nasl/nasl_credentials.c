@@ -13,6 +13,7 @@
 #include "../misc/credentials.h"
 #include "../misc/plugutils.h"
 #include "base/networking.h"
+#include "glibconfig.h"
 #include "nasl_lex_ctxt.h"
 #include "nasl_smb.h"
 #include "nasl_snmp.h"
@@ -210,17 +211,7 @@ static int
 try_esxi_credential (struct script_infos *args, credential_t *cred,
                      const char *host)
 {
-  // be carefull with this static var, since it only works under the current
-  // forked host process model.
-  static int already_set = 0;
   int ret = 1;
-
-  if (already_set)
-    {
-      g_debug ("ESXi credential already set");
-      return already_set;
-    }
-
   char cookie_file[32];
   char url[256];
   char host_header[256];
@@ -359,12 +350,11 @@ finish:
 
   if (ret == 0)
     {
-      g_debug ("%s: ESXi credential worked succesfully", __func__);
       store_esxi_credential (args, cred);
-      already_set = 1;
+      return 1;
     }
 
-  return already_set;
+  return 0;
 }
 
 static void
@@ -704,6 +694,7 @@ struct credential_check_data
   gboolean smb_selected;
   gboolean snmp_selected;
   gboolean krb5_selected;
+  gboolean esxi_selected;
 };
 
 static void
@@ -731,9 +722,9 @@ set_host_credential (gpointer credential, gpointer user_data)
     {
       data->krb5_selected = try_krb5_credential (data->args, cred, data->host);
     }
-  else if (cred->type == ESXi)
+  else if (cred->type == ESXi && data->krb5_selected != TRUE)
     {
-      try_esxi_credential (data->args, cred, data->host);
+      data->esxi_selected = try_esxi_credential (data->args, cred, data->host);
     }
 }
 
@@ -815,18 +806,17 @@ select_host_krb5_credential (struct scan_globals *globals, kb_t host_kb,
   set_host_credentials (&infos, globals->credentials, host, KRB5);
 }
 
-tree_cell *
-nasl_init_host_esxi_credential (lex_ctxt *lexic)
+void
+select_host_esxi_credential (struct scan_globals *globals, kb_t host_kb,
+                             const char *host)
 {
-  char ip_str[INET6_ADDRSTRLEN];
-  GSList *credentials = lexic->script_infos->globals->credentials;
+  struct script_infos infos = {0};
 
-  // Only try credentials if there are more than one. Otherwise
-  // there nothing to check or there is only one which is the default one
-  if (get_esxi_credential_count () <= 1)
-    return NULL;
+  if (globals == NULL || host_kb == NULL || host == NULL
+      || get_esxi_credential_count () <= 1)
+    return;
 
-  addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
-  set_host_credentials (lexic->script_infos, credentials, ip_str, ESXi);
-  return NULL;
+  infos.globals = globals;
+  infos.key = host_kb;
+  set_host_credentials (&infos, globals->credentials, host, ESXi);
 }

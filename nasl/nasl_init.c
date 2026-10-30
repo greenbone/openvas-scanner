@@ -13,7 +13,6 @@
 #include "nasl_builtin_plugins.h"
 #include "nasl_cert.h"
 #include "nasl_cmd_exec.h"
-#include "nasl_credentials.h"
 #include "nasl_crypto.h"
 #include "nasl_crypto2.h"
 #include "nasl_debug.h"
@@ -434,7 +433,6 @@ static init_func libfuncs[] = {
   {"krb5_gss_update_context_out", nasl_okrb5_gss_update_context_out},
   {"krb5_gss_session_key", nasl_okrb5_gss_session_key_context},
   {"krb5_error_code_to_string", nasl_okrb5_error_code_to_string},
-  {"init_host_esxi_credential", nasl_init_host_esxi_credential},
   {NULL, NULL}};
 
 /* String variables */
