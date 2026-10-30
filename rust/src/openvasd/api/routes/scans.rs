@@ -1,7 +1,7 @@
 //! `/scans` routes.
 #![allow(clippy::result_large_err)]
 
-use std::{collections::HashSet, num::ParseIntError, sync::Arc};
+use std::{num::ParseIntError, sync::Arc};
 
 use axum::{
     Extension, Json, Router,
@@ -103,10 +103,6 @@ async fn post_scans(
     scan: Result<Json<models::Scan>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     let mut scan = scan?;
-
-    if let Some(dup) = get_duplicate_credential_service(&scan.target.credentials) {
-        return Err(ApiError::DuplicateCredentials(dup));
-    }
 
     // generate a random scan id if none was given
     if scan.scan_id.is_empty() {
@@ -303,19 +299,6 @@ async fn get_scans_id_status(
     State(scanner): State<ScannerBridge>,
 ) -> Result<impl IntoResponse, ApiError> {
     Ok(Json(scanner.get_scan_status(&client_id, &scan_id).await?))
-}
-
-/// Finds and returns duplicate credentials for a single service.
-pub(super) fn get_duplicate_credential_service(
-    credentials: &[models::Credential],
-) -> Option<models::Service> {
-    let mut map: HashSet<_> = HashSet::default();
-    for c in credentials.iter() {
-        if !map.insert(c.service.to_string()) {
-            return Some(c.service.clone());
-        }
-    }
-    None
 }
 
 /// Parses a string either containing either a single number or into an inclusive numerical range.

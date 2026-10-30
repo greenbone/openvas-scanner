@@ -12,6 +12,8 @@
 
 #include "attack.h"
 
+#include "../misc/credentials.h"
+#include "../nasl/nasl_credentials.h"
 #include "../misc/ipc_openvas.h"
 #include "../misc/kb_cache.h"
 #include "../misc/network.h"        /* for auth_printf */
@@ -487,6 +489,21 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
         }
       plugin->running_state = PLUGIN_STATUS_DONE;
       goto finish_launch_plugin;
+    }
+
+  /* The SSH authorization VT's dependencies have completed here. Select in
+   * this per-host process so later VT forks inherit the winning preferences. */
+  if (get_ssh_credential_count () > 1
+      && strcmp (oid, "1.3.6.1.4.1.25623.1.0.90022") == 0
+      && kb_item_get_int (args->host_kb,
+                          "global_settings/authenticated_scans_disabled") <= 0
+      && kb_item_get_int (args->host_kb, "Host/dead") <= 0
+      && kb_item_get_int (args->host_kb,
+                          "internal/ssh/credential_selection_done") <= 0)
+    {
+      kb_item_set_int (args->host_kb,
+                       "internal/ssh/credential_selection_done", 1);
+      select_host_ssh_credential (globals, args->host_kb, ip_str);
     }
 
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
@@ -1080,7 +1097,7 @@ set_alive_detection_tid (pthread_t tid)
   alive_detection_tid = tid;
 }
 static pthread_t
-get_alive_detection_tid ()
+get_alive_detection_tid (void)
 {
   return alive_detection_tid;
 }
@@ -1112,7 +1129,7 @@ handle_scan_stop_signal ()
 }
 
 static void
-scan_stop_cleanup ()
+scan_stop_cleanup (void)
 {
   kb_t main_kb = NULL;
   char *pid;
