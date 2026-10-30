@@ -91,27 +91,15 @@ static int
 try_smb_credential (struct script_infos *args, credential_t *cred,
                     const char *host)
 {
-  // be carefull with this static var, since it only works under the current
-  // forked host process model.
-  static int already_set = 0;
   int ret;
-
-  if (already_set)
-    {
-      g_debug ("SMB credential already set");
-      return already_set;
-    }
 
   ret = smb_krb5_login_test (host, get_smb_credential_username (cred),
                              get_smb_credential_password (cred), NULL, NULL);
-  if (ret == 0)
-    {
-      g_debug ("SMB credential worked succesfully ");
-      store_smb_credential (args, cred);
-      already_set = 1;
-    }
+  if (ret == 1)
+    return 0;
 
-  return already_set;
+  store_smb_credential (args, cred);
+  return 1;
 }
 
 static void
@@ -518,28 +506,30 @@ store_ssh_credential (struct script_infos *args, credential_t *credential,
   const char *private_key = get_ssh_credential_private_key (credential);
   const char *password = get_ssh_credential_password (credential);
   gboolean key_auth = private_key != NULL && private_key[0] != '\0';
-  const char *kb_keys[] = {"Secret/SSH/login", "Secret/SSH/password",
-                           "Secret/SSH/publickey", "Secret/SSH/privatekey",
-                           "Secret/SSH/passphrase", "Secret/SSH/privlogin",
-                           "Secret/SSH/privpassword",
-                           "Secret/SSH/selected_port"};
+  const char *kb_keys[] = {
+    "Secret/SSH/login",        "Secret/SSH/password",
+    "Secret/SSH/publickey",    "Secret/SSH/privatekey",
+    "Secret/SSH/passphrase",   "Secret/SSH/privlogin",
+    "Secret/SSH/privpassword", "Secret/SSH/selected_port"};
   char port_string[6];
 
   /* In the host process these preferences are inherited by later VT forks.
    * In a VT child the KB is the cross-process handoff. */
   prefs_set (OID_SSH_AUTH_USER, get_ssh_credential_username (credential));
   prefs_set (OID_SSH_AUTH_PASS, key_auth ? "" : (password ? password : ""));
-  prefs_set (OID_SSH_AUTH_PASSPHRASE,
-             key_auth && password ? password : "");
+  prefs_set (OID_SSH_AUTH_PASSPHRASE, key_auth && password ? password : "");
   prefs_set (OID_SSH_AUTH_PRIV_USER,
              get_ssh_credential_privilege_username (credential)
-               ? get_ssh_credential_privilege_username (credential) : "");
+               ? get_ssh_credential_privilege_username (credential)
+               : "");
   prefs_set (OID_SSH_AUTH_PRIV_PASS,
              get_ssh_credential_privilege_password (credential)
-               ? get_ssh_credential_privilege_password (credential) : "");
+               ? get_ssh_credential_privilege_password (credential)
+               : "");
   prefs_set (OID_SSH_AUTH_PRIV_KEY,
              key_auth && get_ssh_credential_private_key_uuid (credential)
-               ? get_ssh_credential_private_key_uuid (credential) : "");
+               ? get_ssh_credential_private_key_uuid (credential)
+               : "");
   g_snprintf (port_string, sizeof (port_string), "%d", port);
   prefs_set ("auth_port_ssh", port_string);
 
@@ -655,7 +645,8 @@ try_ssh_auth_methods (ssh_session session, credential_t *credential)
             get_ssh_credential_password (credential), NULL, NULL, &key))
         {
           g_debug ("SSH public key authentication failed for "
-                   "session: %s", "Error converting provided key");
+                   "session: %s",
+                   "Error converting provided key");
         }
       else if (ssh_userauth_try_publickey (session, NULL, key)
                != SSH_AUTH_SUCCESS)
@@ -733,6 +724,7 @@ struct credential_check_data
   struct script_infos *args;
   credential_type_t type;
   gboolean ssh_selected;
+  gboolean smb_selected;
 };
 
 static void
@@ -742,7 +734,7 @@ set_host_credential (gpointer credential, gpointer user_data)
   credential_t *cred = credential;
 
   if (cred->type != data->type)
-      return;
+    return;
 
   if (cred->type == SSH && data->ssh_selected != TRUE)
     {
@@ -752,9 +744,9 @@ set_host_credential (gpointer credential, gpointer user_data)
     {
       try_snmp_credential (data->args, cred, data->host);
     }
-  else if (cred->type == SMB)
+  else if (cred->type == SMB && data->smb_selected != TRUE)
     {
-      try_smb_credential (data->args, cred, data->host);
+      data->smb_selected = try_smb_credential (data->args, cred, data->host);
     }
   else if (cred->type == KRB5)
     {
@@ -799,20 +791,19 @@ select_host_ssh_credential (struct scan_globals *globals, kb_t host_kb,
   set_host_credentials (&infos, globals->credentials, host, SSH);
 }
 
-tree_cell *
-nasl_init_host_smb_credential (lex_ctxt *lexic)
+void
+select_host_smb_credential (struct scan_globals *globals, kb_t host_kb,
+                            const char *host)
 {
-  char ip_str[INET6_ADDRSTRLEN];
-  GSList *credentials = lexic->script_infos->globals->credentials;
+  struct script_infos infos = {0};
 
-  // Only try credentials if there are more than one. Otherwise
-  // there nothing to check or there is only one which is the default one
-  if (get_smb_credential_count () <= 1)
-    return NULL;
+  if (globals == NULL || host_kb == NULL || host == NULL
+      || get_smb_credential_count () <= 1)
+    return;
 
-  addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
-  set_host_credentials (lexic->script_infos, credentials, ip_str, SMB);
-  return NULL;
+  infos.globals = globals;
+  infos.key = host_kb;
+  set_host_credentials (&infos, globals->credentials, host, SMB);
 }
 
 tree_cell *
