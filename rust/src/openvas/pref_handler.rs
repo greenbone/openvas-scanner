@@ -353,12 +353,42 @@ where
 
     fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
         let credentials = self.scan_config.target.credentials.clone();
+        let ssh_count = credentials
+            .iter()
+            .filter(|credential| matches!(&credential.service, Service::SSH))
+            .count();
+
+        let smb_count = credentials
+            .iter()
+            .filter(|credential| matches!(&credential.service, Service::SMB))
+            .count();
+
+        let snmp_count = credentials
+            .iter()
+            .filter(|credential| matches!(&credential.service, Service::SNMP))
+            .count();
+
+        let esxi_count = credentials
+            .iter()
+            .filter(|credential| matches!(&credential.service, Service::ESXi))
+            .count();
+
+        let krb5_count = credentials
+            .iter()
+            .filter(|credential| matches!(&credential.service, Service::KRB5))
+            .count();
 
         let mut credential_preferences: Vec<String> = vec![];
         for credential in credentials.clone() {
             // TODO: refactor that
             match credential.service {
                 Service::KRB5 => {
+                    // Multiple KRb5 candidates are handed to the host selector below.
+                    // Do not flatten one into the legacy per-VT preferences.
+                    if krb5_count > 1 {
+                        continue;
+                    }
+
                     if let Some(port) = credential.port {
                         credential_preferences.push(format!("auth_port_krb5|||{port}"));
                     } else {
@@ -380,6 +410,11 @@ where
                     }
                 }
                 Service::SSH => {
+                    // Multiple SSH candidates are handed to the host selector below.
+                    // Do not flatten one into the legacy per-VT preferences.
+                    if ssh_count > 1 {
+                        continue;
+                    }
                     if let Some(port) = credential.port {
                         credential_preferences.push(format!("auth_port_ssh|||{port}"));
                     } else {
@@ -439,6 +474,12 @@ where
                     };
                 }
                 Service::SMB => {
+                    // Multiple SMB candidates are handed to the host selector below.
+                    // Do not flatten one into the legacy per-VT preferences.
+                    if smb_count > 1 {
+                        continue;
+                    }
+
                     if let CredentialType::UP {
                         username, password, ..
                     } = credential.credential_type.clone()
@@ -451,6 +492,12 @@ where
                     };
                 }
                 Service::ESXi => {
+                    // Multiple ESXi candidates are handed to the host selector below.
+                    // Do not flatten one into the legacy per-VT preferences.
+                    if esxi_count > 1 {
+                        continue;
+                    }
+
                     if let CredentialType::UP {
                         username, password, ..
                     } = credential.credential_type.clone()
@@ -464,6 +511,12 @@ where
                     };
                 }
                 Service::SNMP => {
+                    // Multiple SNMP candidates are handed to the host selector below.
+                    // Do not flatten one into the legacy per-VT preferences.
+                    if snmp_count > 1 {
+                        continue;
+                    }
+
                     if let CredentialType::SNMP {
                         username,
                         password,
@@ -774,6 +827,56 @@ mod tests {
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.102114:4:entry::|||kdc"
         ));
+    }
+
+    #[test]
+    fn test_multiple_ssh_credentials_use_only_the_candidate_list() {
+        let mut scan = scan_config();
+        scan.target.credentials = vec![
+            Credential {
+                service: Service::SSH,
+                port: Some(22),
+                credential_type: CredentialType::UP {
+                    username: "first".to_string(),
+                    password: "first-pass".to_string(),
+                    privilege: None,
+                },
+            },
+            Credential {
+                service: Service::SSH,
+                port: Some(2222),
+                credential_type: CredentialType::UP {
+                    username: "second".to_string(),
+                    password: "second-pass".to_string(),
+                    privilege: None,
+                },
+            },
+        ];
+        let expected = format!(
+            "multi-credentials|||{}",
+            serde_json::to_string(&scan.target.credentials).unwrap()
+        );
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
+        assert!(prefh.prepare_credentials_for_openvas().is_ok());
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", &expected)
+        );
+        for preference in [
+            "auth_port_ssh|||22",
+            "auth_port_ssh|||2222",
+            "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||first",
+            "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||second",
+        ] {
+            assert!(
+                !prefh
+                    .redis_connector
+                    .item_exists("internal/123-456/scanprefs", preference)
+            );
+        }
     }
 
     #[test]
