@@ -341,7 +341,7 @@ process_credentials_json (const char *json_credentials,
           }
         if (ret == 0)
           (*globals)->credentials =
-            g_slist_prepend ((*globals)->credentials, credential);
+            g_slist_append ((*globals)->credentials, credential);
         else
           {
             g_free (credential);
