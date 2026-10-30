@@ -412,20 +412,12 @@ static int
 try_snmp_credential (struct script_infos *args, credential_t *credential,
                      const char *host_target)
 {
-  // be carefull with this static var, since it only works under the current
-  // forked host process model.
-  static int already_set = 0;
   int ret;
   char peername[2048];
   snmp_result_t result;
   snmpv1v2_request_t requestv1v2c;
   snmpv3_request_t requestv3;
 
-  if (already_set)
-    {
-      g_debug ("SNMP credential already set");
-      return already_set;
-    }
   // TODO: get the protocol and port from the kb instead of assuming udp:161,
   // since a script could have stored need values.
   g_snprintf (peername, sizeof (peername), "udp:%s:161", host_target);
@@ -446,8 +438,7 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
         {
           g_debug ("%s: snmp v1 successfully authenticated", __func__);
           store_snmp_credential (args, credential);
-          already_set = 1;
-          return already_set;
+          return 1;
         }
 
       // try SNMP v2c
@@ -464,8 +455,7 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
         {
           g_debug ("%s: snmp v2c successfully authenticated", __func__);
           store_snmp_credential (args, credential);
-          already_set = 1;
-          return already_set;
+          return 1;
         }
     }
   // try SNMP v3
@@ -491,12 +481,11 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
         {
           g_debug ("%s: snmp v3 successfully authenticated", __func__);
           store_snmp_credential (args, credential);
-          already_set = 1;
-          return already_set;
+          return 1;
         }
     }
 
-  return already_set;
+  return 0;
 }
 
 static void
@@ -725,6 +714,7 @@ struct credential_check_data
   credential_type_t type;
   gboolean ssh_selected;
   gboolean smb_selected;
+  gboolean snmp_selected;
 };
 
 static void
@@ -740,9 +730,9 @@ set_host_credential (gpointer credential, gpointer user_data)
     {
       data->ssh_selected = try_ssh_credential (data->args, cred, data->host);
     }
-  else if (cred->type == SNMP)
+  else if (cred->type == SNMP && data->snmp_selected != TRUE)
     {
-      try_snmp_credential (data->args, cred, data->host);
+      data->snmp_selected = try_snmp_credential (data->args, cred, data->host);
     }
   else if (cred->type == SMB && data->smb_selected != TRUE)
     {
@@ -806,20 +796,19 @@ select_host_smb_credential (struct scan_globals *globals, kb_t host_kb,
   set_host_credentials (&infos, globals->credentials, host, SMB);
 }
 
-tree_cell *
-nasl_init_host_snmp_credential (lex_ctxt *lexic)
+void
+select_host_snmp_credential (struct scan_globals *globals, kb_t host_kb,
+                             const char *host)
 {
-  char ip_str[INET6_ADDRSTRLEN];
-  GSList *credentials = lexic->script_infos->globals->credentials;
+  struct script_infos infos = {0};
 
-  // Only try credentials if there are more than one. Otherwise
-  // there nothing to check or there is only one which is the default one
-  if (get_snmp_credential_count () <= 1)
-    return NULL;
+  if (globals == NULL || host_kb == NULL || host == NULL
+      || get_snmp_credential_count () <= 1)
+    return;
 
-  addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
-  set_host_credentials (lexic->script_infos, credentials, ip_str, SNMP);
-  return NULL;
+  infos.globals = globals;
+  infos.key = host_kb;
+  set_host_credentials (&infos, globals->credentials, host, SNMP);
 }
 
 tree_cell *
