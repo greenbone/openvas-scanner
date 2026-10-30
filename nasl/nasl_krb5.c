@@ -4,6 +4,7 @@
 
 #include "nasl_krb5.h"
 
+#include "../misc/file_utils.h"
 #include "../misc/openvas-krb5.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
@@ -52,126 +53,184 @@ static struct OKrb5Slice *to_application = NULL;
 // script author that `krb5_gss_update_context` is not satisfied yet.
 static bool gss_update_context_more = false;
 
-// Stores the path to the generated krb5 config file for cleanup.
-static char *generated_config_path = NULL;
-// Stores the path to the generated CCache file for cleanup.
-static char *generated_ccache_path = NULL;
-
-#define SET_SLICE_FROM_LEX_OR_ENV(lexic, slice, name, env_name)            \
-  do                                                                       \
-    {                                                                      \
-      okrb5_set_slice_from_str (slice, get_str_var_by_name (lexic, name)); \
-      if (slice.len == 0)                                                  \
-        {                                                                  \
-          okrb5_set_slice_from_str (slice, getenv (env_name));             \
-        }                                                                  \
-      else                                                                 \
-        {                                                                  \
-          setenv (env_name, get_str_var_by_name (lexic, name), 1);         \
-        }                                                                  \
-    }                                                                      \
-  while (0)
-
-#define PERROR_SET_SLICE_FROM_LEX_OR_ENV(lexic, slice, name, env_name) \
-  do                                                                   \
-    {                                                                  \
-      SET_SLICE_FROM_LEX_OR_ENV (lexic, slice, name, env_name);        \
-      if (slice.len == 0)                                              \
-        {                                                              \
-          nasl_perror (lexic, "Expected %s or env variable %s", name,  \
-                       env_name);                                      \
-        }                                                              \
-    }                                                                  \
-  while (0)
-
-static OKrb5Credential
-build_krb5_credential (lex_ctxt *lexic)
+// Returns the named script parameter as a slice, falling back to the given
+// environment variable. A parameter value is propagated into the environment so
+// that the krb5 library picks it up.
+static struct OKrb5Slice
+okrb5_slice_from_lex_or_env (lex_ctxt *lexic, const char *name,
+                             const char *env_name)
 {
-  OKrb5Credential credential = {0};
-  OKrb5ErrorCode code;
+  char *value = get_str_var_by_name (lexic, name);
 
-  char *kdc = NULL;
-
-  char *ip_str = addr6_as_str (lexic->script_infos->ip);
-  for (int i = 0; ip_str[i] != '\0'; i++)
+  if (value == NULL || *value == '\0')
     {
-      if (ip_str[i] == '.' || ip_str[i] == ':')
-        {
-          ip_str[i] = '_';
-        }
+      value = getenv (env_name);
+    }
+  else
+    {
+      setenv (env_name, value, 1);
     }
 
-  // Set a per-target CCache path unconditionally, unless one is already
-  // provided via parameter or environment.
+  return okrb5_slice_from_str (value);
+}
+
+// Like okrb5_slice_from_lex_or_env but warns when neither source provides a
+// value.
+static struct OKrb5Slice
+okrb5_required_slice_from_lex_or_env (lex_ctxt *lexic, const char *name,
+                                      const char *env_name)
+{
+  struct OKrb5Slice slice = okrb5_slice_from_lex_or_env (lexic, name, env_name);
+
+  if (slice.len == 0)
+    {
+      nasl_perror (lexic, "Expected %s or env variable %s", name, env_name);
+    }
+
+  return slice;
+}
+
+// Builds the path of a krb5 file of the current target inside the managed
+// directory of the scan.
+//
+// The name is built from hashes, so that it needs no sanitizing and stays
+// within the file name limits. Identical names imply identical content, which
+// allows concurrent scripts to publish the file without coordination.
+static gchar *
+okrb5_target_file_path (const char *prefix, const char *ip,
+                        const OKrb5Credential *credential)
+{
+  const char *dir = file_utils_get_dir ();
+  gchar *ip_hash;
+  gchar *target;
+  gchar *target_hash;
+  gchar *name;
+  gchar *path;
+
+  if (dir == NULL)
+    return NULL;
+
+  target = g_strdup_printf (
+    "%.*s|%.*s|%.*s", (int) credential->target.host_name.len,
+    (char *) credential->target.host_name.data, (int) credential->realm.len,
+    (char *) credential->realm.data, (int) credential->kdc.len,
+    (char *) credential->kdc.data);
+
+  ip_hash = file_utils_hash (ip);
+  target_hash = file_utils_hash (target);
+  name = g_strdup_printf ("%s_%s_%s", prefix, ip_hash, target_hash);
+  path = g_build_filename (dir, name, NULL);
+
+  g_free (target);
+  g_free (ip_hash);
+  g_free (target_hash);
+  g_free (name);
+
+  return path;
+}
+
+// Deletes the krb5 files of the given target, to be called once the target is
+// finished. The files of all scripts are removed, not only those of the
+// calling process.
+void
+nasl_okrb5_clean_files (const char *ip)
+{
+  gchar *ip_hash = file_utils_hash (ip);
+  gchar *pattern;
+
+  if (ip_hash == NULL)
+    return;
+
+  pattern = g_strdup_printf ("krb5*_%s_*", ip_hash);
+  file_utils_delete_matching (pattern);
+
+  g_free (pattern);
+  g_free (ip_hash);
+}
+
+static OKrb5ErrorCode
+build_krb5_credential (lex_ctxt *lexic, OKrb5Credential *credential)
+{
+  OKrb5ErrorCode code;
+  char *kdc = NULL;
+  char *ip_str;
+  gchar *path;
+
+  memset (credential, 0, sizeof (OKrb5Credential));
+
+  credential->realm =
+    okrb5_required_slice_from_lex_or_env (lexic, "realm", "KRB5_REALM");
+  credential->kdc =
+    okrb5_required_slice_from_lex_or_env (lexic, "kdc", "KRB5_KDC");
+  credential->user.user =
+    okrb5_required_slice_from_lex_or_env (lexic, "user", "KRB5_USER");
+  credential->user.password =
+    okrb5_required_slice_from_lex_or_env (lexic, "password", "KRB5_PASSWORD");
+  credential->target.host_name =
+    okrb5_required_slice_from_lex_or_env (lexic, "host", "KRB5_TARGET_HOST");
+
+  ip_str = addr6_as_str (lexic->script_infos->ip);
+
+  // The credential cache is not created here, the krb5 library initializes and
+  // locks it itself.
   if (getenv ("KRB5CCNAME") == NULL
       && get_str_var_by_name (lexic, "ccache_path") == NULL)
     {
-      char default_ccache_path[256];
-      snprintf (default_ccache_path, sizeof (default_ccache_path),
-                "/tmp/krb5cc_%s", ip_str);
-      setenv ("KRB5CCNAME", default_ccache_path, 1);
-
-      if (generated_ccache_path != NULL)
-        free (generated_ccache_path);
-      generated_ccache_path = strdup (default_ccache_path);
+      path = okrb5_target_file_path ("krb5cc", ip_str, credential);
+      if (path == NULL)
+        {
+          g_free (ip_str);
+          return O_KRB5_CONF_NOT_CREATED;
+        }
+      setenv ("KRB5CCNAME", path, 1);
+      g_free (path);
     }
 
-  SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.config_path, "config_path",
-                             "KRB5_CONFIG");
-  if (credential.config_path.len == 0)
+  credential->config_path =
+    okrb5_slice_from_lex_or_env (lexic, "config_path", "KRB5_CONFIG");
+  if (credential->config_path.len == 0)
     {
-      char default_config_path[256];
-      snprintf (default_config_path, sizeof (default_config_path),
-                "/tmp/krb5_%s.conf", ip_str);
-      setenv ("KRB5_CONFIG", default_config_path, 1);
-      okrb5_set_slice_from_str (credential.config_path, default_config_path);
+      path = okrb5_target_file_path ("krb5conf", ip_str, credential);
+      if (path == NULL)
+        {
+          g_free (ip_str);
+          return O_KRB5_CONF_NOT_CREATED;
+        }
+      setenv ("KRB5_CONFIG", path, 1);
+      g_free (path);
+      // The environment owns the only copy which outlives this function.
+      okrb5_set_slice_from_str (credential->config_path,
+                                getenv ("KRB5_CONFIG"));
     }
 
-  // Store path for cleanup
-  if (generated_config_path != NULL)
-    free (generated_config_path);
-  generated_config_path =
-    strndup (credential.config_path.data, credential.config_path.len);
+  g_free (ip_str);
 
-  PERROR_SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.realm, "realm",
-                                    "KRB5_REALM");
-  PERROR_SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.kdc, "kdc", "KRB5_KDC");
-  PERROR_SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.user.user, "user",
-                                    "KRB5_USER");
-  PERROR_SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.user.password, "password",
-                                    "KRB5_PASSWORD");
-  PERROR_SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.target.host_name, "host",
-                                    "KRB5_TARGET_HOST");
-  // SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.target.service, "service",
-  // "KRB5_TARGET_SERVICE");
-
-  if ((code = o_krb5_find_kdc (&credential, &kdc)))
+  if ((code = o_krb5_find_kdc (credential, &kdc)))
     {
       if (code != O_KRB5_REALM_NOT_FOUND && code != O_KRB5_CONF_NOT_FOUND)
         {
-          NASL_PRINT_KRB_ERROR (lexic, credential, code);
+          NASL_PRINT_KRB_ERROR (lexic, (*credential), code);
+          return code;
         }
-      else
+      if ((code = o_krb5_add_realm (credential, credential->kdc.data)))
         {
-          if ((code = o_krb5_add_realm (&credential, credential.kdc.data)))
-            {
-              NASL_PRINT_KRB_ERROR (lexic, credential, code);
-            }
+          NASL_PRINT_KRB_ERROR (lexic, (*credential), code);
+          return code;
         }
     }
   else
     {
       free (kdc);
     }
-  if (credential.target.service.len == 0)
+
+  if (credential->target.service.len == 0)
     {
-      okrb5_set_slice_from_str (credential.target.service, "cifs");
+      okrb5_set_slice_from_str (credential->target.service, "cifs");
     }
-  SET_SLICE_FROM_LEX_OR_ENV (lexic, credential.kdc, "kdc", "KRB5_KDC");
 
-  memset (&credential.target.domain, 0, sizeof (struct OKrb5Slice));
+  memset (&credential->target.domain, 0, sizeof (struct OKrb5Slice));
 
-  return credential;
+  return O_KRB5_SUCCESS;
 }
 
 /**
@@ -200,7 +259,8 @@ nasl_okrb5_find_kdc (lex_ctxt *lexic)
   char *kdc = NULL;
   OKrb5Credential credential;
 
-  credential = build_krb5_credential (lexic);
+  if ((last_okrb5_result = build_krb5_credential (lexic, &credential)))
+    return FAKE_CELL;
 
   if ((last_okrb5_result = o_krb5_find_kdc (&credential, &kdc)))
     {
@@ -218,7 +278,7 @@ tree_cell *
 nasl_okrb5_add_realm (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  OKrb5Credential credential;
+  OKrb5Credential credential = {0};
   char *kdc = get_str_var_by_name (lexic, "kdc");
   if (kdc == NULL)
     {
@@ -231,13 +291,13 @@ nasl_okrb5_add_realm (lex_ctxt *lexic)
         }
     }
 
-  credential = build_krb5_credential (lexic);
+  if ((last_okrb5_result = build_krb5_credential (lexic, &credential)))
+    goto exit;
 
   if ((last_okrb5_result = o_krb5_add_realm (&credential, kdc)))
     {
       NASL_PRINT_KRB_ERROR (lexic, credential, last_okrb5_result);
     }
-
 exit:
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = last_okrb5_result;
@@ -306,16 +366,17 @@ nasl_okrb5_gss_init (lex_ctxt *lexic)
 tree_cell *
 nasl_okrb5_gss_prepare_context (lex_ctxt *lexic)
 {
-  (void) lexic;
-
   OKrb5Credential credential;
-  credential = build_krb5_credential (lexic);
-  OKrb5ErrorCode result = O_KRB5_SUCCESS;
-  if (cached_gss_context == NULL)
+  OKrb5ErrorCode result = build_krb5_credential (lexic, &credential);
+
+  if (result == O_KRB5_SUCCESS)
     {
-      cached_gss_context = okrb5_gss_init_context ();
+      if (cached_gss_context == NULL)
+        {
+          cached_gss_context = okrb5_gss_init_context ();
+        }
+      result = o_krb5_gss_prepare_context (&credential, cached_gss_context);
     }
-  result = o_krb5_gss_prepare_context (&credential, cached_gss_context);
   tree_cell *retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = result;
   last_okrb5_result = result;
@@ -367,18 +428,6 @@ nasl_okrb5_clean (void)
     {
       okrb5_gss_free_context (cached_gss_context);
       cached_gss_context = NULL;
-    }
-  if (generated_config_path != NULL)
-    {
-      unlink (generated_config_path);
-      free (generated_config_path);
-      generated_config_path = NULL;
-    }
-  if (generated_ccache_path != NULL)
-    {
-      unlink (generated_ccache_path);
-      free (generated_ccache_path);
-      generated_ccache_path = NULL;
     }
 }
 
