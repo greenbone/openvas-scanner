@@ -16,6 +16,13 @@
 #include <glib.h>
 #include <gnutls/gnutls.h>
 #include <gvm/base/prefs.h> /* for prefs_get */
+#include <gvm/util/kb.h>
+
+struct scan_globals;
+
+/* Select and publish one SSH credential in the per-host scanner process. */
+void
+select_host_ssh_credential (struct scan_globals *, kb_t, const char *);
 
 tree_cell *
 nasl_init_host_ssh_credential (lex_ctxt *);

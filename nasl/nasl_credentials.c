@@ -732,6 +732,7 @@ struct credential_check_data
   const char *host;
   struct script_infos *args;
   credential_type_t type;
+  gboolean selected;
 };
 
 static void
@@ -740,12 +741,12 @@ set_host_credential (gpointer credential, gpointer user_data)
   struct credential_check_data *data = user_data;
   credential_t *cred = credential;
 
-  if (cred->type != data->type)
+  if (cred->type != data->type || data->selected)
     return;
 
   if (cred->type == SSH)
     {
-      try_ssh_credential (data->args, cred, data->host);
+      data->selected = try_ssh_credential (data->args, cred, data->host);
     }
   else if (cred->type == SNMP)
     {
@@ -780,6 +781,22 @@ set_host_credentials (struct script_infos *args, GSList *credentials,
 
   g_slist_foreach (credentials, (GFunc) set_host_credential,
                    (gpointer) user_data);
+  g_free (user_data);
+}
+
+void
+select_host_ssh_credential (struct scan_globals *globals, kb_t host_kb,
+                            const char *host)
+{
+  struct script_infos infos = {0};
+
+  if (globals == NULL || host_kb == NULL || host == NULL
+      || get_ssh_credential_count () <= 1)
+    return;
+
+  infos.globals = globals;
+  infos.key = host_kb;
+  set_host_credentials (&infos, globals->credentials, host, SSH);
 }
 
 tree_cell *
