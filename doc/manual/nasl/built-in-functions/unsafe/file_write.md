@@ -28,7 +28,7 @@ unable to write data, see **write(2)** for more information
 
 ## EXAMPLES
 
-**1**: Open file descriptor, write file, close it
+Open file descriptor, write file, close it
 ```cpp
 fd = file_open(name: "foo/bar.txt", mode: "w");
 file_write(fp: fd, data: "put some useful text in here");

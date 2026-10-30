@@ -25,7 +25,7 @@ A positive integer as a NASL socket, 0 on connection error or NULL on other erro
 
 ## EXAMPLES
 
-**1**: Open and close a socket 
+Open and close a socket
 ```cpp
 ftpPort= 21;
 

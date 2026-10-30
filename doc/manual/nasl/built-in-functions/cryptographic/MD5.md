@@ -2,7 +2,8 @@
 
 ## NAME
 
-**MD5** - takes a unnamed paramaeter and return MD5 hash.
+**MD5** - takes a unnamed parameter and return MD5 hash.
+
 ## SYNOPSIS
 
 *str* **MD5**(str);
@@ -12,7 +13,6 @@
 ## DESCRIPTION
 
 MD5 is a type of hash function.
-
 
 ## RETURN VALUE
 

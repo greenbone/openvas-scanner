@@ -14,7 +14,6 @@
 
 Leaves a multicast group. Note that if *join_multicast_group* was called several times, each call to *leave_multicast_cast* only decrements a counter; the group is left when the counter reaches 0.
 
-
 ## RETURN VALUE
 
 Return FAKE_CELL, or NULL on error
@@ -27,7 +26,7 @@ Return FAKE_CELL, or NULL on error
 
 ## EXAMPLES
 
-**1**: Leave a multicast group
+Leave a multicast group
 ```cpp
 join_multicast_group("224.0.0.1");
 join_multicast_group("224.0.0.1");

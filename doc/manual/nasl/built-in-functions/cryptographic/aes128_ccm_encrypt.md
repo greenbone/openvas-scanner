@@ -11,11 +11,13 @@
 **aes128_ccm_encrypt** encrypts given data with AES 128 CCM mode.
 
 ## DESCRIPTION
+
 Encrypt the given data using the AES 128 bit algorithm in CCM mode.
 
 ## RETURN VALUE
 
 The return value is the encrypted data.
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

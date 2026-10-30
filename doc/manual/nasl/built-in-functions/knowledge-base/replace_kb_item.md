@@ -10,7 +10,6 @@
 
 **replace_kb_item** takes 2 named arguments.
 
-
 ## DESCRIPTION
 
 This function is used to create new entries within the KB or replace existing ones. It is mainly used for inter-plugin communication, so data can be transferred between scripts. If this function is called multiple times with the same *name*, the old value is replaced.

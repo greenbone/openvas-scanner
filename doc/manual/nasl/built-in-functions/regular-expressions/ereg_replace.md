@@ -32,6 +32,6 @@ The new string with the pattern replaced with *replace* as *string*.
 
 The parameters *string* or *pattern* are missing.
 
-## NOTE 
+## NOTE
 
 If you want to eliminate what’s before or after a pattern, you’ll have to play with something like ^.* or .*$ and \1.

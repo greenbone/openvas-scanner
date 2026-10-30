@@ -18,12 +18,8 @@ Sets the plugin's family.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_family("Ubuntu Local Security Checks");
 ```

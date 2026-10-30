@@ -10,7 +10,6 @@
 
 **get_icmp_v6_element** It takes two named.
 
-
 ## DESCRIPTION
 
 Get an ICMP element from a IPv6 datagram. It returns a data block or an integer, according to the type of the element. Its arguments are:
@@ -26,7 +25,6 @@ Valid ICMP elements to get are:
 - icmp_seq
 - icmp_chsum
 - icmp_data
-
 
 ## RETURN VALUE
 

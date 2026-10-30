@@ -14,7 +14,6 @@
 
 get_smb2_signature gets the smb2 signature based on the given arguments.
 
-
 ## RETURN VALUE
 
 get_smb2_signature

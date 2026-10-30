@@ -14,7 +14,6 @@
 
 Computes the DSA signature of the hash in data using the private DSA key given by p, g, q, pub and priv. 
 
-
 ## RETURN VALUE
 The return value is a 40 byte string encoding the two MPIs r and s of the DSA signature. The first 20 bytes are the value of r and the last 20 bytes are the value of s.
 

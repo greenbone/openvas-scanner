@@ -12,7 +12,7 @@
 
 ## DESCRIPTION
 
-
+Closes the given socket.
 
 ## RETURN VALUE
 
@@ -21,14 +21,13 @@ Return FAKE_CELL, or Null on error
 ## ERRORS
 
 - Invalid socket value
- 
+
 ## EXAMPLES
 
-**1**: Open and close a socket 
+Open and close a socket
 ```cpp
 soc = open_sock_tcp(port);
 close(soc);
-
 ```
 
 ## SEE ALSO

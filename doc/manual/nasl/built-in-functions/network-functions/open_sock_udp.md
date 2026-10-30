@@ -15,11 +15,12 @@
 Open a UDP socket to the target host.
 
 ## RETURN VALUE
+
 A positive integer as a NASL socket, 0 on connection error or NULL on other errors.
 
 ## EXAMPLES
 
-**1**: Open and close a socket 
+Open and close a socket
 ```cpp
 soc = open_sock_udp(5060);
 close(soc);

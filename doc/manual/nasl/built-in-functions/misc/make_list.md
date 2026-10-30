@@ -24,7 +24,6 @@ order in which they were stored.
 
 Returns an indexed array made out of the arguments. The index starts at 0.
 
-
 ## EXAMPLES
 
 ```cpp

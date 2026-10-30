@@ -11,12 +11,13 @@
 **aes256_ccm_decrypt_auth** decrypts given data including a authentication token with AES 256 CCM mode.
 
 ## DESCRIPTION
-decrypt the given data using the AES 256 bit algorithm in CCM mode including an authentication token given via aad.
 
+Decrypt the given data using the AES 256 bit algorithm in CCM mode including an authentication token given via aad.
 
 ## RETURN VALUE
 
 The return value is the decrypted data.
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

@@ -10,7 +10,6 @@
 
 **get_ipv6_element** It takes two named parameters.
 
-
 ## DESCRIPTION
 
 Same as **[get_ip_v6_element(3nasl)](get_ip_v6_element.md)**.

@@ -16,8 +16,8 @@ Signs the data with the private RSA key `priv` given in PEM format.
 
 The passphrase is the password needed to decrypt the private key.
 
-
 ## RETURN VALUE
+
 Returns the signed data.
 
 ## ERRORS

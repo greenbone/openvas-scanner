@@ -136,7 +136,6 @@ if (type == 0) {
 }
 ```
 
-
 ## SEE ALSO
 
 **[update_table_driven_lsc_data(3nasl)](update_table_driven_lsc_data.md)**, **[security_notus(3nasl)](../report-functions/security_notus.md)**, **[notus_error(3nasl)](notus_error.md)**, **[notus_type(3nasl)](notus_type.md)**

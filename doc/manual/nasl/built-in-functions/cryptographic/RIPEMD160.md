@@ -2,7 +2,7 @@
 
 ## NAME
 
-**RIPEMD160** - takes a unnamed paramaeter and return RIPEMD160 hash
+**RIPEMD160** - takes a unnamed parameter and return RIPEMD160 hash
 
 ## SYNOPSIS
 
@@ -13,7 +13,6 @@
 ## DESCRIPTION
 
 RIPEMD160 is a type of hash function.
-
 
 ## RETURN VALUE
 

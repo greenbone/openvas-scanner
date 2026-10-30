@@ -15,7 +15,6 @@
 smb_gmac_aes_signature gets the gmac_aes signature based on the given arguments.
 This function is basically the same as **[aes_mac_gcm(3nasl)](aes_mac_gcm.md)**
 
-
 ## RETURN VALUE
 
 smb_gmac_aes_signature

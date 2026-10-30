@@ -22,7 +22,6 @@ Fills an IP datagram with UDP data. Note that the ip_p field is not updated. It 
 - uh_sum: is the UDP checksum. Although it is not compulsory, the right value is computed by default.
 - uh_ulen: is the data length. By default it is set to the length the data argument plus the size of the UDP header.
 - update_ip_len: is a flag (TRUE by default). If set, NASL will recompute the size field of the IP datagram.
-  
 
 ## RETURN VALUE
 
@@ -32,10 +31,9 @@ The modified IP datagram or NULL on error.
 
 - You must supply the *ip6* argument: You get this error if you don't provide the named argument *ip*.
 
-
 ## EXAMPLES
 
-**1** Dump the forged udp packet:
+Dump the forged udp packet:
 ```cpp
 data = "some data";
 
