@@ -732,7 +732,7 @@ struct credential_check_data
   const char *host;
   struct script_infos *args;
   credential_type_t type;
-  gboolean selected;
+  gboolean ssh_selected;
 };
 
 static void
@@ -741,12 +741,13 @@ set_host_credential (gpointer credential, gpointer user_data)
   struct credential_check_data *data = user_data;
   credential_t *cred = credential;
 
-  if (cred->type != data->type || data->selected)
-    return;
+  if (cred->type != data->type)
+      return;
 
-  if (cred->type == SSH)
+  if (cred->type == SSH && data->ssh_selected != TRUE)
     {
-      data->selected = try_ssh_credential (data->args, cred, data->host);
+      g_message("Credential user %s", get_ssh_credential_username(cred));
+      data->ssh_selected = try_ssh_credential (data->args, cred, data->host);
     }
   else if (cred->type == SNMP)
     {
