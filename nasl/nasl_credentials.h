@@ -31,8 +31,8 @@ select_host_smb_credential (struct scan_globals *, kb_t, const char *);
 void
 select_host_snmp_credential (struct scan_globals *, kb_t, const char *);
 
-tree_cell *
-nasl_init_host_krb5_credential (lex_ctxt *);
+void
+select_host_krb5_credential (struct scan_globals *, kb_t, const char *);
 
 tree_cell *
 nasl_init_host_esxi_credential (lex_ctxt *);

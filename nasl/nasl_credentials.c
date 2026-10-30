@@ -125,29 +125,17 @@ static int
 try_krb5_credential (struct script_infos *args, credential_t *cred,
                      const char *host)
 {
-  // be carefull with this static var, since it only works under the current
-  // forked host process model.
-  static int already_set = 0;
   int ret;
-
-  if (already_set)
-    {
-      g_debug ("KRB5 credential already set");
-      return already_set;
-    }
 
   ret = smb_krb5_login_test (host, get_krb5_credential_username (cred),
                              get_krb5_credential_password (cred),
                              get_krb5_credential_realm (cred),
                              get_krb5_credential_kdc (cred));
-  if (ret == 0)
-    {
-      g_debug ("KRB5 credential worked succesfully ");
-      store_krb5_credential (args, cred);
-      already_set = 1;
-    }
+  if (ret != 0)
+    return 0;
 
-  return already_set;
+  store_krb5_credential (args, cred);
+  return 1;
 }
 
 static void
@@ -715,6 +703,7 @@ struct credential_check_data
   gboolean ssh_selected;
   gboolean smb_selected;
   gboolean snmp_selected;
+  gboolean krb5_selected;
 };
 
 static void
@@ -738,9 +727,9 @@ set_host_credential (gpointer credential, gpointer user_data)
     {
       data->smb_selected = try_smb_credential (data->args, cred, data->host);
     }
-  else if (cred->type == KRB5)
+  else if (cred->type == KRB5 && data->krb5_selected != TRUE)
     {
-      try_krb5_credential (data->args, cred, data->host);
+      data->krb5_selected = try_krb5_credential (data->args, cred, data->host);
     }
   else if (cred->type == ESXi)
     {
@@ -811,20 +800,19 @@ select_host_snmp_credential (struct scan_globals *globals, kb_t host_kb,
   set_host_credentials (&infos, globals->credentials, host, SNMP);
 }
 
-tree_cell *
-nasl_init_host_krb5_credential (lex_ctxt *lexic)
+void
+select_host_krb5_credential (struct scan_globals *globals, kb_t host_kb,
+                             const char *host)
 {
-  char ip_str[INET6_ADDRSTRLEN];
-  GSList *credentials = lexic->script_infos->globals->credentials;
+  struct script_infos infos = {0};
 
-  // Only try credentials if there are more than one. Otherwise
-  // there nothing to check or there is only one which is the default one
-  if (get_krb5_credential_count () <= 1)
-    return NULL;
+  if (globals == NULL || host_kb == NULL || host == NULL
+      || get_krb5_credential_count () <= 1)
+    return;
 
-  addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
-  set_host_credentials (lexic->script_infos, credentials, ip_str, KRB5);
-  return NULL;
+  infos.globals = globals;
+  infos.key = host_kb;
+  set_host_credentials (&infos, globals->credentials, host, KRB5);
 }
 
 tree_cell *
