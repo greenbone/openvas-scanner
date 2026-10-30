@@ -512,39 +512,72 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
 }
 
 static void
-store_ssh_credential (struct script_infos *args, credential_t *credential)
+store_ssh_credential (struct script_infos *args, credential_t *credential,
+                      int port)
 {
-  // prefs set will replace the old values if any.
-  prefs_set (OID_SSH_AUTH_USER, get_ssh_credential_username (credential));
-  prefs_set (OID_SSH_AUTH_PASS, get_ssh_credential_password (credential));
-  prefs_set (OID_SSH_AUTH_PASSPHRASE, get_ssh_credential_password (credential));
-  prefs_set (OID_SSH_AUTH_PRIV_USER,
-             get_ssh_credential_privilege_username (credential));
-  prefs_set (OID_SSH_AUTH_PRIV_PASS,
-             get_ssh_credential_privilege_password (credential));
-  prefs_set (OID_SSH_AUTH_PRIV_KEY,
-             get_ssh_credential_private_key_uuid (credential));
+  const char *private_key = get_ssh_credential_private_key (credential);
+  const char *password = get_ssh_credential_password (credential);
+  gboolean key_auth = private_key != NULL && private_key[0] != '\0';
+  const char *kb_keys[] = {"Secret/SSH/login", "Secret/SSH/password",
+                           "Secret/SSH/publickey", "Secret/SSH/privatekey",
+                           "Secret/SSH/passphrase", "Secret/SSH/privlogin",
+                           "Secret/SSH/privpassword",
+                           "Secret/SSH/selected_port"};
+  char port_string[6];
 
+  /* In the host process these preferences are inherited by later VT forks.
+   * In a VT child the KB is the cross-process handoff. */
+  prefs_set (OID_SSH_AUTH_USER, get_ssh_credential_username (credential));
+  prefs_set (OID_SSH_AUTH_PASS, key_auth ? "" : (password ? password : ""));
+  prefs_set (OID_SSH_AUTH_PASSPHRASE,
+             key_auth && password ? password : "");
+  prefs_set (OID_SSH_AUTH_PRIV_USER,
+             get_ssh_credential_privilege_username (credential)
+               ? get_ssh_credential_privilege_username (credential) : "");
+  prefs_set (OID_SSH_AUTH_PRIV_PASS,
+             get_ssh_credential_privilege_password (credential)
+               ? get_ssh_credential_privilege_password (credential) : "");
+  prefs_set (OID_SSH_AUTH_PRIV_KEY,
+             key_auth && get_ssh_credential_private_key_uuid (credential)
+               ? get_ssh_credential_private_key_uuid (credential) : "");
+  g_snprintf (port_string, sizeof (port_string), "%d", port);
+  prefs_set ("auth_port_ssh", port_string);
+
+  /* Publish the complete winner, never a mixture with a prior candidate. */
+  for (size_t i = 0; i < G_N_ELEMENTS (kb_keys); i++)
+    kb_del_items (args->key, kb_keys[i]);
   plug_replace_key (args, "Secret/SSH/login", ARG_STRING,
                     get_ssh_credential_username (credential));
-  plug_replace_key (args, "Secret/SSH/password", ARG_STRING,
-                    get_ssh_credential_password (credential));
-  plug_replace_key (args, "Secret/SSH/privatekey", ARG_STRING,
-                    get_ssh_credential_private_key_uuid (credential));
-  plug_replace_key (args, "Secret/SSH/passphrase", ARG_STRING,
-                    get_ssh_credential_password (credential));
-  plug_replace_key (args, "Secret/SSH/privlogin", ARG_STRING,
-                    get_ssh_credential_privilege_username (credential));
-  plug_replace_key (args, "Secret/SSH/privpassword", ARG_STRING,
-                    get_ssh_credential_privilege_password (credential));
+  if (key_auth)
+    {
+      /* NASL ssh_userauth expects base64 key content, not its file UUID. */
+      plug_replace_key (args, "Secret/SSH/privatekey", ARG_STRING,
+                        (void *) private_key);
+      if (password)
+        plug_replace_key (args, "Secret/SSH/passphrase", ARG_STRING,
+                          (void *) password);
+    }
+  else if (password)
+    plug_replace_key (args, "Secret/SSH/password", ARG_STRING,
+                      (void *) password);
+  if (get_ssh_credential_privilege_username (credential))
+    plug_replace_key (args, "Secret/SSH/privlogin", ARG_STRING,
+                      get_ssh_credential_privilege_username (credential));
+  if (get_ssh_credential_privilege_password (credential))
+    plug_replace_key (args, "Secret/SSH/privpassword", ARG_STRING,
+                      get_ssh_credential_privilege_password (credential));
+  plug_replace_key (args, "Secret/SSH/selected_port", ARG_INT,
+                    GSIZE_TO_POINTER (port));
 }
 
 static int
 try_ssh_auth_methods (ssh_session session, credential_t *credential)
 {
   int rc, retc_val = -1;
+  const char *private_key = get_ssh_credential_private_key (credential);
+  gboolean key_auth = private_key != NULL && private_key[0] != '\0';
   // try with user pass
-  if (get_ssh_credential_password (credential))
+  if (!key_auth && get_ssh_credential_password (credential))
     {
       rc = ssh_userauth_password (session, NULL,
                                   get_ssh_credential_password (credential));
@@ -558,7 +591,7 @@ try_ssh_auth_methods (ssh_session session, credential_t *credential)
     }
 
   // try interactive
-  if (get_ssh_credential_password (credential))
+  if (!key_auth && get_ssh_credential_password (credential))
     {
       g_debug ("trying interactive method");
       /* Our strategy for kbint is to send the password to the first
@@ -612,22 +645,17 @@ try_ssh_auth_methods (ssh_session session, credential_t *credential)
     }
 
   /* If we have a private key, try public key authentication.  */
-  if (get_ssh_credential_private_key (credential) != NULL)
+  if (key_auth)
     {
-      char *priv_key;
-      size_t bytes = 0;
       ssh_key key = NULL;
 
       g_debug ("trying public key auth method");
-      priv_key = (char *) g_base64_decode (
-        get_ssh_credential_private_key (credential), &bytes);
       if (ssh_pki_import_privkey_base64 (
-            priv_key, get_ssh_credential_password (credential), NULL, NULL,
-            &key))
+            get_ssh_credential_private_key (credential),
+            get_ssh_credential_password (credential), NULL, NULL, &key))
         {
           g_debug ("SSH public key authentication failed for "
-                   "session: %s",
-                   "Error converting provided key");
+                   "session: %s", "Error converting provided key");
         }
       else if (ssh_userauth_try_publickey (session, NULL, key)
                != SSH_AUTH_SUCCESS)
@@ -646,7 +674,6 @@ try_ssh_auth_methods (ssh_session session, credential_t *credential)
       g_debug ("SSH pub-key authentication failed for session"
                ": %s",
                ssh_get_error (session));
-      g_free (priv_key);
       ssh_key_free (key);
     }
 leave:
@@ -658,31 +685,16 @@ static int
 try_ssh_credential (struct script_infos *args, credential_t *credential,
                     const char *host_target)
 {
-  // be carefull with this static var, since it only works under the current
-  // forked host process model.
-  static int already_set = 0;
-  ssh_session session = NULL;
-  int rc;
+  ssh_session session = ssh_new ();
+  int rc, port = get_ssh_credential_port (credential);
 
-  if (already_set)
-    {
-      g_debug ("SSH credential already set");
-      return already_set;
-    }
-  // Open session and set options
-  session = ssh_new ();
   if (session == NULL)
-    exit (-1);
-
-  int port = get_ssh_credential_port (credential);
+    return 0;
   if (!port)
     {
-      struct kb_item *res = NULL;
-      res = kb_item_get_single (args->key, "Service/ssh", KB_TYPE_INT);
-      if (res != NULL && res->v_int)
-        port = res->v_int;
-      else
-        port = 22;
+      struct kb_item *res =
+        kb_item_get_single (args->key, "Services/ssh", KB_TYPE_INT);
+      port = res != NULL && res->v_int ? res->v_int : 22;
       kb_item_free (res);
     }
 
@@ -691,35 +703,28 @@ try_ssh_credential (struct script_infos *args, credential_t *credential,
   ssh_options_set (session, SSH_OPTIONS_USER,
                    get_ssh_credential_username (credential));
   ssh_options_set (session, SSH_OPTIONS_KNOWNHOSTS, "/dev/null");
-  // Connect to server
   rc = ssh_connect (session);
   if (rc != SSH_OK)
     {
-      g_debug ("Error connecting to %s: %s\n", host_target,
+      g_debug ("Error connecting to %s: %s", host_target,
                ssh_get_error (session));
       ssh_free (session);
-      exit (-1);
+      return 0;
     }
 
-  // Authenticate
   rc = try_ssh_auth_methods (session, credential);
-
   if (rc != SSH_AUTH_SUCCESS)
     {
-      g_debug ("Error authenticating with password: %s\n",
-               ssh_get_error (session));
+      g_debug ("SSH authentication failed: %s", ssh_get_error (session));
       ssh_disconnect (session);
       ssh_free (session);
-      return already_set;
+      return 0;
     }
-  already_set = 1;
 
   ssh_disconnect (session);
   ssh_free (session);
-
-  store_ssh_credential (args, credential);
-
-  return already_set;
+  store_ssh_credential (args, credential, port);
+  return 1;
 }
 
 struct credential_check_data
