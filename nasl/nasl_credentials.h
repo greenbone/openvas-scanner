@@ -25,9 +25,6 @@ void
 select_host_ssh_credential (struct scan_globals *, kb_t, const char *);
 
 tree_cell *
-nasl_init_host_ssh_credential (lex_ctxt *);
-
-tree_cell *
 nasl_init_host_smb_credential (lex_ctxt *);
 
 tree_cell *

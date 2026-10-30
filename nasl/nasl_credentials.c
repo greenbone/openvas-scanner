@@ -746,7 +746,6 @@ set_host_credential (gpointer credential, gpointer user_data)
 
   if (cred->type == SSH && data->ssh_selected != TRUE)
     {
-      g_message("Credential user %s", get_ssh_credential_username(cred));
       data->ssh_selected = try_ssh_credential (data->args, cred, data->host);
     }
   else if (cred->type == SNMP)
@@ -798,22 +797,6 @@ select_host_ssh_credential (struct scan_globals *globals, kb_t host_kb,
   infos.globals = globals;
   infos.key = host_kb;
   set_host_credentials (&infos, globals->credentials, host, SSH);
-}
-
-tree_cell *
-nasl_init_host_ssh_credential (lex_ctxt *lexic)
-{
-  char ip_str[INET6_ADDRSTRLEN];
-  GSList *credentials = lexic->script_infos->globals->credentials;
-
-  // Only try credentials if there are more than one. Otherwise
-  // there nothing to check or there is only one which is the default one
-  if (get_ssh_credential_count () <= 1)
-    return NULL;
-
-  addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
-  set_host_credentials (lexic->script_infos, credentials, ip_str, SSH);
-  return NULL;
 }
 
 tree_cell *
