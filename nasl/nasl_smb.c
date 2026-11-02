@@ -25,6 +25,7 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 #include "openvas_smb_interface.h"
+#include "util/kb.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -975,12 +976,48 @@ prepare_ctx_login_test (const char *host, const char *username,
   return lexic;
 }
 
+/**
+ * @brief Test a credential against the host.
+ *
+ * Mirrors smb_login.nasl: the port is "SMB/transport" (cifs445.nasl), falling
+ * back to 139, and must be an open port in the KB ("Ports/tcp/<port>"). The
+ * NetBIOS name is "SMB/name" (netbios_name_get.nasl), falling back to
+ * "*SMBSERVER". The target is the given host.
+ *
+ * @return 0 on successful login, 1 otherwise.
+ */
 int
-smb_krb5_login_test (const char *host, const char *username,
+smb_krb5_login_test (kb_t kb, const char *host, const char *username,
                      const char *password, const char *realm, const char *kdc)
 {
   tree_cell *ret;
   lex_ctxt *lexic = NULL;
+  char *name, key[64];
+  int port;
+
+  if (kb == NULL || host == NULL)
+    return 1;
+
+  port = kb_item_get_int (kb, "SMB/transport");
+  if (port <= 0)
+    port = 139;
+
+  g_snprintf (key, sizeof (key), "Ports/tcp/%d", port);
+  if (kb_item_get_int (kb, key) <= 0)
+    {
+      g_debug ("%s: SMB port %d is not open", __func__, port);
+      return 1;
+    }
+
+  name = kb_item_get_str (kb, "SMB/name");
+  if (name == NULL || *name == '\0')
+    {
+      g_free (name);
+      name = g_strdup ("*SMBSERVER");
+    }
+  g_debug ("%s: testing %s (NetBIOS name %s) on port %d", __func__, host, name,
+           port);
+  g_free (name);
 
   // init with NTLM method, not need for impacket but psrp
   lexic = prepare_ctx_login_test (host, username, password, realm, kdc, 0);

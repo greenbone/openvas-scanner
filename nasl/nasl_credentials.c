@@ -38,6 +38,8 @@
 
 #define OID_SMB_AUTH_USER "1.3.6.1.4.1.25623.1.0.90023:1:entry:SMB login:"
 #define OID_SMB_AUTH_PASS "1.3.6.1.4.1.25623.1.0.90023:2:password:SMB password:"
+#define OID_SMB_AUTH_DOMAIN \
+  "1.3.6.1.4.1.25623.1.0.90023:3:entry:SMB domain (optional):"
 
 #define OID_SSH_AUTH_PASS \
   "1.3.6.1.4.1.25623.1.0.103591:3:password:SSH password (unsafe!):"
@@ -81,6 +83,9 @@ store_smb_credential (struct script_infos *args, credential_t *credential)
   // prefs set will replace the old values if any.
   prefs_set (OID_SMB_AUTH_USER, get_smb_credential_username (credential));
   prefs_set (OID_SMB_AUTH_PASS, get_smb_credential_password (credential));
+  // SMB credentials carry no domain. Drop any value left by a previous one.
+  prefs_set (OID_SMB_AUTH_DOMAIN, "");
+  kb_del_items (args->key, "SMB/domain_filled/0");
 
   plug_replace_key (args, "SMB/login_filled/0", ARG_STRING,
                     get_smb_credential_username (credential));
@@ -92,11 +97,14 @@ static int
 try_smb_credential (struct script_infos *args, credential_t *cred,
                     const char *host)
 {
-  int ret;
+  const char *username = get_smb_credential_username (cred);
+  const char *password = get_smb_credential_password (cred);
 
-  ret = smb_krb5_login_test (host, get_smb_credential_username (cred),
-                             get_smb_credential_password (cred), NULL, NULL);
-  if (ret == 1)
+  if (!username || !*username || !password)
+    return 0;
+
+  if (smb_krb5_login_test (args->key, host, username, password, NULL, NULL)
+      != 0)
     return 0;
 
   store_smb_credential (args, cred);
@@ -128,7 +136,7 @@ try_krb5_credential (struct script_infos *args, credential_t *cred,
 {
   int ret;
 
-  ret = smb_krb5_login_test (host, get_krb5_credential_username (cred),
+  ret = smb_krb5_login_test (args->key, host, get_krb5_credential_username (cred),
                              get_krb5_credential_password (cred),
                              get_krb5_credential_realm (cred),
                              get_krb5_credential_kdc (cred));
