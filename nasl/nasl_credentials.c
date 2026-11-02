@@ -414,15 +414,31 @@ static int
 try_snmp_credential (struct script_infos *args, credential_t *credential,
                      const char *host_target)
 {
-  int ret;
-  char peername[2048];
+  int ret, port = 161;
+  char peername[2048], key[64];
   snmp_result_t result;
   snmpv1v2_request_t requestv1v2c;
   snmpv3_request_t requestv3;
 
-  // TODO: get the protocol and port from the kb instead of assuming udp:161,
-  // since a script could have stored need values.
-  g_snprintf (peername, sizeof (peername), "udp:%s:161", host_target);
+  /* Mirror snmp_detect.nasl: unknown UDP port only if non-default UDP service
+   * discovery is enabled, else the default 161. The port must be open. */
+  if (kb_item_get_int (args->key, "global_settings/non-default_udp_service_discovery")
+      > 0)
+    {
+      int unknown = kb_item_get_int (args->key, "Services/udp/unknown");
+
+      if (unknown > 0)
+        port = unknown;
+    }
+
+  g_snprintf (key, sizeof (key), "Ports/udp/%d", port);
+  if (kb_item_get_int (args->key, key) <= 0)
+    {
+      g_debug ("%s: SNMP port udp/%d is not open", __func__, port);
+      return 0;
+    }
+
+  g_snprintf (peername, sizeof (peername), "udp:%s:%d", host_target, port);
 
   if (get_snmp_credential_community (credential))
     {
@@ -478,7 +494,7 @@ try_snmp_credential (struct script_infos *args, credential_t *credential,
       free_snmpv3_request (requestv3);
       destroy_snmp_result (result);
       if (ret != 0)
-        g_debug ("%s: Failed authenticating SNMP v2c credential", __func__);
+        g_debug ("%s: Failed authenticating SNMP v3 credential", __func__);
       else
         {
           g_debug ("%s: snmp v3 successfully authenticated", __func__);
