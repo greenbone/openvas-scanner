@@ -60,7 +60,7 @@
 #define OID_ESXI_AUTH_USER \
   "1.3.6.1.4.1.25623.1.0.105058:1:entry:ESXi login name:"
 #define OID_ESXI_AUTH_PASS \
-  "1.3.6.1.4.1.25623.1.0.105058:1:password:ESXi login password:"
+  "1.3.6.1.4.1.25623.1.0.105058:2:password:ESXi login password:"
 
 #define OID_SNMP_AUTH_USER \
   "1.3.6.1.4.1.25623.1.0.105076:2:entry:SNMPv3 Username:"
@@ -218,8 +218,25 @@ try_esxi_credential (struct script_infos *args, credential_t *cred,
   CURL *curl;
   CURLcode res;
   long response_code = 0;
+  int port;
 
-  g_snprintf (url, sizeof (url), "https://%s:443/sdk/webService", host);
+  /* Mirror gb_vmware_esxi_init.nasl: needs an ESXi target with a known and
+   * open web port, as set by gb_vmware_esx_web_detect.nasl. */
+  port = kb_item_get_int (args->key, "VMware/ESX/port");
+  if (kb_item_get_int (args->key, "VMware/ESX/type/ESXi") <= 0 || port <= 0)
+    {
+      g_debug ("%s: VMware/ESX/type/ESXi or VMware/ESX/port missing",
+               __func__);
+      return 0;
+    }
+  g_snprintf (url, sizeof (url), "Ports/tcp/%d", port);
+  if (kb_item_get_int (args->key, url) <= 0)
+    {
+      g_debug ("%s: ESXi port tcp/%d is not open", __func__, port);
+      return 0;
+    }
+
+  g_snprintf (url, sizeof (url), "https://%s:%d/sdk/webService", host, port);
   g_snprintf (host_header, sizeof (host_header), "Host: %s", host);
   g_snprintf (cookie_file, sizeof (cookie_file), "/tmp/cookies-%d.txt",
               getpid ());
@@ -288,10 +305,16 @@ try_esxi_credential (struct script_infos *args, credential_t *cred,
       g_debug ("%s: Dynamic SessionManager ID found: %s", __func__, sm_value);
 
       // authenticate
+      // Escaping can grow each character up to 6 times (&quot;)
       size_t login_sz = strlen (sm_value)
-                        + strlen (get_esxi_credential_username (cred))
-                        + strlen (get_esxi_credential_password (cred)) + 512;
+                        + 6 * strlen (get_esxi_credential_username (cred))
+                        + 6 * strlen (get_esxi_credential_password (cred))
+                        + 512;
       char *login_payload = g_malloc0 (login_sz);
+      char *esc_user =
+        g_markup_escape_text (get_esxi_credential_username (cred), -1);
+      char *esc_pass =
+        g_markup_escape_text (get_esxi_credential_password (cred), -1);
 
       g_snprintf (
         login_payload, login_sz,
@@ -303,10 +326,11 @@ try_esxi_credential (struct script_infos *args, credential_t *cred,
         "type=\"SessionManager\">%s</_this><userName>%s</"
         "userName><password>%s</password></Login></soapenv:Body></"
         "soapenv:Envelope>",
-        sm_value, get_esxi_credential_username (cred),
-        get_esxi_credential_password (cred));
+        sm_value, esc_user, esc_pass);
 
       g_free (sm_value);
+      g_free (esc_user);
+      g_free (esc_pass);
 
       struct data login_chunk = {g_malloc0 (1), 0};
       curl_easy_setopt (curl, CURLOPT_POSTFIELDS, login_payload);
@@ -722,7 +746,7 @@ set_host_credential (gpointer credential, gpointer user_data)
     {
       data->krb5_selected = try_krb5_credential (data->args, cred, data->host);
     }
-  else if (cred->type == ESXi && data->krb5_selected != TRUE)
+  else if (cred->type == ESXi && data->esxi_selected != TRUE)
     {
       data->esxi_selected = try_esxi_credential (data->args, cred, data->host);
     }
