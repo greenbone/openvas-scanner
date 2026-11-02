@@ -35,6 +35,7 @@ pub async fn init_api(config: Config) -> Result<ApiConfig> {
     let image_scanner =
         container_image_scanner::init(notus.clone(), config.container_image_scanner.clone())
             .await?;
+    // TODO: temporary explicit drop guard until the larger database access refactor
     let guard = if config.storage.to_sqlite_cfg().is_inmemory()
         || config.container_image_scanner.database.is_inmemory()
     {

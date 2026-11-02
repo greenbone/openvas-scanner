@@ -63,6 +63,7 @@ pub struct ApiConfig {
     /// Enables the `GET /scans` and `GET /container-image-scanner` routes.
     pub enable_additional_routes: bool,
     /// Drop guard to guarantee inmemory database deletion
+    // TODO: temporary placement until the larger database access refactor
     pub _guard: Option<DbGuard>,
 }
 
