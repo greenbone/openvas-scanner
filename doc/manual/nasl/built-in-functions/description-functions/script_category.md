@@ -30,15 +30,10 @@ Sets the plugin's category. The valid categories are the following:
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_category(<category>);
-
 ```
 
 ## SEE ALSO

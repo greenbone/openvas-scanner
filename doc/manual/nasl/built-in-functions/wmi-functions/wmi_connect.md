@@ -52,7 +52,8 @@ Unable to get IP of target system.
 WMI connection failed or missing WMI support.
 
 ## EXAMPLE
-1. Integrated example of an :
+
+Integrated example of an :
 ```c#
 usrname = get_kb_item( "SMB/login" );
 passwd  = get_kb_item( "SMB/password" );

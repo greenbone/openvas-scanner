@@ -2,7 +2,8 @@
 
 ## NAME
 
-**HMAC_MD2** - takes named paramaeter data and key to return HMAC MD2 string.
+**HMAC_MD2** - takes named parameter data and key to return HMAC MD2 string.
+
 ## SYNOPSIS
 
 *str* **HMAC_MD2**(key: str, data: str);
@@ -15,7 +16,6 @@
 ## DESCRIPTION
 
 HMAC_MD2 is a type of message authentication code involving MD2 hash function and a secret cryptographic key.
-
 
 ## RETURN VALUE
 

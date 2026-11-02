@@ -53,17 +53,12 @@
 
 Sets additional information. The severity tags can be used just once.
 
-
 ## RETURN VALUE
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_tag(name:"summary", value:"The remote host is missing one or more known mitigation(s) on Linux Kernel side for the referenced 'Meltdown' hardware vulnerabilities.");
 

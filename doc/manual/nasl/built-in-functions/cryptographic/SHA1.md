@@ -2,7 +2,7 @@
 
 ## NAME
 
-**SHA1** - takes a unnamed paramaeter and return SHA1 hash
+**SHA1** - takes a unnamed parameter and return SHA1 hash
 
 ## SYNOPSIS
 
@@ -13,7 +13,6 @@
 ## DESCRIPTION
 
 SHA1 is a type of hash function.
-
 
 ## RETURN VALUE
 

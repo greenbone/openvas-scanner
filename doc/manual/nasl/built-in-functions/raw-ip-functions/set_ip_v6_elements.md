@@ -10,7 +10,6 @@
 
 **set_ip_v6_elements** takes up to 5 named arguments.
 
-
 ## DESCRIPTION
 
 Set element from a IPv6 datagram. This function is the same as **[set_ipv6_elements(3nasl)](set_ipv6_elements.md)**.

@@ -20,7 +20,7 @@ This function returns a error message as string
 
 ## EXAMPLE
 
-**1** Run a manual table driven lsc and publish results:
+Run a manual table driven lsc and publish results:
 ```cpp
 package_list = 'libzmq3-dev-0:4.3.0-4+deb10u1\nlibzmq5-4.3.1-4+deb10u1\ndosbox-0.74-2-3+deb10u1';
 product = "debian_10";

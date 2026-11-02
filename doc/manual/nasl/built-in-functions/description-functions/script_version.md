@@ -18,12 +18,8 @@ Sets the plugin's version.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_version("2021-05-07T05:28:54+0000");
 ```

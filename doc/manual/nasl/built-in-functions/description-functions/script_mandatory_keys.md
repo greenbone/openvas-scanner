@@ -18,12 +18,8 @@ Sets the list of “KB items” that must be set to run this script.
 
 Returns nothing.
 
-## ERRORS
-
- 
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_mandatory_keys("ssh/login/centos", "ssh/login/rpms", re:"ssh/login/release=CentOS7");
 ```

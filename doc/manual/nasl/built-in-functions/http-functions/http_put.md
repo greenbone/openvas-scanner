@@ -11,15 +11,17 @@
 **http_put** takes three named arguments.
 
 ## DESCRIPTION
+
 Formats an HTTP PUT request for the server on the port.
 It will automatically handle the HTTP version and the basic or cookie based authentication. The arguments are port and item (the URL) and `data`.
 
 ## RETURN VALUE
+
 It returns a string (the formatted request). Null on error
 
 ## EXAMPLES
 
-**1** Get and display the formatted put request: 
+Get and display the formatted put request:
 ```cpp
 data = "some data";
 req = http_put(port: 80, item: "http://localhost/index.html", data: data);

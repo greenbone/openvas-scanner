@@ -12,6 +12,7 @@
 
 
 ## DESCRIPTION
+
 Fills an IP datagram with ICMP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:
 - *ip*: IP datagram that is updated.
 - *data*: Payload.
@@ -32,7 +33,7 @@ The modified IP datagram or NULL on error.
 
 ## EXAMPLES
 
-**1** Forge the forged icmp packet:
+Forge the forged icmp packet:
 ```cpp
 ip_packet = forge_ip_packet(ip_v : 4,
                      ip_hl : 5,

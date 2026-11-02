@@ -3,6 +3,7 @@
 ## NAME
 
 **ntlm_response** - takes four named arguments cryptkey, password, nt_hash, neg_flags
+
 ## SYNOPSIS
 
 *str* **ntlm_response**(cryptkey: str, password: str, nt_hash: str, neg_flags: int);
@@ -15,7 +16,6 @@ The neg_flags must be a positive number and is used to determine if it is using 
 ## DESCRIPTION
 
 ntlm_response generates the ntlm_response based on the given arguments.
-
 
 ## RETURN VALUE
 

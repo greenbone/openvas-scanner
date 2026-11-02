@@ -14,16 +14,13 @@
 - proto (or protocol) is the protocol ("tcp" by default; "udp" is the other value).
 - uri specifies the location of a found product (as port is only used by services, and for products is normally General/TCP)
 
-
 ## DESCRIPTION
 
 This function will report a severe flaw.
 
-
 ## RETURN VALUE
 
 This function returns nothing.
-
 
 ## SEE ALSO
 

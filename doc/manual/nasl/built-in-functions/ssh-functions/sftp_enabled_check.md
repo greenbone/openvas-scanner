@@ -23,7 +23,6 @@ The reason for failure can be extracted from the return value.
 - NULL indicates that either the positional argument was missing or the session ID is invalid
 - <0 indicates an error within **sftp_new** or **sftp_init**, see **libssh** for more detail.
 
-
 ## SEE ALSO
 
 **[ssh_connect(3nasl)](ssh_connect.md)**

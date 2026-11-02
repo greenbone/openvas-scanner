@@ -13,7 +13,6 @@
 *array* **snmpv3_get**(port: *int*, protocol: *string*, community: *string*, oid: *string*);
 *array* **snmpv3_getnext**(port: *int*, protocol: *string*, username: *string*, authpass: *string*, authproto: *string*, privpass: *string*, privproto: string);
 
-
 ## DESCRIPTION
 
 All function in this family are similar. They all get return information about a SNMP network device. SNMP stands for Simple Network Management Protocol. The function in this family allow to get available devices and iterate though them.
@@ -42,7 +41,6 @@ For **snmpv1_get**, **snmpv2c_get** and **snmpv3_get** an *array* of size 2 cont
 
 For **snmpv1_getnext**, **snmpv2c_getnext** and **snmpv3_getnext** an *array* of size 3 containing a return code as *int* in the first position. The name of the device as *string* on the second and the OID of the next device as *string* on the third position.
 
-
 ## ERROR
 
 In case of an Error these functions return an *array* containing two values. The first is always an error code as *int* and the second one a reason as *string*
@@ -65,14 +63,13 @@ community = 'public';
 display("version 1");
 ret = snmpv1_get( port:port, oid:oid, protocol:protocol, community:community );
 display (ret);
- 
+
 display("\n\n\n\ngetnext version 1 ");
 for (i = 0; i < 5; i++)
-{   
+{
     ret = snmpv1_getnext( port:port, protocol:protocol, community:community );
     display (ret);
-}     
-
+}
 ```
 
 2. Display SNMP v2 network device and iterate through the next 5 entries:
@@ -88,10 +85,10 @@ ret = snmpv2c_get( port:port, oid:oid, protocol:protocol, community:community );
 display (ret, "\n");
 display("getnext version 2c . No OID (optional), because it was already stored during the last call with an oid\n");
 for (i = 0; i < 5; i++)
-{   
+{
     ret = snmpv2c_getnext( port:port, protocol:protocol, community:community );
     display (ret);
-}   
+}
 ```
 
 3. Display SNMP v3 network device and iterate though the next 6 entries:
@@ -105,18 +102,18 @@ passph = "password";
  
 display("\n\n\n");
 display("version 3\n");
- 
+
 ret = snmpv3_get(port:port, protocol:"udp", username:user, oid:oid,
                   authpass:pass, authproto:"sha1", privpass:passph,
                   privproto:"aes");
 display (ret, "\n");
- 
+
 display("getnext WITH oid (optional)");
 ret = snmpv3_getnext(port:port, protocol:"udp", username:user, oid:oid,
                   authpass:pass, authproto:"sha1", privpass:passph,
                   privproto:"aes");
 display (ret, "\n");
- 
+
 display("getnext WITHOUT oid (which is optional. Using the last one from the last call)");
 for (i = 0; i< 5; i++)
 {
@@ -124,7 +121,7 @@ for (i = 0; i< 5; i++)
                   authpass:pass, authproto:"sha1", privpass:passph,
                   privproto:"aes");
         display (ret);
- }
+}
 ```
 
 ## SEE ALSO

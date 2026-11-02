@@ -15,7 +15,6 @@
 Walks through the list of open ports.
 If the plugin is a port scanner, it needs to report the list of open ports back to openvas scanner, and it also needs to know which ports are to be scanned.
 
-
 ## RETURN VALUE
 
 Returns a port number or 0 when the end of the list if reached.

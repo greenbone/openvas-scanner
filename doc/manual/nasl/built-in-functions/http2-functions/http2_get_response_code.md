@@ -18,7 +18,7 @@ It returns an intenger with the response code. Null on error
 
 ## EXAMPLES
 
-**1** Get and display the response code:
+Get and display the response code:
 ```cpp
 h = http2_handle();
 display(h);

@@ -10,7 +10,6 @@
 
 **forge_udp_v6_packet** It takes many named arguments, someones are optional. For details, see the description below.
 
-
 ## DESCRIPTION
 
 Fills an IPv6 datagram with UDP data. Note that the ip_p field is not updated. It returns the modified IP datagram. Its arguments are:

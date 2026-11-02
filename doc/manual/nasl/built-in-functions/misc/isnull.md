@@ -11,6 +11,7 @@
 **isnull** takes 1 positional argument.
 
 ## DESCRIPTION
+
 Returns true when the given unnamed argument is null.
 
 Although semantically equal `isnull` behaves different than `== NULL` while 

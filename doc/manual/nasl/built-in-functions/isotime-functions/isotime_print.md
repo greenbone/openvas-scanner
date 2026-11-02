@@ -4,6 +4,8 @@
 
 **isotime_print** - convert ISO time string to a better readable form
 
+## SYNOPSIS
+
 *string* **isotime_print**(0: *string*);
 
 **isotime_print** takes one positional argument.

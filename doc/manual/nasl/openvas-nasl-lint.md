@@ -34,7 +34,7 @@ included below.
 
 :   Process files from *file*.
 
-**-i** *dir*, **--include-dir *dir*
+**-i** *dir*, **--include-dir** *dir*
 
 :   Search for includes in *dir*.
 
