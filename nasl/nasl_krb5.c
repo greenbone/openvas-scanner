@@ -460,6 +460,8 @@ nasl_okrb5_gss_update_context_out (lex_ctxt *lexic)
   tree_cell *out = okrb5_slice_to_tree_cell (to_application);
   // we need to prevent accidental free it as it is freed when the tree_cell is
   // cleaned up
+  // free the wrapper only but keep the inner data pointer intact
+  free (to_application);
   to_application = NULL;
   return out;
 }

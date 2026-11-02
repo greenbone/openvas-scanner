@@ -98,6 +98,7 @@ o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc)
 
   // we don't know if we should free it or just override it.
   // aborting instead.
+  GUARD_NOT_NULL (kdc, result);
   GUARD_NULL (*kdc, result);
   if ((file = fopen ((char *) creds->config_path.data, "r")) == NULL)
     {
@@ -224,7 +225,10 @@ static OKrb5ErrorCode
 o_krb5_write_realm (FILE *file, const OKrb5Credential *creds, const char *kdc)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  GUARD_NOT_NULL (kdc, result);
+  GUARD_NOT_NULL (creds, result);
   CHECK_FPRINTF (result, file, "%s = {\n", (char *) creds->realm.data);
+
   const char *kdc_delimiter = strchr (kdc, ',');
   const char *kdc_start = kdc;
   const char *kdc_first_start = kdc_start;
@@ -255,11 +259,14 @@ result:
 OKrb5ErrorCode
 o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
 {
-  OKrb5ErrorCode result = O_KRB5_SUCCESS;
   FILE *file = NULL, *tmp = NULL;
   char line[MAX_LINE_LENGTH] = {0};
   char tmpfn[MAX_LINE_LENGTH] = {0};
   int state = 0, i, fd;
+
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  GUARD_NOT_NULL (creds, result);
+  GUARD_NOT_NULL (kdc, result);
   char *cp = (char *) creds->config_path.data;
 
   if (cp == NULL)
