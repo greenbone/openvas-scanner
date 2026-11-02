@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"),\n\"include(\\\"data.inc\\\"); function unused() { display(value); }\"),\n(Path :: new(\"data.inc\"), \"value = 1;\")],)"
+---
+error: The included file 'data.inc' is never used
+  ┌─ root.nasl:1:9
+  │
+1 │ include("data.inc"); function unused() { display(value); }
+  │         ^^^^^^^^^^
