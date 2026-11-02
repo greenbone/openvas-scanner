@@ -1,4 +1,4 @@
-// Spdx-FileCopyrightText: 2026 Greenbone AG
+// SPDX-FileCopyrightText: 2026 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -310,7 +310,10 @@ mod tests {
 
     use std::sync::{Arc, RwLock};
 
-    use crate::api::{error::ApiError, states::Feed};
+    use crate::{
+        api::{error::ApiError, states::Feed},
+        database::sqlite::DbGuard,
+    };
     use scannerlib::models::FeedState;
 
     use futures_util::StreamExt;
@@ -329,7 +332,7 @@ mod tests {
         }
     }
 
-    async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
+    async fn create_pool() -> anyhow::Result<(Config, SqlitePool, DbGuard)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let notus = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -352,13 +355,14 @@ mod tests {
             ..Default::default()
         };
         let pool = sqlite::init(&config).await?;
+        let guard = DbGuard::new(pool.clone());
 
-        Ok((config, pool))
+        Ok((config, pool, guard))
     }
 
     #[tokio::test]
     async fn get_oids() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let feed_state = Arc::new(RwLock::new(FeedState::default()));
 
         let synchronizer = FeedSynchronizer::new(pool.clone(), &config);

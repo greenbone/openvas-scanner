@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 Greenbone AG
+// SPDX-FileCopyrightText: 2026 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -42,8 +42,9 @@ pub async fn init(
 #[cfg(test)]
 pub mod scans_utils {
 
-    use std::{sync::Arc, time::Duration};
+    use std::{str::FromStr, sync::Arc, time::Duration};
 
+    use sqlx::{Sqlite, pool::PoolOptions, sqlite::SqliteConnectOptions};
     use tokio::sync::Mutex;
 
     use crate::{
@@ -54,14 +55,29 @@ pub mod scans_utils {
             image::{DockerRegistryV2Mock, RegistryPreference},
             scheduling::{Scheduler, db::DataBase},
         },
+        database::sqlite::DbGuard,
     };
     use scannerlib::models;
     use scannerlib::notus::products_loader;
 
-    async fn in_memory_scheduler_and_scan(
-        config: crate::container_image_scanner::Config,
-    ) -> (Scheduler, ScannerBridge) {
-        let pool = DataBase::connect(&DBLocation::InMemory.sqlite_address("test"))
+    pub async fn create_pool() -> (DataBase, DbGuard) {
+        if let Some(parent) = DBLocation::InMemory
+            .path("container-image-scanner")
+            .unwrap()
+            .parent()
+        {
+            std::fs::create_dir_all(parent).expect("expected database directory in shm")
+        }
+
+        let options = SqliteConnectOptions::from_str(
+            &DBLocation::InMemory
+                .sqlite_address("container-image-scanner")
+                .unwrap(),
+        )
+        .unwrap()
+        .create_if_missing(true);
+        let pool = PoolOptions::<Sqlite>::new()
+            .connect_with(options)
             .await
             .expect("inmemory database must be available");
 
@@ -69,6 +85,15 @@ pub mod scans_utils {
             .run(&pool)
             .await
             .expect("need migrated database scheme");
+
+        let guard = DbGuard::new(pool.clone());
+        (pool, guard)
+    }
+
+    async fn in_memory_scheduler_and_scan(
+        config: crate::container_image_scanner::Config,
+    ) -> (Scheduler, ScannerBridge, DbGuard) {
+        let (pool, guard) = create_pool().await;
         let products_path: &str =
             concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/notus/products");
 
@@ -82,13 +107,14 @@ pub mod scans_utils {
             crypter: None,
             scheduler: None,
         };
-        (scheduler, scans)
+        (scheduler, scans, guard)
     }
 
     pub struct Fakes {
         registry: DockerRegistryV2Mock,
         pub entry: ScannerBridge,
         pub scheduler: Scheduler,
+        _guard: DbGuard,
     }
 
     impl Fakes {
@@ -146,12 +172,13 @@ pub mod scans_utils {
 
         pub async fn init_with_config(config: Config) -> Self {
             let registry = DockerRegistryV2Mock::serve_default().await;
-            let (scheduler, entry) = in_memory_scheduler_and_scan(config).await;
+            let (scheduler, entry, guard) = in_memory_scheduler_and_scan(config).await;
 
             Self {
                 registry,
                 entry,
                 scheduler,
+                _guard: guard,
             }
         }
 
@@ -334,7 +361,8 @@ mod test {
 
     #[tokio::test]
     async fn post_scan_double_id() {
-        let entry = Fakes::init().await.entry;
+        let fakes = Fakes::init().await;
+        let entry = fakes.entry;
         let scan = models::Scan {
             scan_id: "test".to_owned(),
             ..Default::default()
@@ -352,7 +380,8 @@ mod test {
 
     #[tokio::test]
     async fn post_scan() {
-        let entry = Fakes::init().await.entry;
+        let fakes = Fakes::init().await;
+        let entry = fakes.entry;
         let hosts = vec!["oci://localhost/test/myimage".to_owned()];
         let credentials = vec![models::Credential {
             credential_type: models::CredentialType::UP {
@@ -552,7 +581,8 @@ mod test {
     #[tokio::test]
     async fn get_scans() {
         let client2_id = "client2";
-        let entry = Fakes::init().await.entry;
+        let fakes = Fakes::init().await;
+        let entry = fakes.entry;
         for i in 0..10 {
             let scan = models::Scan {
                 scan_id: i.to_string(),

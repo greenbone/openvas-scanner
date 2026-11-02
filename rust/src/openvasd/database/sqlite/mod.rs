@@ -2,9 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::fs::Permissions;
+use std::io::ErrorKind;
+use std::os::unix::fs::PermissionsExt;
 use std::str::FromStr;
 
 use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
+use sqlx::Connection;
 use sqlx::query::QueryAs;
 
 use sqlx::{
@@ -15,7 +19,7 @@ use sqlx::{
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
-use crate::config::{Config, DBLocation, SqliteConfiguration, StorageType, StorageTypes};
+use crate::config::{Config, DBLocation};
 use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
 
 pub mod results;
@@ -29,26 +33,7 @@ pub type DataBase = SqlitePool;
 static MIGRATOR: Migrator = sqlx::migrate!();
 
 pub async fn init(config: &Config) -> anyhow::Result<SqlitePool> {
-    let sqlite_cfg = match config.storage.clone() {
-        StorageTypes::V1(storage_v1) => {
-            let mut sqliteconfig = SqliteConfiguration::default();
-
-            match storage_v1.storage_type {
-                StorageType::InMemory | StorageType::Redis => {}
-                StorageType::FileSystem if storage_v1.fs.path.is_dir() => {
-                    let mut p = storage_v1.fs.path.clone();
-                    p.push("openvasd.db");
-                    sqliteconfig.location = DBLocation::File(p);
-                }
-                StorageType::FileSystem => {
-                    sqliteconfig.location = DBLocation::File(storage_v1.fs.path);
-                }
-            };
-            sqliteconfig
-        }
-        StorageTypes::V2(sqlite_configuration) => sqlite_configuration,
-    };
-    let pool = create_pool(&sqlite_cfg, "openvasd").await?;
+    let pool = create_pool(&config.storage.to_sqlite_cfg(), "openvasd").await?;
     MIGRATOR.run(&pool).await?;
     Ok(pool)
 }
@@ -62,11 +47,23 @@ pub async fn create_pool(
         pool::PoolOptions,
         sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
     };
-    if let DBLocation::File(path) = &config.location
-        && !path.exists()
-    {
-        std::fs::create_dir_all(path)
-            .map_err(|_| anyhow::anyhow!("Failed to create dir at {path:?}"))?
+
+    if let Some(parent) = config.location.path(name)?.parent() {
+        match std::fs::create_dir_all(parent) {
+            Ok(_) => (),
+            Err(e)
+                if e.kind() == ErrorKind::AlreadyExists
+                    && matches!(config.location, DBLocation::InMemory) =>
+            {
+                if let Err(e) = std::fs::remove_dir_all(parent) {
+                    tracing::warn!("failed to cleanup database: {e}");
+                }
+            }
+            Err(_) => return Err(anyhow::anyhow!("Failed to create dir at: {parent:?}")),
+        }
+
+        // Prevent access for anyone but the user
+        std::fs::set_permissions(parent, Permissions::from_mode(0o700))?;
     }
 
     if config.max_connections.is_some() {
@@ -86,13 +83,18 @@ pub async fn create_pool(
     // have to upgrade to a WRITE transaction.
     //
     // IF A TRANSACTION HAS TO WRITE DATA ALWAYS START AN IMMEDIATE TRANSACTION TO UTILIZE THE BUSY_TIMEOUT.
-    let options = SqliteConnectOptions::from_str(&config.location.sqlite_address(name))?
+    let options = SqliteConnectOptions::from_str(&config.location.sqlite_address(name)?)?
         .journal_mode(SqliteJournalMode::Wal)
         .busy_timeout(config.busy_timeout)
         // Although this can lead to data loss in the case that the application crashes, we usually
         // need to restart that scan anyway.
         .synchronous(SqliteSynchronous::Off)
         .create_if_missing(true);
+
+    // Due to the speed of /dev/shm the pool initialization can run into raceconditions.
+    // That's why we use a throwaway connection to establish the database file first.
+    let _ = SqliteConnection::connect_with(&options).await?;
+
     PoolOptions::<Sqlite>::new()
         // To prevent losing a in-memory DB we have to override max_lifetime and idle_timeout.
         // It seems that min_connections is not reliable enough for now to ensure at least one
@@ -331,6 +333,34 @@ impl From<sqlx::Error> for DAOError {
             error => {
                 tracing::warn!(%error, "Unexpected sqlx::Error.");
                 DAOError::Infrastructure(InfrastructureReason::Error(value.to_string()))
+            }
+        }
+    }
+}
+
+pub struct DbGuard {
+    pool: SqlitePool,
+}
+
+impl DbGuard {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+}
+
+impl Drop for DbGuard {
+    fn drop(&mut self) {
+        let keep_failed_db =
+            std::thread::panicking() && std::env::var("KEEP_TEST_DB").is_ok_and(|x| x == "true");
+
+        if !keep_failed_db && let Some(path) = self.pool.connect_options().get_filename().parent() {
+            let active_connections = self.pool.size().saturating_sub(self.pool.num_idle() as u32);
+            if active_connections > 0 {
+                tracing::debug!(active_connections, "DB connections active at shutdown");
+            }
+
+            if let Err(e) = std::fs::remove_dir_all(path) {
+                tracing::warn!("failed to cleanup database: {e}");
             }
         }
     }
