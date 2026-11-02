@@ -14,7 +14,7 @@ fn set_kb_item() {
 
 #[test]
 fn get_kb_item() {
-    let mut t = TestBuilder::default();
+    let mut t = TestBuilder::default().with_nasl_version(NaslVersion::V2);
     t.ok(r#"set_kb_item(name: "test", value: 1);"#, NaslValue::Null);
     t.ok(r#"get_kb_item("test");"#, 1);
     check_err_matches!(t, r#"get_kb_item("test", 1);"#, TrailingPositionals { .. },);

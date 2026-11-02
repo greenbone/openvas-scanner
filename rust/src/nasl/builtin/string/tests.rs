@@ -8,7 +8,9 @@ use NaslValue::*;
 #[test]
 fn hexstr() {
     check_code_result("hexstr('foo');", "666f6f");
+    let mut t = TestBuilder::default().with_nasl_version(NaslVersion::V2);
     check_err_matches!(
+        t,
         "hexstr('foo', 'I will be ignored');",
         TrailingPositionals { .. },
     );
@@ -239,4 +241,26 @@ fn strstr() {
     check_code_result(r#"strstr('a\rbcbd', '\rb');"#, "\rbcbd");
     check_err_matches!(r#"strstr();"#, MissingPositionals { .. });
     check_err_matches!(r#"strstr("a");"#, MissingPositionals { .. });
+}
+
+#[test]
+fn extra_arguments_by_nasl_version() {
+    let mut v1 = TestBuilder::default();
+    v1.ok("hexstr('foo', 'ignored');", "666f6f");
+    v1.ok("hexstr('foo', extra: 'ignored');", "666f6f");
+
+    let mut v2 = TestBuilder::default().with_nasl_version(NaslVersion::V2);
+    check_err_matches!(
+        v2,
+        "hexstr('foo', 'ignored');",
+        TrailingPositionals {
+            expected: 1,
+            got: 2
+        },
+    );
+    check_err_matches!(
+        v2,
+        "hexstr('foo', extra: 'ignored');",
+        UnexpectedArgument(_),
+    );
 }

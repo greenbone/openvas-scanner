@@ -84,7 +84,8 @@ pub fn get_maybe_named_arg<'a, T: FromNaslValue<'a>>(
 /// as a named argument.
 fn check_named_args(
     register: &Register,
-    _nasl_fn_name: &str,
+    version: NaslVersion,
+    nasl_fn_name: &str,
     named: &[&str],
     maybe_named: &[&str],
 ) -> Result<usize, FnError> {
@@ -95,12 +96,14 @@ fn check_named_args(
         } else if maybe_named.contains(&arg_name) {
             num_maybe_named += 1;
         } else {
-            #[cfg(feature = "enforce-no-trailing-arguments")]
-            return Err(ArgumentError::UnexpectedArgument(arg_name.into()).into());
-            #[cfg(not(feature = "enforce-no-trailing-arguments"))]
-            tracing::debug!(
-                "Unexpected named argument '{arg_name}' in NASL function {_nasl_fn_name}."
-            );
+            match version {
+                NaslVersion::V1 => tracing::debug!(
+                    "Unexpected named argument '{arg_name}' in NASL function {nasl_fn_name}."
+                ),
+                NaslVersion::V2 => {
+                    return Err(ArgumentError::UnexpectedArgument(arg_name.into()).into());
+                }
+            }
         }
     }
     Ok(num_maybe_named)
@@ -111,26 +114,30 @@ fn check_named_args(
 /// named arguments exist.
 pub fn check_args(
     register: &Register,
-    _nasl_fn_name: &str,
+    version: NaslVersion,
+    nasl_fn_name: &str,
     named: &[&str],
     maybe_named: &[&str],
     max_num_expected_positional: Option<usize>,
 ) -> Result<(), FnError> {
-    let num_maybe_named_given = check_named_args(register, _nasl_fn_name, named, maybe_named)?;
+    let num_maybe_named_given =
+        check_named_args(register, version, nasl_fn_name, named, maybe_named)?;
     let num_positional_given = register.positional().len();
     if let Some(max_num_expected_positional) = max_num_expected_positional {
         let num_positional_expected = max_num_expected_positional - num_maybe_named_given;
         if num_positional_given > num_positional_expected {
-            #[cfg(feature = "enforce-no-trailing-arguments")]
-            return Err(ArgumentError::TrailingPositionals {
-                expected: num_positional_expected,
-                got: num_positional_given,
+            match version {
+                NaslVersion::V1 => tracing::debug!(
+                    "Trailing positional arguments in NASL function {nasl_fn_name}. Expected {num_positional_expected}, found {num_positional_given}"
+                ),
+                NaslVersion::V2 => {
+                    return Err(ArgumentError::TrailingPositionals {
+                        expected: num_positional_expected,
+                        got: num_positional_given,
+                    }
+                    .into());
+                }
             }
-            .into());
-            #[cfg(not(feature = "enforce-no-trailing-arguments"))]
-            tracing::debug!(
-                "Trailing positional arguments in NASL function {_nasl_fn_name}. Expected {num_positional_expected}, found {num_positional_given}"
-            );
         }
     }
     Ok(())
