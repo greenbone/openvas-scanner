@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (builtin_redefinitions)),\n\"function display() {} function win_cmd_exec() {}\",)"
+---
+error: Function 'display' redefines a builtin
+  ┌─ builtin_redefinitions.nasl:1:10
+  │
+1 │ function display() {} function win_cmd_exec() {}
+  │          ^^^^^^^ builtin function redefined
+
+error: Function 'win_cmd_exec' redefines a builtin
+  ┌─ builtin_redefinitions.nasl:1:32
+  │
+1 │ function display() {} function win_cmd_exec() {}
+  │                                ^^^^^^^^^^^^ builtin function redefined

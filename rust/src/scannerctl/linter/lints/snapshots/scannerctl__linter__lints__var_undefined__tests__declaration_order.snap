@@ -1,0 +1,21 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (declaration_order)),\n\"display(value); value = 1; display(value); function f() { display(local); local_var local; display(local); display(optional); if (!optional) display(optional); } f();\",)"
+---
+error: Undeclared variable 'value'
+  ┌─ declaration_order.nasl:1:9
+  │
+1 │ display(value); value = 1; display(value); function f() { display(local); local_var local; display(local); display(optional); if (!optional) display(optional); } f();
+  │         ^^^^^ undeclared variable
+
+error: Undeclared variable 'local'
+  ┌─ declaration_order.nasl:1:67
+  │
+1 │ display(value); value = 1; display(value); function f() { display(local); local_var local; display(local); display(optional); if (!optional) display(optional); } f();
+  │                                                                   ^^^^^ undeclared variable
+
+error: Undeclared variable 'optional'
+  ┌─ declaration_order.nasl:1:116
+  │
+1 │ display(value); value = 1; display(value); function f() { display(local); local_var local; display(local); display(optional); if (!optional) display(optional); } f();
+  │                                                                                                                    ^^^^^^^^ undeclared variable

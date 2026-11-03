@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (defined_variable_check_not_op)),\n\"if (!optional) display(optional); if (!array[index]) display(array); display(missing);\",)"
+---
+error: Undeclared variable 'index'
+  ┌─ defined_variable_check_not_op.nasl:1:46
+  │
+1 │ if (!optional) display(optional); if (!array[index]) display(array); display(missing);
+  │                                              ^^^^^ undeclared variable
+
+error: Undeclared variable 'missing'
+  ┌─ defined_variable_check_not_op.nasl:1:78
+  │
+1 │ if (!optional) display(optional); if (!array[index]) display(array); display(missing);
+  │                                                                              ^^^^^^^ undeclared variable

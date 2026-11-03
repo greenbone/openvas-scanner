@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (unused_or_dynamic_checks)),\n\"function unused() { defined_func(\\\"missing\\\"); } name = \\\"dynamic\\\"; defined_func(name); missing(); dynamic();\",)"
+---
+error: Undefined function 'missing'
+  ┌─ unused_or_dynamic_checks.nasl:1:86
+  │
+1 │ function unused() { defined_func("missing"); } name = "dynamic"; defined_func(name); missing(); dynamic();
+  │                                                                                      ^^^^^^^ undefined function
+
+error: Undefined function 'dynamic'
+  ┌─ unused_or_dynamic_checks.nasl:1:97
+  │
+1 │ function unused() { defined_func("missing"); } name = "dynamic"; defined_func(name); missing(); dynamic();
+  │                                                                                                 ^^^^^^^ undefined function

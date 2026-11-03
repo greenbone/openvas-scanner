@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (c_only_builtins)),\n\"win_cmd_exec(); wmi_connect(); smb_file_SDDL(); socket_ssl_do_handshake(); update_table_driven_lsc_data();\",)"
+---
+

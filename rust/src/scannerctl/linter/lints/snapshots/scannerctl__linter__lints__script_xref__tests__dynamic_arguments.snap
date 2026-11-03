@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (dynamic_arguments)),\n\"name = \\\"URL\\\"; value = \\\"a\\\"; script_xref(name:name, value:value);\",)"
+---
+

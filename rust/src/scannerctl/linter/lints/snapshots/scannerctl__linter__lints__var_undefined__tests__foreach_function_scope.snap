@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (foreach_function_scope)),\n\"function f() { foreach item ([1]) display(item); } f(); display(item); foreach outer ([1]) display(outer); display(outer);\",)"
+---
+error: Undeclared variable 'item'
+  ┌─ foreach_function_scope.nasl:1:65
+  │
+1 │ function f() { foreach item ([1]) display(item); } f(); display(item); foreach outer ([1]) display(outer); display(outer);
+  │                                                                 ^^^^ undeclared variable

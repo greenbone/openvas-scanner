@@ -1,11 +1,17 @@
+mod builtins;
+mod duplicate_function;
 mod duplicate_function_arg;
 mod fn_undefined;
+mod script_xref;
+mod strict_include_order;
+mod unused_include;
+mod var_undefined;
 
 use codespan_reporting::diagnostic::Diagnostic;
 use scannerlib::nasl::error::IntoDiagnostic;
 use scannerlib::nasl::syntax::grammar::Ast;
 
-use super::ctx::LintCtx;
+use super::{LintMsgs, calls::RootCalls};
 
 pub(super) struct LintMsg {
     diagnostic: Diagnostic<()>,
@@ -23,37 +29,27 @@ impl IntoDiagnostic for LintMsg {
     }
 }
 
-pub(super) trait Lint {
-    fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg>;
+pub(super) enum Lint {
+    /// A file-local lint, which checks something that can be
+    /// done without looking at the context of how that file
+    /// is included. Examples: duplicate_function_args
+    File(fn(&Ast) -> Vec<LintMsg>),
+    /// A lint that only makes sense in the context of a given
+    /// NASL root. Examples: `fn_undefined`, (because the NASL
+    /// include semantics are horrifying and `a.inc` using a
+    /// function which is defined in `b.inc` works, even if
+    /// `b.inc` is included by the top level NASL file, not `a.inc`.)
+    Root(fn(&RootCalls) -> Vec<LintMsgs>),
 }
 
-struct AstLint<T>(T);
-
-impl<T> Lint for AstLint<T>
-where
-    T: Fn(&Ast) -> Vec<LintMsg>,
-{
-    fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg> {
-        (self.0)(ctx.ast)
-    }
-}
-
-struct FnLint<T>(T);
-
-impl<T> Lint for FnLint<T>
-where
-    T: Fn(&LintCtx) -> Vec<LintMsg>,
-{
-    fn lint<'a>(&self, ctx: &LintCtx<'a>) -> Vec<LintMsg> {
-        (self.0)(ctx)
-    }
-}
-
-pub fn all_lints() -> Vec<Box<dyn Lint>> {
-    let ast_lint = |f| Box::new(AstLint(f)) as Box<dyn Lint>;
-    let fn_lint = |f| Box::new(FnLint(f)) as Box<dyn Lint>;
+pub fn all_lints() -> Vec<Lint> {
     vec![
-        ast_lint(duplicate_function_arg::duplicate_function_args),
-        fn_lint(fn_undefined::fn_undefined),
+        Lint::File(duplicate_function_arg::duplicate_function_args),
+        Lint::File(script_xref::required_arguments),
+        Lint::File(script_xref::comma_spacing),
+        Lint::Root(fn_undefined::fn_undefined),
+        Lint::Root(var_undefined::var_undefined),
+        Lint::Root(duplicate_function::duplicate_functions),
+        Lint::Root(unused_include::unused_includes),
     ]
 }

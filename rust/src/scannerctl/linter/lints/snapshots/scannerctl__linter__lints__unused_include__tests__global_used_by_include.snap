@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"),\n\"include(\\\"data.inc\\\"); include(\\\"consumer.inc\\\"); display(result);\"),\n(Path :: new(\"data.inc\"), \"value = 1;\"),\n(Path :: new(\"consumer.inc\"), \"result = value;\")],)"
+---
+

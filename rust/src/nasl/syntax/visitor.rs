@@ -7,12 +7,14 @@ pub trait Visitor<'ast> {
     fn visit_statement(&mut self, _stmt: &'ast Statement) {}
     fn visit_var_scope_decl(&mut self, _decl: &'ast VarScopeDecl) {}
     fn visit_fn_decl(&mut self, _decl: &'ast FnDecl) {}
+    fn leave_fn_decl(&mut self, _decl: &'ast FnDecl) {}
     fn visit_block(&mut self, _block: &'ast Block<Statement>) {}
     fn visit_while(&mut self, _while_stmt: &'ast While) {}
     fn visit_repeat(&mut self, _repeat: &'ast Repeat) {}
     fn visit_for_each(&mut self, _for_each: &'ast ForEach) {}
     fn visit_for(&mut self, _for_stmt: &'ast For) {}
     fn visit_if(&mut self, _if_stmt: &'ast If) {}
+    fn leave_if(&mut self, _if_stmt: &'ast If) {}
     fn visit_include(&mut self, _include: &'ast Include) {}
     fn visit_exit(&mut self, _exit: &'ast Exit) {}
     fn visit_return(&mut self, _return_stmt: &'ast Return) {}
@@ -28,6 +30,7 @@ pub trait Visitor<'ast> {
     fn visit_array(&mut self, _array: &'ast Array) {}
     fn visit_array_access(&mut self, _access: &'ast ArrayAccess) {}
     fn visit_fn_call(&mut self, _call: &'ast FnCall) {}
+    fn leave_fn_call(&mut self, _call: &'ast FnCall) {}
     fn visit_increment(&mut self, _inc: &'ast Increment) {}
     fn visit_literal(&mut self, _literal: &'ast super::super::syntax::token::Literal) {}
     fn visit_ident(&mut self, _ident: &'ast super::super::syntax::token::Ident) {}
@@ -110,6 +113,7 @@ fn walk_if<'ast, V: Visitor<'ast>>(visitor: &mut V, if_stmt: &'ast If) {
     if let Some(else_block) = &if_stmt.else_branch {
         walk_block(visitor, else_block);
     }
+    visitor.leave_if(if_stmt);
 }
 
 fn walk_return<'ast, V: Visitor<'ast>>(visitor: &mut V, return_stmt: &'ast Return) {
@@ -131,6 +135,7 @@ fn walk_fn_decl<'ast, V: Visitor<'ast>>(visitor: &mut V, fn_decl: &'ast FnDecl) 
         visitor.visit_ident(arg);
     }
     walk_block(visitor, &fn_decl.block);
+    visitor.leave_fn_decl(fn_decl);
 }
 
 fn walk_var_scope_decl<'ast, V: Visitor<'ast>>(visitor: &mut V, var_decl: &'ast VarScopeDecl) {
@@ -200,8 +205,8 @@ fn walk_array<'ast, V: Visitor<'ast>>(visitor: &mut V, array: &'ast Array) {
 
 fn walk_array_access<'ast, V: Visitor<'ast>>(visitor: &mut V, access: &'ast ArrayAccess) {
     visitor.visit_array_access(access);
-    walk_expr(visitor, &access.index_expr);
     walk_expr(visitor, &access.lhs_expr);
+    walk_expr(visitor, &access.index_expr);
 }
 
 fn walk_fn_call<'ast, V: Visitor<'ast>>(visitor: &mut V, call: &'ast FnCall) {
@@ -213,6 +218,7 @@ fn walk_fn_call<'ast, V: Visitor<'ast>>(visitor: &mut V, call: &'ast FnCall) {
     for arg in &call.args.items {
         walk_fn_arg(visitor, arg);
     }
+    visitor.leave_fn_call(call);
 }
 
 fn walk_fn_arg<'ast, V: Visitor<'ast>>(visitor: &mut V, arg: &'ast FnArg) {

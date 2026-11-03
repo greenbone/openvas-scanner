@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (nested_function_calls)),\n\"function outer() { function inner() { nested_missing(); } outer_missing(); } outer(); top_missing();\",)"
+---
+error: Undefined function 'top_missing'
+  ┌─ nested_function_calls.nasl:1:87
+  │
+1 │ function outer() { function inner() { nested_missing(); } outer_missing(); } outer(); top_missing();
+  │                                                                                       ^^^^^^^^^^^ undefined function
+
+error: Undefined function 'outer_missing'
+  ┌─ nested_function_calls.nasl:1:59
+  │
+1 │ function outer() { function inner() { nested_missing(); } outer_missing(); } outer(); top_missing();
+  │                                                           ^^^^^^^^^^^^^ undefined function

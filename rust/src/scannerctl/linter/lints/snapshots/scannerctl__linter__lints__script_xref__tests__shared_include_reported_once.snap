@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"first.nasl\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"second.nasl\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"shared.inc\"), \"script_xref(name:\\\"URL\\\");\")],)"
+---
+error: script_xref requires name and at least one of value or csv
+  ┌─ shared.inc:1:1
+  │
+1 │ script_xref(name:"URL");
+  │ ^^^^^^^^^^^ missing value or csv

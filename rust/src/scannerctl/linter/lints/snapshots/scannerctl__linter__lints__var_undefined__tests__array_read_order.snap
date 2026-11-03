@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (array_read_order)),\n\"display(array[array = 1]); display(array);\",)"
+---
+error: Undeclared variable 'array'
+  ┌─ array_read_order.nasl:1:9
+  │
+1 │ display(array[array = 1]); display(array);
+  │         ^^^^^ undeclared variable

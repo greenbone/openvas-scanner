@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (recursive_calls)),\n\"function a() { b(); } function b() { a(); missing(); } a();\",)"
+---
+error: Undefined function 'missing'
+  ┌─ recursive_calls.nasl:1:43
+  │
+1 │ function a() { b(); } function b() { a(); missing(); } a();
+  │                                           ^^^^^^^ undefined function

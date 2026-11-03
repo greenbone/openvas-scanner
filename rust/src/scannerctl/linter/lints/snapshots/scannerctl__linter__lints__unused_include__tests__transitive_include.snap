@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"), \"include(\\\"nested/wrapper.inc\\\");\"),\n(Path :: new(\"nested/wrapper.inc\"), \"include(\\\"internal.inc\\\");\"),\n(Path :: new(\"nested/internal.inc\"),\n\"function initialize() { initialize(); }\")],)"
+---
+error: The included file 'nested/internal.inc' is never used
+  ┌─ nested/wrapper.inc:1:9
+  │
+1 │ include("internal.inc");
+  │         ^^^^^^^^^^^^^^
