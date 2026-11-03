@@ -353,39 +353,24 @@ where
 
     fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
         let credentials = self.scan_config.target.credentials.clone();
-        let ssh_count = credentials
-            .iter()
-            .filter(|credential| matches!(&credential.service, Service::SSH))
-            .count();
-
-        let smb_count = credentials
-            .iter()
-            .filter(|credential| matches!(&credential.service, Service::SMB))
-            .count();
-
-        let snmp_count = credentials
-            .iter()
-            .filter(|credential| matches!(&credential.service, Service::SNMP))
-            .count();
-
-        let esxi_count = credentials
-            .iter()
-            .filter(|credential| matches!(&credential.service, Service::ESXi))
-            .count();
-
-        let krb5_count = credentials
-            .iter()
-            .filter(|credential| matches!(&credential.service, Service::KRB5))
-            .count();
+        // To mark that a default credential was already set for a service.
+        // In case of multiple credentials for the same service, the first one
+        // in the list is set as default.
+        let mut default_ssh_set = false;
+        let mut default_smb_set = false;
+        let mut default_snmp_set = false;
+        let mut default_krb5_set = false;
+        let mut default_esxi_set = false;
 
         let mut credential_preferences: Vec<String> = vec![];
         for credential in credentials.clone() {
             // TODO: refactor that
             match credential.service {
                 Service::KRB5 => {
-                    // Multiple KRb5 candidates are handed to the host selector below.
-                    // Do not flatten one into the legacy per-VT preferences.
-                    if krb5_count > 1 {
+                    // Only the first credential is set as default.
+                    // Multiple KRB5 candidates are later handed and could override
+                    // the default one.
+                    if default_krb5_set {
                         continue;
                     }
 
@@ -407,12 +392,14 @@ where
                             .push(format!("{OID_KRB5_AUTH}:2:password::|||{password}"));
                         credential_preferences.push(format!("{OID_KRB5_AUTH}:3:entry::|||{realm}"));
                         credential_preferences.push(format!("{OID_KRB5_AUTH}:4:entry::|||{kdc}"));
+                        default_krb5_set = true;
                     }
                 }
                 Service::SSH => {
-                    // Multiple SSH candidates are handed to the host selector below.
-                    // Do not flatten one into the legacy per-VT preferences.
-                    if ssh_count > 1 {
+                    // Only the first credential is set as default.
+                    // Multiple SSH candidates are later handed and could override
+                    // the default one.
+                    if default_ssh_set {
                         continue;
                     }
                     if let Some(port) = credential.port {
@@ -443,6 +430,7 @@ where
                                 p.password
                             ));
                         }
+                        default_ssh_set = true;
                     };
                     if let CredentialType::USK {
                         username,
@@ -471,12 +459,14 @@ where
                                 p.password
                             ));
                         }
+                        default_ssh_set = true;
                     };
                 }
                 Service::SMB => {
-                    // Multiple SMB candidates are handed to the host selector below.
-                    // Do not flatten one into the legacy per-VT preferences.
-                    if smb_count > 1 {
+                    // Only the first credential is set as default.
+                    // Multiple SMB candidates are later handed and could override
+                    // the default one.
+                    if default_smb_set {
                         continue;
                     }
 
@@ -489,12 +479,14 @@ where
                         credential_preferences.push(format!(
                             "{OID_SMB_AUTH}:2:password:SMB password:|||{password}"
                         ));
+                        default_smb_set = true;
                     };
                 }
                 Service::ESXi => {
-                    // Multiple ESXi candidates are handed to the host selector below.
-                    // Do not flatten one into the legacy per-VT preferences.
-                    if esxi_count > 1 {
+                    // Only the first credential is set as default.
+                    // Multiple ESXi candidates are later handed and could override
+                    // the default one.
+                    if default_esxi_set {
                         continue;
                     }
 
@@ -508,12 +500,14 @@ where
                         credential_preferences.push(format!(
                             "{OID_ESXI_AUTH}:2:password:ESXi login password:|||{password}"
                         ));
+                        default_esxi_set = true;
                     };
                 }
                 Service::SNMP => {
-                    // Multiple SNMP candidates are handed to the host selector below.
-                    // Do not flatten one into the legacy per-VT preferences.
-                    if snmp_count > 1 {
+                    // Only the first credential is set as default.
+                    // Multiple SNMP candidates are later handed and could override
+                    // the default one.
+                    if default_snmp_set {
                         continue;
                     }
 
@@ -570,6 +564,7 @@ where
                         credential_preferences.push(format!(
                                         "{OID_SNMP_AUTH}:6:radio:SNMPv3 Privacy Algorithm:|||{privacy_algorithm}"
                                     ));
+                        default_snmp_set = true;
                     }
                 }
 
@@ -830,7 +825,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_ssh_credentials_use_only_the_candidate_list() {
+    fn test_multiple_ssh_credentials_first_is_default_and_all_are_candidates() {
         let mut scan = scan_config();
         scan.target.credentials = vec![
             Credential {
@@ -865,10 +860,19 @@ mod tests {
                 .redis_connector
                 .item_exists("internal/123-456/scanprefs", &expected)
         );
+        // Only the first credential is set as default.
         for preference in [
             "auth_port_ssh|||22",
-            "auth_port_ssh|||2222",
             "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||first",
+        ] {
+            assert!(
+                prefh
+                    .redis_connector
+                    .item_exists("internal/123-456/scanprefs", preference)
+            );
+        }
+        for preference in [
+            "auth_port_ssh|||2222",
             "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||second",
         ] {
             assert!(
