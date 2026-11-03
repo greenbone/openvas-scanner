@@ -179,7 +179,7 @@ impl<'a> ArgsStruct<'a> {
         };
         let fn_name = self.function.sig.ident.to_string();
         quote! {
-            crate::nasl::utils::function::utils::check_args(_register, #fn_name, #named_array, #maybe_named_array, #num_allowed_positional_args)?;
+            crate::nasl::utils::function::utils::check_args(_register, _script_ctx.version, #fn_name, #named_array, #maybe_named_array, #num_allowed_positional_args)?;
         }
     }
 

@@ -129,7 +129,7 @@ impl<'ctx> ForkingInterpreter<'ctx> {
     #[cfg(test)]
     pub fn with_version(mut self, version: NaslVersion) -> ForkingInterpreter<'ctx> {
         for interpreter in self.interpreters.iter_mut() {
-            interpreter.version = version;
+            interpreter.script_ctx.version = version;
         }
         self
     }
