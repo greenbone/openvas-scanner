@@ -15,6 +15,11 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: releases
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   decide:
     name: Select release kind
@@ -54,17 +59,68 @@ jobs:
       release: ${{ needs.decide.outputs.kind }}
       base_ref: ${{ github.base_ref }}
 
+  prepare:
+    name: Prepare release commit
+    needs: initialize
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.version.outputs.sha }}
+    env:
+      RELEASE_REF: ${{ needs.initialize.outputs.release_ref }}
+      RELEASE_KIND: ${{ needs.initialize.outputs.release_kind }}
+      LATEST_VERSION: ${{ needs.initialize.outputs.release_latest_version }}
+      NEW_VERSION: ${{ needs.initialize.outputs.release_new_version }}
+      GIT_AUTHOR_NAME: ${{ secrets.GREENBONE_BOT }}
+      GIT_AUTHOR_EMAIL: ${{ secrets.GREENBONE_BOT_MAIL }}
+      GIT_COMMITTER_NAME: ${{ secrets.GREENBONE_BOT }}
+      GIT_COMMITTER_EMAIL: ${{ secrets.GREENBONE_BOT_MAIL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+          fetch-depth: 0
+      - uses: greenbone/actions/setup-pontos@v3.36.23
+      - name: Preserve previous major release branch
+        if: env.RELEASE_KIND == 'major'
+        run: |
+          test "$RELEASE_REF" = main
+          branch="v${LATEST_VERSION%%.*}"
+          if [ -z "$(git ls-remote --heads origin "refs/heads/$branch")" ]; then
+            git push origin "v$LATEST_VERSION^{commit}:refs/heads/$branch"
+          fi
+      - name: Update version and record the commit to build
+        id: version
+        run: |
+          [[ "$RELEASE_REF" = main || "$RELEASE_REF" =~ ^v[0-9]+$ ]]
+          for attempt in 1 2 3; do
+            git fetch origin "refs/heads/$RELEASE_REF"
+            git checkout --detach FETCH_HEAD
+            pontos-version update "$NEW_VERSION"
+            git add CMakeLists.txt
+            if ! git diff --cached --quiet; then
+              git commit -m "Automated commit: change version from $LATEST_VERSION -> $NEW_VERSION"
+            fi
+            if git push origin "HEAD:refs/heads/$RELEASE_REF"; then
+              echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Push failed on attempt $attempt; retrying from the current branch tip."
+          done
+          exit 1
+
   build:
     name: Build release artifacts
-    needs: initialize
+    needs: [initialize, prepare]
     uses: ./.github/workflows/build.yml
     with:
       binary_version: ${{ needs.initialize.outputs.binary_version }}
+      source_ref: ${{ needs.prepare.outputs.sha }}
 
   create:
     name: Create release
     needs:
       - initialize
+      - prepare
       - build
     permissions:
       contents: write
@@ -72,13 +128,10 @@ jobs:
     with:
       new_version: ${{ needs.initialize.outputs.release_new_version }}
       latest_version: ${{ needs.initialize.outputs.release_latest_version }}
-      release_kind: ${{ needs.initialize.outputs.release_kind }}
-      release_ref: ${{ needs.initialize.outputs.release_ref }}
+      source_sha: ${{ needs.prepare.outputs.sha }}
       project: ${{ needs.initialize.outputs.release_project }}
       repository: ${{ github.repository }}
     secrets:
       token: ${{ secrets.GREENBONE_BOT_TOKEN }}
-      name: ${{ secrets.GREENBONE_BOT }}
-      email: ${{ secrets.GREENBONE_BOT_MAIL }}
       gpg_key: ${{ secrets.GPG_KEY }}
       gpg_pass: ${{ secrets.GPG_PASSPHRASE }}

@@ -3,6 +3,11 @@ name: Rust binaries
 on:
   workflow_call:
     inputs:
+      source_ref:
+        description: "Which commit to build"
+        required: false
+        type: string
+        default: ${{ github.sha }}
       arch:
         description: "amd64 or arm64"
         required: true
@@ -30,6 +35,8 @@ jobs:
       BIN_VERSION: ${{ inputs.binary_version }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref }}
       - name: build ${{ inputs.arch }}
         shell: bash
         run: |
