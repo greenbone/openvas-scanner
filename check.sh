@@ -79,7 +79,6 @@ lint_rust() {
     run make
     run cargo fmt --check
     run cargo clippy --all-targets -- -D warnings --no-deps
-    run cargo clippy --all-targets --features native-rust-ssh -- -D warnings --no-deps
 }
 
 lint_c() {
@@ -153,7 +152,6 @@ test_rust() {
     version_command cargo --version
     run make
     run cargo test --lib --tests --workspace -- $@
-    run cargo test --lib --tests --workspace --features native-rust-ssh -- $@
 }
 
 test_rust_compose() {

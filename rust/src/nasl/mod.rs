@@ -49,7 +49,6 @@ pub use builtin::nasl_std_executor;
 #[cfg(test)]
 mod test_prelude {
     pub use super::prelude::*;
-    pub use super::test_utils::DefaultTestBuilder;
     pub use super::test_utils::TestBuilder;
     pub use super::test_utils::check_code_result;
     pub use crate::check_code_result_matches;
