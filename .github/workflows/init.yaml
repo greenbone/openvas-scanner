@@ -117,7 +117,7 @@ jobs:
           if [[ "${{ env.RELEASE_REF }}" = "main" ]]; then
             echo "LATEST_VERSION=$(git tag | grep "^v" | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
           else
-            echo "LATEST_VERSION=$(git tag | grep "^v${{ env.RELEASE_REF }}" | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
+            echo "LATEST_VERSION=$(git tag | grep "^${{ env.RELEASE_REF }}\." | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
           fi
       - name: "default LATEST_VERSION"
         run: |
@@ -150,7 +150,9 @@ jobs:
           echo "release_kind=${{ env.KIND }}">> "$GITHUB_OUTPUT"
           echo "release_ref=${{ env.RELEASE_REF }}">> "$GITHUB_OUTPUT"
           echo "project=$(echo "${{ github.repository }}" | sed 's/.*\///' )" >> "$GITHUB_OUTPUT"
-          if [ -n "${NEW_VERSION}" ]; then
+          if [ "$IS_VERSION_TAG" = true ]; then
+            echo "binary_version=${VERSION}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${NEW_VERSION}" ]; then
             echo "binary_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
           else
             echo "binary_version=${LATEST_VERSION}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
