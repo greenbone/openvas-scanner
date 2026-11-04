@@ -6,18 +6,8 @@ mod error;
 mod sessions;
 mod utils;
 
-#[cfg(not(feature = "native-rust-ssh"))]
 mod libssh;
-#[cfg(not(feature = "native-rust-ssh"))]
 use libssh::{AuthMethods, SessionId, Socket, SshSession};
-
-#[cfg(feature = "native-rust-ssh")]
-mod russh;
-#[cfg(feature = "native-rust-ssh")]
-use russh::{AuthMethods, SessionId, Socket, SshSession};
-
-#[cfg(test)]
-mod tests;
 
 pub use error::SshError;
 pub use sessions::SshSessions as Ssh;
@@ -31,16 +21,10 @@ use crate::nasl::prelude::*;
 use error::SshErrorKind;
 use utils::CommaSeparated;
 
-#[cfg(not(feature = "native-rust-ssh"))]
-mod libssh_uses {
-    pub use crate::nasl::utils::function::{Maybe, StringOrData};
-    pub use libssh_rs::{AuthStatus, PublicKeyHashType};
-    pub use std::io::Write;
-    pub use tracing::debug;
-}
-
-#[cfg(not(feature = "native-rust-ssh"))]
-use libssh_uses::*;
+use crate::nasl::utils::function::{Maybe, StringOrData};
+use libssh_rs::{AuthStatus, PublicKeyHashType};
+use std::io::Write;
+use tracing::debug;
 
 type Result<T> = std::result::Result<T, FnError>;
 
@@ -67,7 +51,6 @@ impl Output {
     }
 }
 
-#[cfg(not(feature = "native-rust-ssh"))]
 function_set! {
     Ssh,
     (
@@ -90,17 +73,6 @@ function_set! {
         (Ssh::nasl_ssh_get_host_key, "ssh_get_host_key"),
         (Ssh::nasl_sftp_enabled_check, "sftp_enabled_check"),
         (Ssh::nasl_ssh_execute_netconf_subsystem, "ssh_execute_netconf_subsystem"),
-    )
-}
-
-#[cfg(feature = "native-rust-ssh")]
-function_set! {
-    Ssh,
-    (
-        (Ssh::nasl_ssh_connect, "ssh_connect"),
-        (Ssh::nasl_ssh_request_exec, "ssh_request_exec"),
-        (Ssh::nasl_ssh_userauth, "ssh_userauth"),
-        (Ssh::nasl_ssh_disconnect, "ssh_disconnect"),
     )
 }
 
@@ -325,7 +297,6 @@ impl Ssh {
     }
 }
 
-#[cfg(not(feature = "native-rust-ssh"))]
 impl Ssh {
     /// Given a socket, return the corresponding session id if available.
     #[nasl_function]

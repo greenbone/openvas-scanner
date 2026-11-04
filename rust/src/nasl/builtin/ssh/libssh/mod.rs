@@ -25,20 +25,6 @@ pub use session::SshSession;
 pub type SessionId = i32;
 pub type Socket = std::os::raw::c_int;
 
-// Currently, our tests are executed with a TRACE filter.  In a normal
-// run, this translates to a `LogLevel` of `Functions`, which is very
-// verbose.
-//
-// Since libssh prints its logs to stderr, its output is not filtered
-// out by `cargo test`, resulting in tons of annoying output, even if
-// the test passes.  To make sure this doesn't happen, we set
-// `NoLogging` in all test runs.
-#[cfg(test)]
-fn get_log_level() -> LogLevel {
-    LogLevel::NoLogging
-}
-
-#[cfg(not(test))]
 fn get_log_level() -> LogLevel {
     use tracing::Level;
     use tracing_subscriber::filter::LevelFilter;
