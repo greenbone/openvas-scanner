@@ -42,7 +42,7 @@ pub async fn init(
 #[cfg(test)]
 pub mod scans_utils {
 
-    use std::{str::FromStr, sync::Arc, time::Duration};
+    use std::{str::FromStr, sync::Arc};
 
     use sqlx::{Sqlite, pool::PoolOptions, sqlite::SqliteConnectOptions};
     use tokio::sync::Mutex;
@@ -286,13 +286,6 @@ pub mod scans_utils {
             self.scheduler.pool()
         }
 
-        pub fn config_without_retries() -> Config {
-            let mut config = Config::default();
-            config.image.scanning_retries = 0;
-            config.image.retry_timeout = Duration::from_millis(1);
-            config
-        }
-
         #[allow(dead_code)]
         /// This is just a toggle to temporally use logging
         fn init_logging() {
@@ -321,10 +314,7 @@ mod test {
     use scannerlib::models::{self, Phase};
     use sqlx::query_scalar;
 
-    use crate::{
-        api::error::ApiError,
-        container_image_scanner::{image::DockerRegistryV2Mock, scans_utils::Fakes},
-    };
+    use crate::{api::error::ApiError, container_image_scanner::scans_utils::Fakes};
 
     const CLIENT_ID: &str = "client1";
 
@@ -535,47 +525,6 @@ mod test {
         assert_eq!(host_info.all, 0);
         assert_eq!(host_info.dead, 0);
         assert_eq!(host_info.queued, 0);
-    }
-
-    #[tokio::test]
-    async fn start_scan_failed_when_registry_authentication_returns_503() {
-        let mut fakes = Fakes::init_with_config(Fakes::config_without_retries()).await;
-        let mut registry = mockito::Server::new_async().await;
-        let _auth =
-            mock_registry_bearer_auth(&mut registry, "repository:nichtsfrei/victim:pull", 503);
-
-        let scan = fakes.insecure_scan(
-            "auth-503-during-scan",
-            [format!(
-                "oci://{}/nichtsfrei/victim:latest",
-                registry.host_with_port()
-            )],
-        );
-
-        let (_, status) = fakes.start_scan_and_run(CLIENT_ID, scan, 1).await;
-
-        assert_eq!(status.status, Phase::Failed);
-    }
-
-    #[tokio::test]
-    async fn start_scan_failed_when_blob_download_returns_503() {
-        let mut fakes = Fakes::init_with_config(Fakes::config_without_retries()).await;
-        let mut image = DockerRegistryV2Mock::supported_images()
-            .into_iter()
-            .next()
-            .expect("expected at least one supported image");
-        let registry = DockerRegistryV2Mock::serve_images(
-            &[image.clone()],
-            &[200, 200, 200, 200, 200, 200, 503],
-        )
-        .await;
-        image.registry = registry.address().into();
-
-        let scan = fakes.insecure_scan("blob-503-during-scan", [image.to_string()]);
-
-        let (_, status) = fakes.start_scan_and_run(CLIENT_ID, scan, 1).await;
-
-        assert_eq!(status.status, Phase::Failed);
     }
 
     #[tokio::test]

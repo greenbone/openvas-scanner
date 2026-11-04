@@ -1,0 +1,13 @@
+[scanner]
+type = 'openvasd'
+
+[notus]
+products_path = 'examples/feed/notus/products'
+advisories_path = 'examples/feed/notus/advisories'
+
+[container_image_scanner.database]
+location = 'in-memory'
+
+[container_image_scanner.image]
+batch_size = 1
+scanning_retries = 0

@@ -251,9 +251,12 @@ mod test {
 
     use crate::{
         container_image_scanner::{
-            image::{Image, ImageState, RegistryError},
+            image::{Image, ImageState},
             scans_utils::Fakes,
-            scheduling::db::{images::DBImages, scan::DBScan},
+            scheduling::{
+                DiscoveredImages,
+                db::{images::DBImages, scan::DBScan},
+            },
         },
         database::dao::Execute,
     };
@@ -287,16 +290,20 @@ mod test {
         let mut ids = Vec::with_capacity(scans.len());
         let pool = fakes.pool();
         for s in scans {
-            let images: Vec<Result<Image, RegistryError>> = s
+            let images = s
                 .target
                 .hosts
                 .iter()
-                .map(|x| Image::from_str(x as &str).map_err(|_| RegistryError::no_tag()))
+                .map(|x| Image::from_str(x).unwrap())
                 .collect();
             let scan_id = fakes.simulate_start_scan("me", s).await.0;
             let scan_id = fakes.internal_id("me", &scan_id).await;
             // insert all the images and set the corresponding status values for scan
-            DBScan::new(&pool, (&scan_id as &str, &images as &[_]))
+            let discovered = DiscoveredImages {
+                images,
+                errors: Vec::new(),
+            };
+            DBScan::new(&pool, (&scan_id as &str, &discovered))
                 .exec()
                 .await
                 .unwrap();

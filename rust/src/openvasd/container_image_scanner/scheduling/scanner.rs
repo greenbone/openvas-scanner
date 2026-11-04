@@ -48,6 +48,14 @@ pub enum ScannerError {
 }
 
 impl ScannerError {
+    pub fn consider_failure_reason(&self) -> bool {
+        !matches!(
+            self,
+            Self::RegistryError(_)
+                | Self::Image(ScannerArchImageError::Notus(NotusError::UnknownProduct(_)))
+        )
+    }
+
     pub fn can_retry(&self) -> bool {
         match self {
             Self::RegistryError(r) => r.can_retry(),
