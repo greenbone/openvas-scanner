@@ -353,12 +353,27 @@ where
 
     fn prepare_credentials_for_openvas(&mut self) -> RedisStorageResult<()> {
         let credentials = self.scan_config.target.credentials.clone();
+        // To mark that a default credential was already set for a service.
+        // In case of multiple credentials for the same service, the first one
+        // in the list is set as default.
+        let mut default_ssh_set = false;
+        let mut default_smb_set = false;
+        let mut default_snmp_set = false;
+        let mut default_krb5_set = false;
+        let mut default_esxi_set = false;
 
         let mut credential_preferences: Vec<String> = vec![];
-        for credential in credentials {
+        for credential in credentials.clone() {
             // TODO: refactor that
             match credential.service {
                 Service::KRB5 => {
+                    // Only the first credential is set as default.
+                    // Multiple KRB5 candidates are later handed and could override
+                    // the default one.
+                    if default_krb5_set {
+                        continue;
+                    }
+
                     if let Some(port) = credential.port {
                         credential_preferences.push(format!("auth_port_krb5|||{port}"));
                     } else {
@@ -377,9 +392,16 @@ where
                             .push(format!("{OID_KRB5_AUTH}:2:password::|||{password}"));
                         credential_preferences.push(format!("{OID_KRB5_AUTH}:3:entry::|||{realm}"));
                         credential_preferences.push(format!("{OID_KRB5_AUTH}:4:entry::|||{kdc}"));
+                        default_krb5_set = true;
                     }
                 }
                 Service::SSH => {
+                    // Only the first credential is set as default.
+                    // Multiple SSH candidates are later handed and could override
+                    // the default one.
+                    if default_ssh_set {
+                        continue;
+                    }
                     if let Some(port) = credential.port {
                         credential_preferences.push(format!("auth_port_ssh|||{port}"));
                     } else {
@@ -408,6 +430,7 @@ where
                                 p.password
                             ));
                         }
+                        default_ssh_set = true;
                     };
                     if let CredentialType::USK {
                         username,
@@ -436,9 +459,17 @@ where
                                 p.password
                             ));
                         }
+                        default_ssh_set = true;
                     };
                 }
                 Service::SMB => {
+                    // Only the first credential is set as default.
+                    // Multiple SMB candidates are later handed and could override
+                    // the default one.
+                    if default_smb_set {
+                        continue;
+                    }
+
                     if let CredentialType::UP {
                         username, password, ..
                     } = credential.credential_type.clone()
@@ -448,9 +479,17 @@ where
                         credential_preferences.push(format!(
                             "{OID_SMB_AUTH}:2:password:SMB password:|||{password}"
                         ));
+                        default_smb_set = true;
                     };
                 }
                 Service::ESXi => {
+                    // Only the first credential is set as default.
+                    // Multiple ESXi candidates are later handed and could override
+                    // the default one.
+                    if default_esxi_set {
+                        continue;
+                    }
+
                     if let CredentialType::UP {
                         username, password, ..
                     } = credential.credential_type.clone()
@@ -461,9 +500,17 @@ where
                         credential_preferences.push(format!(
                             "{OID_ESXI_AUTH}:2:password:ESXi login password:|||{password}"
                         ));
+                        default_esxi_set = true;
                     };
                 }
                 Service::SNMP => {
+                    // Only the first credential is set as default.
+                    // Multiple SNMP candidates are later handed and could override
+                    // the default one.
+                    if default_snmp_set {
+                        continue;
+                    }
+
                     if let CredentialType::SNMP {
                         username,
                         password,
@@ -517,6 +564,7 @@ where
                         credential_preferences.push(format!(
                                         "{OID_SNMP_AUTH}:6:radio:SNMPv3 Privacy Algorithm:|||{privacy_algorithm}"
                                     ));
+                        default_snmp_set = true;
                     }
                 }
 
@@ -525,6 +573,12 @@ where
                     "OpenVAS is not aware about service::generic it was introduced for image-scanner"
                 ),
             }
+        }
+        if !credentials.is_empty() {
+            credential_preferences.push(format!(
+                "multi-credentials|||{}",
+                serde_json::to_string(&credentials).unwrap()
+            ));
         }
 
         if !credential_preferences.is_empty() {
@@ -768,6 +822,65 @@ mod tests {
             "internal/123-456/scanprefs",
             "1.3.6.1.4.1.25623.1.0.102114:4:entry::|||kdc"
         ));
+    }
+
+    #[test]
+    fn test_multiple_ssh_credentials_first_is_default_and_all_are_candidates() {
+        let mut scan = scan_config();
+        scan.target.credentials = vec![
+            Credential {
+                service: Service::SSH,
+                port: Some(22),
+                credential_type: CredentialType::UP {
+                    username: "first".to_string(),
+                    password: "first-pass".to_string(),
+                    privilege: None,
+                },
+            },
+            Credential {
+                service: Service::SSH,
+                port: Some(2222),
+                credential_type: CredentialType::UP {
+                    username: "second".to_string(),
+                    password: "second-pass".to_string(),
+                    privilege: None,
+                },
+            },
+        ];
+        let expected = format!(
+            "multi-credentials|||{}",
+            serde_json::to_string(&scan.target.credentials).unwrap()
+        );
+        let mut rc = fake_redis();
+        let mut prefh = handler(scan, &mut rc);
+
+        assert!(prefh.prepare_credentials_for_openvas().is_ok());
+        assert!(
+            prefh
+                .redis_connector
+                .item_exists("internal/123-456/scanprefs", &expected)
+        );
+        // Only the first credential is set as default.
+        for preference in [
+            "auth_port_ssh|||22",
+            "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||first",
+        ] {
+            assert!(
+                prefh
+                    .redis_connector
+                    .item_exists("internal/123-456/scanprefs", preference)
+            );
+        }
+        for preference in [
+            "auth_port_ssh|||2222",
+            "1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login name:|||second",
+        ] {
+            assert!(
+                !prefh
+                    .redis_connector
+                    .item_exists("internal/123-456/scanprefs", preference)
+            );
+        }
     }
 
     #[test]
