@@ -2,6 +2,22 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+//! Versioned data encryption
+//!
+//! There are currently three versions:
+//!
+//! Version 0:
+//! * Migration of unencrypted container image scanner credentials
+//! * Credentials are saved as plain json, no base64
+//!
+//! Version 1:
+//! * ChaCha20 with static salt
+//! * Credentials ciphertext is stored base64 encoded
+//!
+//! Version 2:
+//! * ChaCha20Poly1305, Argon2Id, random salt
+//! * Credentials ciphertext is stored base64 encoded
+
 use async_trait::async_trait;
 use std::fmt::Display;
 
@@ -96,6 +112,7 @@ pub struct Encrypted {
     /// Used encryption method version.
     version: u8,
     nonce: [u8; 12],
+    /// Data is either a base64 encoded ciphertext or plain json in case of version 0.
     data: Vec<u8>,
 }
 
@@ -169,6 +186,7 @@ impl TryFrom<&str> for Encrypted {
             .ok_or(ParseError::MissingNonce)??;
 
         let data = if version == 0 {
+            // version 0 is a plain json string
             parts.collect::<String>().as_bytes().to_vec()
         } else {
             parts
