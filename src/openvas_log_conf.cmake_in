@@ -2,6 +2,88 @@
 #
 # WARNING: Setting the level of any group (besides event*) to include debug
 #          may reveal passwords in the logs.
+#
+#  This file uses the INI syntax
+# '[...]' starts a group and 'key=value' sets an option. Options which a group
+# does not set are taken from the '[*]' group.
+#
+#
+# Groups
+# ------
+# The '[<group>]' is a log domain, which is the component a message originates
+# from. The groups are defined within the source files.
+#
+#
+# Fields
+# -------
+# prepend
+#   The fields in front of the message. Only the placeholders below are
+#   evaluated, every other character is ignored:
+#
+#     %t  time stamp, formatted with prepend_time_format
+#     %p  process id, followed by the scan id once a scan is running
+#     %s  the separator
+#
+#
+# separator
+#   String written between the fields of a line.
+#
+#
+# prepend_time_format
+#   Format of the '%t' time stamp, see strftime(3) for the placeholders.
+#
+#
+# file
+#   Where the messages are written to. There are 3 possible value types:
+#       - <path> -> appends to the specified file, creates it, if it does not
+#         exist
+#       - 'syslog' -> writes to the syslog daemon
+#       - '-' or empty -> writes to stderr
+#
+#
+# level
+#   Which messages are logged. Every severity is a GLib log level flag and
+#   therefore has its own bit:
+#
+#       1  recursion  emitted from within a log handler
+#       2  fatal      terminates the process
+#       4  error      failure which aborts the scanner
+#       8  critical   failure which breaks the current operation
+#      16  warning    problem which is handled but should be looked at
+#      32  message    regular progress information
+#      64  info       additional details
+#     128  debug      internal state, very verbose
+#
+#   Note, that these levels are not used as bitflags, but every message with a
+#   lower level thant the specified is logged. So a 128 will log everything.
+#   Instead of a number, the name of the log level can be specified as well.
+#
+# syslog_facility
+#   Facility to log to if 'file' is 'syslog', 'local0' by default.
+#
+# syslog_ident
+#   Identifier put in front of every syslog message, the program name by
+#   default.
+#
+#
+# A line is assembled as:
+#
+#   <domain><separator><LEVEL><separator><prepend><separator> <message>
+#
+# The settings below therefore produce lines of the form:
+#
+# Settings
+# --------
+#   [sd   main]
+#   prepend=%t %s %p
+#   separator=:
+#   prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+#   file=${GVM_LOG_DIR}/openvas.log
+#   level=127
+#
+# Output
+# ------
+#   lib  nasl:MESSAGE:2026-09-23 12h34.56 CEST:1234:<scan id>: <message>
 
 [sd   main]
 prepend=%t %s %p
@@ -18,6 +100,13 @@ file=${GVM_LOG_DIR}/openvas.log
 level=127
 
 [lib  nasl]
+prepend=%t %s %p
+separator=:
+prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+file=${GVM_LOG_DIR}/openvas.log
+level=127
+
+[lib  file]
 prepend=%t %s %p
 separator=:
 prepend_time_format=%Y-%m-%d %Hh%M.%S %Z

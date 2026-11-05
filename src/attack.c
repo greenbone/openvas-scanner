@@ -21,6 +21,7 @@
 #include "../misc/table_driven_lsc.h" /*for run_table_driven_lsc */
 #include "../misc/user_agent.h"       /* for user_agent_set */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
+#include "../nasl/nasl_krb5.h"        /* for nasl_okrb5_clean_files */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -894,6 +895,7 @@ attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
                ip_str);
   g_free (hostnames);
   attack_host (globals, &hostip, args);
+  nasl_okrb5_clean_files (ip_str);
   kb_lnk_reset (main_kb);
 
   if (!scan_is_stopped ())

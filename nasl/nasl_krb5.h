@@ -103,3 +103,14 @@ nasl_okrb5_error_code_to_string (lex_ctxt *lexic);
 
 void
 nasl_okrb5_clean (void);
+
+/**
+ * @brief Deletes the krb5 files created for the given target
+ *
+ * Has to be called when a target (IP) is finished. The files of all scripts are
+ * removed, not only those created by the calling process.
+ *
+ * @param[in] ip     IP address of the target.
+ */
+void
+nasl_okrb5_clean_files (const char *ip);

@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #define GUARD_NULL(var, return_var)          \
   do                                         \
@@ -97,6 +98,7 @@ o_krb5_find_kdc (const OKrb5Credential *creds, char **kdc)
 
   // we don't know if we should free it or just override it.
   // aborting instead.
+  GUARD_NOT_NULL (kdc, result);
   GUARD_NULL (*kdc, result);
   if ((file = fopen ((char *) creds->config_path.data, "r")) == NULL)
     {
@@ -223,7 +225,10 @@ static OKrb5ErrorCode
 o_krb5_write_realm (FILE *file, const OKrb5Credential *creds, const char *kdc)
 {
   OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  GUARD_NOT_NULL (kdc, result);
+  GUARD_NOT_NULL (creds, result);
   CHECK_FPRINTF (result, file, "%s = {\n", (char *) creds->realm.data);
+
   const char *kdc_delimiter = strchr (kdc, ',');
   const char *kdc_start = kdc;
   const char *kdc_first_start = kdc_start;
@@ -254,56 +259,90 @@ result:
 OKrb5ErrorCode
 o_krb5_add_realm (const OKrb5Credential *creds, const char *kdc)
 {
-  OKrb5ErrorCode result = O_KRB5_SUCCESS;
   FILE *file = NULL, *tmp = NULL;
   char line[MAX_LINE_LENGTH] = {0};
   char tmpfn[MAX_LINE_LENGTH] = {0};
-  int state, i;
+  int state = 0, i, fd;
+
+  OKrb5ErrorCode result = O_KRB5_SUCCESS;
+  GUARD_NOT_NULL (creds, result);
+  GUARD_NOT_NULL (kdc, result);
   char *cp = (char *) creds->config_path.data;
 
-  if ((file = fopen (cp, "r")) == NULL)
+  if (cp == NULL)
     {
-      if ((file = fopen (cp, "w")) == NULL)
-        {
-          result = O_KRB5_CONF_NOT_CREATED;
-          goto result;
-        }
-      CHECK_FPRINT (result, file, "[realms]\n");
-      o_krb5_write_realm (file, creds, kdc);
+      result = O_KRB5_EXPECTED_NOT_NULL;
       goto result;
     }
-  snprintf (tmpfn, MAX_LINE_LENGTH, "%s.tmp", cp);
-  if ((tmp = fopen (tmpfn, "w")) == NULL)
+
+  // The configuration is written into a unique temporary file and moved into
+  // place atomically, so that concurrent writers neither share the temporary
+  // file nor expose a partially written configuration to a reader.
+  if (snprintf (tmpfn, MAX_LINE_LENGTH, "%s.XXXXXX", cp) >= MAX_LINE_LENGTH
+      || (fd = mkstemp (tmpfn)) == -1)
     {
+      tmpfn[0] = '\0';
       result = O_KRB5_TMP_CONF_NOT_CREATED;
       goto result;
     }
-  state = 0;
-  while (fgets (line, MAX_LINE_LENGTH, file))
+  if ((tmp = fdopen (fd, "w")) == NULL)
     {
-      fputs (line, tmp);
-      if (state == 0)
-        {
-          SKIP_WS (line, MAX_LINE_LENGTH, 0, i);
-          if (IS_STR_EQUAL (line, MAX_LINE_LENGTH, i, "[realms]", 8) == 1)
-            {
-              o_krb5_write_realm (file, creds, kdc);
+      close (fd);
+      result = O_KRB5_TMP_CONF_NOT_CREATED;
+      goto result;
+    }
 
-              state = 1;
+  if ((file = fopen (cp, "r")) != NULL)
+    {
+      while (fgets (line, MAX_LINE_LENGTH, file))
+        {
+          if (fputs (line, tmp) == EOF)
+            {
+              result = O_KRB5_UNABLE_TO_WRITE;
+              goto result;
+            }
+          if (state == 0)
+            {
+              SKIP_WS (line, MAX_LINE_LENGTH, 0, i);
+              if (IS_STR_EQUAL (line, MAX_LINE_LENGTH, i, "[realms]", 8) == 1)
+                {
+                  if ((result = o_krb5_write_realm (tmp, creds, kdc)))
+                    goto result;
+                  state = 1;
+                }
             }
         }
     }
 
+  if (state == 0)
+    {
+      CHECK_FPRINT (result, tmp, "[realms]\n");
+      if ((result = o_krb5_write_realm (tmp, creds, kdc)))
+        goto result;
+    }
+
+  if (fclose (tmp) != 0)
+    {
+      tmp = NULL;
+      result = O_KRB5_UNABLE_TO_WRITE;
+      goto result;
+    }
+  tmp = NULL;
+
   if (rename (tmpfn, cp) != 0)
     {
       result = O_KRB5_TMP_CONF_NOT_MOVED;
+      goto result;
     }
+  tmpfn[0] = '\0';
 
 result:
   if (tmp != NULL)
     fclose (tmp);
   if (file != NULL)
     fclose (file);
+  if (tmpfn[0] != '\0')
+    unlink (tmpfn);
   return result;
 }
 
