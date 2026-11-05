@@ -658,7 +658,7 @@ pub(crate) mod tests {
     use crate::{
         crypt::Crypter,
         database::sqlite::DbGuard,
-        scans::tests::{create_pool, prepare_scans},
+        scans::tests::{create_test_env, prepare_scans},
     };
 
     async fn setup_test_env() -> anyhow::Result<(
@@ -687,9 +687,9 @@ pub(crate) mod tests {
         Vec<i64>,
         DbGuard,
     )> {
-        let (config, pool, guard) = create_pool().await?;
+        let (config, pool, guard) = create_test_env().await?;
         let scanner = Arc::new(builder.build());
-        let cryptor = Arc::new(Crypter::from_config(&config, &pool).await?);
+        let cryptor = Arc::new(Crypter::from_config(&config.storage.to_sqlite_cfg(), &pool).await?);
 
         let change_scan_status = ScanStateController::init(pool.clone()).await?;
         let under_test = ScanScheduler {

@@ -8,8 +8,21 @@ use crate::{
         image::{Credential, Image, ImageID, ImageParseError, ImageState},
         scheduling::ProcessingImage,
     },
+    crypt::Crypt,
     database::dao::{DAOError, DAOPromiseRef, Execute, Fetch},
 };
+
+pub type DBImages<'o, T> = super::DB<'o, T>;
+
+impl From<SqliteRow> for ImageID {
+    fn from(row: SqliteRow) -> Self {
+        let id: i64 = row.get("id");
+        Self {
+            id: id.to_string(),
+            image: row.get("image"),
+        }
+    }
+}
 
 impl TryFrom<&SqliteRow> for Credential {
     type Error = DAOError;
@@ -24,18 +37,6 @@ impl TryFrom<&SqliteRow> for Credential {
                 username: user.unwrap_or_default(),
                 password: pass.unwrap_or_default(),
             }),
-        }
-    }
-}
-
-pub type DBImages<'o, T> = super::DB<'o, T>;
-
-impl From<SqliteRow> for ImageID {
-    fn from(row: SqliteRow) -> Self {
-        let id: i64 = row.get("id");
-        Self {
-            id: id.to_string(),
-            image: row.get("image"),
         }
     }
 }
@@ -85,13 +86,16 @@ impl<'o> Execute<()> for DBImages<'o, (&'o ImageID, ImageState)> {
     }
 }
 
-impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, usize)> {
+impl<'o, C> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (&'o C, usize, usize)>
+where
+    C: Sync + Crypt,
+{
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<(ImageID, Option<Credential>)>>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let (max_scanning, batch_size) = self.input;
+            let (crypter, max_scanning, batch_size) = self.input;
 
             let mut tx = self.pool.begin().await?;
             let scan_limit = match max_scanning {
@@ -120,10 +124,9 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
 
             let rows = sqlx::query(
                 r#"
-    SELECT i.id, i.image, c.username, c.password
+    SELECT i.id, i.image, s.auth_data
     FROM images i
     JOIN scans s ON s.id = i.id
-    LEFT JOIN credentials c ON i.id = c.id
     WHERE i.status = 'pending'
     ORDER BY s.host_finished ASC, s.id ASC, i.image ASC
     LIMIT ?
@@ -134,7 +137,7 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
             .await?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows {
-                let credentials = Credential::try_from(&row).ok();
+                let credentials = Credential::from_sqlrow(&row, crypter).await.ok().flatten();
                 let id: ImageID = row.into();
 
                 sqlx::query(
@@ -156,17 +159,17 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
         })
     }
 }
-impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
+impl<'o, C> Fetch<Vec<ProcessingImage>> for DBImages<'o, (&'o C, usize)>
+where
+    C: Sync + Crypt,
+{
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Vec<ProcessingImage>>
     where
         'a: 'b,
     {
         Box::pin(async move {
-            let limit = if self.input == 0 {
-                254
-            } else {
-                self.input as i64
-            };
+            let (crypter, limit) = self.input;
+            let limit = if limit == 0 { 254 } else { limit as i64 };
             let mut stream = sqlx::query(
                 r#"
         WITH running_count AS (
@@ -175,7 +178,7 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
             WHERE status = 'running'
         ),
         selected_scans AS (
-            SELECT id
+            SELECT id, auth_data
             FROM scans
             WHERE status = 'requested'
             ORDER BY created_at ASC
@@ -190,14 +193,10 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
         SELECT 
             r.id,
             r.host AS registry,
-            c.username,
-            c.password
+            s.auth_data
         FROM registry r
         JOIN selected_scans s
-          ON r.id = s.id
-        LEFT JOIN credentials c
-          ON r.id = c.id
-        "#,
+          ON r.id = s.id"#,
             )
             .bind(limit)
             .fetch(self.pool);
@@ -220,7 +219,7 @@ impl<'o> Fetch<Vec<ProcessingImage>> for DBImages<'o, usize> {
                 let image = registry.parse();
 
                 let id: i64 = row.get("id");
-                let credential = Credential::try_from(&row).ok();
+                let credential = Credential::from_sqlrow(&row, crypter).await.ok().flatten();
 
                 let entry = map.entry(id).or_insert_with(|| (Vec::new(), credential));
 
@@ -305,7 +304,10 @@ mod test {
         let validate = async |rounds, ids| {
             for _ in 0..rounds {
                 for id in &ids {
-                    let mut requested = DBImages::new(&pool, (0, 1)).exec().await.unwrap();
+                    let mut requested = DBImages::new(&pool, (fakes.entry.crypter.as_ref(), 0, 1))
+                        .exec()
+                        .await
+                        .unwrap();
                     assert_eq!(requested.len(), 1);
                     let rid = requested.pop().unwrap().0;
                     assert_eq!(id, &rid.id);

@@ -24,6 +24,7 @@ use crate::{
             scanner::{ScannerArchImageError, ScannerError},
         },
     },
+    crypt::Crypter,
     database::dao::{DAOError, Execute, Fetch, RetryExec, StreamFetch},
 };
 use scannerlib::{
@@ -68,20 +69,32 @@ pub struct ProcessingImage {
 pub struct Scheduler {
     pool: DataBase,
     config: Arc<Config>,
+    crypter: Arc<Crypter>,
     products: Arc<RwLock<Notus>>,
 }
 
 impl Scheduler {
-    fn new(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Self {
+    fn new(
+        config: Arc<Config>,
+        crypter: Arc<Crypter>,
+        pool: DataBase,
+        products: Arc<RwLock<Notus>>,
+    ) -> Self {
         Scheduler {
             pool,
             config,
+            crypter,
             products,
         }
     }
 
-    pub fn init(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) -> Scheduler {
-        Self::new(config, pool, products)
+    pub fn init(
+        config: Arc<Config>,
+        crypter: Arc<Crypter>,
+        pool: DataBase,
+        products: Arc<RwLock<Notus>>,
+    ) -> Scheduler {
+        Self::new(config, crypter, pool, products)
     }
 }
 
@@ -172,12 +185,16 @@ impl Scheduler {
 
     pub(crate) async fn start_scans(
         config: Arc<Config>,
+        crypter: Arc<Crypter>,
         conn: Arc<Mutex<DataBase>>,
         products: Arc<RwLock<Notus>>,
     ) {
         tracing::trace!("checking for requested and scanning");
         let pool = conn.lock().await;
-        let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
+        let requested = match DBImages::new(&pool, (crypter.as_ref(), config.max_scans))
+            .fetch()
+            .await
+        {
             Ok(r) => r,
             Err(error) => {
                 tracing::warn!(%error, "Unable to fetch images from the DB");
@@ -192,7 +209,7 @@ impl Scheduler {
         }
 
         let scan_pool = pool.clone();
-        Self::scan_images(config, scan_pool, products).await;
+        Self::scan_images(config, crypter, scan_pool, products).await;
 
         if let Err(error) = DBScan::new(&pool, models::Phase::Succeeded).exec().await {
             tracing::warn!(%error, "Unable to set scans to finished");
@@ -254,10 +271,19 @@ impl Scheduler {
         }
     }
 
-    async fn scan_images(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) {
+    async fn scan_images(
+        config: Arc<Config>,
+        crypter: Arc<Crypter>,
+        pool: DataBase,
+        products: Arc<RwLock<Notus>>,
+    ) {
         let scans = match DBImages::new(
             &pool,
-            (config.image_max_scanning(), config.image_batch_size()),
+            (
+                crypter.as_ref(),
+                config.image_max_scanning(),
+                config.image_batch_size(),
+            ),
         )
         .exec()
         .await
@@ -306,7 +332,7 @@ impl Scheduler {
                     let products = self.products.clone();
                     let config = config.clone();
                     let conn = conn.clone();
-                    tokio::spawn(Self::start_scans(config, conn, products));
+                    tokio::spawn(Self::start_scans(config, self.crypter.clone(), conn, products));
                 }
                 else => {
                     debug!("Channel closed, good bye");
