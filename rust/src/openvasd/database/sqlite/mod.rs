@@ -143,7 +143,7 @@ pub async fn insert_values_chunked<'args, T, E, F>(
 ) -> Result<(), sqlx::Error>
 where
     for<'e> &'e mut E: sqlx::Executor<'e, Database = Sqlite>,
-    F: for<'qb> FnMut(Separated<'qb, 'args, Sqlite, &'static str>, &'args T),
+    F: for<'qb> FnMut(Separated<'qb, Sqlite, &'static str>, &'args T),
 {
     if values.is_empty() {
         return Ok(());
@@ -233,7 +233,7 @@ impl SqliteConnectionContainer {
     pub async fn fetch_one<'a, F, A>(&'a mut self, q: F) -> Result<SqliteRow, sqlx::error::Error>
     where
         F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_one(c))
     }
@@ -242,7 +242,7 @@ impl SqliteConnectionContainer {
     where
         F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
         O: Send + Unpin,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
         (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_one(c))
@@ -255,7 +255,7 @@ impl SqliteConnectionContainer {
     where
         F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
         O: Send + Unpin,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
         (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_all(c))
@@ -267,7 +267,7 @@ impl SqliteConnectionContainer {
     ) -> Result<Vec<O>, sqlx::error::Error>
     where
         F: Fn() -> QueryAs<'a, Sqlite, O, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
         O: Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_all(c))
@@ -279,7 +279,7 @@ impl SqliteConnectionContainer {
     ) -> Result<SqliteQueryResult, sqlx::error::Error>
     where
         F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
     {
         retry_sql_connection_call!(self, |c| q().execute(c))
     }

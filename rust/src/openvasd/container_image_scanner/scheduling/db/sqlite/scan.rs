@@ -390,7 +390,7 @@ async fn with_scan_status<'a, F>(
     build_queries: F,
 ) -> Result<(), sqlx::Error>
 where
-    F: FnOnce(models::Phase) -> Vec<Query<'a, Sqlite, <Sqlite as Database>::Arguments<'a>>>,
+    F: FnOnce(models::Phase) -> Vec<Query<'a, Sqlite, <Sqlite as Database>::Arguments>>,
 {
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
@@ -415,7 +415,7 @@ async fn start_scan(pool: &SqlitePool, id: &str) -> Result<(), sqlx::error::Erro
     fn update_scan_status<'a>(
         id: &'a str,
         status: &'a str,
-    ) -> Query<'a, Sqlite, <Sqlite as Database>::Arguments<'a>> {
+    ) -> Query<'a, Sqlite, <Sqlite as Database>::Arguments> {
         query(
             r#"
         UPDATE scans 
@@ -472,9 +472,7 @@ async fn start_scan(pool: &SqlitePool, id: &str) -> Result<(), sqlx::error::Erro
 }
 
 async fn stop_scan(pool: &SqlitePool, id: &str) -> Result<(), sqlx::error::Error> {
-    fn update_scan_status<'a>(
-        id: &'a str,
-    ) -> Query<'a, Sqlite, <Sqlite as Database>::Arguments<'a>> {
+    fn update_scan_status<'a>(id: &'a str) -> Query<'a, Sqlite, <Sqlite as Database>::Arguments> {
         query(
             r#"
         UPDATE scans 
