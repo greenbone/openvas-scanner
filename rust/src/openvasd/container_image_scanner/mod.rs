@@ -63,6 +63,10 @@ pub mod scans_utils {
     use scannerlib::notus::products_loader;
 
     pub async fn create_pool() -> (DataBase, DbGuard) {
+        create_pool_with_version(None).await
+    }
+
+    pub async fn create_pool_with_version(version: Option<i64>) -> (DataBase, DbGuard) {
         if let Some(parent) = DBLocation::InMemory
             .path("container-image-scanner")
             .unwrap()
@@ -83,10 +87,17 @@ pub mod scans_utils {
             .await
             .expect("inmemory database must be available");
 
-        MIGRATOR
-            .run(&pool)
-            .await
-            .expect("need migrated database scheme");
+        if let Some(version) = version {
+            MIGRATOR
+                .run_to(version, &pool)
+                .await
+                .expect("need migrated database scheme");
+        } else {
+            MIGRATOR
+                .run(&pool)
+                .await
+                .expect("need migrated database scheme");
+        };
 
         let guard = DbGuard::new(pool.clone());
         (pool, guard)
