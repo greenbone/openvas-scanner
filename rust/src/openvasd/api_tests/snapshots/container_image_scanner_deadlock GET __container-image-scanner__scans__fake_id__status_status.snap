@@ -5,13 +5,13 @@ expression: inner
 Status(
   start_time: "[redacted]",
   end_time: "[redacted]",
-  status: failed,
+  status: succeeded,
   host_info: Some(HostInfo(
     all: 1,
     excluded: 0,
-    dead: 1,
+    dead: 0,
     alive: 0,
     queued: 0,
-    finished: 0,
+    finished: 1,
   )),
 )

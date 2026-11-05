@@ -15,6 +15,7 @@ use test_builder::{OpenvasdInstance, Snapshottable, Test, WaitForStatusExt};
 
 use crate::container_image_scanner::DockerRegistryV2Mock;
 
+mod registry_errors;
 mod test_builder;
 mod test_scan;
 
@@ -491,7 +492,7 @@ async fn container_image_scanner_deadlock() {
 
     scan.start().await;
 
-    scan.wait_for(Phase::Failed.with_timeout(Duration::from_secs(30)))
+    scan.wait_for(Phase::Succeeded.with_timeout(Duration::from_secs(30)))
         .await
         .body::<Status>()
         .snapshot("status");

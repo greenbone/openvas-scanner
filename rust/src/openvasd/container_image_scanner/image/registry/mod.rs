@@ -147,7 +147,7 @@ impl Display for RegistryError {
                 write!(f, "{registry_msg}")
             }
         } else {
-            todo!()
+            write!(f, "Error occurred while operating on {kind}")
         }
     }
 }

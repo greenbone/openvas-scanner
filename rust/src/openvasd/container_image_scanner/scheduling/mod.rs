@@ -60,6 +60,20 @@ pub struct ProcessingImage {
     pub credentials: Option<Credential>,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum DiscoveryError {
+    #[error("Unable to parse image: {0}")]
+    Parse(#[from] ImageParseError),
+    #[error("{0}")]
+    Registry(#[from] RegistryError),
+}
+
+#[derive(Debug, Default)]
+pub struct DiscoveredImages {
+    pub images: Vec<Image>,
+    pub errors: Vec<DiscoveryError>,
+}
+
 /// Scheduler is responsible to start, stop and storing results of scans.
 ///
 /// It retrieves commands usually by the endpoint handler to either start or stop a scan.
@@ -125,27 +139,31 @@ impl Scheduler {
     async fn resolve_all_images(
         pool: DataBase,
         pimage: &ProcessingImage,
-    ) -> Result<Vec<Result<Image, RegistryError>>, ExternalError> {
+    ) -> Result<DiscoveredImages, ExternalError> {
         let registry = Self::registry(&pool, &pimage.id, pimage.credentials.clone()).await?;
-
-        let mut result = Vec::with_capacity(100);
-        for image in pimage
-            .image
-            .iter()
-            //TODO: refactor ResolveRequested this is just needlessly annoying
-            .map(|x| x.clone().map_err(|_| RegistryError::no_repository()))
-        {
-            match image {
-                Err(e) => result.push(Err(e)),
-                Ok(x) => {
-                    let extended_images = registry.resolve_image(x).await;
-                    result.extend(extended_images)
+        let mut discovered = DiscoveredImages::default();
+        for image in &pimage.image {
+            let image = match image {
+                Ok(image) => image.clone(),
+                Err(error) => {
+                    discovered.errors.push(DiscoveryError::Parse(error.clone()));
+                    continue;
+                }
+            };
+            for resolved in registry.resolve_image(image).await {
+                match resolved {
+                    Ok(image) => discovered.images.push(image),
+                    Err(error) => discovered.errors.push(DiscoveryError::Registry(error)),
                 }
             }
         }
-        drop(registry);
-        tracing::debug!(id = pimage.id, images = result.len(), "Resolved");
-        Ok(result)
+        tracing::debug!(
+            id = pimage.id,
+            images = discovered.images.len(),
+            errors = discovered.errors.len(),
+            "Resolved"
+        );
+        Ok(discovered)
     }
 
     #[instrument(skip_all, fields(id=image.id))]
@@ -158,7 +176,7 @@ impl Scheduler {
             .retry_exec()
             .await?;
         tracing::debug!("Set to running.");
-        let images = match Self::resolve_all_images(pool.clone(), &image).await {
+        let discovered = match Self::resolve_all_images(pool.clone(), &image).await {
             Err(e) => {
                 warn!(error=%e, ids=?image.id, "Unable to initialize registry. Setting scan to failed.");
                 return DBScan::new(&pool, (id, models::Phase::Failed))
@@ -167,7 +185,16 @@ impl Scheduler {
             }
             Ok(x) => x,
         };
-        DBScan::new(&pool, (id, &images as &[_])).retry_exec().await
+        for error in &discovered.errors {
+            let registry = match error {
+                DiscoveryError::Parse(_) => None,
+                DiscoveryError::Registry(error) => error.registry.clone(),
+            };
+            CustomerMessage::error(registry, error.to_string(), None)
+                .store(&pool, id)
+                .await;
+        }
+        DBScan::new(&pool, (id, &discovered)).retry_exec().await
     }
 
     pub(crate) async fn start_scans(
@@ -216,19 +243,10 @@ impl Scheduler {
                         image_success(&pool, id).await;
                     }
                     Err(err) => {
-                        // Notus error should not set a scan to failed
-                        let only_notus_errors = err.iter().all(|x| {
-                            matches!(
-                                x,
-                                ScannerError::Image(ScannerArchImageError::Notus(
-                                    NotusError::UnknownProduct(_),
-                                ))
-                            )
-                        });
-                        if only_notus_errors {
-                            image_success(&pool, id).await;
-                        } else {
+                        if err.iter().any(ScannerError::consider_failure_reason) {
                             image_failed(&pool, id).await;
+                        } else {
+                            image_success(&pool, id).await;
                         }
                         for e in err {
                             if let ScannerError::Image(ScannerArchImageError::Notus(

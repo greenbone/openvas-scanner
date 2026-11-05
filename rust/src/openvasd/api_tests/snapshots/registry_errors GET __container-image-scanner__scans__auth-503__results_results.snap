@@ -1,0 +1,24 @@
+---
+source: src/openvasd/api_tests/test_builder.rs
+expression: inner
+---
+[
+  Result(
+    id: 0,
+    type: error,
+    ip_address: Some(""),
+    hostname: Some("oci://registry/repository:latest"),
+    oid: Some("openvasd/container-image-scanner"),
+    port: Some(0),
+    message: Some("Error occurred on registry while operating on authentication (repository:repository:pull)"),
+    detail: Some(Detail(
+      name: "",
+      value: "",
+      source: Source(
+        type: "",
+        name: "",
+        description: "",
+      ),
+    )),
+  ),
+]
