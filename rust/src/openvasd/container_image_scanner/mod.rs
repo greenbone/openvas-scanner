@@ -43,65 +43,25 @@ pub async fn init(
 #[cfg(test)]
 pub mod scans_utils {
 
-    use std::{str::FromStr, sync::Arc, time::Duration};
+    use std::{sync::Arc, time::Duration};
 
-    use sqlx::{Sqlite, pool::PoolOptions, sqlite::SqliteConnectOptions};
     use tokio::sync::Mutex;
 
     use crate::{
         api::states::ScannerBridge,
-        config::DBLocation,
         container_image_scanner::{
-            Config, MIGRATOR,
+            Config,
             image::{DockerRegistryV2Mock, RegistryPreference},
-            scheduling::{Scheduler, db::DataBase},
+            scheduling::{
+                Scheduler,
+                db::{DataBase, tests::create_pool},
+            },
         },
         crypt::Crypter,
         database::sqlite::DbGuard,
     };
     use scannerlib::models;
     use scannerlib::notus::products_loader;
-
-    pub async fn create_pool() -> (DataBase, DbGuard) {
-        create_pool_with_version(None).await
-    }
-
-    pub async fn create_pool_with_version(version: Option<i64>) -> (DataBase, DbGuard) {
-        if let Some(parent) = DBLocation::InMemory
-            .path("container-image-scanner")
-            .unwrap()
-            .parent()
-        {
-            std::fs::create_dir_all(parent).expect("expected database directory in shm")
-        }
-
-        let options = SqliteConnectOptions::from_str(
-            &DBLocation::InMemory
-                .sqlite_address("container-image-scanner")
-                .unwrap(),
-        )
-        .unwrap()
-        .create_if_missing(true);
-        let pool = PoolOptions::<Sqlite>::new()
-            .connect_with(options)
-            .await
-            .expect("inmemory database must be available");
-
-        if let Some(version) = version {
-            MIGRATOR
-                .run_to(version, &pool)
-                .await
-                .expect("need migrated database scheme");
-        } else {
-            MIGRATOR
-                .run(&pool)
-                .await
-                .expect("need migrated database scheme");
-        };
-
-        let guard = DbGuard::new(pool.clone());
-        (pool, guard)
-    }
 
     async fn in_memory_scheduler_and_scan(
         config: crate::container_image_scanner::Config,

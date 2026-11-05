@@ -40,25 +40,32 @@ impl<'o, T> DAOHandler<&'o DataBase, T> for DB<'o, T> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use scannerlib::models::{self, Phase};
-    use sqlx::{query, query_as, query_scalar};
+    use sqlx::{SqlitePool, query, query_as, query_scalar};
 
     use crate::{
         config::SqliteConfiguration,
-        container_image_scanner::{
-            MIGRATOR,
-            scans_utils::{create_pool, create_pool_with_version},
-            scheduling::db::scan::DBScan,
-        },
+        container_image_scanner::{MIGRATOR, scheduling::db::scan::DBScan},
         crypt::{Crypt, Crypter, Encrypted},
-        database::dao::RetryExec,
+        database::{
+            dao::RetryExec,
+            sqlite::{DbGuard, tests::create_test_pool},
+        },
     };
+
+    pub async fn create_pool() -> (SqlitePool, DbGuard) {
+        create_test_pool("container-image-scanner", &MIGRATOR, None).await
+    }
+
+    pub async fn create_pool_with_version(version: i64) -> (SqlitePool, DbGuard) {
+        create_test_pool("container-image-scanner", &MIGRATOR, Some(version)).await
+    }
 
     #[tokio::test]
     async fn test_migration() {
         // run all but the latest database migration
-        let (pool, _guard) = create_pool_with_version(Some(20260227095952)).await;
+        let (pool, _guard) = create_pool_with_version(20260227095952).await;
 
         let id = query("INSERT INTO client_scan_map (scan_id, client_id) VALUES (?, ?)")
             .bind("scan1")
@@ -72,8 +79,7 @@ mod tests {
             .bind(id)
             .execute(&pool)
             .await
-            .unwrap()
-            .last_insert_rowid();
+            .unwrap();
 
         query("INSERT INTO credentials (id, username, password) VALUES (?, ?, ?)")
             .bind(id)
