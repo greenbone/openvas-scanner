@@ -168,17 +168,14 @@ impl TryFrom<&str> for Encrypted {
             .map(|nonce| decode(nonce, ParseError::InvalidNonce))
             .ok_or(ParseError::MissingNonce)??;
 
-        let data = parts
-            .next()
-            .map(|data| {
-                // version 0 pure json from the cis
-                if version == 0 {
-                    Ok(data.as_bytes().to_vec())
-                } else {
-                    decode(data, ParseError::InvalidData)
-                }
-            })
-            .ok_or(ParseError::MissingData)??;
+        let data = if version == 0 {
+            parts.collect::<String>().as_bytes().to_vec()
+        } else {
+            parts
+                .next()
+                .map(|data| decode(data, ParseError::InvalidData))
+                .ok_or(ParseError::MissingData)??
+        };
 
         Ok(Encrypted {
             version,
