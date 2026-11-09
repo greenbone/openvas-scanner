@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"first.nasl\"), \"include(\\\"outer.inc\\\");\"),\n(Path :: new(\"second.nasl\"), \"include(\\\"outer.inc\\\");\"),\n(Path :: new(\"outer.inc\"), \"include(\\\"inner.inc\\\");\"),\n(Path :: new(\"inner.inc\"), \"missing();\")],)"
+---
+error: Undefined function 'missing'
+  ┌─ inner.inc:1:1
+  │
+1 │ missing();
+  │ ^^^^^^^ undefined function
+
+error: Undefined function 'missing'
+  ┌─ inner.inc:1:1
+  │
+1 │ missing();
+  │ ^^^^^^^ undefined function

@@ -17,7 +17,8 @@ This function runs a command on a target windows machine. As this function just 
 All arguments are mandatory, except for `additional_args`. `realm` and `kdc` are mandatory only for *Kerberos* authentication method.
 
 ## RETURN VALUE
- Nasl Array. The first element is the exit code, being 0 for success, 1 for error comming from the binary and 2 an error from the nasl function. The second element is the output of the command (response or error).
+
+Nasl Array. The first element is the exit code, being 0 for success, 1 for error comming from the binary and 2 an error from the nasl function. The second element is the output of the command (response or error).
 
 ## ERRORS
 

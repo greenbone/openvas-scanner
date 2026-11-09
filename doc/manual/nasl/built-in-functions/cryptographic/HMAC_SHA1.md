@@ -2,7 +2,8 @@
 
 ## NAME
 
-**HMAC_SHA1** - takes named paramaeter data and key to return HMAC SHA1 string.
+**HMAC_SHA1** - takes named parameter data and key to return HMAC SHA1 string.
+
 ## SYNOPSIS
 
 *str* **HMAC_SHA1**(key: str, data: str);
@@ -15,7 +16,6 @@
 ## DESCRIPTION
 
 HMAC_SHA1 is a type of message authentication code involving SHA1 hash function and a secret cryptographic key.
-
 
 ## RETURN VALUE
 

@@ -11,11 +11,13 @@
 **aes256_gcm_encrypt** encrypts given data with AES 256 GCM mode.
 
 ## DESCRIPTION
+
 Encrypt the given data using the AES 256 bit algorithm in GCM mode.
 
 ## RETURN VALUE
 
 The return value is the encrypted data.
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

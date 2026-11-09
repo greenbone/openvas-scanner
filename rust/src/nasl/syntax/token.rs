@@ -158,7 +158,18 @@ impl LiteralKind {
 }
 
 impl Literal {
-    pub(crate) fn into_string(self) -> Option<String> {
+    pub fn is_null(&self) -> bool {
+        matches!(self.kind, LiteralKind::Null)
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match &self.kind {
+            LiteralKind::String(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn into_string(self) -> Option<String> {
         match self.kind {
             LiteralKind::String(s) => Some(s),
             LiteralKind::Data(bytes) => String::from_utf8(bytes).ok(),

@@ -3,6 +3,7 @@
 ## NAME
 
 **ntlmv2_response** - takes six named arguments cryptkey, user, domain, ntlmv2_hash, address_list, address_list_len to generate a ntlmv2 response.
+
 ## SYNOPSIS
 
 *str* **ntlmv2_response**(cryptkey: str, user: str, domain: str, ntlmv2_hash: str, address_list: str, address_list_len: int);

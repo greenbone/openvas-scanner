@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"),\n\"display(included); before = 1; include(\\\"nested/first.inc\\\"); display(included); after = 1;\"),\n(Path :: new(\"nested/first.inc\"),\n\"display(before); include(\\\"second.inc\\\"); display(after);\"),\n(Path :: new(\"nested/second.inc\"), \"included = 1;\")],)"
+---
+error: Undeclared variable 'included'
+  ┌─ root.nasl:1:9
+  │
+1 │ display(included); before = 1; include("nested/first.inc"); display(included); after = 1;
+  │         ^^^^^^^^ undeclared variable
+
+error: Undeclared variable 'after'
+  ┌─ nested/first.inc:1:49
+  │
+1 │ display(before); include("second.inc"); display(after);
+  │                                                 ^^^^^ undeclared variable

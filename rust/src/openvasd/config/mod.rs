@@ -30,16 +30,26 @@ pub enum DBLocation {
 }
 
 impl DBLocation {
-    pub fn sqlite_address(&self, name: &str) -> String {
-        match &self {
-            Self::InMemory => "sqlite::memory:".to_owned(),
-            Self::File(path_buf) => {
-                format!(
-                    "sqlite:{}",
-                    path_buf.join(format!("{name}.sql")).to_string_lossy()
-                )
-            }
-        }
+    pub fn sqlite_address(&self, name: &str) -> anyhow::Result<String> {
+        Ok(format!("sqlite:{}", self.path(name)?.to_string_lossy()))
+    }
+
+    pub fn path(&self, name: &str) -> anyhow::Result<PathBuf> {
+        let path = match &self {
+            #[cfg(not(test))]
+            Self::InMemory => PathBuf::from_str(&format!("/dev/shm/openvasd/{name}.sql"))?,
+            // Add the test name to the database path during testing.
+            // This is required because cargo test runs tests in parallel on multiple threads.
+            #[cfg(test)]
+            Self::InMemory => PathBuf::from_str(&format!(
+                "/dev/shm/openvasd-{:?}-{}/{name}.sql",
+                std::process::id(),
+                std::thread::current().name().unwrap_or("default"),
+            ))?,
+            Self::File(path_buf) => path_buf.join(format!("{name}.sql")),
+        };
+
+        Ok(path)
     }
 
     fn default_file_location(name: &str) -> Self {
@@ -119,6 +129,10 @@ impl SqliteConfiguration {
             location: DBLocation::default_file_location(name),
             ..Default::default()
         }
+    }
+
+    pub fn is_inmemory(&self) -> bool {
+        matches!(self.location, DBLocation::InMemory)
     }
 }
 
@@ -379,6 +393,28 @@ impl StorageTypes {
             StorageTypes::V2(sqlite_configuration) => {
                 sqlite_configuration.credential_key = Some(key)
             }
+        }
+    }
+
+    pub fn to_sqlite_cfg(&self) -> SqliteConfiguration {
+        match self {
+            StorageTypes::V1(storage_v1) => {
+                let mut sqliteconfig = SqliteConfiguration::default();
+
+                match storage_v1.storage_type {
+                    StorageType::InMemory | StorageType::Redis => {}
+                    StorageType::FileSystem if storage_v1.fs.path.is_dir() => {
+                        let mut p = storage_v1.fs.path.clone();
+                        p.push("openvasd.db");
+                        sqliteconfig.location = DBLocation::File(p);
+                    }
+                    StorageType::FileSystem => {
+                        sqliteconfig.location = DBLocation::File(storage_v1.fs.path.clone());
+                    }
+                };
+                sqliteconfig
+            }
+            StorageTypes::V2(sqlite_configuration) => sqlite_configuration.clone(),
         }
     }
 }

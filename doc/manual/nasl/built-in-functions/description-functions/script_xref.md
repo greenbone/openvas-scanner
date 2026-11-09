@@ -19,15 +19,15 @@ In fact, if name is "cve", it is equivalent to call script_cve_id(),
 This even works with multiple comma-separated elements like
 script_xref (name: "cve", csv: "CVE-2019-12345,CVE-2019-54321");
 
-
 ## RETURN VALUE
 
 Returns nothing.
 
 ## ERRORS
+
 - If name is empty.
 - If no value and no cve
- 
+
 ## EXAMPLES
 
 **1**: 
@@ -46,7 +46,6 @@ script_xref (name: "cve", value: "CVE-2019-12345");
 //This even works with multiple comma-separated elements like
 script_xref (name: "cve", csv: "CVE-2019-12345,CVE-2019-54321");
 ```
-
 
 ## SEE ALSO
 

@@ -284,7 +284,6 @@ struct Interpreter<'ctx> {
     fork_history: ForkHistory,
     stmt_index: usize,
     state: InterpreterState,
-    version: NaslVersion,
 }
 
 impl<'ctx> Interpreter<'ctx> {
@@ -298,7 +297,6 @@ impl<'ctx> Interpreter<'ctx> {
             fork_reentry_data: ForkReentryData::new(),
             fork_history: ForkHistory::default(),
             state: InterpreterState::Running,
-            version: NaslVersion::V1,
         }
     }
 
@@ -499,7 +497,7 @@ impl<'ctx> Interpreter<'ctx> {
     }
 
     pub(crate) async fn resolve_block(&mut self, block: &Block<Statement>) -> Result {
-        let add_scope = match self.version {
+        let add_scope = match self.script_ctx.version {
             NaslVersion::V1 => false,
             NaslVersion::V2 => true,
         };
@@ -577,7 +575,6 @@ impl<'ctx> Interpreter<'ctx> {
             fork_reentry_data,
             state: InterpreterState::Running,
             fork_history: self.fork_history.clone(),
-            version: self.version,
         }
     }
 

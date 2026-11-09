@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (called_functions)),\n\"function unused() { display(ignored); } function called() { assigned = 1; display(assigned, missing, missing); } called();\",)"
+---
+error: Undeclared variable 'missing'
+  ┌─ called_functions.nasl:1:93
+  │
+1 │ function unused() { display(ignored); } function called() { assigned = 1; display(assigned, missing, missing); } called();
+  │                                                                                             ^^^^^^^ undeclared variable
+
+error: Undeclared variable 'missing'
+  ┌─ called_functions.nasl:1:102
+  │
+1 │ function unused() { display(ignored); } function called() { assigned = 1; display(assigned, missing, missing); } called();
+  │                                                                                                      ^^^^^^^ undeclared variable

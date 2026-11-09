@@ -314,13 +314,12 @@ impl TestLoader {
         }
     }
 
-    pub(crate) fn with_file(mut self, file_name: &str, contents: String) -> Self {
+    pub(crate) fn with_file(mut self, file_name: impl Into<PathBuf>, contents: String) -> Self {
         self.files.insert(file_name.into(), contents);
         self
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_root(mut self, root: PathBuf) -> Self {
+    pub fn with_root(mut self, root: PathBuf) -> Self {
         self.root = Some(root);
         self
     }

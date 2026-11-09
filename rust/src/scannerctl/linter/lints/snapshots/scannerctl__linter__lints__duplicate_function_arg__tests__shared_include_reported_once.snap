@@ -1,0 +1,11 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function_arg.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"first.nasl\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"second.nasl\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"shared.inc\"), \"foo(a: 1, a: 2); function foo(a) {}\")],)"
+---
+warning: Function argument passed multiple times: a
+  ┌─ shared.inc:1:5
+  │
+1 │ foo(a: 1, a: 2); function foo(a) {}
+  │     ^     ^ Also here
+  │     │      
+  │     Function argument passed multiple times: a

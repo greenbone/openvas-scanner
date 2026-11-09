@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/script_xref.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (nested_expressions)),\n\"if (description) { if (TRUE) { script_xref(name:\\\"URL\\\", value:strcat(\\\"a, b\\\", \\\"c\\\")); } script_xref(name:\\\"URL\\\", value:\\\"x, y\\\"); }\",)"
+---
+error: Spaces after commas are not allowed in script_xref strings
+  ┌─ nested_expressions.nasl:1:69
+  │
+1 │ if (description) { if (TRUE) { script_xref(name:"URL", value:strcat("a, b", "c")); } script_xref(name:"URL", value:"x, y"); }
+  │                                                                     ^^^^^^ remove the space after the comma
+
+error: Spaces after commas are not allowed in script_xref strings
+  ┌─ nested_expressions.nasl:1:116
+  │
+1 │ if (description) { if (TRUE) { script_xref(name:"URL", value:strcat("a, b", "c")); } script_xref(name:"URL", value:"x, y"); }
+  │                                                                                                                    ^^^^^^ remove the space after the comma

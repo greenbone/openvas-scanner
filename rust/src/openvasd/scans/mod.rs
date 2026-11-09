@@ -30,8 +30,8 @@ pub mod tests {
     use axum::extract::Request;
     use futures::StreamExt;
     use scannerlib::models::{
-        self, AliveTestMethods, Credential, CredentialType, PrivilegeInformation, ScanPreference,
-        Service,
+        self, AliveTestMethods, Credential, CredentialType, Phase, PrivilegeInformation,
+        ScanPreference, Service,
     };
     use scannerlib::{scanner, utils::scanner_types::ScannerType};
     use sqlx::{SqlitePool, query_scalar};
@@ -39,6 +39,7 @@ pub mod tests {
 
     use crate::api::{error::ApiError, routes};
     use crate::config::Config;
+    use crate::database::sqlite::DbGuard;
     use crate::database::{dao::Execute, sqlite, sqlite::scans::ScanDB};
 
     async fn init(pool: SqlitePool, config: &Config) -> anyhow::Result<ScannerBridge> {
@@ -261,7 +262,7 @@ pub mod tests {
         results
     }
 
-    pub async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
+    pub async fn create_pool() -> anyhow::Result<(Config, SqlitePool, DbGuard)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let advisories_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -298,8 +299,8 @@ pub mod tests {
         };
 
         let pool = sqlite::init(&config).await?;
-
-        Ok((config, pool))
+        let guard = DbGuard::new(pool.clone());
+        Ok((config, pool, guard))
     }
 
     pub async fn prepare_scans(pool: SqlitePool, config: &Config) -> Vec<i64> {
@@ -320,7 +321,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn post_scan() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
 
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
@@ -333,7 +334,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn post_scan_duplicate_id() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
@@ -355,7 +356,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn map_id() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
@@ -373,7 +374,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_scan_id() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();
@@ -395,7 +396,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_scans_preferences() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
 
         let router = routes::scans::router(
@@ -419,106 +420,110 @@ pub mod tests {
         Ok(())
     }
 
-    // TODO: temporarily disabled do to merge queue lockups
-    // #[tokio::test]
-    // async fn get_scan_id_status() -> anyhow::Result<()> {
-    //     let (config, pool) = create_pool().await?;
+    #[tokio::test]
+    async fn get_scan_id_status() -> anyhow::Result<()> {
+        let (config, pool, _guard) = create_pool().await?;
 
-    //     let crypter = Arc::new(Crypter::from_config(&config, &pool).await?);
-    //     let (_, _, communicator) = orchestrator::Communicator::init();
-    //     let scheduler = scheduling::init_with_scanner(
-    //         pool.clone(),
-    //         crypter.clone(),
-    //         &config,
-    //         scheduling::tests::scanner_succeeded().build(),
-    //         communicator,
-    //     )
-    //     .await?;
+        let crypter = Arc::new(Crypter::from_config(&config, &pool).await?);
+        let (_, _, communicator) = orchestrator::Communicator::init();
+        let scheduler = scheduling::init_with_scanner(
+            pool.clone(),
+            crypter.clone(),
+            &config,
+            scheduling::tests::scanner_succeeded().build(),
+            communicator,
+        )
+        .await?;
 
-    //     let undertest = super::ScannerBridge {
-    //         pool,
-    //         crypter: Some(crypter),
-    //         scheduler: Some(scheduler),
-    //     };
+        let undertest = super::ScannerBridge {
+            pool,
+            crypter: Some(crypter),
+            scheduler: Some(scheduler),
+        };
 
-    //     let client_id = "moep".to_string();
-    //     let scans = generate_scan();
-    //     assert!(!scans.is_empty());
-    //     for scan in scans.clone() {
-    //         undertest.post_scan(&client_id, &scan).await?;
-    //     }
-    //     for scan in scans.iter() {
-    //         let result = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
-    //         assert_eq!(result.status, Phase::Stored);
-    //     }
+        let client_id = "moep".to_string();
+        let scans = generate_scan();
+        assert!(!scans.is_empty());
+        for scan in scans.iter() {
+            undertest.post_scan(&client_id, scan).await?;
+        }
 
-    //     for scan in scans.iter() {
-    //         undertest
-    //             .schedule_scan(&client_id, &scan.scan_id, models::Action::Start)
-    //             .await?;
-    //         let mut status;
-    //         loop {
-    //             status = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
-    //             if status.is_running() {
-    //                 break;
-    //             }
-    //         }
-    //         assert!(matches!(status.status, Phase::Requested | Phase::Running));
-    //     }
+        // check that all posted scans are stored
+        for scan in scans.iter() {
+            let result = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
+            assert_eq!(result.status, Phase::Stored);
+        }
 
-    //     for scan in scans.iter() {
-    //         // Why start them again ?
-    //         undertest
-    //             .schedule_scan(&client_id, &scan.scan_id, models::Action::Start)
-    //             .await?;
-    //         let mut status;
-    //         loop {
-    //             status = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
-    //             if status.is_done() {
-    //                 break;
-    //             }
-    //         }
+        for scan in scans.iter() {
+            undertest
+                .schedule_scan(&client_id, &scan.scan_id, models::Action::Start)
+                .await?;
 
-    //         assert!(matches!(status.status, Phase::Succeeded));
+            // check that they get set to requested
+            // NOTICE: in rare cases scans can be already finished before we can check for the requested status,
+            // that is why we have to accept succeeded as well.
+            let mut status;
+            loop {
+                status = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
+                if status.is_running() || status.is_done() {
+                    break;
+                }
+            }
+            assert!(matches!(
+                status.status,
+                Phase::Requested | Phase::Running | Phase::Succeeded
+            ));
+        }
 
-    //         let result = undertest
-    //             .get_scan_results(&client_id, &scan.scan_id, None, None)
-    //             .await?
-    //             .collect::<Vec<_>>()
-    //             .await;
-    //         assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 2);
-    //         let result = undertest
-    //             .get_scan_results(&client_id, &scan.scan_id, Some(1), None)
-    //             .await?
-    //             .collect::<Vec<_>>()
-    //             .await;
-    //         assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
-    //         let result = undertest
-    //             .get_scan_results(&client_id, &scan.scan_id, None, Some(0))
-    //             .await?
-    //             .collect::<Vec<_>>()
-    //             .await;
-    //         assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
-    //         let result = undertest
-    //             .get_scan_results(&client_id, &scan.scan_id, Some(0), Some(0))
-    //             .await?
-    //             .collect::<Vec<_>>()
-    //             .await;
-    //         assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
-    //         let result = undertest
-    //             .get_scan_results(&client_id, &scan.scan_id, Some(23), None)
-    //             .await?
-    //             .collect::<Vec<_>>()
-    //             .await;
-    //         assert_eq!(result.len(), 0);
-    //     }
+        for scan in scans.iter() {
+            // check that all scans ran to successful completion
+            let mut status;
+            loop {
+                status = undertest.get_scan_status(&client_id, &scan.scan_id).await?;
+                if status.is_done() {
+                    break;
+                }
+            }
+            assert!(matches!(status.status, Phase::Succeeded));
 
-    //     Ok(())
-    // }
+            let result = undertest
+                .get_scan_results(&client_id, &scan.scan_id, None, None)
+                .await?
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 2);
+            let result = undertest
+                .get_scan_results(&client_id, &scan.scan_id, Some(1), None)
+                .await?
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
+            let result = undertest
+                .get_scan_results(&client_id, &scan.scan_id, None, Some(0))
+                .await?
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
+            let result = undertest
+                .get_scan_results(&client_id, &scan.scan_id, Some(0), Some(0))
+                .await?
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.into_iter().filter_map(|x| x.ok()).count(), 1);
+            let result = undertest
+                .get_scan_results(&client_id, &scan.scan_id, Some(23), None)
+                .await?
+                .collect::<Vec<_>>()
+                .await;
+            assert_eq!(result.len(), 0);
+        }
+
+        Ok(())
+    }
 
     #[tokio::test]
     async fn get_scans() -> anyhow::Result<()> {
-        let (config, pool) = create_pool().await?;
+        let (config, pool, _guard) = create_pool().await?;
         let undertest = init(pool, &config).await?;
         let client_id = "moep".to_string();
         let scans = generate_scan();

@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (function_definition_order)),\n\"function f() { display(later); } later = 1; f(); function g() { display(later); } g();\",)"
+---
+error: Undeclared variable 'later'
+  ┌─ function_definition_order.nasl:1:24
+  │
+1 │ function f() { display(later); } later = 1; f(); function g() { display(later); } g();
+  │                        ^^^^^ undeclared variable

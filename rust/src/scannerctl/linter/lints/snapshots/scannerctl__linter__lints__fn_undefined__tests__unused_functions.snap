@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (unused_functions)),\n\"function unused() { missing(); } function recursive() { recursive(); missing(); }\",)"
+---
+

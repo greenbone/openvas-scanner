@@ -3,6 +3,7 @@
 ## NAME
 
 **ntlm2_response** - takes three named arguments cryptkey, password, nt_hash
+
 ## SYNOPSIS
 
 *str* **ntlm2_response**(cryptkey: str, password: str, nt_hash: str);
@@ -14,7 +15,6 @@ The nt_hash is the `nt_owf_gen` response of the password given in password.
 ## DESCRIPTION
 
 ntlm2_response generates the ntlm2_response based on the given arguments.
-
 
 ## RETURN VALUE
 

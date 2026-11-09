@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"), \"include(\\\"internal.inc\\\");\"),\n(Path :: new(\"internal.inc\"),\n\"value = 1; function initialize() { initialize(); }\")],)"
+---
+error: The included file 'internal.inc' is never used
+  ┌─ root.nasl:1:9
+  │
+1 │ include("internal.inc");
+  │         ^^^^^^^^^^^^^^

@@ -1,0 +1,21 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"unused.nasl\"), \"include(\\\"shared.inc\\\");\"),\n(Path :: new(\"used.nasl\"), \"include(\\\"shared.inc\\\"); start();\"),\n(Path :: new(\"shared.inc\"),\n\"function start() { helper(); } function helper() { display(missing()); missing(); } function unused() { ignored(); }\")],)"
+---
+error: The included file 'shared.inc' is never used
+  ┌─ unused.nasl:1:9
+  │
+1 │ include("shared.inc");
+  │         ^^^^^^^^^^^^
+
+error: Undefined function 'missing'
+  ┌─ shared.inc:1:60
+  │
+1 │ function start() { helper(); } function helper() { display(missing()); missing(); } function unused() { ignored(); }
+  │                                                            ^^^^^^^ undefined function
+
+error: Undefined function 'missing'
+  ┌─ shared.inc:1:72
+  │
+1 │ function start() { helper(); } function helper() { display(missing()); missing(); } function unused() { ignored(); }
+  │                                                                        ^^^^^^^ undefined function

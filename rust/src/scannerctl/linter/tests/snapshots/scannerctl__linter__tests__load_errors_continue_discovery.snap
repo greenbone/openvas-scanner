@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/tests/mod.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"),\n\"include(\\\"missing.inc\\\"); include(\\\"broken.inc\\\");\"),\n(Path :: new(\"broken.inc\"), \"function foo(\")],)"
+---
+error: Could not find file 'IncludeString("missing.inc")'
+  ┌─ root.nasl:1:9
+  │
+1 │ include("missing.inc"); include("broken.inc");
+  │         ^^^^^^^^^^^^^ Could not find file 'IncludeString("missing.inc")'
+
+error: Expected ')'
+  ┌─ broken.inc:1:1
+  │
+1 │ function foo(
+  │ ^^^^^^^^^^^^^ Expected ')'

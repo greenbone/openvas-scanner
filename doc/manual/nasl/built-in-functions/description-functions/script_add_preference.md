@@ -25,7 +25,6 @@
   - Removing preferences, and especially reusing the ids should be avoided because they are not removed from scan configs, which could result in an inconsistent state if the id is reused for something different.
   - For preference without ID, the assigned ID is the position number in the preference list. If the order is changed, it is as removing the preference and adding a new one reusing the ID, which could result in an inconsistent state.
 
-
 ## DESCRIPTION
 
 This function adds plugin preference to the plugin.
@@ -36,16 +35,14 @@ KB items as a list of key-value pairs or None if array size is 0
 
 ## ERRORS
 
- - Invalid id or not allowed id value. ID must be greater than 0. 
- - Argument error in the call to script_add_preference. No name nor type neither value.
- - Preference already exists.
- 
+- Invalid id or not allowed id value. ID must be greater than 0.
+- Argument error in the call to script_add_preference. No name nor type neither value.
+- Preference already exists.
+
 ## EXAMPLES
 
-**1**: 
 ```cpp
 script_add_preference(name:"Service scan", type:"checkbox", value:"no", id:2);
-
 ```
 
 ## SEE ALSO

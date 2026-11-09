@@ -5,7 +5,10 @@ use scannerlib::models::{self, Action, Scan};
 use sqlx::{Acquire, Database, Row, Sqlite, SqlitePool, query, query::Query, sqlite::SqliteRow};
 
 use crate::{
-    container_image_scanner::image::{Image, ImageState, RegistryError},
+    container_image_scanner::{
+        image::{Image, ImageState},
+        scheduling::DiscoveredImages,
+    },
     database::{
         dao::{DAOError, DAOPromiseRef, DBViolation, Execute, Fetch},
         sqlite::insert_values_chunked,
@@ -35,7 +38,7 @@ impl<'o> Execute<()> for DBScan<'o, (&'o str, models::Phase)> {
     }
 }
 
-impl<'o> Execute<()> for DBScan<'o, (&'o str, &'o [Result<Image, RegistryError>])> {
+impl<'o> Execute<()> for DBScan<'o, (&'o str, &'o DiscoveredImages)> {
     fn exec<'a, 'b>(&'a self) -> DAOPromiseRef<'b, ()>
     where
         'a: 'b,
@@ -51,33 +54,29 @@ impl<'o> Execute<()> for DBScan<'o, (&'o str, &'o [Result<Image, RegistryError>]
 async fn set_scan_images(
     pool: &SqlitePool,
     id: &str,
-    images: &[Result<Image, RegistryError>],
+    discovered: &DiscoveredImages,
 ) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
-    let count = images.len();
-    let dead_count = images.iter().filter(|x| x.is_err()).count();
-    let success_count = images.iter().filter(|x| x.is_ok()).count();
+    let count = discovered.images.len() + discovered.errors.len();
     query(
         r#"
             UPDATE scans
             SET host_all = ?,
                 host_queued = 0,
-                host_dead = ?
+                host_finished = host_finished + ?
             WHERE id = ?
             "#,
     )
     .bind(count as i64)
-    .bind(dead_count as i64)
+    .bind(discovered.errors.len() as i64)
     .bind(id)
     .execute(&mut *tx)
     .await?;
-    if success_count > 0 {
-        let images = images
+    if !discovered.images.is_empty() {
+        let images = discovered
+            .images
             .iter()
-            .filter_map(|image| match image {
-                Ok(image) => Some(image.to_string()),
-                Err(_) => None,
-            })
+            .map(ToString::to_string)
             .collect::<Vec<_>>();
         insert_values_chunked(
             &mut *tx,
@@ -91,7 +90,7 @@ async fn set_scan_images(
         .await?;
     }
     tx.commit().await?;
-    if success_count == 0 || count == 0 {
+    if count == 0 {
         set_scan_to_failed(pool, id).await?;
     }
 

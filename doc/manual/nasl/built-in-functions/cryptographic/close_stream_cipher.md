@@ -11,9 +11,11 @@
 **close_stream_cipher** closes a stream cipher.
 
 ## DESCRIPTION
+
 Closes a stream cipher.
 
 ## RETURN VALUE
+
 0 when the hd is closed.
 
 ## ERRORS

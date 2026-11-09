@@ -1,0 +1,23 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format!\n(\"{}.nasl\", stringify! (duplicate_definitions_keep_both_bodies)),\n\"function foo() { missing_a(); } function foo() { missing_b(); } foo();\",)"
+---
+error: Undefined function 'missing_a'
+  ┌─ duplicate_definitions_keep_both_bodies.nasl:1:18
+  │
+1 │ function foo() { missing_a(); } function foo() { missing_b(); } foo();
+  │                  ^^^^^^^^^ undefined function
+
+error: Undefined function 'missing_b'
+  ┌─ duplicate_definitions_keep_both_bodies.nasl:1:50
+  │
+1 │ function foo() { missing_a(); } function foo() { missing_b(); } foo();
+  │                                                  ^^^^^^^^^ undefined function
+
+error: Function 'foo' is defined multiple times
+  ┌─ duplicate_definitions_keep_both_bodies.nasl:1:42
+  │
+1 │ function foo() { missing_a(); } function foo() { missing_b(); } foo();
+  │          ---                             ^^^ duplicate definition
+  │          │                                
+  │          first definition

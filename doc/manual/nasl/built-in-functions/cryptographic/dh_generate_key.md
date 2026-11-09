@@ -14,10 +14,10 @@
 
 dh_generate_key generates the public key based on p, g and the private key.
 
-
 ## RETURN VALUE
 
 public key
+
 ## ERRORS
 
 Returns NULL when a given parameter is null.

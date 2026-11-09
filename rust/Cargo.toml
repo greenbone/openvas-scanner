@@ -152,9 +152,7 @@ mockito = "1.7.2"
 vergen-git2 = "10.0.3"
 
 [features]
-default = ["enforce-no-trailing-arguments"]
-native-rust-ssh = []
-enforce-no-trailing-arguments = []
+default = []
 requires-compose = []
 
 [workspace.package]

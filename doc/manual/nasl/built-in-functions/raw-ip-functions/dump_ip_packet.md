@@ -10,7 +10,6 @@
 
 **dump_ip_packet** takes any number of unnamed arguments.
 
-
 ## DESCRIPTION
 
 Receive a list of IP packets and print them in a readable format in the screen.
@@ -21,7 +20,6 @@ None
 
 ## EXAMPLES
 
-**1** :
 ```cpp
 ip_packet = forge_ip_packet(ip_hl:  5,
                             ip_v:   4,

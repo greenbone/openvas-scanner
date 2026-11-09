@@ -3,6 +3,7 @@
 ## NAME
 
 **prf_sha384** - takes four named arguments secret, seed, label, outlen
+
 ## SYNOPSIS
 
 *str* **prf_sha384**(secret: str, seed: str, label: str, outlen: int);
@@ -16,7 +17,6 @@ prf_sha384 is pseudo random function based on [rfc-2246§5](https://www.rfc-edit
 It uses given seed and label as a basis for the pseudo random generator while the secret is the basis of the hash limited by the given outlen parameter. 
 
 The outlen is the length of the returned value in bytes.
-
 
 ## RETURN VALUE
 

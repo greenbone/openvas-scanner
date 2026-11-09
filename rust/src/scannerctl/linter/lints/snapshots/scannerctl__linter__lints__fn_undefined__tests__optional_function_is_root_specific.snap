@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"checked.nasl\"),\n\"include(\\\"shared.inc\\\"); probe(); optional();\"),\n(Path :: new(\"unchecked.nasl\"), \"include(\\\"shared.inc\\\"); optional();\"),\n(Path :: new(\"shared.inc\"),\n\"function probe() { defined_func(\\\"optional\\\"); }\")],)"
+---
+error: Undefined function 'optional'
+  ┌─ unchecked.nasl:1:24
+  │
+1 │ include("shared.inc"); optional();
+  │                        ^^^^^^^^ undefined function

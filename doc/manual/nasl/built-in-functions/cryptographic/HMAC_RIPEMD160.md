@@ -2,7 +2,8 @@
 
 ## NAME
 
-**HMAC_RIPEMD160** - takes named paramaeter data and key to return HMAC RIPEMD160 string.
+**HMAC_RIPEMD160** - takes named parameter data and key to return HMAC RIPEMD160 string.
+
 ## SYNOPSIS
 
 *str* **HMAC_RIPEMD160**(key: str, data: str);
@@ -15,7 +16,6 @@
 ## DESCRIPTION
 
 HMAC_RIPEMD160 is a type of message authentication code involving RIPEMD160 hash function and a secret cryptographic key.
-
 
 ## RETURN VALUE
 

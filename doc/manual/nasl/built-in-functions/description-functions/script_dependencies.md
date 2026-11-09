@@ -21,13 +21,11 @@ Returns nothing.
 ## ERRORS
 
 It requires at least one string as argument.
- 
+
 ## EXAMPLES
 
-**1**: 
 ```cpp
  script_dependencies("toolcheck.nasl", "host_alive_detection.nasl");
-
 ```
 
 ## SEE ALSO

@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (defined_variable_check_not_op_call)),\n\"if (!isnull(missing)) display(missing);\",)"
+---
+error: Undeclared variable 'missing'
+  ┌─ defined_variable_check_not_op_call.nasl:1:13
+  │
+1 │ if (!isnull(missing)) display(missing);
+  │             ^^^^^^^ undeclared variable
+
+error: Undeclared variable 'missing'
+  ┌─ defined_variable_check_not_op_call.nasl:1:31
+  │
+1 │ if (!isnull(missing)) display(missing);
+  │                               ^^^^^^^ undeclared variable

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 Greenbone AG
+// SPDX-FileCopyrightText: 2026 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -21,7 +21,7 @@ const OID_SNMP_AUTH: &str = "1.3.6.1.4.1.25623.1.0.105076";
 const OID_PING_HOST: &str = "1.3.6.1.4.1.25623.1.0.100315";
 
 const BOREAS_ALIVE_TEST: &str = "ALIVE_TEST";
-const BOREAS_ALIVE_TEST_PORTS: &str = "ALIVE_TEST_PORTS";
+const BOREAS_ALIVE_TEST_PORTS: &str = "alive_test_ports";
 const ALIVE_TEST_SCAN_CONFIG_DEFAULT: u8 = 0x00;
 
 #[derive(Debug)]

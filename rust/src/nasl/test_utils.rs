@@ -140,8 +140,6 @@ pub struct TestBuilder<S: ContextStorage + 'static> {
     notus: Option<Arc<Mutex<Notus>>>,
 }
 
-pub type DefaultTestBuilder = TestBuilder<InMemoryStorage>;
-
 impl Default for TestBuilder<InMemoryStorage> {
     fn default() -> Self {
         Self {

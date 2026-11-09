@@ -14,7 +14,7 @@ use tokio::sync::RwLock;
 use crate::models::VTData;
 use crate::nasl::builtin::{KBError, NaslSockets};
 use crate::nasl::syntax::Loader;
-use crate::nasl::{FromNaslValue, WithErrorInfo};
+use crate::nasl::{FromNaslValue, NaslVersion, WithErrorInfo};
 use crate::notus::Notus;
 use crate::scanner::preferences::preference::{ScanPrefs, pref_is_true};
 use crate::storage::error::StorageError;
@@ -464,6 +464,7 @@ pub struct JmpDesc {
 }
 
 pub struct ScriptCtx<'a> {
+    pub(crate) version: NaslVersion,
     pub alive: bool,
     pub denial_port: Option<u16>,
     pub multicast_groups: Vec<JmpDesc>,
@@ -476,6 +477,7 @@ pub struct ScriptCtx<'a> {
 impl<'a> ScriptCtx<'a> {
     pub fn new(scan_ctx: &'a ScanCtx, target_id: TargetId, vt: VTData) -> Self {
         Self {
+            version: NaslVersion::default(),
             alive: false,
             denial_port: None,
             multicast_groups: vec![],
@@ -717,6 +719,7 @@ impl<'a> ScriptCtx<'a> {
     // logic for the multicast groups?
     pub(crate) fn clone_shallow(&self) -> ScriptCtx<'a> {
         Self {
+            version: self.version,
             alive: self.alive,
             denial_port: self.denial_port,
             multicast_groups: vec![],

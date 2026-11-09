@@ -20,7 +20,6 @@ random byte.
 A big number is an integer, that is probably to big for any primitive data type. In case of the
 c implementation the mpi (multi-precision integer) type of libgcrypt was used.
 
-
 ## RETURN VALUE
 
 A random big number as bytes

@@ -26,7 +26,7 @@ fn dec2str() {
 
 #[test]
 fn nasl_typeof() {
-    let mut t = TestBuilder::default();
+    let mut t = TestBuilder::default().with_nasl_version(NaslVersion::V2);
     t.ok(r#"typeof("AA");"#, "string");
     t.ok(r#"typeof(1);"#, "int");
     t.ok(r#"typeof('AA');"#, "data");

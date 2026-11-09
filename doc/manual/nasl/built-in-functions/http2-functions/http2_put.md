@@ -11,17 +11,19 @@
 **http_put** takes five named arguments.
 
 ## DESCRIPTION
+
 Performs an HTTP2 PUT request for the server on the port. It tries to force the version HTTP2 if `https` (default) is passed as schema uses ALPN to negotiate the protocol to use.
 
 If `http` is passed as schema, the function includes an upgrade header in the initial request to the host to allow upgrading to HTTP/2.
 The arguments are port and item (the path, query, etc), schema (optional, default `https`) and `data` (optional).
 
 ## RETURN VALUE
+
 It returns a string (the http response). Null on error
 
 ## EXAMPLES
 
-**1** Get and display the formatted put request:
+Get and display the formatted put request:
 ```cpp
 h = http2_handle();
 display(h);

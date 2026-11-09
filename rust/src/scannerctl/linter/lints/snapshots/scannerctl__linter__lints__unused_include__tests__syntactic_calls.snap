@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/unused_include.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"root.nasl\"),\n\"include(\\\"library.inc\\\"); function unreachable() { exported(); }\"),\n(Path :: new(\"library.inc\"), \"function exported() {}\")],)"
+---
+error: The included file 'library.inc' is never used
+  ┌─ root.nasl:1:9
+  │
+1 │ include("library.inc"); function unreachable() { exported(); }
+  │         ^^^^^^^^^^^^^

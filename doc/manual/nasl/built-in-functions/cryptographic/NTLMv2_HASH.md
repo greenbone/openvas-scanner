@@ -3,6 +3,7 @@
 ## NAME
 
 **NTLMv2_HASH** - takes two named arguments cryptkey, pass_hash
+
 ## SYNOPSIS
 
 *str* **NTLMv2_HASH**(cryptkey: str, password: str, nt_hash: str);

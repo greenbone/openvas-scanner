@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (builtin_variables)),\n\"if (description) display(SCRIPT_NAME, COMMAND_LINE, IPPROTO_TCP, OPENVAS_VERSION, ACT_UNKNOWN);\",)"
+---
+

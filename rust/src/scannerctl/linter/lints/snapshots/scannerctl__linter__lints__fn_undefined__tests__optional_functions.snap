@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (optional_functions)),\n\"if (defined_func(\\\"optional\\\")) optional(); if (!defined_func('another')) exit(0); another();\",)"
+---
+

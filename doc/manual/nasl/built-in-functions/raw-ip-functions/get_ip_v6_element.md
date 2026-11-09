@@ -10,7 +10,6 @@
 
 **get_ip_v6_element** It takes two named parameters.
 
-
 ## DESCRIPTION
 
 Same as **[get_ipv6_element(3nasl)](get_ipv6_element.md)**.
@@ -36,7 +35,6 @@ For more information of these fields look into **[forge_ip_v6_packet(3nasl)](for
 ## RETURN VALUE
 
 Returns an IP element from a IPv6 datagram.
-
 
 ## ERRORS
 

@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/fn_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"first.nasl\"), \"include(\\\"lib/outer.inc\\\"); shared();\"),\n(Path :: new(\"second.nasl\"), \"include(\\\"lib/outer.inc\\\"); shared();\"),\n(Path :: new(\"lib/outer.inc\"), \"if (0) { include(\\\"inner.inc\\\"); }\"),\n(Path :: new(\"lib/inner.inc\"), \"function shared() {}\")],)"
+---
+

@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format!\n(\"{}.nasl\", stringify! (defined_variable_check_not_op_expression)),\n\"if (!(optional == NULL)) display(optional); if (!(NULL == other)) display(other); if (!(array[0] == NULL)) display(array);\",)"
+---
+

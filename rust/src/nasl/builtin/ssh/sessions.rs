@@ -11,14 +11,11 @@ use super::{SessionId, SshSession, error::Result};
 
 type BorrowedSession<'a> = MutexGuard<'a, SshSession>;
 
-pub const MIN_SESSION_ID: SessionId = 9000;
+const MIN_SESSION_ID: SessionId = 9000;
 
 #[derive(Default)]
 pub struct SshSessions {
-    // We need a mutex around the `SshSession` here.
-    // This is because it contains (depending on feature gates)
-    // 1. a libssh::Channel, which is not `Send`.
-    // 2. a russh::Channel, which is not `Send`.
+    // The mutex allows sharing sessions whose libssh channels are not `Sync`.
     sessions: HashMap<SessionId, Mutex<SshSession>>,
 }
 
@@ -57,7 +54,6 @@ impl SshSessions {
         Ok(())
     }
 
-    #[cfg(not(feature = "native-rust-ssh"))]
     pub fn ids(&self) -> impl Iterator<Item = &SessionId> {
         self.sessions.keys()
     }

@@ -1,0 +1,15 @@
+---
+source: src/scannerctl/linter/lints/var_undefined.rs
+expression: "$crate :: linter :: tests ::\nlint(& format! (\"{}.nasl\", stringify! (independent_scopes)),\n\"function f(arg) { local_var private; } function g() { display(arg, private); } f(); g();\",)"
+---
+error: Undeclared variable 'arg'
+  ┌─ independent_scopes.nasl:1:63
+  │
+1 │ function f(arg) { local_var private; } function g() { display(arg, private); } f(); g();
+  │                                                               ^^^ undeclared variable
+
+error: Undeclared variable 'private'
+  ┌─ independent_scopes.nasl:1:68
+  │
+1 │ function f(arg) { local_var private; } function g() { display(arg, private); } f(); g();
+  │                                                                    ^^^^^^^ undeclared variable

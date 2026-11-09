@@ -2,7 +2,8 @@
 
 ## NAME
 
-**HMAC_SHA512** - takes named paramaeter data and key to return HMAC SHA512 string.
+**HMAC_SHA512** - takes named parameter data and key to return HMAC SHA512 string.
+
 ## SYNOPSIS
 
 *str* **HMAC_SHA512**(key: str, data: str);
@@ -15,7 +16,6 @@
 ## DESCRIPTION
 
 HMAC_SHA512 is a type of message authentication code involving SHA512 hash function and a secret cryptographic key.
-
 
 ## RETURN VALUE
 

@@ -11,14 +11,12 @@
 **http_close_socket** takes one unnamed argument
 
 ## DESCRIPTION
-It is identical to close but this may change in the future. 
 
-## RETURN VALUE
-
+It is identical to close but this may change in the future.
 
 ## EXAMPLES
 
-**1** Open and close a socket. Use the socket to send a get request: 
+Open and close a socket. Use the socket to send a get request:
 ```cpp
 soc = http_open_socket (port: 80);
 

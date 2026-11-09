@@ -3,6 +3,11 @@ name: "Build"
 on:
   workflow_call:
     inputs:
+      source_ref:
+        description: "Which commit to build"
+        required: false
+        type: string
+        default: ${{ github.sha }}
       binary_version:
         description: "Binary version"
         required: false
@@ -21,6 +26,8 @@ jobs:
       image: ghcr.io/greenbone/gvm-libs:stable
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref }}
       - name: install dependencies
         run: |
           sh .github/install-openvas-dependencies.sh
@@ -33,6 +40,7 @@ jobs:
       arch: amd64
       runner: ubuntu-latest
       binary_version: ${{ inputs.binary_version }}
+      source_ref: ${{ inputs.source_ref }}
   rs-arm64:
     if: inputs.build_rust_binaries
     uses: ./.github/workflows/rust-binaries.yaml
@@ -40,3 +48,4 @@ jobs:
       arch: arm64
       runner: self-hosted-generic-arm64
       binary_version: ${{ inputs.binary_version }}
+      source_ref: ${{ inputs.source_ref }}

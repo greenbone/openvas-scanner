@@ -84,7 +84,7 @@ impl Executor {
         self
     }
 
-    pub(crate) fn iter_fn_global_vars(&self) -> impl Iterator<Item = (&'static str, NaslValue)> {
+    pub fn iter_fn_global_vars(&self) -> impl Iterator<Item = (&'static str, NaslValue)> {
         self.fn_global_vars.iter().cloned()
     }
 

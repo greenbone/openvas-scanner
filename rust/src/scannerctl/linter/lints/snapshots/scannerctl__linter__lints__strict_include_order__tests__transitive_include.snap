@@ -1,0 +1,9 @@
+---
+source: src/scannerctl/linter/lints/strict_include_order.rs
+expression: "$crate :: linter :: tests ::\nlint_files_with_lints(&\n[(Path :: new(\"root.nasl\"), \"include(\\\"nested/caller.inc\\\"); start();\"),\n(Path :: new(\"nested/caller.inc\"),\n\"include(\\\"callee.inc\\\"); function start() { helper(); }\"),\n(Path :: new(\"nested/callee.inc\"), \"function helper() {}\")],\nvec![Lint::Root(strict_include_order)],)"
+---
+error: nested/caller.inc must be included after nested/callee.inc (usage of helper)
+  ┌─ nested/caller.inc:1:43
+  │
+1 │ include("callee.inc"); function start() { helper(); }
+  │                                           ^^^^^^ function is defined in a later include

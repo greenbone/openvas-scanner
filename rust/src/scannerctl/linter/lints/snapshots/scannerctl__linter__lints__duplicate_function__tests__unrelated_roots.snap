@@ -1,0 +1,5 @@
+---
+source: src/scannerctl/linter/lints/duplicate_function.rs
+expression: "$crate :: linter :: tests ::\nlint_files(&\n[(Path :: new(\"first.nasl\"), \"function foo() {}\"),\n(Path :: new(\"second.nasl\"), \"function foo() {}\")],)"
+---
+
