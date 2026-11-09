@@ -247,6 +247,7 @@ async fn handle_result(
             trace!(target = result.target);
             let mut status = status.write().await;
             if let Some(host_info) = status.host_info.as_mut() {
+                host_info.register_started_host(&result.target);
                 host_info.register_finished_script(&result.target);
             }
             debug!(result=?result, "script finished");
