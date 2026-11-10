@@ -24,23 +24,6 @@ impl From<SqliteRow> for ImageID {
     }
 }
 
-impl TryFrom<&SqliteRow> for Credential {
-    type Error = DAOError;
-
-    fn try_from(row: &SqliteRow) -> Result<Self, Self::Error> {
-        let username: Option<String> = row.get("username");
-        let password: Option<String> = row.get("password");
-        match (username, password) {
-            (None, None) => Err(DAOError::NotFound),
-            (None, Some(_)) => Err(DAOError::Corrupt),
-            (user, pass) => Ok(Credential {
-                username: user.unwrap_or_default(),
-                password: pass.unwrap_or_default(),
-            }),
-        }
-    }
-}
-
 impl<'o> Fetch<Option<ImageState>> for DBImages<'o, (&'o str, &'o Image)> {
     fn fetch<'a, 'b>(&'a self) -> DAOPromiseRef<'b, Option<ImageState>>
     where
@@ -169,7 +152,6 @@ where
     {
         Box::pin(async move {
             let (crypter, limit) = self.input;
-            let limit = if limit == 0 { 254 } else { limit as i64 };
             let mut stream = sqlx::query(
                 r#"
         WITH running_count AS (
@@ -184,7 +166,7 @@ where
             ORDER BY created_at ASC
             LIMIT (
                 SELECT CASE
-                    WHEN running_total < ? THEN 1
+                    WHEN running_total < ? or ? = 0 THEN 1
                     ELSE 0
                 END
                 FROM running_count
@@ -198,7 +180,8 @@ where
         JOIN selected_scans s
           ON r.id = s.id"#,
             )
-            .bind(limit)
+            .bind(limit as i64)
+            .bind(limit as i64)
             .fetch(self.pool);
             type ImageResult = Result<Image, ImageParseError>;
 
