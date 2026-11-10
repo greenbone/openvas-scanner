@@ -5,6 +5,7 @@ use std::{
 
 use docker_registry::v2::manifest::{Manifest, ManifestObj};
 use futures::{Stream, StreamExt, TryStreamExt};
+use http::StatusCode;
 use tokio::sync::mpsc::Receiver;
 
 use super::{PackedLayer, RegistryPreference};
@@ -371,8 +372,11 @@ impl DockerV2Registry {
         };
         let images: Vec<_> = client.get_images(registry, repository).collect().await;
 
-        if matches!(images.as_slice(), [Err(error)] if error.status_code == Some(404)) {
-            tracing::info!(%registry, repository, "Repository was not found; searching the registry catalog by namespace");
+        if matches!(images.as_slice(), [Err(error)] if matches!(
+            error.status_code.and_then(|status| StatusCode::from_u16(status).ok()),
+            Some(StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN | StatusCode::NOT_FOUND)
+        )) {
+            tracing::info!(%registry, repository, "Repository was not found or access was denied. Searching the registry catalog by namespace");
             return self
                 .resolve_catalog(
                     registry,
