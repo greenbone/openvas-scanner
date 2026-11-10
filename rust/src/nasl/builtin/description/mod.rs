@@ -113,9 +113,14 @@ pub fn script_cve_id(script_ctx: &mut ScriptCtx, cves: CheckedPositionals<String
 #[nasl_function(named(name, value))]
 pub fn script_tag(
     script_ctx: &mut ScriptCtx,
-    name: &str,
+    name: StringOrData,
     value: &NaslValue,
 ) -> Result<(), FnError> {
+    let is_data = matches!(name, StringOrData::Data(_));
+    let name = name.string();
+    if is_data {
+        tracing::warn!("script_tag name '{name}' should be a double-quoted string");
+    }
     let key: TagKey = name.parse()?;
     match TagValue::parse(key, value)? {
         TagValue::Null => {}

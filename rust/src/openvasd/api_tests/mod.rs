@@ -509,6 +509,21 @@ async fn container_image_scanner_deadlock() {
 
 #[tokio::test]
 async fn container_image_scan_registry_subrepository() {
+    check_container_image_scan_registry_subrepository(StatusCode::NOT_FOUND, "NAME_UNKNOWN").await;
+}
+
+#[tokio::test]
+async fn container_image_scan_registry_subrepository_unauthorized() {
+    check_container_image_scan_registry_subrepository(StatusCode::UNAUTHORIZED, "UNAUTHORIZED")
+        .await;
+}
+
+#[tokio::test]
+async fn container_image_scan_registry_subrepository_forbidden() {
+    check_container_image_scan_registry_subrepository(StatusCode::FORBIDDEN, "DENIED").await;
+}
+
+async fn check_container_image_scan_registry_subrepository(status: StatusCode, error_code: &str) {
     const SUBREPOSITORY: &str = "subrepo";
     const REPOSITORY: &str = "subrepo/image";
     const TAGS: &[&str] = &["latest", "v1"];
@@ -517,11 +532,9 @@ async fn container_image_scan_registry_subrepository() {
     let _missing_repository = registry
         .server
         .mock("GET", format!("/v2/{SUBREPOSITORY}/tags/list").as_str())
-        .with_status(StatusCode::NOT_FOUND.as_u16().into())
+        .with_status(status.as_u16().into())
         .with_header("Content-Type", "application/json")
-        .with_body(
-            r#"{"errors":[{"code":"NAME_UNKNOWN","message":"repository name not known to registry"}]}"#,
-        )
+        .with_body(serde_json::json!({"errors": [{"code": error_code}]}).to_string())
         .create();
 
     let registry_address = registry.address();
@@ -530,9 +543,12 @@ async fn container_image_scan_registry_subrepository() {
         .map(|tag| format!("oci://{registry_address}/{REPOSITORY}:{tag}"))
         .collect::<BTreeSet<_>>();
 
-    let t = Test::new("container_image_scan_registry_subrepository")
-        .config("notus")
-        .await;
+    let t = Test::new(&format!(
+        "container_image_scan_registry_subrepository_{}",
+        status.as_u16()
+    ))
+    .config("notus")
+    .await;
     let scan = Scan {
         scan_id: "container-image-registry-subrepository".into(),
         target: Target {
