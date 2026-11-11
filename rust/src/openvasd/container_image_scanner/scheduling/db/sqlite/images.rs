@@ -120,7 +120,10 @@ where
             .await?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows {
-                let credentials = Credential::from_sqlrow(&row, crypter).await.ok().flatten();
+                let credentials = Credential::from_sqlrow(&row, crypter)
+                    .await
+                    .ok()
+                    .and_then(|x| x.first().cloned());
                 let id: ImageID = row.into();
 
                 sqlx::query(
@@ -202,7 +205,10 @@ where
                 let image = registry.parse();
 
                 let id: i64 = row.get("id");
-                let credential = Credential::from_sqlrow(&row, crypter).await.ok().flatten();
+                let credential = Credential::from_sqlrow(&row, crypter)
+                    .await
+                    .ok()
+                    .and_then(|x| x.first().cloned());
 
                 let entry = map.entry(id).or_insert_with(|| (Vec::new(), credential));
 
