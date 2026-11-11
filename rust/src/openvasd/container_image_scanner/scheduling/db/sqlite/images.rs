@@ -120,6 +120,9 @@ where
             .await?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows {
+                // TODO: The API and DB supports multiple credentials but the actual scanning
+                // currently doesn't.
+                // For now we use first configured credential only.
                 let credentials = Credential::from_sqlrow(&row, crypter)
                     .await
                     .ok()
@@ -205,6 +208,10 @@ where
                 let image = registry.parse();
 
                 let id: i64 = row.get("id");
+
+                // TODO: The API and DB supports multiple credentials but the actual scanning
+                // currently doesn't.
+                // For now we use first configured credential only.
                 let credential = Credential::from_sqlrow(&row, crypter)
                     .await
                     .ok()
