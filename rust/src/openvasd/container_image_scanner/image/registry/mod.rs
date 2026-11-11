@@ -12,7 +12,7 @@ use scannerlib::models;
 
 pub(crate) use super::PackedLayer;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Credential {
     pub username: String,
     pub password: String,
@@ -22,24 +22,30 @@ impl Credential {
     pub async fn from_sqlrow<C: Crypt>(
         row: &SqliteRow,
         crypter: &C,
-    ) -> anyhow::Result<Option<Credential>> {
+    ) -> anyhow::Result<Vec<Credential>> {
         let auth_data: String = row.get("auth_data");
         let encrypted = Encrypted::try_from(auth_data)?;
         let auth_data = crypter
             .decrypt(encrypted)
             .await
             .map_err(|_| DAOError::Corrupt)?;
-        Ok(
-            match serde_json::from_slice::<models::Credential>(&auth_data)?.credential_type {
+        let credentials = serde_json::from_slice::<Vec<models::Credential>>(&auth_data)?
+            .iter()
+            .filter_map(|x| match &x.credential_type {
                 models::CredentialType::UP {
                     username,
                     password,
                     #[allow(unused_variables)]
                     privilege,
-                } => Some(Credential { username, password }),
+                } => Some(Credential {
+                    username: username.clone(),
+                    password: password.clone(),
+                }),
                 _ => None,
-            },
-        )
+            })
+            .collect();
+
+        Ok(credentials)
     }
 }
 
@@ -181,5 +187,79 @@ impl Display for RegistryError {
         } else {
             write!(f, "Error occurred while operating on {kind}")
         }
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use scannerlib::models;
+
+    use crate::{
+        config::SqliteConfiguration,
+        container_image_scanner::{image::Credential, scheduling::db::tests::create_pool},
+        crypt::{Crypt, Crypter},
+    };
+
+    #[tokio::test]
+    async fn multiple_credentials_storage() {
+        let (pool, _guard) = create_pool().await;
+        let crypter = Crypter::from_config(&SqliteConfiguration::default(), &pool)
+            .await
+            .unwrap();
+
+        let credentials = vec![
+            models::Credential {
+                service: models::Service::Generic,
+                port: None,
+                credential_type: models::CredentialType::UP {
+                    username: "user".to_string(),
+                    password: "pass".to_string(),
+                    privilege: None,
+                },
+            },
+            models::Credential {
+                service: models::Service::Generic,
+                port: None,
+                credential_type: models::CredentialType::UP {
+                    username: "foo".to_string(),
+                    password: "bar".to_string(),
+                    privilege: None,
+                },
+            },
+        ];
+
+        let bytes = serde_json::to_vec(&credentials).unwrap();
+        let auth_data = crypter.encrypt(bytes).await.unwrap().to_string();
+
+        let id = sqlx::query("INSERT INTO scans(scan_id, client_id, status, auth_data, host_all, host_queued, host_alive, host_dead) VALUES (?, ?, 'running', ?, 3, 0, 2, 1)")
+            .bind("scan1")
+            .bind("client1")
+            .bind(auth_data)
+            .execute(&pool)
+            .await
+            .unwrap()
+            .last_insert_rowid();
+
+        let row = sqlx::query("SELECT auth_data FROM scans WHERE id = ?")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
+        // conversion from [models::Credential] to [image::Credential]
+        let result = Credential::from_sqlrow(&row, &crypter).await.unwrap();
+        assert_eq!(
+            result,
+            vec![
+                Credential {
+                    username: "user".to_string(),
+                    password: "pass".to_string()
+                },
+                Credential {
+                    username: "foo".to_string(),
+                    password: "bar".to_string()
+                },
+            ]
+        )
     }
 }
