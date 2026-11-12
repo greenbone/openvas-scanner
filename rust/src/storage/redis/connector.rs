@@ -252,7 +252,17 @@ impl RedisCtx {
                 let value = Vulnerability::from(data);
                 let value = serde_json::to_string(&value)
                     .map_err(|e| DbError::Unknown(format!("Serialization error: {e}")))?;
-                self.rpush(&key, value)?;
+                redis::pipe()
+                    .atomic()
+                    .cmd("DEL")
+                    .arg(&key)
+                    .ignore()
+                    .cmd("RPUSH")
+                    .arg(&key)
+                    .arg(value)
+                    .ignore()
+                    .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))
+                    .map_err(DbError::from)?;
             }
             None => self.rpush(NOTUS_KEY, "1".to_string())?,
         };
@@ -584,17 +594,24 @@ impl RedisCtx {
         // under the filename key is added.
         // Once openvas is no longer used, the dummy item can be removed.
         let key_name = format!("filename:{filename}");
-        self.rpush(
-            &key_name,
-            &[
+        redis::pipe()
+            .atomic()
+            .cmd("DEL")
+            .arg(&key_name)
+            .ignore()
+            .cmd("RPUSH")
+            .arg(&key_name)
+            .arg(&[
                 if mtime.is_empty() {
                     "1"
                 } else {
                     mtime.as_str()
                 },
                 &oid,
-            ],
-        )?;
+            ])
+            .ignore()
+            .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))
+            .map_err(DbError::from)?;
 
         Ok(())
     }
@@ -669,5 +686,66 @@ mod tests {
         // of aborting the whole read, the value is converted lossily.
         let value = Value::BulkString(vec![b'a', b'b', 0xE9]);
         assert_eq!(redis_value_to_string("nvt:1.2.3", value), "ab\u{FFFD}");
+    }
+
+    #[test]
+    fn feed_reload_replaces_advisory_and_filename() {
+        let mut addresses = Vec::new();
+        if let Ok(url) = std::env::var("REDIS_URL") {
+            addresses.push(url);
+        }
+        addresses.push("unix:///run/redis/redis.sock".to_string());
+        addresses.push("unix:///run/redis-openvas/redis.sock".to_string());
+
+        let mut ctx = None;
+        for address in addresses {
+            if let Ok(opened) = RedisCtx::open(&address, &[NameSpaceSelector::Free]) {
+                ctx = Some(opened);
+                break;
+            }
+        }
+        let Some(mut ctx) = ctx else {
+            return;
+        };
+
+        let oid = "1.3.6.1.4.1.25623.1.0.902445".to_string();
+        let filename = "feed_reload.nasl";
+
+        let mut first = VulnerabilityData::default();
+        first.adv.oid = oid.clone();
+        first.adv.title = "first title".to_string();
+        let mut second = first.clone();
+        second.adv.title = "second title".to_string();
+
+        let result = (|| -> RedisStorageResult<_> {
+            ctx.redis_add_advisory(Some(first))?;
+            ctx.redis_add_advisory(Some(second))?;
+
+            let mut vt = VTData::from_filename(filename);
+            vt.oid = oid.clone();
+            ctx.redis_add_nvt(vt.clone(), "111".to_string(), String::new())?;
+            ctx.redis_add_nvt(vt, "222".to_string(), String::new())?;
+
+            let advisories = ctx.lrange(&format!("internal/notus/advisories/{oid}"), 0, -1)?;
+            let advisory = ctx.redis_get_advisory(&oid)?;
+            let filenames = ctx.lrange(&format!("filename:{filename}"), 0, -1)?;
+            Ok((advisories, advisory, filenames))
+        })();
+
+        if let Err(error) = ctx.delete_namespace() {
+            panic!(
+                "Failed to clean up reserved Redis database {}: {error}; test operation error: {:?}",
+                ctx.db,
+                result.as_ref().err()
+            );
+        }
+        let (advisories, advisory, filenames) = result.unwrap();
+
+        assert_eq!(advisories.len(), 1);
+        assert_eq!(
+            advisory.map(|data| data.name),
+            Some("second title".to_string())
+        );
+        assert_eq!(filenames, vec!["222".to_string(), oid]);
     }
 }
