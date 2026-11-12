@@ -187,20 +187,19 @@ where
                 .fetch_all(&mut *conn)
                 .await?;
 
-            let preferences: Vec<(String, String)> =
+            let scan_preferences: Vec<models::ScanPreference> =
                 sqlx::query_as("SELECT key, value FROM preferences WHERE id = ?")
                     .bind(id)
                     .fetch_all(&mut *conn)
                     .await?;
-            let scan_id = sqlx::query_scalar("SELECT scan_id FROM scans WHERE id = ?")
-                .bind(id)
-                .fetch_one(&mut *conn)
-                .await?;
 
-            let auth_data: String = sqlx::query_scalar("SELECT auth_data FROM scans WHERE id = ?")
-                .bind(id)
-                .fetch_one(&mut *conn)
-                .await?;
+            let (scan_id, auth_data) = sqlx::query_as::<_, (String, String)>(
+                "SELECT scan_id, auth_data FROM scans WHERE id = ?",
+            )
+            .bind(id)
+            .fetch_one(&mut *conn)
+            .await?;
+
             let encrypted: Encrypted = Encrypted::try_from(auth_data)?;
             let auth_data = crypter
                 .decrypt(encrypted)
@@ -215,10 +214,7 @@ where
                     credentials,
                     ..Default::default()
                 },
-                scan_preferences: preferences
-                    .into_iter()
-                    .map(|(id, value)| models::ScanPreference { id, value })
-                    .collect(),
+                scan_preferences,
                 ..Default::default()
             })
         })
@@ -395,14 +391,11 @@ where
     let mut conn = pool.acquire().await?;
     let mut tx = conn.begin().await?;
 
-    let status = sqlx::query("SELECT status FROM scans WHERE id = ?")
+    let status = sqlx::query_scalar::<_, String>("SELECT status FROM scans WHERE id = ?")
         .bind(id)
         .fetch_one(&mut *tx)
         .await
-        .map(|row| {
-            models::Phase::from_str(&row.get::<String, _>("status"))
-                .expect("status should be a valid phase")
-        })?;
+        .map(|x| models::Phase::from_str(&x).expect("status should be a valid phase"))?;
     let queries = build_queries(status);
     for q in queries {
         q.execute(&mut *tx).await?;

@@ -279,17 +279,11 @@ where
     .bind(id)
     .fetch_one(&mut *tx)
     .await?;
-    let preferences = query(r#"SELECT key, value FROM preferences WHERE id = ?"#)
-        .bind(id)
-        .fetch_all(&mut *tx)
-        .await?;
-    let preferences: Vec<models::ScanPreference> = preferences
-        .into_iter()
-        .map(|row| models::ScanPreference {
-            id: row.get("key"),
-            value: row.get("value"),
-        })
-        .collect();
+    let preferences: Vec<models::ScanPreference> =
+        sqlx::query_as("SELECT key, value FROM preferences WHERE id = ?")
+            .bind(id)
+            .fetch_all(&mut *tx)
+            .await?;
 
     let ports = query("SELECT protocol, start, end FROM ports WHERE id = ? AND alive = 0")
         .bind(id)
@@ -323,18 +317,13 @@ where
 
     let mut vts = Vec::with_capacity(oids.len());
     for oid in oids {
-        let parameters =
-            query("SELECT param_id, param_value FROM vt_parameters WHERE id = ? AND vt = ?")
-                .bind(id)
-                .bind(&oid)
-                .fetch_all(&mut *tx)
-                .await?
-                .iter()
-                .map(|row| models::Parameter {
-                    id: row.get("param_id"),
-                    value: row.get("param_value"),
-                })
-                .collect();
+        let parameters = sqlx::query_as(
+            "SELECT param_id, param_value FROM vt_parameters WHERE id = ? AND vt = ?",
+        )
+        .bind(id)
+        .bind(&oid)
+        .fetch_all(&mut *tx)
+        .await?;
         vts.push(models::VT { oid, parameters });
     }
 
