@@ -1,6 +1,19 @@
 -- temporarily disable foreign key constraints
 PRAGMA foreign_keys = OFF;
 
+-- aborted migrations can leave partial tmp data
+DROP TABLE IF EXISTS knowledge_base_items_new;
+DROP TABLE IF EXISTS resolved_hosts_new;
+DROP TABLE IF EXISTS results_new;
+DROP TABLE IF EXISTS vt_parameters_new;
+DROP TABLE IF EXISTS vts_new;
+DROP TABLE IF EXISTS hosts_new;
+DROP TABLE IF EXISTS alive_methods_new;
+DROP TABLE IF EXISTS ports_new;
+DROP TABLE IF EXISTS preferences_new;
+DROP TABLE IF EXISTS scans_new;
+DROP TABLE IF EXISTS host_scanning_new;
+
 CREATE TABLE scans_new (
     id INTEGER PRIMARY KEY,
     scan_id TEXT NOT NULL,
