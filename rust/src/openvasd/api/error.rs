@@ -11,7 +11,7 @@ use axum::{
     http::{StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
 };
-use scannerlib::{models, notus::NotusError};
+use scannerlib::notus::NotusError;
 use serde::Serialize;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
@@ -25,8 +25,6 @@ pub enum ApiError {
     Notus(#[from] NotusError),
     #[error("scheduling error: {0}")]
     Scheduling(#[from] SendError<scheduling::Message>),
-    #[error("duplicate credentials")]
-    DuplicateCredentials(models::Service),
     #[error("feed is not synced")]
     FeedNotSynced,
     #[error("scan still running")]
@@ -60,7 +58,6 @@ impl ApiError {
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
             ApiError::Scheduling(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::DuplicateCredentials(_) => StatusCode::BAD_REQUEST,
             ApiError::FeedNotSynced => StatusCode::SERVICE_UNAVAILABLE,
             ApiError::ScanRunning => StatusCode::CONFLICT,
             ApiError::Json(_) => StatusCode::BAD_REQUEST,
@@ -102,10 +99,6 @@ impl From<ApiError> for ErrorJson {
             | ApiError::VtsError(_)
             | ApiError::Notus(_)
             | ApiError::JoinError(_) => ("Internal server error".to_string(), None),
-            ApiError::DuplicateCredentials(service) => (
-                "Duplicate service credentials".to_string(),
-                Some(service.to_string()),
-            ),
             ApiError::FeedNotSynced => ("Feed is not synced".to_string(), None),
             ApiError::ScanRunning => (
                 "Unable to perform action".to_string(),
