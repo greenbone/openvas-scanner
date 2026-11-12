@@ -45,11 +45,17 @@ struct IsInProgress {
 impl IsInProgress {
     fn set_based_on_message(&mut self, msg: &orchestrator::FeedStatusChange) {
         match msg {
+            // A new request always needs a new approval. Without resetting `approved_*` a
+            // previous sync that failed (and therefore never sent `Synced`) would leave the
+            // approval set forever, so the request would never be approved again and no scan
+            // could be started anymore.
             FeedStatusChange::Need(FeedType::Advisories) => {
                 self.need_approval_advisories = true;
+                self.approved_advisories = false;
             }
             FeedStatusChange::Need(FeedType::NASL) => {
                 self.need_approval_nasl = true;
+                self.approved_nasl = false;
             }
             FeedStatusChange::Synced(FeedType::Advisories) => {
                 self.need_approval_advisories = false;
@@ -936,5 +942,22 @@ pub(crate) mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn need_after_failed_sync_is_approved_again() {
+        let mut iip = IsInProgress::default();
+        iip.set_based_on_message(&FeedStatusChange::Need(FeedType::NASL));
+        assert_eq!(iip.approve(), vec![FeedType::NASL]);
+        assert!(!iip.scans_allowed());
+
+        // The feed update failed, therefore no `Synced` message was sent. The next feed check
+        // requests approval again.
+        iip.set_based_on_message(&FeedStatusChange::Need(FeedType::NASL));
+        assert!(iip.contains_need());
+        assert_eq!(iip.approve(), vec![FeedType::NASL]);
+
+        iip.set_based_on_message(&FeedStatusChange::Synced(FeedType::NASL));
+        assert!(iip.scans_allowed());
     }
 }
