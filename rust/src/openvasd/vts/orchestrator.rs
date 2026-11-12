@@ -347,23 +347,25 @@ where
             }
         }
 
-        if let Some(handle) = nasl_handle {
+        // Await both updates before reporting a failure, otherwise a failed NASL update would
+        // leave the advisories update running detached while the next verify starts another one.
+        // A failed update sends no `Synced`; the next verify sends a new `Need` and retries.
+        let mut first_error = None;
+        for (kind, handle) in [
+            (FeedType::NASL, nasl_handle),
+            (FeedType::Advisories, advisory_handle),
+        ] {
+            let Some(handle) = handle else { continue };
             match handle.await.unwrap() {
-                Ok(()) => send_synced(FeedType::NASL).await?,
+                Ok(()) => send_synced(kind).await?,
                 Err(error) => {
-                    tracing::warn!(%error, feed_type = %FeedType::NASL, "Unable to update feed.");
-                    return Err(error);
+                    tracing::warn!(%error, feed_type = %kind, "Unable to update feed.");
+                    first_error.get_or_insert(error);
                 }
             }
         }
-        if let Some(handle) = advisory_handle {
-            match handle.await.unwrap() {
-                Ok(()) => send_synced(FeedType::Advisories).await?,
-                Err(error) => {
-                    tracing::warn!(%error, feed_type = %FeedType::Advisories, "Unable to update feed.");
-                    return Err(error);
-                }
-            }
+        if let Some(error) = first_error {
+            return Err(error);
         }
         self.change_outer_state(FeedState::Synced(calc_nasl, calc_advisories))
             .await;
@@ -437,6 +439,84 @@ pub mod test {
 
         ov.await??;
         Ok(())
+    }
+
+    struct FailOnce {
+        calls: std::sync::atomic::AtomicUsize,
+    }
+
+    impl Worker for FailOnce {
+        fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, WorkerError>> {
+            Box::pin(async move { Ok(None) })
+        }
+
+        fn calculated_hashes(&self) -> Promise<Result<FeedHashes, WorkerError>> {
+            Box::pin(async move { Ok(("one".to_string(), "two".to_string())) })
+        }
+
+        fn update_feed(&self, _: FeedType, _: String) -> Promise<Result<(), WorkerError>> {
+            // both updates of the first round fail
+            let first = self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) < 2;
+            Box::pin(async move {
+                if first {
+                    Err(WorkerError::Receive)
+                } else {
+                    Ok(())
+                }
+            })
+        }
+
+        fn signature_check(&self) -> bool {
+            false
+        }
+
+        fn plugin_feed(&self) -> PathBuf {
+            PathBuf::default()
+        }
+
+        fn advisory_feed(&self) -> PathBuf {
+            PathBuf::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn failed_update_sends_no_synced_and_is_retried() {
+        let outer_state = Arc::new(std::sync::RwLock::new(FeedState::Unknown));
+        let worker = FailOnce {
+            calls: Default::default(),
+        };
+        let (communicator, mut orc) = Orchestrator::new(outer_state.clone(), worker);
+
+        let first = tokio::spawn(async move {
+            let result = orc.verify().await;
+            (orc, result)
+        });
+        let mut seen = vec![];
+        while seen.len() < 2 {
+            let msg = communicator.receive_state_changes().await.unwrap();
+            if let FeedStatusChange::Need(ft) = msg.clone() {
+                communicator.approve(ft).await.unwrap();
+            }
+            seen.push(msg);
+        }
+        let (mut orc, result) = first.await.unwrap();
+        assert!(result.is_err());
+        assert!(seen.iter().all(|m| matches!(m, FeedStatusChange::Need(_))));
+
+        // The retry sends new requests and finally reports `Synced`.
+        let second = tokio::spawn(async move { orc.verify().await });
+        let mut synced = 0;
+        while synced < 2 {
+            match communicator.receive_state_changes().await.unwrap() {
+                FeedStatusChange::Need(ft) => communicator.approve(ft).await.unwrap(),
+                FeedStatusChange::Synced(_) => synced += 1,
+            }
+        }
+        second.await.unwrap().unwrap();
+        assert!(matches!(
+            &*outer_state.read().unwrap(),
+            FeedState::Synced(_, _)
+        ));
     }
 
     #[tokio::test]
