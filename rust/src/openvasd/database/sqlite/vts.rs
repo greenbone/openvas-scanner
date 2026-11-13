@@ -65,7 +65,7 @@ impl PluginFetcher for SqlPluginStorage {
     }
 
     fn get_vts(&self) -> StreamResult<scannerlib::models::VTData, WorkerError> {
-        let result = query("SELECT feed_type, json_blob FROM plugins")
+        let result = query("SELECT feed_type, json_blob FROM plugins WHERE oid NOT LIKE '%inc'")
             .fetch(&self.pool)
             .map(|row| {
                 let r = row
@@ -382,10 +382,26 @@ mod tests {
         let oids = feed.get_oids()?.collect::<Vec<_>>().await;
         let oids = oids.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert!(!oids.is_empty());
+        assert!(
+            !oids.iter().any(|oid| oid.ends_with(".inc")),
+            "include libraries must not be listed as VT oids"
+        );
 
         let vts = feed.get_vts()?.collect::<Vec<_>>().await;
         let vts = vts.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert!(!vts.is_empty());
+        assert!(
+            !vts.iter()
+                .any(|vt| vt.filename.ends_with(".inc") || vt.oid.ends_with(".inc")),
+            "include libraries must not be returned as VT information"
+        );
+
+        // The example feed's plugin_feed_info.inc is stored for integrity checks
+        // and must stay in the plugin table even though the VT API hides it.
+        let stored = query("SELECT oid FROM plugins WHERE oid = 'plugin_feed_info.inc'")
+            .fetch_optional(&pool)
+            .await?;
+        assert!(stored.is_some());
         Ok(())
     }
 }
