@@ -120,6 +120,34 @@ nasl_http2_handle (lex_ctxt *lexic)
 }
 
 /**
+ * @brief Remove handle from the handle table.
+ * @param[in] handle_id
+ *
+ * @return O on success, -1 if the handle id was not found.
+ */
+static int
+close_handle (int handle_id)
+{
+  unsigned int table_slot;
+  int ret = -1;
+  for (table_slot = 0; table_slot < MAX_HANDLES; table_slot++)
+    {
+      if (handle_table[table_slot] != NULL
+          && handle_table[table_slot]->handle_id == handle_id)
+        {
+          curl_easy_cleanup (handle_table[table_slot]->handle);
+          handle_table[table_slot]->handle = NULL;
+          handle_table[table_slot]->handle_id = 0;
+          g_free (handle_table[table_slot]->ca_cert);
+          handle_table[table_slot] = NULL;
+          ret = 0;
+          break;
+        }
+    }
+  return ret;
+}
+
+/**
  * @brief Close a handle for http requests previously initialized
  * @naslfn{http2_handle}
  *
@@ -138,25 +166,10 @@ nasl_http2_close_handle (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   int handle_id = get_int_var_by_num (lexic, 0, -1);
-  unsigned int table_slot;
   int ret = 0;
 
-  for (table_slot = 0; table_slot < MAX_HANDLES; table_slot++)
-    {
-      if (handle_table[table_slot] != NULL
-          && handle_table[table_slot]->handle_id == handle_id)
-        {
-          curl_easy_cleanup (handle_table[table_slot]->handle);
-          handle_table[table_slot]->handle = NULL;
-          handle_table[table_slot]->handle_id = 0;
-          g_free (handle_table[table_slot]->ca_cert);
-          handle_table[table_slot] = NULL;
-          ret = 0;
-          break;
-        }
-      else
-        ret = -1;
-    }
+  ret = close_handle (handle_id);
+
   if (ret == -1)
     g_message ("%s: Unknown handle identifier %d", __func__, handle_id);
 
@@ -287,7 +300,8 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   unsigned int table_slot;
   for (table_slot = 0; table_slot < MAX_HANDLES; table_slot++)
     {
-      if (handle_table[table_slot]->handle_id == handle_id)
+      if (handle_table[table_slot] != NULL
+          && handle_table[table_slot]->handle_id == handle_id)
         break;
       else
         {
@@ -341,6 +355,8 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
     {
       g_warning ("Not possible to set the URL");
       curl_easy_cleanup (handle);
+      if (close_handle (handle_id))
+        g_warning ("%s: Handle %d already closed", __func__, handle_id);
       return NULL;
     }
   g_string_free (url, TRUE);
@@ -359,6 +375,9 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
           g_warning ("%s: Failed to set CA certificate: %s", __func__,
                      curl_easy_strerror (ret));
           curl_easy_cleanup (handle);
+          if (close_handle (handle_id))
+            g_warning ("%s: Handle %d already closed", __func__, handle_id);
+
           return NULL;
         }
     }
@@ -428,6 +447,9 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
     {
       g_warning ("%s: Error sending request: %d", __func__, ret);
       curl_easy_cleanup (handle);
+      if (close_handle (handle_id))
+        g_warning ("%s: Handle %d already closed", __func__, handle_id);
+
       g_free (response.ptr);
       return NULL;
     }
@@ -480,7 +502,8 @@ nasl_http2_get_response_code (lex_ctxt *lexic)
 
   for (table_slot = 0; table_slot < MAX_HANDLES; table_slot++)
     {
-      if (handle_table[table_slot]->handle_id == handle_id)
+      if (handle_table[table_slot] != NULL
+          && handle_table[table_slot]->handle_id == handle_id)
         break;
       else
         {
@@ -530,7 +553,8 @@ nasl_http2_set_custom_header (lex_ctxt *lexic)
 
   for (table_slot = 0; table_slot < MAX_HANDLES; table_slot++)
     {
-      if (handle_table[table_slot]->handle_id == handle_id)
+      if (handle_table[table_slot] != NULL
+          && handle_table[table_slot]->handle_id == handle_id)
         break;
       else
         {
