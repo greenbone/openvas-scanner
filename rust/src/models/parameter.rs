@@ -5,13 +5,24 @@
 use std::fmt::Display;
 
 #[derive(
-    Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+    sqlx::FromRow,
 )]
 /// Represents a parameter for a VTS configuration.
 pub struct Parameter {
     /// The ID of the parameter.
+    #[sqlx(rename = "param_id")]
     pub id: u16,
     /// The value of the parameter.
+    #[sqlx(rename = "param_value")]
     pub value: String,
 }
 
