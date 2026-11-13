@@ -312,7 +312,7 @@ async fn get_cis_vts() {
 }
 
 impl Snapshottable for models::Status {
-    fn redactions() -> Vec<String> {
+    fn redactions(&self) -> Vec<String> {
         vec![".start_time".into(), ".end_time".into()]
     }
 }
@@ -322,8 +322,19 @@ impl Snapshottable for Vec<models::Result> {
         self.sort_by_key(|result| result.oid.clone());
     }
 
-    fn redactions() -> Vec<String> {
-        vec!["[].id".into()]
+    fn redactions(&self) -> Vec<String> {
+        let mut redactions = vec!["[].id".into()];
+        for (i, result) in self.iter().enumerate() {
+            // Redact the timestamp in `HostStart` and `HostEnd`
+            // results.
+            if matches!(
+                result.r_type,
+                models::ResultType::HostStart | models::ResultType::HostEnd
+            ) {
+                redactions.push(format!("[{i}].message"))
+            }
+        }
+        redactions
     }
 }
 
@@ -332,7 +343,7 @@ impl Snapshottable for Vec<models::VTData> {
         self.sort_by_key(|vt| vt.oid.clone());
     }
 
-    fn redactions() -> Vec<String> {
+    fn redactions(&self) -> Vec<String> {
         // the entries in references appear in random order
         vec!["[].references".into()]
     }
@@ -378,18 +389,16 @@ async fn scan_lifecycle() {
         .snapshot("status");
 
     let results = scan.get_results().await.body::<Vec<models::Result>>();
-    assert!(results.is_empty());
+    assert!(!results.is_empty());
 
-    scan.get_result(0)
-        .await
-        .assert_status(StatusCode::NOT_FOUND);
+    scan.get_result(0).await.assert_status(StatusCode::OK);
 
-    let empty_range = scan
-        .get_result(0..0)
+    let host_start_end_results = scan
+        .get_result(0..2)
         .await
         .assert_status(StatusCode::OK)
         .body::<Vec<models::Result>>();
-    assert_eq!(empty_range.len(), 0);
+    assert_eq!(host_start_end_results.len(), 2);
 
     scan.delete().await;
     scan.get().await.assert_status(StatusCode::NOT_FOUND);

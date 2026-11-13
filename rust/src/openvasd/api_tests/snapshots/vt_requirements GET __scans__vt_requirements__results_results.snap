@@ -5,6 +5,42 @@ expression: inner
 [
   Result(
     id: "[redacted]",
+    type: host_start,
+    ip_address: Some("127.0.0.1"),
+    hostname: Some(""),
+    oid: Some(""),
+    port: Some(0),
+    message: "[redacted]",
+    detail: Some(Detail(
+      name: "",
+      value: "",
+      source: Source(
+        type: "",
+        name: "",
+        description: "",
+      ),
+    )),
+  ),
+  Result(
+    id: "[redacted]",
+    type: host_end,
+    ip_address: Some("127.0.0.1"),
+    hostname: Some(""),
+    oid: Some(""),
+    port: Some(0),
+    message: "[redacted]",
+    detail: Some(Detail(
+      name: "",
+      value: "",
+      source: Source(
+        type: "",
+        name: "",
+        description: "",
+      ),
+    )),
+  ),
+  Result(
+    id: "[redacted]",
     type: log,
     ip_address: Some("127.0.0.1"),
     hostname: Some(""),
