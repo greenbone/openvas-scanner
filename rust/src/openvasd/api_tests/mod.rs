@@ -287,13 +287,25 @@ async fn get_vts_test(
         .body::<Vec<String>>()
         .snapshot_if(write_snapshots, "body");
 
+    // Include files are retained as synthetic records for feed integrity, but
+    // the OID-only API must list only public VTs, including NASL and advisories.
+    assert!(body.iter().all(|oid| !oid.ends_with(".inc")));
+    assert!(
+        body.iter()
+            .any(|oid| !oid.starts_with("1.3.6.1.4.1.25623.1.1."))
+    );
+    assert!(
+        body.iter()
+            .any(|oid| oid.starts_with("1.3.6.1.4.1.25623.1.1."))
+    );
+
     check_head_endpoints(t, false).await;
     body
 }
 
 #[tokio::test]
 #[tracing_test::traced_test]
-async fn get_vts() {
+async fn get_vts_excludes_internal_inc_files() {
     let t = Test::new("get_vts").config("basic_feed").await;
     get_vts_test(&t, "/vts", Duration::from_millis(100), true).await;
 }
@@ -339,12 +351,13 @@ impl Snapshottable for Vec<models::VTData> {
 }
 
 #[tokio::test]
-async fn get_vts_with_information() {
+async fn get_vts_with_information_excludes_internal_inc_files() {
     let t = Test::new("get_vts_with_information")
         .config("basic_feed")
         .await;
 
-    t.request(GET, "/vts?information=1")
+    let vts = t
+        .request(GET, "/vts?information=1")
         .wait_for(
             StatusCode::OK
                 .with_timeout(Duration::from_millis(100))
@@ -354,6 +367,12 @@ async fn get_vts_with_information() {
         .assert_status(StatusCode::OK)
         .body::<Vec<models::VTData>>()
         .snapshot("vts");
+
+    // Include files are retained as synthetic records for feed integrity, but
+    // must not be exposed as VTs. Real NASL and advisory VTs remain available.
+    assert!(vts.iter().all(|vt| !vt.filename.ends_with(".inc")));
+    assert!(vts.iter().any(|vt| vt.filename == "1.nasl"));
+    assert!(vts.iter().any(|vt| vt.filename == "test.notus"));
 }
 
 #[tokio::test]
