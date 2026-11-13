@@ -20,6 +20,7 @@
 
 #include <ctype.h> /* for isspace */
 #include <curl/curl.h>
+#include <curl/easy.h>
 #include <gnutls/gnutls.h>
 #include <gvm/base/prefs.h> /* for prefs_get */
 #include <gvm/util/kb.h>    /* for kb_item_get_str */
@@ -32,6 +33,9 @@
 #define G_LOG_DOMAIN "lib  nasl"
 
 /*-----------------[ http2_* functions ]-------------------------------*/
+
+// Default timeout, the same for openvas connectios. See misc/network.c.
+#define TIMEOUT 20L
 
 /** @brief Allowed methods
  **/
@@ -105,7 +109,6 @@ nasl_http2_handle (lex_ctxt *lexic)
       curl_easy_cleanup (handle);
       return NULL;
     }
-
   handle_table[table_slot] = g_malloc0 (sizeof (struct handle_table_s));
   handle_table[table_slot]->handle = handle;
   handle_table[table_slot]->handle_id = next_handle_id ();
@@ -286,6 +289,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   GString *url = NULL;
   CURL *handle = NULL;
   int handle_id = get_int_var_by_name (lexic, "handle", -1);
+  int timeout = get_int_var_by_name (lexic, "timeout", 0);
   struct string response, header_data;
 
   if (item == NULL || port < 0 || handle_id < 0)
@@ -327,7 +331,12 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   curl_easy_reset (handle);
 
   // force http2
-  curl_easy_setopt (handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+  curl_easy_setopt (handle, CURLOPT_HTTP_VERSION,
+                    (long) CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE);
+
+  // Set timeout
+  curl_easy_setopt (handle, CURLOPT_TIMEOUT_MS,
+                    (timeout > 0 ? timeout : TIMEOUT) * 1000L);
 
   // Build URL
   url = schema ? g_string_new (schema) : g_string_new ("https");
@@ -445,7 +454,8 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   int ret = CURLE_OK;
   if ((ret = curl_easy_perform (handle)) != CURLE_OK)
     {
-      g_warning ("%s: Error sending request: %d", __func__, ret);
+      g_warning ("%s: Error sending request: %s", __func__,
+                 curl_easy_strerror (ret));
       curl_easy_cleanup (handle);
       if (close_handle (handle_id))
         g_warning ("%s: Handle %d already closed", __func__, handle_id);
