@@ -65,7 +65,7 @@ impl PluginFetcher for SqlPluginStorage {
     }
 
     fn get_vts(&self) -> StreamResult<scannerlib::models::VTData, WorkerError> {
-        let result = query("SELECT feed_type, json_blob FROM plugins")
+        let result = query("SELECT feed_type, json_blob FROM plugins WHERE oid NOT LIKE '%inc'")
             .fetch(&self.pool)
             .map(|row| {
                 let r = row
