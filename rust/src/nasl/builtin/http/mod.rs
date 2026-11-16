@@ -175,8 +175,14 @@ impl NaslHttp2 {
         data: String,
         method: Method,
         handle: &mut Handle,
+        tls: bool,
     ) -> Result<(Parts, String), HttpError> {
-        // Establish TCP connection to the server.
+        let tcp = TcpStream::connect(format!("{ip_str}:{port}"))
+            .await
+            .map_err(HttpError::from)?;
+        if !tls {
+            return self.send_h2(ctx, script_ctx, tcp, uri, data, method, handle).await;
+        }
 
         let mut config = if let Some(pem) = handle.ca_cert.clone() {
             let mut root_store = RootCertStore::empty();
@@ -200,13 +206,28 @@ impl NaslHttp2 {
         let server_name = ip_str.to_owned().try_into().unwrap();
 
         let connector = TlsConnector::from(Arc::new(config));
-        let stream = TcpStream::connect(format!("{ip_str}:{port}"))
-            .await
-            .map_err(HttpError::from)?;
         let stream = connector
-            .connect(server_name, stream)
+            .connect(server_name, tcp)
             .await
             .map_err(HttpError::from)?;
+        self.send_h2(ctx, script_ctx, stream, uri, data, method, handle)
+            .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn send_h2<S>(
+        &self,
+        ctx: &ScanCtx,
+        script_ctx: &ScriptCtx<'_>,
+        stream: S,
+        uri: String,
+        data: String,
+        method: Method,
+        handle: &mut Handle,
+    ) -> Result<(Parts, String), HttpError>
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+    {
         let (h2, connection) = client::handshake(stream).await.map_err(HttpError::from)?;
 
         tokio::spawn(async move {
@@ -310,9 +331,19 @@ impl NaslHttp2 {
         }
 
         uri = format!("{uri}{item}");
-
+        let tls = schema == "https";
         let (head, body) = self
-            .request(ctx, script_ctx, target_str, port, uri, data, method, handle)
+            .request(
+                ctx,
+                script_ctx,
+                target_str,
+                port,
+                uri,
+                data,
+                method,
+                handle,
+                tls,
+            )
             .await?;
 
         handle.http_code = head.status.as_u16();
