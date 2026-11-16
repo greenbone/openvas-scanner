@@ -465,7 +465,6 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
     }
 
   GString *complete_resp = g_string_new (header_data.ptr);
-  g_string_append (complete_resp, "\n");
   g_string_append (complete_resp, response.ptr);
   g_free (response.ptr);
   g_free (header_data.ptr);
