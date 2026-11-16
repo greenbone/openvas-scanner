@@ -374,7 +374,7 @@ impl DockerV2Registry {
 
         if matches!(images.as_slice(), [Err(error)] if matches!(
             error.status_code.and_then(|status| StatusCode::from_u16(status).ok()),
-            Some(StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN | StatusCode::NOT_FOUND)
+            Some(StatusCode::BAD_REQUEST | StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN | StatusCode::NOT_FOUND)
         )) {
             tracing::info!(%registry, repository, "Repository was not found or access was denied. Searching the registry catalog by namespace");
             return self
