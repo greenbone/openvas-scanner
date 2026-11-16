@@ -324,6 +324,11 @@ async fn container_image_scan_registry_subrepository_forbidden() {
     check_container_image_scan_registry_subrepository(StatusCode::FORBIDDEN, "DENIED").await;
 }
 
+#[tokio::test]
+async fn container_image_scan_registry_subrepository_bad_request() {
+    check_container_image_scan_registry_subrepository(StatusCode::BAD_REQUEST, "NAME_UNKNOWN").await;
+}
+
 async fn check_container_image_scan_registry_subrepository(status: StatusCode, error_code: &str) {
     const SUBREPOSITORY: &str = "subrepo";
     const REPOSITORY: &str = "subrepo/image";
