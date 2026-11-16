@@ -1,11 +1,82 @@
 use futures::StreamExt;
 use scannerlib::models;
-use sqlx::{Acquire, Row, SqlitePool, sqlite::SqliteRow};
+use sqlx::{Acquire, Row, SqliteConnection, SqlitePool, sqlite::SqliteRow};
 
 use crate::database::{
     dao::{DAOError, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
     sqlite::insert_values_chunked,
 };
+
+impl super::SqliteDatabase {
+    pub async fn insert_results(
+        &self,
+        tx: &mut SqliteConnection,
+        oid: i64,
+        results: Vec<models::Result>,
+    ) -> anyhow::Result<()> {
+        if results.is_empty() {
+            return Ok(());
+        }
+
+        let base_id = sqlx::query_scalar("SELECT COUNT(*) FROM results WHERE scan_id = ? ")
+            .bind(oid)
+            .fetch_optional(&mut *tx)
+            .await?
+            .unwrap_or(0);
+
+        tracing::trace!(id = oid, base_id, "Results.");
+        let results = results
+            .into_iter()
+            .enumerate()
+            .map(|(idx, result)| (base_id + idx as i64, result))
+            .collect::<Vec<(i64, models::Result)>>();
+
+        insert_values_chunked(
+            &mut *tx,
+            r#"
+            INSERT INTO results (
+                scan_id,
+                id,
+                type,
+                ip_address,
+                hostname,
+                oid,
+                port,
+                protocol,
+                message,
+                detail_name,
+                detail_value,
+                source_type,
+                source_name,
+                source_description
+            )
+            "#,
+            |mut b, (result_id, result)| {
+                let detail = result.detail.clone().unwrap_or_default();
+                b.push_bind(oid)
+                    .push_bind(*result_id)
+                    .push_bind(result.r_type.to_string())
+                    .push_bind(result.ip_address.clone().unwrap_or_default())
+                    .push_bind(result.hostname.clone().unwrap_or_default())
+                    .push_bind(result.oid.clone().unwrap_or_default())
+                    .push_bind(result.port.unwrap_or_default())
+                    .push_bind(result.protocol.map(|x| x.to_string()).unwrap_or_default())
+                    .push_bind(result.message.clone().unwrap_or_default())
+                    .push_bind(detail.name)
+                    .push_bind(detail.value)
+                    .push_bind(detail.source.s_type)
+                    .push_bind(detail.source.name)
+                    .push_bind(detail.source.description);
+            },
+            &results,
+            14,
+        )
+        .await?;
+
+        Ok(())
+    }
+}
+
 fn row_to_result(row: SqliteRow) -> models::Result {
     let detail = match (
         row.try_get::<Option<String>, _>("detail_name")
@@ -147,6 +218,7 @@ impl<'o> Fetch<models::Result> for DBResults<'o, (String, usize)> {
     }
 }
 
+// TODO: still used by the cis
 impl<'o, T> Execute<()> for DBResults<'o, (&'o str, &'o [T])>
 where
     T: 'o + Sync + Into<models::Result> + Clone,
