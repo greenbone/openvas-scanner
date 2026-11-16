@@ -663,37 +663,25 @@ pub(crate) mod tests {
     use super::*;
     use crate::{
         crypt::Crypter,
-        database::sqlite::DbGuard,
         scans::tests::{create_pool, prepare_scans},
     };
 
-    async fn setup_test_env() -> anyhow::Result<(
-        ScanScheduler<scanner::TestScanner, Crypter>,
-        Vec<i64>,
-        DbGuard,
-    )> {
+    async fn setup_test_env()
+    -> anyhow::Result<(ScanScheduler<scanner::TestScanner, Crypter>, Vec<i64>)> {
         setup_test_env_with_scanner(TestScannerBuilder::default()).await
     }
 
     async fn setup_test_env_with_scanner(
         builder: TestScannerBuilder,
-    ) -> anyhow::Result<(
-        ScanScheduler<scanner::TestScanner, Crypter>,
-        Vec<i64>,
-        DbGuard,
-    )> {
+    ) -> anyhow::Result<(ScanScheduler<scanner::TestScanner, Crypter>, Vec<i64>)> {
         setup_test_env_with_scanner_and_feed_messages(builder, Default::default()).await
     }
 
     async fn setup_test_env_with_scanner_and_feed_messages(
         builder: TestScannerBuilder,
         feed_changes: IsInProgress,
-    ) -> anyhow::Result<(
-        ScanScheduler<scanner::TestScanner, Crypter>,
-        Vec<i64>,
-        DbGuard,
-    )> {
-        let (config, pool, guard) = create_pool().await?;
+    ) -> anyhow::Result<(ScanScheduler<scanner::TestScanner, Crypter>, Vec<i64>)> {
+        let (config, pool) = create_pool().await?;
         let scanner = Arc::new(builder.build());
         let cryptor = Arc::new(Crypter::from_config(&config, &pool).await?);
 
@@ -708,7 +696,7 @@ pub(crate) mod tests {
             lock_file_dir: String::new(),
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
-        Ok((under_test, known_scans, guard))
+        Ok((under_test, known_scans))
     }
 
     #[test]
@@ -726,7 +714,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn start_scan() -> anyhow::Result<()> {
-        let (under_test, known_scans, _guard) = setup_test_env().await?;
+        let (under_test, known_scans) = setup_test_env().await?;
 
         for id in known_scans.iter() {
             under_test
@@ -747,8 +735,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn run_scans() -> anyhow::Result<()> {
-        let (under_test, known_scans, _guard) = setup_test_env().await?;
-
+        let (under_test, known_scans) = setup_test_env().await?;
         for id in known_scans.iter() {
             under_test
                 .on_user_action(&Message::Start(id.to_string()))
@@ -825,9 +812,7 @@ pub(crate) mod tests {
     #[tokio::test]
     // maybe create a function of that so that it can be used within scans testing
     async fn reflect_status_phase_of_scan() -> anyhow::Result<()> {
-        let (under_test, known_scans, _guard) =
-            setup_test_env_with_scanner(scanner_succeeded()).await?;
-
+        let (under_test, known_scans) = setup_test_env_with_scanner(scanner_succeeded()).await?;
         for id in known_scans.iter() {
             under_test
                 .on_user_action(&Message::Start(id.to_string()))
@@ -862,12 +847,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn run_scans_failure() -> anyhow::Result<()> {
-        let (under_test, known_scans, _guard) = setup_test_env_with_scanner(
+        let (under_test, known_scans) = setup_test_env_with_scanner(
             TestScannerBuilder::new()
                 .with_start(|_| Err(scanner::Error::Connection("nada".to_string()))),
         )
         .await?;
-
         for id in known_scans.iter() {
             under_test
                 .on_user_action(&Message::Start(id.to_string()))
@@ -898,7 +882,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn do_not_start_when_scanner_cannot_start_scan() -> anyhow::Result<()> {
-        let (under_test, known_scans, _guard) =
+        let (under_test, known_scans) =
             setup_test_env_with_scanner(TestScannerBuilder::new().with_can_start(|| false)).await?;
 
         for id in known_scans.iter() {
@@ -924,7 +908,7 @@ pub(crate) mod tests {
             need_approval_nasl: true,
             ..Default::default()
         };
-        let (under_test, known_scans, _guard) =
+        let (under_test, known_scans) =
             setup_test_env_with_scanner_and_feed_messages(TestScannerBuilder::new(), iip).await?;
 
         for id in known_scans.iter() {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Greenbone AG
+// SPDX-FileCopyrightText: 2023 Greenbone AG
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
@@ -42,16 +42,21 @@ impl<'o, T> DAOHandler<&'o DataBase, T> for DB<'o, T> {
 #[cfg(test)]
 mod tests {
     use scannerlib::models::Phase;
-    use sqlx::{query, query_scalar};
+    use sqlx::{SqlitePool, query, query_scalar};
 
     use crate::{
-        container_image_scanner::{scans_utils::create_pool, scheduling::db::scan::DBScan},
+        config::DBLocation,
+        container_image_scanner::{MIGRATOR, scheduling::db::scan::DBScan},
         database::dao::RetryExec,
     };
 
     #[tokio::test]
     async fn status_failed() {
-        let (pool, _guard) = create_pool().await;
+        let pool = SqlitePool::connect(&DBLocation::InMemory.sqlite_address("test"))
+            .await
+            .unwrap();
+
+        MIGRATOR.run(&pool).await.unwrap();
 
         let scan_id = "itsamemario";
         let client_id = "Roehrich";

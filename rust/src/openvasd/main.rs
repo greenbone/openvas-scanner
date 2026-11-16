@@ -24,7 +24,7 @@ use config::Config;
 use database::sqlite;
 use scannerlib::utils::version::show_version;
 
-use crate::{api::ApiConfig, database::sqlite::DbGuard};
+use crate::api::ApiConfig;
 
 /// Initializes all dependencies required to serve the API.
 pub async fn init_api(config: Config) -> Result<ApiConfig> {
@@ -35,13 +35,6 @@ pub async fn init_api(config: Config) -> Result<ApiConfig> {
     let image_scanner =
         container_image_scanner::init(notus.clone(), config.container_image_scanner.clone())
             .await?;
-    let guard = if config.storage.to_sqlite_cfg().is_inmemory()
-        || config.container_image_scanner.database.is_inmemory()
-    {
-        Some(DbGuard::new(pool.clone()))
-    } else {
-        None
-    };
 
     let tls_cfg = config.tls().context("configuration error")?;
 
@@ -78,7 +71,6 @@ pub async fn init_api(config: Config) -> Result<ApiConfig> {
         image_scanner,
         notus,
         enable_additional_routes: config.endpoints.enable_get_scans,
-        _guard: guard,
     })
 }
 
