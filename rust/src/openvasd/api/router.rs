@@ -74,7 +74,7 @@ async fn default_headers(
 /// | `GET`    | /health/alive                                     |               |
 /// | `GET`    | /health/ready                                     |               |
 /// | `GET`    | /health/started                                   |               |
-/// | `GET`    | /health/performance                               | ✓             |
+/// | `GET`    | /health/performance                               |               |
 /// | `HEAD`   | /scans                                            | ✓             |
 /// | `GET`    | /scans*                                           | ✓             |
 /// | `POST`   | /scans                                            | ✓             |
@@ -106,9 +106,9 @@ async fn default_headers(
 pub fn create_router(cfg: &ApiConfig) -> Router {
     Router::new()
         .nest(
-            // All health routes are currently NOPs except for performance, which is authenticated
+            // All health routes are currently NOPs except for performance
             "/health",
-            health::router(cfg.auth_method, cfg.api_keys.clone()),
+            health::router(),
         )
         .nest(
             "/scans",
