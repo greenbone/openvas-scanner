@@ -44,7 +44,7 @@ jobs:
           fetch-depth: '0'
           ref: ${{ inputs.source_sha }}
 
-      - uses: greenbone/actions/setup-pontos@v3.36.23
+      - uses: greenbone/actions/setup-pontos@v3.36.24
       - name: download rs binaries
         uses: actions/download-artifact@v8
         with:
