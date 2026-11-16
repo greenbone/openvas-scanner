@@ -1,21 +1,13 @@
-// SPDX-FileCopyrightText: 2026 Greenbone AG
-//
-// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
-
-use std::str::FromStr;
-
 use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 use sqlx::query::QueryAs;
 
 use sqlx::{
-    FromRow, IntoArguments, Pool, QueryBuilder, Sqlite, SqliteConnection, SqlitePool,
-    migrate::Migrator,
+    FromRow, IntoArguments, QueryBuilder, Sqlite, SqliteConnection, SqlitePool,
     query::{Query, QueryScalar},
     query_builder::Separated,
     sqlite::{SqliteQueryResult, SqliteRow},
 };
 
-use crate::config::{Config, DBLocation, SqliteConfiguration, StorageType, StorageTypes};
 use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
 
 pub mod results;
@@ -25,86 +17,6 @@ pub mod state_change;
 pub mod vts;
 
 pub type DataBase = SqlitePool;
-
-static MIGRATOR: Migrator = sqlx::migrate!();
-
-pub async fn init(config: &Config) -> anyhow::Result<SqlitePool> {
-    let sqlite_cfg = match config.storage.clone() {
-        StorageTypes::V1(storage_v1) => {
-            let mut sqliteconfig = SqliteConfiguration::default();
-
-            match storage_v1.storage_type {
-                StorageType::InMemory | StorageType::Redis => {}
-                StorageType::FileSystem if storage_v1.fs.path.is_dir() => {
-                    let mut p = storage_v1.fs.path.clone();
-                    p.push("openvasd.db");
-                    sqliteconfig.location = DBLocation::File(p);
-                }
-                StorageType::FileSystem => {
-                    sqliteconfig.location = DBLocation::File(storage_v1.fs.path);
-                }
-            };
-            sqliteconfig
-        }
-        StorageTypes::V2(sqlite_configuration) => sqlite_configuration,
-    };
-    let pool = create_pool(&sqlite_cfg, "openvasd").await?;
-    MIGRATOR.run(&pool).await?;
-    Ok(pool)
-}
-
-pub async fn create_pool(
-    config: &crate::config::SqliteConfiguration,
-    name: &str,
-) -> anyhow::Result<Pool<Sqlite>> {
-    use sqlx::{
-        Sqlite,
-        pool::PoolOptions,
-        sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
-    };
-    if let DBLocation::File(path) = &config.location
-        && !path.exists()
-    {
-        std::fs::create_dir_all(path)
-            .map_err(|_| anyhow::anyhow!("Failed to create dir at {path:?}"))?
-    }
-
-    if config.max_connections.is_some() {
-        tracing::warn!("The max_connections option has been deprecated");
-    }
-
-    // This setup supports 1 WRITE and N READ operations at the same time.
-    // With WAL (Write-Ahead Logging) active each WRITE transaction is first written into a `-wal`
-    // file before being transferred into the database at a checkout (which is not the commit).
-    // This means that READ transactions can run at the same time and get the previous state of
-    // the database.
-    // If a second WRITE operation is trying to start it will wait for `busy_timeout` before failing.
-    //
-    // WARNING: The `busy_timeout` can be ignored by sqlite in situations when it is impossible to wait.
-    // Instead the operation will fail immediately with an `SQLITE_BUSY` error.
-    // This most importantly affects `DEFERRED` transactions that start with a READ statement and later
-    // have to upgrade to a WRITE transaction.
-    //
-    // IF A TRANSACTION HAS TO WRITE DATA ALWAYS START AN IMMEDIATE TRANSACTION TO UTILIZE THE BUSY_TIMEOUT.
-    let options = SqliteConnectOptions::from_str(&config.location.sqlite_address(name))?
-        .journal_mode(SqliteJournalMode::Wal)
-        .busy_timeout(config.busy_timeout)
-        // Although this can lead to data loss in the case that the application crashes, we usually
-        // need to restart that scan anyway.
-        .synchronous(SqliteSynchronous::Off)
-        .create_if_missing(true);
-    PoolOptions::<Sqlite>::new()
-        // To prevent losing a in-memory DB we have to override max_lifetime and idle_timeout.
-        // It seems that min_connections is not reliable enough for now to ensure at least one
-        // connection being open.
-        .max_lifetime(None)
-        .idle_timeout(None)
-        // scheduler + HTTP api
-        .min_connections(2)
-        .connect_with(options)
-        .await
-        .map_err(|e| e.into())
-}
 
 #[derive(Debug, Clone)]
 pub struct OpenVASDDB<'o, T> {

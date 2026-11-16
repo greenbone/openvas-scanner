@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2026 Greenbone AG
-//
-// SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
-
 use std::sync::Arc;
 
 use scannerlib::notus::{Notus, products_loader};
@@ -9,7 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::config::Config;
 
-pub fn init(config: &Config) -> Arc<RwLock<Notus>> {
+pub fn config_to_products(config: &Config) -> Arc<RwLock<Notus>> {
     products_loader(&config.notus.products_path, config.feed.signature_check)
 }
 
@@ -54,7 +50,7 @@ mod tests {
     #[tokio::test]
     async fn get_notus() -> anyhow::Result<()> {
         let config = config();
-        let products = super::init(&config);
+        let products = super::config_to_products(&config);
         let router = routes::notus::router(products);
 
         let req = Request::get("/").body(Body::empty())?;
@@ -67,7 +63,7 @@ mod tests {
     #[tokio::test]
     async fn post_notus_os() -> anyhow::Result<()> {
         let config = config();
-        let products = super::init(&config);
+        let products = super::config_to_products(&config);
         let router = routes::notus::router(products);
 
         let req = json_request("POST", "/not_found", &["aha".to_string()]);
