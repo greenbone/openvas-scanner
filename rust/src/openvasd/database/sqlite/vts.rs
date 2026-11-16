@@ -16,8 +16,8 @@ use sqlx::SqlitePool;
 use sqlx::query;
 use sqlx::sqlite::SqliteRow;
 
-use crate::api::stream::StreamResult;
 use crate::config::Config;
+use crate::greenbone_scanner_framework::{GetVTsError, StreamResult};
 use crate::vts::FeedHash;
 use crate::vts::PluginFetcher;
 use crate::vts::PluginStorer;
@@ -102,11 +102,12 @@ impl PluginStorer for SqlPluginStorage {
             let hashsum: String = plugin.hashsum().into();
             let mtime = match (typus, plugin.vulnerability_test()) {
                 (FeedType::NASL, Some(vt)) => {
-                    compute_mtime(&plugin_feed.join(&vt.filename), Some(&hashsum))?
+                    compute_mtime(&plugin_feed.join(&vt.filename), Some(&hashsum))
+                        .map_err(error_vts_error)?
                 }
                 _ => 0,
             };
-            let json = serde_json::to_vec(&plugin)?;
+            let json = serde_json::to_vec(&plugin).map_err(error_vts_error)?;
             query(
                 r#" INSERT INTO plugins ( oid, json_blob, feed_type, hashsum, mtime) VALUES (?, ?, ?, ?, ?)"#,
             )
@@ -116,7 +117,7 @@ impl PluginStorer for SqlPluginStorage {
             .bind(hashsum)
             .bind(mtime)
             .execute(&pool)
-            .await?;
+            .await.map_err(error_vts_error)?;
 
             Ok(())
         })
@@ -136,7 +137,8 @@ impl PluginStorer for SqlPluginStorage {
             .bind(path)
             .bind(ht.as_ref())
             .execute(&pool)
-            .await?;
+            .await
+            .map_err(error_vts_error)?;
             Ok(())
         })
     }
@@ -225,6 +227,13 @@ impl Retriever<FileName> for SqlPluginStorage {
     }
 }
 
+fn error_vts_error<T>(error: T) -> GetVTsError
+where
+    T: std::error::Error + Sync + Send + 'static,
+{
+    GetVTsError::External(Box::new(error))
+}
+
 impl orchestrator::Worker for FeedSynchronizer {
     fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
         let mut fetched =
@@ -306,10 +315,9 @@ mod tests {
 
     use std::sync::{Arc, RwLock};
 
-    use crate::api::{error::ApiError, states::Feed};
+    use crate::container_image_scanner::endpoints::vts::VTEndpoints;
+    use crate::greenbone_scanner_framework::{GetVTsError, GetVts};
     use scannerlib::models::FeedState;
-
-    use futures_util::StreamExt;
 
     use crate::setup_sqlite;
 
@@ -325,7 +333,7 @@ mod tests {
         }
     }
 
-    async fn create_pool() -> anyhow::Result<(Config, SqlitePool)> {
+    async fn create_pool() -> crate::Result<(Config, SqlitePool)> {
         let nasl = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/feed/nasl").into();
         let notus = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -353,14 +361,25 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_oids() -> anyhow::Result<()> {
+    async fn get_oids() -> crate::Result<()> {
         let (config, pool) = create_pool().await?;
         let feed_state = Arc::new(RwLock::new(FeedState::default()));
-
+        let endpoint = VTEndpoints::new(
+            SqlPluginStorage::from(pool.clone()),
+            feed_state.clone(),
+            None,
+        );
         let synchronizer = FeedSynchronizer::new(pool.clone(), &config);
-        let feed = Feed::new(SqlPluginStorage::from(pool.clone()), feed_state.clone());
 
-        assert!(matches!(feed.get_oids(), Err(ApiError::FeedNotSynced)));
+        let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
+        assert_eq!(oids.len(), 1);
+        assert_eq!(
+            oids.into_iter()
+                .filter_map(|x| x.err())
+                .filter(|x| matches!(x, GetVTsError::NotYetAvailable))
+                .count(),
+            1
+        );
 
         orchestrator::test::verify_allowed_for(
             synchronizer,
@@ -371,11 +390,11 @@ mod tests {
 
         // in the case that examples are changed, I don't want to change this test each time hence
         // we just verify if we got oids.
-        let oids = feed.get_oids()?.collect::<Vec<_>>().await;
+        let oids = endpoint.get_oids("moep".into()).collect::<Vec<_>>().await;
         let oids = oids.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert!(!oids.is_empty());
 
-        let vts = feed.get_vts()?.collect::<Vec<_>>().await;
+        let vts = endpoint.get_vts("moep".into()).collect::<Vec<_>>().await;
         let vts = vts.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert!(!vts.is_empty());
         Ok(())

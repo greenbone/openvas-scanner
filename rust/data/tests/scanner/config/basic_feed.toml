@@ -10,6 +10,3 @@ lock_file_dir = "/tmp/"
 [notus]
 products_path = 'examples/feed/notus/products'
 advisories_path = 'examples/feed/notus/advisories'
-
-[endpoints]
-enable_get_scans = true

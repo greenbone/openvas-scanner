@@ -251,8 +251,8 @@ mod test {
 
     use crate::{
         container_image_scanner::{
+            endpoints::scans::scans_utils::Fakes,
             image::{Image, ImageState},
-            scans_utils::Fakes,
             scheduling::{
                 DiscoveredImages,
                 db::{images::DBImages, scan::DBScan},

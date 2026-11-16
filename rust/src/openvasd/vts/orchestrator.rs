@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 
+use crate::greenbone_scanner_framework::GetVTsError;
 use scannerlib::models::{FeedState, FeedType};
 use scannerlib::nasl::utils::mtime;
 use scannerlib::{Promise, feed};
@@ -134,7 +135,7 @@ pub enum WorkerError {
     #[error(transparent)]
     Calculation(#[from] feed::VerifyError),
     #[error(transparent)]
-    Sync(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+    Sync(#[from] GetVTsError),
     #[error(transparent)]
     MtimeCheckError(#[from] mtime::MtimeCheckError),
     #[error("Unable to serialize: {0}")]

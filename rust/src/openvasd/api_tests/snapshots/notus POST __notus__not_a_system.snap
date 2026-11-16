@@ -1,5 +1,5 @@
 ---
-source: src/openvasd/api_tests/test_builder.rs
+source: src/openvasd/tests/test_builder.rs
 expression: inner
 ---
 {
@@ -7,10 +7,9 @@ expression: inner
   "headers": {
     "api-version": "1",
     "authentication": "disabled",
-    "content-length": "73",
-    "content-type": "application/json",
+    "content-length": "0",
     "date": "[redacted]",
     "feed-version": "[redacted]",
   },
-  "body": "{\"status\":404,\"message\":\"Unknown notus product\",\"details\":\"not_a_system\"}",
+  "body": "",
 }

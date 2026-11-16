@@ -1,6 +1,6 @@
 use std::{path::PathBuf, task::Poll};
 
-use crate::api::stream::StreamResult;
+use crate::greenbone_scanner_framework::{GetVTsError, StreamResult};
 use futures::Stream;
 use scannerlib::{
     models::{FeedType, VTData},
@@ -11,7 +11,7 @@ use scannerlib::{
 use crate::{
     config::Config,
     vts::{
-        FeedHash, PluginFetcher, PluginStorer,
+        FeedHash, PluginFetcher, PluginStorer, error_vts_error,
         orchestrator::{self, WorkerError},
     },
 };
@@ -43,13 +43,15 @@ impl FeedSynchronizer {
     }
 }
 
-fn init_redis_storage(redis_url: &str, ft: FeedType) -> Result<RedisCtx, WorkerError> {
+type R<T> = Result<T, GetVTsError>;
+
+fn init_redis_storage(redis_url: &str, ft: FeedType) -> R<RedisCtx> {
     use scannerlib::storage::redis::*;
     let selector = match ft {
         FeedType::Products | FeedType::Advisories => NOTUSUPDATE_SELECTOR,
         FeedType::NASL => FEEDUPDATE_SELECTOR,
     };
-    RedisCtx::open(redis_url, selector).map_err(|e| WorkerError::Sync(Box::new(e)))
+    RedisCtx::open(redis_url, selector).map_err(error_vts_error)
 }
 
 fn check_redis_storage(redis_url: &str, ft: FeedType) -> Result<RedisCtx, DbError> {
@@ -74,7 +76,7 @@ impl RedisPluginHandler {
 }
 
 fn redis_error_to_worker_error(error: DbError) -> WorkerError {
-    WorkerError::Sync(Box::new(error))
+    WorkerError::Sync(GetVTsError::External(Box::new(error)))
 }
 
 fn redis_with_hash<T, F>(
@@ -222,7 +224,7 @@ impl RedisVTDataStream {
                 Ok(x) => x.map(Ok),
                 Err(error) => Some(Err(redis_error_to_worker_error(error))),
             },
-            Err(error) => Some(Err(error)),
+            Err(error) => Some(Err(error.into())),
         }
     }
 
@@ -236,7 +238,7 @@ impl RedisVTDataStream {
                 Ok(x) => x.map(Ok),
                 Err(error) => Some(Err(redis_error_to_worker_error(error))),
             },
-            Err(error) => Some(Err(error)),
+            Err(error) => Some(Err(error.into())),
         }
     }
 }

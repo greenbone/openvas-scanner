@@ -7,6 +7,7 @@ use std::{
     sync::Arc,
 };
 
+use crate::greenbone_scanner_framework::{GetVTsError, StreamResult};
 use scannerlib::Promise;
 use scannerlib::feed::{HashSumFileItem, HashSumNameLoader, check_signature};
 use scannerlib::nasl::syntax::Loader;
@@ -19,13 +20,14 @@ use scannerlib::{
 };
 use walkdir::WalkDir;
 
-use crate::api::{states::Feed, stream::StreamResult};
 use crate::config::Config;
 pub mod orchestrator;
 pub mod redis;
+pub use crate::container_image_scanner::endpoints::vts::VTEndpoints as Endpoints;
 use crate::database::sqlite::DataBase;
 use crate::json_stream;
 use crate::vts::orchestrator::WorkerError;
+//use crate::vts::sql::SqlPluginStorage;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Contains the hash values of the sha256sums for specific feeds
@@ -93,6 +95,13 @@ impl Plugin for VulnerabilityData {
     }
 }
 
+fn error_vts_error<T>(error: T) -> GetVTsError
+where
+    T: std::error::Error + Sync + Send + 'static,
+{
+    GetVTsError::External(Box::new(error))
+}
+
 pub trait PluginFetcher {
     fn get_oids(&self) -> StreamResult<String, WorkerError>;
 
@@ -104,7 +113,7 @@ pub async fn _init<F, W>(
     fetcher: F,
     worker: W,
     snapshot: Arc<RwLock<FeedState>>,
-) -> (orchestrator::Communicator, Feed)
+) -> (orchestrator::Communicator, Endpoints)
 where
     F: PluginFetcher + Send + Sync + 'static,
     W: orchestrator::Worker + Send + Sync + 'static,
@@ -113,15 +122,14 @@ where
         orchestrator::Orchestrator::init(config.feed.check_interval, snapshot.clone(), worker)
             .await;
 
-    (communicator, Feed::new(fetcher, snapshot))
+    (communicator, Endpoints::new(fetcher, snapshot, None))
 }
-
 /// Initializes endpoints, spawns background task for feed verification.
 pub async fn init(
     pool: DataBase,
     config: &Config,
     snapshot: Arc<RwLock<FeedState>>,
-) -> (orchestrator::Communicator, Feed) {
+) -> (orchestrator::Communicator, Endpoints) {
     match config.scanner.scanner_type {
         ScannerType::Openvas => {
             let socket = get_redis_socket().await;
@@ -194,7 +202,8 @@ where
 
     serde_handler
         .await
-        .expect("tokio::task::spawn_blocking to be executed to run")?;
+        .expect("tokio::task::spawn_blocking to be executed to run")
+        .map_err(error_vts_error)?;
     forwarder
         .await
         .expect("tokio::task::spawn_blocking to be executed to run");
@@ -247,8 +256,8 @@ where
 
     synchronize_json::<_, VulnerabilityData, _>(ps, &hash, move |sender| {
         let loader = Loader::from_feed_path(&path);
-        let advisories_files = advisory_loader(signature_check, &loader)
-            .map_err(|e| WorkerError::Sync(Box::new(e)))?;
+        let advisories_files =
+            advisory_loader(signature_check, &loader).map_err(error_vts_error)?;
         for result in advisories_files {
             match result {
                 Ok(x) => {
@@ -284,9 +293,9 @@ where
     T: PluginStorer + Send + Sync + 'static,
 {
     let not_found = || {
-        WorkerError::Sync(Box::new(std::io::Error::other(
+        WorkerError::Sync(GetVTsError::External(Box::new(std::io::Error::other(
             "vt-metadata.json not found",
-        )))
+        ))))
     };
     // if a feedpath is provided we expect a vt-metadata.json
     // if it is not a dir we assume it is the json file and continue

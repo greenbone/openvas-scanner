@@ -4,6 +4,7 @@
 
 use std::{
     collections::BTreeMap,
+    error::Error,
     fs,
     net::{Ipv4Addr, SocketAddr, TcpListener},
     ops::{Deref, DerefMut},
@@ -22,7 +23,7 @@ use serde::{Serialize, de::DeserializeOwned, ser::SerializeMap};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tokio::time::Instant;
 
-use crate::config::Config;
+use crate::{build_runtime, config::Config};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_SLEEP_INTERVAL: Duration = Duration::from_millis(100);
@@ -170,15 +171,6 @@ impl Response {
         self
     }
 
-    pub fn snapshot_with_name(&self, name: &str) -> &Self {
-        Snapshot {
-            inner: self.snapshot.clone(),
-            name_prefix: self.name.clone(),
-        }
-        .snapshot(name);
-        self
-    }
-
     pub(crate) fn snapshot_if(&self, write_snapshots: bool) -> &Self {
         if write_snapshots {
             self.snapshot();
@@ -280,11 +272,11 @@ impl Test {
             unused_local_address().expect("allocate openvasd test listener")
         };
         config.listener.address = address;
-        let api_cfg = crate::init_api(config)
+        let runtime = build_runtime(config)
             .await
             .map_err(|error| anyhow::anyhow!("{error}"))?;
 
-        let mut task = tokio::spawn(async move { crate::api::run(&api_cfg).await });
+        let mut task = tokio::spawn(async move { runtime.run_blocking().await });
         tokio::select! {
             result = wait_for_listener(address) => result?,
             result = &mut task => {
@@ -325,7 +317,7 @@ pub struct OpenvasdInstance {
     pub address: SocketAddr,
     test_name: String,
     request_client: RequestClient,
-    task: tokio::task::JoinHandle<anyhow::Result<i32>>,
+    task: tokio::task::JoinHandle<Result<i32, Box<dyn Error + Send + Sync>>>,
     _openvas_guard: Option<OwnedMutexGuard<()>>,
 }
 

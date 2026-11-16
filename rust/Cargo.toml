@@ -11,6 +11,9 @@ cc = "1.8"
 bindgen = "0.72"
 clap = { version = "4.6.7", features = ["derive", "env"] }
 futures = "0.3.34"
+http-body = "1"
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0", features = ["tokio"] }
 http-body-util = "0.1.5"
 insta = { version = "1.49.0", features = ["redactions", "ron", "toml"] }
 rustls = "0.23.46"
@@ -32,9 +35,6 @@ aes = "0.8.4"
 aes-gcm = { version = "0.10.3" }
 argon2 = { version = "0.6.0" }
 async-trait = "0.1.92"
-axum = { version = "0.8", features = ["json", "macros"] }
-axum-server = { version = "0.8", features = ["tls-rustls"] }
-tower = { version = "0.5.3", features = ["limit", "util"] }
 base64 = "0.22.1"
 blowfish = "0.9.1"
 cbc = { version = "0.1.2", features = ["alloc"] }
@@ -92,6 +92,8 @@ ripemd = "0.2.0"
 rsa = { version = "0.9.10", features = ["hazmat"] }
 russh = "0.63.2"
 rustls-native-certs = "0.8.5"
+signal-hook-tokio = { version = "0.4.0", features = ["futures-v0_3"] }
+signal-hook = "0.4.4"
 sequoia-ipc = "0.36.1"
 sequoia-openpgp = { version = "2.4.2", default-features = false, features = [
     "crypto-openssl",
@@ -112,7 +114,10 @@ x509-parser = "0.18.1"
 anyhow = { workspace = true }
 clap = { workspace = true }
 futures = { workspace = true }
+http-body = { workspace = true }
 http-body-util = { workspace = true }
+hyper = { workspace = true }
+hyper-util = { workspace = true }
 rustls = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

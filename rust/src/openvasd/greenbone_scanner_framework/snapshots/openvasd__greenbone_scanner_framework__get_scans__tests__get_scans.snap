@@ -1,0 +1,6 @@
+---
+source: src/openvasd/greenbone_scanner_framework/get_scans.rs
+assertion_line: 180
+expression: resp
+---
+[""]
