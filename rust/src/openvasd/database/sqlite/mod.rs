@@ -6,20 +6,18 @@ use std::fs::Permissions;
 use std::io::ErrorKind;
 use std::os::unix::fs::PermissionsExt;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 use sqlx::Connection;
-use sqlx::query::QueryAs;
 
 use sqlx::{
-    FromRow, IntoArguments, Pool, QueryBuilder, Sqlite, SqliteConnection, SqlitePool,
-    migrate::Migrator,
-    query::{Query, QueryScalar},
+    Pool, QueryBuilder, Sqlite, SqliteConnection, SqlitePool, migrate::Migrator,
     query_builder::Separated,
-    sqlite::{SqliteQueryResult, SqliteRow},
 };
 
-use crate::config::{Config, DBLocation};
+use crate::config::{Config, DBLocation, SqliteConfiguration};
+use crate::crypt::{Crypt, Crypter, Encrypted};
 use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReason};
 
 pub mod results;
@@ -29,6 +27,7 @@ pub mod state_change;
 pub mod vts;
 
 pub type DataBase = SqlitePool;
+pub type Transaction<'a> = sqlx::Transaction<'a, Sqlite>;
 
 static MIGRATOR: Migrator = sqlx::migrate!();
 
@@ -108,6 +107,67 @@ pub async fn create_pool(
         .map_err(|e| e.into())
 }
 
+pub struct SqliteDatabase {
+    pool: SqlitePool,
+    crypter: Crypter,
+}
+
+impl SqliteDatabase {
+    pub async fn init(config: &SqliteConfiguration, name: &str) -> anyhow::Result<Arc<Self>> {
+        let pool = create_pool(config, name).await?;
+        let crypter = Crypter::from_config(config, &pool).await?;
+
+        Ok(Arc::new(Self { pool, crypter }))
+    }
+
+    /// Begins an IMMEDIATE transaction
+    pub async fn tx(&self) -> anyhow::Result<Transaction<'_>> {
+        self.pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(|e| e.into())
+    }
+
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
+
+    pub(super) async fn encrypt<T>(&self, input: &T) -> anyhow::Result<String>
+    where
+        T: serde::Serialize,
+    {
+        let bytes = serde_json::to_vec(input)?;
+        Ok(self.crypter.encrypt(bytes).await?.to_string())
+    }
+
+    pub(super) async fn decrypt<T>(&self, input: &str) -> anyhow::Result<T>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        let encrypted = Encrypted::try_from(input)?;
+        let output = self.crypter.decrypt(encrypted).await?;
+        serde_json::from_slice::<T>(&output).map_err(|e| e.into())
+    }
+}
+
+impl Drop for SqliteDatabase {
+    fn drop(&mut self) {
+        let keep_failed_db =
+            std::thread::panicking() && std::env::var("KEEP_TEST_DB").is_ok_and(|x| x == "true");
+
+        if !keep_failed_db && let Some(path) = self.pool.connect_options().get_filename().parent() {
+            let active_connections = self.pool.size().saturating_sub(self.pool.num_idle() as u32);
+            if active_connections > 0 {
+                tracing::debug!(active_connections, "DB connections active at shutdown");
+            }
+
+            if let Err(e) = std::fs::remove_dir_all(path) {
+                tracing::warn!("failed to cleanup database: {e}");
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct OpenVASDDB<'o, T> {
     pub input: T,
@@ -163,126 +223,6 @@ where
     }
 
     Ok(())
-}
-
-/// Contains a single connection to be used and allows replacing that connection on certain errors.
-///
-///
-/// Unfortunately we have the issue that sqlite implementation of sqlx enforces DEFERRED mode,
-/// meaning if another transaction hits the DB first it gets prioritized although another one was
-/// started previously.
-///
-/// Additionally the implementation of SqliteConnection does not have a way to enforce an order
-/// artificially and also doesn't allow cache control.
-///
-/// That's why we need to enforce for critical operations to happen on the same connection and
-/// handled mutually exclusive usually enforced by a mutex.
-///
-///
-#[derive(Debug)]
-pub struct SqliteConnectionContainer {
-    pool: SqlitePool,
-    current_connection: SqliteConnection,
-    max_retries: usize,
-}
-
-macro_rules! retry_sql_connection_call {
-    ($self:ident, $f:expr) => {{
-        let mut tries = 0;
-        loop {
-            //sqlx::query("BEGIN IMMEDIATE").execute($self.connection()).await?;
-            let result = $f($self.connection()).await;
-            //sqlx::query("COMMIT").execute($self.connection()).await?;
-
-            match result {
-                Err(sqlx::Error::Io(io)) if tries < $self.max_retries => {
-                    tracing::warn!(error=%io, "replace connection based on IO error");
-                    $self.replace_connection().await?;
-                    tries += 1;
-                }
-                other => {
-                    return other;
-                },
-            }
-
-        }
-    }};
-}
-
-impl SqliteConnectionContainer {
-    pub async fn init(pool: SqlitePool) -> Result<Self, sqlx::error::Error> {
-        let current_connection = pool.acquire().await?.detach();
-        Ok(Self {
-            pool,
-            current_connection,
-            max_retries: 3,
-        })
-    }
-
-    pub fn connection(&mut self) -> &mut SqliteConnection {
-        &mut self.current_connection
-    }
-
-    async fn replace_connection(&mut self) -> Result<(), sqlx::error::Error> {
-        self.current_connection = self.pool.acquire().await?.detach();
-        use sqlx::Connection;
-        self.current_connection.clear_cached_statements().await?;
-        Ok(())
-    }
-
-    pub async fn fetch_one<'a, F, A>(&'a mut self, q: F) -> Result<SqliteRow, sqlx::error::Error>
-    where
-        F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<Sqlite>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_one(c))
-    }
-
-    pub async fn fetch_one_scalar<'a, F, O, A>(&'a mut self, q: F) -> Result<O, sqlx::error::Error>
-    where
-        F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
-        O: Send + Unpin,
-        A: 'a + IntoArguments<Sqlite>,
-        (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_one(c))
-    }
-
-    pub async fn fetch_all_scalar<'a, F, O, A>(
-        &'a mut self,
-        q: F,
-    ) -> Result<Vec<O>, sqlx::error::Error>
-    where
-        F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
-        O: Send + Unpin,
-        A: 'a + IntoArguments<Sqlite>,
-        (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_all(c))
-    }
-
-    pub async fn fetch_all_rows<'a, F, O, A>(
-        &'a mut self,
-        q: F,
-    ) -> Result<Vec<O>, sqlx::error::Error>
-    where
-        F: Fn() -> QueryAs<'a, Sqlite, O, A>,
-        A: 'a + IntoArguments<Sqlite>,
-        O: Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
-    {
-        retry_sql_connection_call!(self, |c| q().fetch_all(c))
-    }
-
-    pub async fn execute<'a, F, A>(
-        &'a mut self,
-        q: F,
-    ) -> Result<SqliteQueryResult, sqlx::error::Error>
-    where
-        F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<Sqlite>,
-    {
-        retry_sql_connection_call!(self, |c| q().execute(c))
-    }
 }
 
 impl From<sqlx::error::ErrorKind> for DBViolation {

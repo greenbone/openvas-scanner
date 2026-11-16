@@ -3,12 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use fslock::LockFile;
+use sqlx::SqliteConnection;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use scannerlib::{
-    models::{self, FeedType, Scan},
+    models::{FeedType, Scan},
     nasl::{builtin::nasl_std_executor, syntax::Loader},
     openvas::{self, cmd},
     osp,
@@ -16,7 +17,7 @@ use scannerlib::{
     utils::scanner_types::{self, ScannerType},
 };
 
-use crate::database::sqlite::scan_storage::ScanStorage;
+use crate::database::sqlite::{SqliteDatabase, scan_storage::ScanStorage};
 use tokio::{
     sync::mpsc::{self, Sender},
     time::MissedTickBehavior,
@@ -24,11 +25,7 @@ use tokio::{
 
 use crate::{
     config::Config,
-    crypt::Crypt,
-    database::{
-        dao::{Fetch, RetryExec},
-        sqlite::{DataBase, results::DBResults, scans::ScanDB, state_change::ScanStateController},
-    },
+    database::sqlite::DataBase,
     vts::orchestrator::{self, FeedStatusChange},
 };
 
@@ -109,9 +106,8 @@ impl IsInProgress {
     }
 }
 
-struct ScanScheduler<Scanner, Cryptor> {
-    pool: DataBase,
-    cryptor: Arc<Cryptor>,
+struct ScanScheduler<Scanner> {
+    db: Arc<SqliteDatabase>,
     scanner: Arc<Scanner>,
     max_concurrent_scan: usize,
     // we store the need and allow requests in the case of a feed sync
@@ -121,7 +117,6 @@ struct ScanScheduler<Scanner, Cryptor> {
     // We use the fact that we don't handle products as a differentiation between need and allow
     // otherwise we would need to store two separate lists.
     feed_sync_in_progress: Arc<RwLock<IsInProgress>>,
-    scan_state: ScanStateController,
     lock_file_dir: String,
 }
 
@@ -151,14 +146,14 @@ enum LockFileError {
     },
 }
 
-impl<T, C> ScanScheduler<T, C> {
+impl<T> ScanScheduler<T> {
     /// Should be called on restart if the application crashed while there were running scans.
     ///
     /// This is to safe guard against ghost scans that will never finish.
     async fn running_to_failed(&self) -> anyhow::Result<()> {
         let affected = self
-            .scan_state
-            .change_state_all("running", "failed")
+            .db
+            .change_scan_state_all(&mut *self.db.pool().acquire().await?, "running", "failed")
             .await?;
 
         if affected > 0 {
@@ -171,38 +166,33 @@ impl<T, C> ScanScheduler<T, C> {
     }
 
     async fn scan_to_requested(&self, id: i64) -> anyhow::Result<()> {
-        self.scan_state
-            .change_state(id, "stored", "requested")
+        let mut tx = self.db.tx().await?;
+
+        self.db
+            .change_scan_state(&mut tx, id, "stored", "requested")
             .await?;
-        self.scan_state
-            .change_state(id, "stopped", "requested")
+        self.db
+            .change_scan_state(&mut tx, id, "stopped", "requested")
             .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 
-    async fn scan_running_to_failed(&self, id: i64, reason: &str) -> anyhow::Result<()> {
+    async fn scan_running_to_failed(
+        &self,
+        tx: &mut SqliteConnection,
+        id: i64,
+        reason: &str,
+    ) -> anyhow::Result<()> {
         let changed = self
-            .scan_state
-            .change_state(id, "running", "failed")
+            .db
+            .change_scan_state(tx, id, "running", "failed")
             .await?;
 
         if changed {
             tracing::warn!(id, reason, "Set scan from running to failed.");
         }
-        Ok(())
-    }
-
-    async fn scan_insert_results(
-        &self,
-        id: i64,
-        results: Vec<models::Result>,
-    ) -> anyhow::Result<()> {
-        // TODO: maybe better to use i64 in the impl?
-        let id: &str = &id.to_string();
-        DBResults::new(&self.pool, (id, &results as &[_]))
-            .retry_exec()
-            .await?;
         Ok(())
     }
 }
@@ -226,17 +216,16 @@ fn is_file_locked(path: String) -> anyhow::Result<bool> {
     }
 }
 
-impl<SC, C> ScanScheduler<SC, C>
+impl<SC> ScanScheduler<SC>
 where
     SC: Scanner + Send + Sync + 'static,
-    C: Crypt + Send + Sync + 'static,
 {
-    async fn scan_start(&self, id: i64, scan: Scan) {
+    async fn scan_start(&self, tx: &mut SqliteConnection, id: i64, scan: Scan) {
         match self.scanner.start_scan(scan).await {
             Ok(()) => {}
             Err(error) => {
                 tracing::warn!(id, %error, "Unable to start scan");
-                if let Err(error) = self.scan_state.change_state(id, "running", "failed").await {
+                if let Err(error) = self.db.change_scan_state(tx, id, "running", "failed").await {
                     tracing::warn!(
                         id,
                         %error,
@@ -247,9 +236,9 @@ where
         }
     }
 
-    async fn fetch_requested(&self) -> anyhow::Result<Vec<i64>> {
+    async fn fetch_requested(&self, tx: &mut SqliteConnection) -> anyhow::Result<Vec<i64>> {
         let limit: Option<i64> = if self.max_concurrent_scan > 0 {
-            let running = self.scan_state.count_scans_in_state("running").await?;
+            let running = self.db.count_scans_in_state(tx, "running").await?;
             Some(if running > self.max_concurrent_scan {
                 0
             } else {
@@ -258,10 +247,7 @@ where
         } else {
             None
         };
-        let ids = self
-            .scan_state
-            .fetch_scans_in_state("requested", limit)
-            .await?;
+        let ids = self.db.get_scans_in_state(tx, "requested", limit).await?;
 
         Ok(ids)
     }
@@ -273,18 +259,16 @@ where
             .is_feed_sync_in_progress()
     }
 
-    async fn set_to_running(&self, id: i64) -> anyhow::Result<()> {
+    async fn set_to_running(&self, tx: &mut SqliteConnection, id: i64) -> anyhow::Result<()> {
         let running = self
-            .scan_state
-            .change_state(id, "requested", "running")
+            .db
+            .change_scan_state(tx, id, "requested", "running")
             .await?;
-        let scan = ScanDB::new(&self.pool, (self.cryptor.as_ref(), id))
-            .fetch()
-            .await?;
+        let scan = self.db.get_scan(tx, id.into()).await?;
 
         tracing::info!(id, running, "Started scan");
 
-        self.scan_start(id, scan).await;
+        self.scan_start(tx, id, scan).await;
         Ok(())
     }
 
@@ -295,13 +279,13 @@ where
     ///
     /// In the case that the ScanStarter implementation blocks start_scan is spawned as a
     /// background task.
-    async fn requested_to_running(&self) -> anyhow::Result<()> {
+    async fn requested_to_running(&self, tx: &mut SqliteConnection) -> anyhow::Result<()> {
         if self.is_feed_sync_in_progress().await {
             tracing::trace!("Skipping to set new scans to running because of feed sync.");
             return Ok(());
         }
 
-        let ids = self.fetch_requested().await?;
+        let ids = self.fetch_requested(tx).await?;
         for id in ids {
             // To prevent accidental state change from running -> requested based on an old
             // snapshot we only do a resource when a scan has not already been started.
@@ -309,27 +293,34 @@ where
                 break;
             }
 
-            self.set_to_running(id).await?;
+            self.set_to_running(tx, id).await?;
         }
 
         Ok(())
     }
 
-    async fn scan_import_results(&self, internal_id: i64, scan_id: String) -> anyhow::Result<()> {
+    async fn scan_import_results(
+        &self,
+        tx: &mut SqliteConnection,
+        internal_id: i64,
+        scan_id: String,
+    ) -> anyhow::Result<()> {
         let mut results = match self.scanner.fetch_results(scan_id.clone()).await {
             Ok(x) => x,
             Err(scannerlib::scanner::Error::ScanNotFound(scan_id)) => {
                 let reason = format!("Tried to get results of an unknown scan ({scan_id})");
-                return self.scan_running_to_failed(internal_id, &reason).await;
+                return self.scan_running_to_failed(tx, internal_id, &reason).await;
             }
             e => e?,
         };
 
         let kind = self.scanner.scan_result_status_kind();
 
-        self.scan_insert_results(internal_id, results.results)
+        self.db
+            .insert_results(&mut *tx, internal_id, results.results)
             .await?;
-        let previous_status = self.scan_state.scan_get_status(internal_id).await?;
+
+        let previous_status = self.db.scan_get_status(&mut *tx, internal_id).await?;
         let status = match &kind {
             ScanResultKind::StatusOverride => results.status,
             // TODO: refactor on StatusAddition to do that within SQL directly instead of get mut
@@ -339,8 +330,8 @@ where
             }
         };
 
-        self.scan_state
-            .scan_update_status(internal_id, &status)
+        self.db
+            .scan_update_status(&mut *tx, internal_id, &status)
             .await?;
         if status.is_done() {
             tracing::info!(internal_id, scan_id, status=%status.status, "Scan is finished.");
@@ -348,22 +339,23 @@ where
                 tracing::debug!(internal_id, %error, "It may be that the scanner self deleted the scan on finish.");
             }
         }
+
         Ok(())
     }
 
     async fn import_results(&self) -> anyhow::Result<()> {
-        let scans = self
-            .scan_state
-            .fetch_scans_in_state("running", None)
-            .await?;
+        let mut tx = self.db.tx().await?;
+        let scans = self.db.get_scans_in_state(&mut tx, "running", None).await?;
 
         for id in scans {
-            let scan_id = ScanDB::new(&self.pool, id).fetch().await?;
-            if let Err(error) = self.scan_import_results(id, scan_id).await {
+            let scan_id = self.db.oid_to_id(&mut tx, id).await?;
+            if let Err(error) = self.scan_import_results(&mut tx, id, scan_id).await {
                 // we don't return error here as other imports may succeed
                 tracing::warn!(id, %error, "Unable to import results of scan.");
             }
         }
+
+        tx.commit().await?;
 
         Ok(())
     }
@@ -375,21 +367,27 @@ where
     }
 
     async fn scan_stop(&self, id: i64) -> anyhow::Result<()> {
-        let scan_id: String = ScanDB::new(&self.pool, id).fetch().await?;
+        let mut tx = self.db.tx().await?;
 
-        let current_status = self.scan_state.scan_get_status(id).await?;
+        let scan_id = self.db.oid_to_id(&mut tx, id).await?;
+
+        let current_status = self.db.scan_get_status(&mut tx, id).await?;
         if current_status.is_stopped() {
             tracing::debug!(id, "Scan already stopped");
             return Ok(());
         }
 
-        self.scan_import_results(id, scan_id.clone()).await?;
+        self.scan_import_results(&mut tx, id, scan_id.clone())
+            .await?;
         self.scanner.stop_scan(scan_id.clone()).await?;
+
         let changed = self
-            .scan_state
-            .change_state(id, "running", "stopped")
+            .db
+            .change_scan_state(&mut tx, id, "running", "stopped")
             .await?;
         tracing::debug!(changed, id, "Changed scan from running to stopped");
+
+        tx.commit().await?;
 
         Ok(())
     }
@@ -413,7 +411,9 @@ where
             .set_based_on_message(&msg);
         let result = match message {
             FeedStatusChange::Need(_) => {
-                let count_running: i64 = self.get_running_count().await;
+                let mut conn = self.db.pool().acquire().await?;
+                let count_running =
+                    self.db.count_scans_in_state(&mut conn, "running").await? as i64;
                 let is_file_locked = {
                     let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
                     lockfile.push(LOCK_FILE);
@@ -439,22 +439,6 @@ where
         Ok(result)
     }
 
-    async fn get_running_count(&self) -> i64 {
-        match ScanDB::new(&self.pool, models::Phase::Running)
-            .fetch()
-            .await
-        {
-            Ok(x) => x,
-            Err(error) => {
-                tracing::warn!(
-                    %error,
-                    "Unable to count running scans, still preventing start of new scans"
-                );
-                1
-            }
-        }
-    }
-
     async fn contains_need(&self) -> bool {
         self.feed_sync_in_progress.read().await.contains_need()
     }
@@ -464,18 +448,27 @@ where
     }
 
     async fn on_schedule(&self) -> anyhow::Result<Vec<orchestrator::Allow>> {
+        let mut tx = self.db.tx().await?;
+
         if self.contains_need().await {
-            let count_running = self.get_running_count().await;
+            let count_running = self.db.count_scans_in_state(&mut tx, "running").await?;
+
             let filelocked = {
                 let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
                 lockfile.push(LOCK_FILE);
                 is_file_locked(lockfile.to_string_lossy().to_string())?
             };
+
             if count_running == 0 || (self.scan_type() == ScannerType::Openvas && !filelocked) {
                 return Ok(self.need_to_allow().await);
             }
         }
-        self.requested_to_running().await?;
+
+        self.requested_to_running(&mut tx).await?;
+
+        // scheduling and importing results are two separated transactions
+        tx.commit().await?;
+
         self.import_results().await?;
 
         Ok(vec![])
@@ -486,14 +479,13 @@ where
     }
 }
 
-async fn run_scheduler<S, E>(
+async fn run_scheduler<S>(
     check_interval: std::time::Duration,
-    scheduler: ScanScheduler<S, E>,
+    scheduler: ScanScheduler<S>,
     feed: orchestrator::Communicator,
 ) -> anyhow::Result<mpsc::Sender<Message>>
 where
     S: Scanner + Send + Sync + 'static,
-    E: Crypt + Send + Sync + 'static,
 {
     // happens when openvasd was killed when scans did still run
     if let Err(error) = scheduler.running_to_failed().await {
@@ -526,18 +518,13 @@ where
                         }
                         Ok(None) => {},
                         Err(error) =>  tracing::warn!(?msg, %error, "Unable to react on feed message"),
-
                     }
-
-
                 }
                 Some(msg) = recv.recv() => {
                     if let Err(error) = scheduler.on_user_action(&msg).await {
                         tracing::warn!(?msg, %error, "Unable to react on message");
                     }
-
                 }
-
                 _ = interval.tick() => {
                     match scheduler.on_schedule().await {
                         Err(error) => tracing::warn!(%error, "Unable to schedule"),
@@ -547,11 +534,8 @@ where
                                 break;
                             }
                         }
-
                     }
                 }
-
-
                 else => {
                     tracing::debug!("Channel closed, good bye");
                     break;
@@ -563,25 +547,19 @@ where
     Ok(sender)
 }
 
-pub(super) async fn init_with_scanner<E, S>(
-    pool: DataBase,
-    crypter: Arc<E>,
+pub(super) async fn init_with_scanner<S>(
     config: &Config,
     scanner: S,
     feed: orchestrator::Communicator,
 ) -> anyhow::Result<Sender<Message>>
 where
     S: Scanner + Send + Sync + 'static,
-    E: Crypt + Send + Sync + 'static,
 {
-    let change_scan_status = ScanStateController::init(pool.clone()).await?;
     let scheduler = ScanScheduler {
-        pool,
-        cryptor: crypter,
+        db: SqliteDatabase::init(&config.storage.to_sqlite_cfg(), "openvasd").await?,
         max_concurrent_scan: config.scheduler.max_queued_scans.unwrap_or(0),
         scanner: Arc::new(scanner),
         feed_sync_in_progress: Arc::new(RwLock::new(IsInProgress::default())),
-        scan_state: change_scan_status,
         lock_file_dir: config.feed.lock_file_dir().to_string_lossy().to_string(),
     };
 
@@ -598,15 +576,11 @@ fn openvas_scanner(config: &Config, sudo: bool, redis_url: String) -> openvas::O
     )
 }
 
-pub async fn init<E>(
+pub async fn init(
     pool: DataBase,
-    crypter: Arc<E>,
     config: &Config,
     feed_status: orchestrator::Communicator,
-) -> anyhow::Result<Sender<Message>>
-where
-    E: Crypt + Send + Sync + 'static,
-{
+) -> anyhow::Result<Sender<Message>> {
     match config.scanner.scanner_type {
         scanner_types::ScannerType::Ospd => {
             //TODO: when in notus don't start scheduler at all
@@ -622,13 +596,13 @@ where
                 config.scanner.ospd.socket.clone(),
                 config.scanner.ospd.read_timeout,
             );
-            init_with_scanner(pool, crypter, config, scanner, feed_status).await
+            init_with_scanner(config, scanner, feed_status).await
         }
         scanner_types::ScannerType::Openvas => {
             let redis_url = cmd::get_redis_socket().await;
             let scanner = openvas_scanner(config, cmd::check_sudo(), redis_url);
 
-            init_with_scanner(pool, crypter, config, scanner, feed_status).await
+            init_with_scanner(config, scanner, feed_status).await
         }
         scanner_types::ScannerType::Openvasd => {
             let loader = Loader::from_feed_path(&config.feed.path);
@@ -644,7 +618,7 @@ where
                 config.feed.signature_check,
             );
             let scanner = OpenvasdScanner::new(storage, loader, executor, notus);
-            init_with_scanner(pool, crypter, config, scanner, feed_status).await
+            init_with_scanner(config, scanner, feed_status).await
         }
         _ => panic!("Invalid Scanner type"),
     }
@@ -662,49 +636,33 @@ pub(crate) mod tests {
 
     use super::*;
     use crate::{
-        crypt::Crypter,
         database::sqlite::DbGuard,
         scans::tests::{create_test_env, prepare_scans},
     };
 
-    async fn setup_test_env() -> anyhow::Result<(
-        ScanScheduler<scanner::TestScanner, Crypter>,
-        Vec<i64>,
-        DbGuard,
-    )> {
+    async fn setup_test_env()
+    -> anyhow::Result<(ScanScheduler<scanner::TestScanner>, Vec<i64>, DbGuard)> {
         setup_test_env_with_scanner(TestScannerBuilder::default()).await
     }
 
     async fn setup_test_env_with_scanner(
         builder: TestScannerBuilder,
-    ) -> anyhow::Result<(
-        ScanScheduler<scanner::TestScanner, Crypter>,
-        Vec<i64>,
-        DbGuard,
-    )> {
+    ) -> anyhow::Result<(ScanScheduler<scanner::TestScanner>, Vec<i64>, DbGuard)> {
         setup_test_env_with_scanner_and_feed_messages(builder, Default::default()).await
     }
 
     async fn setup_test_env_with_scanner_and_feed_messages(
         builder: TestScannerBuilder,
         feed_changes: IsInProgress,
-    ) -> anyhow::Result<(
-        ScanScheduler<scanner::TestScanner, Crypter>,
-        Vec<i64>,
-        DbGuard,
-    )> {
+    ) -> anyhow::Result<(ScanScheduler<scanner::TestScanner>, Vec<i64>, DbGuard)> {
         let (config, pool, guard) = create_test_env().await?;
         let scanner = Arc::new(builder.build());
-        let cryptor = Arc::new(Crypter::from_config(&config.storage.to_sqlite_cfg(), &pool).await?);
 
-        let change_scan_status = ScanStateController::init(pool.clone()).await?;
         let under_test = ScanScheduler {
-            pool: pool.clone(),
+            db: SqliteDatabase::init(&config.storage.to_sqlite_cfg(), "openvasd").await?,
             scanner,
-            cryptor,
             max_concurrent_scan: 4,
             feed_sync_in_progress: Arc::new(RwLock::new(feed_changes)),
-            scan_state: change_scan_status,
             lock_file_dir: String::new(),
         };
         let known_scans = prepare_scans(pool.clone(), &config).await;
@@ -734,7 +692,7 @@ pub(crate) mod tests {
                 .await?;
         }
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
-            .fetch_all(&under_test.pool)
+            .fetch_all(under_test.db.pool())
             .await?;
         assert_eq!(status.len(), known_scans.len());
         assert_eq!(
@@ -748,7 +706,6 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn run_scans() -> anyhow::Result<()> {
         let (under_test, known_scans, _guard) = setup_test_env().await?;
-
         for id in known_scans.iter() {
             under_test
                 .on_user_action(&Message::Start(id.to_string()))
@@ -756,7 +713,7 @@ pub(crate) mod tests {
         }
         under_test.on_schedule().await?;
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
-            .fetch_all(&under_test.pool)
+            .fetch_all(under_test.db.pool())
             .await?;
         assert!(known_scans.len() > under_test.max_concurrent_scan);
         assert_eq!(status.len(), known_scans.len());
@@ -766,7 +723,7 @@ pub(crate) mod tests {
         );
         let start_times: Vec<i64> =
             query_scalar("SELECT start_time FROM scans WHERE status = 'running'")
-                .fetch_all(&under_test.pool)
+                .fetch_all(under_test.db.pool())
                 .await?;
         assert_eq!(
             start_times.iter().filter(|x| x > &&0).count(),
@@ -835,7 +792,7 @@ pub(crate) mod tests {
         }
         under_test.on_schedule().await?;
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
-            .fetch_all(&under_test.pool)
+            .fetch_all(under_test.db.pool())
             .await?;
         assert!(known_scans.len() > under_test.max_concurrent_scan);
         assert_eq!(status.len(), known_scans.len());
@@ -846,14 +803,14 @@ pub(crate) mod tests {
 
         let end_times: Vec<i64> =
             query_scalar("SELECT end_time FROM scans WHERE status = 'succeeded'")
-                .fetch_all(&under_test.pool)
+                .fetch_all(under_test.db.pool())
                 .await?;
         assert_eq!(
             end_times.iter().filter(|x| x > &&0).count(),
             end_times.len()
         );
         let result_count: i64 = query_scalar("SELECT count(*) FROM results")
-            .fetch_one(&under_test.pool)
+            .fetch_one(under_test.db.pool())
             .await?;
         assert_eq!(result_count, (under_test.max_concurrent_scan * 2) as i64);
 
@@ -875,10 +832,11 @@ pub(crate) mod tests {
         }
         under_test.on_schedule().await?;
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
-            .fetch_all(&under_test.pool)
+            .fetch_all(under_test.db.pool())
             .await?;
         assert!(known_scans.len() > under_test.max_concurrent_scan);
         assert_eq!(status.len(), known_scans.len());
+
         assert_eq!(
             status.iter().filter(|s| s as &str == "failed").count(),
             under_test.max_concurrent_scan
@@ -886,7 +844,7 @@ pub(crate) mod tests {
 
         let end_times: Vec<i64> =
             query_scalar("SELECT end_time FROM scans WHERE status = 'failed'")
-                .fetch_all(&under_test.pool)
+                .fetch_all(under_test.db.pool())
                 .await?;
         assert_eq!(
             end_times.iter().filter(|x| x > &&0).count(),
@@ -907,7 +865,7 @@ pub(crate) mod tests {
                 .await?;
         }
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
-            .fetch_all(&under_test.pool)
+            .fetch_all(under_test.db.pool())
             .await?;
         assert_eq!(status.len(), known_scans.len());
         assert_eq!(
@@ -933,7 +891,7 @@ pub(crate) mod tests {
                 .await?;
         }
         let status: Vec<String> = query_scalar("SELECT status FROM scans")
-            .fetch_all(&under_test.pool)
+            .fetch_all(under_test.db.pool())
             .await?;
         assert_eq!(status.len(), known_scans.len());
         assert_eq!(
