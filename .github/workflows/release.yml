@@ -3,6 +3,10 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      existing_tag:
+        description: Build this existing tag and upload assets to its existing release (ignores kind)
+        type: string
+        default: ''
       kind:
         description: Semantic version component to increment
         type: choice
@@ -22,6 +26,7 @@ concurrency:
 
 jobs:
   decide:
+    if: inputs.existing_tag == ''
     name: Select release kind
     runs-on: ubuntu-latest
     outputs:
@@ -130,6 +135,57 @@ jobs:
       latest_version: ${{ needs.initialize.outputs.release_latest_version }}
       source_sha: ${{ needs.prepare.outputs.sha }}
       project: ${{ needs.initialize.outputs.release_project }}
+      repository: ${{ github.repository }}
+    secrets:
+      token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+      gpg_key: ${{ secrets.GPG_KEY }}
+      gpg_pass: ${{ secrets.GPG_PASSPHRASE }}
+
+  tag-metadata:
+    name: Resolve existing release tag
+    if: github.event_name == 'workflow_dispatch' && inputs.existing_tag != ''
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.tag.outputs.sha }}
+      version: ${{ steps.tag.outputs.version }}
+    env:
+      RELEASE_TAG: ${{ inputs.existing_tag }}
+      GH_TOKEN: ${{ secrets.GREENBONE_BOT_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Resolve tag and check release
+        id: tag
+        run: |
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+          sha=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+          gh release view "$RELEASE_TAG" --json tagName,isImmutable > /tmp/existing-release.json
+          jq -e --arg tag "$RELEASE_TAG" '.tagName == $tag and (.isImmutable | not)' /tmp/existing-release.json
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
+  tag-build:
+    name: Build existing release artifacts
+    needs: tag-metadata
+    uses: ./.github/workflows/build.yml
+    with:
+      binary_version: ${{ needs.tag-metadata.outputs.version }}
+      source_ref: ${{ needs.tag-metadata.outputs.sha }}
+
+  tag-upload:
+    name: Upload to existing release
+    needs: [tag-metadata, tag-build]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/create-release.yml
+    with:
+      existing_tag: ${{ inputs.existing_tag }}
+      new_version: ${{ needs.tag-metadata.outputs.version }}
+      latest_version: ''
+      source_sha: ${{ needs.tag-metadata.outputs.sha }}
+      project: ${{ github.event.repository.name }}
       repository: ${{ github.repository }}
     secrets:
       token: ${{ secrets.GREENBONE_BOT_TOKEN }}

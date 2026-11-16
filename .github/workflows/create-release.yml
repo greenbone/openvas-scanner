@@ -2,6 +2,10 @@ name: Create release
 on:
   workflow_call:
     inputs:
+      existing_tag:
+        description: Upload to this existing release without creating or publishing a release
+        type: string
+        default: ''
       new_version:
         required: true
         type: string
@@ -31,8 +35,10 @@ jobs:
     name: release
     runs-on: ubuntu-latest
     env:
+      RELEASE_TAG: ${{ inputs.existing_tag || format('v{0}', inputs.new_version) }}
       SOURCE_SHA: ${{ inputs.source_sha }}
       GH_TOKEN: ${{ secrets.token }}
+      GH_REPO: ${{ inputs.repository }}
       LATEST_VERSION: ${{inputs.latest_version}}
       NEW_VERSION: ${{inputs.new_version}}
       PROJECT: ${{inputs.project}}
@@ -45,6 +51,7 @@ jobs:
           ref: ${{ inputs.source_sha }}
 
       - uses: greenbone/actions/setup-pontos@v3.36.23
+        if: inputs.existing_tag == ''
       - name: download rs binaries
         uses: actions/download-artifact@v8
         with:
@@ -60,6 +67,7 @@ jobs:
       - run: rm -rf assets/linux
       - run: ls -las assets/
       - name: Tag the built commit
+        if: inputs.existing_tag == ''
         run: |
           tag="v$NEW_VERSION"
           if git show-ref --verify --quiet "refs/tags/$tag"; then
@@ -69,6 +77,7 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
       - name: release ${{ env.PROJECT }} ${{ env.LATEST_VERSION }} -> ${{ env.NEW_VERSION }}
+        if: inputs.existing_tag == ''
         run: |
           pontos-changelog \
             --current-version ${{ env.LATEST_VERSION }} \
@@ -88,18 +97,28 @@ jobs:
             gh release create "$nrn" --verify-tag --target "$SOURCE_SHA" --draft -F /tmp/changelog.md
           fi
 
+      - name: Verify existing release still matches the build
+        if: inputs.existing_tag != ''
+        run: |
+          test "$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")" = "$SOURCE_SHA"
+          gh release view "$RELEASE_TAG" --json tagName,isImmutable > /tmp/existing-release.json
+          jq -e --arg tag "$RELEASE_TAG" '.tagName == $tag and (.isImmutable | not)' /tmp/existing-release.json
+
       - name: "sign ${{ env.PROJECT }}"
         env:
           GPG_KEY: ${{ secrets.gpg_key }}
           GPG_PASS: ${{ secrets.gpg_pass }}
         run: |
-          export nrn="v${{ env.NEW_VERSION }}"
+          export nrn="$RELEASE_TAG"
           export filename="$PROJECT-$nrn"
-          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o "assets/$filename.zip" https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.zip
-          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o "assets/$filename.tar.gz" https://github.com/${{ github.repository }}/archive/refs/tags/$nrn.tar.gz
+          archive_ref="refs/tags/$nrn"
+          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o "assets/$filename.zip" "https://github.com/$REPOSITORY/archive/$archive_ref.zip"
+          curl -sfSL --retry 3 --retry-connrefused --retry-delay 2 -o "assets/$filename.tar.gz" "https://github.com/$REPOSITORY/archive/$archive_ref.tar.gz"
           printf '%s\n' "$GPG_KEY" > private.pgp
           printf '%s\n' "$GPG_PASS" | bash .github/sign-assets.sh private.pgp
           rm "assets/$filename.zip"
           rm "assets/$filename.tar.gz"
           gh release upload "$nrn" assets/* --clobber
-          gh release edit "$nrn" --draft=false
+      - name: Publish release
+        if: inputs.existing_tag == ''
+        run: gh release edit "$RELEASE_TAG" --draft=false

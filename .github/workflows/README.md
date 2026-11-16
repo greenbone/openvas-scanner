@@ -36,6 +36,28 @@ the existing release-label behavior for merged pull requests:
 The workflow calculates the version, builds both architecture-qualified Rust
 artifacts, and calls `create-release.yml`.
 
+To add signed binaries to a release whose tag already exists, push the workflow
+changes and dispatch from the branch containing this workflow:
+
+```sh
+gh workflow run release.yml --ref emergency-no-axum -f existing_tag=v23.52.12a
+```
+
+`--ref` selects the workflow definition; `existing_tag` selects the source to
+build and the release to receive the assets. This works without moving the tag
+or first merging the workflow changes into `main`.
+
+The existing-tag mode ignores `kind`, resolves the tag to a commit, and builds
+that exact commit. Rust binaries use the tag name without the leading `v` as
+their version (for example, `23.52.12a`). The release must already exist and allow
+asset uploads. Both architectures of `openvasd` and `scannerctl`, their detached
+signatures, and source-archive signatures are uploaded to that release. Existing
+assets with matching names are replaced.
+
+This mode does not bump versions, push branches or tags, create another release,
+or change the release's draft, prerelease, or latest status. It does not trigger
+version-tag container publishing or published-release packaging.
+
 ### Other entry workflows
 
 - `auto_label.yml`: labels pull requests from conventional commits.
