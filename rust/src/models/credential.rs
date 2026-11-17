@@ -13,7 +13,7 @@ pub struct Credential {
     /// Type of the credential to get access. Different services support different types.
     pub credential_type: CredentialType,
     /// Use this credential only for listed hosts
-    #[serde(default, flatten, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub hosts: Option<Vec<String>>,
 }
 
