@@ -123,12 +123,160 @@ struct esxi_credential_type
 };
 
 static int
+get_ssh_credential_port (credential_t *credential)
+{
+  return credential->ssh_credential->port;
+}
+
+static char *
+get_ssh_credential_username (credential_t *credential)
+{
+  return credential->ssh_credential->username;
+}
+
+static char *
+get_ssh_credential_password (credential_t *credential)
+{
+  return credential->ssh_credential->password;
+}
+
+static char *
+get_ssh_credential_private_key (credential_t *credential)
+{
+  return credential->ssh_credential->private_key;
+}
+
+static char *
+get_ssh_credential_private_key_uuid (credential_t *credential)
+{
+  return credential->ssh_credential->private_key_uuid;
+}
+
+static char *
+get_ssh_credential_privilege_username (credential_t *credential)
+{
+  return credential->ssh_credential->privilege_username;
+}
+
+static char *
+get_ssh_credential_privilege_password (credential_t *credential)
+{
+  return credential->ssh_credential->privilege_password;
+}
+
+static char *
+get_smb_credential_username (credential_t *credential)
+{
+  return credential->smb_credential->username;
+}
+
+static char *
+get_smb_credential_password (credential_t *credential)
+{
+  return credential->smb_credential->password;
+}
+
+static char *
+get_krb5_credential_username (credential_t *credential)
+{
+  return credential->krb5_credential->username;
+}
+static char *
+get_krb5_credential_password (credential_t *credential)
+{
+  return credential->krb5_credential->password;
+}
+
+static char *
+get_krb5_credential_realm (credential_t *credential)
+{
+  return credential->krb5_credential->realm;
+}
+
+static char *
+get_krb5_credential_kdc (credential_t *credential)
+{
+  return credential->krb5_credential->kdc;
+}
+
+static char *
+get_snmp_credential_username (credential_t *credential)
+{
+  return credential->snmp_credential->username;
+}
+
+static char *
+get_snmp_credential_password (credential_t *credential)
+{
+  return credential->snmp_credential->password;
+}
+
+static char *
+get_snmp_credential_community (credential_t *credential)
+{
+  return credential->snmp_credential->community;
+}
+
+static char *
+get_snmp_credential_privacy_password (credential_t *credential)
+{
+  return credential->snmp_credential->privacy_password;
+}
+
+static char *
+get_snmp_credential_auth_proto (credential_t *credential)
+{
+  return credential->snmp_credential->auth_proto;
+}
+
+static char *
+get_snmp_credential_privacy_proto (credential_t *credential)
+{
+  return credential->snmp_credential->privacy_proto;
+}
+
+static char *
+get_esxi_credential_username (credential_t *credential)
+{
+  return credential->esxi_credential->username;
+}
+
+static char *
+get_esxi_credential_password (credential_t *credential)
+{
+  return credential->esxi_credential->password;
+}
+
+static void
+create_host_list (cJSON *hosts, gvm_hosts_t **host_list)
+{
+  if (hosts && cJSON_IsArray (hosts))
+    {
+      for (int i = 0; i < cJSON_GetArraySize (hosts); i++)
+        {
+          cJSON *host_item = cJSON_GetArrayItem (hosts, i);
+          gvm_host_t *host =
+            gvm_host_from_str (cJSON_GetStringValue (host_item));
+
+          gvm_hosts_add(*host_list, host);
+        }
+    }
+   
+}
+
+static int
 credential_ssh_new (cJSON *service, credential_t **credential)
 {
   ssh_credential_t *cred = g_malloc0 (sizeof (ssh_credential_t));
   cJSON *item;
+  gvm_hosts_t *host_list = gvm_hosts_new("");
+
+  item = cJSON_GetObjectItem(service,"hosts");
+  create_host_list(item, &host_list);
+  cred->host_list = host_list;
 
   cred->port = gvm_json_obj_int (service, "port");
+
   item = cJSON_GetObjectItem (service, "up");
   if (item && cJSON_IsObject (item))
     {
@@ -170,6 +318,11 @@ credential_smb_new (cJSON *service, credential_t **credential)
 {
   smb_credential_t *cred = g_malloc0 (sizeof (smb_credential_t));
   cJSON *item;
+  gvm_hosts_t *host_list = gvm_hosts_new("");
+
+  item = cJSON_GetObjectItem(service,"hosts");
+  create_host_list(item, &host_list);
+  cred->host_list = host_list;
 
   item = cJSON_GetObjectItem (service, "up");
   if (item && cJSON_IsObject (item))
@@ -195,6 +348,11 @@ credential_esxi_new (cJSON *service, credential_t **credential)
 {
   esxi_credential_t *cred = g_malloc0 (sizeof (esxi_credential_t));
   cJSON *item;
+  gvm_hosts_t *host_list = gvm_hosts_new("");
+
+  item = cJSON_GetObjectItem(service,"hosts");
+  create_host_list(item, &host_list);
+  cred->host_list = host_list;
 
   item = cJSON_GetObjectItem (service, "up");
   if (item && cJSON_IsObject (item))
@@ -220,6 +378,11 @@ credential_snmp_new (cJSON *service, credential_t **credential)
 {
   snmp_credential_t *cred = g_malloc0 (sizeof (snmp_credential_t));
   cJSON *item;
+  gvm_hosts_t *host_list = gvm_hosts_new("");
+
+  item = cJSON_GetObjectItem(service,"hosts");
+  create_host_list(item, &host_list);
+  cred->host_list = host_list;
 
   item = cJSON_GetObjectItem (service, "snmp");
   if (item && cJSON_IsObject (item))
@@ -250,6 +413,11 @@ credential_krb5_new (cJSON *service, credential_t **credential)
 {
   krb5_credential_t *cred = g_malloc0 (sizeof (krb5_credential_t));
   cJSON *item;
+  gvm_hosts_t *host_list = gvm_hosts_new("");
+
+  item = cJSON_GetObjectItem(service,"hosts");
+  create_host_list(item, &host_list);
+  cred->host_list = host_list;
 
   item = cJSON_GetObjectItem (service, "krb5");
   if (item && cJSON_IsObject (item))
@@ -281,31 +449,31 @@ reset_credential_counters (void)
   esxi_credential_count = 0;
 }
 
-int
+static int
 get_ssh_credential_count (void)
 {
   return ssh_credential_count;
 }
 
-int
+static int
 get_smb_credential_count (void)
 {
   return smb_credential_count;
 }
 
-int
+static int
 get_snmp_credential_count (void)
 {
   return snmp_credential_count;
 }
 
-int
+static int
 get_krb5_credential_count (void)
 {
   return krb5_credential_count;
 }
 
-int
+static int
 get_esxi_credential_count (void)
 {
   return esxi_credential_count;
@@ -419,18 +587,27 @@ free_credential (gpointer data)
       g_free (credential->ssh_credential->private_key_uuid);
       g_free (credential->ssh_credential->privilege_username);
       g_free (credential->ssh_credential->privilege_password);
+
+      if (credential->ssh_credential->host_list != NULL)
+        gvm_hosts_free (credential->ssh_credential->host_list);
+      
       g_free (credential->ssh_credential);
     }
   else if (credential->type == SMB)
     {
       g_free (credential->smb_credential->username);
       g_free (credential->smb_credential->password);
+      if (credential->smb_credential->host_list != NULL)
+        gvm_hosts_free (credential->smb_credential->host_list);
       g_free (credential->smb_credential);
     }
   else if (credential->type == ESXi)
     {
       g_free (credential->esxi_credential->username);
       g_free (credential->esxi_credential->password);
+      if (credential->esxi_credential->host_list != NULL)
+        gvm_hosts_free (credential->esxi_credential->host_list);
+      
       g_free (credential->esxi_credential);
     }
   else if (credential->type == KRB5)
@@ -439,6 +616,8 @@ free_credential (gpointer data)
       g_free (credential->krb5_credential->password);
       g_free (credential->krb5_credential->realm);
       g_free (credential->krb5_credential->kdc);
+      if (credential->krb5_credential->host_list != NULL)
+        gvm_hosts_free (credential->krb5_credential->host_list);
       g_free (credential->krb5_credential);
     }
   else if (credential->type == SNMP)
@@ -457,146 +636,6 @@ destroy_credentials (GSList **credentials)
   g_slist_free_full (*credentials, (GDestroyNotify) free_credential);
 }
 
-credential_type_t
-get_credential_type (credential_t *credential)
-{
-  return credential->type;
-}
-
-int
-get_ssh_credential_port (credential_t *credential)
-{
-  return credential->ssh_credential->port;
-}
-
-char *
-get_ssh_credential_username (credential_t *credential)
-{
-  return credential->ssh_credential->username;
-}
-
-char *
-get_ssh_credential_password (credential_t *credential)
-{
-  return credential->ssh_credential->password;
-}
-
-char *
-get_ssh_credential_private_key (credential_t *credential)
-{
-  return credential->ssh_credential->private_key;
-}
-
-char *
-get_ssh_credential_private_key_uuid (credential_t *credential)
-{
-  return credential->ssh_credential->private_key_uuid;
-}
-
-char *
-get_ssh_credential_privilege_username (credential_t *credential)
-{
-  return credential->ssh_credential->privilege_username;
-}
-
-char *
-get_ssh_credential_privilege_password (credential_t *credential)
-{
-  return credential->ssh_credential->privilege_password;
-}
-
-char *
-get_smb_credential_username (credential_t *credential)
-{
-  return credential->smb_credential->username;
-}
-
-char *
-get_smb_credential_password (credential_t *credential)
-{
-  return credential->smb_credential->password;
-}
-
-char *
-get_krb5_credential_username (credential_t *credential)
-{
-  return credential->krb5_credential->username;
-}
-char *
-get_krb5_credential_password (credential_t *credential)
-{
-  return credential->krb5_credential->password;
-}
-
-char *
-get_krb5_credential_realm (credential_t *credential)
-{
-  return credential->krb5_credential->realm;
-}
-
-char *
-get_krb5_credential_kdc (credential_t *credential)
-{
-  return credential->krb5_credential->kdc;
-}
-
-char *
-get_snmp_credential_username (credential_t *credential)
-{
-  return credential->snmp_credential->username;
-}
-
-char *
-get_snmp_credential_password (credential_t *credential)
-{
-  return credential->snmp_credential->password;
-}
-
-char *
-get_snmp_credential_community (credential_t *credential)
-{
-  return credential->snmp_credential->community;
-}
-char *
-get_snmp_credential_privacy_password (credential_t *credential)
-{
-  return credential->snmp_credential->privacy_password;
-}
-
-char *
-get_snmp_credential_auth_proto (credential_t *credential)
-{
-  return credential->snmp_credential->auth_proto;
-}
-
-char *
-get_snmp_credential_privacy_proto (credential_t *credential)
-{
-  return credential->snmp_credential->privacy_proto;
-}
-
-char *
-get_esxi_credential_username (credential_t *credential)
-{
-  return credential->esxi_credential->username;
-}
-
-char *
-get_esxi_credential_password (credential_t *credential)
-{
-  return credential->esxi_credential->password;
-}
-
-
-
-static int
-is_match_host (const char *host, gvm_hosts_t *host_list)
-{
-  (void) host;
-  (void) host_list;
-  return 0;
-}
-
 static void
 store_smb_credential (credential_t *credential)
 {
@@ -609,7 +648,7 @@ store_smb_credential (credential_t *credential)
 
 static int
 match_smb_host_credential (credential_t *credential,
-                    const char *host)
+                    const gvm_host_t *host)
 {
   const char *username = get_smb_credential_username (credential);
   const char *password = get_smb_credential_password (credential);
@@ -617,7 +656,7 @@ match_smb_host_credential (credential_t *credential,
   if (!username || !*username || !password)
     return 0;
 
-  if (!is_match_host (host, credential->smb_credential->host_list))
+  if (!gvm_host_in_hosts(host, NULL, credential->smb_credential->host_list))
     return 0;
     
   store_smb_credential (credential);
@@ -636,9 +675,9 @@ store_krb5_credential (credential_t *credential)
 
 static int
 match_krb5_host_credential (credential_t *cred,
-                     const char *host)
+                     const gvm_host_t *host)
 {
-  if (!is_match_host (host, cred->krb5_credential->host_list))
+  if (!gvm_host_in_hosts(host, NULL, cred->krb5_credential->host_list))
     return 0;
 
   store_krb5_credential (cred);
@@ -662,9 +701,9 @@ struct data
 
 static int
 match_esxi_host_credential (credential_t *cred,
-                     const char *host)
+                     const gvm_host_t *host)
 {
-  if (!is_match_host (host, cred->esxi_credential->host_list))
+  if (!gvm_host_in_hosts(host, NULL, cred->esxi_credential->host_list))
     return 0;
 
   store_esxi_credential (cred);
@@ -688,9 +727,9 @@ store_snmp_credential (credential_t *credential)
 
 static int
 match_snmp_host_credential (credential_t *credential,
-                     const char *host_target)
+                     const gvm_host_t *host)
 {
-  if (!is_match_host (host_target, credential->snmp_credential->host_list))
+  if (!gvm_host_in_hosts(host, NULL,  credential->snmp_credential->host_list))
     return 0;
 
   store_snmp_credential (credential);
@@ -732,9 +771,9 @@ store_ssh_credential (credential_t *credential)
 
 static int
 match_ssh_host_credential (credential_t *credential,
-                    const char *host)
+                    const gvm_host_t *host)
 {
-  if (!is_match_host (host, credential->ssh_credential->host_list))
+  if (!gvm_host_in_hosts(host, NULL, credential->ssh_credential->host_list))
     return 0;
 
   store_ssh_credential (credential);
@@ -743,7 +782,7 @@ match_ssh_host_credential (credential_t *credential,
 
 struct credential_check_data
 {
-  const char *host;
+  const gvm_host_t *host;
   credential_type_t type;
   gboolean ssh_selected;
   gboolean smb_selected;
@@ -785,7 +824,7 @@ set_host_credential (gpointer credential, gpointer user_data)
 
 static void
 set_host_credentials (GSList *credentials,
-                      const char *host, credential_type_t type)
+                      const gvm_host_t *host, credential_type_t type)
 {
   if (host == NULL)
     return;
@@ -800,50 +839,59 @@ set_host_credentials (GSList *credentials,
   g_free (user_data);
 }
 
-void
-select_host_ssh_credential (struct scan_globals *globals, const char *host)
+static void
+select_host_ssh_credential (GSList *credentials, const gvm_host_t *host)
 {
-  if (globals == NULL || host == NULL
-      || get_ssh_credential_count () <= 1)
+  if (get_ssh_credential_count () < 1)
     return;
 
-  set_host_credentials (globals->credentials, host, SSH);
+  set_host_credentials (credentials, host, SSH);
+}
+
+static void
+select_host_smb_credential (GSList *credentials, const gvm_host_t *host)
+{
+  if (get_smb_credential_count () < 1)
+    return;
+
+  set_host_credentials ( credentials, host, SMB);
+}
+
+static void
+select_host_snmp_credential (GSList *credentials, const gvm_host_t *host)
+{
+  if (get_snmp_credential_count () < 1)
+    return;
+  set_host_credentials ( credentials, host, SNMP);
+}
+
+static void
+select_host_krb5_credential (GSList *credentials, const gvm_host_t *host)
+{
+  if (get_krb5_credential_count () < 1)
+    return;
+  set_host_credentials (credentials, host, KRB5);
+}
+
+static void
+select_host_esxi_credential (GSList *credentials, const gvm_host_t *host)
+{
+  if (get_esxi_credential_count () < 1)
+    return;
+
+  set_host_credentials (credentials, host, ESXi);
 }
 
 void
-select_host_smb_credential (struct scan_globals *globals, const char *host)
+override_host_credentials (struct scan_globals *globals, const gvm_host_t *host)
 {
-  if (globals == NULL || host == NULL
-      || get_smb_credential_count () <= 1)
+  if (globals == NULL || globals->credentials == NULL || host == NULL)
     return;
 
-  set_host_credentials ( globals->credentials, host, SMB);
-}
+  select_host_ssh_credential (globals->credentials, host);
+  select_host_smb_credential (globals->credentials, host);
+  select_host_krb5_credential (globals->credentials, host);
+  select_host_snmp_credential (globals->credentials, host);
+  select_host_esxi_credential (globals->credentials, host);
 
-void
-select_host_snmp_credential (struct scan_globals *globals, const char *host)
-{
-  if (globals == NULL || host == NULL
-      || get_snmp_credential_count () <= 1)
-    return;
-  set_host_credentials ( globals->credentials, host, SNMP);
-}
-
-void
-select_host_krb5_credential (struct scan_globals *globals, const char *host)
-{
-  if (globals == NULL || host == NULL
-      || get_krb5_credential_count () <= 1)
-    return;
-  set_host_credentials (globals->credentials, host, KRB5);
-}
-
-void
-select_host_esxi_credential (struct scan_globals *globals, const char *host)
-{
-  if (globals == NULL || host == NULL
-      || get_esxi_credential_count () <= 1)
-    return;
-
-  set_host_credentials (globals->credentials, host, ESXi);
 }
