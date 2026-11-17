@@ -12,6 +12,7 @@
 
 #include "attack.h"
 
+#include "../nasl/nasl_credentials.h"
 #include "../misc/ipc_openvas.h"
 #include "../misc/kb_cache.h"
 #include "../misc/network.h"        /* for auth_printf */
@@ -488,7 +489,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_DONE;
       goto finish_launch_plugin;
     }
-
+  
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
    * was not found). */
   if (!mandatory_requirements_met (args->host_kb, nvti))
@@ -1080,7 +1081,7 @@ set_alive_detection_tid (pthread_t tid)
   alive_detection_tid = tid;
 }
 static pthread_t
-get_alive_detection_tid ()
+get_alive_detection_tid (void)
 {
   return alive_detection_tid;
 }
@@ -1112,7 +1113,7 @@ handle_scan_stop_signal ()
 }
 
 static void
-scan_stop_cleanup ()
+scan_stop_cleanup (void)
 {
   kb_t main_kb = NULL;
   char *pid;
