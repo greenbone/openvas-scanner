@@ -37,6 +37,7 @@ apt-get install --no-install-recommends --no-install-suggests -y \
     libpopt0 \
     libcurl4 \
     libcurl4-gnutls-dev \
+    libcjson-dev \
     libhiredis-dev \
     libmagic-dev 
 
