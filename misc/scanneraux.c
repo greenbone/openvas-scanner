@@ -10,6 +10,8 @@
 
 #include "scanneraux.h"
 
+#include "credentials.h"
+
 void
 destroy_scan_globals (struct scan_globals *globals)
 {
@@ -23,6 +25,8 @@ destroy_scan_globals (struct scan_globals *globals)
 
   if (globals->files_size_translation)
     g_hash_table_destroy (globals->files_size_translation);
+
+  destroy_credentials (&globals->credentials);
 
   g_free (globals);
   globals = NULL;

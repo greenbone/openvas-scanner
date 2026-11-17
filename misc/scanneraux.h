@@ -19,6 +19,7 @@ struct scan_globals
 {
   GHashTable *files_translation;
   GHashTable *files_size_translation;
+  GSList *credentials;
   char *scan_id;
   pid_t host_pid;
 };
