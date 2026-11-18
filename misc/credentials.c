@@ -806,7 +806,7 @@ store_ssh_credential (credential_t *credential)
   else
     // Let the nasl script set the default port. See kb_ssh_transport() in
     // ssh_func.inc
-    prefs_set ("auth_port_ssh", "0");
+    prefs_set ("auth_port_ssh", NULL);
 
   prefs_set (OID_SSH_AUTH_USER, get_ssh_credential_username (credential)
                                   ? get_ssh_credential_username (credential)
