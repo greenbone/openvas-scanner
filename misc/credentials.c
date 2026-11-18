@@ -665,22 +665,14 @@ static void
 store_smb_credential (credential_t *credential)
 {
   // prefs set will replace the old values if any.
-  prefs_set (OID_SMB_AUTH_USER, get_smb_credential_username (credential));
-  prefs_set (OID_SMB_AUTH_PASS, get_smb_credential_password (credential));
-  // SMB credentials carry no domain. Should I drop any value left by a previous one?
-  //prefs_set (OID_SMB_AUTH_DOMAIN, "");
-}
+  prefs_set (OID_SMB_AUTH_USER, get_smb_credential_username (credential) ? get_smb_credential_username (credential) : "");
+  prefs_set (OID_SMB_AUTH_PASS, get_smb_credential_password (credential) ? get_smb_credential_password (credential) : "");
+ }
 
 static int
 match_smb_host_credential (credential_t *credential,
                     const gvm_host_t *host)
 {
-  const char *username = get_smb_credential_username (credential);
-  const char *password = get_smb_credential_password (credential);
-
-  if (!username || !*username || !password)
-    return 0;
-
   if (!gvm_host_in_hosts(host, NULL, credential->smb_credential->host_list))
     return 0;
     
@@ -692,10 +684,10 @@ static void
 store_krb5_credential (credential_t *credential)
 {
   // prefs set will replace the old values if any.
-  prefs_set (OID_KRB5_AUTH_USER, get_krb5_credential_username (credential));
-  prefs_set (OID_KRB5_AUTH_PASS, get_krb5_credential_password (credential));
-  prefs_set (OID_KRB5_AUTH_REALM, get_krb5_credential_realm (credential));
-  prefs_set (OID_KRB5_AUTH_KDC, get_krb5_credential_kdc (credential));
+  prefs_set (OID_KRB5_AUTH_USER, get_krb5_credential_username (credential) ? get_krb5_credential_username (credential) : "");
+  prefs_set (OID_KRB5_AUTH_PASS, get_krb5_credential_password (credential) ? get_krb5_credential_password (credential) : "");
+  prefs_set (OID_KRB5_AUTH_REALM, get_krb5_credential_realm (credential) ? get_krb5_credential_realm (credential) : "");
+  prefs_set (OID_KRB5_AUTH_KDC, get_krb5_credential_kdc (credential) ? get_krb5_credential_kdc (credential) : "");
 }
 
 static int
@@ -713,8 +705,8 @@ static void
 store_esxi_credential (credential_t *cred)
 {
   // prefs set will replace the old values if any.
-  prefs_set (OID_ESXI_AUTH_USER, get_esxi_credential_username (cred));
-  prefs_set (OID_ESXI_AUTH_PASS, get_esxi_credential_password (cred));
+  prefs_set (OID_ESXI_AUTH_USER, get_esxi_credential_username (cred) ? get_esxi_credential_username (cred) : "");
+  prefs_set (OID_ESXI_AUTH_PASS, get_esxi_credential_password (cred) ? get_esxi_credential_password (cred) : "");
 }
 
 struct data
@@ -739,15 +731,15 @@ static void
 store_snmp_credential (credential_t *credential)
 {
   prefs_set (OID_SNMP_AUTH_COMMUNITY,
-             get_snmp_credential_community (credential));
-  prefs_set (OID_SNMP_AUTH_USER, get_snmp_credential_username (credential));
-  prefs_set (OID_SNMP_AUTH_PASS, get_snmp_credential_password (credential));
+             get_snmp_credential_community (credential) ? get_snmp_credential_community (credential) : "");
+  prefs_set (OID_SNMP_AUTH_USER, get_snmp_credential_username (credential) ? get_snmp_credential_username (credential) : "" );
+  prefs_set (OID_SNMP_AUTH_PASS, get_snmp_credential_password (credential) ? get_snmp_credential_password (credential) : "");
   prefs_set (OID_SNMP_AUTH_AUTH_ALGO,
-             get_snmp_credential_auth_proto (credential));
+             get_snmp_credential_auth_proto (credential) ? get_snmp_credential_auth_proto (credential) : "");
   prefs_set (OID_SNMP_AUTH_PRIV_PASS,
-             get_snmp_credential_privacy_password (credential));
+             get_snmp_credential_privacy_password (credential) ? get_snmp_credential_privacy_password (credential) : "");
   prefs_set (OID_SNMP_AUTH_PRIV_ALGO,
-             get_snmp_credential_privacy_proto (credential));
+             get_snmp_credential_privacy_proto (credential) ? get_snmp_credential_privacy_proto (credential) : "");
 }
 
 static int
