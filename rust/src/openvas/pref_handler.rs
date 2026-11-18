@@ -364,13 +364,14 @@ where
 
         let mut credential_preferences: Vec<String> = vec![];
         for credential in credentials.clone() {
-            // TODO: refactor that
+            let host_is_set = credential.hosts.map_or(false, |c| !c.is_empty());
+
             match credential.service {
                 Service::KRB5 => {
                     // Only the first credential without hosts is set as default.
                     // Multiple KRB5 candidates are later handed and could override
                     // the default one.
-                    if credential.hosts.is_some() || default_krb5_set {
+                    if host_is_set || default_krb5_set {
                         continue;
                     }
 
@@ -399,7 +400,7 @@ where
                     // Only the first credential whithout hosts is set as default.
                     // Multiple SSH candidates are later handed and could override
                     // the default one.
-                    if credential.hosts.is_some() || default_ssh_set {
+                    if host_is_set || default_ssh_set {
                         continue;
                     }
                     if let Some(port) = credential.port {
@@ -466,7 +467,8 @@ where
                     // Only the first credential is set as default.
                     // Multiple SMB candidates are later handed and could override
                     // the default one.
-                    if credential.hosts.is_some() || default_smb_set {
+
+                    if host_is_set || default_smb_set {
                         continue;
                     }
 
@@ -486,7 +488,7 @@ where
                     // Only the first credential is set as default.
                     // Multiple ESXi candidates are later handed and could override
                     // the default one.
-                    if credential.hosts.is_some() || default_esxi_set {
+                    if host_is_set || default_esxi_set {
                         continue;
                     }
 
@@ -507,7 +509,7 @@ where
                     // Only the first credential is set as default.
                     // Multiple SNMP candidates are later handed and could override
                     // the default one.
-                    if credential.hosts.is_some() || default_snmp_set {
+                    if host_is_set || default_snmp_set {
                         continue;
                     }
 
@@ -860,7 +862,6 @@ mod tests {
                     privilege: None,
                 },
             },
-
         ];
         let expected = format!(
             "multi-credentials|||{}",
