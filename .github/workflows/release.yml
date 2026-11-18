@@ -79,7 +79,7 @@ jobs:
         with:
           token: ${{ secrets.GREENBONE_BOT_TOKEN }}
           fetch-depth: 0
-      - uses: greenbone/actions/setup-pontos@v3.36.23
+      - uses: greenbone/actions/setup-pontos@v3.36.24
       - name: Preserve previous major release branch
         if: env.RELEASE_KIND == 'major'
         run: |
