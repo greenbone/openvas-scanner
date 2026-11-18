@@ -265,6 +265,8 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
                      err);
           g_free (err);
         }
+      // Cleanup credential json data
+      prefs_set ("multi-credentials", "");
     }
 
   kb_del_items (kb, key);
