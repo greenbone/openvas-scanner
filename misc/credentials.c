@@ -11,7 +11,6 @@
 #include "credentials.h"
 
 #include "base/hosts.h"
-#include "glibconfig.h"
 #include "scanneraux.h"
 
 #include <cjson/cJSON.h>
@@ -69,7 +68,6 @@
 #define OID_SNMP_AUTH_PRIV_ALGO \
   "1.3.6.1.4.1.25623.1.0.105076:6:radio:SNMPv3 Privacy Algorithm:"
 
-
 int ssh_credential_count = 0;
 int smb_credential_count = 0;
 int snmp_credential_count = 0;
@@ -93,7 +91,6 @@ struct smb_credential_type
   char *username;
   char *password;
   gvm_hosts_t *host_list;
-
 };
 
 struct krb5_credential_type
@@ -103,7 +100,7 @@ struct krb5_credential_type
   char *realm;
   char *kdc;
   gvm_hosts_t *host_list;
-  };
+};
 
 struct snmp_credential_type
 {
@@ -252,7 +249,7 @@ static gvm_hosts_t *
 create_host_list (cJSON *hosts)
 {
   gvm_hosts_t *host_list = NULL;
-  
+
   if (hosts && cJSON_IsArray (hosts))
     {
       GString *hosts_s = NULL;
@@ -260,16 +257,20 @@ create_host_list (cJSON *hosts)
         {
           cJSON *host_item = cJSON_GetArrayItem (hosts, i);
           char *host_value = cJSON_GetStringValue (host_item);
+          if (host_value == NULL || host_value[0] == '\0')
+            continue;
+
           if (hosts_s == NULL)
             hosts_s = g_string_new (host_value);
           else
             {
-              g_string_append(hosts_s, ",");
-              g_string_append(hosts_s, host_value);
+              g_string_append (hosts_s, ",");
+              g_string_append (hosts_s, host_value);
             }
         }
-      host_list = gvm_hosts_new (hosts_s->str);
-      g_string_free(hosts_s, TRUE);
+      if (hosts_s && hosts_s->len > 0)
+        host_list = gvm_hosts_new (hosts_s->str);
+      g_string_free (hosts_s, TRUE);
     }
   return host_list;
 }
@@ -281,11 +282,12 @@ credential_ssh_new (cJSON *service, credential_t **credential)
   cJSON *item;
   gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem(service,"hosts");
+  item = cJSON_GetObjectItem (service, "hosts");
   if (item)
     {
-      host_list = create_host_list(item);
-      cred->host_list = host_list;
+      host_list = create_host_list (item);
+      if (host_list)
+        cred->host_list = host_list;
     }
 
   cred->port = gvm_json_obj_int (service, "port");
@@ -316,7 +318,7 @@ credential_ssh_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
-      gvm_hosts_free(host_list);
+      gvm_hosts_free (host_list);
       g_free (cred);
       return -1;
     }
@@ -334,11 +336,12 @@ credential_smb_new (cJSON *service, credential_t **credential)
   cJSON *item;
   gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem(service,"hosts");
+  item = cJSON_GetObjectItem (service, "hosts");
   if (item)
     {
-      host_list = create_host_list(item);
-      cred->host_list = host_list;
+      host_list = create_host_list (item);
+      if (host_list)
+        cred->host_list = host_list;
     }
   item = cJSON_GetObjectItem (service, "up");
   if (item && cJSON_IsObject (item))
@@ -348,7 +351,7 @@ credential_smb_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
-      gvm_hosts_free(host_list);
+      gvm_hosts_free (host_list);
       g_free (cred);
       return -1;
     };
@@ -368,11 +371,13 @@ credential_esxi_new (cJSON *service, credential_t **credential)
   gvm_hosts_t *host_list = NULL;
 
   item = cJSON_GetObjectItem (service, "hosts");
-  if (item) {
-    host_list = create_host_list(item);
-    cred->host_list = host_list;
-  }
-  
+  if (item)
+    {
+      host_list = create_host_list (item);
+      if (host_list)
+        cred->host_list = host_list;
+    }
+
   item = cJSON_GetObjectItem (service, "up");
   if (item && cJSON_IsObject (item))
     {
@@ -381,7 +386,7 @@ credential_esxi_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
-      gvm_hosts_free(host_list);
+      gvm_hosts_free (host_list);
       g_free (cred);
       return -1;
     }
@@ -403,8 +408,9 @@ credential_snmp_new (cJSON *service, credential_t **credential)
   item = cJSON_GetObjectItem (service, "hosts");
   if (item)
     {
-      host_list = create_host_list(item);
-      cred->host_list = host_list;
+      host_list = create_host_list (item);
+      if (host_list)
+        cred->host_list = host_list;
     }
   item = cJSON_GetObjectItem (service, "snmp");
   if (item && cJSON_IsObject (item))
@@ -420,7 +426,7 @@ credential_snmp_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
-      gvm_hosts_free(host_list);
+      gvm_hosts_free (host_list);
       g_free (cred);
       return -1;
     }
@@ -441,10 +447,11 @@ credential_krb5_new (cJSON *service, credential_t **credential)
   item = cJSON_GetObjectItem (service, "hosts");
   if (item)
     {
-      host_list = create_host_list(item);
-      cred->host_list = host_list;
+      host_list = create_host_list (item);
+      if (host_list)
+        cred->host_list = host_list;
     }
-  
+
   item = cJSON_GetObjectItem (service, "krb5");
   if (item && cJSON_IsObject (item))
     {
@@ -665,17 +672,23 @@ static void
 store_smb_credential (credential_t *credential)
 {
   // prefs set will replace the old values if any.
-  prefs_set (OID_SMB_AUTH_USER, get_smb_credential_username (credential) ? get_smb_credential_username (credential) : "");
-  prefs_set (OID_SMB_AUTH_PASS, get_smb_credential_password (credential) ? get_smb_credential_password (credential) : "");
- }
+  prefs_set (OID_SMB_AUTH_USER, get_smb_credential_username (credential)
+                                  ? get_smb_credential_username (credential)
+                                  : "");
+  prefs_set (OID_SMB_AUTH_PASS, get_smb_credential_password (credential)
+                                  ? get_smb_credential_password (credential)
+                                  : "");
+}
 
 static int
-match_smb_host_credential (credential_t *credential,
-                    const gvm_host_t *host)
+match_smb_host_credential (credential_t *credential, const gvm_host_t *host)
 {
-  if (!gvm_host_in_hosts(host, NULL, credential->smb_credential->host_list))
+  if (host == NULL || credential->smb_credential->host_list == NULL)
     return 0;
-    
+
+  if (!gvm_host_in_hosts (host, NULL, credential->smb_credential->host_list))
+    return 0;
+
   store_smb_credential (credential);
   return 1;
 }
@@ -684,17 +697,27 @@ static void
 store_krb5_credential (credential_t *credential)
 {
   // prefs set will replace the old values if any.
-  prefs_set (OID_KRB5_AUTH_USER, get_krb5_credential_username (credential) ? get_krb5_credential_username (credential) : "");
-  prefs_set (OID_KRB5_AUTH_PASS, get_krb5_credential_password (credential) ? get_krb5_credential_password (credential) : "");
-  prefs_set (OID_KRB5_AUTH_REALM, get_krb5_credential_realm (credential) ? get_krb5_credential_realm (credential) : "");
-  prefs_set (OID_KRB5_AUTH_KDC, get_krb5_credential_kdc (credential) ? get_krb5_credential_kdc (credential) : "");
+  prefs_set (OID_KRB5_AUTH_USER, get_krb5_credential_username (credential)
+                                   ? get_krb5_credential_username (credential)
+                                   : "");
+  prefs_set (OID_KRB5_AUTH_PASS, get_krb5_credential_password (credential)
+                                   ? get_krb5_credential_password (credential)
+                                   : "");
+  prefs_set (OID_KRB5_AUTH_REALM, get_krb5_credential_realm (credential)
+                                    ? get_krb5_credential_realm (credential)
+                                    : "");
+  prefs_set (OID_KRB5_AUTH_KDC, get_krb5_credential_kdc (credential)
+                                  ? get_krb5_credential_kdc (credential)
+                                  : "");
 }
 
 static int
-match_krb5_host_credential (credential_t *cred,
-                     const gvm_host_t *host)
+match_krb5_host_credential (credential_t *cred, const gvm_host_t *host)
 {
-  if (!gvm_host_in_hosts(host, NULL, cred->krb5_credential->host_list))
+  if (host == NULL || cred->krb5_credential->host_list == NULL)
+    return 0;
+
+  if (!gvm_host_in_hosts (host, NULL, cred->krb5_credential->host_list))
     return 0;
 
   store_krb5_credential (cred);
@@ -705,22 +728,21 @@ static void
 store_esxi_credential (credential_t *cred)
 {
   // prefs set will replace the old values if any.
-  prefs_set (OID_ESXI_AUTH_USER, get_esxi_credential_username (cred) ? get_esxi_credential_username (cred) : "");
-  prefs_set (OID_ESXI_AUTH_PASS, get_esxi_credential_password (cred) ? get_esxi_credential_password (cred) : "");
+  prefs_set (OID_ESXI_AUTH_USER, get_esxi_credential_username (cred)
+                                   ? get_esxi_credential_username (cred)
+                                   : "");
+  prefs_set (OID_ESXI_AUTH_PASS, get_esxi_credential_password (cred)
+                                   ? get_esxi_credential_password (cred)
+                                   : "");
 }
 
-struct data
-{
-  char *memory;
-  size_t size;
-};
-
-
 static int
-match_esxi_host_credential (credential_t *cred,
-                     const gvm_host_t *host)
+match_esxi_host_credential (credential_t *cred, const gvm_host_t *host)
 {
-  if (!gvm_host_in_hosts(host, NULL, cred->esxi_credential->host_list))
+  if (host == NULL || cred->esxi_credential->host_list == NULL)
+    return 0;
+
+  if (!gvm_host_in_hosts (host, NULL, cred->esxi_credential->host_list))
     return 0;
 
   store_esxi_credential (cred);
@@ -731,22 +753,36 @@ static void
 store_snmp_credential (credential_t *credential)
 {
   prefs_set (OID_SNMP_AUTH_COMMUNITY,
-             get_snmp_credential_community (credential) ? get_snmp_credential_community (credential) : "");
-  prefs_set (OID_SNMP_AUTH_USER, get_snmp_credential_username (credential) ? get_snmp_credential_username (credential) : "" );
-  prefs_set (OID_SNMP_AUTH_PASS, get_snmp_credential_password (credential) ? get_snmp_credential_password (credential) : "");
+             get_snmp_credential_community (credential)
+               ? get_snmp_credential_community (credential)
+               : "");
+  prefs_set (OID_SNMP_AUTH_USER, get_snmp_credential_username (credential)
+                                   ? get_snmp_credential_username (credential)
+                                   : "");
+  prefs_set (OID_SNMP_AUTH_PASS, get_snmp_credential_password (credential)
+                                   ? get_snmp_credential_password (credential)
+                                   : "");
   prefs_set (OID_SNMP_AUTH_AUTH_ALGO,
-             get_snmp_credential_auth_proto (credential) ? get_snmp_credential_auth_proto (credential) : "");
+             get_snmp_credential_auth_proto (credential)
+               ? get_snmp_credential_auth_proto (credential)
+               : "");
   prefs_set (OID_SNMP_AUTH_PRIV_PASS,
-             get_snmp_credential_privacy_password (credential) ? get_snmp_credential_privacy_password (credential) : "");
+             get_snmp_credential_privacy_password (credential)
+               ? get_snmp_credential_privacy_password (credential)
+               : "");
   prefs_set (OID_SNMP_AUTH_PRIV_ALGO,
-             get_snmp_credential_privacy_proto (credential) ? get_snmp_credential_privacy_proto (credential) : "");
+             get_snmp_credential_privacy_proto (credential)
+               ? get_snmp_credential_privacy_proto (credential)
+               : "");
 }
 
 static int
-match_snmp_host_credential (credential_t *credential,
-                     const gvm_host_t *host)
+match_snmp_host_credential (credential_t *credential, const gvm_host_t *host)
 {
-  if (!gvm_host_in_hosts(host, NULL,  credential->snmp_credential->host_list))
+  if (host == NULL || credential->snmp_credential->host_list == NULL)
+    return 0;
+
+  if (!gvm_host_in_hosts (host, NULL, credential->snmp_credential->host_list))
     return 0;
 
   store_snmp_credential (credential);
@@ -767,8 +803,14 @@ store_ssh_credential (credential_t *credential)
       g_snprintf (port_string, sizeof (port_string), "%d", port);
       prefs_set ("auth_port_ssh", port_string);
     }
+  else
+    // Let the nasl script set the default port. See kb_ssh_transport() in
+    // ssh_func.inc
+    prefs_set ("auth_port_ssh", "0");
 
-  prefs_set (OID_SSH_AUTH_USER, get_ssh_credential_username (credential));
+  prefs_set (OID_SSH_AUTH_USER, get_ssh_credential_username (credential)
+                                  ? get_ssh_credential_username (credential)
+                                  : "");
   prefs_set (OID_SSH_AUTH_PASS, key_auth ? "" : (password ? password : ""));
   prefs_set (OID_SSH_AUTH_PASSPHRASE, key_auth && password ? password : "");
   prefs_set (OID_SSH_AUTH_PRIV_USER,
@@ -785,12 +827,13 @@ store_ssh_credential (credential_t *credential)
                : "");
 }
 
-
 static int
-match_ssh_host_credential (credential_t *credential,
-                    const gvm_host_t *host)
+match_ssh_host_credential (credential_t *credential, const gvm_host_t *host)
 {
-  if (!gvm_host_in_hosts(host, NULL, credential->ssh_credential->host_list))
+  if (host == NULL || credential->ssh_credential->host_list == NULL)
+    return 0;
+
+  if (!gvm_host_in_hosts (host, NULL, credential->ssh_credential->host_list))
     return 0;
 
   store_ssh_credential (credential);
@@ -808,6 +851,10 @@ struct credential_check_data
   gboolean esxi_selected;
 };
 
+/**
+ * @brief Stores the first matching credential to be used for the current
+ * scanned host
+ */
 static void
 set_host_credential (gpointer credential, gpointer user_data)
 {
@@ -840,8 +887,8 @@ set_host_credential (gpointer credential, gpointer user_data)
 }
 
 static void
-set_host_credentials (GSList *credentials,
-                      const gvm_host_t *host, credential_type_t type)
+set_host_credentials (GSList *credentials, const gvm_host_t *host,
+                      credential_type_t type)
 {
   if (host == NULL)
     return;
@@ -871,7 +918,7 @@ select_host_smb_credential (GSList *credentials, const gvm_host_t *host)
   if (get_smb_credential_count () < 1)
     return;
 
-  set_host_credentials ( credentials, host, SMB);
+  set_host_credentials (credentials, host, SMB);
 }
 
 static void
@@ -879,7 +926,7 @@ select_host_snmp_credential (GSList *credentials, const gvm_host_t *host)
 {
   if (get_snmp_credential_count () < 1)
     return;
-  set_host_credentials ( credentials, host, SNMP);
+  set_host_credentials (credentials, host, SNMP);
 }
 
 static void
@@ -910,5 +957,4 @@ override_host_credentials (struct scan_globals *globals, const gvm_host_t *host)
   select_host_krb5_credential (globals->credentials, host);
   select_host_snmp_credential (globals->credentials, host);
   select_host_esxi_credential (globals->credentials, host);
-
 }

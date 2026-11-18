@@ -489,7 +489,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_DONE;
       goto finish_launch_plugin;
     }
-  
+
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
    * was not found). */
   if (!mandatory_requirements_met (args->host_kb, nvti))
@@ -565,7 +565,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   pid_t parent;
 
   override_host_credentials (globals, args->host);
-  
+
   addr6_to_str (ip, ip_str);
   host_kb = args->host_kb;
   host_vhosts = args->host->vhosts;

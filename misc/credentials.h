@@ -55,7 +55,6 @@ process_credentials_json (const char *, struct scan_globals **, char **);
 void
 destroy_credentials (GSList **);
 
-
 struct scan_globals;
 
 /* Select and publish one type credential in the per-host scanner process per
