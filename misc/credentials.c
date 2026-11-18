@@ -11,6 +11,7 @@
 #include "credentials.h"
 
 #include "base/hosts.h"
+#include "glibconfig.h"
 #include "scanneraux.h"
 
 #include <cjson/cJSON.h>
@@ -247,21 +248,30 @@ get_esxi_credential_password (credential_t *credential)
   return credential->esxi_credential->password;
 }
 
-static void
-create_host_list (cJSON *hosts, gvm_hosts_t **host_list)
+static gvm_hosts_t *
+create_host_list (cJSON *hosts)
 {
+  gvm_hosts_t *host_list = NULL;
+  
   if (hosts && cJSON_IsArray (hosts))
     {
+      GString *hosts_s = NULL;
       for (int i = 0; i < cJSON_GetArraySize (hosts); i++)
         {
           cJSON *host_item = cJSON_GetArrayItem (hosts, i);
-          gvm_host_t *host =
-            gvm_host_from_str (cJSON_GetStringValue (host_item));
-
-          gvm_hosts_add(*host_list, host);
+          char *host_value = cJSON_GetStringValue (host_item);
+          if (hosts_s == NULL)
+            hosts_s = g_string_new (host_value);
+          else
+            {
+              g_string_append(hosts_s, ",");
+              g_string_append(hosts_s, host_value);
+            }
         }
+      host_list = gvm_hosts_new (hosts_s->str);
+      g_string_free(hosts_s, TRUE);
     }
-   
+  return host_list;
 }
 
 static int
@@ -269,11 +279,14 @@ credential_ssh_new (cJSON *service, credential_t **credential)
 {
   ssh_credential_t *cred = g_malloc0 (sizeof (ssh_credential_t));
   cJSON *item;
-  gvm_hosts_t *host_list = gvm_hosts_new("");
+  gvm_hosts_t *host_list = NULL;
 
   item = cJSON_GetObjectItem(service,"hosts");
-  create_host_list(item, &host_list);
-  cred->host_list = host_list;
+  if (item)
+    {
+      host_list = create_host_list(item);
+      cred->host_list = host_list;
+    }
 
   cred->port = gvm_json_obj_int (service, "port");
 
@@ -303,6 +316,7 @@ credential_ssh_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
+      gvm_hosts_free(host_list);
       g_free (cred);
       return -1;
     }
@@ -318,12 +332,14 @@ credential_smb_new (cJSON *service, credential_t **credential)
 {
   smb_credential_t *cred = g_malloc0 (sizeof (smb_credential_t));
   cJSON *item;
-  gvm_hosts_t *host_list = gvm_hosts_new("");
+  gvm_hosts_t *host_list = NULL;
 
   item = cJSON_GetObjectItem(service,"hosts");
-  create_host_list(item, &host_list);
-  cred->host_list = host_list;
-
+  if (item)
+    {
+      host_list = create_host_list(item);
+      cred->host_list = host_list;
+    }
   item = cJSON_GetObjectItem (service, "up");
   if (item && cJSON_IsObject (item))
     {
@@ -332,6 +348,7 @@ credential_smb_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
+      gvm_hosts_free(host_list);
       g_free (cred);
       return -1;
     };
@@ -348,12 +365,14 @@ credential_esxi_new (cJSON *service, credential_t **credential)
 {
   esxi_credential_t *cred = g_malloc0 (sizeof (esxi_credential_t));
   cJSON *item;
-  gvm_hosts_t *host_list = gvm_hosts_new("");
+  gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem(service,"hosts");
-  create_host_list(item, &host_list);
-  cred->host_list = host_list;
-
+  item = cJSON_GetObjectItem (service, "hosts");
+  if (item) {
+    host_list = create_host_list(item);
+    cred->host_list = host_list;
+  }
+  
   item = cJSON_GetObjectItem (service, "up");
   if (item && cJSON_IsObject (item))
     {
@@ -362,6 +381,7 @@ credential_esxi_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
+      gvm_hosts_free(host_list);
       g_free (cred);
       return -1;
     }
@@ -378,12 +398,14 @@ credential_snmp_new (cJSON *service, credential_t **credential)
 {
   snmp_credential_t *cred = g_malloc0 (sizeof (snmp_credential_t));
   cJSON *item;
-  gvm_hosts_t *host_list = gvm_hosts_new("");
+  gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem(service,"hosts");
-  create_host_list(item, &host_list);
-  cred->host_list = host_list;
-
+  item = cJSON_GetObjectItem (service, "hosts");
+  if (item)
+    {
+      host_list = create_host_list(item);
+      cred->host_list = host_list;
+    }
   item = cJSON_GetObjectItem (service, "snmp");
   if (item && cJSON_IsObject (item))
     {
@@ -398,6 +420,7 @@ credential_snmp_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
+      gvm_hosts_free(host_list);
       g_free (cred);
       return -1;
     }
@@ -413,12 +436,15 @@ credential_krb5_new (cJSON *service, credential_t **credential)
 {
   krb5_credential_t *cred = g_malloc0 (sizeof (krb5_credential_t));
   cJSON *item;
-  gvm_hosts_t *host_list = gvm_hosts_new("");
+  gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem(service,"hosts");
-  create_host_list(item, &host_list);
-  cred->host_list = host_list;
-
+  item = cJSON_GetObjectItem (service, "hosts");
+  if (item)
+    {
+      host_list = create_host_list(item);
+      cred->host_list = host_list;
+    }
+  
   item = cJSON_GetObjectItem (service, "krb5");
   if (item && cJSON_IsObject (item))
     {
@@ -429,6 +455,7 @@ credential_krb5_new (cJSON *service, credential_t **credential)
     }
   if (item == NULL)
     {
+      gvm_hosts_free (host_list);
       g_free (cred);
       return -1;
     }
@@ -587,27 +614,21 @@ free_credential (gpointer data)
       g_free (credential->ssh_credential->private_key_uuid);
       g_free (credential->ssh_credential->privilege_username);
       g_free (credential->ssh_credential->privilege_password);
-
-      if (credential->ssh_credential->host_list != NULL)
-        gvm_hosts_free (credential->ssh_credential->host_list);
-      
+      gvm_hosts_free (credential->ssh_credential->host_list);
       g_free (credential->ssh_credential);
     }
   else if (credential->type == SMB)
     {
       g_free (credential->smb_credential->username);
       g_free (credential->smb_credential->password);
-      if (credential->smb_credential->host_list != NULL)
-        gvm_hosts_free (credential->smb_credential->host_list);
+      gvm_hosts_free (credential->smb_credential->host_list);
       g_free (credential->smb_credential);
     }
   else if (credential->type == ESXi)
     {
       g_free (credential->esxi_credential->username);
       g_free (credential->esxi_credential->password);
-      if (credential->esxi_credential->host_list != NULL)
-        gvm_hosts_free (credential->esxi_credential->host_list);
-      
+      gvm_hosts_free (credential->esxi_credential->host_list);
       g_free (credential->esxi_credential);
     }
   else if (credential->type == KRB5)
@@ -616,8 +637,7 @@ free_credential (gpointer data)
       g_free (credential->krb5_credential->password);
       g_free (credential->krb5_credential->realm);
       g_free (credential->krb5_credential->kdc);
-      if (credential->krb5_credential->host_list != NULL)
-        gvm_hosts_free (credential->krb5_credential->host_list);
+      gvm_hosts_free (credential->krb5_credential->host_list);
       g_free (credential->krb5_credential);
     }
   else if (credential->type == SNMP)
@@ -626,14 +646,19 @@ free_credential (gpointer data)
       g_free (credential->snmp_credential->password);
       g_free (credential->snmp_credential->community);
       g_free (credential->snmp_credential->privacy_password);
+      g_free (credential->snmp_credential->auth_proto);
+      g_free (credential->snmp_credential->privacy_proto);
+      gvm_hosts_free (credential->snmp_credential->host_list);
       g_free (credential->snmp_credential);
     }
+  g_free (credential);
 }
 
 void
 destroy_credentials (GSList **credentials)
 {
   g_slist_free_full (*credentials, (GDestroyNotify) free_credential);
+  *credentials = NULL;
 }
 
 static void
