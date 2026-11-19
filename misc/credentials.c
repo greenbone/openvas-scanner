@@ -688,10 +688,10 @@ store_smb_credential (credential_t *credential)
   // prefs set will replace the old values if any.
   prefs_set (OID_SMB_AUTH_USER, get_smb_credential_username (credential)
                                   ? get_smb_credential_username (credential)
-                                  : "");
+                                  : NULL);
   prefs_set (OID_SMB_AUTH_PASS, get_smb_credential_password (credential)
                                   ? get_smb_credential_password (credential)
-                                  : "");
+                                  : NULL);
 }
 
 static int
@@ -713,16 +713,16 @@ store_krb5_credential (credential_t *credential)
   // prefs set will replace the old values if any.
   prefs_set (OID_KRB5_AUTH_USER, get_krb5_credential_username (credential)
                                    ? get_krb5_credential_username (credential)
-                                   : "");
+                                   : NULL);
   prefs_set (OID_KRB5_AUTH_PASS, get_krb5_credential_password (credential)
                                    ? get_krb5_credential_password (credential)
-                                   : "");
+                                   : NULL);
   prefs_set (OID_KRB5_AUTH_REALM, get_krb5_credential_realm (credential)
                                     ? get_krb5_credential_realm (credential)
-                                    : "");
+                                    : NULL);
   prefs_set (OID_KRB5_AUTH_KDC, get_krb5_credential_kdc (credential)
                                   ? get_krb5_credential_kdc (credential)
-                                  : "");
+                                  : NULL);
 }
 
 static int
@@ -744,10 +744,10 @@ store_esxi_credential (credential_t *cred)
   // prefs set will replace the old values if any.
   prefs_set (OID_ESXI_AUTH_USER, get_esxi_credential_username (cred)
                                    ? get_esxi_credential_username (cred)
-                                   : "");
+                                   : NULL);
   prefs_set (OID_ESXI_AUTH_PASS, get_esxi_credential_password (cred)
                                    ? get_esxi_credential_password (cred)
-                                   : "");
+                                   : NULL);
 }
 
 static int
@@ -769,25 +769,25 @@ store_snmp_credential (credential_t *credential)
   prefs_set (OID_SNMP_AUTH_COMMUNITY,
              get_snmp_credential_community (credential)
                ? get_snmp_credential_community (credential)
-               : "");
+               : NULL);
   prefs_set (OID_SNMP_AUTH_USER, get_snmp_credential_username (credential)
                                    ? get_snmp_credential_username (credential)
-                                   : "");
+                                   : NULL);
   prefs_set (OID_SNMP_AUTH_PASS, get_snmp_credential_password (credential)
                                    ? get_snmp_credential_password (credential)
-                                   : "");
+                                   : NULL);
   prefs_set (OID_SNMP_AUTH_AUTH_ALGO,
              get_snmp_credential_auth_proto (credential)
                ? get_snmp_credential_auth_proto (credential)
-               : "");
+               : NULL);
   prefs_set (OID_SNMP_AUTH_PRIV_PASS,
              get_snmp_credential_privacy_password (credential)
                ? get_snmp_credential_privacy_password (credential)
-               : "");
+               : NULL);
   prefs_set (OID_SNMP_AUTH_PRIV_ALGO,
              get_snmp_credential_privacy_proto (credential)
                ? get_snmp_credential_privacy_proto (credential)
-               : "");
+               : NULL);
 }
 
 static int
@@ -824,21 +824,21 @@ store_ssh_credential (credential_t *credential)
 
   prefs_set (OID_SSH_AUTH_USER, get_ssh_credential_username (credential)
                                   ? get_ssh_credential_username (credential)
-                                  : "");
-  prefs_set (OID_SSH_AUTH_PASS, key_auth ? "" : (password ? password : ""));
-  prefs_set (OID_SSH_AUTH_PASSPHRASE, key_auth && password ? password : "");
+                                  : NULL);
+  prefs_set (OID_SSH_AUTH_PASS, key_auth ? "" : (password ? password : NULL));
+  prefs_set (OID_SSH_AUTH_PASSPHRASE, key_auth && password ? password : NULL);
   prefs_set (OID_SSH_AUTH_PRIV_USER,
              get_ssh_credential_privilege_username (credential)
                ? get_ssh_credential_privilege_username (credential)
-               : "");
+               : NULL);
   prefs_set (OID_SSH_AUTH_PRIV_PASS,
              get_ssh_credential_privilege_password (credential)
                ? get_ssh_credential_privilege_password (credential)
-               : "");
+               : NULL);
   prefs_set (OID_SSH_AUTH_PRIV_KEY,
              key_auth && get_ssh_credential_private_key_uuid (credential)
                ? get_ssh_credential_private_key_uuid (credential)
-               : "");
+               : NULL);
 }
 
 static int
@@ -847,7 +847,8 @@ match_ssh_host_credential (credential_t *credential, const gvm_host_t *host)
   if (host == NULL || credential->ssh_credential->host_list == NULL)
     return 0;
 
-  if (!gvm_host_in_hosts (host, NULL, credential->ssh_credential->host_list))
+  if (!gvm_host_find_in_hosts (host, NULL,
+                               credential->ssh_credential->host_list))
     return 0;
 
   store_ssh_credential (credential);
