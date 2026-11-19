@@ -73,6 +73,7 @@ impl From<Credentials> for Vec<models::Credential> {
                     service: (&x.service as &str).try_into().ok().unwrap_or(Service::SSH),
                     port: x.port.and_then(|x| x.parse().ok()),
                     credential_type: kind,
+                    hosts: None, //multiple credentials not supported by ospd
                 }
             })
             .collect()

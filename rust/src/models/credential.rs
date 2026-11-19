@@ -12,6 +12,9 @@ pub struct Credential {
     #[serde(flatten)]
     /// Type of the credential to get access. Different services support different types.
     pub credential_type: CredentialType,
+    /// Use this credential only for listed hosts
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hosts: Option<Vec<String>>,
 }
 
 impl Default for Credential {
@@ -19,6 +22,7 @@ impl Default for Credential {
         Self {
             service: Service::SSH,
             port: Default::default(),
+            hosts: None,
             credential_type: CredentialType::UP {
                 username: "root".to_string(),
                 password: "".to_string(),

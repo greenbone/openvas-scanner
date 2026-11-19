@@ -212,6 +212,7 @@ impl<'o> Fetch<models::Scan> for DBScan<'o, String> {
                             },
                             service: models::Service::Generic,
                             port: None,
+                            hosts: None,
                         })
                         .collect(),
                     ..Default::default()
