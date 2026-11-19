@@ -35,6 +35,9 @@ pub enum DbError {
     /// Cannot find a DB to use; redis must be cleaned up to free available slots.
     #[error("No DB available.")]
     NoAvailDbErr,
+    /// Cannot find the key in any Namespace
+    #[error("Namespace not found.")]
+    NamespaceNotFound,
 }
 
 impl From<RedisError> for DbError {
@@ -73,7 +76,8 @@ impl From<DbError> for StorageError {
             | DbError::ConfigurationError(_)
             | DbError::PoisonedLock(_)
             | DbError::IoError(_)
-            | DbError::NoAvailDbErr => StorageError::Dirty(err.to_string()),
+            | DbError::NoAvailDbErr
+            | DbError::NamespaceNotFound => StorageError::Dirty(err.to_string()),
             DbError::ConnectionLost(_) => StorageError::ConnectionLost(err.to_string()),
             DbError::Retry(_) => StorageError::Retry(err.to_string()),
             DbError::LibraryError(_) => StorageError::UnexpectedData(err.to_string()),

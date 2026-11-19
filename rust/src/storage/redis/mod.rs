@@ -19,8 +19,10 @@ use async_trait::async_trait;
 pub use connector::CACHE_KEY;
 /// Default selector for feed update
 pub use connector::FEEDUPDATE_SELECTOR;
+pub use connector::FEEDUPDATE_SELECTOR_CHECK_ONLY;
 pub use connector::NOTUS_KEY;
 pub use connector::NOTUSUPDATE_SELECTOR;
+pub use connector::NOTUSUPDATE_SELECTOR_CHECK_ONLY;
 pub use connector::NameSpaceSelector;
 pub use connector::RedisCtx;
 pub use dberror::{DbError, RedisStorageResult};

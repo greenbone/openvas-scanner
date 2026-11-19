@@ -52,6 +52,15 @@ fn init_redis_storage(redis_url: &str, ft: FeedType) -> Result<RedisCtx, WorkerE
     RedisCtx::open(redis_url, selector).map_err(|e| WorkerError::Sync(Box::new(e)))
 }
 
+fn check_redis_storage(redis_url: &str, ft: FeedType) -> Result<RedisCtx, DbError> {
+    use scannerlib::storage::redis::*;
+    let selector = match ft {
+        FeedType::Products | FeedType::Advisories => NOTUSUPDATE_SELECTOR_CHECK_ONLY,
+        FeedType::NASL => FEEDUPDATE_SELECTOR_CHECK_ONLY,
+    };
+    RedisCtx::open(redis_url, selector)
+}
+
 #[derive(Debug, Clone)]
 pub struct RedisPluginHandler {
     address: String,
@@ -335,7 +344,11 @@ impl orchestrator::Worker for FeedSynchronizer {
                 FeedType::NASL => CACHE_KEY,
                 _ => NOTUS_KEY,
             };
-            let mut nasl_ctx = init_redis_storage(address, ft)?;
+            let mut nasl_ctx = match check_redis_storage(address, ft) {
+                Ok(ctx) => ctx,
+                Err(DbError::NamespaceNotFound) => return Ok(None),
+                Err(e) => return Err(redis_error_to_worker_error(e)),
+            };
             let mut ck = nasl_ctx
                 .lrange(key, 0, 0)
                 .map_err(redis_error_to_worker_error)?;
