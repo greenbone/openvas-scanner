@@ -19,6 +19,9 @@
 /* for tree_cell */
 #include "nasl_tree.h"
 
+/* for kb_t */
+#include "util/kb.h"
+
 tree_cell *
 nasl_smb_versioninfo (lex_ctxt *lexic);
 tree_cell *
@@ -37,5 +40,8 @@ tree_cell *
 nasl_win_cmd_exec (lex_ctxt *lexic);
 tree_cell *
 nasl_psrp_cli (lex_ctxt *lexic);
+int
+smb_krb5_login_test (kb_t, const char *, const char *, const char *,
+                     const char *, const char *);
 
 #endif

@@ -12,6 +12,8 @@
 
 #include "attack.h"
 
+#include "../misc/credentials.h"
+#include "../nasl/nasl_credentials.h"
 #include "../misc/ipc_openvas.h"
 #include "../misc/kb_cache.h"
 #include "../misc/network.h"        /* for auth_printf */
@@ -488,7 +490,78 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_DONE;
       goto finish_launch_plugin;
     }
+  if (kb_item_get_int (args->host_kb,
+                       "global_settings/authenticated_scans_disabled")
+        <= 0
+      && kb_item_get_int (args->host_kb, "Host/dead") <= 0)
+    {
+      /* The SSH authorization VT's dependencies have completed here. Select in
+       * this per-host process so later VT forks inherit the winning preferences. */
+      if (get_ssh_credential_count () > 1
+          && strcmp (oid, "1.3.6.1.4.1.25623.1.0.90022") == 0
+          && kb_item_get_int (args->host_kb,
+                              "internal/ssh/credential_selection_done") <= 0)
+        {
+          kb_item_set_int (args->host_kb,
+                           "internal/ssh/credential_selection_done", 1);
+          select_host_ssh_credential (globals, args->host_kb, ip_str);
+        }
 
+      /* smb_login.nasl (10394) is launched once smb_authorization.nasl,
+       * krb5_authorization.nasl, netbios_name_get.nasl and cifs445.nasl have
+       * completed. Select the working KRB5 and SMB credentials independently,
+       * as they can be used separately. smb_login.nasl itself gives KRB5 priority
+       * over SMB when both KB items are set. */
+      if (get_krb5_credential_count () > 1
+          && strcmp (oid, "1.3.6.1.4.1.25623.1.0.10394") == 0
+          && kb_item_get_int (args->host_kb,
+                              "internal/krb5/credential_selection_done") <= 0)
+        {
+          kb_item_set_int (args->host_kb,
+                           "internal/krb5/credential_selection_done", 1);
+          select_host_krb5_credential (globals, args->host_kb, ip_str);
+        }
+
+      if (get_smb_credential_count () > 1
+          && strcmp (oid, "1.3.6.1.4.1.25623.1.0.10394") == 0
+          && kb_item_get_int (args->host_kb,
+                              "internal/smb/credential_selection_done") <= 0)
+        {
+          kb_item_set_int (args->host_kb,
+                           "internal/smb/credential_selection_done", 1);
+          select_host_smb_credential (globals, args->host_kb, ip_str);
+        }
+
+      /* snmp_detect.nasl (10265) is launched once gb_snmp_authorization.nasl,
+       * gb_open_udp_ports.nasl and snmp_default_communities.nasl have completed.
+       * Select the working SNMP credential before it is forked. */
+      if (get_snmp_credential_count () > 1
+          && strcmp (oid, "1.3.6.1.4.1.25623.1.0.10265") == 0
+          && kb_item_get_int (args->host_kb,
+                              "internal/snmp/credential_selection_done") <= 0)
+        {
+          kb_item_set_int (args->host_kb,
+                           "internal/snmp/credential_selection_done", 1);
+          select_host_snmp_credential (globals, args->host_kb, ip_str);
+        }
+
+      /* gb_vmware_esxi_init.nasl (103447) is launched once
+       * gb_vmware_esx_web_detect.nasl and gb_vmware_esxi_authorization.nasl have
+       * completed. Select the working ESXi credential before it is forked, only
+       * for an ESXi target as required by its mandatory keys. */
+      if (get_esxi_credential_count () > 1
+          && strcmp (oid, "1.3.6.1.4.1.25623.1.0.103447") == 0
+          && kb_item_get_int (args->host_kb, "VMware/ESX/type/ESXi") > 0
+          && kb_item_get_int (args->host_kb, "VMware/ESX/port") > 0
+          && kb_item_get_int (args->host_kb,
+                              "internal/esxi/credential_selection_done") <= 0)
+        {
+          kb_item_set_int (args->host_kb,
+                           "internal/esxi/credential_selection_done", 1);
+          select_host_esxi_credential (globals, args->host_kb, ip_str);
+        }
+    }
+  
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
    * was not found). */
   if (!mandatory_requirements_met (args->host_kb, nvti))
@@ -1080,7 +1153,7 @@ set_alive_detection_tid (pthread_t tid)
   alive_detection_tid = tid;
 }
 static pthread_t
-get_alive_detection_tid ()
+get_alive_detection_tid (void)
 {
   return alive_detection_tid;
 }
@@ -1112,7 +1185,7 @@ handle_scan_stop_signal ()
 }
 
 static void
-scan_stop_cleanup ()
+scan_stop_cleanup (void)
 {
   kb_t main_kb = NULL;
   char *pid;
