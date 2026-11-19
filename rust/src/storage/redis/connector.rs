@@ -165,6 +165,20 @@ impl RedisCtx {
             .map_err(DbError::from)
     }
 
+    fn replace_list<T: ToRedisArgs>(&mut self, key: &str, values: T) -> RedisStorageResult<()> {
+        redis::pipe()
+            .atomic()
+            .cmd("DEL")
+            .arg(key)
+            .ignore()
+            .cmd("RPUSH")
+            .arg(key)
+            .arg(values)
+            .ignore()
+            .query::<()>(&mut self.kb.as_mut().expect("Valid redis connection"))
+            .map_err(DbError::from)
+    }
+
     ///Wrapper function to avoid accessing kb member directly.
     #[inline(always)]
     pub fn lpush<T: ToRedisArgs>(&mut self, key: &str, val: T) -> RedisStorageResult<()> {
@@ -258,7 +272,7 @@ impl RedisCtx {
                 let value = Vulnerability::from(data);
                 let value = serde_json::to_string(&value)
                     .map_err(|e| DbError::Unknown(format!("Serialization error: {e}")))?;
-                self.rpush(&key, value)?;
+                self.replace_list(&key, &[value])?;
             }
             None => self.rpush(NOTUS_KEY, "1".to_string())?,
         };
@@ -590,7 +604,7 @@ impl RedisCtx {
         // under the filename key is added.
         // Once openvas is no longer used, the dummy item can be removed.
         let key_name = format!("filename:{filename}");
-        self.rpush(
+        self.replace_list(
             &key_name,
             &[
                 if mtime.is_empty() {
