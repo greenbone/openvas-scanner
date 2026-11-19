@@ -249,6 +249,7 @@ static gvm_hosts_t *
 create_host_list (cJSON *hosts)
 {
   gvm_hosts_t *host_list = NULL;
+  GSList *unresolved;
 
   if (hosts && cJSON_IsArray (hosts))
     {
@@ -272,6 +273,19 @@ create_host_list (cJSON *hosts)
         host_list = gvm_hosts_new (hosts_s->str);
       g_string_free (hosts_s, TRUE);
     }
+
+  if (host_list == NULL)
+    return host_list;
+
+  unresolved = gvm_hosts_resolve (host_list);
+  while (unresolved)
+    {
+      g_warning ("Couldn't resolve hostname '%s' tied to a credential",
+                 (char *) unresolved->data);
+      unresolved = unresolved->next;
+    }
+  g_slist_free_full (unresolved, g_free);
+
   return host_list;
 }
 
