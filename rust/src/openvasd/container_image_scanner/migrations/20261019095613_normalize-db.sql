@@ -3,6 +3,9 @@ PRAGMA foreign_keys = OFF;
 
 CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value BLOB NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
 
+-- drop leftovers from failed migrations
+DROP TABLE IF EXISTS scans_new;
+
 DROP TRIGGER trg_update_scans_host_on_insert;
 DROP TRIGGER trg_update_scans_host_counters;
 
@@ -36,7 +39,6 @@ SELECT
 FROM scans s
 JOIN client_scan_map cm ON s.id = cm.id
 JOIN credentials c ON s.id = c.id;
-
 
 DROP TABLE credentials;
 DROP TABLE client_scan_map;

@@ -1,13 +1,13 @@
-CREATE TABLE client_scan_map (
+CREATE TABLE IF NOT EXISTS client_scan_map (
     id INTEGER PRIMARY KEY,
     client_id TEXT NOT NULL,
     scan_id TEXT NOT NULL,
     UNIQUE (client_id, scan_id)
 );
 
-CREATE INDEX idx_client_scan_map ON client_scan_map(scan_id, client_id);
+CREATE INDEX IF NOT EXISTS idx_client_scan_map ON client_scan_map(scan_id, client_id);
 
-CREATE TABLE scans (
+CREATE TABLE IF NOT EXISTS scans (
     id INTEGER PRIMARY KEY,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     start_time INTEGER,
@@ -25,7 +25,7 @@ CREATE TABLE scans (
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
-CREATE TRIGGER trg_update_scans_start_time
+CREATE TRIGGER IF NOT EXISTS trg_update_scans_start_time
 AFTER UPDATE OF status ON scans
 FOR EACH ROW
 WHEN NEW.status = 'running' AND OLD.status IS NOT 'running'
@@ -36,7 +36,7 @@ BEGIN
     WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER trg_update_scans_end_time
+CREATE TRIGGER IF NOT EXISTS trg_update_scans_end_time
 AFTER UPDATE OF status ON scans
 FOR EACH ROW
 WHEN (NEW.status = 'failed' OR NEW.status = 'succeeded' OR NEW.status = 'stopped' ) AND OLD.status IS NOT NEW.status
@@ -48,9 +48,9 @@ END;
 
 
 
-CREATE INDEX idx_scans_status ON scans(status);
+CREATE INDEX IF NOT EXISTS idx_scans_status ON scans(status);
 
-CREATE TABLE preferences (
+CREATE TABLE IF NOT EXISTS preferences (
     id INTEGER,
     key TEXT NOT NULL,
     value TEXT NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE preferences (
 );
 
 
-CREATE TABLE ports (
+CREATE TABLE IF NOT EXISTS ports (
     id INTEGER,
     protocol TEXT DEFAULT 'udp_tcp' CHECK(protocol IN ('udp_tcp', 'udp', 'tcp')),
     start int NOT NULL,
@@ -68,30 +68,30 @@ CREATE TABLE ports (
     PRIMARY KEY (id, protocol, start, alive, end),
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
-CREATE INDEX idx_ports_alive ON ports(id, alive);
+CREATE INDEX IF NOT EXISTS idx_ports_alive ON ports(id, alive);
 
-CREATE TABLE alive_methods (
+CREATE TABLE IF NOT EXISTS alive_methods (
     id INTEGER,
     method TEXT NOT NULL CHECK(method IN ('icmp', 'tcp_syn', 'tcp_ack', 'arp', 'consider_alive' )),
     PRIMARY KEY (id, method),
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
-CREATE TABLE hosts (
+CREATE TABLE IF NOT EXISTS hosts (
     id INTEGER,
     host TEXT NOT NULL,
     PRIMARY KEY (id, host),
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
-CREATE TABLE vts (
+CREATE TABLE IF NOT EXISTS vts (
     id INTEGER,
     vt TEXT NOT NULL,
     PRIMARY KEY (id, vt),
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
-CREATE TABLE vt_parameters (
+CREATE TABLE IF NOT EXISTS vt_parameters (
     id INTEGER,
     vt TEXT NOT NULL,
     param_id int NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE vt_parameters (
 
 
 -- maybe just store the json as a blob as we just get the data for id and result_id but never actually work with the data
-CREATE TABLE results (
+CREATE TABLE IF NOT EXISTS results (
     id INTEGER,
     result_id INTEGER NOT NULL,
     type TEXT,
@@ -121,14 +121,14 @@ CREATE TABLE results (
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
-CREATE TABLE feed (
+CREATE TABLE IF NOT EXISTS feed (
     hash TEXT NOT NULL,
     path TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     type TEXT NOT NULL CHECK(type in ('advisories', 'nasl')) PRIMARY KEY
 );
 
-CREATE TABLE plugins (
+CREATE TABLE IF NOT EXISTS plugins (
     oid TEXT PRIMARY KEY,
     feed_type TEXT NOT NULL,
     -- we store the plugin as a json blob otherwise we would need to have 8 tables
@@ -147,7 +147,7 @@ CREATE TABLE plugins (
 -- - ip ranges
 -- - dns entries
 -- - oci images
-CREATE TABLE resolved_hosts (
+CREATE TABLE IF NOT EXISTS resolved_hosts (
     id INTEGER,
     original_host TEXT NOT NULL,
     resolved_host TEXT NOT NULL,
@@ -158,9 +158,9 @@ CREATE TABLE resolved_hosts (
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_resolved_hosts_host_status_scan_status_kind ON resolved_hosts(id, host_status, scan_status, kind);
+CREATE INDEX IF NOT EXISTS idx_resolved_hosts_host_status_scan_status_kind ON resolved_hosts(id, host_status, scan_status, kind);
 
-CREATE TABLE knowledge_base_items(
+CREATE TABLE IF NOT EXISTS knowledge_base_items(
     id INTEGER PRIMARY KEY,
     client_scan_id INTEGER NOT NULL,
     host TEXT NOT NULL,
@@ -169,6 +169,6 @@ CREATE TABLE knowledge_base_items(
     FOREIGN KEY (client_scan_id, host) REFERENCES resolved_hosts(id, resolved_host)
 );
 
-CREATE INDEX idx_knowledge_base_items ON knowledge_base_items(id, host, key);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_items ON knowledge_base_items(id, host, key);
 
 

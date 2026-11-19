@@ -1,14 +1,14 @@
-CREATE TABLE client_scan_map (
+CREATE TABLE IF NOT EXISTS client_scan_map (
     id INTEGER PRIMARY KEY,
     client_id TEXT NOT NULL,
     scan_id TEXT NOT NULL,
     UNIQUE (client_id, scan_id)
 );
 
-CREATE INDEX idx_client_scan_map ON client_scan_map(scan_id, client_id);
+CREATE INDEX IF NOT EXISTS idx_client_scan_map ON client_scan_map(scan_id, client_id);
 
 
-CREATE TABLE scans (
+CREATE TABLE IF NOT EXISTS scans (
     id INTEGER PRIMARY KEY,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     start_time INTEGER DEFAULT 0,
@@ -25,17 +25,17 @@ CREATE TABLE scans (
     FOREIGN KEY (id) REFERENCES client_scan_map(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_scans_status ON scans(status);
-CREATE INDEX idx_scans_created_at ON scans(created_at);
+CREATE INDEX IF NOT EXISTS idx_scans_status ON scans(status);
+CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans(created_at);
 
-CREATE TABLE registry (
+CREATE TABLE IF NOT EXISTS registry (
     id INTEGER,
     host TEXT,
     PRIMARY KEY (id, host),
     FOREIGN KEY (id) REFERENCES scans(id) ON DELETE CASCADE
 );
 
-CREATE TABLE credentials (
+CREATE TABLE IF NOT EXISTS credentials (
     id INTEGER PRIMARY KEY,
     username TEXT,
     password TEXT,
@@ -43,7 +43,7 @@ CREATE TABLE credentials (
 );
 
 -- stores currently running images, when an image is scanned it needs to be removed here
-CREATE TABLE images (
+CREATE TABLE IF NOT EXISTS images (
     id INTEGER,
     image TEXT,
     status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'scanning', 'stopped', 'failed', 'succeeded', 'excluded')),
@@ -52,9 +52,9 @@ CREATE TABLE images (
 );
 
 
-CREATE INDEX idx_scanning_images_scan_status ON images(id, status);
+CREATE INDEX IF NOT EXISTS idx_scanning_images_scan_status ON images(id, status);
 
-CREATE TABLE results (
+CREATE TABLE IF NOT EXISTS results (
     scan_id INTEGER,
     id INTEGER,
     type TEXT,
@@ -74,7 +74,7 @@ CREATE TABLE results (
 );
 
 
-CREATE TABLE preferences (
+CREATE TABLE IF NOT EXISTS preferences (
     id INTEGER,
     key TEXT NOT NULL,
     value TEXT NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE preferences (
 -- this is done here to change the scan status and keep track of the hosts counter 
 -- immediately
 
-CREATE TRIGGER trg_update_scans_host_on_insert
+CREATE TRIGGER IF NOT EXISTS trg_update_scans_host_on_insert
 AFTER INSERT ON images
 BEGIN
     UPDATE scans
@@ -96,7 +96,7 @@ BEGIN
     WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER trg_update_scans_host_counters
+CREATE TRIGGER IF NOT EXISTS trg_update_scans_host_counters
 AFTER UPDATE OF status ON images
 FOR EACH ROW
 WHEN OLD.status != NEW.status AND (NEW.status = 'failed' OR NEW.status = 'succeeded')
