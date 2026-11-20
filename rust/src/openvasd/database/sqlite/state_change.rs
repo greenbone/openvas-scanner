@@ -14,7 +14,7 @@ use sqlx::{
 };
 use tokio::sync::Mutex;
 
-pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments<'a>> {
+pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments> {
     sqlx::query(r#"
         SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
         FROM scans
@@ -25,7 +25,7 @@ pub(crate) fn status_query<'a>(id: i64) -> Query<'a, Sqlite, SqliteArguments<'a>
 
 pub(crate) fn host_scanning_query<'a>(
     id: i64,
-) -> QueryAs<'a, Sqlite, ScanningHost, SqliteArguments<'a>> {
+) -> QueryAs<'a, Sqlite, ScanningHost, SqliteArguments> {
     sqlx::query_as(
         r#"
         SELECT host_ip, progress
@@ -244,11 +244,11 @@ impl ScanStateController {
 #[cfg(test)]
 mod tests {
     use crate::database::sqlite::state_change::ScanStateController;
-    use crate::scans::tests::{create_pool, prepare_scans};
+    use crate::scans::tests::{create_test_env, prepare_scans};
 
     #[tokio::test]
     async fn set_single_state() -> anyhow::Result<()> {
-        let (config, pool, _guard) = create_pool().await?;
+        let (config, pool, _guard) = create_test_env().await?;
         let under_test = ScanStateController::init(pool.clone()).await?;
 
         let scans = prepare_scans(pool, &config).await;
@@ -260,7 +260,7 @@ mod tests {
 
     #[tokio::test]
     async fn set_all_scans() -> anyhow::Result<()> {
-        let (config, pool, _guard) = create_pool().await?;
+        let (config, pool, _guard) = create_test_env().await?;
         let under_test = ScanStateController::init(pool.clone()).await?;
         let scans = prepare_scans(pool, &config).await;
         let affected = under_test.change_state_all("stored", "failed").await?;

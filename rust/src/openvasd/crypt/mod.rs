@@ -2,6 +2,22 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+//! Versioned data encryption
+//!
+//! There are currently three versions:
+//!
+//! Version 0:
+//! * Migration of unencrypted container image scanner credentials
+//! * Credentials are saved as plain json, no base64
+//!
+//! Version 1:
+//! * ChaCha20 with static salt
+//! * Credentials ciphertext is stored base64 encoded
+//!
+//! Version 2:
+//! * ChaCha20Poly1305, Argon2Id, random salt
+//! * Credentials ciphertext is stored base64 encoded
+
 use async_trait::async_trait;
 use std::fmt::Display;
 
@@ -10,7 +26,7 @@ use sqlx::Sqlite;
 use v1::V1Crypter;
 use v2::V2Crypter;
 
-use crate::{config::Config, database::sqlite::DataBase};
+use crate::{config::SqliteConfiguration, database::sqlite::DataBase};
 
 mod v1;
 mod v2;
@@ -40,19 +56,22 @@ impl Crypter {
         })
     }
 
-    pub async fn from_config(config: &Config, pool: &DataBase) -> anyhow::Result<Crypter> {
+    pub async fn from_config(
+        config: &SqliteConfiguration,
+        pool: &DataBase,
+    ) -> anyhow::Result<Crypter> {
         // fallback keyphrase and salt in case they are not set in the config
         //
         // WARNING: the fallback does not create any security and purely functions acts as a way to
         // be able to use a single logic for the storage. The security is the same as storing the data
         // unencrypted
-        let keyphrase = config.storage.credential_key().unwrap_or_else(|| {
+        let keyphrase = config.credential_key.clone().unwrap_or_else(|| {
             // actually they are encrypted but with a static fallback passphrase which is essentially the
             // same but this wording carries more weight.
             tracing::warn!(
                 "WARNING: no credential_key set. Credentials will be stored unencrypted."
             );
-            "insecure_key"
+            "insecure_key".to_string()
         });
 
         let salt = get_salt(pool).await?;
@@ -71,6 +90,7 @@ impl Crypt for Crypter {
     /// Decrypts data using the encryption method embedded in the metadata.
     async fn decrypt(&self, encrypted: Encrypted) -> anyhow::Result<Vec<u8>> {
         match encrypted.version {
+            0 => Ok(encrypted.data.clone()),
             1 => {
                 let key = self.v1.key;
                 tokio::task::spawn_blocking(move || V1Crypter::decrypt_sync(&key, &encrypted))
@@ -92,6 +112,7 @@ pub struct Encrypted {
     /// Used encryption method version.
     version: u8,
     nonce: [u8; 12],
+    /// Data is either a base64 encoded ciphertext or plain json in case of version 0.
     data: Vec<u8>,
 }
 
@@ -134,7 +155,7 @@ impl TryFrom<&str> for Encrypted {
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         use base64::{Engine as _, engine::general_purpose};
-        let mut parts = s.split_whitespace().peekable();
+        let mut parts = s.splitn(3, ' ').peekable();
         let decode = |s: &str, e: ParseError| {
             general_purpose::STANDARD
                 .decode(s.as_bytes())
@@ -149,7 +170,7 @@ impl TryFrom<&str> for Encrypted {
                 x.parse::<u8>()
                     .map_err(|_| ParseError::InvalidVersion)
                     .and_then(|x| {
-                        if (1..=VERSION).contains(&x) {
+                        if (0..=VERSION).contains(&x) {
                             Ok(x)
                         } else {
                             Err(ParseError::InvalidVersion)
@@ -164,10 +185,15 @@ impl TryFrom<&str> for Encrypted {
             .map(|nonce| decode(nonce, ParseError::InvalidNonce))
             .ok_or(ParseError::MissingNonce)??;
 
-        let data = parts
-            .next()
-            .map(|nonce| decode(nonce, ParseError::InvalidData))
-            .ok_or(ParseError::MissingData)??;
+        let data = if version == 0 {
+            // version 0 is a plain json string
+            parts.collect::<String>().as_bytes().to_vec()
+        } else {
+            parts
+                .next()
+                .map(|data| decode(data, ParseError::InvalidData))
+                .ok_or(ParseError::MissingData)??
+        };
 
         Ok(Encrypted {
             version,
@@ -266,10 +292,10 @@ mod tests {
     }
 
     #[test]
-    fn encrypted_string_handling_missing_nonce() {
+    fn encrypted_string_handling_empty() {
         let encrypted = "".to_string();
         let encrypted = Encrypted::try_from(encrypted);
-        assert_eq!(encrypted.unwrap_err(), ParseError::MissingNonce);
+        assert_eq!(encrypted.unwrap_err(), ParseError::InvalidVersion);
     }
 
     #[test]
@@ -287,5 +313,13 @@ mod tests {
         let encrypted = "AAAAAAAAAAAAAAAA SGVsbG8s%HdvcmxkIQ==".to_string();
         let encrypted = Encrypted::try_from(encrypted);
         assert_eq!(encrypted.unwrap_err(), ParseError::InvalidData);
+    }
+
+    #[test]
+    fn encrypted_string_handle_whitespace() {
+        let credentials = r#"[{"up":{"username":"u","password":"my pw"},"service":"generic"}]"#;
+        let encrypted = format!("0 MDAwMDAwMDAwMDAw {credentials}");
+        let decrypted = Encrypted::try_from(encrypted).unwrap();
+        assert_eq!(decrypted.data, credentials.as_bytes());
     }
 }

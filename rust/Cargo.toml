@@ -100,7 +100,7 @@ sequoia-openpgp = { version = "2.4.2", default-features = false, features = [
 sha1 = "0.11.0"
 snmp2 = { version = "0.4.14", features = ["full"] }
 socket2 = { version = "0.6.5", features = ["all"] }
-sqlx = { version = "0", features = ["sqlite", "runtime-tokio-rustls"] }
+sqlx = { version = "0.9", features = ["sqlite", "runtime-tokio", "tls-rustls"] }
 sysinfo = "0.39.6"
 tempfile = "3.27.0"
 toml = "1.1.8"
