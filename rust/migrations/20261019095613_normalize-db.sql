@@ -1,5 +1,11 @@
--- temporarily disable foreign key constraints
+-- no-transaction
+-- WARNING: don't delete the first line. It is a special directive for sqlx.
+-- sqlx wraps every migration in a transaction which invalidates PRAGMA foreign_keys off which then
+-- triggers CASCADE on delete during the migration.
+-- The first line tells sqlx not to start a transaction, we do it manually after the PRAGMA instead.
 PRAGMA foreign_keys = OFF;
+
+BEGIN;
 
 CREATE TABLE scans_new (
     id INTEGER PRIMARY KEY,
@@ -77,8 +83,8 @@ CREATE TABLE vt_parameters_new (
 );
 
 CREATE TABLE results_new (
-    id INTEGER NOT NULL,
     scan_id INTEGER,
+    id INTEGER NOT NULL,
     type TEXT,
     ip_address TEXT,
     hostname TEXT,
@@ -112,7 +118,7 @@ CREATE TABLE knowledge_base_items_new (
     host TEXT NOT NULL,
     key TEXT NOT NULL,
     value TEXT,
-    FOREIGN KEY (client_scan_id, host) REFERENCES resolved_hosts_new(id, resolved_host)
+    FOREIGN KEY (client_scan_id, host) REFERENCES resolved_hosts_new(id, resolved_host) ON DELETE CASCADE
 );
 
 -- Migrate the data between the tables
@@ -126,11 +132,11 @@ SELECT
 FROM scans s
 JOIN client_scan_map c ON s.id = c.id;
 
-INSERT INTO knowledge_base_items_new SELECT * FROM knowledge_base_items;
 INSERT INTO resolved_hosts_new SELECT * FROM resolved_hosts;
+INSERT INTO knowledge_base_items_new SELECT * FROM knowledge_base_items;
 INSERT INTO results_new SELECT * FROM results;
-INSERT INTO vt_parameters_new SELECT * FROM vt_parameters;
 INSERT INTO vts_new SELECT * FROM vts;
+INSERT INTO vt_parameters_new SELECT * FROM vt_parameters;
 INSERT INTO hosts_new SELECT * FROM hosts;
 INSERT INTO alive_methods_new SELECT * FROM alive_methods;
 INSERT INTO ports_new SELECT * FROM ports;
@@ -167,6 +173,7 @@ ALTER TABLE knowledge_base_items_new RENAME TO knowledge_base_items;
 CREATE INDEX idx_ports_alive ON ports(id, alive);
 CREATE INDEX idx_resolved_hosts_host_status_scan_status_kind ON resolved_hosts(id, host_status, scan_status, kind);
 CREATE INDEX idx_knowledge_base_items ON knowledge_base_items(id, host, key);
+CREATE INDEX idx_scans_status ON scans(status);
 
 CREATE TRIGGER trg_update_scans_start_time
 AFTER UPDATE OF status ON scans
@@ -189,4 +196,5 @@ BEGIN
     WHERE id = NEW.id;
 END;
 
+COMMIT;
 PRAGMA foreign_keys = ON;

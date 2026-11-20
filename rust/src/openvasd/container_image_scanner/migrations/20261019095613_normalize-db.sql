@@ -84,6 +84,5 @@ END;
 CREATE INDEX idx_scans_status ON scans(status);
 CREATE INDEX idx_scans_created_at ON scans(created_at);
 
-PRAGMA foreign_key_check;
 COMMIT;
 PRAGMA foreign_keys = ON;
