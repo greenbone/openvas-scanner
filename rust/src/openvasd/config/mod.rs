@@ -399,7 +399,10 @@ impl StorageTypes {
     pub fn to_sqlite_cfg(&self) -> SqliteConfiguration {
         match self {
             StorageTypes::V1(storage_v1) => {
-                let mut sqliteconfig = SqliteConfiguration::default();
+                let mut sqliteconfig = SqliteConfiguration {
+                    credential_key: storage_v1.fs.key.clone(),
+                    ..Default::default()
+                };
 
                 match storage_v1.storage_type {
                     StorageType::InMemory | StorageType::Redis => {}
@@ -744,7 +747,7 @@ impl Config {
                     .env("STORAGE_KEY")
                     .long("storage-key")
                     .value_name("KEY")
-                    .help("the password to use for encryption when type is set to fs. If not set the data will be unencrypted."),
+                    .help("the password to use for credential encryption when type is set to fs. If not set the data will be unencrypted."),
             )
             .arg(
                 clap::Arg::new("log-level")
@@ -865,30 +868,39 @@ impl Config {
             config.logging.level = SerLevel::from_str(log_level).unwrap_or_default();
         }
         if let Some(stype) = cmds.get_one::<StorageType>("storage_type") {
-            config.storage = StorageTypes::V2(match stype {
-                StorageType::InMemory | StorageType::Redis => SqliteConfiguration::default(),
-                StorageType::FileSystem => SqliteConfiguration::default_file_location("openvasd"),
-            });
-
-            // although openvasd and container-image-scanner can be configured separately we just
-            // allow one configuration to net get the arguments even more cluttered.
-            config.container_image_scanner.database = match stype {
-                StorageType::InMemory | StorageType::Redis => SqliteConfiguration::default(),
-                StorageType::FileSystem => {
-                    SqliteConfiguration::default_file_location("container-image-scanner")
+            let switch_location = |location: &DBLocation, name: &str| match (stype, location) {
+                (StorageType::InMemory | StorageType::Redis, _) => DBLocation::InMemory,
+                (StorageType::FileSystem, DBLocation::File(path)) => DBLocation::File(path.clone()),
+                (StorageType::FileSystem, DBLocation::InMemory) => {
+                    DBLocation::default_file_location(name)
                 }
             };
+
+            match &mut config.storage {
+                StorageTypes::V1(storage_v1) => storage_v1.storage_type = stype.clone(),
+                StorageTypes::V2(sqlite_configuration) => {
+                    sqlite_configuration.location =
+                        switch_location(&sqlite_configuration.location, "openvasd");
+                }
+            }
+
+            // although openvasd and container-image-scanner can be configured separately we just
+            // allow one configuration to not get the arguments even more cluttered.
+            config.container_image_scanner.database.location = switch_location(
+                &config.container_image_scanner.database.location,
+                "container-image-scanner",
+            );
         }
         if let Some(path) = cmds.get_one::<PathBuf>("storage_path") {
             //TODO: check if dir
             config.storage = StorageTypes::V2(SqliteConfiguration {
                 location: DBLocation::File(path.clone()),
-                ..Default::default()
+                ..config.storage.to_sqlite_cfg()
             });
             // TODO: add suffix
             config.container_image_scanner.database = SqliteConfiguration {
                 location: DBLocation::File(path.clone()),
-                ..Default::default()
+                ..config.container_image_scanner.database
             };
         }
         if let Some(mode) = cmds.get_one::<Mode>("mode") {
@@ -899,6 +911,7 @@ impl Config {
             && !key.is_empty()
         {
             config.storage.set_credential_key(key.clone());
+            config.container_image_scanner.database.credential_key = Some(key.clone());
         }
 
         let scan_prefs: HashMap<String, ScanPrefValue> = PREFERENCES
@@ -945,6 +958,9 @@ impl Config {
 #[cfg(test)]
 mod tests {
 
+    use std::time::Duration;
+
+    use super::DBLocation;
     use crate::{config::StorageTypes, container_image_scanner::config::ImageExtractionLocation};
     use insta::assert_toml_snapshot;
     use scannerlib::scanner::preferences::preference::{PREFERENCES, ScanPrefValue};
@@ -1070,6 +1086,75 @@ mod tests {
             prefs.get("cgi_path"),
             Some(&ScanPrefValue::String("/custom".to_string()))
         );
+    }
+
+    #[test]
+    fn storage_type_argument_only_changes_storage_type() {
+        let toml = r#"
+            [storage]
+            location = '/data/openvasd'
+            busy_timeout = '2s'
+            credential_key = "key"
+
+            [container_image_scanner.database]
+            location = '/data/cis'
+            credential_key = "cis_key"
+            "#;
+
+        let (config, _dir) = load_with_args(toml, &["--storage-type", "fs"]);
+        let storage = config.storage.to_sqlite_cfg();
+        assert_eq!(storage.location, DBLocation::File("/data/openvasd".into()));
+        assert_eq!(storage.busy_timeout, Duration::from_secs(2));
+        assert_eq!(storage.credential_key.as_deref(), Some("key"));
+        let cis = &config.container_image_scanner.database;
+        assert_eq!(cis.location, DBLocation::File("/data/cis".into()));
+        assert_eq!(cis.credential_key.as_deref(), Some("cis_key"));
+
+        let (config, _dir) = load_with_args(toml, &["--storage-type", "inmemory"]);
+        let storage = config.storage.to_sqlite_cfg();
+        assert_eq!(storage.location, DBLocation::InMemory);
+        assert_eq!(storage.busy_timeout, Duration::from_secs(2));
+        assert_eq!(storage.credential_key.as_deref(), Some("key"));
+        let cis = &config.container_image_scanner.database;
+        assert_eq!(cis.location, DBLocation::InMemory);
+        assert_eq!(cis.credential_key.as_deref(), Some("cis_key"));
+    }
+
+    #[test]
+    fn storage_type_argument_uses_default_file_location_for_in_memory_config() {
+        let (config, _dir) = load_with_args(
+            r#"
+            [storage]
+            location = 'in-memory'
+            credential_key = "key"
+            "#,
+            &["--storage-type", "fs"],
+        );
+        let storage = config.storage.to_sqlite_cfg();
+        assert!(matches!(storage.location, DBLocation::File(_)));
+        assert_eq!(storage.credential_key.as_deref(), Some("key"));
+        assert!(matches!(
+            config.container_image_scanner.database.location,
+            DBLocation::File(_)
+        ));
+    }
+
+    #[test]
+    fn storage_type_argument_keeps_v1_key_and_path() {
+        let (config, _dir) = load_with_args(
+            r#"
+            [storage]
+            type = "inmemory"
+
+            [storage.fs]
+            path = "/data/v1.db"
+            key = "v1_key"
+            "#,
+            &["--storage-type", "fs"],
+        );
+        let storage = config.storage.to_sqlite_cfg();
+        assert_eq!(storage.location, DBLocation::File("/data/v1.db".into()));
+        assert_eq!(storage.credential_key.as_deref(), Some("v1_key"));
     }
 
     #[test]
