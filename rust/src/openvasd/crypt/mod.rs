@@ -155,7 +155,7 @@ impl TryFrom<&str> for Encrypted {
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         use base64::{Engine as _, engine::general_purpose};
-        let mut parts = s.split_whitespace().peekable();
+        let mut parts = s.splitn(3, ' ').peekable();
         let decode = |s: &str, e: ParseError| {
             general_purpose::STANDARD
                 .decode(s.as_bytes())
@@ -292,10 +292,10 @@ mod tests {
     }
 
     #[test]
-    fn encrypted_string_handling_missing_nonce() {
+    fn encrypted_string_handling_empty() {
         let encrypted = "".to_string();
         let encrypted = Encrypted::try_from(encrypted);
-        assert_eq!(encrypted.unwrap_err(), ParseError::MissingNonce);
+        assert_eq!(encrypted.unwrap_err(), ParseError::InvalidVersion);
     }
 
     #[test]
@@ -313,5 +313,13 @@ mod tests {
         let encrypted = "AAAAAAAAAAAAAAAA SGVsbG8s%HdvcmxkIQ==".to_string();
         let encrypted = Encrypted::try_from(encrypted);
         assert_eq!(encrypted.unwrap_err(), ParseError::InvalidData);
+    }
+
+    #[test]
+    fn encrypted_string_handle_whitespace() {
+        let credentials = r#"[{"up":{"username":"u","password":"my pw"},"service":"generic"}]"#;
+        let encrypted = format!("0 MDAwMDAwMDAwMDAw {credentials}");
+        let decrypted = Encrypted::try_from(encrypted).unwrap();
+        assert_eq!(decrypted.data, credentials.as_bytes());
     }
 }
