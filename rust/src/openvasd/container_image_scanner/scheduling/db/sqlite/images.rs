@@ -123,10 +123,13 @@ where
                 // TODO: The API and DB supports multiple credentials but the actual scanning
                 // currently doesn't.
                 // For now we use first configured credential only.
-                let credentials = Credential::from_sqlrow(&row, crypter)
-                    .await
-                    .ok()
-                    .and_then(|x| x.first().cloned());
+                let credentials = match Credential::from_sqlrow(&row, crypter).await {
+                    Ok(credentials) => credentials.first().cloned(),
+                    Err(e) => {
+                        tracing::warn!("Failed to get credentials, continuing without: {e}");
+                        None
+                    }
+                };
                 let id: ImageID = row.into();
 
                 sqlx::query(
@@ -212,10 +215,13 @@ where
                 // TODO: The API and DB supports multiple credentials but the actual scanning
                 // currently doesn't.
                 // For now we use first configured credential only.
-                let credential = Credential::from_sqlrow(&row, crypter)
-                    .await
-                    .ok()
-                    .and_then(|x| x.first().cloned());
+                let credential = match Credential::from_sqlrow(&row, crypter).await {
+                    Ok(credentials) => credentials.first().cloned(),
+                    Err(e) => {
+                        tracing::warn!("Failed to get credentials, continuing without: {e}");
+                        None
+                    }
+                };
 
                 let entry = map.entry(id).or_insert_with(|| (Vec::new(), credential));
 
