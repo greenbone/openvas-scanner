@@ -181,7 +181,9 @@ impl ScanRunner {
     /// and a slot is free.
     ///
     /// For each host the VTs run strictly in schedule order, so the
-    /// scheduling requirements hold for every host. `on_result` is called,
+    /// scheduling requirements hold for every host. `on_host_start` is called
+    /// with the host's original target string right before its `HostStart`
+    /// result is dispatched. `on_result` is called,
     /// from the host's task, with the result of every VT; no ordering is
     /// guaranteed between results of different hosts. When `keep_running`
     /// becomes false no further VT or host is started; a VT that is
@@ -189,10 +191,17 @@ impl ScanRunner {
     /// aborts the host tasks.
     ///
     /// Returns the number of host tasks that panicked.
-    pub async fn run<F, Fut>(self, keep_running: Arc<AtomicBool>, on_result: F) -> usize
+    pub async fn run<F, Fut, S, SFut>(
+        self,
+        keep_running: Arc<AtomicBool>,
+        on_host_start: S,
+        on_result: F,
+    ) -> usize
     where
         F: Fn(Result<ScriptResult, ExecuteError>) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send,
+        S: Fn(String) -> SFut + Send + Sync + 'static,
+        SFut: Future<Output = ()> + Send,
     {
         let ScanRunner {
             concurrent_vts,
@@ -201,6 +210,7 @@ impl ScanRunner {
             max_hosts,
         } = self;
         let on_result = Arc::new(on_result);
+        let on_host_start = Arc::new(on_host_start);
         let mut hosts = JoinSet::new();
         let mut panicked = 0;
         let mut count_panic = |res: Result<(), tokio::task::JoinError>| {
@@ -229,8 +239,16 @@ impl ScanRunner {
             let concurrent_vts = concurrent_vts.clone();
             let scan_ctx = scan_ctx.clone();
             let on_result = on_result.clone();
+            let on_host_start = on_host_start.clone();
             let keep_running = keep_running.clone();
             hosts.spawn(async move {
+                on_host_start(
+                    scan_ctx
+                        .target_by_id(host)
+                        .original_target_str()
+                        .to_string(),
+                )
+                .await;
                 dispatch_host_status(ResultType::HostStart, host, &scan_ctx).await;
                 let mut completed = true;
                 for pos in host_positions(host, &concurrent_vts) {

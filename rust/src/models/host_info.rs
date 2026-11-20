@@ -41,8 +41,8 @@ impl HostInfo {
         }
     }
 
-    /// Marks `target` as currently being scanned. Called for every result,
-    /// so it does nothing if the host is already known as scanning.
+    /// Marks `target` as currently being scanned. It does nothing if the
+    /// host is already known as scanning.
     pub fn register_started_host(&mut self, target: &Host) {
         if !self.remaining_vts_per_host.contains_key(target) {
             return;
@@ -78,6 +78,9 @@ impl HostInfo {
 
     pub fn finish(&mut self) {
         self.remaining_vts_per_host.clear();
+        if let Some(scanning) = self.scanning.as_mut() {
+            scanning.clear();
+        }
     }
 
     // Used by openvasd scanner when using Boreas.
