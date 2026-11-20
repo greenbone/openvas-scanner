@@ -197,10 +197,13 @@ where
         let end_phase = Arc::new(std::sync::Mutex::new(Phase::Succeeded));
         let (status, phase) = (self.status.clone(), end_phase.clone());
         // One task per host; each result updates the shared status.
+        let start_status = self.status.clone();
         let panicked = runner
-            .run(self.keep_running.clone(), move |res| {
-                handle_result(status.clone(), phase.clone(), res)
-            })
+            .run(
+                self.keep_running.clone(),
+                move |host| handle_host_start(start_status.clone(), host),
+                move |res| handle_result(status.clone(), phase.clone(), res),
+            )
             .await;
 
         if !self.keep_running.load(Ordering::SeqCst) {
@@ -227,6 +230,14 @@ where
         if let Some(host_info) = status.host_info.as_mut() {
             host_info.finish();
         }
+    }
+}
+
+/// Marks `host` as being scanned in `status`.
+async fn handle_host_start(status: Arc<RwLock<Status>>, host: Host) {
+    let mut status = status.write().await;
+    if let Some(host_info) = status.host_info.as_mut() {
+        host_info.register_started_host(&host);
     }
 }
 
