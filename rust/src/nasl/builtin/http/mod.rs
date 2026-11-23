@@ -250,8 +250,15 @@ impl NaslHttp2 {
         request = request.header("User-Agent", &ua);
         // add custom headers
         for (k, v) in handle.header_items.iter() {
+            // filter out
+            match k.trim().to_ascii_lowercase().as_str() {
+                "connection" | "keep-alive" | "proxy-connection" | "transfer-encoding"
+                | "upgrade" => continue,
+                _ => {}
+            }
             request = request.header(k, v);
         }
+
         let request = request.method(method).uri(uri).body(()).unwrap();
 
         // Send the request. The second tuple item allows the caller
@@ -525,7 +532,7 @@ impl NaslHttp2 {
             _ => return Err(FnError::missing_argument("No command passed")),
         };
 
-        let (key, val) = header_item.split_once(": ").expect("Missing header_item");
+        let (key, val) = header_item.split_once(":").expect("Missing header_item");
 
         let handle_id = match register.local_nasl_value("handle") {
             Ok(NaslValue::Number(x)) => *x as i32,
@@ -541,7 +548,8 @@ impl NaslHttp2 {
             .find(|(_i, h)| h.handle_id == handle_id)
         {
             Some((_i, h)) => {
-                h.header_items.push((key.to_string(), val.to_string()));
+                h.header_items
+                    .push((key.trim_start().trim_end().to_string(), val.trim_start().trim_end().to_string()));
                 Ok(NaslValue::Number(0))
             }
             _ => Err(HttpError::HandleIdNotFound(handle_id).into()),
