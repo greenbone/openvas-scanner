@@ -347,17 +347,24 @@ impl NaslHttp2 {
             .await?;
 
         handle.http_code = head.status.as_u16();
-        let mut header_str = String::new();
-        header_str.push_str(format!("{:?} ", head.version).as_str());
-        header_str.push_str(format!("{:?}\n", head.status).as_str());
+        // Mimic libcurl's raw header output as returned by the C implementation
+        let version = match head.version {
+            http::Version::HTTP_2 => "HTTP/2",
+            http::Version::HTTP_3 => "HTTP/3",
+            http::Version::HTTP_11 => "HTTP/1.1",
+            http::Version::HTTP_10 => "HTTP/1.0",
+            http::Version::HTTP_09 => "HTTP/0.9",
+            _ => "HTTP/2",
+        };
+        let mut header_str = format!("{version} {} \r\n", head.status.as_u16());
         for (k, v) in head.headers.iter() {
             header_str.push_str(&format!(
-                "{}: {}\n",
+                "{}: {}\r\n",
                 k.as_str(),
                 String::from_utf8_lossy(v.as_bytes())
             ))
         }
-
+        header_str.push_str("\r\n");
         header_str.push_str(&body);
         Ok(NaslValue::String(header_str))
     }
