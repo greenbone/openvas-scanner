@@ -184,17 +184,18 @@ impl NaslHttp2 {
             .await
             .map_err(HttpError::from)?;
         if !tls {
-            return self.send_h2(ctx, script_ctx, tcp, uri, data, method, handle).await;
+            return self
+                .send_h2(ctx, script_ctx, tcp, uri, data, method, handle)
+                .await;
         }
 
-        
         let mut config = if let Some(pem) = handle.ca_cert.clone() {
             let mut root_store = RootCertStore::empty();
             let mut cert_reader = Cursor::new(pem);
             root_store.add_parsable_certificates(
                 rustls::pki_types::pem::ReadIter::new(&mut cert_reader).map(|res| res.unwrap()),
             );
-            
+
             ClientConfig::builder()
                 .with_root_certificates(root_store)
                 .with_no_client_auth()
@@ -342,8 +343,6 @@ impl NaslHttp2 {
 
         uri = format!("{uri}{item}");
         let tls = schema == "https";
-        // The timeout covers the whole exchange: connect, handshakes, response and body.
-        // As the C implementation, return null on timeout.
         let (head, body) = match tokio::time::timeout(
             timeout,
             self.request(
@@ -352,8 +351,15 @@ impl NaslHttp2 {
         )
         .await
         {
-            Ok(res) => res?,
-            Err(_) => return Ok(NaslValue::Null),
+            Ok(Ok(res)) => res,
+            Ok(Err(e)) => {
+                tracing::warn!("http2_req: Error sending request: {e}");
+                return Ok(NaslValue::Null);
+            }
+            Err(_) => {
+                tracing::warn!("http2_req: Error sending request: timed out");
+                return Ok(NaslValue::Null);
+            }
         };
 
         handle.http_code = head.status.as_u16();
