@@ -24,7 +24,8 @@
 #include <gnutls/gnutls.h>
 #include <gvm/base/prefs.h> /* for prefs_get */
 #include <gvm/util/kb.h>    /* for kb_item_get_str */
-#include <string.h>         /* for strlen */
+#include <stddef.h>
+#include <string.h> /* for strlen */
 
 #undef G_LOG_DOMAIN
 /**
@@ -285,6 +286,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   tree_cell *retc;
   char *item = get_str_var_by_name (lexic, "item");
   char *data = get_str_var_by_name (lexic, "data");
+  size_t data_len = get_var_size_by_name (lexic, "data");
   int port = get_int_var_by_name (lexic, "port", -1);
   char *schema = get_str_var_by_name (lexic, "schema");
   struct script_infos *script_infos = lexic->script_infos;
@@ -439,7 +441,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
       if (data)
         {
           curl_easy_setopt (handle, CURLOPT_POSTFIELDS, data);
-          curl_easy_setopt (handle, CURLOPT_POSTFIELDSIZE, strlen (data));
+          curl_easy_setopt (handle, CURLOPT_POSTFIELDSIZE, data_len);
         }
       break;
     case GET:
@@ -450,7 +452,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
       if (data)
         {
           curl_easy_setopt (handle, CURLOPT_POSTFIELDS, data);
-          curl_easy_setopt (handle, CURLOPT_POSTFIELDSIZE, strlen (data));
+          curl_easy_setopt (handle, CURLOPT_POSTFIELDSIZE, data_len);
         }
       break;
     default:
