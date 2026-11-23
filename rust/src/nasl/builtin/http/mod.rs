@@ -19,6 +19,7 @@ use http::{Method, Request, response::Parts};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use std::io::Cursor;
 use std::sync::Arc;
+use std::time::Duration;
 
 use rustls::{ClientConfig, RootCertStore};
 use tokio::{
@@ -26,6 +27,8 @@ use tokio::{
     sync::{Mutex, MutexGuard},
 };
 use tokio_rustls::TlsConnector;
+
+const TIMEOUT_SEC: u64 = 20;
 
 use super::{
     NaslSockets,
@@ -184,13 +187,14 @@ impl NaslHttp2 {
             return self.send_h2(ctx, script_ctx, tcp, uri, data, method, handle).await;
         }
 
+        
         let mut config = if let Some(pem) = handle.ca_cert.clone() {
             let mut root_store = RootCertStore::empty();
             let mut cert_reader = Cursor::new(pem);
             root_store.add_parsable_certificates(
                 rustls::pki_types::pem::ReadIter::new(&mut cert_reader).map(|res| res.unwrap()),
             );
-
+            
             ClientConfig::builder()
                 .with_root_certificates(root_store)
                 .with_no_client_auth()
@@ -210,6 +214,7 @@ impl NaslHttp2 {
             .connect(server_name, tcp)
             .await
             .map_err(HttpError::from)?;
+
         self.send_h2(ctx, script_ctx, stream, uri, data, method, handle)
             .await
     }
@@ -311,6 +316,11 @@ impl NaslHttp2 {
             _ => "https".to_string(),
         };
 
+        let timeout = match register.local_nasl_value("timeout") {
+            Ok(NaslValue::Number(t)) => Duration::from_secs(*t as u64),
+            _ => Duration::from_secs(TIMEOUT_SEC),
+        };
+
         let data: String = match register.local_nasl_value("data") {
             Ok(x) => x.to_string(),
             _ => String::new(),
@@ -332,19 +342,19 @@ impl NaslHttp2 {
 
         uri = format!("{uri}{item}");
         let tls = schema == "https";
-        let (head, body) = self
-            .request(
-                ctx,
-                script_ctx,
-                target_str,
-                port,
-                uri,
-                data,
-                method,
-                handle,
-                tls,
-            )
-            .await?;
+        // The timeout covers the whole exchange: connect, handshakes, response and body.
+        // As the C implementation, return null on timeout.
+        let (head, body) = match tokio::time::timeout(
+            timeout,
+            self.request(
+                ctx, script_ctx, target_str, port, uri, data, method, handle, tls,
+            ),
+        )
+        .await
+        {
+            Ok(res) => res?,
+            Err(_) => return Ok(NaslValue::Null),
+        };
 
         handle.http_code = head.status.as_u16();
         // Mimic libcurl's raw header output as returned by the C implementation
