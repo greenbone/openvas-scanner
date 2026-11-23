@@ -93,7 +93,7 @@ impl<'o> Execute<Vec<(ImageID, Option<Credential>)>> for DBImages<'o, (usize, us
         Box::pin(async move {
             let (max_scanning, batch_size) = self.input;
 
-            let mut tx = self.pool.begin().await?;
+            let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
             let scan_limit = match max_scanning {
                 0 => -1,
                 max => {

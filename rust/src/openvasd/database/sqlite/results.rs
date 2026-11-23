@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use scannerlib::models;
-use sqlx::{Acquire, Row, SqlitePool, sqlite::SqliteRow};
+use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
 
 use crate::database::{
     dao::{DAOError, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
@@ -171,9 +171,7 @@ where
     if results.is_empty() {
         return Ok(());
     }
-    let mut conn = pool.acquire().await?;
-
-    let mut tx = conn.begin().await?;
+    let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
     let base_id = match sqlx::query(
         r#"
                 SELECT COUNT(*) AS result_count

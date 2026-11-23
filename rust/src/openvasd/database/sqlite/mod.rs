@@ -86,6 +86,9 @@ pub async fn create_pool(
     let options = SqliteConnectOptions::from_str(&config.location.sqlite_address(name)?)?
         .journal_mode(SqliteJournalMode::Wal)
         .busy_timeout(config.busy_timeout)
+        // Only in effect in shared-cache mode, readers and writers don't block each other.
+        // Safeguard for real inmemory storage, NOOP otherwise.
+        .pragma("read_uncommitted", "true")
         // Although this can lead to data loss in the case that the application crashes, we usually
         // need to restart that scan anyway.
         .synchronous(SqliteSynchronous::Off)
@@ -323,8 +326,8 @@ impl From<sqlx::Error> for DAOError {
                 // 773, https://sqlite.org/rescode.html#busy_timeout
 
                 Self::Infrastructure(match code {
-                    5 | 517 | 773 => InfrastructureReason::Busy,
-                    6 => InfrastructureReason::Locked,
+                    5 | 261 | 517 | 773 => InfrastructureReason::Busy,
+                    6 | 262 | 518 => InfrastructureReason::Locked,
                     513 => InfrastructureReason::RetryError(value.to_string()),
                     _ => InfrastructureReason::Error(value.to_string()),
                 })
