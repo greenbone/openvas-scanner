@@ -56,6 +56,7 @@ struct handle_table_s
   char *ca_cert;
   CURL *handle;
   long http_code;
+  struct curl_slist *customheader;
 };
 
 #define MAX_HANDLES 10
@@ -139,9 +140,11 @@ close_handle (int handle_id)
           && handle_table[table_slot]->handle_id == handle_id)
         {
           curl_easy_cleanup (handle_table[table_slot]->handle);
+          curl_slist_free_all (handle_table[table_slot]->customheader);
           handle_table[table_slot]->handle = NULL;
           handle_table[table_slot]->handle_id = 0;
           g_free (handle_table[table_slot]->ca_cert);
+          g_free (handle_table[table_slot]);
           handle_table[table_slot] = NULL;
           ret = 0;
           break;
@@ -363,7 +366,6 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   if (curl_easy_setopt (handle, CURLOPT_URL, url->str) != CURLE_OK)
     {
       g_warning ("Not possible to set the URL");
-      curl_easy_cleanup (handle);
       if (close_handle (handle_id))
         g_warning ("%s: Handle %d already closed", __func__, handle_id);
       return NULL;
@@ -383,7 +385,6 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
         {
           g_warning ("%s: Failed to set CA certificate: %s", __func__,
                      curl_easy_strerror (ret));
-          curl_easy_cleanup (handle);
           if (close_handle (handle_id))
             g_warning ("%s: Handle %d already closed", __func__, handle_id);
 
@@ -410,6 +411,12 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
       g_free (ua);
     }
 
+  // Set custom headers
+  if (handle_table[table_slot]->customheader != NULL)
+    {
+      curl_easy_setopt (handle, CURLOPT_HTTPHEADER,
+                        handle_table[table_slot]->customheader);
+    }
   // Init the struct where the response is stored and set the callback function
   init_string (&response);
   curl_easy_setopt (handle, CURLOPT_WRITEFUNCTION, response_callback_fn);
@@ -456,7 +463,6 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
     {
       g_warning ("%s: Error sending request: %s", __func__,
                  curl_easy_strerror (ret));
-      curl_easy_cleanup (handle);
       if (close_handle (handle_id))
         g_warning ("%s: Handle %d already closed", __func__, handle_id);
 
@@ -527,7 +533,7 @@ nasl_http2_get_response_code (lex_ctxt *lexic)
 }
 
 /**
- * @brief Set a custom header element in the header
+ * @brief Stores a custom header element to be set in the header
  * @naslnparam
  *
  * - @a handle The handle identifier
@@ -545,11 +551,11 @@ tree_cell *
 nasl_http2_set_custom_header (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
-  struct curl_slist *customheader = NULL;
+
   unsigned int table_slot;
-  CURL *handle;
   int handle_id = get_int_var_by_name (lexic, "handle", -1);
   char *headeritem = get_str_var_by_name (lexic, "header_item");
+  struct curl_slist *custom_header_aux = NULL;
 
   if (handle_id < 0 || headeritem == NULL)
     {
@@ -571,15 +577,16 @@ nasl_http2_set_custom_header (lex_ctxt *lexic)
           return NULL;
         }
     }
-  handle = handle_table[table_slot]->handle;
+  custom_header_aux =
+    curl_slist_append (handle_table[table_slot]->customheader, headeritem);
 
-  // SET Content type
-  customheader = curl_slist_append (customheader, headeritem);
-  curl_easy_setopt (handle, CURLOPT_HTTPHEADER, customheader);
+  if (custom_header_aux == NULL)
+    return NULL;
+  curl_slist_free_all (handle_table[table_slot]->customheader);
+  handle_table[table_slot]->customheader = custom_header_aux;
 
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = 0;
-
   return retc;
 }
 
