@@ -944,4 +944,181 @@ pub(crate) mod tests {
         iip.set_based_on_message(&FeedStatusChange::Synced(FeedType::NASL));
         assert!(iip.scans_allowed());
     }
+
+    #[tokio::test]
+    async fn feed_sync_imports_results_but_does_not_start_scans() -> anyhow::Result<()> {
+        // need approved -> sync is running, contains_need() is false
+        let iip = IsInProgress {
+            need_approval_nasl: true,
+            approved_nasl: true,
+            ..Default::default()
+        };
+        let (under_test, known_scans, _guard) =
+            setup_test_env_with_scanner_and_feed_messages(scanner_succeeded(), iip).await?;
+
+        let (running, requested) = known_scans.split_first().unwrap();
+        sqlx::query("UPDATE scans SET status = 'running' WHERE id = ?")
+            .bind(running)
+            .execute(under_test.db.pool())
+            .await?;
+        for id in requested {
+            under_test
+                .on_user_action(&Message::Start(id.to_string()))
+                .await?;
+        }
+        under_test.on_schedule().await?;
+
+        let mut conn = under_test.db.conn().await?;
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "succeeded")
+                .await?,
+            1
+        );
+
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "requested")
+                .await?,
+            requested.len()
+        );
+
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "running")
+                .await?,
+            0
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn need_is_approved_after_running_scans_finish() -> anyhow::Result<()> {
+        let iip = IsInProgress {
+            need_approval_nasl: true,
+            ..Default::default()
+        };
+        let (mut under_test, known_scans, _guard) =
+            setup_test_env_with_scanner_and_feed_messages(scanner_succeeded(), iip).await?;
+        // on_schedule checks the feed lock file, keep it out of the working directory
+        let lock_dir = tempfile::tempdir()?;
+        under_test.lock_file_dir = lock_dir.path().to_string_lossy().to_string();
+
+        sqlx::query("UPDATE scans SET status = 'running' WHERE id = ?")
+            .bind(known_scans[0])
+            .execute(under_test.db.pool())
+            .await?;
+
+        // a scan is running -> need is not approved, but its results must be imported
+        assert!(under_test.on_schedule().await?.is_empty());
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *under_test.db.conn().await?, "running")
+                .await?,
+            0
+        );
+
+        // nothing is running anymore -> need gets approved
+        assert_eq!(under_test.on_schedule().await?, vec![FeedType::NASL]);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn postpone_scans_when_resources_run_out() -> anyhow::Result<()> {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        // 1st call: check before picking, 2nd: first scan, after that: no resources
+        let calls = Arc::new(AtomicUsize::new(0));
+        let c = calls.clone();
+        let (under_test, known_scans, _guard) = setup_test_env_with_scanner(
+            TestScannerBuilder::new().with_can_start(move || c.fetch_add(1, Ordering::SeqCst) < 2),
+        )
+        .await?;
+        for id in &known_scans {
+            under_test
+                .on_user_action(&Message::Start(id.to_string()))
+                .await?;
+        }
+
+        under_test.on_schedule().await?;
+        let mut conn = under_test.db.conn().await?;
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "running")
+                .await?,
+            1
+        );
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "failed")
+                .await?,
+            0
+        );
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "requested")
+                .await?,
+            known_scans.len() - 1
+        );
+
+        let stale_start_times: i64 = query_scalar(
+            "SELECT count(*) FROM scans WHERE status = 'requested' AND start_time IS NOT NULL",
+        )
+        .fetch_one(&mut *conn)
+        .await?;
+        assert_eq!(stale_start_times, 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn unloadable_scan_fails_without_blocking_others() -> anyhow::Result<()> {
+        let (under_test, known_scans, _guard) = setup_test_env().await?;
+        for id in &known_scans {
+            under_test
+                .on_user_action(&Message::Start(id.to_string()))
+                .await?;
+        }
+
+        // corrupt credentials -> get_scan fails on decrypt
+        let broken = *known_scans.iter().min().unwrap();
+        sqlx::query("UPDATE scans SET auth_data = 'garbage' WHERE id = ?")
+            .bind(broken)
+            .execute(under_test.db.pool())
+            .await?;
+
+        under_test.on_schedule().await?;
+        let status: String = query_scalar("SELECT status FROM scans WHERE id = ?")
+            .bind(broken)
+            .fetch_one(under_test.db.pool())
+            .await?;
+        assert_eq!(status, "failed");
+
+        let mut conn = under_test.db.conn().await?;
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "running")
+                .await?,
+            under_test.max_concurrent_scan - 1
+        );
+
+        // next tick fills the freed slot
+        under_test.on_schedule().await?;
+
+        assert_eq!(
+            under_test
+                .db
+                .count_scans_in_state(&mut *conn, "running")
+                .await?,
+            under_test.max_concurrent_scan
+        );
+        Ok(())
+    }
 }
