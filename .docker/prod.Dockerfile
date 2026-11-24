@@ -164,7 +164,7 @@ RUN apt-get update \
         python3-pip \
         python3-requests \
     && rm -rf /var/lib/apt/lists/*
-ARG PYPSRP_CLI_VERSION=v0.1.0
+ARG PYPSRP_CLI_VERSION=v0.1.2
 RUN git clone --depth 1 --branch "${PYPSRP_CLI_VERSION}" https://github.com/greenbone/pypsrp-cli.git /tmp/pypsrp-cli \
     && python3 -m pip install --break-system-packages --no-cache-dir --root /install /tmp/pypsrp-cli \
     && test -x /install/usr/local/bin/pypsrp-cli \
