@@ -11,6 +11,7 @@ use std::sync::Arc;
 use scannerlib::SQLITE_LIMIT_VARIABLE_NUMBER;
 use sqlx::Connection;
 
+use sqlx::pool::PoolConnection;
 use sqlx::{
     Pool, QueryBuilder, Sqlite, SqliteConnection, SqlitePool, migrate::Migrator,
     query_builder::Separated,
@@ -131,6 +132,10 @@ impl SqliteDatabase {
             .begin_with("BEGIN IMMEDIATE")
             .await
             .map_err(|e| e.into())
+    }
+
+    pub async fn conn(&self) -> anyhow::Result<PoolConnection<Sqlite>> {
+        self.pool.acquire().await.map_err(|e| e.into())
     }
 
     pub fn pool(&self) -> &SqlitePool {

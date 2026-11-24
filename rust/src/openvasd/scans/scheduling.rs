@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
 use fslock::LockFile;
-use sqlx::SqliteConnection;
+use sqlx::{Connection, SqliteConnection};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use scannerlib::{
-    models::{FeedType, Scan},
+    models::FeedType,
     nasl::{builtin::nasl_std_executor, syntax::Loader},
     openvas::{self, cmd},
     osp,
@@ -220,20 +220,86 @@ impl<SC> ScanScheduler<SC>
 where
     SC: Scanner + Send + Sync + 'static,
 {
-    async fn scan_start(&self, tx: &mut SqliteConnection, id: i64, scan: Scan) {
-        match self.scanner.start_scan(scan).await {
-            Ok(()) => {}
-            Err(error) => {
-                tracing::warn!(id, %error, "Unable to start scan");
-                if let Err(error) = self.db.change_scan_state(tx, id, "running", "failed").await {
-                    tracing::warn!(
-                        id,
-                        %error,
-                        "Unable to set scan to failed. This scan will be kept in running until restart"
-                    );
+    async fn start_requested(&self) -> anyhow::Result<()> {
+        if self.is_feed_sync_in_progress().await {
+            tracing::trace!("Feed sync is in progress. Skipping starting new scans");
+            return Ok(());
+        }
+
+        if !self.scanner.can_start_scan().await {
+            tracing::debug!("Scanner has no resources available to start new scans");
+            return Ok(());
+        }
+
+        let mut conn = self.db.conn().await?;
+
+        let scans = {
+            let mut tx = conn.begin_with("BEGIN IMMEDIATE").await?;
+
+            let ids = self.fetch_requested(&mut tx).await?;
+            let mut scans = Vec::with_capacity(ids.len());
+
+            for id in ids {
+                match self.db.get_scan(&mut tx, id.into()).await {
+                    Ok(scan) => {
+                        self.db
+                            .change_scan_state(&mut tx, id, "requested", "running")
+                            .await?;
+                        scans.push((id, scan));
+                    }
+                    Err(e) => {
+                        tracing::warn!(id, "Unable to load scan, setting it to failed: {e:#}");
+                        self.db
+                            .change_scan_state(&mut tx, id, "requested", "failed")
+                            .await?;
+                    }
+                }
+            }
+
+            // commit the transaction, requested scans are now either running or failed
+            tx.commit().await?;
+            scans
+        };
+
+        let mut failed = vec![];
+        let mut postponed = vec![];
+        for (id, scan) in scans {
+            if !self.scanner.can_start_scan().await {
+                postponed.push(id);
+                continue;
+            }
+
+            match self.scanner.start_scan(scan).await {
+                Ok(()) => tracing::info!(id, "Started scan"),
+                Err(e) => {
+                    tracing::warn!(id, %e, "Unable to start scan");
+                    failed.push(id);
                 }
             }
         }
+
+        for id in failed {
+            if let Err(e) = self
+                .db
+                .change_scan_state(&mut *conn, id, "running", "failed")
+                .await
+            {
+                tracing::warn!(id, %e,
+                    "Unable to set scan to failed, it will be marked as failed on the next result import"
+                );
+            }
+        }
+
+        for id in postponed {
+            // Set the scan to requested again and reset its start_time that was set by an SQL TRIGGER
+            if let Err(e) = self.db.postpone_scan(&mut *conn, id).await {
+                tracing::warn!(id, %e,
+                    "Unable to postpone scan, it will be marked as failed on the next result import"
+                );
+            }
+        }
+
+        Ok(())
     }
 
     async fn fetch_requested(&self, tx: &mut SqliteConnection) -> anyhow::Result<Vec<i64>> {
@@ -257,46 +323,6 @@ where
             .read()
             .await
             .is_feed_sync_in_progress()
-    }
-
-    async fn set_to_running(&self, tx: &mut SqliteConnection, id: i64) -> anyhow::Result<()> {
-        let running = self
-            .db
-            .change_scan_state(tx, id, "requested", "running")
-            .await?;
-        let scan = self.db.get_scan(tx, id.into()).await?;
-
-        tracing::info!(id, running, "Started scan");
-
-        self.scan_start(tx, id, scan).await;
-        Ok(())
-    }
-
-    /// Checks for scans that are requested and may start them
-    ///
-    /// After verifying concurrently running scans it starts a scan when the scan was started
-    /// successfully than it sets it to 'running', if the start fails then it sets it to failed.
-    ///
-    /// In the case that the ScanStarter implementation blocks start_scan is spawned as a
-    /// background task.
-    async fn requested_to_running(&self, tx: &mut SqliteConnection) -> anyhow::Result<()> {
-        if self.is_feed_sync_in_progress().await {
-            tracing::trace!("Skipping to set new scans to running because of feed sync.");
-            return Ok(());
-        }
-
-        let ids = self.fetch_requested(tx).await?;
-        for id in ids {
-            // To prevent accidental state change from running -> requested based on an old
-            // snapshot we only do a resource when a scan has not already been started.
-            if !self.scanner.can_start_scan().await {
-                break;
-            }
-
-            self.set_to_running(tx, id).await?;
-        }
-
-        Ok(())
     }
 
     async fn scan_import_results(
@@ -448,10 +474,11 @@ where
     }
 
     async fn on_schedule(&self) -> anyhow::Result<Vec<orchestrator::Allow>> {
-        let mut tx = self.db.tx().await?;
-
         if self.contains_need().await {
-            let count_running = self.db.count_scans_in_state(&mut tx, "running").await?;
+            let count_running = self
+                .db
+                .count_scans_in_state(&mut *self.db.conn().await?, "running")
+                .await?;
 
             let filelocked = {
                 let mut lockfile = PathBuf::from(self.lock_file_dir.clone());
@@ -464,10 +491,9 @@ where
             }
         }
 
-        self.requested_to_running(&mut tx).await?;
-
-        // scheduling and importing results are two separated transactions
-        tx.commit().await?;
+        if let Err(e) = self.start_requested().await {
+            tracing::warn!("failed to start requested scans: {e:#}");
+        }
 
         self.import_results().await?;
 

@@ -369,6 +369,19 @@ impl super::SqliteDatabase {
         Ok(scan)
     }
 
+    pub async fn postpone_scan(&self, tx: &mut SqliteConnection, id: i64) -> anyhow::Result<bool> {
+        let affected = sqlx::query(
+            "UPDATE scans SET status = 'requested', start_time = NULL WHERE id = ? AND status = 'running'",
+        )
+        .bind(id)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+
+        tracing::debug!(affected, id, "Scan postponed");
+        Ok(affected > 0)
+    }
+
     pub async fn change_scan_state(
         &self,
         tx: &mut SqliteConnection,
