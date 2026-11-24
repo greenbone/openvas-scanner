@@ -472,8 +472,11 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
       return NULL;
     }
 
-  GString *complete_resp = g_string_new (header_data.ptr);
-  g_string_append (complete_resp, response.ptr);
+  size_t total_len = header_data.len + response.len;
+  char *complete_resp = g_malloc0(sizeof(char) * total_len);
+  //  GString *complete_resp = g_string_new (header_data.ptr);
+  memcpy (complete_resp, header_data.ptr, header_data.len);
+  memcpy (complete_resp + header_data.len, response.ptr, response.len);
   g_free (response.ptr);
   g_free (header_data.ptr);
 
@@ -482,10 +485,9 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   handle_table[table_slot]->http_code = http_code;
 
   retc = alloc_typed_cell (CONST_DATA);
-  retc->size = complete_resp->len;
-  retc->x.str_val = g_strdup (complete_resp->str);
+  retc->size = total_len;
+  retc->x.str_val = complete_resp;
 
-  g_string_free (complete_resp, TRUE);
   return retc;
 }
 
