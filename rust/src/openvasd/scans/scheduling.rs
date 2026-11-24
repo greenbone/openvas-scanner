@@ -153,7 +153,7 @@ impl<T> ScanScheduler<T> {
     async fn running_to_failed(&self) -> anyhow::Result<()> {
         let affected = self
             .db
-            .change_scan_state_all(&mut *self.db.pool().acquire().await?, "running", "failed")
+            .change_scan_state_all(&mut *self.db.conn().await?, "running", "failed")
             .await?;
 
         if affected > 0 {
@@ -281,7 +281,7 @@ where
         for id in failed {
             if let Err(e) = self
                 .db
-                .change_scan_state(&mut *conn, id, "running", "failed")
+                .change_scan_state(&mut conn, id, "running", "failed")
                 .await
             {
                 tracing::warn!(id, %e,
@@ -292,7 +292,7 @@ where
 
         for id in postponed {
             // Set the scan to requested again and reset its start_time that was set by an SQL TRIGGER
-            if let Err(e) = self.db.postpone_scan(&mut *conn, id).await {
+            if let Err(e) = self.db.postpone_scan(&mut conn, id).await {
                 tracing::warn!(id, %e,
                     "Unable to postpone scan, it will be marked as failed on the next result import"
                 );
@@ -437,7 +437,7 @@ where
             .set_based_on_message(&msg);
         let result = match message {
             FeedStatusChange::Need(_) => {
-                let mut conn = self.db.pool().acquire().await?;
+                let mut conn = self.db.conn().await?;
                 let count_running =
                     self.db.count_scans_in_state(&mut conn, "running").await? as i64;
                 let is_file_locked = {
@@ -972,7 +972,7 @@ pub(crate) mod tests {
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "succeeded")
+                .count_scans_in_state(&mut conn, "succeeded")
                 .await?,
             1
         );
@@ -980,7 +980,7 @@ pub(crate) mod tests {
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "requested")
+                .count_scans_in_state(&mut conn, "requested")
                 .await?,
             requested.len()
         );
@@ -988,7 +988,7 @@ pub(crate) mod tests {
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "running")
+                .count_scans_in_state(&mut conn, "running")
                 .await?,
             0
         );
@@ -1049,21 +1049,21 @@ pub(crate) mod tests {
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "running")
+                .count_scans_in_state(&mut conn, "running")
                 .await?,
             1
         );
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "failed")
+                .count_scans_in_state(&mut conn, "failed")
                 .await?,
             0
         );
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "requested")
+                .count_scans_in_state(&mut conn, "requested")
                 .await?,
             known_scans.len() - 1
         );
@@ -1104,7 +1104,7 @@ pub(crate) mod tests {
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "running")
+                .count_scans_in_state(&mut conn, "running")
                 .await?,
             under_test.max_concurrent_scan - 1
         );
@@ -1115,7 +1115,7 @@ pub(crate) mod tests {
         assert_eq!(
             under_test
                 .db
-                .count_scans_in_state(&mut *conn, "running")
+                .count_scans_in_state(&mut conn, "running")
                 .await?,
             under_test.max_concurrent_scan
         );

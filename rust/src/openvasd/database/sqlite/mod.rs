@@ -24,7 +24,6 @@ use crate::database::dao::{DAOError, DAOHandler, DBViolation, InfrastructureReas
 pub mod results;
 pub mod scan_storage;
 pub mod scans;
-pub mod state_change;
 pub mod vts;
 
 pub type DataBase = SqlitePool;

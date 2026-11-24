@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-or-later WITH x11vnc-openssl-exception
 
+use std::collections::HashMap;
+
 use futures::{StreamExt, stream};
 use scannerlib::models::{self, AliveTestMethods};
 use sqlx::{
@@ -14,10 +16,7 @@ use crate::{
     crypt::{self, Crypt, Encrypted},
     database::{
         dao::{DAOError, DAOHandler, DAOPromiseRef, DAOStreamer, Execute, Fetch, StreamFetch},
-        sqlite::{
-            DataBase, OpenVASDDB, insert_values_chunked,
-            state_change::{self, row_to_models_status},
-        },
+        sqlite::{DataBase, OpenVASDDB, insert_values_chunked},
     },
 };
 
@@ -42,6 +41,45 @@ impl From<String> for ScanIdentifier {
 impl From<(String, String)> for ScanIdentifier {
     fn from(value: (String, String)) -> Self {
         Self::ClientScanId(value.0, value.1)
+    }
+}
+
+#[derive(sqlx::FromRow, Debug)]
+struct ScanningHost {
+    pub host_ip: String,
+    pub progress: i32,
+}
+
+fn row_to_models_status(
+    scan_row: SqliteRow,
+    scanning_hosts_rows: Vec<ScanningHost>,
+) -> models::Status {
+    let excluded = scan_row.get("host_excluded");
+    let dead = scan_row.get("host_dead");
+    let alive = scan_row.get("host_alive");
+    let finished = excluded + dead + alive;
+
+    let host_progress: HashMap<String, i32> = scanning_hosts_rows
+        .into_iter()
+        .map(|sh| (sh.host_ip, sh.progress))
+        .collect();
+
+    let host_info = models::HostInfo {
+        all: scan_row.get("host_all"),
+        excluded,
+        dead,
+        alive,
+        queued: scan_row.get("host_queued"),
+        finished,
+        scanning: Some(host_progress),
+        remaining_vts_per_host: Default::default(),
+    };
+    models::Status {
+        start_time: scan_row.get("start_time"),
+        end_time: scan_row.get("end_time"),
+        // should never fail as we just allow parseable values to be stored in the DB
+        status: scan_row.get::<String, _>("status").parse().unwrap(),
+        host_info: Some(host_info),
     }
 }
 
@@ -923,13 +961,25 @@ pub(crate) async fn scan_get_status<'a, E>(
 where
     E: sqlx::Executor<'a, Database = Sqlite> + Clone,
 {
-    let scan_row = state_change::status_query(id)
+    let scan_row = sqlx::query(r#"
+            SELECT created_at, start_time, end_time, host_dead, host_alive, host_queued, host_excluded, host_all, status
+            FROM scans
+            WHERE id = ?
+        "#)
+        .bind(id)
         .fetch_one(pool.clone())
         .await?;
-    let scan_rows = state_change::host_scanning_query(id)
-        .fetch_all(pool)
-        .await?;
-    Ok(state_change::row_to_models_status(scan_row, scan_rows))
+    let scan_rows = sqlx::query_as(
+        r#"
+            SELECT host_ip, progress
+            FROM host_scanning
+            WHERE id = ?
+            "#,
+    )
+    .bind(id)
+    .fetch_all(pool)
+    .await?;
+    Ok(row_to_models_status(scan_row, scan_rows))
 }
 
 impl<'o> Fetch<models::Status> for ScanDB<'o, i64> {
