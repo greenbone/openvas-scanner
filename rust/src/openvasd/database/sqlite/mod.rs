@@ -110,6 +110,7 @@ pub async fn create_pool(
 pub struct SqliteDatabase {
     pool: SqlitePool,
     crypter: Crypter,
+    is_inmemory: bool,
 }
 
 impl SqliteDatabase {
@@ -117,7 +118,11 @@ impl SqliteDatabase {
         let pool = create_pool(config, name).await?;
         let crypter = Crypter::from_config(config, &pool).await?;
 
-        Ok(Arc::new(Self { pool, crypter }))
+        Ok(Arc::new(Self {
+            pool,
+            crypter,
+            is_inmemory: config.is_inmemory(),
+        }))
     }
 
     /// Begins an IMMEDIATE transaction
@@ -152,17 +157,22 @@ impl SqliteDatabase {
 
 impl Drop for SqliteDatabase {
     fn drop(&mut self) {
-        let keep_failed_db =
-            std::thread::panicking() && std::env::var("KEEP_TEST_DB").is_ok_and(|x| x == "true");
+        if self.is_inmemory {
+            let keep_failed_db = std::thread::panicking()
+                && std::env::var("KEEP_TEST_DB").is_ok_and(|x| x == "true");
 
-        if !keep_failed_db && let Some(path) = self.pool.connect_options().get_filename().parent() {
-            let active_connections = self.pool.size().saturating_sub(self.pool.num_idle() as u32);
-            if active_connections > 0 {
-                tracing::debug!(active_connections, "DB connections active at shutdown");
-            }
+            if !keep_failed_db
+                && let Some(path) = self.pool.connect_options().get_filename().parent()
+            {
+                let active_connections =
+                    self.pool.size().saturating_sub(self.pool.num_idle() as u32);
+                if active_connections > 0 {
+                    tracing::debug!(active_connections, "DB connections active at shutdown");
+                }
 
-            if let Err(e) = std::fs::remove_dir_all(path) {
-                tracing::warn!("failed to cleanup database: {e}");
+                if let Err(e) = std::fs::remove_dir_all(path) {
+                    tracing::warn!("failed to cleanup database: {e}");
+                }
             }
         }
     }
