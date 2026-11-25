@@ -1,4 +1,7 @@
-use std::{path::PathBuf, task::Poll};
+use std::{
+    path::{Path, PathBuf},
+    task::Poll,
+};
 
 use crate::api::stream::StreamResult;
 use futures::Stream;
@@ -70,6 +73,39 @@ pub struct RedisPluginHandler {
 impl RedisPluginHandler {
     pub fn new(address: String, feed_path: PathBuf) -> Self {
         Self { address, feed_path }
+    }
+
+    fn store_one<T>(
+        rctx: &mut RedisCtx,
+        feed_path: &Path,
+        kind: FeedType,
+        plugin: T,
+    ) -> Result<(), WorkerError>
+    where
+        T: super::Plugin + Send + Sync + 'static,
+    {
+        match kind {
+            scannerlib::models::FeedType::Products | scannerlib::models::FeedType::Advisories => {
+                rctx.redis_add_advisory(plugin.into_advisory())
+            }
+            scannerlib::models::FeedType::NASL => {
+                match plugin.vulnerability_test() {
+                    None => {
+                        unreachable!("FeedType::NASL must have vulnerability test data.")
+                    }
+                    Some(vt) => {
+                        // if the verification was successful, we calculate now the mtime
+                        // otherwise we avoid to store it
+                        let hashsum = plugin.hashsum();
+                        let mtime =
+                            mtime::compute_mtime(&feed_path.join(&vt.filename), Some(hashsum))?
+                                .to_string();
+                        rctx.redis_add_nvt(vt, mtime, hashsum)
+                    }
+                }
+            }
+        }
+        .map_err(redis_error_to_worker_error)
     }
 }
 
@@ -291,7 +327,7 @@ impl PluginStorer for RedisPluginHandler {
         .await
     }
 
-    async fn store_plugin<T>(&self, hash: &super::FeedHash, plugin: T) -> Result<(), WorkerError>
+    async fn store_plugins<T>(&self, hash: &FeedHash, plugins: Vec<T>) -> Result<(), WorkerError>
     where
         T: super::Plugin + Send + Sync + 'static,
     {
@@ -300,31 +336,10 @@ impl PluginStorer for RedisPluginHandler {
             self.feed_path.clone(),
             hash.typus,
             move |mut rctx, feed_path, kind| {
-                match kind {
-                    scannerlib::models::FeedType::Products
-                    | scannerlib::models::FeedType::Advisories => {
-                        rctx.redis_add_advisory(plugin.into_advisory())
-                    }
-                    scannerlib::models::FeedType::NASL => {
-                        match plugin.vulnerability_test() {
-                            None => {
-                                unreachable!("FeedType::NASL must have vulnerability test data.")
-                            }
-                            Some(vt) => {
-                                // if the verification was successful, we calculate now the mtime
-                                // otherwise we avoid to store it
-                                let hashsum = plugin.hashsum();
-                                let mtime = mtime::compute_mtime(
-                                    &feed_path.join(&vt.filename),
-                                    Some(hashsum),
-                                )?
-                                .to_string();
-                                rctx.redis_add_nvt(vt, mtime, hashsum)
-                            }
-                        }
-                    }
+                for plugin in plugins {
+                    Self::store_one(&mut rctx, &feed_path, kind, plugin)?;
                 }
-                .map_err(redis_error_to_worker_error)
+                Ok(())
             },
         )
         .await
