@@ -11,6 +11,7 @@
 
 #include "nasl.h"
 
+#include "../misc/file_utils.h"
 #include "../misc/kb_cache.h" // for get_main_kb
 #include "../misc/network.h"
 #include "../misc/nvt_categories.h"
@@ -127,6 +128,25 @@ gcrypt_init ()
   gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
   gcry_control (GCRYCTL_RESUME_SECMEM_WARN);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED);
+}
+
+/**
+ * @brief Initialize the directory for the files created during the run.
+ *
+ * A random identifier is used, so that parallel runs neither interfere with
+ * each other nor use a directory name which can be guessed beforehand.
+ *
+ * @return 0 on success, 1 on error.
+ */
+static int
+init_tmp_dir (void)
+{
+  gchar *id = g_uuid_string_random ();
+  int result = file_utils_init (id);
+
+  g_free (id);
+
+  return result;
 }
 
 /**
@@ -324,6 +344,9 @@ main (int argc, char **argv)
   if (with_safe_checks)
     prefs_set ("safe_checks", "yes");
 
+  if (init_tmp_dir () != 0)
+    exit (1);
+
   pos = 0; // Append the item on the right side of the list
   while ((host = gvm_hosts_next (hosts)))
     {
@@ -399,6 +422,7 @@ main (int argc, char **argv)
   if (nasl_trace_fp != NULL)
     fflush (nasl_trace_fp);
 
+  file_utils_cleanup ();
   gvm_hosts_free (hosts);
   return err;
 }
