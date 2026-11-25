@@ -51,7 +51,9 @@ where
 
 pub trait Plugin: serde::Serialize {
     fn oid(&self) -> &str;
-    fn advisory(&self) -> Option<&VulnerabilityData>;
+    fn into_advisory(self) -> Option<VulnerabilityData>
+    where
+        Self: Sized;
     fn vulnerability_test(&self) -> Option<&VTData>;
     fn hashsum(&self) -> &str;
 }
@@ -61,7 +63,7 @@ impl Plugin for VTData {
         &self.oid
     }
 
-    fn advisory(&self) -> Option<&VulnerabilityData> {
+    fn into_advisory(self) -> Option<VulnerabilityData> {
         None
     }
 
@@ -83,7 +85,7 @@ impl Plugin for VulnerabilityData {
         &self.adv.oid
     }
 
-    fn advisory(&self) -> Option<&VulnerabilityData> {
+    fn into_advisory(self) -> Option<VulnerabilityData> {
         Some(self)
     }
 
@@ -424,8 +426,8 @@ impl Plugin for VTDataMessage {
         self.item.oid()
     }
 
-    fn advisory(&self) -> Option<&VulnerabilityData> {
-        self.item.advisory()
+    fn into_advisory(self) -> Option<VulnerabilityData> {
+        self.item.into_advisory()
     }
 
     fn vulnerability_test(&self) -> Option<&VTData> {

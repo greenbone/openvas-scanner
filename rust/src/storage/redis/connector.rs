@@ -513,7 +513,7 @@ impl RedisCtx {
         &mut self,
         nvt: &VTData,
         mtime: String,
-        hashsum: String,
+        hashsum: &str,
     ) -> RedisStorageResult<()> {
         let filename = &nvt.filename;
         if !hashsum.is_empty() {
@@ -555,7 +555,7 @@ impl RedisCtx {
 
         let key_name = format!("nvt:{oid}");
         let values = [
-            &filename,
+            filename,
             &required_keys,
             &mandatory_keys,
             &excluded_keys,
@@ -567,8 +567,8 @@ impl RedisCtx {
             &bids,
             &xrefs,
             &category,
-            &family,
-            &name,
+            family,
+            name,
         ];
         self.del(&key_name)?;
         self.rpush(&key_name, &values)?;
@@ -598,7 +598,7 @@ impl RedisCtx {
                 } else {
                     mtime.as_str()
                 },
-                &oid,
+                oid,
             ],
         )?;
 

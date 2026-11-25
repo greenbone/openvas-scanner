@@ -3,9 +3,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 
+use scannerlib::feed;
 use scannerlib::models::{FeedState, FeedType};
 use scannerlib::nasl::utils::mtime;
-use scannerlib::{Promise, feed};
 use tokio::sync::mpsc;
 
 use crate::vts::FeedHashes;
@@ -146,29 +146,34 @@ pub enum WorkerError {
 }
 
 pub trait Worker {
-    fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, WorkerError>>;
+    fn cached_hashes(&self)
+    -> impl Future<Output = Result<Option<FeedHashes>, WorkerError>> + Send;
 
     fn signature_check(&self) -> bool;
     fn plugin_feed(&self) -> PathBuf;
     fn advisory_feed(&self) -> PathBuf;
 
-    fn calculated_hashes(&self) -> Promise<Result<FeedHashes, WorkerError>> {
+    fn calculated_hashes(&self) -> impl Future<Output = Result<FeedHashes, WorkerError>> + Send {
         let signature_check = self.signature_check();
         let plugin_feed = self.plugin_feed();
         let advisory_feed = self.advisory_feed();
-        Box::pin(async move {
+        async move {
             let nasl_hash = Self::calculate_hash(signature_check, plugin_feed).await?;
             let advisories_hash = Self::calculate_hash(signature_check, advisory_feed).await?;
             Ok((nasl_hash, advisories_hash))
-        })
+        }
     }
-    fn update_feed(&self, kind: FeedType, new_hash: String) -> Promise<Result<(), WorkerError>>;
+    fn update_feed(
+        &self,
+        kind: FeedType,
+        new_hash: String,
+    ) -> impl Future<Output = Result<(), WorkerError>> + Send;
 
     fn calculate_hash(
         signature_check: bool,
         path: PathBuf,
-    ) -> Promise<Result<String, feed::VerifyError>> {
-        Box::pin(async move {
+    ) -> impl Future<Output = Result<String, feed::VerifyError>> + Send {
+        async move {
             tokio::task::spawn_blocking(move || {
                 if signature_check {
                     scannerlib::feed::check_signature(&path)?;
@@ -177,7 +182,7 @@ pub trait Worker {
             })
             .await
             .unwrap()
-        })
+        }
     }
 }
 
@@ -384,18 +389,16 @@ pub mod test {
     }
 
     impl Worker for Yesman {
-        fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, WorkerError>> {
-            let cached = self.cached.clone();
-            Box::pin(async move { Ok(cached) })
+        async fn cached_hashes(&self) -> Result<Option<FeedHashes>, WorkerError> {
+            Ok(self.cached.clone())
         }
 
-        fn calculated_hashes(&self) -> Promise<Result<FeedHashes, WorkerError>> {
-            let calculated = self.calculated.clone();
-            Box::pin(async move { Ok(calculated) })
+        async fn calculated_hashes(&self) -> Result<FeedHashes, WorkerError> {
+            Ok(self.calculated.clone())
         }
 
-        fn update_feed(&self, _: FeedType, _: String) -> Promise<Result<(), WorkerError>> {
-            Box::pin(async move { Ok(()) })
+        async fn update_feed(&self, _: FeedType, _: String) -> Result<(), WorkerError> {
+            Ok(())
         }
 
         fn signature_check(&self) -> bool {
@@ -446,24 +449,22 @@ pub mod test {
     }
 
     impl Worker for FailOnce {
-        fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, WorkerError>> {
-            Box::pin(async move { Ok(None) })
+        async fn cached_hashes(&self) -> Result<Option<FeedHashes>, WorkerError> {
+            Ok(None)
         }
 
-        fn calculated_hashes(&self) -> Promise<Result<FeedHashes, WorkerError>> {
-            Box::pin(async move { Ok(("one".to_string(), "two".to_string())) })
+        async fn calculated_hashes(&self) -> Result<FeedHashes, WorkerError> {
+            Ok(("one".to_string(), "two".to_string()))
         }
 
-        fn update_feed(&self, _: FeedType, _: String) -> Promise<Result<(), WorkerError>> {
+        async fn update_feed(&self, _: FeedType, _: String) -> Result<(), WorkerError> {
             // both updates of the first round fail
             let first = self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) < 2;
-            Box::pin(async move {
-                if first {
-                    Err(WorkerError::Receive)
-                } else {
-                    Ok(())
-                }
-            })
+            if first {
+                Err(WorkerError::Receive)
+            } else {
+                Ok(())
+            }
         }
 
         fn signature_check(&self) -> bool {

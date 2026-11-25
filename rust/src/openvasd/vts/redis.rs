@@ -61,7 +61,7 @@ fn check_redis_storage(redis_url: &str, ft: FeedType) -> Result<RedisCtx, DbErro
     RedisCtx::open(redis_url, selector)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RedisPluginHandler {
     address: String,
     feed_path: PathBuf,
@@ -84,7 +84,7 @@ async fn redis_with_hash<T, F>(
     f: F,
 ) -> Result<T, WorkerError>
 where
-    F: Fn(RedisCtx, FeedType, String) -> Result<T, WorkerError> + Send + 'static,
+    F: FnOnce(RedisCtx, FeedType, String) -> Result<T, WorkerError> + Send + 'static,
     T: Send + 'static,
 {
     let kind = hash.typus;
@@ -102,7 +102,7 @@ async fn redis_with_feed_type<T, F>(
     f: F,
 ) -> Result<T, WorkerError>
 where
-    F: Fn(RedisCtx, PathBuf, FeedType) -> Result<T, WorkerError> + Send + 'static,
+    F: FnOnce(RedisCtx, PathBuf, FeedType) -> Result<T, WorkerError> + Send + 'static,
     T: Send + 'static,
 {
     tokio::task::spawn_blocking(move || {
@@ -303,23 +303,23 @@ impl PluginStorer for RedisPluginHandler {
                 match kind {
                     scannerlib::models::FeedType::Products
                     | scannerlib::models::FeedType::Advisories => {
-                        rctx.redis_add_advisory(plugin.advisory().cloned())
+                        rctx.redis_add_advisory(plugin.into_advisory())
                     }
                     scannerlib::models::FeedType::NASL => {
-                        match plugin.vulnerability_test().cloned() {
+                        match plugin.vulnerability_test() {
                             None => {
                                 unreachable!("FeedType::NASL must have vulnerability test data.")
                             }
                             Some(vt) => {
                                 // if the verification was successful, we calculate now the mtime
                                 // otherwise we avoid to store it
-                                let hashsum: String = plugin.hashsum().into();
+                                let hashsum = plugin.hashsum();
                                 let mtime = mtime::compute_mtime(
-                                    &feed_path.clone().join(&vt.filename),
-                                    Some(&hashsum),
+                                    &feed_path.join(&vt.filename),
+                                    Some(hashsum),
                                 )?
                                 .to_string();
-                                rctx.redis_add_nvt(&vt, mtime, hashsum)
+                                rctx.redis_add_nvt(vt, mtime, hashsum)
                             }
                         }
                     }
@@ -332,9 +332,7 @@ impl PluginStorer for RedisPluginHandler {
 }
 
 impl orchestrator::Worker for FeedSynchronizer {
-    fn cached_hashes(
-        &self,
-    ) -> scannerlib::Promise<Result<Option<super::FeedHashes>, orchestrator::WorkerError>> {
+    async fn cached_hashes(&self) -> Result<Option<super::FeedHashes>, orchestrator::WorkerError> {
         let address = self.address.clone();
         let feed_version = |address: &str, ft: FeedType| -> Result<Option<String>, WorkerError> {
             let key = match &ft {
@@ -351,27 +349,24 @@ impl orchestrator::Worker for FeedSynchronizer {
                 .map_err(redis_error_to_worker_error)?;
             Ok(ck.pop())
         };
-        Box::pin(async move {
-            tokio::task::spawn_blocking(move || {
-                let vtc = feed_version(&address, FeedType::NASL)?;
-                let nc = feed_version(&address, FeedType::Advisories)?;
+        tokio::task::spawn_blocking(move || {
+            let vtc = feed_version(&address, FeedType::NASL)?;
+            let nc = feed_version(&address, FeedType::Advisories)?;
 
-                Ok(match (vtc, nc) {
-                    (None, None) => None,
-                    (nasl, notus) => Some((nasl.unwrap_or_default(), notus.unwrap_or_default())),
-                })
+            Ok(match (vtc, nc) {
+                (None, None) => None,
+                (nasl, notus) => Some((nasl.unwrap_or_default(), notus.unwrap_or_default())),
             })
-            .await
-            .unwrap()
         })
+        .await
+        .unwrap()
     }
 
-    fn update_feed(
+    async fn update_feed(
         &self,
         kind: FeedType,
         new_hash: String,
-    ) -> scannerlib::Promise<Result<(), orchestrator::WorkerError>> {
-        let ps = self.plugin_storer.clone();
+    ) -> Result<(), orchestrator::WorkerError> {
         let path = match kind {
             FeedType::Products | FeedType::Advisories => self.advisory_feed(),
             FeedType::NASL => self.plugin_feed(),
@@ -382,7 +377,7 @@ impl orchestrator::Worker for FeedSynchronizer {
             typus: kind,
         };
         let verify = self.signature_check;
-        Box::pin(async move { super::synchronize_feed(&ps, feed_hash, verify).await })
+        super::synchronize_feed(&self.plugin_storer, feed_hash, verify).await
     }
 
     fn signature_check(&self) -> bool {

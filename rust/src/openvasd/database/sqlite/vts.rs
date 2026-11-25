@@ -8,7 +8,6 @@ use crate::vts::FeedHashes;
 use crate::vts::Plugin;
 use async_trait::async_trait;
 use futures::StreamExt;
-use scannerlib::Promise;
 use scannerlib::models::{FeedType, VTData};
 use scannerlib::nasl::utils::mtime::{MtimeCheckError, MtimeStatus, compute_mtime};
 use scannerlib::notus::advisories::VulnerabilityData;
@@ -100,7 +99,7 @@ impl PluginStorer for SqlPluginStorage {
         T: Plugin + Send + Sync + 'static,
     {
         let hashsum = plugin.hashsum();
-        let mtime = match (typus, plugin.vulnerability_test()) {
+        let mtime = match (hash.typus, plugin.vulnerability_test()) {
             (FeedType::NASL, Some(vt)) => {
                 compute_mtime(&self.feed_root.join(&vt.filename), Some(hashsum))?
             }
@@ -112,7 +111,7 @@ impl PluginStorer for SqlPluginStorage {
             )
             .bind(plugin.oid())
             .bind(&json)
-            .bind(hash.typus)
+            .bind(hash.typus.as_ref())
             .bind(hashsum)
             .bind(mtime)
             .execute(&self.pool)
@@ -129,7 +128,7 @@ impl PluginStorer for SqlPluginStorage {
         )
         .bind(&hash.hash)
         .bind(path)
-        .bind(hash.typus)
+        .bind(hash.typus.as_ref())
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -220,7 +219,7 @@ impl Retriever<FileName> for SqlPluginStorage {
 }
 
 impl orchestrator::Worker for FeedSynchronizer {
-    fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
+    async fn cached_hashes(&self) -> Result<Option<FeedHashes>, orchestrator::WorkerError> {
         let mut fetched =
             query("SELECT hash FROM feed WHERE type = 'nasl' OR type = 'advisories' ORDER BY type")
                 .fetch(&self.pool);
@@ -231,26 +230,21 @@ impl orchestrator::Worker for FeedSynchronizer {
                 None
             }
         };
-        Box::pin(async move {
-            let rofl = (
-                transform(fetched.next().await),
-                transform(fetched.next().await),
-            );
-            Ok(match rofl {
-                (None, None) => None,
-                (advisories, nasl) => {
-                    Some((nasl.unwrap_or_default(), advisories.unwrap_or_default()))
-                }
-            })
+        let rofl = (
+            transform(fetched.next().await),
+            transform(fetched.next().await),
+        );
+        Ok(match rofl {
+            (None, None) => None,
+            (advisories, nasl) => Some((nasl.unwrap_or_default(), advisories.unwrap_or_default())),
         })
     }
 
-    fn update_feed(
+    async fn update_feed(
         &self,
         kind: FeedType,
         new_hash: String,
-    ) -> Promise<Result<(), orchestrator::WorkerError>> {
-        let ps = self.plugin_storer.clone();
+    ) -> Result<(), orchestrator::WorkerError> {
         let path = match kind {
             FeedType::Products | FeedType::Advisories => self.advisory_feed(),
             FeedType::NASL => self.plugin_feed(),
@@ -261,9 +255,7 @@ impl orchestrator::Worker for FeedSynchronizer {
             typus: kind,
         };
         let feed_integrity_check = self.signature_check;
-        Box::pin(
-            async move { crate::vts::synchronize_feed(&ps, feed_hash, feed_integrity_check).await },
-        )
+        crate::vts::synchronize_feed(&self.plugin_storer, feed_hash, feed_integrity_check).await
     }
 
     fn signature_check(&self) -> bool {
