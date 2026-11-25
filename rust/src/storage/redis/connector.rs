@@ -139,7 +139,7 @@ impl NameSpaceSelector {
                         Err(err) => return Err(err.into()),
                     }
                 }
-                Err(DbError::NoAvailDbErr)
+                Err(DbError::NamespaceNotFound)
             }
         }
     }
@@ -150,6 +150,12 @@ pub const FEEDUPDATE_SELECTOR: &[NameSpaceSelector] =
     &[NameSpaceSelector::Key(CACHE_KEY), NameSpaceSelector::Free];
 pub const NOTUSUPDATE_SELECTOR: &[NameSpaceSelector] =
     &[NameSpaceSelector::Key(NOTUS_KEY), NameSpaceSelector::Free];
+
+/// Default selector for a cache check only
+pub const FEEDUPDATE_SELECTOR_CHECK_ONLY: &[NameSpaceSelector] =
+    &[NameSpaceSelector::Key(CACHE_KEY)];
+pub const NOTUSUPDATE_SELECTOR_CHECK_ONLY: &[NameSpaceSelector] =
+    &[NameSpaceSelector::Key(NOTUS_KEY)];
 
 impl RedisCtx {
     ///Wrapper function to avoid accessing kb member directly.
@@ -605,6 +611,7 @@ impl RedisCtx {
         let client = redis::Client::open(address)?;
 
         let mut kb = client.get_connection()?;
+        let mut last_err = DbError::NoAvailDbErr;
         for s in selector {
             match s.select(&mut kb) {
                 Ok(x) => {
@@ -614,11 +621,12 @@ impl RedisCtx {
                         address: address.to_string(),
                     });
                 }
-                Err(DbError::NoAvailDbErr) => {}
+                Err(e @ (DbError::NoAvailDbErr | DbError::NamespaceNotFound)) => last_err = e,
                 Err(x) => return Err(x),
             }
         }
-        Err(DbError::NoAvailDbErr)
+        // Preserve the last selector's error so callers can tell "not found" from "no free db".
+        Err(last_err)
     }
 
     /// Delete an entry from the in-use namespace's list
