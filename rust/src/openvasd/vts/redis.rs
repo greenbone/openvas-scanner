@@ -77,12 +77,12 @@ fn redis_error_to_worker_error(error: DbError) -> WorkerError {
     WorkerError::Sync(Box::new(error))
 }
 
-fn redis_with_hash<T, F>(
+async fn redis_with_hash<T, F>(
     address: String,
     feed_path: PathBuf,
     hash: &super::FeedHash,
     f: F,
-) -> scannerlib::Promise<Result<T, WorkerError>>
+) -> Result<T, WorkerError>
 where
     F: Fn(RedisCtx, FeedType, String) -> Result<T, WorkerError> + Send + 'static,
     T: Send + 'static,
@@ -92,26 +92,25 @@ where
     redis_with_feed_type(address, feed_path, kind, move |r, _p, k| {
         f(r, k, hash.clone())
     })
+    .await
 }
 
-fn redis_with_feed_type<T, F>(
+async fn redis_with_feed_type<T, F>(
     address: String,
     feed_path: PathBuf,
     kind: FeedType,
     f: F,
-) -> scannerlib::Promise<Result<T, WorkerError>>
+) -> Result<T, WorkerError>
 where
     F: Fn(RedisCtx, PathBuf, FeedType) -> Result<T, WorkerError> + Send + 'static,
     T: Send + 'static,
 {
-    Box::pin(async move {
-        tokio::task::spawn_blocking(move || {
-            let rctx = init_redis_storage(&address, kind)?;
-            f(rctx, feed_path, kind)
-        })
-        .await
-        .unwrap()
+    tokio::task::spawn_blocking(move || {
+        let rctx = init_redis_storage(&address, kind)?;
+        f(rctx, feed_path, kind)
     })
+    .await
+    .unwrap()
 }
 
 struct RedisOidStream {
@@ -267,12 +266,12 @@ impl PluginFetcher for RedisPluginHandler {
 }
 
 impl PluginStorer for RedisPluginHandler {
-    fn prepare_feed(&self, hash: &super::FeedHash) -> scannerlib::Promise<Result<(), WorkerError>> {
+    async fn prepare_feed(&self, hash: &super::FeedHash) -> Result<(), WorkerError> {
         let pending = super::pending_hash(hash);
-        self.store_hash(&pending)
+        self.store_hash(&pending).await
     }
 
-    fn store_hash(&self, hash: &super::FeedHash) -> scannerlib::Promise<Result<(), WorkerError>> {
+    async fn store_hash(&self, hash: &super::FeedHash) -> Result<(), WorkerError> {
         redis_with_hash(
             self.address.clone(),
             self.feed_path.clone(),
@@ -289,13 +288,10 @@ impl PluginStorer for RedisPluginHandler {
                 .map_err(redis_error_to_worker_error)
             },
         )
+        .await
     }
 
-    fn store_plugin<T>(
-        &self,
-        hash: &super::FeedHash,
-        plugin: T,
-    ) -> scannerlib::Promise<Result<(), WorkerError>>
+    async fn store_plugin<T>(&self, hash: &super::FeedHash, plugin: T) -> Result<(), WorkerError>
     where
         T: super::Plugin + Send + Sync + 'static,
     {
@@ -323,7 +319,7 @@ impl PluginStorer for RedisPluginHandler {
                                     Some(&hashsum),
                                 )?
                                 .to_string();
-                                rctx.redis_add_nvt(vt, mtime, hashsum)
+                                rctx.redis_add_nvt(&vt, mtime, hashsum)
                             }
                         }
                     }
@@ -331,6 +327,7 @@ impl PluginStorer for RedisPluginHandler {
                 .map_err(redis_error_to_worker_error)
             },
         )
+        .await
     }
 }
 

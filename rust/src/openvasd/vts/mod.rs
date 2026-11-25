@@ -11,7 +11,6 @@ use std::{
     sync::Arc,
 };
 
-use scannerlib::Promise;
 use scannerlib::feed::{HashSumFileItem, HashSumNameLoader, check_signature};
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::advisory_loader;
@@ -154,9 +153,9 @@ pub async fn init(pool: DataBase, config: &Config) -> (orchestrator::Communicato
 }
 
 pub trait PluginStorer {
-    fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
-    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
+    async fn prepare_feed(&self, hash: &FeedHash) -> Result<(), WorkerError>;
+    async fn store_hash(&self, hash: &FeedHash) -> Result<(), WorkerError>;
+    async fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Result<(), WorkerError>
     where
         T: Plugin + Send + Sync + 'static;
 }

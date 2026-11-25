@@ -90,59 +90,49 @@ impl PluginFetcher for SqlPluginStorage {
 }
 
 impl PluginStorer for SqlPluginStorage {
-    fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
+    async fn prepare_feed(&self, hash: &FeedHash) -> Result<(), WorkerError> {
         let pending = crate::vts::pending_hash(hash);
-        self.store_hash(&pending)
+        self.store_hash(&pending).await
     }
 
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
+    async fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Result<(), WorkerError>
     where
         T: Plugin + Send + Sync + 'static,
     {
-        let pool = self.pool.clone();
-        let typus = hash.typus;
-        let plugin_feed = self.feed_root.clone();
-        Box::pin(async move {
-            let hashsum: String = plugin.hashsum().into();
-            let mtime = match (typus, plugin.vulnerability_test()) {
-                (FeedType::NASL, Some(vt)) => {
-                    compute_mtime(&plugin_feed.join(&vt.filename), Some(&hashsum))?
-                }
-                _ => 0,
-            };
-            let json = serde_json::to_vec(&plugin)?;
-            query(
+        let hashsum = plugin.hashsum();
+        let mtime = match (typus, plugin.vulnerability_test()) {
+            (FeedType::NASL, Some(vt)) => {
+                compute_mtime(&self.feed_root.join(&vt.filename), Some(hashsum))?
+            }
+            _ => 0,
+        };
+        let json = serde_json::to_vec(&plugin)?;
+        query(
                 r#" INSERT INTO plugins ( oid, json_blob, feed_type, hashsum, mtime) VALUES (?, ?, ?, ?, ?)"#,
             )
             .bind(plugin.oid())
             .bind(&json)
-            .bind(typus.as_ref())
+            .bind(hash.typus)
             .bind(hashsum)
             .bind(mtime)
-            .execute(&pool)
+            .execute(&self.pool)
             .await?;
 
-            Ok(())
-        })
+        Ok(())
     }
 
-    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
-        let pool = self.pool.clone();
-        let path = hash.path.to_str().unwrap_or_default().to_string();
-        let ht = hash.typus;
-        let hash = hash.hash.clone();
-        Box::pin(async move {
-            query(
-                "INSERT INTO feed (hash, path, type) VALUES (?, ?, ?)
+    async fn store_hash(&self, hash: &FeedHash) -> Result<(), WorkerError> {
+        let path = hash.path.to_str().unwrap_or_default();
+        query(
+            "INSERT INTO feed (hash, path, type) VALUES (?, ?, ?)
                  ON CONFLICT(type) DO UPDATE SET hash = excluded.hash, path = excluded.path",
-            )
-            .bind(hash)
-            .bind(path)
-            .bind(ht.as_ref())
-            .execute(&pool)
-            .await?;
-            Ok(())
-        })
+        )
+        .bind(&hash.hash)
+        .bind(path)
+        .bind(hash.typus)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }
 
