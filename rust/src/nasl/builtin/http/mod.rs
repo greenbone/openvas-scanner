@@ -19,6 +19,7 @@ use http::{Method, Request, response::Parts};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use std::io::Cursor;
 use std::sync::Arc;
+use std::time::Duration;
 
 use rustls::{ClientConfig, RootCertStore};
 use tokio::{
@@ -26,6 +27,8 @@ use tokio::{
     sync::{Mutex, MutexGuard},
 };
 use tokio_rustls::TlsConnector;
+
+const TIMEOUT_SEC: u64 = 20;
 
 use super::{
     NaslSockets,
@@ -175,8 +178,16 @@ impl NaslHttp2 {
         data: String,
         method: Method,
         handle: &mut Handle,
-    ) -> Result<(Parts, String), HttpError> {
-        // Establish TCP connection to the server.
+        tls: bool,
+    ) -> Result<(Parts, Vec<u8>), HttpError> {
+        let tcp = TcpStream::connect(format!("{ip_str}:{port}"))
+            .await
+            .map_err(HttpError::from)?;
+        if !tls {
+            return self
+                .send_h2(ctx, script_ctx, tcp, uri, data, method, handle)
+                .await;
+        }
 
         let mut config = if let Some(pem) = handle.ca_cert.clone() {
             let mut root_store = RootCertStore::empty();
@@ -200,13 +211,29 @@ impl NaslHttp2 {
         let server_name = ip_str.to_owned().try_into().unwrap();
 
         let connector = TlsConnector::from(Arc::new(config));
-        let stream = TcpStream::connect(format!("{ip_str}:{port}"))
-            .await
-            .map_err(HttpError::from)?;
         let stream = connector
-            .connect(server_name, stream)
+            .connect(server_name, tcp)
             .await
             .map_err(HttpError::from)?;
+
+        self.send_h2(ctx, script_ctx, stream, uri, data, method, handle)
+            .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn send_h2<S>(
+        &self,
+        ctx: &ScanCtx,
+        script_ctx: &ScriptCtx<'_>,
+        stream: S,
+        uri: String,
+        data: String,
+        method: Method,
+        handle: &mut Handle,
+    ) -> Result<(Parts, Vec<u8>), HttpError>
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+    {
         let (h2, connection) = client::handshake(stream).await.map_err(HttpError::from)?;
 
         tokio::spawn(async move {
@@ -223,8 +250,15 @@ impl NaslHttp2 {
         request = request.header("User-Agent", &ua);
         // add custom headers
         for (k, v) in handle.header_items.iter() {
+            // filter out
+            match k.trim().to_ascii_lowercase().as_str() {
+                "connection" | "keep-alive" | "proxy-connection" | "transfer-encoding"
+                | "upgrade" => continue,
+                _ => {}
+            }
             request = request.header(k, v);
         }
+
         let request = request.method(method).uri(uri).body(()).unwrap();
 
         // Send the request. The second tuple item allows the caller
@@ -241,11 +275,11 @@ impl NaslHttp2 {
         // the data from memory.
         let mut flow_control = body.flow_control().clone();
 
-        let mut resp = String::new();
+        let mut resp = Vec::new();
         while let Some(chunk) = body.data().await {
             let chunk = chunk.map_err(HttpError::from)?;
 
-            resp.push_str(&String::from_utf8_lossy(&chunk));
+            resp.extend_from_slice(&chunk.to_vec());
             // Let the server send more data.
             let _ = flow_control.release_capacity(chunk.len());
         }
@@ -290,6 +324,11 @@ impl NaslHttp2 {
             _ => "https".to_string(),
         };
 
+        let timeout = match register.local_nasl_value("timeout") {
+            Ok(NaslValue::Number(t)) => Duration::from_secs(*t as u64),
+            _ => Duration::from_secs(TIMEOUT_SEC),
+        };
+
         let data: String = match register.local_nasl_value("data") {
             Ok(x) => x.to_string(),
             _ => String::new(),
@@ -310,25 +349,58 @@ impl NaslHttp2 {
         }
 
         uri = format!("{uri}{item}");
-
-        let (head, body) = self
-            .request(ctx, script_ctx, target_str, port, uri, data, method, handle)
-            .await?;
+        let tls = schema == "https";
+        let (head, body) = match tokio::time::timeout(
+            timeout,
+            self.request(
+                ctx, script_ctx, target_str, port, uri, data, method, handle, tls,
+            ),
+        )
+        .await
+        {
+            Ok(Ok(res)) => res,
+            Ok(Err(e)) => {
+                tracing::warn!("http2_req: Error sending request: {e}");
+                return Ok(NaslValue::Null);
+            }
+            Err(_) => {
+                tracing::warn!("http2_req: Error sending request: timed out");
+                return Ok(NaslValue::Null);
+            }
+        };
 
         handle.http_code = head.status.as_u16();
-        let mut header_str = String::new();
-        header_str.push_str(format!("{:?} ", head.version).as_str());
-        header_str.push_str(format!("{:?}\n", head.status).as_str());
+        // Mimic libcurl's raw header output as returned by the C implementation
+        let version = match head.version {
+            http::Version::HTTP_2 => "HTTP/2",
+            http::Version::HTTP_3 => "HTTP/3",
+            http::Version::HTTP_11 => "HTTP/1.1",
+            http::Version::HTTP_10 => "HTTP/1.0",
+            http::Version::HTTP_09 => "HTTP/0.9",
+            _ => "HTTP/2",
+        };
+        let mut header_str = format!("{version} {} \r\n", head.status.as_u16());
         for (k, v) in head.headers.iter() {
             header_str.push_str(&format!(
-                "{}: {}\n",
+                "{}: {}\r\n",
                 k.as_str(),
                 String::from_utf8_lossy(v.as_bytes())
             ))
         }
-
-        header_str.push_str(&body);
-        Ok(NaslValue::String(header_str))
+        match String::from_utf8(body.clone()) {
+            Ok(s) => {
+                header_str.push_str("\r\n");
+                header_str.push_str(&s);
+                Ok(NaslValue::String(header_str))
+            }
+            Err(_) => {
+                let mut vec = header_str.into_bytes();
+                let mut vec2 = "\r\n".to_string().into_bytes();
+                vec.append(&mut vec2);
+                vec.extend(&body);
+                Ok(NaslValue::Data(vec))
+            }
+        }
     }
 
     /// Wrapper function for GET request. See http2_req
@@ -471,7 +543,7 @@ impl NaslHttp2 {
             _ => return Err(FnError::missing_argument("No command passed")),
         };
 
-        let (key, val) = header_item.split_once(": ").expect("Missing header_item");
+        let (key, val) = header_item.split_once(":").expect("Missing header_item");
 
         let handle_id = match register.local_nasl_value("handle") {
             Ok(NaslValue::Number(x)) => *x as i32,
@@ -487,7 +559,10 @@ impl NaslHttp2 {
             .find(|(_i, h)| h.handle_id == handle_id)
         {
             Some((_i, h)) => {
-                h.header_items.push((key.to_string(), val.to_string()));
+                h.header_items.push((
+                    key.trim_start().trim_end().to_string(),
+                    val.trim_start().trim_end().to_string(),
+                ));
                 Ok(NaslValue::Number(0))
             }
             _ => Err(HttpError::HandleIdNotFound(handle_id).into()),
