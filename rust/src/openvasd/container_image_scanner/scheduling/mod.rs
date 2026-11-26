@@ -203,7 +203,12 @@ impl Scheduler {
         products: Arc<RwLock<Notus>>,
     ) {
         tracing::trace!("checking for requested and scanning");
-        let pool = conn.lock().await;
+
+        // Keeps fetching and resolving the images exclusive,
+        // only one scheduling tick at a time can request new scans.
+        let guard = conn.lock().await;
+        let pool = guard.clone();
+
         let requested = match DBImages::new(&pool, config.max_scans).fetch().await {
             Ok(r) => r,
             Err(error) => {
@@ -219,8 +224,13 @@ impl Scheduler {
         }
 
         let scan_pool = pool.clone();
-        Self::scan_images(config, scan_pool, products).await;
+        let running_scans = Self::scan_images(config, scan_pool, products).await;
+        drop(guard);
 
+        // wait for all jobs to be completed
+        running_scans.join_all().await;
+
+        // This is atomic and doesn't need to be in the lock
         if let Err(error) = DBScan::new(&pool, models::Phase::Succeeded).exec().await {
             tracing::warn!(%error, "Unable to set scans to finished");
         }
@@ -272,7 +282,13 @@ impl Scheduler {
         }
     }
 
-    async fn scan_images(config: Arc<Config>, pool: DataBase, products: Arc<RwLock<Notus>>) {
+    async fn scan_images(
+        config: Arc<Config>,
+        pool: DataBase,
+        products: Arc<RwLock<Notus>>,
+    ) -> JoinSet<()> {
+        let mut js = JoinSet::new();
+
         let scans = match DBImages::new(
             &pool,
             (config.image_max_scanning(), config.image_batch_size()),
@@ -283,11 +299,10 @@ impl Scheduler {
             Ok(x) => x,
             Err(error) => {
                 tracing::warn!(%error, "Unable to set images to running.");
-                return;
+                return js;
             }
         };
 
-        let mut js = JoinSet::new();
         for (id, credentials) in scans {
             let pool = pool.clone();
             let config = config.clone();
@@ -296,7 +311,7 @@ impl Scheduler {
                 Self::scan_image(config, pool.clone(), products, &id, credentials).await;
             });
         }
-        js.join_all().await;
+        js
     }
 
     pub async fn run(self) {
