@@ -115,9 +115,9 @@ jobs:
         run: |
           git tag
           if [[ "${{ env.RELEASE_REF }}" = "main" ]]; then
-            echo "LATEST_VERSION=$(git tag | grep "^v" | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
+            echo "LATEST_VERSION=$(git tag | sed -nE 's/^v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$/\1/p' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
           else
-            echo "LATEST_VERSION=$(git tag | grep "^${{ env.RELEASE_REF }}\." | sed 's/^v//' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
+            echo "LATEST_VERSION=$(git tag | grep "^${{ env.RELEASE_REF }}\." | sed -nE 's/^v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$/\1/p' | sort --version-sort | tail -n 1)" >> $GITHUB_ENV
           fi
       - name: "default LATEST_VERSION"
         run: |
@@ -134,7 +134,8 @@ jobs:
       - name: "NEW_VERSION"
         if: env.KIND != 'no_release'
         run: |
-          echo "NEW_VERSION=$(sh .github/enhance_version.sh ${{ env.LATEST_VERSION }} ${{ env.KIND }})" >> $GITHUB_ENV
+          NEW_VERSION=$(bash .github/enhance_version.sh "$LATEST_VERSION" "$KIND")
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
         # if version is set set docker-tag to latest
         # if not and branch is main then set to edge
         # if not and branch is not main then set to unknown
