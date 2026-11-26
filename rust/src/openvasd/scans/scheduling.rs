@@ -177,6 +177,9 @@ impl<T, C> ScanScheduler<T, C> {
         self.scan_state
             .change_state(id, "stopped", "requested")
             .await?;
+        self.scan_state
+            .change_state(id, "failed", "requested")
+            .await?;
 
         Ok(())
     }
@@ -741,6 +744,32 @@ pub(crate) mod tests {
             status.iter().filter(|s| s as &str == "requested").count(),
             status.len()
         );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn restart_interrupted_scan() -> anyhow::Result<()> {
+        let (under_test, known_scans, _guard) = setup_test_env().await?;
+        let id = known_scans[0];
+        let start = Message::Start(id.to_string());
+
+        under_test.on_user_action(&start).await?;
+        under_test.on_schedule().await?;
+        under_test.running_to_failed().await?;
+
+        let status: String = query_scalar("SELECT status FROM scans WHERE id = ?")
+            .bind(id)
+            .fetch_one(&under_test.pool)
+            .await?;
+        assert_eq!(status, "failed");
+
+        under_test.on_user_action(&start).await?;
+        let status: String = query_scalar("SELECT status FROM scans WHERE id = ?")
+            .bind(id)
+            .fetch_one(&under_test.pool)
+            .await?;
+        assert_eq!(status, "requested");
 
         Ok(())
     }
