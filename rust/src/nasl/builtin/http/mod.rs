@@ -179,7 +179,7 @@ impl NaslHttp2 {
         method: Method,
         handle: &mut Handle,
         tls: bool,
-    ) -> Result<(Parts, String), HttpError> {
+    ) -> Result<(Parts, Vec<u8>), HttpError> {
         let tcp = TcpStream::connect(format!("{ip_str}:{port}"))
             .await
             .map_err(HttpError::from)?;
@@ -230,7 +230,7 @@ impl NaslHttp2 {
         data: String,
         method: Method,
         handle: &mut Handle,
-    ) -> Result<(Parts, String), HttpError>
+    ) -> Result<(Parts, Vec<u8>), HttpError>
     where
         S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
     {
@@ -275,11 +275,11 @@ impl NaslHttp2 {
         // the data from memory.
         let mut flow_control = body.flow_control().clone();
 
-        let mut resp = String::new();
+        let mut resp = Vec::new();
         while let Some(chunk) = body.data().await {
             let chunk = chunk.map_err(HttpError::from)?;
 
-            resp.push_str(&String::from_utf8_lossy(&chunk));
+            resp.extend_from_slice(&chunk.to_vec());
             // Let the server send more data.
             let _ = flow_control.release_capacity(chunk.len());
         }
@@ -387,9 +387,20 @@ impl NaslHttp2 {
                 String::from_utf8_lossy(v.as_bytes())
             ))
         }
-        header_str.push_str("\r\n");
-        header_str.push_str(&body);
-        Ok(NaslValue::String(header_str))
+        match String::from_utf8(body.clone()) {
+            Ok(s) => {
+                header_str.push_str("\r\n");
+                header_str.push_str(&s);
+                Ok(NaslValue::String(header_str))
+            }
+            Err(_) => {
+                let mut vec = header_str.into_bytes();
+                let mut vec2 = "\r\n".to_string().into_bytes();
+                vec.append(&mut vec2);
+                vec.extend(&body);
+                Ok(NaslValue::Data(vec))
+            }
+        }
     }
 
     /// Wrapper function for GET request. See http2_req
@@ -548,8 +559,10 @@ impl NaslHttp2 {
             .find(|(_i, h)| h.handle_id == handle_id)
         {
             Some((_i, h)) => {
-                h.header_items
-                    .push((key.trim_start().trim_end().to_string(), val.trim_start().trim_end().to_string()));
+                h.header_items.push((
+                    key.trim_start().trim_end().to_string(),
+                    val.trim_start().trim_end().to_string(),
+                ));
                 Ok(NaslValue::Number(0))
             }
             _ => Err(HttpError::HandleIdNotFound(handle_id).into()),
