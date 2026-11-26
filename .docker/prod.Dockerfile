@@ -164,8 +164,19 @@ RUN apt-get update \
         python3-pip \
         python3-requests \
     && rm -rf /var/lib/apt/lists/*
-ARG PYPSRP_CLI_VERSION=v0.1.0
-RUN git clone --depth 1 --branch "${PYPSRP_CLI_VERSION}" https://github.com/greenbone/pypsrp-cli.git /tmp/pypsrp-cli \
+# "latest" resolves the newest tag at build time; set a tag (e.g. v0.1.1) to pin
+ARG PYPSRP_CLI_VERSION=latest
+RUN set -e; \
+  REPO=https://github.com/greenbone/pypsrp-cli.git; \
+  if [ "${PYPSRP_CLI_VERSION}" = "latest" ]; then \
+    PYPSRP_CLI_VERSION=$(git -c 'versionsort.suffix=-' ls-remote --tags --refs --sort='-v:refname' "$REPO" 'v*' \
+      | sed 's#.*refs/tags/##' \
+      | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+      | head -n1); \
+  fi; \
+  test -n "${PYPSRP_CLI_VERSION}"; \
+  echo "Installing pypsrp-cli ${PYPSRP_CLI_VERSION}"; \
+  git clone --depth 1 --branch "${PYPSRP_CLI_VERSION}" "$REPO" /tmp/pypsrp-cli \
     && python3 -m pip install --break-system-packages --no-cache-dir --root /install /tmp/pypsrp-cli \
     && test -x /install/usr/local/bin/pypsrp-cli \
     && rm -rf /tmp/pypsrp-cli
