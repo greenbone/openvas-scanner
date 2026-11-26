@@ -296,6 +296,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   int handle_id = get_int_var_by_name (lexic, "handle", -1);
   int timeout = get_int_var_by_name (lexic, "timeout", 0);
   struct string response, header_data;
+  CURLcode ret = CURLE_OK;
 
   if (item == NULL || port < 0 || handle_id < 0)
     {
@@ -377,7 +378,6 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
   char *ca_cert = handle_table[table_slot]->ca_cert;
   if (ca_cert)
     {
-      CURLcode ret;
       struct curl_blob ca_blob = {(void *) ca_cert, strlen (ca_cert),
                                   CURL_BLOB_COPY};
       curl_easy_setopt (handle, CURLOPT_SSL_VERIFYPEER, 1L);
@@ -460,7 +460,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
       break;
     }
 
-  int ret = CURLE_OK;
+  ret = CURLE_OK;
   if ((ret = curl_easy_perform (handle)) != CURLE_OK)
     {
       g_warning ("%s: Error sending request: %s", __func__,
@@ -473,7 +473,7 @@ _http2_req (lex_ctxt *lexic, KEYWORD keyword)
     }
 
   size_t total_len = header_data.len + response.len;
-  char *complete_resp = g_malloc0(sizeof(char) * total_len);
+  char *complete_resp = g_malloc0 (sizeof (char) * total_len);
   //  GString *complete_resp = g_string_new (header_data.ptr);
   memcpy (complete_resp, header_data.ptr, header_data.len);
   memcpy (complete_resp + header_data.len, response.ptr, response.len);
@@ -581,13 +581,8 @@ nasl_http2_set_custom_header (lex_ctxt *lexic)
           return NULL;
         }
     }
-  custom_header_aux =
+  handle_table[table_slot]->customheader =
     curl_slist_append (handle_table[table_slot]->customheader, headeritem);
-
-  if (custom_header_aux == NULL)
-    return NULL;
-  curl_slist_free_all (handle_table[table_slot]->customheader);
-  handle_table[table_slot]->customheader = custom_header_aux;
 
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = 0;
