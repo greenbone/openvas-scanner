@@ -511,11 +511,11 @@ impl RedisCtx {
     ///   (which is especial and uses preferences id 0)
     pub fn redis_add_nvt(
         &mut self,
-        nvt: VTData,
+        nvt: &VTData,
         mtime: String,
-        hashsum: String,
+        hashsum: &str,
     ) -> RedisStorageResult<()> {
-        let filename = nvt.filename;
+        let filename = &nvt.filename;
         if !hashsum.is_empty() {
             let key_name = format!("sha256sums:{filename}");
             self.del(&key_name)?;
@@ -533,8 +533,8 @@ impl RedisCtx {
             return Ok(());
         };
 
-        let oid = nvt.oid;
-        let name = nvt.name;
+        let oid = &nvt.oid;
+        let name = &nvt.name;
         let required_keys = nvt.required_keys.join(", ");
         let mandatory_keys = nvt.mandatory_keys.join(", ");
         let excluded_keys = nvt.excluded_keys.join(", ");
@@ -548,14 +548,14 @@ impl RedisCtx {
             .collect::<Vec<String>>()
             .join("|");
         let category = (nvt.category as i64).to_string();
-        let family = nvt.family;
+        let family = &nvt.family;
 
         // Get the references
         let (cves, bids, xrefs) = Self::refs(&nvt.references);
 
         let key_name = format!("nvt:{oid}");
         let values = [
-            &filename,
+            filename,
             &required_keys,
             &mandatory_keys,
             &excluded_keys,
@@ -567,8 +567,8 @@ impl RedisCtx {
             &bids,
             &xrefs,
             &category,
-            &family,
-            &name,
+            family,
+            name,
         ];
         self.del(&key_name)?;
         self.rpush(&key_name, &values)?;
@@ -598,7 +598,7 @@ impl RedisCtx {
                 } else {
                     mtime.as_str()
                 },
-                &oid,
+                oid,
             ],
         )?;
 

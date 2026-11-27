@@ -11,7 +11,6 @@ use std::{
     sync::Arc,
 };
 
-use scannerlib::Promise;
 use scannerlib::feed::{HashSumFileItem, HashSumNameLoader, check_signature};
 use scannerlib::nasl::syntax::Loader;
 use scannerlib::notus::advisory_loader;
@@ -52,7 +51,9 @@ where
 
 pub trait Plugin: serde::Serialize {
     fn oid(&self) -> &str;
-    fn advisory(&self) -> Option<&VulnerabilityData>;
+    fn into_advisory(self) -> Option<VulnerabilityData>
+    where
+        Self: Sized;
     fn vulnerability_test(&self) -> Option<&VTData>;
     fn hashsum(&self) -> &str;
 }
@@ -62,7 +63,7 @@ impl Plugin for VTData {
         &self.oid
     }
 
-    fn advisory(&self) -> Option<&VulnerabilityData> {
+    fn into_advisory(self) -> Option<VulnerabilityData> {
         None
     }
 
@@ -84,7 +85,7 @@ impl Plugin for VulnerabilityData {
         &self.adv.oid
     }
 
-    fn advisory(&self) -> Option<&VulnerabilityData> {
+    fn into_advisory(self) -> Option<VulnerabilityData> {
         Some(self)
     }
 
@@ -154,9 +155,9 @@ pub async fn init(pool: DataBase, config: &Config) -> (orchestrator::Communicato
 }
 
 pub trait PluginStorer {
-    fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
-    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>>;
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
+    async fn prepare_feed(&self, hash: &FeedHash) -> Result<(), WorkerError>;
+    async fn store_hash(&self, hash: &FeedHash) -> Result<(), WorkerError>;
+    async fn store_plugins<T>(&self, hash: &FeedHash, plugin: Vec<T>) -> Result<(), WorkerError>
     where
         T: Plugin + Send + Sync + 'static;
 }
@@ -167,13 +168,25 @@ pub(crate) fn pending_hash(hash: &FeedHash) -> FeedHash {
     pending
 }
 
+async fn fill_batch<T>(rx: &mut tokio::sync::mpsc::Receiver<T>, size: usize) -> Vec<T> {
+    let mut batch = Vec::with_capacity(size);
+    loop {
+        let limit = size - batch.len();
+        if limit == 0 || rx.recv_many(&mut batch, limit).await == 0 {
+            return batch;
+        }
+    }
+}
+
 async fn synchronize_json<F, T, PS>(ps: &PS, hash: &FeedHash, f: F) -> Result<(), WorkerError>
 where
     F: Fn(std::sync::mpsc::Sender<T>) -> Result<(), WorkerError> + Send + 'static,
     T: Plugin + Send + Sync + 'static,
     PS: PluginStorer + Send + Sync + 'static,
 {
-    let (tx_async, mut rx_async) = tokio::sync::mpsc::channel::<T>(1);
+    const BATCH_SIZE: usize = 5000;
+
+    let (tx_async, mut rx_async) = tokio::sync::mpsc::channel::<T>(BATCH_SIZE);
 
     let (tx_blocking, rx_blocking) = std::sync::mpsc::channel::<T>();
 
@@ -189,8 +202,12 @@ where
 
     let serde_handler = tokio::task::spawn_blocking(move || f(tx_blocking));
 
-    while let Some(plugin) = rx_async.recv().await {
-        ps.store_plugin(hash, plugin).await?;
+    loop {
+        let batch = fill_batch(&mut rx_async, BATCH_SIZE).await;
+        if batch.is_empty() {
+            break;
+        }
+        ps.store_plugins(hash, batch).await?;
     }
 
     serde_handler
@@ -425,8 +442,8 @@ impl Plugin for VTDataMessage {
         self.item.oid()
     }
 
-    fn advisory(&self) -> Option<&VulnerabilityData> {
-        self.item.advisory()
+    fn into_advisory(self) -> Option<VulnerabilityData> {
+        self.item.into_advisory()
     }
 
     fn vulnerability_test(&self) -> Option<&VTData> {

@@ -16,7 +16,7 @@ pub async fn init(
     feed_status: orchestrator::Communicator,
 ) -> anyhow::Result<ScannerBridge> {
     let crypter = Arc::new(Crypter::from_config(&config.storage.to_sqlite_cfg(), &pool).await?);
-    let scheduler = scheduling::init(pool.clone(), crypter.clone(), config, feed_status).await?;
+    let scheduler = scheduling::init(pool.clone(), config, feed_status).await?;
     Ok(ScannerBridge::new(pool, crypter, Some(scheduler)))
 }
 
@@ -429,8 +429,6 @@ pub mod tests {
         let crypter = Arc::new(Crypter::from_config(&config.storage.to_sqlite_cfg(), &pool).await?);
         let (_, _, communicator) = orchestrator::Communicator::init();
         let scheduler = scheduling::init_with_scanner(
-            pool.clone(),
-            crypter.clone(),
             &config,
             scheduling::tests::scanner_succeeded().build(),
             communicator,

@@ -14,7 +14,7 @@ pub struct Port {
 }
 
 /// Range for ports to scan.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct PortRange {
     /// The required start port.
     ///

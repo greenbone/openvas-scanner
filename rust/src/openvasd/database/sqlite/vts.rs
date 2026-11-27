@@ -4,11 +4,11 @@
 
 use std::path::PathBuf;
 
+use crate::database::sqlite::insert_values_chunked;
 use crate::vts::FeedHashes;
 use crate::vts::Plugin;
 use async_trait::async_trait;
 use futures::StreamExt;
-use scannerlib::Promise;
 use scannerlib::models::{FeedType, VTData};
 use scannerlib::nasl::utils::mtime::{MtimeCheckError, MtimeStatus, compute_mtime};
 use scannerlib::notus::advisories::VulnerabilityData;
@@ -90,59 +90,76 @@ impl PluginFetcher for SqlPluginStorage {
 }
 
 impl PluginStorer for SqlPluginStorage {
-    fn prepare_feed(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
+    async fn prepare_feed(&self, hash: &FeedHash) -> Result<(), WorkerError> {
         let pending = crate::vts::pending_hash(hash);
-        self.store_hash(&pending)
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        query(
+            "INSERT INTO feed (hash, path, type) VALUES (?, ?, ?)
+         ON CONFLICT(type) DO UPDATE SET hash = excluded.hash, path = excluded.path",
+        )
+        .bind(&pending.hash)
+        .bind(pending.path.to_str().unwrap_or_default())
+        .bind(pending.typus.as_ref())
+        .execute(&mut *tx)
+        .await?;
+        query("DELETE FROM plugins WHERE feed_type = ?")
+            .bind(hash.typus.as_ref())
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        Ok(())
     }
 
-    fn store_plugin<T>(&self, hash: &FeedHash, plugin: T) -> Promise<Result<(), WorkerError>>
+    async fn store_plugins<T>(&self, hash: &FeedHash, plugins: Vec<T>) -> Result<(), WorkerError>
     where
         T: Plugin + Send + Sync + 'static,
     {
-        let pool = self.pool.clone();
-        let typus = hash.typus;
-        let plugin_feed = self.feed_root.clone();
-        Box::pin(async move {
-            let hashsum: String = plugin.hashsum().into();
-            let mtime = match (typus, plugin.vulnerability_test()) {
-                (FeedType::NASL, Some(vt)) => {
-                    compute_mtime(&plugin_feed.join(&vt.filename), Some(&hashsum))?
-                }
-                _ => 0,
-            };
-            let json = serde_json::to_vec(&plugin)?;
-            query(
-                r#" INSERT INTO plugins ( oid, json_blob, feed_type, hashsum, mtime) VALUES (?, ?, ?, ?, ?)"#,
-            )
-            .bind(plugin.oid())
-            .bind(&json)
-            .bind(typus.as_ref())
-            .bind(hashsum)
-            .bind(mtime)
-            .execute(&pool)
-            .await?;
+        // Prepare everything first, so the write lock is only held for the INSERTs
+        let rows = plugins
+            .iter()
+            .map(|p| {
+                let hashsum = p.hashsum();
+                let mtime = match (hash.typus, p.vulnerability_test()) {
+                    (FeedType::NASL, Some(vt)) => {
+                        compute_mtime(&self.feed_root.join(&vt.filename), Some(hashsum))?
+                    }
+                    _ => 0,
+                };
+                Ok((p.oid(), serde_json::to_vec(p)?, hashsum, mtime))
+            })
+            .collect::<Result<Vec<_>, WorkerError>>()?;
 
-            Ok(())
-        })
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        insert_values_chunked(
+            &mut *tx,
+            "INSERT INTO plugins (oid, json_blob, feed_type, hashsum, mtime) ",
+            |mut b, (oid, json, hashsum, mtime)| {
+                b.push_bind(*oid)
+                    .push_bind(json.as_slice())
+                    .push_bind(hash.typus.as_ref())
+                    .push_bind(*hashsum)
+                    .push_bind(*mtime);
+            },
+            &rows,
+            5,
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(())
     }
 
-    fn store_hash(&self, hash: &FeedHash) -> Promise<Result<(), WorkerError>> {
-        let pool = self.pool.clone();
-        let path = hash.path.to_str().unwrap_or_default().to_string();
-        let ht = hash.typus;
-        let hash = hash.hash.clone();
-        Box::pin(async move {
-            query(
-                "INSERT INTO feed (hash, path, type) VALUES (?, ?, ?)
+    async fn store_hash(&self, hash: &FeedHash) -> Result<(), WorkerError> {
+        let path = hash.path.to_str().unwrap_or_default();
+        query(
+            "INSERT INTO feed (hash, path, type) VALUES (?, ?, ?)
                  ON CONFLICT(type) DO UPDATE SET hash = excluded.hash, path = excluded.path",
-            )
-            .bind(hash)
-            .bind(path)
-            .bind(ht.as_ref())
-            .execute(&pool)
-            .await?;
-            Ok(())
-        })
+        )
+        .bind(&hash.hash)
+        .bind(path)
+        .bind(hash.typus.as_ref())
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }
 
@@ -230,7 +247,7 @@ impl Retriever<FileName> for SqlPluginStorage {
 }
 
 impl orchestrator::Worker for FeedSynchronizer {
-    fn cached_hashes(&self) -> Promise<Result<Option<FeedHashes>, orchestrator::WorkerError>> {
+    async fn cached_hashes(&self) -> Result<Option<FeedHashes>, orchestrator::WorkerError> {
         let mut fetched =
             query("SELECT hash FROM feed WHERE type = 'nasl' OR type = 'advisories' ORDER BY type")
                 .fetch(&self.pool);
@@ -241,26 +258,21 @@ impl orchestrator::Worker for FeedSynchronizer {
                 None
             }
         };
-        Box::pin(async move {
-            let rofl = (
-                transform(fetched.next().await),
-                transform(fetched.next().await),
-            );
-            Ok(match rofl {
-                (None, None) => None,
-                (advisories, nasl) => {
-                    Some((nasl.unwrap_or_default(), advisories.unwrap_or_default()))
-                }
-            })
+        let rofl = (
+            transform(fetched.next().await),
+            transform(fetched.next().await),
+        );
+        Ok(match rofl {
+            (None, None) => None,
+            (advisories, nasl) => Some((nasl.unwrap_or_default(), advisories.unwrap_or_default())),
         })
     }
 
-    fn update_feed(
+    async fn update_feed(
         &self,
         kind: FeedType,
         new_hash: String,
-    ) -> Promise<Result<(), orchestrator::WorkerError>> {
-        let ps = self.plugin_storer.clone();
+    ) -> Result<(), orchestrator::WorkerError> {
         let path = match kind {
             FeedType::Products | FeedType::Advisories => self.advisory_feed(),
             FeedType::NASL => self.plugin_feed(),
@@ -271,9 +283,7 @@ impl orchestrator::Worker for FeedSynchronizer {
             typus: kind,
         };
         let feed_integrity_check = self.signature_check;
-        Box::pin(
-            async move { crate::vts::synchronize_feed(&ps, feed_hash, feed_integrity_check).await },
-        )
+        crate::vts::synchronize_feed(&self.plugin_storer, feed_hash, feed_integrity_check).await
     }
 
     fn signature_check(&self) -> bool {
@@ -386,6 +396,36 @@ mod tests {
         let vts = feed.get_vts()?.collect::<Vec<_>>().await;
         let vts = vts.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
         assert!(!vts.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn resync_replaces_plugins() -> anyhow::Result<()> {
+        use orchestrator::Worker;
+        let (config, pool, _guard) = create_pool().await?;
+        let synchronizer = FeedSynchronizer::new(pool.clone(), &config);
+        let count = || async {
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM plugins")
+                .fetch_one(&pool)
+                .await
+        };
+
+        synchronizer
+            .update_feed(FeedType::NASL, "first".into())
+            .await?;
+        let first = count().await?;
+        assert!(first > 0);
+
+        // must not fail with a UNIQUE violation and must not duplicate anything
+        synchronizer
+            .update_feed(FeedType::NASL, "second".into())
+            .await?;
+        assert_eq!(count().await?, first);
+
+        let hash: String = sqlx::query_scalar("SELECT hash FROM feed WHERE type = 'nasl'")
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(hash, "second");
         Ok(())
     }
 }
