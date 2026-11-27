@@ -143,7 +143,7 @@ pub async fn insert_values_chunked<'args, T, E, F>(
 ) -> Result<(), sqlx::Error>
 where
     for<'e> &'e mut E: sqlx::Executor<'e, Database = Sqlite>,
-    F: for<'qb> FnMut(Separated<'qb, 'args, Sqlite, &'static str>, &'args T),
+    F: for<'qb> FnMut(Separated<'qb, Sqlite, &'static str>, &'args T),
 {
     if values.is_empty() {
         return Ok(());
@@ -233,7 +233,7 @@ impl SqliteConnectionContainer {
     pub async fn fetch_one<'a, F, A>(&'a mut self, q: F) -> Result<SqliteRow, sqlx::error::Error>
     where
         F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_one(c))
     }
@@ -242,7 +242,7 @@ impl SqliteConnectionContainer {
     where
         F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
         O: Send + Unpin,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
         (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_one(c))
@@ -255,7 +255,7 @@ impl SqliteConnectionContainer {
     where
         F: Fn() -> QueryScalar<'a, Sqlite, O, A>,
         O: Send + Unpin,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
         (O,): Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_all(c))
@@ -267,7 +267,7 @@ impl SqliteConnectionContainer {
     ) -> Result<Vec<O>, sqlx::error::Error>
     where
         F: Fn() -> QueryAs<'a, Sqlite, O, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
         O: Send + Unpin + for<'r> FromRow<'r, SqliteRow>,
     {
         retry_sql_connection_call!(self, |c| q().fetch_all(c))
@@ -279,7 +279,7 @@ impl SqliteConnectionContainer {
     ) -> Result<SqliteQueryResult, sqlx::error::Error>
     where
         F: Fn() -> Query<'a, Sqlite, A>,
-        A: 'a + IntoArguments<'a, Sqlite>,
+        A: 'a + IntoArguments<Sqlite>,
     {
         retry_sql_connection_call!(self, |c| q().execute(c))
     }
@@ -363,5 +363,92 @@ impl Drop for DbGuard {
                 tracing::warn!("failed to cleanup database: {e}");
             }
         }
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use std::str::FromStr;
+
+    use sqlx::{
+        Sqlite, SqlitePool, migrate::Migrator, pool::PoolOptions, sqlite::SqliteConnectOptions,
+    };
+
+    use crate::{
+        config::DBLocation,
+        database::sqlite::{DbGuard, MIGRATOR},
+    };
+
+    pub async fn create_test_pool(
+        name: &str,
+        migrator: &Migrator,
+        version: Option<i64>,
+    ) -> (SqlitePool, DbGuard) {
+        if let Some(parent) = DBLocation::InMemory.path(name).unwrap().parent() {
+            std::fs::create_dir_all(parent).expect("expected database directory in shm")
+        }
+
+        let options =
+            SqliteConnectOptions::from_str(&DBLocation::InMemory.sqlite_address(name).unwrap())
+                .unwrap()
+                .create_if_missing(true);
+
+        let pool = PoolOptions::<Sqlite>::new()
+            .connect_with(options)
+            .await
+            .expect("inmemory database must be available");
+
+        if let Some(version) = version {
+            migrator
+                .run_to(version, &pool)
+                .await
+                .expect("need migrated database scheme");
+        } else {
+            migrator
+                .run(&pool)
+                .await
+                .expect("need migrated database scheme");
+        };
+
+        let guard = DbGuard::new(pool.clone());
+        (pool, guard)
+    }
+
+    async fn create_pool_with_version(version: i64) -> (SqlitePool, DbGuard) {
+        create_test_pool("openvasd", &super::MIGRATOR, Some(version)).await
+    }
+
+    #[tokio::test]
+    async fn test_migration() {
+        // run all but the latest database migration
+        let (pool, _guard) = create_pool_with_version(20261001130000).await;
+
+        let id = sqlx::query("INSERT INTO client_scan_map (scan_id, client_id) VALUES (?, ?)")
+            .bind("scan1")
+            .bind("client1")
+            .execute(&pool)
+            .await
+            .unwrap()
+            .last_insert_rowid();
+
+        sqlx::query("INSERT INTO scans (id, auth_data, status, host_all, host_queued, host_alive, host_dead) VALUES (?, '', 'stored', 0, 0, 0, 0)")
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // run the rest of the migrations
+        MIGRATOR.run(&pool).await.unwrap();
+
+        let (oid, scan_id, client_id): (i64, String, String) =
+            sqlx::query_as("SELECT id, scan_id, client_id FROM scans WHERE id = ?")
+                .bind(id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+
+        assert_eq!(oid, id);
+        assert_eq!(scan_id, "scan1");
+        assert_eq!(client_id, "client1");
     }
 }
