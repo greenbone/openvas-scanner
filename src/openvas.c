@@ -261,8 +261,8 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
 
       if (process_credentials_json (json, &globals, &err) < 0)
         {
-          g_warning ("It was not possible to process multiple credentials: %s",
-                     err);
+          g_warning (
+            "There were some errors processing multiple credentials: %s", err);
           g_free (err);
         }
       // Cleanup credential json data

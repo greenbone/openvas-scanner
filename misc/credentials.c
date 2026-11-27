@@ -246,33 +246,13 @@ get_esxi_credential_password (credential_t *credential)
 }
 
 static gvm_hosts_t *
-create_host_list (cJSON *hosts)
+create_host_list (char *host)
 {
   gvm_hosts_t *host_list = NULL;
   GSList *unresolved;
 
-  if (hosts && cJSON_IsArray (hosts))
-    {
-      GString *hosts_s = NULL;
-      for (int i = 0; i < cJSON_GetArraySize (hosts); i++)
-        {
-          cJSON *host_item = cJSON_GetArrayItem (hosts, i);
-          char *host_value = cJSON_GetStringValue (host_item);
-          if (host_value == NULL || host_value[0] == '\0')
-            continue;
-
-          if (hosts_s == NULL)
-            hosts_s = g_string_new (host_value);
-          else
-            {
-              g_string_append (hosts_s, ",");
-              g_string_append (hosts_s, host_value);
-            }
-        }
-      if (hosts_s && hosts_s->len > 0)
-        host_list = gvm_hosts_new (hosts_s->str);
-      g_string_free (hosts_s, TRUE);
-    }
+  if (host && host[0] != '\0')
+    host_list = gvm_hosts_new (host);
 
   if (host_list == NULL)
     return host_list;
@@ -290,16 +270,15 @@ create_host_list (cJSON *hosts)
 }
 
 static int
-credential_ssh_new (cJSON *service, credential_t **credential)
+credential_ssh_new (cJSON *service, credential_t **credential, char *target)
 {
   ssh_credential_t *cred = g_malloc0 (sizeof (ssh_credential_t));
   cJSON *item;
   gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem (service, "hosts");
-  if (item)
+  if (target && target[0] != '\0')
     {
-      host_list = create_host_list (item);
+      host_list = create_host_list (target);
       if (host_list)
         cred->host_list = host_list;
     }
@@ -344,16 +323,15 @@ credential_ssh_new (cJSON *service, credential_t **credential)
 }
 
 static int
-credential_smb_new (cJSON *service, credential_t **credential)
+credential_smb_new (cJSON *service, credential_t **credential, char *target)
 {
   smb_credential_t *cred = g_malloc0 (sizeof (smb_credential_t));
   cJSON *item;
   gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem (service, "hosts");
-  if (item)
+  if (target && target[0] != '\0')
     {
-      host_list = create_host_list (item);
+      host_list = create_host_list (target);
       if (host_list)
         cred->host_list = host_list;
     }
@@ -378,16 +356,15 @@ credential_smb_new (cJSON *service, credential_t **credential)
 }
 
 static int
-credential_esxi_new (cJSON *service, credential_t **credential)
+credential_esxi_new (cJSON *service, credential_t **credential, char *target)
 {
   esxi_credential_t *cred = g_malloc0 (sizeof (esxi_credential_t));
   cJSON *item;
   gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem (service, "hosts");
-  if (item)
+  if (target && target[0] != '\0')
     {
-      host_list = create_host_list (item);
+      host_list = create_host_list (target);
       if (host_list)
         cred->host_list = host_list;
     }
@@ -413,19 +390,19 @@ credential_esxi_new (cJSON *service, credential_t **credential)
 }
 
 static int
-credential_snmp_new (cJSON *service, credential_t **credential)
+credential_snmp_new (cJSON *service, credential_t **credential, char *target)
 {
   snmp_credential_t *cred = g_malloc0 (sizeof (snmp_credential_t));
   cJSON *item;
   gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem (service, "hosts");
-  if (item)
+  if (target && target[0] != '\0')
     {
-      host_list = create_host_list (item);
+      host_list = create_host_list (target);
       if (host_list)
         cred->host_list = host_list;
     }
+
   item = cJSON_GetObjectItem (service, "snmp");
   if (item && cJSON_IsObject (item))
     {
@@ -452,16 +429,15 @@ credential_snmp_new (cJSON *service, credential_t **credential)
 }
 
 static int
-credential_krb5_new (cJSON *service, credential_t **credential)
+credential_krb5_new (cJSON *service, credential_t **credential, char *target)
 {
   krb5_credential_t *cred = g_malloc0 (sizeof (krb5_credential_t));
   cJSON *item;
   gvm_hosts_t *host_list = NULL;
 
-  item = cJSON_GetObjectItem (service, "hosts");
-  if (item)
+  if (target && target[0] != '\0')
     {
-      host_list = create_host_list (item);
+      host_list = create_host_list (target);
       if (host_list)
         cred->host_list = host_list;
     }
@@ -527,13 +503,82 @@ get_esxi_credential_count (void)
   return esxi_credential_count;
 }
 
+static int
+credential_new (cJSON *service_obj, char *service, char *host_value,
+                struct scan_globals **globals)
+{
+  credential_t *credential = g_malloc0 (sizeof (credential_t));
+
+  int ret = 0;
+  if (!g_strcmp0 (service, "ssh"))
+    {
+      ret = credential_ssh_new (service_obj, &credential, host_value);
+      if (ret == 0 && credential->ssh_credential->private_key != NULL
+          && credential->ssh_credential->private_key[0] != '\0')
+        {
+          char *file_uuid = gvm_uuid_make ();
+          if (store_file (*globals, credential->ssh_credential->private_key,
+                          file_uuid))
+            {
+              g_free (file_uuid);
+              g_debug ("%s: Failed to parse file tipe private key.",
+
+                       __func__);
+            }
+          else
+            {
+              credential->ssh_credential->private_key_uuid = file_uuid;
+            }
+        }
+    }
+  else if (!g_strcmp0 (service, "smb"))
+    {
+      ret = credential_smb_new (service_obj, &credential, host_value);
+    }
+  else if (!g_strcmp0 (service, "esxi"))
+    {
+      ret = credential_esxi_new (service_obj, &credential, host_value);
+    }
+  else if (!g_strcmp0 (service, "snmp"))
+    {
+      ret = credential_snmp_new (service_obj, &credential, host_value);
+    }
+  else if (!g_strcmp0 (service, "krb5"))
+    {
+      ret = credential_krb5_new (service_obj, &credential, host_value);
+    }
+  else
+    {
+      g_free (credential);
+      g_warning ("%s: Unknown credential service type %s", __func__, service);
+      ret = 1;
+    }
+  if (ret == 0)
+    (*globals)->credentials =
+      g_slist_append ((*globals)->credentials, credential);
+  else
+    {
+      g_free (credential);
+      g_warning ("%s: not possible to parse a credential. Missing information",
+                 __func__);
+    }
+
+  if (ret != 0)
+    return 1;
+
+  return ret;
+}
+
+/** @brief Parse a string in json format and stored the credentials
+ *         Returns 0 on success, -1 on error.
+ */
 int
 process_credentials_json (const char *json_credentials,
                           struct scan_globals **globals, char **err)
 {
   cJSON *parser;
   cJSON *service_obj = NULL;
-  int ret = 0;
+  int total_err = 0, ret = 0;
 
   reset_credential_counters ();
 
@@ -557,68 +602,41 @@ process_credentials_json (const char *json_credentials,
     if (service_obj != NULL)
       {
         char *service = gvm_json_obj_str (service_obj, "service");
-        credential_t *credential = g_malloc0 (sizeof (credential_t));
+        cJSON *target = NULL;
         ret = 0;
-        if (!g_strcmp0 (service, "ssh"))
-          {
-            ret = credential_ssh_new (service_obj, &credential);
-            if (ret == 0 && credential->ssh_credential->private_key != NULL
-                && credential->ssh_credential->private_key[0] != '\0')
-              {
-                char *file_uuid = gvm_uuid_make ();
-                if (store_file (*globals,
-                                credential->ssh_credential->private_key,
-                                file_uuid))
-                  {
-                    g_free (file_uuid);
-                    g_debug ("%s: Failed to parse file tipe private key.",
 
-                             __func__);
-                  }
-                else
-                  {
-                    credential->ssh_credential->private_key_uuid = file_uuid;
-                  }
+        target = cJSON_GetObjectItem (service_obj, "hosts");
+        if (target && cJSON_IsArray (target))
+          {
+            for (int i = 0; i < cJSON_GetArraySize (target); i++)
+              {
+                cJSON *host_item = cJSON_GetArrayItem (target, i);
+                char *host_value = cJSON_GetStringValue (host_item);
+
+                if (host_value == NULL || host_value[0] == '\0')
+                  continue;
+                ret =
+                  credential_new (service_obj, service, host_value, globals);
+                total_err += ret;
               }
           }
-        else if (!g_strcmp0 (service, "smb"))
-          {
-            ret = credential_smb_new (service_obj, &credential);
-          }
-        else if (!g_strcmp0 (service, "esxi"))
-          {
-            ret = credential_esxi_new (service_obj, &credential);
-          }
-        else if (!g_strcmp0 (service, "snmp"))
-          {
-            ret = credential_snmp_new (service_obj, &credential);
-          }
-        else if (!g_strcmp0 (service, "krb5"))
-          {
-            ret = credential_krb5_new (service_obj, &credential);
-          }
         else
           {
-            g_free (credential);
-            g_warning ("%s: Unknown credential service type %s", __func__,
-                       service);
-            continue;
-          }
-        if (ret == 0)
-          (*globals)->credentials =
-            g_slist_append ((*globals)->credentials, credential);
-        else
-          {
-            g_free (credential);
-            g_warning (
-              "%s: not possible to parse a credential. Missing information",
-              __func__);
+            ret = credential_new (service_obj, service, NULL, globals);
+            total_err += ret;
           }
       }
   }
 
 res_cleanup:
   cJSON_Delete (parser);
+
+  if (total_err > 0)
+    {
+      g_warning ("%s: %d errors were found during credential parsing", __func__,
+                 total_err);
+      ret = -1;
+    }
 
   return ret;
 }
