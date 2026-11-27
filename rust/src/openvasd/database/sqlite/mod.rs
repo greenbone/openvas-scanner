@@ -353,7 +353,11 @@ impl Drop for DbGuard {
         let keep_failed_db =
             std::thread::panicking() && std::env::var("KEEP_TEST_DB").is_ok_and(|x| x == "true");
 
-        if !keep_failed_db && let Some(path) = self.pool.connect_options().get_filename().parent() {
+        // scanner and container-image-scanner share the same parent directory in /dev/shm
+        if !keep_failed_db
+            && let Some(path) = self.pool.connect_options().get_filename().parent()
+            && path.starts_with("/dev/shm/")
+        {
             let active_connections = self.pool.size().saturating_sub(self.pool.num_idle() as u32);
             if active_connections > 0 {
                 tracing::debug!(active_connections, "DB connections active at shutdown");
