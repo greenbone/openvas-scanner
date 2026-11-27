@@ -183,6 +183,7 @@ pub mod tests {
                 service,
                 port,
                 credential_type,
+                hosts: None,
             })
             .collect()
     }

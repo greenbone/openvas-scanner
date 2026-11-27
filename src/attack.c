@@ -12,6 +12,7 @@
 
 #include "attack.h"
 
+#include "../misc/credentials.h"
 #include "../misc/ipc_openvas.h"
 #include "../misc/kb_cache.h"
 #include "../misc/network.h"        /* for auth_printf */
@@ -563,6 +564,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   struct scheduler_plugin *plugin;
   pid_t parent;
 
+  override_host_credentials (globals, args->host);
+
   addr6_to_str (ip, ip_str);
   host_kb = args->host_kb;
   host_vhosts = args->host->vhosts;
@@ -1080,7 +1083,7 @@ set_alive_detection_tid (pthread_t tid)
   alive_detection_tid = tid;
 }
 static pthread_t
-get_alive_detection_tid ()
+get_alive_detection_tid (void)
 {
   return alive_detection_tid;
 }
@@ -1112,7 +1115,7 @@ handle_scan_stop_signal ()
 }
 
 static void
-scan_stop_cleanup ()
+scan_stop_cleanup (void)
 {
   kb_t main_kb = NULL;
   char *pid;
