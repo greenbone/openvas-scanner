@@ -157,7 +157,7 @@ where
 
     pub fn host_detail(image: T, digest: T, detail: DetailPair) -> Self {
         Self::new(
-            models::ResultType::Log,
+            models::ResultType::HostDetail,
             Some(image),
             Some(digest),
             "Host Detail".into(),
@@ -237,7 +237,7 @@ mod test {
     }
 
     #[test]
-    fn host_detail_is_reported_as_log_with_image_name() {
+    fn host_detail_is_reported_as_host_detail_with_image_name() {
         let image: Image = "registry.example/my/image:latest"
             .parse()
             .expect("valid image");
@@ -248,7 +248,7 @@ mod test {
             CustomerMessage::host_detail(image.clone(), digest, DetailPair::HostName(&image))
                 .into();
 
-        assert_eq!(result.r_type, models::ResultType::Log);
+        assert_eq!(result.r_type, models::ResultType::HostDetail);
         assert_eq!(result.hostname.as_deref(), Some(image_name.as_str()));
         assert_eq!(
             result.detail.as_ref().map(|detail| detail.name.as_str()),
