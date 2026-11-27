@@ -8,10 +8,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use crate::models::HostInfo;
+use crate::models::{self, HostInfo, ResultType};
 use crate::nasl::ScanCtx;
-use crate::nasl::utils::ctx::TargetId;
+use crate::nasl::utils::ctx::{TargetId, TargetKind};
 use crate::nasl::utils::mtime::MtimeStatus;
+use chrono::Utc;
 use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 use tracing::warn;
@@ -80,6 +81,41 @@ async fn run_vt_checked(
     }
 }
 
+fn host_status_result(r_type: ResultType, target: TargetId, scan_ctx: &ScanCtx) -> models::Result {
+    let target = scan_ctx.target_by_id(target);
+    let hostname = match target.kind() {
+        TargetKind::Hostname => Some(target.original_target_str().to_string()),
+        TargetKind::IpAddr => None,
+    };
+    models::Result {
+        id: 0,
+        r_type,
+        ip_address: Some(target.ip_addr().to_string()),
+        hostname,
+        oid: None,
+        port: None,
+        protocol: None,
+        message: Some(Utc::now().timestamp().to_string()),
+        detail: None,
+    }
+}
+
+async fn dispatch_host_status(r_type: ResultType, target: TargetId, scan_ctx: &ScanCtx) {
+    let result = host_status_result(r_type.clone(), target, scan_ctx);
+    if let Err(e) = scan_ctx
+        .storage()
+        .retry_dispatch(scan_ctx.scan().clone(), result, 5)
+        .await
+    {
+        warn!(
+            error=?e,
+            host = scan_ctx.target_by_id(target).original_target_str(),
+            ?r_type,
+            "unable to dispatch host status result"
+        );
+    }
+}
+
 fn max_parallel_hosts(preference: Option<i64>) -> usize {
     match preference {
         Some(n) if n > 0 => usize::try_from(n).unwrap_or(DEFAULT_MAX_HOSTS),
@@ -129,12 +165,13 @@ impl ScanRunner {
     }
 
     pub fn host_info(&self) -> HostInfo {
+        let num_vts: usize = self.concurrent_vts.iter().map(|(_, vts)| vts.len()).sum();
         HostInfo::from_hosts_and_num_vts(
             self.scan_ctx
                 .targets()
                 .iter()
                 .map(|target| target.original_target_str()),
-            self.concurrent_vts.len(),
+            num_vts,
         )
     }
 
@@ -144,7 +181,9 @@ impl ScanRunner {
     /// and a slot is free.
     ///
     /// For each host the VTs run strictly in schedule order, so the
-    /// scheduling requirements hold for every host. `on_result` is called,
+    /// scheduling requirements hold for every host. `on_host_start` is called
+    /// with the host's original target string right before its `HostStart`
+    /// result is dispatched. `on_result` is called,
     /// from the host's task, with the result of every VT; no ordering is
     /// guaranteed between results of different hosts. When `keep_running`
     /// becomes false no further VT or host is started; a VT that is
@@ -152,10 +191,17 @@ impl ScanRunner {
     /// aborts the host tasks.
     ///
     /// Returns the number of host tasks that panicked.
-    pub async fn run<F, Fut>(self, keep_running: Arc<AtomicBool>, on_result: F) -> usize
+    pub async fn run<F, Fut, S, SFut>(
+        self,
+        keep_running: Arc<AtomicBool>,
+        on_host_start: S,
+        on_result: F,
+    ) -> usize
     where
         F: Fn(Result<ScriptResult, ExecuteError>) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send,
+        S: Fn(String) -> SFut + Send + Sync + 'static,
+        SFut: Future<Output = ()> + Send,
     {
         let ScanRunner {
             concurrent_vts,
@@ -164,6 +210,7 @@ impl ScanRunner {
             max_hosts,
         } = self;
         let on_result = Arc::new(on_result);
+        let on_host_start = Arc::new(on_host_start);
         let mut hosts = JoinSet::new();
         let mut panicked = 0;
         let mut count_panic = |res: Result<(), tokio::task::JoinError>| {
@@ -192,10 +239,21 @@ impl ScanRunner {
             let concurrent_vts = concurrent_vts.clone();
             let scan_ctx = scan_ctx.clone();
             let on_result = on_result.clone();
+            let on_host_start = on_host_start.clone();
             let keep_running = keep_running.clone();
             hosts.spawn(async move {
+                on_host_start(
+                    scan_ctx
+                        .target_by_id(host)
+                        .original_target_str()
+                        .to_string(),
+                )
+                .await;
+                dispatch_host_status(ResultType::HostStart, host, &scan_ctx).await;
+                let mut completed = true;
                 for pos in host_positions(host, &concurrent_vts) {
                     if !keep_running.load(Ordering::SeqCst) {
+                        completed = false;
                         break;
                     }
                     let (stage, vts) = &concurrent_vts[pos.stage];
@@ -203,6 +261,9 @@ impl ScanRunner {
                     let result =
                         run_vt_checked(pos.target, vt, *stage, param.as_ref(), &scan_ctx).await;
                     on_result(result).await;
+                }
+                if completed {
+                    dispatch_host_status(ResultType::HostEnd, host, &scan_ctx).await;
                 }
             });
         }

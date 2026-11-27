@@ -48,7 +48,7 @@ pub trait Snapshottable: Serialize {
 
     /// The redactions (in insta format) to be performed
     /// before writing the snapshot.
-    fn redactions() -> Vec<String> {
+    fn redactions(&self) -> Vec<String> {
         vec![]
     }
 }
@@ -72,7 +72,7 @@ impl<S: Snapshottable> Snapshot<S> {
         } = self;
         let mut settings = insta::Settings::clone_current();
         settings.set_prepend_module_to_snapshot(false);
-        for redaction in S::redactions() {
+        for redaction in inner.redactions() {
             settings.add_redaction(&redaction, "[redacted]");
         }
         let name = if name.is_empty() {
@@ -134,7 +134,7 @@ impl Serialize for ResponseSnapshot {
 }
 
 impl Snapshottable for ResponseSnapshot {
-    fn redactions() -> Vec<String> {
+    fn redactions(&self) -> Vec<String> {
         vec![".headers.date".into(), ".headers[\"feed-version\"]".into()]
     }
 }
